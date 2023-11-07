@@ -34,8 +34,11 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/common/events"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -89,6 +92,7 @@ type AgentReconciler struct {
 	AgentContainerImage        string
 	HostFSMountDir             string
 	reclaimer                  *agentReclaimer
+	EventSender                eventsapi.Sender
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
@@ -484,6 +488,31 @@ func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1b
 	return r.SpokeK8sClientFactory.CreateFromSecret(secret)
 }
 
+func (r *AgentReconciler) notifyNumberOfReboots(ctx context.Context, h *models.Host, node *corev1.Node, clusterRef *aiv1beta1.ClusterReference) error {
+	if !isNodeReady(node) {
+		return nil
+	}
+	secret, err := spokeKubeconfigSecret(ctx, r.Log, r.Client, r.APIReader, clusterRef)
+	if err != nil {
+		r.Log.WithError(err).Errorf("failed to get spoke secret for cluster %s/%s", clusterRef.Namespace, clusterRef.Name)
+		return err
+	}
+	kubeconfig, err := spoke_k8s_client.KubeconfigFromSecret(secret)
+	if err != nil {
+		r.Log.WithError(err).Errorf("failed to get kubeconfig from secret for cluster %s/%s", clusterRef.Namespace, clusterRef.Name)
+		return err
+	}
+	dbg := oc.NewDebug(kubeconfig)
+	reboots, err := dbg.RebootsForNode(node.Name)
+	if err != nil {
+		r.Log.WithError(err).Errorf("failed to get number of reboots for node %s, cluster %s/%s", node.Name,
+			clusterRef.Namespace, clusterRef.Name)
+		return err
+	}
+	events.SendRebootsForNodeEvent(ctx, r.EventSender, *h.ID, node.Name, h.InfraEnvID, h.ClusterID, int64(reboots))
+	return nil
+}
+
 // Attempt to approve CSRs for agent. If already approved then the node will be marked as done
 // requeue means that approval will be attempted again
 func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent, node *corev1.Node, client spoke_k8s_client.SpokeK8sClient) {
@@ -786,6 +815,9 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				if err = r.applyDay2NodeLabels(ctx, log, agent, node, spokeClient); err != nil {
 					log.WithError(err).Errorf("Failed to apply labels for day2 node %s/%s", agent.Namespace, agent.Name)
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+				}
+				if err = r.notifyNumberOfReboots(ctx, h, node, agent.Spec.ClusterDeploymentName); err != nil {
+					log.WithError(err).Errorf("Failed to notify number of reboots for day2 node %s/%s", agent.Namespace, agent.Name)
 				}
 				if err = r.UpdateDay2InstallPogress(ctx, h, agent, node); err != nil {
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
