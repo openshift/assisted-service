@@ -27,7 +27,7 @@ func (p noneProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfig
 
 		bootstrap := common.GetBootstrapHost(cluster)
 		if bootstrap != nil {
-			cfg.BootstrapInPlace = installcfg.BootstrapInPlace{InstallationDisk: hostutil.GetHostInstallationPath(bootstrap)}
+			cfg.BootstrapInPlace = &installcfg.BootstrapInPlace{InstallationDisk: hostutil.GetHostInstallationPath(bootstrap)}
 		}
 	}
 
