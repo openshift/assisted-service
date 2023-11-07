@@ -121,7 +121,8 @@ function wait_for_object_amount() {
 function wait_for_cmd_amount() {
     amount="$1"
     interval="$2"
-    cmd="$3"
+    shift 2
+    cmd=$@
 
     until [ $(${cmd} | wc -l) -eq ${amount} ]; do
         sleep ${interval}
