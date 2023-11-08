@@ -66,6 +66,7 @@ func SetupCORSMiddleware(handler http.Handler, domains []string) http.Handler {
 			http.MethodPost,
 			http.MethodPut,
 			http.MethodHead,
+			http.MethodOptions,
 		},
 		AllowedOrigins: domains,
 		AllowedHeaders: []string{
