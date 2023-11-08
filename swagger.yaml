@@ -4064,6 +4064,7 @@ definitions:
       - 'EXTERNAL_PLATFORM_OCI'
       - 'DUAL_STACK'
       - 'PLATFORM_MANAGED_NETWORKING'
+      - 'SKIP_MCO_REBOOT'
 
   architecture-support-level-id:
     type: string

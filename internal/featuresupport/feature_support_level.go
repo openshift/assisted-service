@@ -16,6 +16,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDSINGLENODEEXPANSION: (&SingleNodeExpansionFeature{}).New(),
 	models.FeatureSupportLevelIDMINIMALISO:          (&MinimalIso{}).New(),
 	models.FeatureSupportLevelIDFULLISO:             (&FullIso{}).New(),
+	models.FeatureSupportLevelIDSKIPMCOREBOOT:       &skipMcoReboot{},
 
 	// Network features
 	models.FeatureSupportLevelIDVIPAUTOALLOC:              (&VipAutoAllocFeature{}).New(),

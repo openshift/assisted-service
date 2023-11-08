@@ -7574,7 +7574,8 @@ func init() {
         "FULL_ISO",
         "EXTERNAL_PLATFORM_OCI",
         "DUAL_STACK",
-        "PLATFORM_MANAGED_NETWORKING"
+        "PLATFORM_MANAGED_NETWORKING",
+        "SKIP_MCO_REBOOT"
       ]
     },
     "free-addresses-list": {
@@ -18031,7 +18032,8 @@ func init() {
         "FULL_ISO",
         "EXTERNAL_PLATFORM_OCI",
         "DUAL_STACK",
-        "PLATFORM_MANAGED_NETWORKING"
+        "PLATFORM_MANAGED_NETWORKING",
+        "SKIP_MCO_REBOOT"
       ]
     },
     "free-addresses-list": {

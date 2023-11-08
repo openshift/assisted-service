@@ -197,18 +197,18 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			for _, platform := range platforms {
 				p := platform
 				list := GetFeatureSupportList("dummy", nil, &p)
-				Expect(len(list)).To(Equal(16))
+				Expect(len(list)).To(Equal(17))
 			}
 		})
 
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil, nil)
-			Expect(len(list)).To(Equal(20))
+			Expect(len(list)).To(Equal(21))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil, nil)
-			Expect(len(list)).To(Equal(20))
+			Expect(len(list)).To(Equal(21))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
