@@ -14,21 +14,34 @@ type Platform struct {
 	External  *ExternalInstallConfigPlatform  `json:"external,omitempty"`
 }
 
+type BMC struct {
+	Username                       string `json:"username"`
+	Password                       string `json:"password"`
+	Address                        string `json:"address"`
+	DisableCertificateVerification bool   `json:"disableCertificateVerification"`
+}
+
 type Host struct {
-	Name           string `json:"name"`
-	Role           string `json:"role"`
-	BootMACAddress string `json:"bootMACAddress"`
-	BootMode       string `json:"bootMode"`
+	Name            string `json:"name"`
+	Role            string `json:"role"`
+	BootMACAddress  string `json:"bootMACAddress"`
+	BootMode        string `json:"bootMode"`
+	BMC             BMC    `json:"bmc"`
+	HardwareProfile string `json:"hardwareProfile"`
 }
 
 type BareMetalInstallConfigPlatform struct {
-	ProvisioningNetwork  string   `json:"provisioningNetwork"`
-	APIVIPs              []string `json:"apiVIPs,omitempty"`
-	DeprecatedAPIVIP     string   `json:"apiVIP,omitempty"`
-	IngressVIPs          []string `json:"ingressVIPs,omitempty"`
-	DeprecatedIngressVIP string   `json:"ingressVIP,omitempty"`
-	Hosts                []Host   `json:"hosts"`
-	ClusterOSImage       string   `json:"clusterOSImage,omitempty"`
+	ProvisioningNetwork          string   `json:"provisioningNetwork"`
+	APIVIPs                      []string `json:"apiVIPs,omitempty"`
+	DeprecatedAPIVIP             string   `json:"apiVIP,omitempty"`
+	IngressVIPs                  []string `json:"ingressVIPs,omitempty"`
+	DeprecatedIngressVIP         string   `json:"ingressVIP,omitempty"`
+	Hosts                        []Host   `json:"hosts"`
+	ClusterOSImage               string   `json:"clusterOSImage,omitempty"`
+	ClusterProvisioningIP        string   `json:"clusterProvisioningIP,omitempty"`
+	ProvisioningNetworkInterface string   `json:"provisioningNetworkInterface,omitempty"`
+	ProvisioningNetworkCIDR      *string  `json:"provisioningNetworkCIDR,omitempty"`
+	ProvisioningDHCPRange        string   `json:"provisioningDHCPRange,omitempty"`
 }
 
 type VsphereFailureDomainTopology struct {
