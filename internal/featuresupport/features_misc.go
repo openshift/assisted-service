@@ -249,3 +249,45 @@ func (feature *FullIso) getFeatureActiveLevel(_ *common.Cluster, infraEnv *model
 	}
 	return activeLevelNotActive
 }
+
+// Skip MCO reboot
+type skipMcoReboot struct{}
+
+func (f *skipMcoReboot) New() SupportLevelFeature {
+	return &skipMcoReboot{}
+}
+
+func (f *skipMcoReboot) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDSKIPMCOREBOOT
+}
+
+func (f *skipMcoReboot) GetName() string {
+	return "Skip MCO reboot"
+}
+
+func (f *skipMcoReboot) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	enableSkipMcoReboot, err := common.BaseVersionGreaterOrEqual("4.15.0", filters.OpenshiftVersion)
+	if !enableSkipMcoReboot || err != nil {
+		return models.SupportLevelUnavailable
+	}
+	return models.SupportLevelSupported
+}
+
+func (f *skipMcoReboot) getIncompatibleFeatures(openshiftVersion string) *[]models.FeatureSupportLevelID {
+	return nil
+}
+
+func (f *skipMcoReboot) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (f *skipMcoReboot) getFeatureActiveLevel(cluster *common.Cluster, infraEnv *models.InfraEnv,
+	clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if cluster != nil {
+		active, err := common.BaseVersionGreaterOrEqual("4.15.0", cluster.OpenshiftVersion)
+		if err != nil || !active {
+			return activeLevelNotActive
+		}
+	}
+	return activeLevelActive
+}

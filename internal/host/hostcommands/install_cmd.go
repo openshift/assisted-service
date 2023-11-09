@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
@@ -114,7 +115,10 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		CheckCvo:             swag.Bool(i.instructionConfig.CheckClusterVersion),
 		InstallerImage:       swag.String(i.instructionConfig.InstallerImage),
 		BootDevice:           swag.String(bootdevice),
-		EnableSkipMcoReboot:  i.enableSkipMcoReboot,
+	}
+	if i.enableSkipMcoReboot {
+		request.EnableSkipMcoReboot = featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDSKIPMCOREBOOT,
+			cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))
 	}
 
 	// those flags are not used on day2 installation
