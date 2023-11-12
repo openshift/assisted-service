@@ -400,6 +400,7 @@ func handleIngressVipUpdateBackwardsCompatibility(cluster *common.Cluster, param
 }
 
 func handleApiVipUpdateBackwardsCompatibility(cluster *common.Cluster, params *models.V2ClusterUpdateParams) error {
+	// TEST CI
 	if cluster.APIVip != "" {
 		// APIVip was cleared and APIVips were not provided, clear both fields.
 		if params.APIVip != nil && swag.StringValue(params.APIVip) == "" && params.APIVips == nil {
