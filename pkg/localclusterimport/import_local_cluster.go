@@ -94,7 +94,7 @@ func (i *LocalClusterImport) createAgentClusterInstall(numberOfControlPlaneNodes
 				UserManagedNetworking: &userManagedNetworkingActive,
 			},
 			ClusterDeploymentRef: v1.LocalObjectReference{
-				Name: i.localClusterNamespace + "-cluster-deployment",
+				Name: i.localClusterNamespace,
 			},
 			ImageSetRef: &hivev1.ClusterImageSetReference{
 				Name: "local-cluster-image-set",
@@ -105,7 +105,7 @@ func (i *LocalClusterImport) createAgentClusterInstall(numberOfControlPlaneNodes
 		},
 	}
 	agentClusterInstall.Namespace = i.localClusterNamespace
-	agentClusterInstall.Name = i.localClusterNamespace + "-cluster-install"
+	agentClusterInstall.Name = i.localClusterNamespace
 	err := i.clusterImportOperations.CreateAgentClusterInstall(agentClusterInstall)
 	if err != nil {
 		i.log.Errorf("could not create AgentClusterInstall due to error %s", err.Error())
@@ -141,7 +141,7 @@ func (i *LocalClusterImport) createClusterDeployment(pullSecret *v1.Secret, dns 
 				AdminKubeconfigSecretRef: v1.LocalObjectReference{Name: fmt.Sprintf("%s-admin-kubeconfig", i.localClusterNamespace)},
 			},
 			ClusterInstallRef: &hivev1.ClusterInstallLocalReference{
-				Name:    i.localClusterNamespace + "-cluster-install",
+				Name:    i.localClusterNamespace,
 				Group:   "extensions.hive.openshift.io",
 				Kind:    "AgentClusterInstall",
 				Version: "v1beta1",
@@ -158,9 +158,9 @@ func (i *LocalClusterImport) createClusterDeployment(pullSecret *v1.Secret, dns 
 			},
 		},
 	}
-	clusterDeployment.Name = i.localClusterNamespace + "-cluster-deployment"
+	clusterDeployment.Name = i.localClusterNamespace
 	clusterDeployment.Namespace = i.localClusterNamespace
-	clusterDeployment.Spec.ClusterName = i.localClusterNamespace + "-cluster-deployment"
+	clusterDeployment.Spec.ClusterName = i.localClusterNamespace
 	clusterDeployment.Spec.BaseDomain = dns.Spec.BaseDomain
 	agentClusterInstallOwnerRef := metav1.OwnerReference{
 		Kind:       "AgentServiceConfig",

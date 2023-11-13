@@ -259,7 +259,7 @@ var _ = Describe("ImportLocalCluster", func() {
 					UserManagedNetworking: &userManagedNetworkingActive,
 				},
 				ClusterDeploymentRef: v1.LocalObjectReference{
-					Name: localClusterNamespace + "-cluster-deployment",
+					Name: localClusterNamespace,
 				},
 				ImageSetRef: &hivev1.ClusterImageSetReference{
 					Name: "local-cluster-image-set",
@@ -270,7 +270,7 @@ var _ = Describe("ImportLocalCluster", func() {
 			},
 		}
 		agentClusterInstall.Namespace = localClusterNamespace
-		agentClusterInstall.Name = localClusterNamespace + "-cluster-install"
+		agentClusterInstall.Name = localClusterNamespace
 		return agentClusterInstall
 	}
 
@@ -298,7 +298,7 @@ var _ = Describe("ImportLocalCluster", func() {
 					AdminKubeconfigSecretRef: v1.LocalObjectReference{Name: fmt.Sprintf("%s-admin-kubeconfig", localClusterNamespace)},
 				},
 				ClusterInstallRef: &hivev1.ClusterInstallLocalReference{
-					Name:    localClusterNamespace + "-cluster-install",
+					Name:    localClusterNamespace,
 					Group:   "extensions.hive.openshift.io",
 					Kind:    "AgentClusterInstall",
 					Version: "v1beta1",
@@ -315,9 +315,9 @@ var _ = Describe("ImportLocalCluster", func() {
 				},
 			},
 		}
-		clusterDeployment.Name = localClusterNamespace + "-cluster-deployment"
+		clusterDeployment.Name = localClusterNamespace
 		clusterDeployment.Namespace = localClusterNamespace
-		clusterDeployment.Spec.ClusterName = localClusterNamespace + "-cluster-deployment"
+		clusterDeployment.Spec.ClusterName = localClusterNamespace
 		clusterDeployment.Spec.BaseDomain = "foobar.local"
 		//
 		// Adding this ownership reference to ensure we can submit clusterDeployment without ManagedClusterSet/join permission
