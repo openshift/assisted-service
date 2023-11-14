@@ -1104,6 +1104,7 @@ var _ = Describe("newServiceMonitor", func() {
 		Expect(len(found.Spec.Endpoints)).To(Equal(1))
 		endpoint := found.Spec.Endpoints[0]
 		Expect(endpoint.TLSConfig.CAFile).To(Equal("/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt"))
+		Expect(endpoint.Scheme).To(Equal("https"))
 		Expect(endpoint.TLSConfig.ServerName).To(Equal("assisted-service.test-namespace.svc"))
 	})
 })

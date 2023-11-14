@@ -670,7 +670,8 @@ func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 
 		addAppLabel(serviceName, &sm.ObjectMeta)
 		sm.Spec.Endpoints = []monitoringv1.Endpoint{{
-			Port: serviceName,
+			Port:   serviceName,
+			Scheme: "https",
 			TLSConfig: &monitoringv1.TLSConfig{
 				CAFile: "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
 				SafeTLSConfig: monitoringv1.SafeTLSConfig{
