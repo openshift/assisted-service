@@ -381,7 +381,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 	infraEnvInternal, err := r.Installer.GetInfraEnvByKubeKey(key)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, cluster, infraEnv.Spec.AdditionalTrustBundle)
+			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, cluster)
 			if err != nil {
 				log.Errorf("fail to create InfraEnv: %s, ", infraEnv.Name)
 				return r.handleEnsureISOErrors(ctx, log, infraEnv, err, nil)
@@ -458,7 +458,7 @@ func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv 
 }
 
 func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName,
-	infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster, additionalTrustBundle string) (*common.InfraEnv, error) {
+	infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) (*common.InfraEnv, error) {
 
 	osImageVersion, err := r.getOSImageVersion(log, infraEnv, cluster)
 	if err != nil {
@@ -598,7 +598,7 @@ func (r *InfraEnvReconciler) populateEventsURL(log logrus.FieldLogger, infraEnv 
 	return nil
 }
 
-func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.InfraEnv, initrdURL, infraEnvID, version, arch string) error {
+func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.InfraEnv, initrdURL, infraEnvID string) error {
 	signedInitrdURL, err := signURL(initrdURL, r.AuthType, infraEnvID, gencrypto.InfraEnvKey)
 	if err != nil {
 		return err
@@ -707,7 +707,7 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 	}
 	if schemeUpdated || isoUpdated {
-		if err := r.setSignedBootArtifactURLs(infraEnv, bootArtifactURLs.InitrdURL, internalInfraEnv.ID.String(), *osImage.OpenshiftVersion, *osImage.CPUArchitecture); err != nil {
+		if err = r.setSignedBootArtifactURLs(infraEnv, bootArtifactURLs.InitrdURL, internalInfraEnv.ID.String()); err != nil {
 			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 		}
 	}
