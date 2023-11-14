@@ -2331,6 +2331,13 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	}
 
 	if params.ClusterUpdateParams.DiskEncryption != nil {
+		// Disk encryption settings for hosts in an imported cluster will be taken from the host ignition.
+		// So we should prevent update of this here and explain the problem to the user.
+		if swag.BoolValue(cluster.Imported) {
+			msg := fmt.Sprintf("cannot update cluster % s, it is not permitted to change disk encryption settings for an imported cluster", cluster.ID)
+			log.Error(msg)
+			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
+		}
 		if params.ClusterUpdateParams.DiskEncryption.EnableOn != nil {
 			updates["disk_encryption_enable_on"] = params.ClusterUpdateParams.DiskEncryption.EnableOn
 		}

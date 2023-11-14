@@ -14610,6 +14610,27 @@ var _ = Describe("TestRegisterCluster", func() {
 				Expect(swag.StringValue(c.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnMasters))
 				Expect(swag.StringValue(c.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTpmv2))
 			})
+
+			By("Update database to mark cluster as imported", func() {
+				response := db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Updates(map[string]interface{}{"imported": true})
+				Expect(response.Error).ToNot(HaveOccurred())
+			})
+
+			By("Should not allow update of encryption settings for imported cluster", func() {
+				reply := diskEncryptionBm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: *c.ID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						DiskEncryption: &models.DiskEncryption{
+							EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+							Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+						},
+					},
+				})
+				err := reply.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				expectedError := fmt.Sprintf("cannot update cluster % s, it is not permitted to change disk encryption settings for an imported cluster", c.ID)
+				Expect(err.Error()).To(ContainSubstring(expectedError))
+			})
 		})
 	})
 

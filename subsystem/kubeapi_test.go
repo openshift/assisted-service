@@ -4536,13 +4536,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Add Day 2 host")
 		configureLocalAgentClient(infraEnv.ID.String())
 		day2Host1 := registerNode(ctx, *infraEnv.ID, "firsthostnameday2", ips[3])
-		generateApiVipPostStepReply(ctx, day2Host1, true)
+		generateApiVipPostStepReply(ctx, day2Host1, &cluster.Cluster, true)
 		generateFullMeshConnectivity(ctx, ips[3], day2Host1)
 		generateDomainResolution(ctx, day2Host1, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Add a second Day 2 host")
 		day2Host2 := registerNode(ctx, *infraEnv.ID, "secondhostnameday2", ips[4])
-		generateApiVipPostStepReply(ctx, day2Host2, true)
+		generateApiVipPostStepReply(ctx, day2Host2, &cluster.Cluster, true)
 		generateFullMeshConnectivity(ctx, ips[4], day2Host2)
 		generateDomainResolution(ctx, day2Host2, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
