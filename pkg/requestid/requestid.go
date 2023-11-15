@@ -34,15 +34,6 @@ func Transport(inner http.RoundTripper) http.RoundTripper {
 	return transport{inner: inner}
 }
 
-// ApplyTransport injects the request-id transport to an http client
-func ApplyTransport(client *http.Client) {
-	inner := client.Transport
-	if inner == nil {
-		inner = http.DefaultTransport
-	}
-	client.Transport = Transport(inner)
-}
-
 // FromContext returns the request id stored in the the context
 func FromContext(ctx context.Context) string {
 	requestID := ctx.Value(ctxKey)

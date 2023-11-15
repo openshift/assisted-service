@@ -1938,10 +1938,6 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 	return res, nil
 }
 
-func QuoteSshPublicKeys(sshPublicKeys string) string {
-	return strings.ReplaceAll(sshPublicKeys, "\n", `", "`)
-}
-
 func getUserSSHKey(sshKey string) (string, error) {
 	keys := buildUserSshKeysSlice(sshKey)
 	if len(keys) == 0 {

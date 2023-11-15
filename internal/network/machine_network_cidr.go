@@ -623,15 +623,6 @@ func IpInFreeList(hosts []*models.Host, vipIPStr, network string, log logrus.Fie
 	return models.VipVerificationUnverified
 }
 
-func CreateIpWithCidr(ip, cidr string) (string, error) {
-	_, ipNet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return "", err
-	}
-	ipNet.IP = net.ParseIP(ip)
-	return ipNet.String(), nil
-}
-
 func CreateMachineNetworksArray(machineCidr string) []*models.MachineNetwork {
 	if machineCidr == "" {
 		return []*models.MachineNetwork{}

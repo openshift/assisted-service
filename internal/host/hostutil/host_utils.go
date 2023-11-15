@@ -57,13 +57,6 @@ func GetHostnameForMsg(host *models.Host) string {
 	return hostName
 }
 
-func IsBeforeInstallation(status string) bool {
-	beforeInstallation := []string{models.HostStatusDiscovering, models.HostStatusKnown,
-		models.HostStatusDisconnected, models.HostStatusInsufficient,
-		models.HostStatusPendingForInput, models.HostStatusBinding}
-	return funk.ContainsString(beforeInstallation, status)
-}
-
 func GetEventSeverityFromHostStatus(status string) string {
 	switch status {
 	case models.HostStatusDisconnected:
