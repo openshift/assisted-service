@@ -563,7 +563,7 @@ func (r *AgentReconciler) clusterExists(ctx context.Context, agent *aiv1beta1.Ag
 	return cd.DeletionTimestamp.IsZero(), nil
 }
 
-func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1beta1.Agent, clusterRef *aiv1beta1.ClusterReference) bool {
+func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1beta1.Agent) bool {
 	// default to not attempting to reclaim as that's the safer route
 	if foundBMH, err := r.bmhExists(ctx, agent); err != nil || foundBMH {
 		if err != nil {
@@ -617,7 +617,7 @@ func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger
 		}
 	} else {
 		clusterRef := &aiv1beta1.ClusterReference{Namespace: cluster.KubeKeyNamespace, Name: cluster.KubeKeyName}
-		reclaim = r.shouldReclaimOnUnbind(ctx, origAgent, clusterRef)
+		reclaim = r.shouldReclaimOnUnbind(ctx, origAgent)
 		if reclaim {
 			if err = r.runReclaimAgent(ctx, log, agent, clusterRef, h); err != nil {
 				log.WithError(err).Warn("failed to start agent on spoke cluster to reclaim")
@@ -859,7 +859,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		requirementsMet(agent, status)
 		validated(agent, status, h)
 		installed(agent, status, swag.StringValue(h.StatusInfo))
-		bound(agent, status, h)
+		bound(agent, status)
 	} else {
 		setConditionsUnknown(agent)
 	}
@@ -1216,7 +1216,7 @@ func requirementsMet(agent *aiv1beta1.Agent, status string) {
 	})
 }
 
-func bound(agent *aiv1beta1.Agent, status string, h *models.Host) {
+func bound(agent *aiv1beta1.Agent, status string) {
 	var condStatus corev1.ConditionStatus
 	var reason string
 	var msg string

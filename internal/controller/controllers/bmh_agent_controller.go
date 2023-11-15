@@ -364,7 +364,7 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 			return res
 		}
 
-		if updated := configureBMHForCleaning(ctx, log, bmh); updated {
+		if updated := configureBMHForCleaning(log, bmh); updated {
 			return reconcileComplete{stop: true, dirty: true}
 		}
 
@@ -1605,7 +1605,7 @@ func removeBMHDetachedAnnotation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareM
 	return
 }
 
-func configureBMHForCleaning(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
+func configureBMHForCleaning(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
 	dirty = removeBMHDetachedAnnotation(log, bmh)
 
 	if bmh.Spec.AutomatedCleaningMode != bmh_v1alpha1.CleaningModeMetadata {
