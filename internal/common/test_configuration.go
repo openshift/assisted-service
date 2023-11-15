@@ -427,33 +427,6 @@ func GenerateTestIPv6Inventory() string {
 	return string(b)
 }
 
-func GenerateTestDefaultVmwareInventory() string {
-	inventory := &models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		Disks: []*models.Disk{
-			TestDefaultConfig.Disks,
-		},
-		SystemVendor: &models.SystemVendor{
-			Manufacturer: "vmware",
-		},
-		Routes: TestDefaultRouteConfiguration,
-	}
-
-	b, err := json.Marshal(inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
 func CreateWildcardDomainNameResolutionReply(name string, baseDomain string) *models.DomainResolutionResponse {
 
 	undottedDomain := fmt.Sprintf("%s.%s.%s", constants.DNSWildcardFalseDomainName, name, baseDomain)

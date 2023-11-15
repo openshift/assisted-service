@@ -43,9 +43,3 @@ func GetImageStatus(statuses ImageStatuses, name string) (*models.ContainerImage
 func SetImageStatus(statuses ImageStatuses, status *models.ContainerImageAvailability) {
 	statuses[status.Name] = status
 }
-
-func DeleteImageStatus(statuses ImageStatuses, name string) {
-	if ImageStatusExists(statuses, name) {
-		delete(statuses, name)
-	}
-}
