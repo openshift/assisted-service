@@ -11438,7 +11438,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			HTTPRequest: request,
 		}
 
-		fileName := bm.getLogsFullName(string(models.LogsTypeHost), clusterID.String(), host.ID.String())
+		fileName := bm.getLogsFullName(clusterID.String(), host.ID.String())
 		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("Dummy")).Times(1)
 		verifyApiError(bm.V2UploadLogs(ctx, params), http.StatusInternalServerError)
 	})
@@ -11455,7 +11455,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			Upfile:      kubeconfigFile,
 			HTTPRequest: request,
 		}
-		fileName := bm.getLogsFullName(string(models.LogsTypeHost), clusterID.String(), host.ID.String())
+		fileName := bm.getLogsFullName(clusterID.String(), host.ID.String())
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostLogsUploadedEventName),
 			eventstest.WithClusterIdMatcher(clusterID.String()),
@@ -11506,7 +11506,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			HTTPRequest: request,
 			LogsType:    string(models.LogsTypeController),
 		}
-		fileName := bm.getLogsFullName(string(models.LogsTypeController), clusterID.String(), string(models.LogsTypeController))
+		fileName := bm.getLogsFullName(clusterID.String(), string(models.LogsTypeController))
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ClusterLogsUploadedEventName),
 			eventstest.WithClusterIdMatcher(clusterID.String()))).Times(1)
@@ -11552,7 +11552,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		}
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
-		fileName := bm.getLogsFullName(logsType, clusterID.String(), hostID.String())
+		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), common.NotFound(fileName))
 		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusNotFound)
@@ -11568,7 +11568,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		}
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
-		fileName := bm.getLogsFullName(logsType, clusterID.String(), hostID.String())
+		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
 		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
@@ -11585,7 +11585,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			HTTPRequest: request,
 		}
 		host.Bootstrap = true
-		fileName := bm.getLogsFullName(logsType, clusterID.String(), host.ID.String())
+		fileName := bm.getLogsFullName(clusterID.String(), host.ID.String())
 		host.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host)
 		r := io.NopCloser(bytes.NewReader([]byte("test")))
@@ -11602,7 +11602,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			ClusterID: clusterID,
 			LogsType:  &logsType,
 		}
-		fileName := bm.getLogsFullName(logsType, clusterID.String(), logsType)
+		fileName := bm.getLogsFullName(clusterID.String(), logsType)
 		c.ControllerLogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&c)
 		r := io.NopCloser(bytes.NewReader([]byte("test")))
@@ -11641,7 +11641,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		fileName := bm.getLogsFullName(string(models.LogsTypeHost), clusterID.String(), hostID.String())
+		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
@@ -11660,7 +11660,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		fileName := bm.getLogsFullName(string(models.LogsTypeHost), clusterID.String(), hostID.String())
+		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
@@ -11680,7 +11680,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		fileName := bm.getLogsFullName(string(models.LogsTypeHost), clusterID.String(), hostID.String())
+		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
 		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
@@ -11770,7 +11770,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		dbReply = db.Where("id = ?", clusterID).Delete(&common.Cluster{})
 		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
 		r := io.NopCloser(bytes.NewReader([]byte("test")))
-		fileName := bm.getLogsFullName(logsType, clusterID.String(), logsType)
+		fileName := bm.getLogsFullName(clusterID.String(), logsType)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		downloadFileName := fmt.Sprintf("mycluster_%s_%s.tar.gz", clusterID, logsType)
