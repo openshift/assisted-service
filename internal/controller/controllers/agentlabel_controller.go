@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 type AgentLabelReconciler struct {
@@ -171,8 +170,8 @@ func deleteAgentLabel(log *logrus.Entry, agent *aiv1beta1.Agent, labelKey, label
 }
 
 func (r *AgentLabelReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	mapAgentClassificationToAgent := func(classification client.Object) []reconcile.Request {
-		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+	mapAgentClassificationToAgent := func(ctx context.Context, classification client.Object) []reconcile.Request {
+		log := logutil.FromContext(ctx, r.Log).WithFields(
 			logrus.Fields{
 				"classification":           classification.GetName(),
 				"classification_namespace": classification.GetNamespace(),
@@ -181,7 +180,7 @@ func (r *AgentLabelReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		opts := &client.ListOptions{
 			Namespace: classification.GetNamespace(),
 		}
-		if err := r.List(context.Background(), agentList, opts); err != nil {
+		if err := r.List(ctx, agentList, opts); err != nil {
 			log.Debugf("failed to list agents")
 			return []reconcile.Request{}
 		}
@@ -198,6 +197,6 @@ func (r *AgentLabelReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.Agent{}).
-		Watches(&source.Kind{Type: &aiv1beta1.AgentClassification{}}, handler.EnqueueRequestsFromMapFunc(mapAgentClassificationToAgent)).
+		Watches(&aiv1beta1.AgentClassification{}, handler.EnqueueRequestsFromMapFunc(mapAgentClassificationToAgent)).
 		Complete(r)
 }

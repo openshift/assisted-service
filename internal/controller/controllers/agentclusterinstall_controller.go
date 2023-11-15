@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // AgentClusterInstallReconciler reconciles a AgentClusterInstall object
@@ -105,7 +104,7 @@ func (r *AgentClusterInstallReconciler) Reconcile(origCtx context.Context, req c
 func (r *AgentClusterInstallReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&hiveext.AgentClusterInstall{}).
-		Watches(&source.Kind{Type: &hiveext.AgentClusterInstall{}},
+		Watches(&hiveext.AgentClusterInstall{},
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)

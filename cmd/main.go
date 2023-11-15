@@ -810,8 +810,8 @@ func createControllerManager() (manager.Manager, error) {
 			Port:             9443,
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.agent-install.openshift.io",
-			NewCache: cache.BuilderWithOptions(cache.Options{
-				SelectorsByObject: map[client.Object]cache.ObjectSelector{
+			Cache: cache.Options{
+				ByObject: map[client.Object]cache.ByObject{
 					&corev1.Secret{}: {
 						Label: labels.SelectorFromSet(
 							labels.Set{
@@ -823,7 +823,7 @@ func createControllerManager() (manager.Manager, error) {
 						Label: labels.NewSelector().Add(*infraenvLabel),
 					},
 				},
-			}),
+			},
 		})
 	}
 	return nil, nil

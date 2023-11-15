@@ -23,7 +23,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestValidator(t *testing.T) {
@@ -633,16 +633,16 @@ var _ = Describe("Cluster host requirements", func() {
 			RAMMib:                           1024,
 			CPUCores:                         4,
 			DiskSizeGb:                       10,
-			NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
-			PacketLossPercentage:             pointer.Float64Ptr(0),
+			NetworkLatencyThresholdMs:        ptr.To(float64(100)),
+			PacketLossPercentage:             ptr.To(float64(0)),
 		}
 		details2 = models.ClusterHostRequirementsDetails{
 			InstallationDiskSpeedThresholdMs: 5,
 			RAMMib:                           256,
 			CPUCores:                         2,
 			DiskSizeGb:                       5,
-			NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
-			PacketLossPercentage:             pointer.Float64Ptr(10),
+			NetworkLatencyThresholdMs:        ptr.To(float64(1000)),
+			PacketLossPercentage:             ptr.To(float64(10)),
 		}
 
 		operatorRequirements = []*models.OperatorHostRequirements{
@@ -897,24 +897,24 @@ var _ = Describe("Cluster host requirements", func() {
 			Expect(result.Total.CPUCores).To(BeEquivalentTo(expectedOcpRequirements.CPUCores + details1.CPUCores + details2.CPUCores))
 			Expect(result.Total.RAMMib).To(BeEquivalentTo(expectedOcpRequirements.RAMMib + details1.RAMMib + details2.RAMMib))
 			Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(expectedOcpRequirements.InstallationDiskSpeedThresholdMs))
-			Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(pointer.Float64Ptr(math.Min(*expectedOcpRequirements.NetworkLatencyThresholdMs, *details1.NetworkLatencyThresholdMs))))
-			Expect(result.Total.PacketLossPercentage).To(Equal(pointer.Float64Ptr(math.Min(*expectedOcpRequirements.PacketLossPercentage, *details1.PacketLossPercentage))))
+			Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(ptr.To(math.Min(*expectedOcpRequirements.NetworkLatencyThresholdMs, *details1.NetworkLatencyThresholdMs))))
+			Expect(result.Total.PacketLossPercentage).To(Equal(ptr.To(math.Min(*expectedOcpRequirements.PacketLossPercentage, *details1.PacketLossPercentage))))
 		},
 		table.Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
 			CPUCores:                         3,
 			DiskSizeGb:                       102,
 			RAMMib:                           9 * int64(units.KiB),
 			InstallationDiskSpeedThresholdMs: 2,
-			NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
-			PacketLossPercentage:             pointer.Float64Ptr(10),
+			NetworkLatencyThresholdMs:        ptr.To(float64(1000)),
+			PacketLossPercentage:             ptr.To(float64(10)),
 		}),
 		table.Entry("Master", models.HostRoleMaster, models.ClusterHostRequirementsDetails{
 			CPUCores:                         5,
 			DiskSizeGb:                       101,
 			RAMMib:                           17 * int64(units.KiB),
 			InstallationDiskSpeedThresholdMs: 1,
-			NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
-			PacketLossPercentage:             pointer.Float64Ptr(0),
+			NetworkLatencyThresholdMs:        ptr.To(float64(100)),
+			PacketLossPercentage:             ptr.To(float64(0)),
 		}),
 	)
 	table.DescribeTable("should contain correct requirements when no network latency or packet loss is defined in the OCP requirements",
@@ -939,7 +939,7 @@ var _ = Describe("Cluster host requirements", func() {
 			Expect(result.Total.CPUCores).To(Equal(expectedOcpRequirements.CPUCores + details1.CPUCores + details2.CPUCores))
 			Expect(result.Total.RAMMib).To(Equal(expectedOcpRequirements.RAMMib + details1.RAMMib + details2.RAMMib))
 			Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
-			Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(pointer.Float64Ptr(math.Min(*details1.NetworkLatencyThresholdMs, *details2.NetworkLatencyThresholdMs))))
+			Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(ptr.To(math.Min(*details1.NetworkLatencyThresholdMs, *details2.NetworkLatencyThresholdMs))))
 			Expect(result.Total.PacketLossPercentage).To(Equal(details1.PacketLossPercentage))
 		},
 		table.Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{

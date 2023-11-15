@@ -62,7 +62,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -612,7 +612,7 @@ func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context
 		Kind:               deploymentGVK.Kind,
 		Name:               cluster.Name,
 		UID:                cluster.UID,
-		BlockOwnerDeletion: pointer.BoolPtr(true),
+		BlockOwnerDeletion: ptr.To(true),
 	}}
 	return s, r.Create(ctx, s)
 }
@@ -1576,13 +1576,13 @@ func (r *ClusterDeploymentsReconciler) unbindAgents(ctx context.Context, log log
 }
 
 func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	mapSecretToClusterDeployment := func(a client.Object) []reconcile.Request {
+	mapSecretToClusterDeployment := func(ctx context.Context, a client.Object) []reconcile.Request {
 		clusterDeployments := &hivev1.ClusterDeploymentList{}
 
 		// PullSecretRef is a LocalObjectReference, which means it must exist in the
 		// same namespace. Let's get only the ClusterDeployments from the Secret's
 		// namespace.
-		if err := r.List(context.Background(), clusterDeployments, &client.ListOptions{Namespace: a.GetNamespace()}); err != nil {
+		if err := r.List(ctx, clusterDeployments, &client.ListOptions{Namespace: a.GetNamespace()}); err != nil {
 			// TODO: silently ignoring error here
 			return []reconcile.Request{}
 		}
@@ -1599,8 +1599,8 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	}
 
 	// Reconcile the ClusterDeployment referenced by this AgentClusterInstall.
-	mapClusterInstallToClusterDeployment := func(a client.Object) []reconcile.Request {
-		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+	mapClusterInstallToClusterDeployment := func(ctx context.Context, a client.Object) []reconcile.Request {
+		log := logutil.FromContext(ctx, r.Log).WithFields(
 			logrus.Fields{
 				"agent_cluster_install":           a.GetName(),
 				"agent_cluster_install_namespace": a.GetNamespace(),
@@ -1621,8 +1621,8 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		}
 	}
 
-	mapAgentToClusterDeployment := func(a client.Object) []reconcile.Request {
-		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+	mapAgentToClusterDeployment := func(ctx context.Context, a client.Object) []reconcile.Request {
+		log := logutil.FromContext(ctx, r.Log).WithFields(
 			logrus.Fields{
 				"agent":           a.GetName(),
 				"agent_namespace": a.GetNamespace(),
@@ -1682,12 +1682,12 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	clusterDeploymentUpdates := r.CRDEventsHandler.GetClusterDeploymentUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&hivev1.ClusterDeployment{}).
-		Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(mapSecretToClusterDeployment)).
-		Watches(&source.Kind{Type: &hiveext.AgentClusterInstall{}}, handler.EnqueueRequestsFromMapFunc(mapClusterInstallToClusterDeployment)).
-		Watches(&source.Kind{Type: &aiv1beta1.Agent{}},
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(mapSecretToClusterDeployment)).
+		Watches(&hiveext.AgentClusterInstall{}, handler.EnqueueRequestsFromMapFunc(mapClusterInstallToClusterDeployment)).
+		Watches(&aiv1beta1.Agent{},
 			handler.EnqueueRequestsFromMapFunc(mapAgentToClusterDeployment),
 			agentSpecStatusChangedPredicate).
-		Watches(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
+		WatchesRawSource(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
 
