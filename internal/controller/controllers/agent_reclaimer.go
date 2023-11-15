@@ -236,7 +236,7 @@ func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c cl
 		})
 	}
 
-	name := fmt.Sprintf("%s-reclaim", strings.ReplaceAll(nodeName, ".", "_"))
+	name := fmt.Sprintf("%s-reclaim", strings.ReplaceAll(nodeName, ".", "-"))
 	var privileged bool = true
 	containers := []corev1.Container{{
 		Name:            name,
