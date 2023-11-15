@@ -13,13 +13,18 @@ updates:
     commit-message:
       prefix: NO-ISSUE
     groups:
-      go-major-dependencies:
-        update-types:
-          - major
-      go-minor-dependencies:
+      go-minor-api-dependencies:
+        patterns:
+          - "*"
         update-types:
           - minor
           - patch
+      go-major-api-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - major
+
   - package-ecosystem: gomod
     directory: /client
     schedule:
@@ -32,13 +37,18 @@ updates:
     commit-message:
       prefix: NO-ISSUE
     groups:
-      go-major-dependencies:
-        update-types:
-          - major
-      go-minor-dependencies:
+      go-minor-client-dependencies:
+        patterns:
+          - "*"
         update-types:
           - minor
           - patch
+      go-major-client-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - major
+          
   - package-ecosystem: gomod
     directory: /models
     schedule:
@@ -51,13 +61,16 @@ updates:
     commit-message:
       prefix: NO-ISSUE
     groups:
-      go-major-dependencies:
-        update-types:
-          - major
-      go-minor-dependencies:
+      go-minor-models-dependencies:
+        patterns:
+          - "*"
         update-types:
           - minor
           - patch
+      go-major-models-dependencies:
+        patterns:
+          - "*"
+
   - package-ecosystem: gomod
     directory: /
     schedule:
@@ -71,9 +84,13 @@ updates:
       prefix: NO-ISSUE
     groups:
       go-minor-dependencies:
+        patterns:
+          - "*"
         update-types:
           - minor
           - patch
       go-major-dependencies:
+        patterns:
+          - "*"
         update-types:
           - major
