@@ -88,7 +88,7 @@ const defaultRequeueAfterOnError = 10 * time.Second
 const longerRequeueAfterOnError = 1 * time.Minute
 
 // from https://github.com/openshift/hive/blob/04f2f4f8768b4d8aa413feb5dc5410b5f6e3dcfa/pkg/constants/constants.go#L153
-// not importing this code beceause it will create a lot of vendoring issues
+// not importing this code because it will create a lot of vendoring issues
 const ReconcilePauseAnnotation = "hive.openshift.io/reconcile-pause"
 
 // ClusterDeploymentsReconciler reconciles a Cluster object
@@ -200,7 +200,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	}
 
 	cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
-	if err1 := r.validateClusterDeployment(ctx, log, clusterDeployment, clusterInstall); err1 != nil {
+	if err1 := r.validateClusterDeployment(clusterDeployment, clusterInstall); err1 != nil {
 		log.Error(err1)
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err1)
 	}
@@ -245,12 +245,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster &&
 		!IsHoldInstallationSet(clusterInstall, clusterDeployment) {
 		// Day 1
-		pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(req.Namespace, clusterDeployment.Spec.PullSecretRef))
-		if err != nil {
-			log.WithError(err).Error("failed to get pull secret")
-			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
-		}
-		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster, pullSecret)
+		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster)
 	} else if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 		// Day 2
 		return r.installDay2Hosts(ctx, log, clusterDeployment, clusterInstall, cluster)
@@ -259,8 +254,8 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) validateClusterDeployment(ctx context.Context, log logrus.FieldLogger,
-	clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall) error {
+func (r *ClusterDeploymentsReconciler) validateClusterDeployment(clusterDeployment *hivev1.ClusterDeployment,
+	clusterInstall *hiveext.AgentClusterInstall) error {
 
 	// Make sure that the ImageSetRef is set for clusters not already installed
 	if clusterInstall.Spec.ImageSetRef == nil && !clusterDeployment.Spec.Installed {
@@ -370,7 +365,7 @@ func isInstalled(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hi
 }
 
 func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment,
-	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster, pullSecret string) (ctrl.Result, error) {
+	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
 	ready, err := r.isReadyForInstallation(ctx, log, clusterInstall, cluster)
 	if err != nil {
 		log.WithError(err).Error("failed to check if cluster ready for installation")
@@ -790,7 +785,6 @@ func getHyperthreading(clusterInstall *hiveext.AgentClusterInstall) *string {
 }
 
 func (r *ClusterDeploymentsReconciler) getEncodedCACert(ctx context.Context,
-	log logrus.FieldLogger,
 	caCertificateRef *hiveext.CaCertificateReference) (*string, error) {
 	secretRef := types.NamespacedName{Namespace: caCertificateRef.Namespace, Name: caCertificateRef.Name}
 	caSecret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
@@ -810,7 +804,6 @@ func (r *ClusterDeploymentsReconciler) getEncodedCACert(ctx context.Context,
 }
 
 func (r *ClusterDeploymentsReconciler) parseIgnitionEndpoint(ctx context.Context,
-	log logrus.FieldLogger,
 	kubeapiIgnitionEndpoint *hiveext.IgnitionEndpoint) (*models.IgnitionEndpoint, error) {
 
 	ignitionEndpoint := &models.IgnitionEndpoint{}
@@ -818,7 +811,7 @@ func (r *ClusterDeploymentsReconciler) parseIgnitionEndpoint(ctx context.Context
 
 	caCertificateReference := kubeapiIgnitionEndpoint.CaCertificateReference
 	if caCertificateReference != nil {
-		caCertificate, err := r.getEncodedCACert(ctx, log, caCertificateReference)
+		caCertificate, err := r.getEncodedCACert(ctx, caCertificateReference)
 		if err == nil {
 			ignitionEndpoint.CaCertificate = caCertificate
 		} else {
@@ -837,7 +830,7 @@ func (r *ClusterDeploymentsReconciler) updateIgnitionInUpdateParams(ctx context.
 	params *models.V2ClusterUpdateParams) (bool, error) {
 	update := false
 	if clusterInstall.Spec.IgnitionEndpoint != nil {
-		ignitionEndpoint, err := r.parseIgnitionEndpoint(ctx, log, clusterInstall.Spec.IgnitionEndpoint)
+		ignitionEndpoint, err := r.parseIgnitionEndpoint(ctx, clusterInstall.Spec.IgnitionEndpoint)
 		if err == nil {
 			params.IgnitionEndpoint = ignitionEndpoint
 			if cluster.IgnitionEndpoint == nil || !reflect.DeepEqual(cluster.IgnitionEndpoint, ignitionEndpoint) {
@@ -1369,7 +1362,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	var ignitionEndpoint *models.IgnitionEndpoint
 	if clusterInstall.Spec.IgnitionEndpoint != nil {
-		ignitionEndpoint, err = r.parseIgnitionEndpoint(ctx, log, clusterInstall.Spec.IgnitionEndpoint)
+		ignitionEndpoint, err = r.parseIgnitionEndpoint(ctx, clusterInstall.Spec.IgnitionEndpoint)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name)
 			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
@@ -1730,7 +1723,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
-			err = r.populateLogsURL(ctx, log, clusterInstall, c)
+			err = r.populateLogsURL(log, clusterInstall, c)
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
@@ -1795,9 +1788,9 @@ func (r *ClusterDeploymentsReconciler) populateEventsURL(log logrus.FieldLogger,
 	return nil
 }
 
-func (r *ClusterDeploymentsReconciler) populateLogsURL(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) error {
+func (r *ClusterDeploymentsReconciler) populateLogsURL(log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) error {
 	if swag.StringValue(c.Status) != models.ClusterStatusInstalled {
-		if err := r.setControllerLogsDownloadURL(ctx, log, clusterInstall, c); err != nil {
+		if err := r.setControllerLogsDownloadURL(clusterInstall, c); err != nil {
 			log.WithError(err).Error("failed to generate controller logs URL")
 			return err
 		}
@@ -2227,7 +2220,7 @@ func (r *ClusterDeploymentsReconciler) ensureOwnerRef(ctx context.Context, log l
 	return r.Update(ctx, ci)
 }
 
-func (r *ClusterDeploymentsReconciler) areLogsCollected(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) (bool, error) {
+func (r *ClusterDeploymentsReconciler) areLogsCollected(cluster *common.Cluster) (bool, error) {
 	if !time.Time(cluster.ControllerLogsCollectedAt).Equal(time.Time{}) { // timestamp update, meaning logs were collected from a controller
 		return true, nil
 	}
@@ -2235,14 +2228,12 @@ func (r *ClusterDeploymentsReconciler) areLogsCollected(ctx context.Context, log
 }
 
 func (r *ClusterDeploymentsReconciler) setControllerLogsDownloadURL(
-	ctx context.Context,
-	log logrus.FieldLogger,
 	clusterInstall *hiveext.AgentClusterInstall,
 	cluster *common.Cluster) error {
 	if clusterInstall.Status.DebugInfo.LogsURL != "" {
 		return nil
 	}
-	logsCollected, err := r.areLogsCollected(ctx, log, cluster)
+	logsCollected, err := r.areLogsCollected(cluster)
 	if err != nil {
 		return err
 	}
