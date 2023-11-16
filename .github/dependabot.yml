@@ -1,79 +1,96 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
-
+---
 version: 2
 updates:
-  - package-ecosystem: "gomod"
-    directory: "/"
+  - package-ecosystem: gomod
+    directory: /api
     schedule:
-      interval: "daily"
+      interval: daily
     labels:
-      - "approved"
-      - "lgtm"
-      - "dependabot"
-      - "go"
+      - approved
+      - lgtm
+      - dependabot
+      - go
     commit-message:
-      prefix: "NO-ISSUE"
-    allow:
-      - dependency-name: "*"
-        dependency-type: all
+      prefix: NO-ISSUE
     groups:
-      go-dependencies:
-        patterns: 
+      go-minor-api-dependencies:
+        patterns:
           - "*"
-  - package-ecosystem: "gomod"
-    directory: "/api"
+        update-types:
+          - minor
+          - patch
+      go-major-api-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - major
+
+  - package-ecosystem: gomod
+    directory: /client
     schedule:
-      interval: "daily"
+      interval: daily
     labels:
-      - "approved"
-      - "lgtm"
-      - "dependabot"
-      - "go"
+      - approved
+      - lgtm
+      - dependabot
+      - go
     commit-message:
-      prefix: "NO-ISSUE"
-    allow:
-      - dependency-name: "*"
-        dependency-type: all
+      prefix: NO-ISSUE
     groups:
-      go-api-dependencies:
-        patterns: 
+      go-minor-client-dependencies:
+        patterns:
           - "*"
-  - package-ecosystem: "gomod"
-    directory: "/client"
+        update-types:
+          - minor
+          - patch
+      go-major-client-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - major
+          
+  - package-ecosystem: gomod
+    directory: /models
     schedule:
-      interval: "daily"
+      interval: daily
     labels:
-      - "approved"
-      - "lgtm"
-      - "dependabot"
-      - "go"
+      - approved
+      - lgtm
+      - dependabot
+      - go
     commit-message:
-      prefix: "NO-ISSUE"
-    allow:
-      - dependency-name: "*"
-        dependency-type: all
+      prefix: NO-ISSUE
     groups:
-      go-client-dependencies:
-        patterns: 
+      go-minor-models-dependencies:
+        patterns:
           - "*"
-  - package-ecosystem: "gomod"
-    directory: "/models"
+        update-types:
+          - minor
+          - patch
+      go-major-models-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: gomod
+    directory: /
     schedule:
-      interval: "daily"
+      interval: daily
     labels:
-      - "approved"
-      - "lgtm"
-      - "dependabot"
-      - "go"
+      - approved
+      - lgtm
+      - dependabot
+      - go
     commit-message:
-      prefix: "NO-ISSUE"
-    allow:
-      - dependency-name: "*"
-        dependency-type: all
+      prefix: NO-ISSUE
     groups:
-      go-models-dependencies:
-        patterns: 
+      go-minor-dependencies:
+        patterns:
           - "*"
+        update-types:
+          - minor
+          - patch
+      go-major-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - major
