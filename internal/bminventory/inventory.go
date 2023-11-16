@@ -1117,7 +1117,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 		return common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
-	err := b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, *infraEnv.ID, common.ImageTypeValue(infraEnv.Type), true, false)
+	err := b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, *infraEnv.ID, common.ImageTypeValue(infraEnv.Type))
 	if err != nil {
 		return err
 	}
@@ -1126,7 +1126,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 }
 
 func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log logrus.FieldLogger, infraEnvProxyHash string,
-	infraEnvID strfmt.UUID, imageType models.ImageType, v2 bool, imageExists bool) error {
+	infraEnvID strfmt.UUID, imageType models.ImageType) error {
 
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, infraEnvID)
 	if err != nil {
@@ -1316,7 +1316,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", cluster.ID.String())
 	}
 
-	clusterInfraenvs, err := b.getClusterInfraenvs(ctx, cluster)
+	clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
 	if err != nil {
 		b.log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to get infraenvs for cluster"))
@@ -1587,11 +1587,11 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 	return installer.NewGetClusterSupportedPlatformsOK().WithPayload(*supportedPlatforms)
 }
 
-func (bm *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
+func (b *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
 	return featuresupport.GetFeatureSupportList(params.OpenshiftVersion, params.CPUArchitecture, (*models.PlatformType)(params.PlatformType)), nil
 }
 
-func (bm *bareMetalInventory) GetArchitecturesSupportLevelListInternal(_ context.Context, params installer.GetSupportedArchitecturesParams) (models.SupportLevels, error) {
+func (b *bareMetalInventory) GetArchitecturesSupportLevelListInternal(_ context.Context, params installer.GetSupportedArchitecturesParams) (models.SupportLevels, error) {
 	return featuresupport.GetCpuArchitectureSupportList(params.OpenshiftVersion), nil
 }
 
@@ -1621,7 +1621,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 		return nil, err
 	}
 
-	clusterInfraenvs, err = b.getClusterInfraenvs(ctx, cluster)
+	clusterInfraenvs, err = b.getClusterInfraenvs(cluster)
 	if err != nil {
 		b.log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to get infraenvs for cluster"))
@@ -1723,7 +1723,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	}
 
 	installerReleaseImageOverride := ""
-	if isBaremetalBinaryFromAnotherReleaseImageRequired(cluster.CPUArchitecture, cluster.OpenshiftVersion, cluster.Platform.Type) {
+	if isBaremetalBinaryFromAnotherReleaseImageRequired(cluster.CPUArchitecture, cluster.OpenshiftVersion) {
 		defaultArchImage, err := b.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, common.DefaultCPUArchitecture, cluster.PullSecret)
 		if err != nil {
 			msg := fmt.Sprintf("failed to get image for installer image override "+
@@ -2607,7 +2607,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	}
 
 	if userManagedNetworking {
-		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(db, cluster.ID, params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), updates, log)
+		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(db, cluster.ID, params.ClusterUpdateParams, updates, log)
 		if err != nil {
 			return err
 		}
@@ -2657,8 +2657,8 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	return nil
 }
 
-func setCommonUserNetworkManagedParams(db *gorm.DB, id *strfmt.UUID, params *models.V2ClusterUpdateParams, singleNodeCluster bool, updates map[string]interface{}, log logrus.FieldLogger) (error, bool) {
-	err := validateUserManagedNetworkConflicts(params, singleNodeCluster, log)
+func setCommonUserNetworkManagedParams(db *gorm.DB, id *strfmt.UUID, params *models.V2ClusterUpdateParams, updates map[string]interface{}, log logrus.FieldLogger) (error, bool) {
+	err := validateUserManagedNetworkConflicts(params, log)
 	if err != nil {
 		return err, false
 	}
@@ -2692,7 +2692,7 @@ func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterPa
 	return nil
 }
 
-func validateUserManagedNetworkConflicts(params *models.V2ClusterUpdateParams, singleNodeCluster bool, log logrus.FieldLogger) error {
+func validateUserManagedNetworkConflicts(params *models.V2ClusterUpdateParams, log logrus.FieldLogger) error {
 	if err := validations.ValidateVIPsWereNotSetUserManagedNetworking(swag.StringValue(params.APIVip), swag.StringValue(params.IngressVip), params.APIVips, params.IngressVips, swag.BoolValue(params.VipDhcpAllocation)); err != nil {
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -3770,7 +3770,7 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 		if time.Time(c.Cluster.ControllerLogsCollectedAt).Equal(time.Time{}) {
 			return "", "", common.NewApiError(http.StatusConflict, errors.Errorf("Controller Logs for cluster %s were not found", clusterId))
 		}
-		fileName = b.getLogsFullName(logsType, clusterId.String(), logsType)
+		fileName = b.getLogsFullName(clusterId.String(), logsType)
 		downloadFileName = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), c.ID, logsType)
 	default:
 		fileName, err = b.prepareClusterLogs(ctx, c)
@@ -4129,7 +4129,7 @@ func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params in
 	return nil
 }
 
-func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Host, logsType string, upFile io.ReadCloser) error {
+func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Host, upFile io.ReadCloser) error {
 	log := logutil.FromContext(ctx, b.log)
 
 	var logPrefix string
@@ -4138,7 +4138,7 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Ho
 	} else {
 		logPrefix = host.InfraEnvID.String()
 	}
-	fileName := b.getLogsFullName(logsType, logPrefix, host.ID.String())
+	fileName := b.getLogsFullName(logPrefix, host.ID.String())
 
 	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
 	err := b.objectHandler.UploadStream(ctx, upFile, fileName)
@@ -4177,7 +4177,7 @@ func (b *bareMetalInventory) preparHostLogs(ctx context.Context, cluster *common
 	return fileName, nil
 }
 
-func (b *bareMetalInventory) getLogsFullName(logType string, clusterId string, logId string) string {
+func (b *bareMetalInventory) getLogsFullName(clusterId string, logId string) string {
 	filename := "logs.tar.gz"
 	return fmt.Sprintf("%s/logs/%s/%s", clusterId, logId, filename)
 }
@@ -4215,7 +4215,7 @@ func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, inf
 	return nil
 }
 
-func (b *bareMetalInventory) getClusterInfraenvs(ctx context.Context, c *common.Cluster) ([]*common.InfraEnv, error) {
+func (b *bareMetalInventory) getClusterInfraenvs(c *common.Cluster) ([]*common.InfraEnv, error) {
 	// Cluster hosts usually originate from the same infraenv, keep track
 	// of which ones we've already seen so we don't pull them twice
 	infraenvIDSet := make(map[string]bool)
@@ -5028,7 +5028,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	err = b.updateInfraEnvData(ctx, infraEnv, params, internalIgnitionConfig, tx, log)
+	err = b.updateInfraEnvData(infraEnv, params, internalIgnitionConfig, tx, log)
 	if err != nil {
 		log.WithError(err).Error("updateInfraEnvData")
 		return nil, err
@@ -5081,7 +5081,7 @@ func (b *bareMetalInventory) validateDiscoveryIgnitionImageSize(ctx context.Cont
 	return nil
 }
 
-func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, db *gorm.DB, log logrus.FieldLogger) error {
 	updates := map[string]interface{}{}
 	if params.InfraEnvUpdateParams.Proxy != nil {
 		proxyHash, err := computeProxyHash(params.InfraEnvUpdateParams.Proxy)
@@ -6455,7 +6455,7 @@ func (b *bareMetalInventory) GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*co
 // This flow does not affect the multiarch release images and is meant purely for using arm64 release image with the x86 hub.
 // Implementation of handling the multiarch images is done directly in the `oc` binary and relies on the fact that `oc adm release extract`
 // will automatically use the image matching the Hub's architecture.
-func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version string, platform *models.PlatformType) bool {
+func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version string) bool {
 	return cpuArchitecture != common.MultiCPUArchitecture &&
 		cpuArchitecture != common.NormalizeCPUArchitecture(runtime.GOARCH) &&
 		featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, version, swag.String(models.ClusterCPUArchitectureArm64))

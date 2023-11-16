@@ -130,7 +130,7 @@ func (b *bareMetalInventory) V2GetClusterInstallConfig(ctx context.Context, para
 		return common.GenerateErrorResponder(fmt.Errorf("Failed to get cluster %s: %w", params.ClusterID, err))
 	}
 
-	clusterInfraenvs, err := b.getClusterInfraenvs(ctx, cluster)
+	clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
 	if err != nil {
 		return common.GenerateErrorResponder(fmt.Errorf("Failed to get cluster %s infraenvs: %w", params.ClusterID, err))
 	}
@@ -498,7 +498,7 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 			return err
 		}
 
-		err = b.uploadHostLogs(ctx, dbHost, params.LogsType, params.Upfile)
+		err = b.uploadHostLogs(ctx, dbHost, params.Upfile)
 		if err != nil {
 			return err
 		}
@@ -517,7 +517,7 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 	if err != nil {
 		return err
 	}
-	fileName := b.getLogsFullName(params.LogsType, params.ClusterID.String(), params.LogsType)
+	fileName := b.getLogsFullName(params.ClusterID.String(), params.LogsType)
 	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
 	err = b.objectHandler.UploadStream(ctx, params.Upfile, fileName)
 	if err != nil {
