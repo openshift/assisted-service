@@ -15,7 +15,6 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
@@ -76,8 +75,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-	"go.elastic.co/apm/module/apmhttp"
-	"go.elastic.co/apm/module/apmlogrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -154,7 +151,6 @@ var Options struct {
 	MaxOpenConns                         int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"90"`
 	ConnMaxLifetime                      time.Duration `envconfig:"DB_CONNECTIONS_MAX_LIFETIME" default:"30m"`
 	FileSystemUsageThreshold             int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
-	EnableElasticAPM                     bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
 	EnableNotificationStreaming          bool          `envconfig:"ENABLE_EVENT_STREAMING" default:"false"`
 	WorkDir                              string        `envconfig:"WORK_DIR" default:"/data/"`
 	LivenessValidationTimeout            time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
@@ -172,11 +168,6 @@ var Options struct {
 
 func InitLogs(logLevel, logFormat string) *logrus.Logger {
 	log := logrus.New()
-
-	fmt.Println(Options.EnableElasticAPM)
-	if Options.EnableElasticAPM {
-		log.AddHook(&apmlogrus.Hook{})
-	}
 
 	log.SetReportCaller(true)
 
@@ -495,15 +486,6 @@ func main() {
 		return func(h http.Handler) http.Handler {
 			wrapped := metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry)(h)
 
-			if Options.EnableElasticAPM {
-				// For APM metrics, we only want to trace openapi (internal) requests.
-				// We are generating our own transaction name since we are wrapping the lower
-				// http handler. This will allow us to generate a transaction name that allows
-				// us to group similar requests (using URL patterns) rather than individual ones.
-				apmOptions := apmhttp.WithServerRequestName(generateAPMTransactionName)
-				wrapped = apmhttp.Wrap(wrapped, apmOptions)
-			}
-
 			wrapped = paramctx.ContextHandler()(wrapped)
 			return wrapped
 		}
@@ -680,21 +662,6 @@ func main() {
 	serverInfo.ListenAndServe()
 	<-stop
 	serverInfo.Shutdown()
-}
-
-func generateAPMTransactionName(request *http.Request) string {
-	route := middleware.MatchedRouteFrom(request)
-
-	if route == nil {
-		// Use the actual URL path if no route
-		// matched this request. This will make
-		// sure we can, granuarly, introspect
-		// non-grouped requests.
-		return request.URL.Path
-	}
-
-	// This matches the `operationId` in the swagger file
-	return route.Operation.ID
 }
 
 func setupDB(log logrus.FieldLogger) *gorm.DB {
