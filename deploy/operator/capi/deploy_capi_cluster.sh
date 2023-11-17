@@ -26,6 +26,7 @@ export HYPERSHIFT_IMAGE="${HYPERSHIFT_IMAGE:-quay.io/hypershift/hypershift-opera
 export CONTROL_PLANE_OPERATOR_IMAGE="${CONTROL_PLANE_OPERATOR_IMAGE:-}"
 export PROVIDER_IMAGE="${PROVIDER_IMAGE:-}"
 export EXTRA_HYPERSHIFT_INSTALL_FLAGS="${EXTRA_HYPERSHIFT_INSTALL_FLAGS:-}"
+export EXTRA_HYPERSHIFT_CREATE_COMMANDS="${EXTRA_HYPERSHIFT_CREATE_COMMANDS:-}"
 
 if [[ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ]]; then
     export USER_MANAGED_NETWORKING="true"
@@ -47,6 +48,8 @@ elif [[ "${IP_STACK}" == "v6" ]]; then
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V6}"
     export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V6}"
     export SERVICE_SUBNET="${SERVICE_SUBNET_V6}"
+    # IPv6 requires hypershift create cluster cidr override
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --cluster-cidr fd01::/48"
 elif [[ "${IP_STACK}" == "v4v6" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V4}"
@@ -56,10 +59,55 @@ elif [[ "${IP_STACK}" == "v4v6" ]]; then
     export CLUSTER_HOST_PREFIX_ADDITIONAL="${CLUSTER_HOST_PREFIX_V6}"
     export EXTERNAL_SUBNET_ADDITIONAL="${EXTERNAL_SUBNET_V6}"
     export SERVICE_SUBNET_ADDITIONAL="${SERVICE_SUBNET_V6}"
+    # IPv6 requires hypershift create cluster cidr override
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --cluster-cidr fd01::/48"
 fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
-    ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
+    export DISCONNECTED_ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/ocp/ocp-release:latest"
+    # Disconnected hypershift requires:
+    # 1. pull secret in hypershift namespace for the hypershift operator
+    oc get namespace hypershift || oc create namespace hypershift
+    oc get secret "${ASSISTED_PULLSECRET_NAME}" -n hypershift || \
+      oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n hypershift
+    # 2. mirrored hypershift operator image to local registry
+    HYPERSHIFT_LOCAL_IMAGE="${LOCAL_REGISTRY}/localimages/hypershift:latest"
+    oc image mirror -a "${PULL_SECRET_FILE}" "${HYPERSHIFT_IMAGE}" "${HYPERSHIFT_LOCAL_IMAGE}"
+    export HYPERSHIFT_IMAGE="${HYPERSHIFT_LOCAL_IMAGE}"
+    # 3. the hypershift cli must be available on the local environment
+    id=$(podman create $HYPERSHIFT_LOCAL_IMAGE)
+    mkdir -p ./hypershift-cli
+    podman cp $id:/usr/bin/hypershift ./hypershift-cli
+    export PATH="$PATH":"$PWD"/hypershift-cli
+    # 4. mirrored openshift release to local registry
+    # disconnected openshift release image will be used as release-image flag for hypershift create cluster
+    oc image mirror -a "${PULL_SECRET_FILE}" "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" "${DISCONNECTED_ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}"
+    export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${DISCONNECTED_ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}"
+    # 5. mirrored capi agent image to local registry
+    if [ -z "$PROVIDER_IMAGE" ]
+    then
+      export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/localimages/cluster-api-provider-agent:latest"
+      oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
+      export PROVIDER_IMAGE="${PROVIDER_LOCAL_IMAGE}"
+    fi
+    # 6. ImageContentPolicy for local registry
+    cat << EOM >> icsp.yaml
+apiVersion: operator.openshift.io/v1alpha1
+kind: ImageContentSourcePolicy
+metadata:
+  name: example
+spec:
+  repositoryDigestMirrors:
+  - mirrors:
+    - ${LOCAL_REGISTRY}/openshift-release-dev/ocp-release
+    source: quay.io/openshift-release-dev/ocp-release
+  - mirrors:
+    - ${LOCAL_REGISTRY}/openshift-release-dev/ocp-release
+    source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+EOM
+    oc apply -f icsp.yaml
+    # disconnected requires the additional trust bundle containing the local registry certificate
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --additional-trust-bundle ${REGISTRY_DIR}/certs/${REGISTRY_CRT}"
 fi
 
 # TODO: make SSH public key configurable
@@ -105,12 +153,23 @@ fi
 oc patch storageclass assisted-service -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 
 ### Hypershift CLI needs access to the kubeconfig, pull-secret and public SSH key
-function hypershift() {
-  podman run -it --net host --rm --entrypoint /usr/bin/hypershift -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:/root/pull-secret.json -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_IMAGE "$@"
+function hypershift_cli() {
+  if command -v hypershift &> /dev/null
+  then
+    hypershift "$@"
+  else
+    podman run -it --net host --rm --entrypoint /usr/bin/hypershift -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:/root/pull-secret.json -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_IMAGE "$@"
+  fi
 }
 
 echo "Installing HyperShift using upstream image"
-hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift $EXTRA_HYPERSHIFT_INSTALL_FLAGS
+hypershift_cli install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift $EXTRA_HYPERSHIFT_INSTALL_FLAGS
+if [ "${DISCONNECTED}" = "true" ]; then
+  # disconnected hypershift requires patching the operator deployment with the local image mirror of the capi agent 
+  oc patch deploy/operator -n hypershift --type=strategic --patch="{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"operator\",\"env\":[{\"name\":\"IMAGE_AGENT_CAPI_PROVIDER\",\"value\":\"${PROVIDER_IMAGE}\"}]}]}}}}"
+  # delete all rs since patching the deployment doesn't actually remove the running rs
+  oc delete rs --all -n hypershift
+fi
 wait_for_pods "hypershift"
 
 if [ -z "$PROVIDER_IMAGE" ]
@@ -132,11 +191,18 @@ else
 fi
 
 echo "Creating HostedCluster"
-hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret /root/pull-secret.json \
+hypershift_cli create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret /root/pull-secret.json \
  --ssh-key /root/.ssh/id_rsa.pub --agent-namespace $SPOKE_NAMESPACE --namespace $SPOKE_NAMESPACE \
  --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}} \
   $CONTROL_PLANE_OPERATOR_FLAG_FOR_CREATE_COMMAND \
-  $PROVIDER_FLAG_FOR_CREATE_COMMAND
+  $PROVIDER_FLAG_FOR_CREATE_COMMAND \
+  $EXTRA_HYPERSHIFT_CREATE_COMMANDS
+
+if [ "${DISCONNECTED}" = "true" ]; then
+  # Disconnected requires annotating the hosted cluster with the mirrored hypershift operator image (with digest instead of tag)
+  export HYPERSHIFT_IMAGE_WITH_DIGEST="${LOCAL_REGISTRY}/localimages/hypershift@$(oc image info $HYPERSHIFT_IMAGE -o json | jq -r '.digest')"
+  oc annotate hostedcluster $ASSISTED_CLUSTER_NAME hypershift.openshift.io/control-plane-operator-image=$HYPERSHIFT_IMAGE_WITH_DIGEST -n $SPOKE_NAMESPACE
+fi
 
 # Wait for a hypershift hostedcontrolplane to report ready status
 wait_for_resource "hostedcontrolplane/${ASSISTED_CLUSTER_NAME}" "${SPOKE_NAMESPACE}-${ASSISTED_CLUSTER_NAME}"
@@ -166,5 +232,5 @@ if [ $(oc get baremetalhost -n ${SPOKE_NAMESPACE} -o json | jq -c '.items[].meta
 fi
 
 echo "Destroy the hosted cluster"
-hypershift destroy cluster agent --name $ASSISTED_CLUSTER_NAME --namespace $SPOKE_NAMESPACE --cluster-grace-period 60m
+hypershift_cli destroy cluster agent --name $ASSISTED_CLUSTER_NAME --namespace $SPOKE_NAMESPACE --cluster-grace-period 60m
 echo "Successfully destroyed the hosted cluster"
