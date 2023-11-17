@@ -59,8 +59,8 @@ elif [[ "${IP_STACK}" == "v4v6" ]]; then
     export CLUSTER_HOST_PREFIX_ADDITIONAL="${CLUSTER_HOST_PREFIX_V6}"
     export EXTERNAL_SUBNET_ADDITIONAL="${EXTERNAL_SUBNET_V6}"
     export SERVICE_SUBNET_ADDITIONAL="${SERVICE_SUBNET_V6}"
-    # IPv6 requires hypershift create cluster cidr override
-    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --cluster-cidr fd01::/48"
+    # IPv6 requires hypershift create cluster and service cidr overrides
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --cluster-cidr fd01::/48 --service-cidr fd02::/112"
 fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
@@ -158,7 +158,7 @@ function hypershift_cli() {
   then
     hypershift "$@"
   else
-    podman run -it --net host --rm --entrypoint /usr/bin/hypershift -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:/root/pull-secret.json -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_IMAGE "$@"
+    podman run -it --net host --rm --entrypoint /usr/bin/hypershift -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:$ASSISTED_PULLSECRET_JSON -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_IMAGE "$@"
   fi
 }
 
@@ -191,7 +191,7 @@ else
 fi
 
 echo "Creating HostedCluster"
-hypershift_cli create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret /root/pull-secret.json \
+hypershift_cli create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret $ASSISTED_PULLSECRET_JSON \
  --ssh-key /root/.ssh/id_rsa.pub --agent-namespace $SPOKE_NAMESPACE --namespace $SPOKE_NAMESPACE \
  --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}} \
   $CONTROL_PLANE_OPERATOR_FLAG_FOR_CREATE_COMMAND \
