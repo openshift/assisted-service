@@ -31,11 +31,6 @@ const (
 	ValidationError   ValidationStatus = "error"
 )
 
-const (
-	ApiVipsName     = "api vips"
-	IngressVipsName = "ingress vips"
-)
-
 func (v ValidationStatus) String() string {
 	return string(v)
 }
@@ -346,7 +341,7 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) (
 	}
 
 	for _, h := range candidates {
-		//if allocated masters count is less than the desired count, find eligable hosts
+		//if allocated masters count is less than the desired count, find eligible hosts
 		//from the candidate pool to match the master count criteria, up to 3
 		if len(masters) < minMastersNeededForInstallation {
 			candidate := *h
@@ -434,7 +429,7 @@ func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) (Vali
 func checkCidrsOverlapping(cluster *common.Cluster) error {
 	//Currently, the networks arrays can hold up to 2 subnets, one for each family
 	//in the same order. If machine networks is defined we assume it follows the
-	//same convension
+	//same conversion
 	var machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string
 	for index := range cluster.ClusterNetworks {
 		if index < len(cluster.MachineNetworks) {
