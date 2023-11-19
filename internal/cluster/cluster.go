@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
-	reflect "reflect"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -234,7 +234,7 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 			metricsErr = multierror.Append(metricsErr, err)
 		}
 	}
-	if err := m.reportValidationFailedMetrics(ctx, c, c.OpenshiftVersion, c.EmailDomain); err != nil {
+	if err := m.reportValidationFailedMetrics(ctx, c); err != nil {
 		m.log.WithError(err).Errorf("Failed to report metrics for failed validations on cluster %s", c.ID)
 		metricsErr = multierror.Append(metricsErr, err)
 	}
@@ -251,7 +251,7 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 	return err
 }
 
-func (m *Manager) reportValidationFailedMetrics(ctx context.Context, c *common.Cluster, ocpVersion, emailDomain string) error {
+func (m *Manager) reportValidationFailedMetrics(ctx context.Context, c *common.Cluster) error {
 	log := logutil.FromContext(ctx, m.log)
 	if c.ValidationsInfo == "" {
 		log.Warnf("Cluster %s doesn't contain any validations info, cannot report metrics for that cluster", *c.ID)
@@ -315,7 +315,7 @@ func GetValidations(c *common.Cluster) (ValidationsStatus, error) {
 	return currentValidationRes, nil
 }
 
-func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes ValidationsStatus) bool {
+func (m *Manager) didValidationChanged(newValidationRes, currentValidationRes ValidationsStatus) bool {
 	if len(newValidationRes) == 0 {
 		// in order to be considered as a change, newValidationRes should not contain less data than currentValidations
 		return false
@@ -363,7 +363,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 	if err != nil {
 		return nil, err
 	}
-	if m.didValidationChanged(ctx, newValidationRes, currentValidationRes) {
+	if m.didValidationChanged(newValidationRes, currentValidationRes) {
 		// Validation status changes are detected when new validations are different from the
 		// current validations in the DB.
 		// For changes to be detected and reported correctly, the comparison needs to be
@@ -550,8 +550,8 @@ func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 	// or remote controllers reports that their log colection has been completed. Then, monitoring should be
 	// stopped to avoid excessive computation
 	skipMonitoringStates := []string{string(models.LogsStateCompleted), string(models.LogsStateTimeout)}
-	result := ((swag.StringValue(c.Status) == models.ClusterStatusError || swag.StringValue(c.Status) == models.ClusterStatusCancelled) &&
-		funk.Contains(skipMonitoringStates, c.LogsInfo))
+	result := (swag.StringValue(c.Status) == models.ClusterStatusError || swag.StringValue(c.Status) == models.ClusterStatusCancelled) &&
+		funk.Contains(skipMonitoringStates, c.LogsInfo)
 	return result
 }
 

@@ -45,7 +45,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostCancelInstallation,
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Cancel installation of preparing cluster",
-			Description: "Cancelling a cluster during preperation simply cancels the preperation and moves it back to the ready, rather than putting the cluster in the cancelled state",
+			Description: "Cancelling a cluster during preparation simply cancels the preparation and moves it back to the ready, rather than putting the cluster in the cancelled state",
 		},
 	})
 
