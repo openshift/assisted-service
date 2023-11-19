@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -43,7 +44,7 @@ var _ = BeforeEach(func() {
 	cluster = &common.Cluster{
 		Cluster: models.Cluster{
 			ID:               &clusterID,
-			OpenshiftVersion: "4.8.1",
+			OpenshiftVersion: "4.14.0",
 		},
 	}
 	cluster.ImageInfo = &models.ImageInfo{}
@@ -59,7 +60,8 @@ var _ = BeforeEach(func() {
 	ctrl = gomock.NewController(GinkgoT())
 	manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 	mockS3Api = s3wrapper.NewMockAPI(ctrl)
-	manager = operators.NewManager(log, manifestsAPI, operators.Options{}, mockS3Api, nil)
+	defaultocpMceVersionMap := "[{\"openshift_version\": \"4.10\", \"mce_channel\": \"stable-2.3\"}, {\"openshift_version\": \"4.11\", \"mce_channel\": \"stable-2.3\"}, {\"openshift_version\": \"4.12\", \"mce_channel\": \"stable-2.4\"}, {\"openshift_version\": \"4.13\", \"mce_channel\": \"stable-2.4\"}, {\"openshift_version\": \"4.14\", \"mce_channel\": \"stable-2.4\"}, {\"openshift_version\": \"4.15\", \"mce_channel\": \"stable-2.4\"}]"
+	manager = operators.NewManager(log, manifestsAPI, operators.Options{MCEConfig: mce.EnvironmentalConfig{OCPMCEVersionMap: defaultocpMceVersionMap}}, mockS3Api, nil)
 })
 
 var _ = AfterEach(func() {

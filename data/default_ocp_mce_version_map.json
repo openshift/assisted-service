@@ -1,0 +1,7 @@
+[
+    {"openshift_version": "4.11", "mce_channel": "stable-2.3"},
+    {"openshift_version": "4.12", "mce_channel": "stable-2.4"},
+    {"openshift_version": "4.13", "mce_channel": "stable-2.4"},
+    {"openshift_version": "4.14", "mce_channel": "stable-2.4"},
+    {"openshift_version": "4.15", "mce_channel": "stable-2.4"}
+]

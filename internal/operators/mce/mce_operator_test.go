@@ -2,6 +2,7 @@ package mce
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -13,9 +14,10 @@ import (
 )
 
 var _ = Describe("MCE Operator", func() {
+
 	var (
 		ctx                           = context.TODO()
-		operator                      = NewMceOperator(common.GetTestLog())
+		operator                      = NewMceOperator(common.GetTestLog(), EnvironmentalConfig{})
 		hostWithNoInventory           = &models.Host{}
 		hostWithInsufficientResources = &models.Host{
 			Inventory: Inventory(&InventoryResources{
@@ -76,16 +78,19 @@ var _ = Describe("MCE Operator", func() {
 		)
 	})
 	Context("ValidateCluster", func() {
+		mceMinOpenshiftVersion, err := getMinMceOpenshiftVersion(operator.config.OcpMceVersionMap)
+		Expect(err).ToNot((HaveOccurred()))
+
 		table.DescribeTable("validate cluster when ", func(cluster *common.Cluster, expectedResult api.ValidationResult) {
 			res, _ := operator.ValidateCluster(ctx, cluster)
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("Openshift version less than minimal",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: "4.9.0"}},
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"multicluster engine is only supported for openshift versions 4.10.0 and above"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{fmt.Sprintf("multicluster engine is only supported for openshift versions %s and above", *mceMinOpenshiftVersion)}},
 			),
 			table.Entry("Openshift version more than minimal",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: MceMinOpenshiftVersion}},
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: *mceMinOpenshiftVersion}},
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
 			),
 		)

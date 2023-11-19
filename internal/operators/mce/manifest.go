@@ -6,7 +6,7 @@ import (
 )
 
 // Manifests returns manifests needed to deploy MCE.
-func Manifests() (openshiftManifests map[string][]byte, customManifests []byte, err error) {
+func Manifests(openshiftVersion string, config *Config) (openshiftManifests map[string][]byte, customManifests []byte, err error) {
 	// Generate the OpenShift manifests:
 	namespaceManifest, err := getNamespace()
 	if err != nil {
@@ -16,7 +16,7 @@ func Manifests() (openshiftManifests map[string][]byte, customManifests []byte, 
 	if err != nil {
 		return
 	}
-	operatorSubscriptionManifest, err := getSubscription()
+	operatorSubscriptionManifest, err := getSubscription(openshiftVersion, config)
 	if err != nil {
 		return
 	}
@@ -34,11 +34,16 @@ func Manifests() (openshiftManifests map[string][]byte, customManifests []byte, 
 	return openshiftManifests, mceManifest, nil
 }
 
-func getSubscription() ([]byte, error) {
+func getSubscription(openshiftVersion string, config *Config) ([]byte, error) {
+	mceChannel, err := getMCEVersion(openshiftVersion, config.OcpMceVersionMap)
+	if err != nil {
+		return nil, err
+	}
+
 	data := map[string]string{
 		"OPERATOR_NAMESPACE":            Operator.Namespace,
 		"OPERATOR_SUBSCRIPTION_NAME":    Operator.SubscriptionName,
-		"OPERATOR_SUBSCRIPTION_CHANNEL": MceChannel,
+		"OPERATOR_SUBSCRIPTION_CHANNEL": *mceChannel,
 	}
 	return executeTemplate(data, operatorSubscriptionManifestTemplate)
 }

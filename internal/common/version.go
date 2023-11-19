@@ -2,6 +2,7 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/go-version"
@@ -27,6 +28,7 @@ func VersionGreaterOrEqual(version1, version2 string) (bool, error) {
 	return v1.GreaterThanOrEqual(v2), nil
 }
 
+// BaseVersionGreaterOrEqual compare Major, Minor and Patch
 func BaseVersionGreaterOrEqual(version, versionMayGreaterThan string) (bool, error) {
 	// return version >= versionMayGreaterThan
 	version = strings.Split(version, "-")[0]
@@ -36,24 +38,35 @@ func BaseVersionGreaterOrEqual(version, versionMayGreaterThan string) (bool, err
 }
 
 func BaseVersionLessThan(version, versionMayLessThan string) (bool, error) {
-	isGraterOrEqual, err := BaseVersionGreaterOrEqual(version, versionMayLessThan)
+	isGreaterOrEqual, err := BaseVersionGreaterOrEqual(version, versionMayLessThan)
 	if err != nil {
 		return false, err
 	}
-	return !isGraterOrEqual, nil
+	return !isGreaterOrEqual, nil
 }
 
 // BaseVersionEqual Compare Major and Minor of 2 different versions
 func BaseVersionEqual(version1, versionMayEqual string) (bool, error) {
-	version1 = strings.Split(version1, "-")[0]
-	versionMayEqual = strings.Split(versionMayEqual, "-")[0]
-
-	v1 := strings.Split(version1, ".")
-	v2 := strings.Split(versionMayEqual, ".")
-
-	if len(v1) < 2 || len(v2) < 2 {
-		return false, errors.New("invalid version")
+	majorMinorVersion1, err := GetMajorMinorVersion(version1)
+	if err != nil {
+		return false, err
+	}
+	majorMinorVersionMayEqual, err := GetMajorMinorVersion(versionMayEqual)
+	if err != nil {
+		return false, err
 	}
 
-	return v1[0] == v2[0] && v1[1] == v2[1], nil
+	return *majorMinorVersion1 == *majorMinorVersionMayEqual, nil
+}
+
+func GetMajorMinorVersion(version string) (*string, error) {
+	version = strings.Split(version, "-")[0]
+	splittedVersion := strings.Split(version, ".")
+
+	if len(splittedVersion) < 2 {
+		return nil, errors.New("invalid version")
+	}
+
+	versionStr := fmt.Sprintf("%s.%s", splittedVersion[0], splittedVersion[1])
+	return &versionStr, nil
 }

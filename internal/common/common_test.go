@@ -230,7 +230,7 @@ var _ = Describe("get hosts by role", func() {
 	})
 })
 
-var _ = Describe("compare OCP 4.10 versions", func() {
+var _ = Describe("compare OCP versions", func() {
 	It("GA release", func() {
 		is410Version, _ := VersionGreaterOrEqual("4.10.0", "4.10.0-0.alpha")
 		Expect(is410Version).Should(BeTrue())
@@ -286,6 +286,37 @@ var _ = Describe("compare OCP 4.10 versions", func() {
 	It("empty versions", func() {
 		_, err := BaseVersionGreaterOrEqual("", "")
 		Expect(err).Should(Not(BeNil()))
+	})
+})
+
+var _ = Describe("Get Major.Minor version", func() {
+	It("GA release", func() {
+		majorMinorVersion, err := GetMajorMinorVersion("4.10.0")
+		Expect(*majorMinorVersion).To(Equal("4.10"))
+		Expect(err).ToNot(HaveOccurred())
+	})
+	It("pre-release", func() {
+		majorMinorVersion, err := GetMajorMinorVersion("4.11.0-0.alpha")
+		Expect(*majorMinorVersion).To(Equal("4.11"))
+		Expect(err).ToNot(HaveOccurred())
+	})
+	It("nightly release", func() {
+		majorMinorVersion, err := GetMajorMinorVersion("4.12.0-0.nightly-2022-01-23-013716")
+		Expect(*majorMinorVersion).To(Equal("4.12"))
+		Expect(err).ToNot(HaveOccurred())
+	})
+	It("major minor release", func() {
+		majorMinorVersion, err := GetMajorMinorVersion("4.13")
+		Expect(*majorMinorVersion).To(Equal("4.13"))
+		Expect(err).ToNot(HaveOccurred())
+	})
+	It("empty versions", func() {
+		_, err := GetMajorMinorVersion("")
+		Expect(err).To(HaveOccurred())
+	})
+	It("small version", func() {
+		_, err := GetMajorMinorVersion("4")
+		Expect(err).To(HaveOccurred())
 	})
 })
 
