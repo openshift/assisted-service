@@ -89,8 +89,14 @@ func (b *FakeClusterBuilder) Build() *FakeCluster {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
+	clientObj := []clnt.Object{
+		&aiv1beta1.AgentServiceConfig{},
+		&appsv1.StatefulSet{},
+	}
+
 	// Create the client:
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	client := fake.NewClientBuilder().WithScheme(scheme).
+		WithStatusSubresource(clientObj...).Build()
 
 	// Create the objects that are needed by all the tests:
 	b.createIngressConfig(client)
@@ -172,7 +178,7 @@ func (c *FakeCluster) watchStatefulSets() wtch.Interface {
 				object.Status.ReadyReplicas = replicas
 				object.Status.CurrentReplicas = replicas
 				object.Status.UpdatedReplicas = replicas
-				err = c.client.Update(context.Background(), object)
+				err = c.client.Status().Update(context.Background(), object)
 				Expect(err).ToNot(HaveOccurred())
 				c.logger.Info(
 					"Updated stateful set",

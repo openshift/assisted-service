@@ -106,7 +106,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		Expect(configv1.AddToScheme(schemes)).To(Succeed())
 		Expect(metal3_v1alpha1.AddToScheme(schemes)).To(Succeed())
 		Expect(aiv1beta1.AddToScheme(schemes)).To(Succeed())
-		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(schemes).
+			WithStatusSubresource(&metal3_v1alpha1.PreprovisioningImage{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)

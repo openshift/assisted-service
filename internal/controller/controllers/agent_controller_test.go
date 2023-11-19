@@ -94,7 +94,8 @@ var _ = Describe("agent reconcile", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&v1beta1.Agent{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClientFactory = spoke_k8s_client.NewMockSpokeK8sClientFactory(mockCtrl)
@@ -339,6 +340,7 @@ var _ = Describe("agent reconcile", func() {
 
 	It("Agent update", func() {
 		mockClient := NewMockK8sClient(mockCtrl)
+		mockSubResourceWriter := NewMockSubResourceWriter(mockCtrl)
 		hr.Client = mockClient
 		newHostName := "hostname123"
 		newRole := "worker"
@@ -407,8 +409,8 @@ var _ = Describe("agent reconcile", func() {
 				return c.Update(ctx, agent)
 			},
 		).Times(1)
-		mockClient.EXPECT().Status().Return(mockClient).Times(1)
-		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+		mockClient.EXPECT().Status().Return(mockSubResourceWriter).Times(1)
+		mockSubResourceWriter.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 				return c.Status().Update(ctx, agent)
 			},
@@ -2262,7 +2264,8 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 	}
 
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&v1beta1.Agent{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClientFactory = spoke_k8s_client.NewMockSpokeK8sClientFactory(mockCtrl)
@@ -2897,7 +2900,8 @@ var _ = Describe("TestConditions", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&v1beta1.Agent{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		hr = &AgentReconciler{
@@ -3641,7 +3645,8 @@ var _ = Describe("spokeKubeClient", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&v1beta1.Agent{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClientFactory = spoke_k8s_client.NewMockSpokeK8sClientFactory(mockCtrl)
 		hr = &AgentReconciler{

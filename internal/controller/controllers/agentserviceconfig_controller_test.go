@@ -42,9 +42,16 @@ const (
 	testMirrorRegConfigmapName       = "test-mirror-configmap"
 )
 
-func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler {
+func newTestReconciler(initObjs ...client.Object) *AgentServiceConfigReconciler {
 	schemes := GetKubeClientSchemes()
-	c := fakeclient.NewClientBuilder().WithScheme(schemes).WithRuntimeObjects(initObjs...).Build()
+
+	rtoList := []runtime.Object{}
+	for i := range initObjs {
+		rtoList = append(rtoList, initObjs[i])
+	}
+
+	c := fakeclient.NewClientBuilder().WithScheme(schemes).WithStatusSubresource(initObjs...).
+		WithRuntimeObjects(rtoList...).Build()
 	return &AgentServiceConfigReconciler{
 		AgentServiceConfigReconcileContext: AgentServiceConfigReconcileContext{
 			Scheme: schemes,
