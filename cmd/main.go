@@ -89,6 +89,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 func init() {
@@ -807,7 +808,7 @@ func createControllerManager() (manager.Manager, error) {
 		}
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:           schemes,
-			Port:             9443,
+			WebhookServer:    webhook.NewServer(webhook.Options{Port: 9443}),
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.agent-install.openshift.io",
 			Cache: cache.Options{
