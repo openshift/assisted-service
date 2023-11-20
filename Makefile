@@ -11,10 +11,6 @@ CONTAINER_COMMAND := $(shell hack/utils.sh get_container_runtime_command)
 # Makefile syntax force us to assign the shell result to a variable - please ignore it.
 PODMAN_CLIENT_SELECTION_IGNORE_ME := $(shell hack/utils.sh select_podman_client)
 
-ifeq ($(CONTAINER_COMMAND), docker)
-	CONTAINER_COMMAND = $(shell docker -v 2>/dev/null | cut -f1 -d' ' | tr '[:upper:]' '[:lower:]')
-endif
-
 TARGET := $(or ${TARGET},minikube)
 KUBECTL=kubectl -n $(NAMESPACE)
 
