@@ -1387,8 +1387,8 @@ github.com/openshift/cluster-baremetal-operator v0.0.0-20231115111127-9178df00c7
 github.com/openshift/cluster-baremetal-operator v0.0.0-20231115111127-9178df00c706/go.mod h1:RJShHY6ZNnI4dLZFLJsfSd8gGYHJhWIIgO98ZarSo9Q=
 github.com/openshift/custom-resource-status v1.1.2 h1:C3DL44LEbvlbItfd8mT5jWrqPfHnSOQoQf/sypqA6A4=
 github.com/openshift/custom-resource-status v1.1.2/go.mod h1:DB/Mf2oTeiAmVVX1gN+NEqweonAPY0TKUwADizj8+ZA=
-github.com/openshift/generic-admission-server v1.14.1-0.20221208154047-0cd6b8367d91 h1:k0jTzdCoQZSkh1oWL9/OdaL7W8Gy7eMRkOBL9GTdMyE=
-github.com/openshift/generic-admission-server v1.14.1-0.20221208154047-0cd6b8367d91/go.mod h1:eL97Im5qzZ6Zl1xle5YDQ7qidu5pvT/FNEp3O4Fuek8=
+github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f h1:LzKRLvLJkWW4+4KsuvMmXJQ81ZZJSm2xxu6jwtn5gN0=
+github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f/go.mod h1:/CLsleDcQ6AFTGKJe9VL3Y4rB9DqX3fQwQv47q2/ZJc=
 github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a h1:E+XPJs/aVvYsrlJzo2ED38ZTR2RTNUlFMmOaFAAdMZg=
 github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a/go.mod h1:E1bgquRiwfugdArdecPbpYIrAdve5kTzMaJb0+8jMXI=
 github.com/openshift/image-customization-controller v0.0.0-20231018032321-4677f060c4bf h1:Z+LlKXsPGtzMsIQxSWAtebZLlUV/o678wYReGItPSkc=

@@ -55,7 +55,7 @@ require (
 	github.com/openshift/client-go v0.0.0-20230926161409-848405da69e1
 	github.com/openshift/cluster-baremetal-operator v0.0.0-20231115111127-9178df00c706
 	github.com/openshift/custom-resource-status v1.1.2
-	github.com/openshift/generic-admission-server v1.14.1-0.20221208154047-0cd6b8367d91
+	github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f
 	github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a
 	github.com/openshift/image-customization-controller v0.0.0-20231018032321-4677f060c4bf
 	github.com/ory/dockertest/v3 v3.9.1
