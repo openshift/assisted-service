@@ -5733,7 +5733,8 @@ func init() {
               "none",
               "nutanix",
               "vsphere",
-              "oci"
+              "oci",
+              "external"
             ],
             "type": "string",
             "description": "The provider platform type.",
@@ -7575,7 +7576,8 @@ func init() {
         "EXTERNAL_PLATFORM_OCI",
         "DUAL_STACK",
         "PLATFORM_MANAGED_NETWORKING",
-        "SKIP_MCO_REBOOT"
+        "SKIP_MCO_REBOOT",
+        "EXTERNAL_PLATFORM"
       ]
     },
     "free-addresses-list": {
@@ -9571,7 +9573,8 @@ func init() {
         "nutanix",
         "vsphere",
         "none",
-        "oci"
+        "oci",
+        "external"
       ]
     },
     "preflight-hardware-requirements": {
@@ -16106,7 +16109,8 @@ func init() {
               "none",
               "nutanix",
               "vsphere",
-              "oci"
+              "oci",
+              "external"
             ],
             "type": "string",
             "description": "The provider platform type.",
@@ -18033,7 +18037,8 @@ func init() {
         "EXTERNAL_PLATFORM_OCI",
         "DUAL_STACK",
         "PLATFORM_MANAGED_NETWORKING",
-        "SKIP_MCO_REBOOT"
+        "SKIP_MCO_REBOOT",
+        "EXTERNAL_PLATFORM"
       ]
     },
     "free-addresses-list": {
@@ -20020,7 +20025,8 @@ func init() {
         "nutanix",
         "vsphere",
         "none",
-        "oci"
+        "oci",
+        "external"
       ]
     },
     "preflight-hardware-requirements": {
