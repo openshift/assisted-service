@@ -165,7 +165,7 @@ func (o *GetSupportedFeaturesParams) bindPlatformType(rawData []string, hasKey b
 // validatePlatformType carries on validations for parameter PlatformType
 func (o *GetSupportedFeaturesParams) validatePlatformType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("platform_type", "query", *o.PlatformType, []interface{}{"baremetal", "none", "nutanix", "vsphere", "oci"}, true); err != nil {
+	if err := validate.EnumCase("platform_type", "query", *o.PlatformType, []interface{}{"baremetal", "none", "nutanix", "vsphere", "oci", "external"}, true); err != nil {
 		return err
 	}
 
