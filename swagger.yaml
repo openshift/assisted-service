@@ -5414,6 +5414,8 @@ definitions:
     properties:
       type:
         $ref: '#/definitions/platform_type'
+      external:
+        $ref: '#/definitions/platform_external'
       is_external:
         description: |-
           Used by the service to indicate that the platform-specific components are not included in
@@ -6223,6 +6225,24 @@ definitions:
       - none
       - oci
       - external
+
+  platform_external:
+    type: object
+    x-go-custom-tag: gorm:"embedded;embeddedPrefix:platform_external_"
+    description: Configuration used when installing with an external platform type.
+    properties:
+      platform_name:
+        description: |-
+          Holds the arbitrary string representing the infrastructure provider name.
+        type: string
+      cloud_controller_manager:
+        description: |-
+          When set to external, this property will enable an external cloud provider.
+        type: string
+        enum:
+          - ""
+          - External
+        default: ""
 
   memory_method:
     type: string
