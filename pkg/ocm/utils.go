@@ -18,6 +18,7 @@ const (
 	BareMetalCapabilityName         string = "bare_metal_installer_admin"
 	MultiarchCapabilityName         string = "bare_metal_installer_multiarch"
 	PlatformOciCapabilityName       string = "bare_metal_installer_platform_oci"
+	PlatformExternalCapabilityName  string = "bare_metal_installer_platform_external"
 	AccountCapabilityType           string = "Account"
 	OrganizationCapabilityType      string = "Organization"
 	Subscription                    string = "Subscription"
