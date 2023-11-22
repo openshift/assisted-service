@@ -953,9 +953,7 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 			return nil, err
 		}
 
-		if clusterInstall.Spec.IngressVIP != network.GetIngressVipById(cluster, 0) ||
-			!network.AreIngressVipsIdentical(desiredIngressVips, cluster.IngressVips) {
-
+		if !network.AreIngressVipsIdentical(desiredIngressVips, cluster.IngressVips) {
 			params.IngressVips = desiredIngressVips
 			update = true
 		}

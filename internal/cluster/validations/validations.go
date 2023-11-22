@@ -456,8 +456,16 @@ func validateVIPsWithUMA(cluster *common.Cluster, params *models.V2ClusterUpdate
 }
 
 func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Cluster, params *models.V2ClusterUpdateParams) error {
-	var err error
-	targetConfiguration := common.Cluster{}
+	var (
+		err                 error
+		targetConfiguration common.Cluster
+		apiVips             []*models.APIVip
+		ingressVips         []*models.IngressVip
+	)
+
+	apiVips = params.APIVips
+	ingressVips = params.IngressVips
+
 	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) &&
 		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
 
@@ -483,14 +491,23 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 
 		if cluster.VipDhcpAllocation != nil && swag.BoolValue(cluster.VipDhcpAllocation) { // override VIPs that were allocated via DHCP
 			params.APIVips = []*models.APIVip{}
+			apiVips = []*models.APIVip{}
 			params.IngressVips = []*models.IngressVip{}
+			ingressVips = []*models.IngressVip{}
+		} else {
+			if params.APIVips == nil {
+				apiVips = cluster.APIVips
+			}
+			if params.IngressVips == nil {
+				ingressVips = cluster.IngressVips
+			}
 		}
 	}
 
 	targetConfiguration.ID = cluster.ID
 	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
-	targetConfiguration.APIVips = params.APIVips
-	targetConfiguration.IngressVips = params.IngressVips
+	targetConfiguration.APIVips = apiVips
+	targetConfiguration.IngressVips = ingressVips
 	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
 	targetConfiguration.HighAvailabilityMode = cluster.HighAvailabilityMode
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
