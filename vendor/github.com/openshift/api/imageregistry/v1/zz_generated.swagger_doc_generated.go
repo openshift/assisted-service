@@ -12,7 +12,8 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_Config = map[string]string{
-	"": "Config is the configuration object for a registry instance managed by the registry operator\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "Config is the configuration object for a registry instance managed by the registry operator\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (Config) SwaggerDoc() map[string]string {
@@ -20,7 +21,8 @@ func (Config) SwaggerDoc() map[string]string {
 }
 
 var map_ConfigList = map[string]string{
-	"": "ConfigList is a slice of Config objects.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "ConfigList is a slice of Config objects.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConfigList) SwaggerDoc() map[string]string {
@@ -166,7 +168,7 @@ var map_ImageRegistryConfigStorageS3 = map[string]string{
 	"":                   "ImageRegistryConfigStorageS3 holds the information to configure the registry to use the AWS S3 service for backend storage https://docs.docker.com/registry/storage-drivers/s3/",
 	"bucket":             "bucket is the bucket name in which you want to store the registry's data. Optional, will be generated if not provided.",
 	"region":             "region is the AWS region in which your bucket exists. Optional, will be set based on the installed AWS Region.",
-	"regionEndpoint":     "regionEndpoint is the endpoint for S3 compatible storage services. Optional, defaults based on the Region that is provided.",
+	"regionEndpoint":     "regionEndpoint is the endpoint for S3 compatible storage services. It should be a valid URL with scheme, e.g. https://s3.example.com. Optional, defaults based on the Region that is provided.",
 	"encrypt":            "encrypt specifies whether the registry stores the image in encrypted format or not. Optional, defaults to false.",
 	"keyID":              "keyID is the KMS key ID to use for encryption. Optional, Encrypt must be true, or this parameter is ignored.",
 	"cloudFront":         "cloudFront configures Amazon Cloudfront as the storage middleware in a registry.",
@@ -258,7 +260,8 @@ func (S3TrustedCASource) SwaggerDoc() map[string]string {
 }
 
 var map_ImagePruner = map[string]string{
-	"": "ImagePruner is the configuration object for an image registry pruner managed by the registry operator.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "ImagePruner is the configuration object for an image registry pruner managed by the registry operator.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ImagePruner) SwaggerDoc() map[string]string {
@@ -266,7 +269,8 @@ func (ImagePruner) SwaggerDoc() map[string]string {
 }
 
 var map_ImagePrunerList = map[string]string{
-	"": "ImagePrunerList is a slice of ImagePruner objects.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "ImagePrunerList is a slice of ImagePruner objects.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ImagePrunerList) SwaggerDoc() map[string]string {

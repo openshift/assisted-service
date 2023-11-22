@@ -94,7 +94,7 @@ func isClusterValidationInStatus(clusterID strfmt.UUID, validationID models.Clus
 
 func waitForHostValidationStatus(clusterID, infraEnvID, hostID strfmt.UUID, expectedStatus string, hostValidationIDs ...models.HostValidationID) {
 
-	waitFunc := func() (bool, error) {
+	waitFunc := func(_ context.Context) (bool, error) {
 		for _, vID := range hostValidationIDs {
 			cond, _ := isHostValidationInStatus(clusterID, infraEnvID, hostID, vID, expectedStatus)
 			if !cond {
@@ -103,13 +103,13 @@ func waitForHostValidationStatus(clusterID, infraEnvID, hostID strfmt.UUID, expe
 		}
 		return true, nil
 	}
-	err := wait.Poll(pollDefaultInterval, pollDefaultTimeout, waitFunc)
+	err := wait.PollUntilContextTimeout(context.TODO(), pollDefaultInterval, pollDefaultTimeout, false, waitFunc)
 	Expect(err).NotTo(HaveOccurred())
 }
 
 func waitForClusterValidationStatus(clusterID strfmt.UUID, expectedStatus string, clusterValidationIDs ...models.ClusterValidationID) {
 
-	waitFunc := func() (bool, error) {
+	waitFunc := func(_ context.Context) (bool, error) {
 		for _, vID := range clusterValidationIDs {
 			cond, _ := isClusterValidationInStatus(clusterID, vID, expectedStatus)
 			if !cond {
@@ -118,7 +118,7 @@ func waitForClusterValidationStatus(clusterID strfmt.UUID, expectedStatus string
 		}
 		return true, nil
 	}
-	err := wait.Poll(pollDefaultInterval, pollDefaultTimeout, waitFunc)
+	err := wait.PollUntilContextTimeout(context.TODO(), pollDefaultInterval, pollDefaultTimeout, false, waitFunc)
 	Expect(err).NotTo(HaveOccurred())
 }
 

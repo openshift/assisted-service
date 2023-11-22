@@ -801,8 +801,8 @@ func imageBeingCreated(err error) bool {
 }
 
 func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	mapNMStateConfigToInfraEnv := func(a client.Object) []reconcile.Request {
-		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+	mapNMStateConfigToInfraEnv := func(ctx context.Context, a client.Object) []reconcile.Request {
+		log := logutil.FromContext(ctx, r.Log).WithFields(
 			logrus.Fields{
 				"nmstate_config":           a.GetName(),
 				"nmstate_config_namespace": a.GetNamespace(),
@@ -812,7 +812,7 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			log.Debugf("NMState config: %s has no labels", a.GetName())
 			return []reconcile.Request{}
 		}
-		if err := r.List(context.Background(), infraEnvs, client.InNamespace(a.GetNamespace())); err != nil {
+		if err := r.List(ctx, infraEnvs, client.InNamespace(a.GetNamespace())); err != nil {
 			log.Debugf("failed to list InfraEnvs")
 			return []reconcile.Request{}
 		}
@@ -834,14 +834,14 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return reply
 	}
 
-	mapClusterDeploymentToInfraEnv := func(clusterDeployment client.Object) []reconcile.Request {
-		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+	mapClusterDeploymentToInfraEnv := func(ctx context.Context, clusterDeployment client.Object) []reconcile.Request {
+		log := logutil.FromContext(ctx, r.Log).WithFields(
 			logrus.Fields{
 				"cluster_deployment":           clusterDeployment.GetName(),
 				"cluster_deployment_namespace": clusterDeployment.GetNamespace(),
 			})
 		infraEnvs := &aiv1beta1.InfraEnvList{}
-		if err := r.List(context.Background(), infraEnvs); err != nil {
+		if err := r.List(ctx, infraEnvs); err != nil {
 			log.Debugf("failed to list InfraEnvs")
 			return []reconcile.Request{}
 		}
@@ -859,8 +859,8 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return reply
 	}
 
-	mapPullSecretToInfraEnv := func(ps client.Object) []reconcile.Request {
-		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+	mapPullSecretToInfraEnv := func(ctx context.Context, ps client.Object) []reconcile.Request {
+		log := logutil.FromContext(ctx, r.Log).WithFields(
 			logrus.Fields{
 				"pull_secret":           ps.GetName(),
 				"pull_secret_namespace": ps.GetNamespace(),
@@ -868,7 +868,7 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// PullSecretRef is a LocalObjectReference, which means it must exist in the
 		// same namespace. Let's get only the ClusterDeployments from the Secret's namespace.
 		infraEnvs := &aiv1beta1.InfraEnvList{}
-		if err := r.List(context.Background(), infraEnvs, &client.ListOptions{Namespace: ps.GetNamespace()}); err != nil {
+		if err := r.List(ctx, infraEnvs, &client.ListOptions{Namespace: ps.GetNamespace()}); err != nil {
 			log.Debugf("failed to list InfraEnvs")
 			return []reconcile.Request{}
 		}
@@ -887,9 +887,9 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	infraEnvUpdates := r.CRDEventsHandler.GetInfraEnvUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.InfraEnv{}).
-		Watches(&source.Kind{Type: &aiv1beta1.NMStateConfig{}}, handler.EnqueueRequestsFromMapFunc(mapNMStateConfigToInfraEnv)).
-		Watches(&source.Kind{Type: &hivev1.ClusterDeployment{}}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToInfraEnv)).
-		Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(mapPullSecretToInfraEnv)).
-		Watches(&source.Channel{Source: infraEnvUpdates}, &handler.EnqueueRequestForObject{}).
+		Watches(&aiv1beta1.NMStateConfig{}, handler.EnqueueRequestsFromMapFunc(mapNMStateConfigToInfraEnv)).
+		Watches(&hivev1.ClusterDeployment{}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToInfraEnv)).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(mapPullSecretToInfraEnv)).
+		WatchesRawSource(&source.Channel{Source: infraEnvUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

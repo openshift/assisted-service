@@ -92,7 +92,8 @@ var _ = Describe("infraEnv reconcile", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&aiv1beta1.InfraEnv{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockOSImages = versions.NewMockOSImages(mockCtrl)

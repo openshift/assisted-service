@@ -9,12 +9,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
-	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -89,8 +89,14 @@ func (b *FakeClusterBuilder) Build() *FakeCluster {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
+	clientObj := []clnt.Object{
+		&aiv1beta1.AgentServiceConfig{},
+		&appsv1.StatefulSet{},
+	}
+
 	// Create the client:
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	client := fake.NewClientBuilder().WithScheme(scheme).
+		WithStatusSubresource(clientObj...).Build()
 
 	// Create the objects that are needed by all the tests:
 	b.createIngressConfig(client)
@@ -172,7 +178,7 @@ func (c *FakeCluster) watchStatefulSets() wtch.Interface {
 				object.Status.ReadyReplicas = replicas
 				object.Status.CurrentReplicas = replicas
 				object.Status.UpdatedReplicas = replicas
-				err = c.client.Update(context.Background(), object)
+				err = c.client.Status().Update(context.Background(), object)
 				Expect(err).ToNot(HaveOccurred())
 				c.logger.Info(
 					"Updated stateful set",

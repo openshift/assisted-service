@@ -148,16 +148,11 @@ func getDefaultClusterDeploymentSpec(clusterName, aciName, pullSecretName string
 	}
 }
 
-func kubeTimeNow() *metav1.Time {
-	t := metav1.NewTime(time.Now())
-	return &t
-}
-
 func simulateACIDeletionWithFinalizer(ctx context.Context, c client.Client, aci *hiveext.AgentClusterInstall) {
 	// simulate ACI deletion with finalizer
 	aci.ObjectMeta.Finalizers = []string{AgentClusterInstallFinalizerName}
-	aci.ObjectMeta.DeletionTimestamp = kubeTimeNow()
 	Expect(c.Update(ctx, aci)).Should(BeNil())
+	Expect(c.Delete(ctx, aci)).Should(BeNil())
 }
 
 var _ = Describe("cluster reconcile", func() {
@@ -224,7 +219,8 @@ var _ = Describe("cluster reconcile", func() {
 	BeforeEach(func() {
 		defaultClusterSpec = getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName)
 		defaultAgentClusterInstallSpec = getDefaultAgentClusterInstallSpec(clusterName)
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClusterApi = cluster.NewMockAPI(mockCtrl)
@@ -1184,7 +1180,8 @@ var _ = Describe("cluster reconcile", func() {
 			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cd)
 			id := uuid.New()
 			sId = strfmt.UUID(id.String())
-			c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+			c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+				WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
 			mockCtrl = gomock.NewController(GinkgoT())
 			mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 			mockClusterApi = cluster.NewMockAPI(mockCtrl)
@@ -1277,7 +1274,6 @@ var _ = Describe("cluster reconcile", func() {
 			expectedErrMsg := fmt.Sprintf("failed to deregister cluster: %s: internal error", cd.Name)
 
 			simulateACIDeletionWithFinalizer(ctx, c, aci)
-			Expect(c.Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cd)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).Should(HaveOccurred())
@@ -1751,6 +1747,10 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().TransformClusterToDay2Internal(gomock.Any(), gomock.Any()).Times(1).Return(day2backEndCluster, nil)
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 
+			Expect(c.Get(ctx, types.NamespacedName{
+				Namespace: aci.Namespace,
+				Name:      aci.Name,
+			}, aci)).To(BeNil())
 			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
 				Type:    hiveext.ClusterCompletedCondition,
 				Status:  corev1.ConditionTrue,
@@ -3457,7 +3457,8 @@ var _ = Describe("TestConditions", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClusterApi := cluster.NewMockAPI(mockCtrl)
@@ -3988,7 +3989,8 @@ var _ = Describe("unbindAgents", func() {
 		clusterReference      = aiv1beta1.ClusterReference{Name: "test-cluster", Namespace: testNamespace}
 	)
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClusterApi := cluster.NewMockAPI(mockCtrl)
@@ -4106,7 +4108,8 @@ var _ = Describe("day2 cluster", func() {
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockVersions = versions.NewMockHandler(mockCtrl)
 
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
 
 		cr = &ClusterDeploymentsReconciler{
 			Client:            c,

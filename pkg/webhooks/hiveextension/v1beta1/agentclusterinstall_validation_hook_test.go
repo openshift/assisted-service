@@ -21,9 +21,7 @@ func createDecoder() *admission.Decoder {
 	scheme := runtime.NewScheme()
 	err := hiveext.AddToScheme(scheme)
 	Expect(err).To(BeNil())
-	decoder, err := admission.NewDecoder(scheme)
-	Expect(err).To(BeNil())
-	return decoder
+	return admission.NewDecoder(scheme)
 }
 
 var _ = Describe("ACI web hook init", func() {

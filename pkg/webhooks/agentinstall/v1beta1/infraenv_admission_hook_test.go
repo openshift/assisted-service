@@ -19,9 +19,7 @@ func createDecoder() *admission.Decoder {
 	scheme := runtime.NewScheme()
 	err := v1beta1.AddToScheme(scheme)
 	Expect(err).To(BeNil())
-	decoder, err := admission.NewDecoder(scheme)
-	Expect(err).To(BeNil())
-	return decoder
+	return admission.NewDecoder(scheme)
 }
 
 var _ = Describe("infraenv web hook init", func() {

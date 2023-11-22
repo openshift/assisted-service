@@ -40,7 +40,8 @@ var _ = Describe("AgentClusterInstall reconcile", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		ir = &AgentClusterInstallReconciler{
 			Client: c,

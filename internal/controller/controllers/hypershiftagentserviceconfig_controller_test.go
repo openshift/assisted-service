@@ -94,9 +94,16 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		}
 	}
 
-	newHSCTestReconciler := func(mockSpokeClientCache *MockSpokeClientCache, initObjs ...runtime.Object) *HypershiftAgentServiceConfigReconciler {
+	newHSCTestReconciler := func(mockSpokeClientCache *MockSpokeClientCache, initObjs ...client.Object) *HypershiftAgentServiceConfigReconciler {
 		schemes := GetKubeClientSchemes()
-		c := fakeclient.NewClientBuilder().WithScheme(schemes).WithRuntimeObjects(initObjs...).Build()
+
+		rtObj := []runtime.Object{}
+		for i := range initObjs {
+			rtObj = append(rtObj, runtime.Object(initObjs[i]))
+		}
+
+		c := fakeclient.NewClientBuilder().WithScheme(schemes).WithStatusSubresource(initObjs...).
+			WithRuntimeObjects(rtObj...).Build()
 		return &HypershiftAgentServiceConfigReconciler{
 			AgentServiceConfigReconcileContext: AgentServiceConfigReconcileContext{
 				Scheme: schemes,

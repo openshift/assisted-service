@@ -262,11 +262,11 @@ var _ = Describe("test AMS subscriptions", func() {
 
 		waitForConsoleUrlUpdateInAMS := func(clusterID strfmt.UUID) {
 
-			waitFunc := func() (bool, error) {
+			waitFunc := func(ctx context.Context) (bool, error) {
 				c := getCommonCluster(ctx, clusterID)
 				return c.IsAmsSubscriptionConsoleUrlSet, nil
 			}
-			err := wait.Poll(pollDefaultInterval, pollDefaultTimeout, waitFunc)
+			err := wait.PollUntilContextTimeout(ctx, pollDefaultInterval, pollDefaultTimeout, false, waitFunc)
 			Expect(err).NotTo(HaveOccurred())
 		}
 

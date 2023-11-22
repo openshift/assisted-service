@@ -30,6 +30,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	. "github.com/openshift/assisted-service/api/common"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -46,7 +47,6 @@ import (
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
-	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -1670,7 +1670,7 @@ func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.Agent{}).
-		Watches(&source.Channel{Source: r.CRDEventsHandler.GetAgentUpdates()},
+		WatchesRawSource(&source.Channel{Source: r.CRDEventsHandler.GetAgentUpdates()},
 			&handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
