@@ -3027,7 +3027,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		hwValidatorCfg := createValidatorCfg()
 		ctrl = gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
-		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators)
+		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators, nil)
 		mockProviderRegistry := registry.NewMockProviderRegistry(ctrl)
 		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
 		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()

@@ -303,8 +303,13 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 	}
 
 	for _, disk := range inventory.Disks {
-		if disk.DriveType == models.DriveTypeMultipath && disk.ID == host.InstallationDiskID {
-			installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
+		if disk.ID == host.InstallationDiskID {
+			if disk.DriveType == models.DriveTypeMultipath {
+				installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
+			} else if disk.DriveType == models.DriveTypeISCSI {
+				// Currently only allowed on the OCI platform
+				installerArgs = append(installerArgs, "--append-karg", "rd.iscsi.firmware=1", "--append-karg", "ip=ibft")
+			}
 		}
 	}
 

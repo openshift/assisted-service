@@ -1577,7 +1577,7 @@ var _ = Describe("Refresh Host", func() {
 				)).AnyTimes()
 
 				mockDefaultClusterHostRequirements(mockHwValidator)
-				mockHwValidator.EXPECT().IsValidStorageDeviceType(gomock.Any(), gomock.Any()).Return(true).AnyTimes()
+				mockHwValidator.EXPECT().IsValidStorageDeviceType(gomock.Any(), gomock.Any(), "", false).Return(true).AnyTimes()
 				mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return([]*models.Disk{}).AnyTimes()
 				mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 			}
