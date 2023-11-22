@@ -204,12 +204,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil, nil)
-			Expect(len(list)).To(Equal(21))
+			Expect(len(list)).To(Equal(22))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil, nil)
-			Expect(len(list)).To(Equal(21))
+			Expect(len(list)).To(Equal(22))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {

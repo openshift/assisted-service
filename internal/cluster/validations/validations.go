@@ -918,6 +918,8 @@ func ValidatePlatformCapability(platform *models.Platform, ctx context.Context, 
 	switch *platform.Type {
 	case models.PlatformTypeOci:
 		capabilityName = swag.String(ocm.PlatformOciCapabilityName)
+	case models.PlatformTypeExternal:
+		capabilityName = swag.String(ocm.PlatformExternalCapabilityName)
 	}
 
 	if capabilityName == nil {
