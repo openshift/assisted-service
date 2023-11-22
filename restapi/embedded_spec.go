@@ -9555,6 +9555,9 @@ func init() {
         "type"
       ],
       "properties": {
+        "external": {
+          "$ref": "#/definitions/platform_external"
+        },
         "is_external": {
           "description": "Used by the service to indicate that the platform-specific components are not included in\nOpenShift and must be provided as manifests separately.",
           "type": "boolean",
@@ -9565,6 +9568,26 @@ func init() {
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_\""
+    },
+    "platform_external": {
+      "description": "Configuration used when installing with an external platform type.",
+      "type": "object",
+      "properties": {
+        "cloud_controller_manager": {
+          "description": "When set to external, this property will enable an external cloud provider.",
+          "type": "string",
+          "default": "",
+          "enum": [
+            "",
+            "External"
+          ]
+        },
+        "platform_name": {
+          "description": "Holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.",
+          "type": "string"
+        }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_external_\""
     },
     "platform_type": {
       "type": "string",
@@ -20007,6 +20030,9 @@ func init() {
         "type"
       ],
       "properties": {
+        "external": {
+          "$ref": "#/definitions/platform_external"
+        },
         "is_external": {
           "description": "Used by the service to indicate that the platform-specific components are not included in\nOpenShift and must be provided as manifests separately.",
           "type": "boolean",
@@ -20017,6 +20043,26 @@ func init() {
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_\""
+    },
+    "platform_external": {
+      "description": "Configuration used when installing with an external platform type.",
+      "type": "object",
+      "properties": {
+        "cloud_controller_manager": {
+          "description": "When set to external, this property will enable an external cloud provider.",
+          "type": "string",
+          "default": "",
+          "enum": [
+            "",
+            "External"
+          ]
+        },
+        "platform_name": {
+          "description": "Holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.",
+          "type": "string"
+        }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_external_\""
     },
     "platform_type": {
       "type": "string",
