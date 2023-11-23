@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/common/testing"
+	commontesting "github.com/openshift/assisted-service/internal/common/testing"
 	"github.com/openshift/assisted-service/internal/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
@@ -2833,8 +2834,8 @@ var _ = Describe("AutoAssignRole", func() {
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		mockProviderRegistry := registry.NewMockProviderRegistry(ctrl)
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+		mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
+		mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 		db, dbName = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -3029,8 +3030,8 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		mockOperators := operators.NewMockAPI(ctrl)
 		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators, nil)
 		mockProviderRegistry := registry.NewMockProviderRegistry(ctrl)
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+		mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
+		mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 		mockOperators.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHostRequirements{}, nil)
 		mockOperators.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHardwareRequirements{}, nil)
 		mockVersions := versions.NewMockHandler(ctrl)

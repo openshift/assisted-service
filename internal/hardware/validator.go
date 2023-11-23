@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/assisted-service/internal/feature"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/provider/external"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -132,7 +133,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
-	ociPlatformType, err := v.providerRegistry.IsHostSupported(models.PlatformTypeOci, host)
+	ociPlatformType, err := external.IsOciHost(host)
 	if err != nil {
 		return nil, err
 	}

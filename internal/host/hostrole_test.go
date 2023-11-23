@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
+	commontesting "github.com/openshift/assisted-service/internal/common/testing"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -71,7 +72,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		initHwValidator()
 		mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
+		mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
 		mockVersions := versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
@@ -111,7 +112,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 	for i := range tests {
 		t := tests[i]
 		It(t.name, func() {
-			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			cluster = hostutil.GenerateTestCluster(clusterId)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 

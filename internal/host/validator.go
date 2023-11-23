@@ -365,7 +365,7 @@ func (v *validator) compatibleWithClusterPlatform(c *validationContext) (Validat
 	if c.inventory == nil || common.PlatformTypeValue(c.cluster.Platform.Type) == "" {
 		return ValidationPending, "Missing inventory or platform isn't set"
 	}
-	supported, err := v.providerRegistry.IsHostSupported(common.PlatformTypeValue(c.cluster.Platform.Type), c.host)
+	supported, err := v.providerRegistry.IsHostSupported(c.cluster.Platform, c.host)
 	if err != nil {
 		return ValidationError, "Validation error"
 	}
@@ -1658,7 +1658,7 @@ func (v *validator) isVSphereDiskUUIDEnabled(c *validationContext) (ValidationSt
 		return ValidationSuccessSuppressOutput, "no cluster"
 	}
 
-	supported, err := v.providerRegistry.IsHostSupported(models.PlatformTypeVsphere, c.host)
+	supported, err := v.providerRegistry.IsHostSupported(&models.Platform{Type: models.PlatformTypeVsphere.Pointer()}, c.host)
 	if err != nil {
 		return ValidationError, "Validation error"
 	}

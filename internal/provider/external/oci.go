@@ -14,6 +14,7 @@ import (
 
 const (
 	OCIManufacturer string = "OracleCloud.com"
+	OCIPlaformName  string = "oci"
 )
 
 type ociExternalProvider struct {
@@ -35,15 +36,7 @@ func (p *ociExternalProvider) Name() models.PlatformType {
 }
 
 func (p *ociExternalProvider) IsHostSupported(host *models.Host) (bool, error) {
-	// during the discovery there is a short time that host didn't return its inventory to the service
-	if host.Inventory == "" {
-		return false, nil
-	}
-	hostInventory, err := common.UnmarshalInventory(host.Inventory)
-	if err != nil {
-		return false, fmt.Errorf("error marshaling host to inventory, error %w", err)
-	}
-	return hostInventory.SystemVendor.Manufacturer == OCIManufacturer, nil
+	return IsOciHost(host)
 }
 
 func (p *ociExternalProvider) AreHostsSupported(hosts []*models.Host) (bool, error) {
@@ -62,7 +55,7 @@ func (p *ociExternalProvider) AreHostsSupported(hosts []*models.Host) (bool, err
 func (p *ociExternalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
 	cfg.Platform = installcfg.Platform{
 		External: &installcfg.ExternalInstallConfigPlatform{
-			PlatformName:           string(p.Provider.Name()),
+			PlatformName:           OCIPlaformName,
 			CloudControllerManager: installcfg.CloudControllerManagerTypeExternal,
 		},
 	}
@@ -85,4 +78,35 @@ func (p *ociExternalProvider) AddPlatformToInstallConfig(cfg *installcfg.Install
 	}
 
 	return nil
+}
+
+func (p *ociExternalProvider) IsProviderForPlatform(platform *models.Platform) bool {
+	if platform == nil ||
+		platform.Type == nil {
+		return false
+	}
+
+	if *platform.Type == p.Name() {
+		return true
+	}
+
+	if *platform.Type == models.PlatformTypeExternal &&
+		platform.External != nil &&
+		*platform.External.PlatformName == OCIPlaformName {
+		return true
+	}
+
+	return false
+}
+
+func IsOciHost(host *models.Host) (bool, error) {
+	// during the discovery there is a short time that host didn't return its inventory to the service
+	if host.Inventory == "" {
+		return false, nil
+	}
+	hostInventory, err := common.UnmarshalInventory(host.Inventory)
+	if err != nil {
+		return false, fmt.Errorf("error marshaling host to inventory, error %w", err)
+	}
+	return hostInventory.SystemVendor.Manufacturer == OCIManufacturer, nil
 }

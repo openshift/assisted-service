@@ -19,6 +19,8 @@ const (
 type Provider interface {
 	// Name returns the name of the platform.
 	Name() models.PlatformType
+	// IsProviderForCluster returns true if the provider is compatible with the platform given in input
+	IsProviderForPlatform(platform *models.Platform) bool
 	// AddPlatformToInstallConfig adds the provider platform to the installconfig platform field,
 	// sets platform fields from values within the cluster model.
 	AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error
