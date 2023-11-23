@@ -8,6 +8,9 @@ source ${__dir}/none_platform_utils.sh
 
 set -x
 
+echo "virsh net-dumpxml ostestbm"
+virsh net-dumpxml ostestbm
+
 export ASSISTED_CLUSTER_NAME="${ASSISTED_CLUSTER_NAME:-assisted-test-cluster}"
 export ASSISTED_AGENT_CLUSTER_INSTALL_NAME="${ASSISTED_AGENT_CLUSTER_INSTALL_NAME:-assisted-agent-cluster-install}"
 export ASSISTED_PULLSECRET_JSON="${ASSISTED_PULLSECRET_JSON:-${PULL_SECRET_FILE}}"
@@ -129,6 +132,9 @@ if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ] && [ "${USER_MANAGED_NETWORKING}" == "
         open_firewall_ports
     fi
 fi
+
+echo "virsh net-dumpxml ostestbm"
+virsh net-dumpxml ostestbm
 
 wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Stopped" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster installation has been stopped (either for good or bad reasons)"
