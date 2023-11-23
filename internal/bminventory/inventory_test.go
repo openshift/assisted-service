@@ -4299,7 +4299,7 @@ var _ = Describe("cluster", func() {
 					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					By("Set User Managed Networking: false")
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -4349,7 +4349,7 @@ var _ = Describe("cluster", func() {
 					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					apiVip := "10.11.12.15"
 					ingressVip := "10.11.12.16"
@@ -4401,7 +4401,7 @@ var _ = Describe("cluster", func() {
 				It("success", func() {
 					mockClusterUpdatability(1)
 					mockSuccess(1)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -4418,7 +4418,7 @@ var _ = Describe("cluster", func() {
 				It("Unset non relevant parameters", func() {
 					mockClusterUpdatability(1)
 					mockSuccess(1)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					Expect(db.Save(
 						&models.MachineNetwork{Cidr: common.TestIPv4Networking.MachineNetworks[0].Cidr, ClusterID: clusterID}).Error).ShouldNot(HaveOccurred())
@@ -4500,7 +4500,7 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("Don't fail with Machine CIDR", func() {
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 					mockSuccess(1)
 					mockClusterUpdatability(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -4540,7 +4540,7 @@ var _ = Describe("cluster", func() {
 				It("Success with non-x86_64 CPU architecture in case override is supported - 4.11", func() {
 					mockClusterUpdatability(1)
 					mockClusterUpdateSuccess(1, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any(), mockUsage)
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
@@ -6495,7 +6495,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=vsphere with UMN=true - success", func() {
 					mockClusterUpdateSuccess(1, 1)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					addVsphereHostWithNetworking(clusterID, models.HostRoleBootstrap)
 
@@ -6538,7 +6538,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true while cluster platform already set to vsphere - success", func() {
 					mockClusterUpdateSuccess(2, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6571,7 +6571,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and vphsere platform while cluster platform already set to none - success", func() {
 					mockClusterUpdateSuccess(2, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6585,7 +6585,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6606,7 +6606,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=nil and baremetal platform while cluster platform is set to vsphere - success", func() {
 					mockClusterUpdateSuccess(2, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6621,7 +6621,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6639,7 +6639,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=nil and none platform while cluster platform is set to vsphere - success", func() {
 					mockClusterUpdateSuccess(2, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6653,7 +6653,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any(), mockUsage)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6671,7 +6671,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=nil and baremetal platform while cluster platform is set to vsphere and umn true- failure", func() {
 					mockClusterUpdateSuccess(1, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6742,7 +6742,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 					It("Update to oci platform while single node cluster - success", func() {
 						mockSuccess()
-						mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+						mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeOci), gomock.Any(), mockUsage)
 
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
@@ -6759,7 +6759,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 					It("Update to external platform while single node cluster - success", func() {
 						mockSuccess()
-						mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+						mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
@@ -6777,7 +6777,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=nil and none platform while cluster platform is set to vsphere and umn false- failure", func() {
 					mockClusterUpdateSuccess(1, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6803,7 +6803,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and vphsere platform while cluster platform already set to none - success", func() {
 					mockClusterUpdateSuccess(2, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6817,7 +6817,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6837,7 +6837,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and vphsere platform while cluster platform already set to baremetal - success", func() {
 					mockClusterUpdateSuccess(1, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6858,7 +6858,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 				It("Update UMN=true and vphsere platform while cluster platform already set to baremetal - success", func() {
 					mockClusterUpdateSuccess(1, 0)
 
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6879,7 +6879,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6906,7 +6906,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=none while cluster.platform=BM - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6934,7 +6934,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=none while cluster.platform=BM - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6973,7 +6973,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=oci - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeOci), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7011,7 +7011,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=external - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7029,7 +7029,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=nutanix - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNutanix), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7049,7 +7049,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					err := db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("cpu_architecture", models.ClusterCPUArchitectureMulti).Error
 					Expect(err).ShouldNot(HaveOccurred())
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNutanix), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7077,7 +7077,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=nutanix - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNutanix), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7095,7 +7095,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7112,7 +7112,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7130,7 +7130,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7216,7 +7216,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7244,7 +7244,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=baremetal - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7272,7 +7272,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=baremetal - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7290,7 +7290,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=oci - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeOci), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7318,7 +7318,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=oci - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeOci), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7336,7 +7336,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=external - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7364,7 +7364,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=external - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7402,7 +7402,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=nutanix - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNutanix), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7420,7 +7420,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7437,7 +7437,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7455,7 +7455,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7549,7 +7549,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=external - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7577,7 +7577,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=external - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7615,7 +7615,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=baremetal - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7633,7 +7633,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=none - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7661,7 +7661,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=none - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7699,7 +7699,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=nutanix - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNutanix), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7717,7 +7717,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7734,7 +7734,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7752,7 +7752,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7814,7 +7814,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 					It("Update to none platform while single node cluster - success", func() {
 						mockSuccess()
-						mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+						mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
@@ -7831,7 +7831,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 					It("Update to external platform while single node cluster - success", func() {
 						mockSuccess()
-						mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+						mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
@@ -7927,7 +7927,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=oci - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeOci), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7955,7 +7955,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=oci - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeOci), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7993,7 +7993,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=baremetal - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8011,7 +8011,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=none - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8039,7 +8039,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=none - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8077,7 +8077,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=nutanix - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNutanix), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8095,7 +8095,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8112,7 +8112,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8130,7 +8130,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8192,7 +8192,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 					It("Update to none platform while single node cluster - success", func() {
 						mockSuccess()
-						mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+						mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
@@ -8209,7 +8209,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 					It("Update to oci platform while single node cluster - success", func() {
 						mockSuccess()
-						mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+						mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeOci), gomock.Any(), mockUsage)
 
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
@@ -8256,7 +8256,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=nutanix - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNutanix), gomock.Any(), mockUsage)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -8272,7 +8272,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=nutanix - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNutanix), gomock.Any(), mockUsage)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -8309,7 +8309,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=oci - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeOci), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8347,7 +8347,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=external - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8365,7 +8365,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8382,7 +8382,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8400,7 +8400,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=vsphere - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8417,7 +8417,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 				})
 				It("Update platform=baremetal - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8444,7 +8444,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=baremetal - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8482,7 +8482,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=none - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8532,7 +8532,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=oci - PlatformOci capability is set - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeOci), gomock.Any(), mockUsage)
 					mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 

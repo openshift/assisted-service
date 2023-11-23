@@ -308,6 +308,8 @@ func getDBContext() DBContext {
 		return gDbCtx
 	}
 
+	return &NoDBContext{}
+
 	if os.Getenv("SKIP_UT_DB") != "" {
 		return &NoDBContext{}
 	}

@@ -95,6 +95,20 @@ func (mr *MockProviderMockRecorder) IsHostSupported(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsHostSupported", reflect.TypeOf((*MockProvider)(nil).IsHostSupported), arg0)
 }
 
+// IsProviderForPlatform mocks base method.
+func (m *MockProvider) IsProviderForPlatform(arg0 *models.Platform) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsProviderForPlatform", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsProviderForPlatform indicates an expected call of IsProviderForPlatform.
+func (mr *MockProviderMockRecorder) IsProviderForPlatform(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsProviderForPlatform", reflect.TypeOf((*MockProvider)(nil).IsProviderForPlatform), arg0)
+}
+
 // Name mocks base method.
 func (m *MockProvider) Name() models.PlatformType {
 	m.ctrl.T.Helper()
