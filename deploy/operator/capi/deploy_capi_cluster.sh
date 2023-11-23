@@ -48,8 +48,8 @@ elif [[ "${IP_STACK}" == "v6" ]]; then
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V6}"
     export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V6}"
     export SERVICE_SUBNET="${SERVICE_SUBNET_V6}"
-    # IPv6 requires hypershift create cluster cidr override
-    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --cluster-cidr fd01::/48"
+    # IPv6 requires hypershift create cluster and service cidr overrides
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --cluster-cidr fd01::/48 --service-cidr fd02::/112"
 elif [[ "${IP_STACK}" == "v4v6" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V4}"
