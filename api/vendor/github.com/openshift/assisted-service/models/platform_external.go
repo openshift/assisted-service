@@ -24,7 +24,8 @@ type PlatformExternal struct {
 	// Enum: [ External]
 	CloudControllerManager string `json:"cloud_controller_manager,omitempty"`
 
-	// Holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.
+	// Holds the arbitrary string representing the infrastructure provider name.
+	// Min Length: 1
 	PlatformName string `json:"platform_name,omitempty"`
 }
 
@@ -33,6 +34,10 @@ func (m *PlatformExternal) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCloudControllerManager(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePlatformName(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -78,6 +83,18 @@ func (m *PlatformExternal) validateCloudControllerManager(formats strfmt.Registr
 
 	// value enum
 	if err := m.validateCloudControllerManagerEnum("cloud_controller_manager", "body", m.CloudControllerManager); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *PlatformExternal) validatePlatformName(formats strfmt.Registry) error {
+	if swag.IsZero(m.PlatformName) { // not required
+		return nil
+	}
+
+	if err := validate.MinLength("platform_name", "body", m.PlatformName, 1); err != nil {
 		return err
 	}
 

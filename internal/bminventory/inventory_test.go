@@ -18523,8 +18523,15 @@ var _ = Describe("Platform tests", func() {
 		It("external platform - HA", func() {
 			MinimalOpenShiftVersionForExternal := "4.14.0"
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, MinimalOpenShiftVersionForExternal)
+			platformName := "platform-name"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           platformName,
+					CloudControllerManager: cloudControllerManager,
+				},
 			}
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForExternal)
@@ -18533,6 +18540,8 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
+			Expect(cluster.Platform.External.PlatformName).Should(Equal(platformName))
+			Expect(cluster.Platform.External.CloudControllerManager).Should(Equal(string(cloudControllerManager)))
 			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
 		})
@@ -18540,9 +18549,15 @@ var _ = Describe("Platform tests", func() {
 		It("external platform - SNO", func() {
 			MinimalOpenShiftVersionForExternal := "4.14.0"
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, MinimalOpenShiftVersionForExternal)
+			platformName := "platform-name"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerExternal
 
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           platformName,
+					CloudControllerManager: cloudControllerManager,
+				},
 			}
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForExternal)
@@ -18553,6 +18568,8 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
+			Expect(cluster.Platform.External.PlatformName).Should(Equal(platformName))
+			Expect(cluster.Platform.External.CloudControllerManager).Should(Equal(string(cloudControllerManager)))
 			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
 		})
@@ -18620,6 +18637,24 @@ var _ = Describe("Platform tests", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 
+		It("external platform - fail on old version", func() {
+			invalidOpenShiftVersionForExternal := "4.10.0"
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, invalidOpenShiftVersionForExternal)
+
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           "platform-name",
+					CloudControllerManager: models.PlatformExternalCloudControllerManagerEmpty,
+				},
+			}
+			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(true)
+			registerParams.NewClusterParams.OpenshiftVersion = swag.String(invalidOpenShiftVersionForExternal)
+
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			verifyApiErrorString(reply, http.StatusBadRequest, "cannot use External Platform Integration because it's not compatible with the x86_64 architecture on version 4.10.0 of OpenShift")
+		})
+
 		It("external platform - fail if UMN is false", func() {
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
@@ -18627,6 +18662,17 @@ var _ = Describe("Platform tests", func() {
 			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(false)
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			verifyApiErrorString(reply, http.StatusBadRequest, "Can't set external platform with user-managed-networking disabled")
+		})
+
+		It("external platform - fail if no external settings", func() {
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type:     common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: nil,
+			}
+			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(true)
+
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			verifyApiErrorString(reply, http.StatusBadRequest, "platform.external settings are required when platform type is external")
 		})
 	})
 })

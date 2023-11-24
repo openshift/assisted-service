@@ -416,10 +416,8 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		}
 	}
 
-	if getPlatformType(params.NewClusterParams.Platform) == string(models.PlatformTypeNutanix) {
-		if err = verifyMinimalOpenShiftVersionForNutanix(swag.StringValue(params.NewClusterParams.OpenshiftVersion)); err != nil {
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
+	if err = validatePlatformParams(params.NewClusterParams); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if err = b.validateIgnitionEndpoint(params.NewClusterParams.IgnitionEndpoint, log); err != nil {
@@ -792,6 +790,34 @@ func verifyMinimalOpenShiftVersionForNutanix(requestedOpenshiftVersion string) e
 	if ocpVersion.LessThan(minimalVersionForSno) {
 		return errors.Errorf("Invalid OCP version (%s) for Nutanix, Nutanix integration is supported for version 4.11 and above", requestedOpenshiftVersion)
 	}
+	return nil
+}
+
+func validatePlatformParams(newClusterParams *models.ClusterCreateParams) error {
+	var err error
+	platform := newClusterParams.Platform
+
+	if platform == nil || (platform.Type == nil && platform.External == nil) {
+		// platform was not set, nothing to do
+		return nil
+	}
+
+	if platform.Type != nil {
+		if *platform.Type == models.PlatformTypeNutanix {
+			if err = verifyMinimalOpenShiftVersionForNutanix(swag.StringValue(newClusterParams.OpenshiftVersion)); err != nil {
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+		} else if *platform.Type == models.PlatformTypeExternal {
+			if platform.External == nil {
+				return errors.Errorf("platform.external settings are required when platform type is external")
+			}
+		}
+	}
+
+	if (platform.Type == nil || *platform.Type != models.PlatformTypeExternal) && platform.External != nil {
+		return errors.Errorf("platform.external settings are required only when platform type is external")
+	}
+
 	return nil
 }
 

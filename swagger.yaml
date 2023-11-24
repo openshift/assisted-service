@@ -6235,6 +6235,7 @@ definitions:
         description: |-
           Holds the arbitrary string representing the infrastructure provider name.
         type: string
+        minLength: 1
       cloud_controller_manager:
         description: |-
           When set to external, this property will enable an external cloud provider.
