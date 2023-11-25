@@ -9556,6 +9556,7 @@ func init() {
       ],
       "properties": {
         "external": {
+          "x-nullable": true,
           "$ref": "#/definitions/platform_external"
         },
         "is_external": {
@@ -9580,14 +9581,17 @@ func init() {
           "enum": [
             "",
             "External"
-          ]
+          ],
+          "x-nullable": true
         },
         "platform_name": {
-          "description": "Holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.",
-          "type": "string"
+          "description": "Holds the arbitrary string representing the infrastructure provider name.",
+          "type": "string",
+          "minLength": 1,
+          "x-nullable": true
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_external_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:external_\""
     },
     "platform_type": {
       "type": "string",
@@ -20031,6 +20035,7 @@ func init() {
       ],
       "properties": {
         "external": {
+          "x-nullable": true,
           "$ref": "#/definitions/platform_external"
         },
         "is_external": {
@@ -20055,14 +20060,17 @@ func init() {
           "enum": [
             "",
             "External"
-          ]
+          ],
+          "x-nullable": true
         },
         "platform_name": {
-          "description": "Holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.",
-          "type": "string"
+          "description": "Holds the arbitrary string representing the infrastructure provider name.",
+          "type": "string",
+          "minLength": 1,
+          "x-nullable": true
         }
       },
-      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_external_\""
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:external_\""
     },
     "platform_type": {
       "type": "string",

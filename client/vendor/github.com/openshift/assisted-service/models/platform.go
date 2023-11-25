@@ -20,7 +20,7 @@ import (
 type Platform struct {
 
 	// external
-	External *PlatformExternal `json:"external,omitempty" gorm:"embedded;embeddedPrefix:platform_external_"`
+	External *PlatformExternal `json:"external,omitempty" gorm:"embedded;embeddedPrefix:external_"`
 
 	// Used by the service to indicate that the platform-specific components are not included in
 	// OpenShift and must be provided as manifests separately.
