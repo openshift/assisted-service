@@ -6261,16 +6261,27 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						mockSuccess()
 						mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
 
+						platformName := "platform-name"
+						cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+								Platform: &models.Platform{
+									Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+									External: &models.PlatformExternal{
+										PlatformName:           &platformName,
+										CloudControllerManager: &cloudControllerManager,
+									},
+								},
 							},
 						})
 						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 						actual := reply.(*installer.V2UpdateClusterCreated).Payload
 						Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 						Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
+						Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
+						Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 						Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 					})
 				})
@@ -6513,10 +6524,19 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
 
+					platformName := "platform-name"
+					cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+							Platform: &models.Platform{
+								Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+								External: &models.PlatformExternal{
+									PlatformName:           &platformName,
+									CloudControllerManager: &cloudControllerManager,
+								},
+							},
 							UserManagedNetworking: swag.Bool(true),
 						},
 					})
@@ -6524,6 +6544,8 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
+					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
+					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
@@ -6838,16 +6860,27 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
 
+					platformName := "platform-name"
+					cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+							Platform: &models.Platform{
+								Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+								External: &models.PlatformExternal{
+									PlatformName:           &platformName,
+									CloudControllerManager: &cloudControllerManager,
+								},
+							},
 						},
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
+					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
+					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 
 				})
@@ -6866,10 +6899,19 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
 
+					platformName := "platform-name"
+					cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+							Platform: &models.Platform{
+								Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+								External: &models.PlatformExternal{
+									PlatformName:           &platformName,
+									CloudControllerManager: &cloudControllerManager,
+								},
+							},
 							UserManagedNetworking: swag.Bool(true),
 						},
 					})
@@ -6877,6 +6919,8 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
+					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
+					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
@@ -7051,10 +7095,19 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
 
+					platformName := "platform-name"
+					cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+							Platform: &models.Platform{
+								Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+								External: &models.PlatformExternal{
+									PlatformName:           &platformName,
+									CloudControllerManager: &cloudControllerManager,
+								},
+							},
 						},
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -7079,10 +7132,19 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
 
+					platformName := "platform-name"
+					cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+							Platform: &models.Platform{
+								Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+								External: &models.PlatformExternal{
+									PlatformName:           &platformName,
+									CloudControllerManager: &cloudControllerManager,
+								},
+							},
 							UserManagedNetworking: swag.Bool(true),
 						},
 					})
@@ -7090,6 +7152,8 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
+					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
+					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
@@ -7333,16 +7397,27 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						mockSuccess()
 						mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
 
+						platformName := "platform-name"
+						cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+								Platform: &models.Platform{
+									Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+									External: &models.PlatformExternal{
+										PlatformName:           &platformName,
+										CloudControllerManager: &cloudControllerManager,
+									},
+								},
 							},
 						})
 						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 						actual := reply.(*installer.V2UpdateClusterCreated).Payload
 						Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 						Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
+						Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
+						Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 						Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 					})
 
@@ -7849,10 +7924,19 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
 
+					platformName := "platform-name"
+					cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+							Platform: &models.Platform{
+								Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+								External: &models.PlatformExternal{
+									PlatformName:           &platformName,
+									CloudControllerManager: &cloudControllerManager,
+								},
+							},
 							UserManagedNetworking: swag.Bool(true),
 						},
 					})
@@ -7860,6 +7944,8 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
+					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
+					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
@@ -13674,8 +13760,17 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.14")
 				mockAMSSubscription(ctx)
 
+				platformName := "platform-name"
+				cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
 				params := getClusterCreateParams(nil)
-				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)}
+				params.Platform = &models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+					External: &models.PlatformExternal{
+						PlatformName:           &platformName,
+						CloudControllerManager: &cloudControllerManager,
+					},
+				}
 				params.UserManagedNetworking = swag.Bool(true)
 				params.OpenshiftVersion = swag.String("4.14")
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -13686,6 +13781,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 				Expect(*actual.Platform.IsExternal).To(Equal(true))
+				Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
+				Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 				Expect(actual.OpenshiftVersion).To(Equal("4.14"))
 			})
 
@@ -13693,6 +13790,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				cpuArchitecture := common.X86CPUArchitecture
 				openshiftVersion := "4.13"
 				errorMsg := "cannot use External Platform Integration because it's not compatible with the x86_64 architecture on version 4.13.0 of OpenShift"
+				platformName := "platform-name"
+				cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
 
 				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
 					CPUArchitecture:  swag.String(cpuArchitecture),
@@ -13705,7 +13804,13 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 
 				params := getClusterCreateParams(nil)
-				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)}
+				params.Platform = &models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+					External: &models.PlatformExternal{
+						PlatformName:           &platformName,
+						CloudControllerManager: &cloudControllerManager,
+					},
+				}
 				params.UserManagedNetworking = swag.Bool(true)
 				params.OpenshiftVersion = swag.String("4.13")
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -18022,9 +18127,15 @@ var _ = Describe("Platform tests", func() {
 
 		It("external platform - HA", func() {
 			MinimalOpenShiftVersionForExternal := "4.14.0"
+			platformName := "platform-name"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, MinimalOpenShiftVersionForExternal)
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           &platformName,
+					CloudControllerManager: &cloudControllerManager,
+				},
 			}
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForExternal)
@@ -18034,15 +18145,22 @@ var _ = Describe("Platform tests", func() {
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
 			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
+			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
+			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
 		})
 
 		It("external platform - SNO", func() {
 			MinimalOpenShiftVersionForExternal := "4.14.0"
+			platformName := "platform-name"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, MinimalOpenShiftVersionForExternal)
-
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           &platformName,
+					CloudControllerManager: &cloudControllerManager,
+				},
 			}
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForExternal)
@@ -18054,6 +18172,8 @@ var _ = Describe("Platform tests", func() {
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
 			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
+			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
+			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
 		})
 	})
@@ -18127,6 +18247,31 @@ var _ = Describe("Platform tests", func() {
 			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(false)
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			verifyApiErrorString(reply, http.StatusBadRequest, "Can't set external platform with user-managed-networking disabled")
+		})
+
+		It("external platform - fail if external settings are not set", func() {
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+			}
+			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(true)
+
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			verifyApiErrorString(reply, http.StatusBadRequest, "External setting must be set when using platform type external")
+		})
+
+		It("baremetal platform - fail if external settings are set", func() {
+			platformName := "platform-name"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+				External: &models.PlatformExternal{
+					PlatformName:           &platformName,
+					CloudControllerManager: &cloudControllerManager,
+				},
+			}
+
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			verifyApiErrorString(reply, http.StatusBadRequest, "External settings can only be set with external platform type")
 		})
 	})
 })

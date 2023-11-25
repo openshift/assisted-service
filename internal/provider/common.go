@@ -58,6 +58,18 @@ func isUMNMandatoryForCluster(cluster *common.Cluster) bool {
 	return cluster != nil && isUMNMandatoryForPlatform(cluster.Platform)
 }
 
+func validateExternalSettings(platform models.Platform) error {
+	if platform.External == nil {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("External setting must be set when using platform type external"))
+	}
+
+	if platform.External.PlatformName == nil || len(*platform.External.PlatformName) == 0 {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Platform name must be set to a non-empty string when using platform type external"))
+	}
+
+	return nil
+}
+
 func CheckPlatformWrongParamsInput(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) error {
 	// check if platform compatibility with UMN
 	if platform != nil && userManagedNetworking != nil {
@@ -86,6 +98,17 @@ func CheckPlatformWrongParamsInput(platform *models.Platform, userManagedNetwork
 
 		if isUMNMandatoryForPlatform(platform) && !swag.BoolValue(cluster.UserManagedNetworking) {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform with user-managed-networking disabled", *platform.Type))
+		}
+	}
+
+	// No existing cluster or existing cluster is not external.
+	if platform != nil && (cluster == nil || *cluster.Platform.Type != models.PlatformTypeExternal) {
+		if platform.Type != nil && *platform.Type == models.PlatformTypeExternal {
+			// We require valid external settings in platform is set to external
+			return validateExternalSettings(*platform)
+		} else if platform.External != nil && platform.External.PlatformName != nil && platform.External.CloudControllerManager != nil {
+			// externals setting shouldn't be set if platform type is not external
+			return common.NewApiError(http.StatusBadRequest, errors.Errorf("External settings can only be set with external platform type"))
 		}
 	}
 
@@ -139,7 +162,7 @@ func getUpdateParamsForPlatformUMNMandatory(platform *models.Platform, userManag
 		if platform == nil || *cluster.Platform.Type == *platform.Type {
 			return nil, nil, nil
 		} else {
-			return createPlatformFromType(*platform.Type), nil, nil
+			return updatePlatformIsExternal(platform), nil, nil
 		}
 	}
 
