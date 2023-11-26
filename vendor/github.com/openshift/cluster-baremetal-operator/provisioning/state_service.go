@@ -19,17 +19,26 @@ const (
 	vmediaHttpsPortName = "vmedia-https"
 )
 
-func newMetal3StateService(targetNamespace string, disableVirtualMediaTLS bool) *corev1.Service {
+func newMetal3StateService(info *ProvisioningInfo) *corev1.Service {
 	port, _ := strconv.Atoi(baremetalHttpPort)             // #nosec
 	httpsPort, _ := strconv.Atoi(baremetalVmediaHttpsPort) // #nosec
+	ironicPort, inspectorPort := getControlPlanePorts(info)
 
 	ports := []corev1.ServicePort{
+		{
+			Name: "ironic",
+			Port: int32(ironicPort),
+		},
+		{
+			Name: "inspector",
+			Port: int32(inspectorPort),
+		},
 		{
 			Name: httpPortName,
 			Port: int32(port),
 		},
 	}
-	if !disableVirtualMediaTLS {
+	if !info.ProvConfig.Spec.DisableVirtualMediaTLS {
 		ports = append(ports, corev1.ServicePort{
 			Name: vmediaHttpsPortName,
 			Port: int32(httpsPort),
@@ -39,7 +48,7 @@ func newMetal3StateService(targetNamespace string, disableVirtualMediaTLS bool) 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      stateService,
-			Namespace: targetNamespace,
+			Namespace: info.Namespace,
 		},
 		Spec: corev1.ServiceSpec{
 			Type: corev1.ServiceTypeClusterIP,
@@ -52,7 +61,7 @@ func newMetal3StateService(targetNamespace string, disableVirtualMediaTLS bool) 
 }
 
 func EnsureMetal3StateService(info *ProvisioningInfo) (updated bool, err error) {
-	metal3StateService := newMetal3StateService(info.Namespace, info.ProvConfig.Spec.DisableVirtualMediaTLS)
+	metal3StateService := newMetal3StateService(info)
 
 	err = controllerutil.SetControllerReference(info.ProvConfig, metal3StateService, info.Scheme)
 	if err != nil {
