@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -156,7 +155,7 @@ func setErrorCountCondition(classification *aiv1beta1.AgentClassification, error
 }
 
 func (r *AgentClassificationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	mapAgentToAgentClassification := func(agent client.Object) []reconcile.Request {
+	mapAgentToAgentClassification := func(ctx context.Context, agent client.Object) []reconcile.Request {
 		log := logutil.FromContext(context.Background(), r.Log).WithFields(
 			logrus.Fields{
 				"agent":           agent.GetName(),
@@ -183,6 +182,6 @@ func (r *AgentClassificationReconciler) SetupWithManager(mgr ctrl.Manager) error
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.AgentClassification{}).
-		Watches(&source.Kind{Type: &aiv1beta1.Agent{}}, handler.EnqueueRequestsFromMapFunc(mapAgentToAgentClassification)).
+		Watches(&aiv1beta1.Agent{}, handler.EnqueueRequestsFromMapFunc(mapAgentToAgentClassification)).
 		Complete(r)
 }

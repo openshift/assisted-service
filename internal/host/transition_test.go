@@ -37,7 +37,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 var (
@@ -46,16 +46,16 @@ var (
 		RAMMib:                           16384,
 		DiskSizeGb:                       100,
 		InstallationDiskSpeedThresholdMs: 10,
-		NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
-		PacketLossPercentage:             pointer.Float64Ptr(0),
+		NetworkLatencyThresholdMs:        ptr.To(float64(100)),
+		PacketLossPercentage:             ptr.To(float64(0)),
 	}
 	defaultWorkerRequirements = models.ClusterHostRequirementsDetails{
 		CPUCores:                         2,
 		RAMMib:                           8192,
 		DiskSizeGb:                       100,
 		InstallationDiskSpeedThresholdMs: 10,
-		NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
-		PacketLossPercentage:             pointer.Float64Ptr(10),
+		NetworkLatencyThresholdMs:        ptr.To(float64(1000)),
+		PacketLossPercentage:             ptr.To(float64(10)),
 	}
 	defaultSnoRequirements = models.ClusterHostRequirementsDetails{
 		CPUCores:                         8,

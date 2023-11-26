@@ -61,7 +61,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -459,7 +458,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		GenericFunc: func(e event.GenericEvent) bool { return checkIngressCMName(e.Object) },
 	})
 	ingressCMHandler := handler.EnqueueRequestsFromMapFunc(
-		func(_ client.Object) []reconcile.Request {
+		func(_ context.Context, _ client.Object) []reconcile.Request {
 			return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: AgentServiceConfigName}}}
 		},
 	)
@@ -478,7 +477,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&apiregv1.APIService{}).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, ingressCMHandler, ingressCMPredicates).
+		Watches(&corev1.ConfigMap{}, ingressCMHandler, ingressCMPredicates).
 		Complete(r)
 }
 

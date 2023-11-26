@@ -29,6 +29,7 @@ import (
 	"time"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
@@ -38,7 +39,6 @@ import (
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
-	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -54,7 +54,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 type BMACConfig struct {
@@ -1460,8 +1459,7 @@ func (r *BMACReconciler) agentToBMHReconcileRequests(ctx context.Context, agent 
 }
 
 func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	mapAgentToBMH := func(a client.Object) []reconcile.Request {
-		ctx := context.Background()
+	mapAgentToBMH := func(ctx context.Context, a client.Object) []reconcile.Request {
 		agent := &aiv1beta1.Agent{}
 
 		if err := r.Get(ctx, types.NamespacedName{Name: a.GetName(), Namespace: a.GetNamespace()}, agent); err != nil {
@@ -1471,8 +1469,7 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return r.agentToBMHReconcileRequests(ctx, agent)
 	}
 
-	mapClusterDeploymentToBMH := func(a client.Object) []reconcile.Request {
-		ctx := context.Background()
+	mapClusterDeploymentToBMH := func(ctx context.Context, a client.Object) []reconcile.Request {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 
 		if err := r.Get(ctx, types.NamespacedName{Name: a.GetName(), Namespace: a.GetNamespace()}, clusterDeployment); err != nil {
@@ -1494,8 +1491,7 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return reconcileRequests
 	}
 
-	mapInfraEnvToBMH := func(a client.Object) []reconcile.Request {
-		ctx := context.Background()
+	mapInfraEnvToBMH := func(ctx context.Context, a client.Object) []reconcile.Request {
 		infraEnv := &aiv1beta1.InfraEnv{}
 
 		if err := r.Get(ctx, types.NamespacedName{Name: a.GetName(), Namespace: a.GetNamespace()}, infraEnv); err != nil {
@@ -1539,9 +1535,9 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Named("baremetal-agent-controller").
 		WithOptions(controller.Options{MaxConcurrentReconciles: r.Config.MaxConcurrentReconciles}).
 		For(&bmh_v1alpha1.BareMetalHost{}).
-		Watches(&source.Kind{Type: &aiv1beta1.Agent{}}, handler.EnqueueRequestsFromMapFunc(mapAgentToBMH)).
-		Watches(&source.Kind{Type: &aiv1beta1.InfraEnv{}}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvToBMH)).
-		Watches(&source.Kind{Type: &hivev1.ClusterDeployment{}}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToBMH)).
+		Watches(&aiv1beta1.Agent{}, handler.EnqueueRequestsFromMapFunc(mapAgentToBMH)).
+		Watches(&aiv1beta1.InfraEnv{}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvToBMH)).
+		Watches(&hivev1.ClusterDeployment{}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToBMH)).
 		Complete(r)
 }
 

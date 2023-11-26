@@ -61,7 +61,7 @@ var _ = Describe("AgentClassification reconcile", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().Build()
+		c = fakeclient.NewClientBuilder().WithStatusSubresource(&v1beta1.AgentClassification{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		ir = &AgentClassificationReconciler{
 			Client: c,

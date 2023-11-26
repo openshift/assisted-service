@@ -49,7 +49,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 type imageConditionReason string
@@ -353,14 +352,13 @@ func (r *PreprovisioningImageReconciler) SetupWithManager(mgr ctrl.Manager) erro
 	mapInfraEnvPPI := r.mapInfraEnvPPI()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&metal3_v1alpha1.PreprovisioningImage{}).
-		Watches(&source.Kind{Type: &metal3_v1alpha1.PreprovisioningImage{}}, &handler.EnqueueRequestForObject{}).
-		Watches(&source.Kind{Type: &aiv1beta1.InfraEnv{}}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvPPI)).
+		Watches(&metal3_v1alpha1.PreprovisioningImage{}, &handler.EnqueueRequestForObject{}).
+		Watches(&aiv1beta1.InfraEnv{}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvPPI)).
 		Complete(r)
 }
 
-func (r *PreprovisioningImageReconciler) mapInfraEnvPPI() func(a client.Object) []reconcile.Request {
-	mapInfraEnvPPI := func(a client.Object) []reconcile.Request {
-		ctx := context.Background()
+func (r *PreprovisioningImageReconciler) mapInfraEnvPPI() func(ctx context.Context, a client.Object) []reconcile.Request {
+	mapInfraEnvPPI := func(ctx context.Context, a client.Object) []reconcile.Request {
 		log := logutil.FromContext(ctx, r.Log).WithFields(
 			logrus.Fields{
 				"infra_env":           a.GetName(),
