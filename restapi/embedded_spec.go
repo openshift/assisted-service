@@ -6009,11 +6009,6 @@ func init() {
           "type": "string",
           "format": "uuid"
         },
-        "api_vip": {
-          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
-        },
         "api_vip_dns_name": {
           "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
@@ -6204,11 +6199,6 @@ func init() {
           "description": "Indicates whether this cluster is an imported day-2 cluster or a\nregular cluster. Clusters are considered imported when they are\ncreated via the ../clusters/import endpoint. Day-2 clusters converted\nfrom day-1 clusters by kube-api controllers or the\n../clusters/\u003ccluster_id\u003e/actions/allow-add-hosts endpoint are not\nconsidered imported. Imported clusters usually lack a lot of\ninformation and are filled with default values that don't necessarily\nreflect the actual cluster they represent",
           "type": "boolean",
           "default": false
-        },
-        "ingress_vip": {
-          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
         "ingress_vips": {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
@@ -6443,11 +6433,6 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "api_vip": {
-          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$"
-        },
         "api_vips": {
           "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
@@ -6531,11 +6516,6 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "$ref": "#/definitions/ignition-endpoint"
-        },
-        "ingress_vip": {
-          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
         "ingress_vips": {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
@@ -10045,12 +10025,6 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "api_vip": {
-          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
-          "x-nullable": true
-        },
         "api_vip_dns_name": {
           "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
@@ -10118,12 +10092,6 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "$ref": "#/definitions/ignition-endpoint"
-        },
-        "ingress_vip": {
-          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
-          "x-nullable": true
         },
         "ingress_vips": {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
@@ -16493,11 +16461,6 @@ func init() {
           "type": "string",
           "format": "uuid"
         },
-        "api_vip": {
-          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
-        },
         "api_vip_dns_name": {
           "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
@@ -16688,11 +16651,6 @@ func init() {
           "description": "Indicates whether this cluster is an imported day-2 cluster or a\nregular cluster. Clusters are considered imported when they are\ncreated via the ../clusters/import endpoint. Day-2 clusters converted\nfrom day-1 clusters by kube-api controllers or the\n../clusters/\u003ccluster_id\u003e/actions/allow-add-hosts endpoint are not\nconsidered imported. Imported clusters usually lack a lot of\ninformation and are filled with default values that don't necessarily\nreflect the actual cluster they represent",
           "type": "boolean",
           "default": false
-        },
-        "ingress_vip": {
-          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
         "ingress_vips": {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
@@ -16927,11 +16885,6 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "api_vip": {
-          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$"
-        },
         "api_vips": {
           "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
@@ -17015,11 +16968,6 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "$ref": "#/definitions/ignition-endpoint"
-        },
-        "ingress_vip": {
-          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
         "ingress_vips": {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
@@ -20468,12 +20416,6 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "api_vip": {
-          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
-          "x-nullable": true
-        },
         "api_vip_dns_name": {
           "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
@@ -20541,12 +20483,6 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "$ref": "#/definitions/ignition-endpoint"
-        },
-        "ingress_vip": {
-          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
-          "x-nullable": true
         },
         "ingress_vips": {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
