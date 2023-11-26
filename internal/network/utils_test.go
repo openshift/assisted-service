@@ -964,9 +964,7 @@ var _ = Describe("GetVips", func() {
 			cluster = &common.Cluster{
 				Cluster: models.Cluster{
 					Name:             "cluster",
-					APIVip:           "192.168.10.10",
 					APIVips:          []*models.APIVip{{IP: "192.168.10.10"}},
-					IngressVip:       "192.168.10.11",
 					IngressVips:      []*models.IngressVip{{IP: "192.168.10.11"}},
 					OpenshiftVersion: "4.12",
 					MachineNetworks:  []*models.MachineNetwork{{Cidr: "192.168.10.0/24"}},
@@ -991,9 +989,7 @@ var _ = Describe("GetVips", func() {
 			cluster = &common.Cluster{
 				Cluster: models.Cluster{
 					Name:             "cluster",
-					APIVip:           "192.168.10.10",
 					APIVips:          []*models.APIVip{{IP: "192.168.10.10"}, {IP: "1001:db8:0:200::78"}},
-					IngressVip:       "192.168.10.11",
 					IngressVips:      []*models.IngressVip{{IP: "192.168.10.11"}, {IP: "1001:db8:0:200::79"}},
 					OpenshiftVersion: "4.12",
 					MachineNetworks:  []*models.MachineNetwork{{Cidr: "192.168.10.0/24"}, {Cidr: "1001:db8:0:200::/40"}},

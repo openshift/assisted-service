@@ -24,9 +24,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 			"../docs/hive-integration/crds/agentClusterInstall.yaml",
 			"../docs/hive-integration/crds/clusterImageSet.yaml", "")
 		Expect(registerClusterErr).NotTo(HaveOccurred())
-		Expect(modelCluster.APIVip).To(Equal("1.2.3.8"))
 		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
-		Expect(modelCluster.IngressVip).To(Equal("1.2.3.9"))
 		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
 		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring(snoVersion))
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
@@ -48,9 +46,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 			"../docs/hive-integration/crds/agentClusterInstall-with-installconfig-overrides.yaml",
 			"../docs/hive-integration/crds/clusterImageSet.yaml", "")
 		Expect(registerClusterErr).NotTo(HaveOccurred())
-		Expect(modelCluster.APIVip).To(Equal("1.2.3.8"))
 		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
-		Expect(modelCluster.IngressVip).To(Equal("1.2.3.9"))
 		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
 		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring(snoVersion))
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))

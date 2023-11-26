@@ -666,8 +666,8 @@ func updateVipParams(ctx context.Context, clusterID strfmt.UUID) {
 	_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 		ClusterUpdateParams: &models.V2ClusterUpdateParams{
 			VipDhcpAllocation: swag.Bool(false),
-			APIVip:            &apiVip,
-			IngressVip:        &ingressVip,
+			APIVips:           []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+			IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
 		},
 		ClusterID: clusterID,
 	})
@@ -680,8 +680,8 @@ func v2UpdateVipParams(ctx context.Context, clusterID strfmt.UUID) {
 	_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 		ClusterUpdateParams: &models.V2ClusterUpdateParams{
 			VipDhcpAllocation: swag.Bool(false),
-			APIVip:            &apiVip,
-			IngressVip:        &ingressVip,
+			APIVips:           []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+			IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
 		},
 		ClusterID: clusterID,
 	})

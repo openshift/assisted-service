@@ -22,22 +22,23 @@ type vips struct {
 
 func generateOpenshiftDhcpParamFileContents(cluster *common.Cluster) ([]byte, error) {
 	if swag.BoolValue(cluster.VipDhcpAllocation) && !swag.BoolValue(cluster.UserManagedNetworking) {
-		if cluster.APIVip != "" && cluster.IngressVip != "" {
+		if GetApiVipById(cluster, 0) != "" && GetIngressVipById(cluster, 0) != "" {
 			v := vips{
 				APIVip: &vip{
 					Name:       "api",
 					MacAddress: GenerateAPIVipMAC(cluster.ID.String()),
-					IpAddress:  cluster.APIVip,
+					IpAddress:  GetApiVipById(cluster, 0),
 				},
 				IngressVip: &vip{
 					Name:       "ingress",
 					MacAddress: GenerateIngressVipMAC(cluster.ID.String()),
-					IpAddress:  cluster.IngressVip,
+					IpAddress:  GetIngressVipById(cluster, 0),
 				},
 			}
 			return yaml.Marshal(&v)
 		} else {
-			return nil, errors.Errorf("Either API VIP <%s> or Ingress VIP <%s> are not set", cluster.APIVip, cluster.IngressVip)
+			return nil, errors.Errorf("Either API VIP <%s> or Ingress VIP <%s> are not set",
+				GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0))
 		}
 	}
 	return nil, nil

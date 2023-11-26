@@ -929,28 +929,31 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 	// We must not run this reconciler in case VIPs are missing from the cluster spec as this can
 	// indicate a scenario when backend calculates them automatically, e.g. SNO cluster.
 	isDHCPEnabled := swag.BoolValue(cluster.VipDhcpAllocation)
-	if !isDHCPEnabled && (clusterInstall.Spec.APIVIP != "" || clusterInstall.Spec.IngressVIP != "") {
-		desiredApiVips, _ := validations.HandleApiVipBackwardsCompatibility(
-			*cluster.ID,
+
+	if !isDHCPEnabled && (clusterInstall.Spec.APIVIP != "" || clusterInstall.Spec.IngressVIP != "" ||
+		len(clusterInstall.Spec.APIVIPs) > 0 || len(clusterInstall.Spec.IngressVIPs) > 0) {
+		desiredApiVips, err := validations.HandleApiVipBackwardsCompatibility(
+			cluster.ID,
 			clusterInstall.Spec.APIVIP,
-			apiVipsEntriesToArray(clusterInstall.Spec.APIVIPs))
+			ApiVipsEntriesToArray(clusterInstall.Spec.APIVIPs))
+		if err != nil {
+			return nil, err
+		}
 
-		if clusterInstall.Spec.APIVIP != cluster.APIVip ||
-			!network.AreApiVipsIdentical(desiredApiVips, cluster.APIVips) {
-
-			params.APIVip = swag.String(clusterInstall.Spec.APIVIP)
+		if !network.AreApiVipsIdentical(desiredApiVips, cluster.APIVips) {
 			params.APIVips = desiredApiVips
 			update = true
 		}
 
-		desiredIngressVips, _ := validations.HandleIngressVipBackwardsCompatibility(*cluster.ID,
+		desiredIngressVips, err := validations.HandleIngressVipBackwardsCompatibility(
+			cluster.ID,
 			clusterInstall.Spec.IngressVIP,
-			ingressVipsEntriesToArray(clusterInstall.Spec.IngressVIPs))
+			IngressVipsEntriesToArray(clusterInstall.Spec.IngressVIPs))
+		if err != nil {
+			return nil, err
+		}
 
-		if clusterInstall.Spec.IngressVIP != cluster.IngressVip ||
-			!network.AreIngressVipsIdentical(desiredIngressVips, cluster.IngressVips) {
-
-			params.IngressVip = swag.String(clusterInstall.Spec.IngressVIP)
+		if !network.AreIngressVipsIdentical(desiredIngressVips, cluster.IngressVips) {
 			params.IngressVips = desiredIngressVips
 			update = true
 		}
@@ -988,7 +991,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		return cluster, errors.Wrap(err, "failed to update network params")
 	}
 	update = swag.BoolValue(shouldUpdateNetworkParams) || update
-	// Trim key before comapring as done in RegisterClusterInternal
+	// Trim key before comparing as done in RegisterClusterInternal
 	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 
@@ -1267,8 +1270,8 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(false),
-		APIVip:                clusterInstall.Spec.APIVIP,
-		IngressVip:            clusterInstall.Spec.IngressVIP,
+		APIVips:               ApiVipsEntriesToArray(clusterInstall.Spec.APIVIPs),
+		IngressVips:           IngressVipsEntriesToArray(clusterInstall.Spec.IngressVIPs),
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
 		CPUArchitecture:       releaseImageCPUArch,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
@@ -1711,10 +1714,10 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			} else {
 				clusterInstall.Status.Progress.TotalPercentage = c.Progress.TotalPercentage
 			}
-			clusterInstall.Status.APIVIP = c.APIVip
-			clusterInstall.Status.IngressVIP = c.IngressVip
-			clusterInstall.Status.APIVIPs = apiVipsArrayToStrings(c.APIVips)
-			clusterInstall.Status.IngressVIPs = ingressVipsArrayToStrings(c.IngressVips)
+			clusterInstall.Status.APIVIP = network.GetApiVipById(c, 0)
+			clusterInstall.Status.IngressVIP = network.GetIngressVipById(c, 0)
+			clusterInstall.Status.APIVIPs = ApiVipsArrayToStrings(c.APIVips)
+			clusterInstall.Status.IngressVIPs = IngressVipsArrayToStrings(c.IngressVips)
 			clusterInstall.Status.UserManagedNetworking = c.UserManagedNetworking
 			clusterInstall.Status.PlatformType = getPlatformType(c.Platform)
 			status := *c.Status

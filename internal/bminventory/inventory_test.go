@@ -1036,7 +1036,7 @@ var _ = Describe("v2PostStepReply", func() {
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip, "lease { hello abc; }", "lease { hello abc; }"))
+			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases(string(common.TestIPv4Networking.APIVips[0].IP), string(common.TestIPv4Networking.IngressVips[0].IP), "lease { hello abc; }", "lease { hello abc; }"))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
@@ -1051,7 +1051,7 @@ var _ = Describe("v2PostStepReply", func() {
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip, "llease { hello abc; }", "lease { hello abc; }"))
+			params := makeStepReply(*clusterId, *hostId, makeResponseWithLeases(string(common.TestIPv4Networking.APIVips[0].IP), string(common.TestIPv4Networking.IngressVips[0].IP), "llease { hello abc; }", "lease { hello abc; }"))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -1065,7 +1065,7 @@ var _ = Describe("v2PostStepReply", func() {
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(string(common.TestIPv4Networking.APIVips[0].IP), string(common.TestIPv4Networking.IngressVips[0].IP)))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
@@ -1095,7 +1095,7 @@ var _ = Describe("v2PostStepReply", func() {
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse(common.TestIPv4Networking.APIVip, common.TestIPv4Networking.IngressVip))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(string(common.TestIPv4Networking.APIVips[0].IP), string(common.TestIPv4Networking.IngressVips[0].IP)))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -1109,7 +1109,7 @@ var _ = Describe("v2PostStepReply", func() {
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			params := makeStepReply(*clusterId, *hostId, makeResponse(common.TestIPv4Networking.APIVip, "1.2.4.11"))
+			params := makeStepReply(*clusterId, *hostId, makeResponse(string(common.TestIPv4Networking.APIVips[0].IP), "1.2.4.11"))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -1119,14 +1119,14 @@ var _ = Describe("v2PostStepReply", func() {
 					ID:                clusterId,
 					VipDhcpAllocation: swag.Bool(true),
 					MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
-					APIVip:            common.TestIPv4Networking.APIVip,
-					IngressVip:        common.TestIPv4Networking.IngressVip,
+					APIVips:           common.TestIPv4Networking.APIVips,
+					IngressVips:       common.TestIPv4Networking.IngressVips,
 					Status:            swag.String(models.ClusterStatusInsufficient),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			params := makeStepReply(*clusterId, *hostId, makeResponse(
-				common.IncrementIPString(common.TestIPv4Networking.APIVip), common.IncrementIPString(common.TestIPv4Networking.IngressVip)))
+				common.IncrementIPString(string(common.TestIPv4Networking.APIVips[0].IP)), common.IncrementIPString(string(common.TestIPv4Networking.IngressVips[0].IP))))
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
@@ -1137,15 +1137,16 @@ var _ = Describe("v2PostStepReply", func() {
 					ID:                clusterId,
 					VipDhcpAllocation: swag.Bool(true),
 					MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
-					APIVip:            common.TestIPv4Networking.APIVip,
-					IngressVip:        common.TestIPv4Networking.IngressVip,
+					APIVips:           common.TestIPv4Networking.APIVips,
+					IngressVips:       common.TestIPv4Networking.IngressVips,
 					Status:            swag.String(models.ClusterStatusInstalling),
 				},
 			}
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			mockClusterApi.EXPECT().SetVipsData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("Stam"))
+
 			params := makeStepReply(*clusterId, *hostId, makeResponse(
-				common.IncrementIPString(common.TestIPv4Networking.APIVip), common.IncrementIPString(common.TestIPv4Networking.IngressVip)))
+				common.IncrementIPString(string(common.TestIPv4Networking.APIVips[0].IP)), common.IncrementIPString(string(common.TestIPv4Networking.IngressVips[0].IP))))
 			reply := bm.V2PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
 		})
@@ -1643,8 +1644,8 @@ var _ = Describe("cluster", func() {
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID:               &clusterID,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-				APIVip:           "10.11.12.13",
-				IngressVip:       "10.11.12.14",
+				APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
+				IngressVips:      []*models.IngressVip{{IP: "10.11.12.14"}},
 				MachineNetworks:  []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
 				Platform: &models.Platform{
 					Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
@@ -1787,8 +1788,8 @@ var _ = Describe("cluster", func() {
 				actual, ok := reply.(*installer.V2GetClusterOK)
 				Expect(ok).To(BeTrue())
 				Expect(actual.Payload.Hosts).To(HaveLen(3))
-				Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
-				Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
+				Expect(string(actual.Payload.APIVips[0].IP)).To(BeEquivalentTo("10.11.12.13"))
+				Expect(string(actual.Payload.IngressVips[0].IP)).To(BeEquivalentTo("10.11.12.14"))
 				validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: "10.11.0.0/16"}})
 				expectedNetworks := sortedNetworks([]*models.HostNetwork{
 					{
@@ -1829,8 +1830,8 @@ var _ = Describe("cluster", func() {
 				actual, ok := reply.(*installer.V2GetClusterOK)
 				Expect(ok).To(BeTrue())
 				Expect(actual.Payload.Hosts).To(BeEmpty())
-				Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
-				Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
+				Expect(string(actual.Payload.APIVips[0].IP)).To(BeEquivalentTo("10.11.12.13"))
+				Expect(string(actual.Payload.IngressVips[0].IP)).To(BeEquivalentTo("10.11.12.14"))
 				validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: "10.11.0.0/16"}})
 				Expect(actual.Payload.HostNetworks).To(BeEmpty())
 			})
@@ -2066,8 +2067,8 @@ var _ = Describe("cluster", func() {
 			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 				ClusterID: clusterID,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					APIVip:     swag.String(apiVip),
-					IngressVip: swag.String(ingressVip),
+					APIVips:     []*models.APIVip{{IP: models.IP(apiVip)}},
+					IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip)}},
 				},
 			})
 			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusConflict, errors.Errorf("error"))))
@@ -2195,156 +2196,14 @@ var _ = Describe("cluster", func() {
 			}
 
 			Context("V2RegisterCluster", func() {
+				var openshiftVersion string
+
 				BeforeEach(func() {
+					openshiftVersion = "4.12.0"
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 						db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 				})
 				Context("RegisterCluster - Multiple-VIPs Support", func() {
-					var openshiftVersion = "4.12.0"
-
-					Context("API and Ingress VIPs Backwards Compatibility", func() {
-
-						It("API VIP and Ingress VIP populated in APIVips and IngressVips", func() {
-							mockClusterRegisterSuccess(true)
-
-							apiVip := "8.8.8.8"
-							ingressVip := "8.8.8.9"
-							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-								NewClusterParams: &models.ClusterCreateParams{
-									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(openshiftVersion),
-									PullSecret:       swag.String(fakePullSecret),
-									APIVip:           apiVip,
-									IngressVip:       ingressVip,
-								},
-							})
-							Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
-							cluster := &common.Cluster{Cluster: *reply.(*installer.V2RegisterClusterCreated).Payload}
-							Expect(cluster.APIVip).To(Equal(apiVip))
-							Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
-							Expect(cluster.IngressVip).To(Equal(ingressVip))
-							Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
-						})
-
-						It("API VIP match APIVips first element", func() {
-							mockClusterRegisterSuccess(true)
-
-							apiVip := "8.8.8.8"
-							apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
-							ingressVip := "8.8.8.9"
-							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-								NewClusterParams: &models.ClusterCreateParams{
-									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(openshiftVersion),
-									PullSecret:       swag.String(fakePullSecret),
-									APIVip:           apiVip,
-									APIVips:          apiVips,
-									IngressVip:       ingressVip,
-								},
-							})
-							Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
-							cluster := &common.Cluster{Cluster: *reply.(*installer.V2RegisterClusterCreated).Payload}
-							Expect(cluster.APIVip).To(Equal(apiVip))
-							Expect(cluster.APIVips).To(Equal(apiVips))
-							Expect(cluster.IngressVip).To(Equal(ingressVip))
-							Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
-						})
-
-						It("Ingress VIP match IngressVips first element", func() {
-							mockClusterRegisterSuccess(true)
-
-							apiVip := "8.8.8.8"
-							ingressVip := "8.8.8.9"
-							ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
-
-							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-								NewClusterParams: &models.ClusterCreateParams{
-									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(openshiftVersion),
-									PullSecret:       swag.String(fakePullSecret),
-									APIVip:           apiVip,
-									IngressVip:       ingressVip,
-									IngressVips:      ingressVips,
-								},
-							})
-							Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
-							cluster := reply.(*installer.V2RegisterClusterCreated).Payload
-							Expect(cluster.APIVip).To(Equal(apiVip))
-							Expect(cluster.IngressVip).To(Equal(ingressVip))
-							Expect(cluster.IngressVips).To(Equal(ingressVips))
-						})
-
-						It("API VIP not matching APIVips first element", func() {
-							apiVip := "8.8.8.8"
-							apiVips := []*models.APIVip{{IP: models.IP("8.8.8.7")}}
-							ingressVip := "8.8.8.9"
-							err := "apiVIP must be the same as the first element of apiVIPs"
-
-							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-								NewClusterParams: &models.ClusterCreateParams{
-									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(openshiftVersion),
-									PullSecret:       swag.String(fakePullSecret),
-									APIVip:           apiVip,
-									APIVips:          apiVips,
-									IngressVip:       ingressVip,
-								},
-							})
-							verifyApiErrorString(reply, http.StatusBadRequest, err)
-						})
-
-						It("Ingress VIP not matching IngressVips first element", func() {
-							apiVip := "8.8.8.8"
-							ingressVip := "8.8.8.9"
-							ingressVips := []*models.IngressVip{{IP: models.IP("8.8.8.7")}}
-							err := "ingressVIP must be the same as the first element of ingressVIPs"
-
-							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-								NewClusterParams: &models.ClusterCreateParams{
-									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(openshiftVersion),
-									PullSecret:       swag.String(fakePullSecret),
-									APIVip:           apiVip,
-									IngressVip:       ingressVip,
-									IngressVips:      ingressVips,
-								},
-							})
-							verifyApiErrorString(reply, http.StatusBadRequest, err)
-						})
-
-						It("Reject APIVips if no APIVip was provided", func() {
-							apiVips := []*models.APIVip{{IP: models.IP("8.8.8.7")}}
-							ingressVip := "8.8.8.9"
-							err := "request must include apiVIP alongside apiVIPs"
-							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-								NewClusterParams: &models.ClusterCreateParams{
-									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(openshiftVersion),
-									PullSecret:       swag.String(fakePullSecret),
-									APIVips:          apiVips,
-									IngressVip:       ingressVip,
-								},
-							})
-							verifyApiErrorString(reply, http.StatusBadRequest, err)
-						})
-
-						It("Reject IngressVips if no IngressVip was provided", func() {
-							apiVip := "8.8.8.9"
-							ingressVips := []*models.IngressVip{{IP: models.IP("8.8.8.7")}}
-							err := "request must include ingressVIP alongside ingressVIPs"
-							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-								NewClusterParams: &models.ClusterCreateParams{
-									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(openshiftVersion),
-									PullSecret:       swag.String(fakePullSecret),
-									APIVip:           apiVip,
-									IngressVips:      ingressVips,
-								},
-							})
-							verifyApiErrorString(reply, http.StatusBadRequest, err)
-						})
-
-					})
 
 					It("Two APIVips and Two IngressVips - both IPv4 - negative", func() {
 						apiVip := "8.8.8.7"
@@ -2357,9 +2216,7 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       ingressVip,
 								IngressVips:      ingressVips,
 							},
 						})
@@ -2379,17 +2236,13 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       ingressVip,
 								IngressVips:      ingressVips,
 							},
 						})
 						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 						cluster := reply.(*installer.V2RegisterClusterCreated).Payload
-						Expect(cluster.APIVip).To(Equal(apiVip))
 						Expect(cluster.APIVips).To(Equal(apiVips))
-						Expect(cluster.IngressVip).To(Equal(ingressVip))
 						Expect(cluster.IngressVips).To(Equal(ingressVips))
 					})
 
@@ -2404,9 +2257,7 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       ingressVip,
 								IngressVips:      ingressVips,
 							},
 						})
@@ -2424,9 +2275,7 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       ingressVip,
 								IngressVips:      ingressVips,
 							},
 						})
@@ -2445,9 +2294,7 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       ingressVip,
 								IngressVips:      ingressVips,
 							},
 						})
@@ -2466,9 +2313,7 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       ingressVip,
 								IngressVips:      ingressVips,
 							},
 						})
@@ -2487,9 +2332,7 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       ingressVip,
 								IngressVips:      ingressVips,
 							},
 						})
@@ -2508,9 +2351,7 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       ingressVip,
 								IngressVips:      ingressVips,
 							},
 						})
@@ -2529,9 +2370,7 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       ingressVip,
 								IngressVips:      ingressVips,
 							},
 						})
@@ -2550,9 +2389,7 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       ingressVip,
 								IngressVips:      ingressVips,
 							},
 						})
@@ -2570,9 +2407,7 @@ var _ = Describe("cluster", func() {
 								Name:             swag.String("some-cluster-name"),
 								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
-								APIVip:           apiVip,
 								APIVips:          apiVips,
-								IngressVip:       apiVip,
 								IngressVips:      ingressVips,
 							},
 						})
@@ -2580,7 +2415,7 @@ var _ = Describe("cluster", func() {
 					})
 
 					Context("forbidden with OCP pre-4.12", func() {
-						var openshiftVersion = "4.11.0"
+						openshiftVersion = "4.11.0"
 
 						It("2 APIVips and 2 IngressVips", func() {
 							apiVip := "8.8.8.7"
@@ -2591,51 +2426,9 @@ var _ = Describe("cluster", func() {
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(openshiftVersion),
+									OpenshiftVersion: swag.String("4.11.0"),
 									PullSecret:       swag.String(fakePullSecret),
-									APIVip:           apiVip,
 									APIVips:          apiVips,
-									IngressVip:       ingressVip,
-									IngressVips:      ingressVips,
-								},
-							})
-							verifyApiErrorString(reply, http.StatusBadRequest, err)
-						})
-
-						It("2 APIVips and 1 IngressVip", func() {
-							apiVip := "8.8.8.7"
-							ingressVip := "8.8.8.1"
-							apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
-							ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
-							err := "dual-stack VIPs are not supported in OpenShift 4.11.0"
-							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-								NewClusterParams: &models.ClusterCreateParams{
-									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(openshiftVersion),
-									PullSecret:       swag.String(fakePullSecret),
-									APIVip:           apiVip,
-									APIVips:          apiVips,
-									IngressVip:       ingressVip,
-									IngressVips:      ingressVips,
-								},
-							})
-							verifyApiErrorString(reply, http.StatusBadRequest, err)
-						})
-
-						It("1 APIVip and 2 IngressVips", func() {
-							apiVip := "8.8.8.7"
-							ingressVip := "8.8.8.1"
-							apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
-							ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
-							err := "dual-stack VIPs are not supported in OpenShift 4.11.0"
-							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-								NewClusterParams: &models.ClusterCreateParams{
-									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(openshiftVersion),
-									PullSecret:       swag.String(fakePullSecret),
-									APIVip:           apiVip,
-									APIVips:          apiVips,
-									IngressVip:       ingressVip,
 									IngressVips:      ingressVips,
 								},
 							})
@@ -3141,179 +2934,7 @@ var _ = Describe("cluster", func() {
 					common.DeleteTestDB(db, dbName)
 				})
 
-				Context("API and Ingress VIPs Backwards Compatibility", func() {
-
-					It("API VIP and Ingress VIP populated in APIVips and ingressVips", func() {
-						mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
-						mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-						mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
-
-						apiVip := "1.2.3.100"
-						ingressVip := "1.2.3.101"
-						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								APIVip:     swag.String(apiVip),
-								IngressVip: swag.String(ingressVip),
-							},
-						})
-						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-						cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
-						Expect(cluster.APIVip).To(Equal(apiVip))
-						Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
-						Expect(cluster.IngressVip).To(Equal(ingressVip))
-						Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
-					})
-
-					It("API VIP match APIVips first element", func() {
-						mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
-						mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-						mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-						apiVip := "1.2.3.100"
-						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
-						ingressVip := "1.2.3.101"
-						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								Name:       swag.String("some-cluster-name"),
-								PullSecret: swag.String(fakePullSecret),
-								APIVip:     swag.String(apiVip),
-								APIVips:    apiVips,
-								IngressVip: swag.String(ingressVip),
-							},
-						})
-						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-						cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
-						Expect(cluster.APIVip).To(Equal(apiVip))
-						Expect(cluster.APIVips).To(Equal(apiVips))
-						Expect(cluster.IngressVip).To(Equal(ingressVip))
-						Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
-					})
-
-					It("Ingress VIP match ingressVips first element", func() {
-						mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
-						mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-						mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
-						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-						apiVip := "1.2.3.100"
-						ingressVip := "1.2.3.101"
-						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
-
-						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								Name:        swag.String("some-cluster-name"),
-								PullSecret:  swag.String(fakePullSecret),
-								APIVip:      swag.String(apiVip),
-								IngressVip:  swag.String(ingressVip),
-								IngressVips: ingressVips,
-							},
-						})
-						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-						cluster := reply.(*installer.V2UpdateClusterCreated).Payload
-						Expect(cluster.APIVip).To(Equal(apiVip))
-						Expect(cluster.IngressVip).To(Equal(ingressVip))
-						Expect(cluster.IngressVips).To(Equal(ingressVips))
-					})
-
-					It("API VIP not matching APIVips first element", func() {
-						apiVip := "1.2.3.100"
-						apiVips := []*models.APIVip{{IP: models.IP("1.2.3.111")}}
-						ingressVip := "1.2.3.101"
-						err := "apiVIP must be the same as the first element of apiVIPs"
-
-						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								Name:       swag.String("some-cluster-name"),
-								PullSecret: swag.String(fakePullSecret),
-								APIVip:     swag.String(apiVip),
-								APIVips:    apiVips,
-								IngressVip: swag.String(ingressVip),
-							},
-						})
-						verifyApiErrorString(reply, http.StatusBadRequest, err)
-					})
-
-					It("Ingress VIP not matching ingressVips first element", func() {
-						apiVip := "1.2.3.100"
-						ingressVip := "1.2.3.101"
-						ingressVips := []*models.IngressVip{{IP: models.IP("1.2.3.111")}}
-						err := "ingressVIP must be the same as the first element of ingressVIPs"
-
-						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								Name:        swag.String("some-cluster-name"),
-								PullSecret:  swag.String(fakePullSecret),
-								APIVip:      swag.String(apiVip),
-								IngressVip:  swag.String(ingressVip),
-								IngressVips: ingressVips,
-							},
-						})
-						verifyApiErrorString(reply, http.StatusBadRequest, err)
-					})
-
-					It("Reject APIVips if no APIVip was provided", func() {
-						apiVips := []*models.APIVip{{IP: models.IP("1.2.3.111")}}
-						ingressVip := "1.2.3.101"
-						err := "request must include apiVIP alongside apiVIPs"
-
-						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								Name:       swag.String("some-cluster-name"),
-								PullSecret: swag.String(fakePullSecret),
-								APIVips:    apiVips,
-								IngressVip: swag.String(ingressVip),
-							},
-						})
-						verifyApiErrorString(reply, http.StatusBadRequest, err)
-					})
-
-					It("Reject ingressVips if no ingressVip was provided", func() {
-						apiVip := "1.2.3.100"
-						ingressVips := []*models.IngressVip{{IP: models.IP("1.2.3.111")}}
-						err := "request must include ingressVIP alongside ingressVIPs"
-
-						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								Name:        swag.String("some-cluster-name"),
-								PullSecret:  swag.String(fakePullSecret),
-								APIVip:      swag.String(apiVip),
-								IngressVips: ingressVips,
-							},
-						})
-						verifyApiErrorString(reply, http.StatusBadRequest, err)
-					})
-
-				})
-
-				It("Test VIP cleanup via singular APIVip and IngressVip", func() {
+				It("Test VIPs cleanup", func() {
 					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 2)
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(2)
 					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(2)
@@ -3327,71 +2948,27 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     swag.String(apiVip),
-							IngressVip: swag.String(ingressVip),
+							APIVips:     []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						},
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
-					Expect(cluster.APIVip).To(Equal(apiVip))
+					Expect(string(cluster.APIVips[0].IP)).To(Equal(apiVip))
 					Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
-					Expect(cluster.IngressVip).To(Equal(ingressVip))
+					Expect(string(cluster.IngressVips[0].IP)).To(Equal(ingressVip))
 					Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
 
 					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     swag.String(""),
-							IngressVip: swag.String(""),
+							APIVips:     []*models.APIVip{},
+							IngressVips: []*models.IngressVip{},
 						},
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
-					Expect(cluster.APIVip).To(Equal(""))
 					Expect(len(cluster.APIVips)).To(BeZero())
-					Expect(cluster.IngressVip).To(Equal(""))
-					Expect(len(cluster.IngressVips)).To(BeZero())
-				})
-
-				It("Test VIP cleanup via both singular and plural VIP values", func() {
-					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 2)
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(2)
-					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(2)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
-					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(6)
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(6)
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(6)
-
-					apiVip := "1.2.3.100"
-					ingressVip := "1.2.3.101"
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     swag.String(apiVip),
-							IngressVip: swag.String(ingressVip),
-						},
-					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
-					Expect(cluster.APIVip).To(Equal(apiVip))
-					Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
-					Expect(cluster.IngressVip).To(Equal(ingressVip))
-					Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
-
-					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:      swag.String(""),
-							IngressVip:  swag.String(""),
-							APIVips:     nil,
-							IngressVips: nil,
-						},
-					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
-					Expect(cluster.APIVip).To(Equal(""))
-					Expect(len(cluster.APIVips)).To(BeZero())
-					Expect(cluster.IngressVip).To(Equal(""))
 					Expect(len(cluster.IngressVips)).To(BeZero())
 				})
 
@@ -3409,9 +2986,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(ingressVip),
 							IngressVips: ingressVips,
 						},
 					})
@@ -3438,17 +3013,13 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(ingressVip),
 							IngressVips: ingressVips,
 						},
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					cluster := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(cluster.APIVip).To(Equal(apiVip))
 					Expect(cluster.APIVips).To(Equal(apiVips))
-					Expect(cluster.IngressVip).To(Equal(ingressVip))
 					Expect(cluster.IngressVips).To(Equal(ingressVips))
 				})
 
@@ -3466,9 +3037,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(ingressVip),
 							IngressVips: ingressVips,
 						},
 					})
@@ -3489,9 +3058,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(ingressVip),
 							IngressVips: ingressVips,
 						},
 					})
@@ -3512,9 +3079,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(ingressVip),
 							IngressVips: ingressVips,
 						},
 					})
@@ -3535,9 +3100,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(ingressVip),
 							IngressVips: ingressVips,
 						},
 					})
@@ -3558,9 +3121,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(ingressVip),
 							IngressVips: ingressVips,
 						},
 					})
@@ -3581,9 +3142,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(ingressVip),
 							IngressVips: ingressVips,
 						},
 					})
@@ -3604,9 +3163,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(ingressVip),
 							IngressVips: ingressVips,
 						},
 					})
@@ -3627,9 +3184,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(ingressVip),
 							IngressVips: ingressVips,
 						},
 					})
@@ -3649,9 +3204,7 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Name:        swag.String("some-cluster-name"),
 							PullSecret:  swag.String(fakePullSecret),
-							APIVip:      swag.String(apiVip),
 							APIVips:     apiVips,
-							IngressVip:  swag.String(apiVip),
 							IngressVips: ingressVips,
 						},
 					})
@@ -4059,10 +3612,16 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("Set Machine CIDR", func() {
-					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
-						"api_vip":     common.TestIPv4Networking.APIVip,
-						"ingress_vip": common.TestIPv4Networking.IngressVip,
-					}).Error).ShouldNot(HaveOccurred())
+					err := network.UpdateVipsTables(db,
+						&common.Cluster{Cluster: models.Cluster{
+							ID:          &clusterID,
+							APIVips:     common.TestIPv4Networking.APIVips,
+							IngressVips: common.TestIPv4Networking.IngressVips,
+						}},
+						true,
+						true,
+					)
+					Expect(err).ShouldNot(HaveOccurred())
 
 					mockSuccess(1)
 
@@ -4076,8 +3635,8 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
 					Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
-					Expect(actual.Payload.APIVip).To(Equal(""))
-					Expect(actual.Payload.IngressVip).To(Equal(""))
+					Expect(len(actual.Payload.APIVips)).To(BeZero())
+					Expect(len(actual.Payload.IngressVips)).To(BeZero())
 					validateNetworkConfiguration(actual.Payload, nil, nil, &machineNetworks)
 				})
 
@@ -4106,60 +3665,13 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
 					Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
-					Expect(actual.Payload.APIVip).To(Equal(""))
-					Expect(actual.Payload.IngressVip).To(Equal(""))
+					Expect(len(actual.Payload.APIVips)).To(BeZero())
+					Expect(len(actual.Payload.IngressVips)).To(BeZero())
 					validateNetworkConfiguration(actual.Payload, nil, nil, &wrongMachineCidrNetworks)
 				})
 			})
 
 			Context("UserManagedNetworking", func() {
-
-				It("handle UserManagedNetworking and Singular VIPs update at the same request", func() {
-					mockClusterUpdatability(3)
-					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 3)
-					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-
-					apiVip := "10.11.12.15"
-					ingressVip := "10.11.12.16"
-
-					By("Set User Managed Networking: false + Add APIVip and IngressVip")
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(false),
-							APIVip:                swag.String(apiVip),
-							IngressVip:            swag.String(ingressVip),
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-
-					By("Set UserManagedNetworking true + Remove APIVip and IngressVip")
-					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(true),
-							APIVip:                swag.String(""),
-							IngressVip:            swag.String(""),
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-
-					By("Set User Managed Networking: false + Add APIVip and IngressVip again")
-					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(false),
-							APIVip:                swag.String(apiVip),
-							IngressVip:            swag.String(ingressVip),
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-				})
 
 				It("handle UserManagedNetworking and VIP arrays update at the same request", func() {
 					mockClusterUpdatability(3)
@@ -4179,9 +3691,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(false),
-							APIVip:                swag.String(apiVip),
 							APIVips:               []*models.APIVip{{IP: models.IP(apiVip)}},
-							IngressVip:            swag.String(ingressVip),
 							IngressVips:           []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						},
 					})
@@ -4192,9 +3702,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
-							APIVip:                swag.String(""),
 							APIVips:               []*models.APIVip{},
-							IngressVip:            swag.String(""),
 							IngressVips:           []*models.IngressVip{},
 						},
 					})
@@ -4205,9 +3713,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(false),
-							APIVip:                swag.String(apiVip),
 							APIVips:               []*models.APIVip{{IP: models.IP(apiVip)}},
-							IngressVip:            swag.String(ingressVip),
 							IngressVips:           []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						},
 					})
@@ -4246,11 +3752,11 @@ var _ = Describe("cluster", func() {
 					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     swag.String("10.11.12.15"),
-							IngressVip: swag.String("10.11.12.16"),
+							APIVips:     []*models.APIVip{{IP: "10.11.12.15"}},
+							IngressVips: []*models.IngressVip{{IP: "10.11.12.16"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "API VIP cannot be set with User Managed Networking")
+					verifyApiErrorString(reply, http.StatusBadRequest, "API VIPs cannot be set with User Managed Networking")
 				})
 
 				It("Fail to set UserManagedNetworking true when cluster VIPs were set", func() {
@@ -4275,8 +3781,8 @@ var _ = Describe("cluster", func() {
 					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     swag.String("10.11.12.15"),
-							IngressVip: swag.String("10.11.12.16"),
+							APIVips:     []*models.APIVip{{IP: "10.11.12.15"}},
+							IngressVips: []*models.IngressVip{{IP: "10.11.12.16"}},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -4314,8 +3820,8 @@ var _ = Describe("cluster", func() {
 					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     swag.String("10.11.12.15"),
-							IngressVip: swag.String("10.11.12.16"),
+							APIVips:     []*models.APIVip{{IP: "10.11.12.15"}},
+							IngressVips: []*models.IngressVip{{IP: "10.11.12.16"}},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -4367,17 +3873,13 @@ var _ = Describe("cluster", func() {
 					By("Update VIPS in DB cluster to mimic DHCP allocation")
 					cluster, err := common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
 					Expect(err).ToNot(HaveOccurred())
-					cluster.APIVip = apiVip
 					cluster.APIVips = []*models.APIVip{{IP: models.IP(apiVip)}}
-					cluster.IngressVip = ingressVip
 					cluster.IngressVips = []*models.IngressVip{{IP: models.IP(ingressVip)}}
 					db.Save(&cluster)
 
 					By("Verify VIPs updates")
 					replay := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID}).(*installer.V2GetClusterOK)
-					Expect(replay.Payload.APIVip).Should(Equal(apiVip))
 					Expect(len(replay.Payload.APIVips)).Should(Equal(1))
-					Expect(replay.Payload.IngressVip).Should(Equal(ingressVip))
 					Expect(len(replay.Payload.IngressVips)).Should(Equal(1))
 
 					By("Set User Managed Networking: true and VipDhcpAllocation: false")
@@ -4392,9 +3894,7 @@ var _ = Describe("cluster", func() {
 
 					By("Verify that DHCP VIPs were cleared")
 					replay = bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID}).(*installer.V2GetClusterOK)
-					Expect(replay.Payload.APIVip).Should(Equal(""))
 					Expect(len(replay.Payload.APIVips)).Should(BeZero())
-					Expect(replay.Payload.IngressVip).Should(Equal(""))
 					Expect(len(replay.Payload.IngressVips)).Should(BeZero())
 				})
 
@@ -4433,8 +3933,8 @@ var _ = Describe("cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated)
 					Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 					Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
-					Expect(actual.Payload.APIVip).To(Equal(""))
-					Expect(actual.Payload.IngressVip).To(Equal(""))
+					Expect(len(actual.Payload.APIVips)).Should(BeZero())
+					Expect(len(actual.Payload.IngressVips)).Should(BeZero())
 					validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{})
 				})
 
@@ -4470,8 +3970,8 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
-							APIVip:                swag.String("10.35.20.9"),
-							IngressVip:            swag.String("10.35.20.10"),
+							APIVips:               []*models.APIVip{{IP: "10.35.20.9"}},
+							IngressVips:           []*models.IngressVip{{IP: "10.35.20.10"}},
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, "User Managed Networking cannot be set with API VIP")
@@ -4483,7 +3983,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
-							APIVip:                swag.String("10.35.20.10"),
+							APIVips:               []*models.APIVip{{IP: "10.35.20.10"}},
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, "User Managed Networking cannot be set with API VIP")
@@ -4493,7 +3993,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
-							IngressVip:            swag.String("10.35.20.10"),
+							IngressVips:           []*models.IngressVip{{IP: "10.35.20.10"}},
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, "User Managed Networking cannot be set with Ingress VIP")
@@ -4586,8 +4086,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     swag.String(apiVip),
-							IngressVip: swag.String(ingressVip),
+							APIVips:     []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
@@ -4600,8 +4100,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     swag.String(apiVip),
-							IngressVip: swag.String(ingressVip),
+							APIVips:     []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
@@ -4613,8 +4113,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     swag.String(apiVip),
-							IngressVip: swag.String(ingressVip),
+							APIVips:     []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("The IP address \"%s\" appears both in apiVIPs and ingressVIPs", apiVip))
@@ -4625,7 +4125,7 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip: swag.String(apiVip),
+							APIVips: []*models.APIVip{{IP: models.IP(apiVip)}},
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("Could not parse VIP ip %s", apiVip))
@@ -4636,7 +4136,7 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							IngressVip: swag.String(ingressVip),
+							IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("Could not parse VIP ip %s", ingressVip))
@@ -4651,14 +4151,14 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     swag.String(apiVip),
-							IngressVip: swag.String(ingressVip),
+							APIVips:     []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
-					Expect(actual.Payload.APIVip).To(Equal(apiVip))
-					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(string(actual.Payload.APIVips[0].IP)).To(Equal(apiVip))
+					Expect(string(actual.Payload.IngressVips[0].IP)).To(Equal(ingressVip))
 					validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: "10.11.0.0/16"}})
 					validateHostsRequestedHostname(actual.Payload)
 					expectedNetworks := sortedNetworks([]*models.HostNetwork{
@@ -4699,8 +4199,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          swag.String(apiVip),
-							IngressVip:      swag.String(ingressVip),
+							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
 						},
 					})
@@ -4717,8 +4217,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          swag.String(apiVip),
-							IngressVip:      swag.String(ingressVip),
+							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
 						},
@@ -4736,8 +4236,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          swag.String(apiVip),
-							IngressVip:      swag.String(ingressVip),
+							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
 						},
@@ -4747,8 +4247,8 @@ var _ = Describe("cluster", func() {
 					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          swag.String(apiVip),
-							IngressVip:      swag.String(ingressVip),
+							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
 						},
 					})
@@ -4760,8 +4260,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          swag.String(apiVip),
-							IngressVip:      swag.String(ingressVip),
+							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.12.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
 						},
@@ -4790,16 +4290,16 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          swag.String(apiVip),
-							IngressVip:      swag.String(ingressVip),
+							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							ClusterNetworks: clusterNetworks,
 							ServiceNetworks: serviceNetworks,
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
-					Expect(actual.Payload.APIVip).To(Equal(apiVip))
-					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(string(actual.Payload.APIVips[0].IP)).To(Equal(apiVip))
+					Expect(string(actual.Payload.IngressVips[0].IP)).To(Equal(ingressVip))
 
 					validateNetworkConfiguration(actual.Payload,
 						&clusterNetworks, &serviceNetworks, &[]*models.MachineNetwork{{Cidr: "10.11.0.0/16"}})
@@ -4877,8 +4377,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          swag.String(apiVip),
-							IngressVip:      swag.String(ingressVip),
+							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "192.168.5.0/24", HostPrefix: 26}},
 							ServiceNetworks: []*models.ServiceNetwork{{Cidr: "193.168.4.0/23"}},
 						},
@@ -4890,8 +4390,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          swag.String(apiVip),
-							IngressVip:      swag.String(ingressVip),
+							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "192.168.0.0/23", HostPrefix: 25}},
 							ServiceNetworks: []*models.ServiceNetwork{{Cidr: "193.168.4.0/27"}},
 						},
@@ -4903,8 +4403,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          swag.String(apiVip),
-							IngressVip:      swag.String(ingressVip),
+							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "1.168.0.0/23", HostPrefix: 23}},
 							ServiceNetworks: []*models.ServiceNetwork{{Cidr: "193.168.4.0/1"}},
 						},
@@ -4916,8 +4416,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          swag.String(apiVip),
-							IngressVip:      swag.String(ingressVip),
+							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "192.168.0.0/23", HostPrefix: 24}},
 							ServiceNetworks: []*models.ServiceNetwork{{Cidr: "193.168.4.0/25"}},
 						},
@@ -4945,13 +4445,13 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:            swag.String(apiVip),
-							IngressVip:        swag.String(ingressVip),
+							APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
 							VipDhcpAllocation: swag.Bool(true),
 							MachineNetworks:   []*models.MachineNetwork{{Cidr: primaryMachineCIDR}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Setting API VIPs is forbidden when cluster is in vip-dhcp-allocation mode")
 				})
 
 				It("Fail in DHCP", func() {
@@ -4976,8 +4476,8 @@ var _ = Describe("cluster", func() {
 						Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 						verifyMachineCIDRTimestampUpdated(beforeTimestamp)
 						actual := reply.(*installer.V2UpdateClusterCreated)
-						Expect(actual.Payload.APIVip).To(BeEmpty())
-						Expect(actual.Payload.IngressVip).To(BeEmpty())
+						Expect(len(actual.Payload.APIVips)).To(BeZero())
+						Expect(len(actual.Payload.IngressVips)).To(BeZero())
 						validateNetworkConfiguration(actual.Payload, nil, nil, &machineNetworks)
 						validateHostsRequestedHostname(actual.Payload)
 
@@ -5018,16 +4518,16 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								APIVip:            swag.String(apiVip),
-								IngressVip:        swag.String(ingressVip),
+								APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
+								IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
 								VipDhcpAllocation: swag.Bool(false),
 							},
 						})
 						Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 						verifyMachineCIDRTimestampUpdated(beforeTimestamp)
 						actual := reply.(*installer.V2UpdateClusterCreated)
-						Expect(actual.Payload.APIVip).To(Equal(apiVip))
-						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+						Expect(string(actual.Payload.APIVips[0].IP)).To(Equal(apiVip))
+						Expect(string(actual.Payload.IngressVips[0].IP)).To(Equal(ingressVip))
 						validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: primaryMachineCIDR}})
 						validateHostsRequestedHostname(actual.Payload)
 
@@ -5517,9 +5017,7 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:      &apiVip,
 							APIVips:     apiVips,
-							IngressVip:  &ingressVip,
 							IngressVips: ingressVips,
 						},
 					})
@@ -5536,9 +5034,7 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:      &apiVip,
 							APIVips:     apiVips,
-							IngressVip:  &ingressVip,
 							IngressVips: ingressVips,
 						},
 					})
@@ -5555,9 +5051,7 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:      &apiVip,
 							APIVips:     apiVips,
-							IngressVip:  &ingressVip,
 							IngressVips: ingressVips,
 						},
 					})
@@ -5658,16 +5152,16 @@ var _ = Describe("cluster", func() {
 
 		defaultCluster := &common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
-			APIVip:           "10.11.12.13",
-			IngressVip:       "10.11.20.50",
+			APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
+			IngressVips:      []*models.IngressVip{{IP: "10.11.20.50"}},
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusReady),
 		}}
 
 		clusterWithIgnoredValidations := &common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
-			APIVip:           "10.11.12.13",
-			IngressVip:       "10.11.20.50",
+			APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
+			IngressVips:      []*models.IngressVip{{IP: "10.11.20.50"}},
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusInstalling),
 		},
@@ -5815,8 +5309,8 @@ var _ = Describe("cluster", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID:               &clusterID,
-				APIVip:           "10.11.12.13",
-				IngressVip:       "10.11.20.50",
+				APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
+				IngressVips:      []*models.IngressVip{{IP: "10.11.20.50"}},
 				OpenshiftVersion: "4.11",
 				Status:           swag.String(models.ClusterStatusReady),
 				CPUArchitecture:  common.ARM64CPUArchitecture,
@@ -5876,8 +5370,8 @@ var _ = Describe("cluster", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID:               &clusterID,
-				APIVip:           "10.11.12.13",
-				IngressVip:       "10.11.20.50",
+				APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
+				IngressVips:      []*models.IngressVip{{IP: "10.11.20.50"}},
 				OpenshiftVersion: "4.11",
 				Status:           swag.String(models.ClusterStatusReady),
 				CPUArchitecture:  common.ARM64CPUArchitecture,
@@ -6349,10 +5843,16 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 			})
 
 			It("Set Machine CIDR", func() {
-				Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
-					"api_vip":     common.TestIPv4Networking.APIVip,
-					"ingress_vip": common.TestIPv4Networking.IngressVip,
-				}).Error).ShouldNot(HaveOccurred())
+				err := network.UpdateVipsTables(db,
+					&common.Cluster{Cluster: models.Cluster{
+						ID:          &clusterID,
+						APIVips:     common.TestIPv4Networking.APIVips,
+						IngressVips: common.TestIPv4Networking.IngressVips,
+					}},
+					true,
+					true,
+				)
+				Expect(err).ShouldNot(HaveOccurred())
 
 				mockSuccess(1)
 
@@ -6366,8 +5866,8 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 				actual := reply.(*installer.V2UpdateClusterCreated)
 				Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
-				Expect(actual.Payload.APIVip).To(Equal(""))
-				Expect(actual.Payload.IngressVip).To(Equal(""))
+				Expect(len(actual.Payload.APIVips)).To(BeZero())
+				Expect(len(actual.Payload.IngressVips)).To(BeZero())
 				validateNetworkConfiguration(actual.Payload, nil, nil, &machineNetworks)
 			})
 
@@ -6396,8 +5896,8 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 				actual := reply.(*installer.V2UpdateClusterCreated)
 				Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
-				Expect(actual.Payload.APIVip).To(Equal(""))
-				Expect(actual.Payload.IngressVip).To(Equal(""))
+				Expect(len(actual.Payload.APIVips)).To(BeZero())
+				Expect(len(actual.Payload.IngressVips)).To(BeZero())
 				validateNetworkConfiguration(actual.Payload, nil, nil, &wrongMachineCidrNetworks)
 			})
 		})
@@ -10699,7 +10199,7 @@ var _ = Describe("KubeConfig download", func() {
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			APIVip:           "10.11.12.13",
+			APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -10892,7 +10392,7 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			APIVip:           "10.11.12.13",
+			APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
 		}}
 		kubeconfigNoingress = fmt.Sprintf("%s/%s", clusterID, "kubeconfig-noingress")
 		kubeconfigObject = fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
@@ -11075,7 +10575,7 @@ var _ = Describe("List clusters", func() {
 			ID:                 &clusterID,
 			OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
 			Name:               "mycluster",
-			APIVip:             "10.11.12.13",
+			APIVips:            []*models.APIVip{{IP: "10.11.12.13"}},
 			OpenshiftClusterID: *openshiftClusterID,
 			AmsSubscriptionID:  *amsSubscriptionID,
 		}}
@@ -11372,7 +10872,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			Name:             "mycluster",
-			APIVip:           "10.11.12.13",
+			APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -13739,8 +13239,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				apiVip := "1.2.3.5"
 				ingressVip := "1.2.3.6"
 
-				params.APIVip = apiVip
-				params.IngressVip = ingressVip
+				params.APIVips = []*models.APIVip{{IP: models.IP(apiVip)}}
+				params.IngressVips = []*models.IngressVip{{IP: models.IP(ingressVip)}}
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)}
 				params.UserManagedNetworking = swag.Bool(false)
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -14341,8 +13841,8 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("Fail multi-node UserManagedNetworking with API Vip and Ingress Vip", func() {
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
-		clusterParams.APIVip = "10.35.10.11"
-		clusterParams.IngressVip = "10.35.10.10"
+		clusterParams.APIVips = []*models.APIVip{{IP: "10.35.10.11"}}
+		clusterParams.IngressVips = []*models.IngressVip{{IP: "10.35.10.10"}}
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
@@ -14352,8 +13852,8 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("Fail SNO (UserManagedNetworking) with API Vip and Ingress Vip", func() {
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
-		clusterParams.APIVip = "10.35.10.11"
-		clusterParams.IngressVip = "10.35.10.10"
+		clusterParams.APIVips = []*models.APIVip{{IP: "10.35.10.11"}}
+		clusterParams.IngressVips = []*models.IngressVip{{IP: "10.35.10.10"}}
 		clusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 		clusterParams.OpenshiftVersion = swag.String("4.12")
 		clusterParams.Platform = &models.Platform{
@@ -14638,8 +14138,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				ingressVip := "1.2.3.6"
 
 				clusterCreateParams := getDefaultClusterCreateParams()
-				clusterCreateParams.APIVip = apiVip
-				clusterCreateParams.IngressVip = ingressVip
+				clusterCreateParams.APIVips = []*models.APIVip{{IP: models.IP(apiVip)}}
+				clusterCreateParams.IngressVips = []*models.IngressVip{{IP: models.IP(ingressVip)}}
 				clusterCreateParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
 				clusterCreateParams.MachineNetworks = common.TestDualStackNetworking.MachineNetworks
 				clusterCreateParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
@@ -14650,8 +14150,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 				actual := reply.(*installer.V2RegisterClusterCreated).Payload
-				Expect(actual.APIVip).To(Equal(apiVip))
-				Expect(actual.IngressVip).To(Equal(ingressVip))
+				Expect(string(actual.APIVips[0].IP)).To(Equal(apiVip))
+				Expect(string(actual.IngressVips[0].IP)).To(Equal(ingressVip))
 				Expect(actual.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 				Expect(actual.ClusterNetworks).To(Equal(common.TestDualStackNetworking.ClusterNetworks))
 				Expect(actual.MachineNetworks).To(Equal(common.TestDualStackNetworking.MachineNetworks))
@@ -14665,8 +14165,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				ingressVip := "1.2.3.6"
 
 				clusterCreateParams := getDefaultClusterCreateParams()
-				clusterCreateParams.APIVip = apiVip
-				clusterCreateParams.IngressVip = ingressVip
+				clusterCreateParams.APIVips = []*models.APIVip{{IP: models.IP(apiVip)}}
+				clusterCreateParams.IngressVips = []*models.IngressVip{{IP: models.IP(ingressVip)}}
 				clusterCreateParams.ClusterNetworks = common.TestIPv4Networking.ClusterNetworks
 				clusterCreateParams.MachineNetworks = common.TestIPv4Networking.MachineNetworks
 				clusterCreateParams.ServiceNetworks = common.TestIPv4Networking.ServiceNetworks
@@ -14677,8 +14177,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 				actual := reply.(*installer.V2RegisterClusterCreated).Payload
-				Expect(actual.APIVip).To(Equal(apiVip))
-				Expect(actual.IngressVip).To(Equal(ingressVip))
+				Expect(string(actual.APIVips[0].IP)).To(Equal(apiVip))
+				Expect(string(actual.IngressVips[0].IP)).To(Equal(ingressVip))
 				Expect(actual.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 				Expect(actual.ClusterNetworks).To(Equal(common.TestIPv4Networking.ClusterNetworks))
 				Expect(actual.MachineNetworks).To(Equal(common.TestIPv4Networking.MachineNetworks))
@@ -14690,8 +14190,8 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						APIVip:            apiVip,
-						IngressVip:        ingressVip,
+						APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
+						IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
 						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
 						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
@@ -14706,8 +14206,8 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						APIVip:            apiVip,
-						IngressVip:        ingressVip,
+						APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
+						IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
 						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
 						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
@@ -14722,8 +14222,8 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						APIVip:            apiVip,
-						IngressVip:        ingressVip,
+						APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
+						IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
 						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
 						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
@@ -14738,8 +14238,8 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						APIVip:            apiVip,
-						IngressVip:        ingressVip,
+						APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
+						IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
 						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
 						VipDhcpAllocation: swag.Bool(false),
@@ -14754,8 +14254,8 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						APIVip:            apiVip,
-						IngressVip:        ingressVip,
+						APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
+						IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
 						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
 						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
@@ -14771,8 +14271,8 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						APIVip:            apiVip,
-						IngressVip:        ingressVip,
+						APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
+						IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
 						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
 						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
@@ -14813,18 +14313,18 @@ var _ = Describe("TestRegisterCluster", func() {
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
-						APIVip:          swag.String(apiVip),
-						IngressVip:      swag.String(ingressVip),
+						APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
+						IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						ClusterNetworks: common.TestDualStackNetworking.ClusterNetworks,
 						MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
 						ServiceNetworks: common.TestDualStackNetworking.ServiceNetworks,
 					},
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-				cluster := &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
-				Expect(cluster.APIVip).To(Equal(apiVip))
+				cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
+				Expect(string(cluster.APIVips[0].IP)).To(Equal(apiVip))
 				Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
-				Expect(cluster.IngressVip).To(Equal(ingressVip))
+				Expect(string(cluster.IngressVips[0].IP)).To(Equal(ingressVip))
 				Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
 				Expect(cluster.ClusterNetworks).To(Equal(common.TestDualStackNetworking.ClusterNetworks))
 				Expect(cluster.MachineNetworks).To(Equal(common.TestDualStackNetworking.MachineNetworks))
@@ -17368,8 +16868,8 @@ var _ = Describe("IPv6 support disabled", func() {
 			})
 
 			It("IPv6 ingress VIP rejected", func() {
-				params.NewClusterParams.APIVip = "2001:db8::2"
-				params.NewClusterParams.IngressVip = "2001:db8::1"
+				params.NewClusterParams.APIVips = []*models.APIVip{{IP: "2001:db8::2"}}
+				params.NewClusterParams.IngressVips = []*models.IngressVip{{IP: "2001:db8::1"}}
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 			})
@@ -17431,16 +16931,16 @@ var _ = Describe("IPv6 support disabled", func() {
 		})
 
 		It("IPv6 API VIP rejected", func() {
-			params.ClusterUpdateParams.APIVip = swag.String("2003:db8::a")
-			params.ClusterUpdateParams.IngressVip = swag.String("2003:db8::b")
+			params.ClusterUpdateParams.APIVips = []*models.APIVip{{IP: "2003:db8::a"}}
+			params.ClusterUpdateParams.IngressVips = []*models.IngressVip{{IP: "2003:db8::b"}}
 
 			reply := bm.V2UpdateCluster(ctx, params)
 			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 		})
 
 		It("IPv6 ingress VIP rejected", func() {
-			params.ClusterUpdateParams.IngressVip = swag.String("2002:db8::1")
-			params.ClusterUpdateParams.APIVip = swag.String("2002:db8::2")
+			params.ClusterUpdateParams.APIVips = []*models.APIVip{{IP: "2002:db8::1"}}
+			params.ClusterUpdateParams.IngressVips = []*models.IngressVip{{IP: "2002:db8::2"}}
 
 			reply := bm.V2UpdateCluster(ctx, params)
 			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
@@ -17460,8 +16960,8 @@ var _ = Describe("Dual-stack cluster", func() {
 			ClusterNetworks: append(common.TestIPv4Networking.ClusterNetworks, common.TestIPv6Networking.ClusterNetworks...),
 			ServiceNetworks: append(common.TestIPv4Networking.ServiceNetworks, common.TestIPv6Networking.ServiceNetworks...),
 			MachineNetworks: append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
-			APIVip:          common.TestIPv4Networking.APIVip,
-			IngressVip:      common.TestIPv4Networking.IngressVip,
+			APIVips:         common.TestIPv4Networking.APIVips,
+			IngressVips:     common.TestIPv4Networking.IngressVips,
 		}
 	)
 
@@ -18331,7 +17831,7 @@ var _ = Describe("Download presigned cluster credentials", func() {
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			APIVip:           "10.11.12.13",
+			APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())

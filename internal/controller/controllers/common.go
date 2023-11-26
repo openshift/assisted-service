@@ -304,25 +304,25 @@ func machineNetworksEntriesToArray(entries []hiveext.MachineNetworkEntry) []*mod
 	}).([]*models.MachineNetwork)
 }
 
-func apiVipsArrayToStrings(vips []*models.APIVip) []string {
+func ApiVipsArrayToStrings(vips []*models.APIVip) []string {
 	return funk.Map(vips, func(vip *models.APIVip) string {
 		return string(vip.IP)
 	}).([]string)
 }
 
-func apiVipsEntriesToArray(entries []string) []*models.APIVip {
+func ApiVipsEntriesToArray(entries []string) []*models.APIVip {
 	return funk.Map(entries, func(entry string) *models.APIVip {
 		return &models.APIVip{IP: models.IP(entry)}
 	}).([]*models.APIVip)
 }
 
-func ingressVipsArrayToStrings(vips []*models.IngressVip) []string {
+func IngressVipsArrayToStrings(vips []*models.IngressVip) []string {
 	return funk.Map(vips, func(vip *models.IngressVip) string {
 		return string(vip.IP)
 	}).([]string)
 }
 
-func ingressVipsEntriesToArray(entries []string) []*models.IngressVip {
+func IngressVipsEntriesToArray(entries []string) []*models.IngressVip {
 	return funk.Map(entries, func(entry string) *models.IngressVip {
 		return &models.IngressVip{IP: models.IP(entry)}
 	}).([]*models.IngressVip)

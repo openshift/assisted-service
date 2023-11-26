@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -124,8 +125,8 @@ var _ = Describe("DNS record set update tests", func() {
 			Cluster: models.Cluster{
 				Name:            "ut-cluster",
 				BaseDNSDomain:   "dns-test.com",
-				APIVip:          "10.56.20.50",
-				IngressVip:      "2001:db8:3c4d:15::2b",
+				APIVips:         []*models.APIVip{{IP: "10.56.20.50"}},
+				IngressVips:     []*models.IngressVip{{IP: "2001:db8:3c4d:15::2b"}},
 				MachineNetworks: []*models.MachineNetwork{{Cidr: "10.56.20.0/24"}},
 			},
 		}
@@ -153,8 +154,8 @@ var _ = Describe("DNS record set update tests", func() {
 	})
 	It("create DNS record set multi-node", func() {
 		mockProv := NewMockDNSProvider(ctrl)
-		mockProv.EXPECT().CreateRecordSet(fmt.Sprintf("api.%s.%s", cluster.Name, cluster.BaseDNSDomain), cluster.APIVip).Times(1)
-		mockProv.EXPECT().CreateRecordSet(fmt.Sprintf("*.apps.%s.%s", cluster.Name, cluster.BaseDNSDomain), cluster.IngressVip).Times(1)
+		mockProv.EXPECT().CreateRecordSet(fmt.Sprintf("api.%s.%s", cluster.Name, cluster.BaseDNSDomain), network.GetApiVipById(cluster, 0)).Times(1)
+		mockProv.EXPECT().CreateRecordSet(fmt.Sprintf("*.apps.%s.%s", cluster.Name, cluster.BaseDNSDomain), network.GetIngressVipById(cluster, 0)).Times(1)
 		mockProviders.EXPECT().GetProviderByRecordType(gomock.Any(), "A").Times(1).Return(mockProv)
 		mockProviders.EXPECT().GetProviderByRecordType(gomock.Any(), "AAAA").Times(1).Return(mockProv)
 		err := dns.CreateDNSRecordSets(ctx, cluster)
@@ -162,8 +163,8 @@ var _ = Describe("DNS record set update tests", func() {
 	})
 	It("delete DNS record set multi-node", func() {
 		mockProv := NewMockDNSProvider(ctrl)
-		mockProv.EXPECT().DeleteRecordSet(fmt.Sprintf("api.%s.%s", cluster.Name, cluster.BaseDNSDomain), cluster.APIVip).Times(1)
-		mockProv.EXPECT().DeleteRecordSet(fmt.Sprintf("*.apps.%s.%s", cluster.Name, cluster.BaseDNSDomain), cluster.IngressVip).Times(1)
+		mockProv.EXPECT().DeleteRecordSet(fmt.Sprintf("api.%s.%s", cluster.Name, cluster.BaseDNSDomain), network.GetApiVipById(cluster, 0)).Times(1)
+		mockProv.EXPECT().DeleteRecordSet(fmt.Sprintf("*.apps.%s.%s", cluster.Name, cluster.BaseDNSDomain), network.GetIngressVipById(cluster, 0)).Times(1)
 		mockProviders.EXPECT().GetProviderByRecordType(gomock.Any(), "A").Times(1).Return(mockProv)
 		mockProviders.EXPECT().GetProviderByRecordType(gomock.Any(), "AAAA").Times(1).Return(mockProv)
 		err := dns.DeleteDNSRecordSets(ctx, cluster)

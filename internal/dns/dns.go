@@ -104,8 +104,8 @@ func (h *handler) updateDNSRecordSet(log logrus.FieldLogger, cluster *common.Clu
 		return false, nil
 	}
 
-	apiVip := cluster.APIVip
-	ingressVip := cluster.IngressVip
+	apiVip := network.GetApiVipById(cluster, 0)
+	ingressVip := network.GetIngressVipById(cluster, 0)
 	if common.IsSingleNodeCluster(cluster) {
 		apiVip, err = network.GetIpForSingleNodeInstallation(cluster, log)
 		if err != nil {

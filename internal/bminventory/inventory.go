@@ -305,14 +305,6 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context, params installer.V2RegisterClusterParams, id strfmt.UUID) (installer.V2RegisterClusterParams, error) {
 	log := logutil.FromContext(ctx, b.log)
 
-	if params.NewClusterParams.APIVip != "" && len(params.NewClusterParams.APIVips) == 0 {
-		params.NewClusterParams.APIVips = []*models.APIVip{{IP: models.IP(params.NewClusterParams.APIVip), ClusterID: id}}
-	}
-
-	if params.NewClusterParams.IngressVip != "" && len(params.NewClusterParams.IngressVip) == 0 {
-		params.NewClusterParams.IngressVips = []*models.IngressVip{{IP: models.IP(params.NewClusterParams.IngressVip), ClusterID: id}}
-	}
-
 	if params.NewClusterParams.ClusterNetworks == nil {
 		params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
 			{Cidr: models.Subnet(b.Config.DefaultClusterNetworkCidr), HostPrefix: b.Config.DefaultClusterNetworkHostPrefix},
@@ -590,10 +582,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			ID:                           &id,
 			Href:                         swag.String(url.String()),
 			Kind:                         swag.String(models.ClusterKindCluster),
-			APIVip:                       params.NewClusterParams.APIVip,
 			APIVips:                      params.NewClusterParams.APIVips,
 			BaseDNSDomain:                params.NewClusterParams.BaseDNSDomain,
-			IngressVip:                   params.NewClusterParams.IngressVip,
 			IngressVips:                  params.NewClusterParams.IngressVips,
 			Name:                         swag.StringValue(params.NewClusterParams.Name),
 			OpenshiftVersion:             *releaseImage.Version,
@@ -2140,14 +2130,8 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	}
 	reqDualStack := network.CheckIfClusterIsDualStack(&targetConfiguration)
 
-	if params.ClusterUpdateParams.APIVip != nil {
-		updates["api_vip"] = *params.ClusterUpdateParams.APIVip
-	}
 	if params.ClusterUpdateParams.APIVips != nil {
 		targetConfiguration.APIVips = params.ClusterUpdateParams.APIVips
-	}
-	if params.ClusterUpdateParams.IngressVip != nil {
-		updates["ingress_vip"] = *params.ClusterUpdateParams.IngressVip
 	}
 	if params.ClusterUpdateParams.IngressVips != nil {
 		targetConfiguration.IngressVips = params.ClusterUpdateParams.IngressVips
@@ -2234,8 +2218,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 }
 
 func (b *bareMetalInventory) updateDhcpNetworkParams(db *gorm.DB, id *strfmt.UUID, updates map[string]interface{}, params installer.V2UpdateClusterParams, primaryMachineCIDR string) error {
-	if err := validations.ValidateVIPsWereNotSetDhcpMode(swag.StringValue(params.ClusterUpdateParams.APIVip), swag.StringValue(params.ClusterUpdateParams.IngressVip),
-		params.ClusterUpdateParams.APIVips, params.ClusterUpdateParams.IngressVips); err != nil {
+	if err := validations.ValidateVIPsWereNotSetDhcpMode(params.ClusterUpdateParams.APIVips, params.ClusterUpdateParams.IngressVips); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	// VIPs are always allocated from the first provided machine network. We want to trigger
@@ -2247,8 +2230,6 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(db *gorm.DB, id *strfmt.UUI
 	// Ref.: https://bugzilla.redhat.com/show_bug.cgi?id=1999297
 	// Ref.: https://github.com/openshift/assisted-service/pull/2512
 	if params.ClusterUpdateParams.MachineNetworks != nil && params.ClusterUpdateParams.MachineNetworks[0] != nil && string(params.ClusterUpdateParams.MachineNetworks[0].Cidr) != primaryMachineCIDR {
-		updates["api_vip"] = ""
-		updates["ingress_vip"] = ""
 		emptyCluster := common.Cluster{Cluster: models.Cluster{ID: id}}
 		if err := network.UpdateVipsTables(db, &emptyCluster, true, true); err != nil {
 			return err
@@ -2372,11 +2353,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	return nil
 }
 
-func wereClusterVipsUpdated(clusterVip string, paramVip *string, clusterVips []string, paramVips []string) bool {
-	if paramVip != nil && clusterVip != swag.StringValue(paramVip) {
-		return true
-	}
-
+func wereClusterVipsUpdated(clusterVips []string, paramVips []string) bool {
 	if paramVips == nil {
 		return false
 	}
@@ -2402,15 +2379,13 @@ func (b *bareMetalInventory) updateVips(db *gorm.DB, params installer.V2UpdateCl
 		},
 	}
 
-	if wereClusterVipsUpdated(cluster.APIVip, params.ClusterUpdateParams.APIVip, network.GetApiVips(cluster), network.GetApiVips(&paramVips)) {
+	if wereClusterVipsUpdated(network.GetApiVips(cluster), network.GetApiVips(&paramVips)) {
 		apiVipUpdated = true
-		cluster.APIVip = swag.StringValue(params.ClusterUpdateParams.APIVip)
 		cluster.APIVips = params.ClusterUpdateParams.APIVips
 	}
 
-	if wereClusterVipsUpdated(cluster.IngressVip, params.ClusterUpdateParams.IngressVip, network.GetIngressVips(cluster), network.GetIngressVips(&paramVips)) {
+	if wereClusterVipsUpdated(network.GetIngressVips(cluster), network.GetIngressVips(&paramVips)) {
 		ingressVipUpdated = true
-		cluster.IngressVip = swag.StringValue(params.ClusterUpdateParams.IngressVip)
 		cluster.IngressVips = params.ClusterUpdateParams.IngressVips
 	}
 
@@ -2619,8 +2594,6 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 			vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
 			updates["vip_dhcp_allocation"] = vipDhcpAllocation
 			updates["machine_network_cidr_updated_at"] = time.Now()
-			updates["api_vip"] = ""
-			updates["ingress_vip"] = ""
 			cluster.MachineNetworks = []*models.MachineNetwork{}
 			emptyCluster := common.Cluster{Cluster: models.Cluster{ID: cluster.ID}}
 			if err = network.UpdateVipsTables(db, &emptyCluster, true, true); err != nil {
@@ -2663,8 +2636,6 @@ func setCommonUserNetworkManagedParams(db *gorm.DB, id *strfmt.UUID, params *mod
 		return err, false
 	}
 	updates["vip_dhcp_allocation"] = false
-	updates["api_vip"] = ""
-	updates["ingress_vip"] = ""
 	emptyCluster := common.Cluster{Cluster: models.Cluster{ID: id}}
 	if err = network.UpdateVipsTables(db, &emptyCluster, true, true); err != nil {
 		return err, false
@@ -2693,7 +2664,7 @@ func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterPa
 }
 
 func validateUserManagedNetworkConflicts(params *models.V2ClusterUpdateParams, log logrus.FieldLogger) error {
-	if err := validations.ValidateVIPsWereNotSetUserManagedNetworking(swag.StringValue(params.APIVip), swag.StringValue(params.IngressVip), params.APIVips, params.IngressVips, swag.BoolValue(params.VipDhcpAllocation)); err != nil {
+	if err := validations.ValidateVIPsWereNotSetUserManagedNetworking(params.APIVips, params.IngressVips, swag.BoolValue(params.VipDhcpAllocation)); err != nil {
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}

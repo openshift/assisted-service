@@ -1017,8 +1017,8 @@ func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster
 }
 
 func vipMismatchError(apiVip, ingressVip string, cluster *common.Cluster) error {
-	return errors.Errorf("Got VIPs different than those that are stored in the DB for cluster %s. APIVip = %s @db = %s, IngressVIP = %s @db = %s",
-		cluster.ID.String(), apiVip, cluster.APIVip, ingressVip, cluster.IngressVip)
+	return errors.Errorf("Got VIPs different than those that are stored in the DB for cluster %s. first APIVip = '%s' @db = '%s', first IngressVIP = '%s' @db = '%s'",
+		cluster.ID.String(), apiVip, network.GetApiVipById(cluster, 0), ingressVip, network.GetIngressVipById(cluster, 0))
 }
 
 func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error {
@@ -1029,8 +1029,11 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 	log := logutil.FromContext(ctx, m.log)
 	formattedApiLease := network.FormatLease(apiVipLease)
 	formattedIngressVip := network.FormatLease(ingressVipLease)
-	if apiVip == c.APIVip && apiVip == network.GetApiVipById(c, 0) &&
-		ingressVip == c.IngressVip && ingressVip == network.GetIngressVipById(c, 0) &&
+	clusterIngressVip := network.GetIngressVipById(c, 0)
+	clusterApiVip := network.GetApiVipById(c, 0)
+
+	if apiVip == clusterApiVip &&
+		ingressVip == clusterIngressVip &&
 		formattedApiLease == c.ApiVipLease &&
 		formattedIngressVip == c.IngressVipLease {
 		return nil
@@ -1044,23 +1047,22 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 		}
 		if err = db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
 			Updates(map[string]interface{}{
-				"api_vip":           apiVip,
-				"ingress_vip":       ingressVip,
 				"api_vip_lease":     formattedApiLease,
 				"ingress_vip_lease": formattedIngressVip,
 			}).Error; err != nil {
 			log.WithError(err).Warnf("Update vips of cluster %s", c.ID.String())
 			return err
 		}
-		if apiVip != c.APIVip || c.IngressVip != ingressVip {
-			if c.APIVip != "" || c.IngressVip != "" {
+
+		if apiVip != clusterApiVip || clusterIngressVip != ingressVip {
+			if clusterApiVip != "" || clusterIngressVip != "" {
 				log.WithError(vipMismatchError(apiVip, ingressVip, c)).Warn("VIPs changed")
 			}
 			eventgen.SendApiIngressVipUpdatedEvent(ctx, m.eventsHandler, *c.ID, apiVip, ingressVip)
 		}
 
 	case models.ClusterStatusInstalling, models.ClusterStatusPreparingForInstallation, models.ClusterStatusFinalizing:
-		if c.APIVip != apiVip || c.IngressVip != ingressVip {
+		if clusterApiVip != apiVip || clusterIngressVip != ingressVip {
 			err = vipMismatchError(apiVip, ingressVip, c)
 			log.WithError(err).Error("VIPs changed during installation")
 

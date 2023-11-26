@@ -116,7 +116,17 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 	extra := resetFields[:]
 	// reset api_vip and ingress_vip in case of resetting the SNO cluster
 	if common.IsSingleNodeCluster(sCluster.cluster) {
-		extra = append(extra, "api_vip", "", "ingress_vip", "")
+		if err := network.UpdateVipsTables(params.db,
+			&common.Cluster{Cluster: models.Cluster{
+				ID:          sCluster.cluster.ID,
+				APIVips:     []*models.APIVip{},
+				IngressVips: []*models.IngressVip{},
+			}},
+			true,
+			true,
+		); err != nil {
+			return err
+		}
 	}
 
 	return th.updateTransitionCluster(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sCluster, params.reason, extra...)
@@ -576,7 +586,13 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
 			var extra []interface{}
 			var log = logutil.FromContext(params.ctx, th.log)
-			extra, err = addExtraParams(log, sCluster.cluster, sCluster.srcState)
+
+			if common.IsSingleNodeCluster(sCluster.cluster) {
+				if err = updateSNOClusterVips(log, params.db, sCluster.cluster, sCluster.srcState); err != nil {
+					return err
+				}
+			}
+			extra, err = addExtraParams(sCluster.cluster, sCluster.srcState)
 			if err != nil {
 				return err
 			}
@@ -730,19 +746,33 @@ func initProgressParamsInstallingStage() []interface{} {
 		"progress_total_percentage", totalPercentage}
 }
 
-func addExtraParams(log logrus.FieldLogger, cluster *common.Cluster, srcState string) ([]interface{}, error) {
+func updateSNOClusterVips(log logrus.FieldLogger, db *gorm.DB, cluster *common.Cluster, srcState string) error {
+	if swag.StringValue(cluster.Status) == models.ClusterStatusInstalling {
+		// In case of SNO cluster, set api_vip and ingress_vip with host ip
+		hostIP, err := network.GetIpForSingleNodeInstallation(cluster, log)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to find host ip for single node installation")
+			return err
+		}
+		if err = network.UpdateVipsTables(db,
+			&common.Cluster{Cluster: models.Cluster{
+				ID:          cluster.ID,
+				APIVips:     []*models.APIVip{{IP: models.IP(hostIP), ClusterID: *cluster.ID}},
+				IngressVips: []*models.IngressVip{{IP: models.IP(hostIP), ClusterID: *cluster.ID}},
+			}},
+			true,
+			true,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func addExtraParams(cluster *common.Cluster, srcState string) ([]interface{}, error) {
 	extra := []interface{}{}
 	switch swag.StringValue(cluster.Status) {
 	case models.ClusterStatusInstalling:
-		// In case of SNO cluster, set api_vip and ingress_vip with host ip
-		if common.IsSingleNodeCluster(cluster) {
-			hostIP, err := network.GetIpForSingleNodeInstallation(cluster, log)
-			if err != nil {
-				log.WithError(err).Errorf("Failed to find host ip for single node installation")
-				return nil, err
-			}
-			extra = append(make([]interface{}, 0), "api_vip", hostIP, "ingress_vip", hostIP)
-		}
 		if srcState == models.ClusterStatusPreparingForInstallation {
 			extra = append(extra, initProgressParamsInstallingStage()...)
 		}
