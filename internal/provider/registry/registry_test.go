@@ -422,6 +422,61 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			Expect(err).To(BeNil())
 			Expect(cfg.Platform.External).ToNot(BeNil())
 			Expect(cfg.Platform.External.PlatformName).To(Equal(string(models.PlatformTypeOci)))
+			Expect(string(cfg.Platform.External.CloudControllerManager)).To(Equal(models.PlatformExternalCloudControllerManagerExternal))
+		})
+	})
+
+	Context("external", func() {
+		It("should set platform name to external - CCM is empty", func() {
+			platformName := "platform-name"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerEmpty
+
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname0", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname1", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname2", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname3", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname4", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			cluster.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           &platformName,
+					CloudControllerManager: &cloudControllerManager,
+				},
+			}
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeExternal, &cfg, &cluster)
+			Expect(err).To(BeNil())
+			Expect(cfg.Platform.External).ToNot(BeNil())
+			Expect(cfg.Platform.External.PlatformName).To(Equal(platformName))
+			Expect(string(cfg.Platform.External.CloudControllerManager)).To(Equal(cloudControllerManager))
+		})
+
+		It("should set platform name to external - CCM=External", func() {
+			platformName := "platform-name"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerExternal
+
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname0", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname1", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname2", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname3", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname4", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			cluster.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           &platformName,
+					CloudControllerManager: &cloudControllerManager,
+				},
+			}
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeExternal, &cfg, &cluster)
+			Expect(err).To(BeNil())
+			Expect(cfg.Platform.External).ToNot(BeNil())
+			Expect(cfg.Platform.External.PlatformName).To(Equal(platformName))
+			Expect(string(cfg.Platform.External.CloudControllerManager)).To(Equal(cloudControllerManager))
 		})
 	})
 })
@@ -460,6 +515,14 @@ var _ = Describe("Test SetPlatformUsages", func() {
 		It("success", func() {
 			usageApi.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			err := providerRegistry.SetPlatformUsages(models.PlatformTypeOci, nil, usageApi)
+			Expect(err).To(BeNil())
+		})
+	})
+
+	Context("external", func() {
+		It("success", func() {
+			usageApi.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			err := providerRegistry.SetPlatformUsages(models.PlatformTypeExternal, nil, usageApi)
 			Expect(err).To(BeNil())
 		})
 	})

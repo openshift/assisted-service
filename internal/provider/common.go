@@ -76,7 +76,7 @@ func setExternalDefaultValues(platform *models.Platform, cluster *common.Cluster
 		return
 	}
 
-	// set platform type to force the update of the platform in DB later
+	// set platform type to force the update of the platform later in DB
 	platform.Type = common.PlatformTypePtr(models.PlatformTypeExternal)
 
 	// we are creating a new cluster, set CloudControllerManager to "" if unset
@@ -237,12 +237,10 @@ func checkExternalPlatformUpdate(platform models.Platform, cluster *common.Clust
 	update := false
 	if platform.External.PlatformName != nil && *cluster.Platform.External.PlatformName != *platform.External.PlatformName {
 		update = true
-		return updatePlatformIsExternal(&platform)
 	}
 
 	if platform.External.CloudControllerManager != nil && *cluster.Platform.External.CloudControllerManager != *platform.External.CloudControllerManager {
 		update = true
-		return updatePlatformIsExternal(&platform)
 	}
 
 	if update {

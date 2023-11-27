@@ -493,7 +493,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				Expect((&MinimalIso{}).getSupportLevel(filters)).To(Equal(models.SupportLevelSupported))
 			})
 			It("Empty support level - platforms", func() {
-				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone} {
+				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeExternal} {
 					p := platform
 
 					for _, feature := range []SupportLevelFeature{&VsphereIntegrationFeature{}, &NutanixIntegrationFeature{},
@@ -511,7 +511,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				}
 			})
 			It("Empty support level - PlatformManagedNetworkingFeature", func() {
-				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone} {
+				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeExternal} {
 					p := platform
 					feature := &PlatformManagedNetworkingFeature{}
 					filters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil}
