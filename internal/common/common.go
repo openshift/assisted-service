@@ -586,7 +586,7 @@ func GetExternalPlaformTypes() []models.PlatformType {
 }
 
 func IsPlatformExternal(platform *models.Platform) bool {
-	if platform == nil {
+	if platform == nil || platform.Type == nil {
 		return false
 	}
 	return IsPlatformTypeExternal(*platform.Type)

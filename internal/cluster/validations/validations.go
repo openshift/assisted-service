@@ -910,7 +910,7 @@ func ValidateIgnitionImageSize(config string) error {
 }
 
 func ValidatePlatformCapability(platform *models.Platform, ctx context.Context, authzHandler auth.Authorizer) error {
-	if platform == nil {
+	if platform == nil || platform.Type == nil {
 		return nil
 	}
 

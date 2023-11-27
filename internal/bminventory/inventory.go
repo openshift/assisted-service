@@ -2543,9 +2543,16 @@ func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClust
 	if params.ClusterUpdateParams.Platform != nil && common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type) != "" {
 		updates["platform_type"] = params.ClusterUpdateParams.Platform.Type
 		updates["platform_is_external"] = swag.BoolValue(params.ClusterUpdateParams.Platform.IsExternal)
-		if params.ClusterUpdateParams.Platform.External != nil {
-			updates["platform_external_platform_name"] = params.ClusterUpdateParams.Platform.External.PlatformName
-			updates["platform_external_cloud_controller_manager"] = params.ClusterUpdateParams.Platform.External.CloudControllerManager
+		if *params.ClusterUpdateParams.Platform.Type == models.PlatformTypeExternal {
+			if params.ClusterUpdateParams.Platform.External != nil && params.ClusterUpdateParams.Platform.External.PlatformName != nil {
+				updates["platform_external_platform_name"] = params.ClusterUpdateParams.Platform.External.PlatformName
+			}
+			if params.ClusterUpdateParams.Platform.External != nil && params.ClusterUpdateParams.Platform.External.CloudControllerManager != nil {
+				updates["platform_external_cloud_controller_manager"] = params.ClusterUpdateParams.Platform.External.CloudControllerManager
+			}
+		} else {
+			updates["platform_external_platform_name"] = nil
+			updates["platform_external_cloud_controller_manager"] = nil
 		}
 
 		err := b.providerRegistry.SetPlatformUsages(
