@@ -733,10 +733,10 @@ func verifyUsageNotSet(featureUsage string, features ...string) {
 
 func waitForInstallationPreparationCompletionStatus(clusterID strfmt.UUID, status string) {
 
-	waitFunc := func() (bool, error) {
-		c := getCommonCluster(context.Background(), clusterID)
+	waitFunc := func(ctx context.Context) (bool, error) {
+		c := getCommonCluster(ctx, clusterID)
 		return c.InstallationPreparationCompletionStatus == status, nil
 	}
-	err := wait.Poll(pollDefaultInterval, pollDefaultTimeout, waitFunc)
+	err := wait.PollUntilContextTimeout(context.Background(), pollDefaultInterval, pollDefaultTimeout, false, waitFunc)
 	Expect(err).NotTo(HaveOccurred())
 }

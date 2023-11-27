@@ -20,7 +20,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -321,14 +321,14 @@ func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails,
 			if total.NetworkLatencyThresholdMs == nil {
 				total.NetworkLatencyThresholdMs = details.NetworkLatencyThresholdMs
 			} else {
-				total.NetworkLatencyThresholdMs = pointer.Float64Ptr(math.Min(*total.NetworkLatencyThresholdMs, *details.NetworkLatencyThresholdMs))
+				total.NetworkLatencyThresholdMs = ptr.To(math.Min(*total.NetworkLatencyThresholdMs, *details.NetworkLatencyThresholdMs))
 			}
 		}
 		if details.PacketLossPercentage != nil && *details.PacketLossPercentage >= 0 {
 			if total.PacketLossPercentage == nil {
 				total.PacketLossPercentage = details.PacketLossPercentage
 			} else {
-				total.PacketLossPercentage = pointer.Float64Ptr(math.Min(*total.PacketLossPercentage, *details.PacketLossPercentage))
+				total.PacketLossPercentage = ptr.To(math.Min(*total.PacketLossPercentage, *details.PacketLossPercentage))
 			}
 		}
 	}

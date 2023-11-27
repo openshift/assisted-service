@@ -71,10 +71,19 @@ func getServerInternalIPs(osclient osclientset.Interface) ([]string, error) {
 	}
 	switch infra.Status.PlatformStatus.Type {
 	case osconfigv1.BareMetalPlatformType:
+		if infra.Status.PlatformStatus == nil || infra.Status.PlatformStatus.BareMetal == nil {
+			return nil, nil
+		}
 		return infra.Status.PlatformStatus.BareMetal.APIServerInternalIPs, nil
 	case osconfigv1.OpenStackPlatformType:
+		if infra.Status.PlatformStatus == nil || infra.Status.PlatformStatus.OpenStack == nil {
+			return nil, nil
+		}
 		return infra.Status.PlatformStatus.OpenStack.APIServerInternalIPs, nil
 	case osconfigv1.VSpherePlatformType:
+		if infra.Status.PlatformStatus == nil || infra.Status.PlatformStatus.VSphere == nil {
+			return nil, nil
+		}
 		return infra.Status.PlatformStatus.VSphere.APIServerInternalIPs, nil
 	case osconfigv1.AWSPlatformType:
 		return nil, nil

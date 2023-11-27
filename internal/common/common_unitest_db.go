@@ -225,9 +225,9 @@ func (c *K8SDBContext) Create() error {
 		return err
 	}
 	// Wait for deployment to rollout
-	err = wait.PollImmediate(time.Second*5, time.Minute*5, func() (bool, error) {
+	err = wait.PollUntilContextTimeout(context.TODO(), time.Second*5, time.Minute*5, true, func(ctx context.Context) (bool, error) {
 		var deploymentErr error
-		deployment, deploymentErr := c.client.AppsV1().Deployments(k8sNamespace).Get(context.TODO(), dbDockerName, metav1.GetOptions{})
+		deployment, deploymentErr := c.client.AppsV1().Deployments(k8sNamespace).Get(ctx, dbDockerName, metav1.GetOptions{})
 		if deploymentErr != nil {
 			return false, deploymentErr
 		}
@@ -267,9 +267,9 @@ func (c *K8SDBContext) Teardown() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Wait for it to dissappear
-	err = wait.PollImmediate(time.Second*5, time.Minute*5, func() (bool, error) {
+	err = wait.PollUntilContextTimeout(context.TODO(), time.Second*5, time.Minute*5, true, func(ctx context.Context) (bool, error) {
 		var namespaceErr error
-		_, namespaceErr = c.client.CoreV1().Namespaces().Get(context.TODO(), k8sNamespace, metav1.GetOptions{})
+		_, namespaceErr = c.client.CoreV1().Namespaces().Get(ctx, k8sNamespace, metav1.GetOptions{})
 		if errors.IsNotFound(namespaceErr) {
 			return false, namespaceErr
 		}
@@ -281,9 +281,9 @@ func (c *K8SDBContext) Teardown() {
 func (c *K8SDBContext) GetHostPort() (string, string) {
 	var host string
 	var svc *corev1.Service
-	err := wait.PollImmediate(time.Second*5, time.Minute*5, func() (bool, error) {
+	err := wait.PollUntilContextTimeout(context.TODO(), time.Second*5, time.Minute*5, true, func(ctx context.Context) (bool, error) {
 		var err error
-		svc, err = c.client.CoreV1().Services(k8sNamespace).Get(context.TODO(), dbDockerName, metav1.GetOptions{})
+		svc, err = c.client.CoreV1().Services(k8sNamespace).Get(ctx, dbDockerName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

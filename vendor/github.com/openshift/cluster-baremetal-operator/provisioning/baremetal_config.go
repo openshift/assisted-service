@@ -31,7 +31,7 @@ var (
 	baremetalWebhookPort           = "9447"
 	baremetalIronicPort            = 6385
 	baremetalIronicInspectorPort   = 5050
-	baremetalKernelUrlSubPath      = "images/ironic-python-agent.kernel"
+	baremetalKernelSubPath         = "ironic-python-agent.kernel"
 	baremetalIronicEndpointSubpath = "v1/"
 	provisioningIP                 = "PROVISIONING_IP"
 	provisioningInterface          = "PROVISIONING_INTERFACE"
@@ -75,10 +75,11 @@ func getProvisioningIPCIDR(config *metal3iov1alpha1.ProvisioningSpec) *string {
 }
 
 func getDeployKernelUrl() *string {
-	// TODO(dtantsur): it's a share file system, we should look into using a file:// URL
-	deployKernelUrl := fmt.Sprintf("http://localhost:%s/%s", baremetalHttpPort, baremetalKernelUrlSubPath)
+	deployKernelUrl := fmt.Sprintf("file://%s/%s", imageSharedDir, baremetalKernelSubPath)
 	return &deployKernelUrl
 }
+
+// TODO(dtantsur): these two can be removed once we no longer have ironic/inspector split
 
 func getIronicEndpoint() *string {
 	ironicEndpoint := fmt.Sprintf("https://localhost:%d/%s", baremetalIronicPort, baremetalIronicEndpointSubpath)
@@ -88,6 +89,24 @@ func getIronicEndpoint() *string {
 func getIronicInspectorEndpoint() *string {
 	ironicInspectorEndpoint := fmt.Sprintf("https://localhost:%d/%s", baremetalIronicInspectorPort, baremetalIronicEndpointSubpath)
 	return &ironicInspectorEndpoint
+}
+
+func getControlPlanePorts(info *ProvisioningInfo) (ironicPort int, inspectorPort int) {
+	ironicPort = baremetalIronicPort
+	inspectorPort = baremetalIronicInspectorPort
+	if UseIronicProxy(&info.ProvConfig.Spec) {
+		// Direct access to real services behind the proxy.
+		ironicPort = ironicPrivatePort
+		inspectorPort = inspectorPrivatePort
+	}
+	return
+}
+
+func getControlPlaneEndpoints(info *ProvisioningInfo) (ironicEndpoint string, inspectorEndpoint string) {
+	ironicPort, inspectorPort := getControlPlanePorts(info)
+	ironicEndpoint = fmt.Sprintf("https://%s.%s.svc.cluster.local:%d/%s", stateService, info.Namespace, ironicPort, baremetalIronicEndpointSubpath)
+	inspectorEndpoint = fmt.Sprintf("https://%s.%s.svc.cluster.local:%d/%s", stateService, info.Namespace, inspectorPort, baremetalIronicEndpointSubpath)
+	return
 }
 
 func getProvisioningOSDownloadURL(config *metal3iov1alpha1.ProvisioningSpec) *string {

@@ -35,9 +35,5 @@ func createDecoder() *admission.Decoder {
 	if err != nil {
 		log.WithError(err).Fatal("could not add to hiveext scheme")
 	}
-	decoder, err := admission.NewDecoder(scheme)
-	if err != nil {
-		log.WithError(err).Fatal("could not create a decoder")
-	}
-	return decoder
+	return admission.NewDecoder(scheme)
 }

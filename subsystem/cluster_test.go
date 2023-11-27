@@ -41,7 +41,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -3679,16 +3679,16 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			DiskSizeGb:                       100,
 			RAMMib:                           16384,
 			InstallationDiskSpeedThresholdMs: 10,
-			NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
-			PacketLossPercentage:             pointer.Float64Ptr(0),
+			NetworkLatencyThresholdMs:        ptr.To(float64(100)),
+			PacketLossPercentage:             ptr.To(float64(0)),
 		}
 		workerOCPRequirements = models.ClusterHostRequirementsDetails{
 			CPUCores:                         2,
 			DiskSizeGb:                       100,
 			RAMMib:                           8192,
 			InstallationDiskSpeedThresholdMs: 10,
-			NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
-			PacketLossPercentage:             pointer.Float64Ptr(10),
+			NetworkLatencyThresholdMs:        ptr.To(float64(1000)),
+			PacketLossPercentage:             ptr.To(float64(10)),
 		}
 		workerCNVRequirements = models.ClusterHostRequirementsDetails{
 			CPUCores: 2,
