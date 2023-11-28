@@ -84,7 +84,7 @@ if [ "${DISCONNECTED}" = "true" ]; then
     oc image mirror -a "${PULL_SECRET_FILE}" "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" "${DISCONNECTED_ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}"
     export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${DISCONNECTED_ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}"
     # 5. mirrored capi agent image to local registry
-    if [ -z "$PROVIDER_IMAGE" ]
+    if [ ! -z "$PROVIDER_IMAGE" ]
     then
       export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/localimages/cluster-api-provider-agent:latest"
       oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
