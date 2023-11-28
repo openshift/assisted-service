@@ -228,7 +228,7 @@ func updatePlatformIsExternal(platform *models.Platform) *models.Platform {
 	return platform
 }
 
-// checkExternalPlatformUpdate check if platform needs to be updated, return nil if no updates are required
+// checkExternalPlatformUpdate checks if external settings need to be updated, returns nil if no updates are required
 func checkExternalPlatformUpdate(platform models.Platform, cluster *common.Cluster) *models.Platform {
 	if platform.External == nil {
 		return nil
@@ -250,6 +250,23 @@ func checkExternalPlatformUpdate(platform models.Platform, cluster *common.Clust
 	return nil
 }
 
+// checkPlatformUpdate check if platform needs to be updated, returns nil if no updates are required
+func checkPlaformUpdate(platform *models.Platform, cluster *common.Cluster) *models.Platform {
+	if platform == nil || platform.Type == nil {
+		return nil
+	}
+
+	if *cluster.Platform.Type == *platform.Type && *cluster.Platform.Type == models.PlatformTypeExternal {
+		return checkExternalPlatformUpdate(*platform, cluster)
+	}
+
+	if *cluster.Platform.Type == *platform.Type {
+		return nil
+	}
+
+	return updatePlatformIsExternal(platform)
+}
+
 func getUpdateParamsForPlatformBM(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
 	if !swag.BoolValue(userManagedNetworking) && (platform == nil || isPlatformBM(platform)) {
 		// Platform is already baremetal, nothing to do
@@ -266,15 +283,7 @@ func getUpdateParamsForPlatformBM(platform *models.Platform, userManagedNetworki
 func getUpdateParamsForPlatformUMNMandatory(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
 	if (userManagedNetworking == nil || *userManagedNetworking) && isUMNMandatoryForPlatform(platform) {
 		// userManagedNetworking is already set to true, nothing to do
-		if platform == nil || platform.Type == nil {
-			return nil, nil, nil
-		} else if *cluster.Platform.Type == *platform.Type && *cluster.Platform.Type == models.PlatformTypeExternal {
-			return checkExternalPlatformUpdate(*platform, cluster), nil, nil
-		} else if *cluster.Platform.Type == *platform.Type {
-			return nil, nil, nil
-		} else {
-			return updatePlatformIsExternal(platform), nil, nil
-		}
+		return checkPlaformUpdate(platform, cluster), nil, nil
 	}
 
 	if *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
