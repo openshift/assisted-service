@@ -2390,7 +2390,32 @@ var _ = Describe("cluster install", func() {
 			}
 		})
 
+		uploadManifest := func(content string, folder string, filename string) {
+			base64Content := base64.StdEncoding.EncodeToString([]byte(content))
+			response, err := userBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{
+				ClusterID: clusterID,
+				CreateManifestParams: &models.CreateManifestParams{
+					Content:  &base64Content,
+					FileName: &filename,
+					Folder:   &folder,
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*response.Payload).Should(Not(BeNil()))
+		}
+
+		manifest1Content := `apiVersion: v1
+kind: Namespace
+metadata:
+name: exampleNamespace1`
+
+		manifest2Content := `apiVersion: v1
+kind: Namespace
+metadata:
+name: exampleNamespace2`
+
 		It("Download cluster logs", func() {
+			// Add some manifest files and then verify that these are added to the log...
 			nodes, _ := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
 			for _, host := range nodes {
 				kubeconfigFile, err := os.Open("test_kubeconfig")
@@ -2407,6 +2432,9 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			kubeconfigFile.Close()
 
+			uploadManifest(manifest1Content, "openshift", "manifest1.yaml")
+			uploadManifest(manifest2Content, "openshift", "manifest2.yaml")
+
 			filePath := "../build/test_logs.tar"
 			file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			Expect(err).NotTo(HaveOccurred())
@@ -2422,17 +2450,17 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			tarReader := tar.NewReader(file)
 			numOfarchivedFiles := 0
+			expectedFiles := []string{"manifest_user-supplied_openshift_manifest1.yaml", "manifest_user-supplied_openshift_manifest2.yaml", "cluster_events.json", "cluster_metadata.json", "controller_logs.tar.gz", "test-cluster_auto-assign_h1.tar", "test-cluster_auto-assign_h2.tar", "test-cluster_auto-assign_h3.tar"}
 			for {
-				_, err := tarReader.Next()
+				header, err := tarReader.Next()
 				if err == io.EOF {
 					break
 				}
+				Expect(swag.ContainsStrings(expectedFiles, header.Name)).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())
 				numOfarchivedFiles += 1
-				Expect(numOfarchivedFiles <= len(nodes)+3).Should(Equal(true))
 			}
-			Expect(numOfarchivedFiles).Should(Equal(len(nodes) + 3))
-
+			Expect(numOfarchivedFiles).Should(Equal(len(expectedFiles)))
 		})
 
 		It("Upload ingress ca and kubeconfig download", func() {

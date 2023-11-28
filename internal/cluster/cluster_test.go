@@ -2783,6 +2783,7 @@ var _ = Describe("Cluster tarred files", func() {
 		tarFile               string
 		clusterObjectFilename string
 		eventsFilename        string
+		mockManifestApi       *manifestsapi.MockManifestsAPI
 	)
 
 	uploadClusterDataSuccess := func() {
@@ -2808,7 +2809,8 @@ var _ = Describe("Cluster tarred files", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
 		mockOperators := operators.NewMockAPI(ctrl)
-		capi = NewManager(cfg, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, mockHostAPI, nil, nil, dummy, mockOperators, nil, nil, nil, nil, nil)
+		mockManifestApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		capi = NewManager(cfg, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, mockHostAPI, nil, nil, dummy, mockOperators, nil, nil, nil, nil, mockManifestApi)
 		clusterId = strfmt.UUID(uuid.New().String())
 		cl = common.Cluster{
 			Cluster: models.Cluster{
@@ -2824,7 +2826,7 @@ var _ = Describe("Cluster tarred files", func() {
 		prefix = fmt.Sprintf("%s/logs/", cl.ID)
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
-
+		mockManifestApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil)
 	})
 
 	AfterEach(func() {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"path/filepath"
 	"reflect"
@@ -40,6 +41,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -1105,7 +1107,45 @@ func (m *Manager) createClusterDataFiles(ctx context.Context, c *common.Cluster,
 		fileName := fmt.Sprintf("%s/logs/cluster/events.json", c.ID)
 		_ = m.uploadDataAsFile(ctx, log, events, fileName, objectHandler)
 	}
+
+	includeSystemGenerated := true
+	listManifests, _ := m.manifestApi.ListClusterManifestsInternal(ctx, operations.V2ListClusterManifestsParams{ClusterID: *c.ID, IncludeSystemGenerated: &includeSystemGenerated})
+	for _, manifestEntry := range listManifests {
+		// Download the manifest content
+		path := filepath.Join(manifestEntry.Folder, manifestEntry.FileName)
+		objectName := filepath.Join(string(*c.ID), constants.ManifestFolder, path)
+		exists, _ := objectHandler.DoesObjectExist(ctx, objectName)
+		if !exists {
+			continue
+		}
+		response, numberOfBytes, err := m.objectHandler.Download(ctx, objectName)
+		if err != nil {
+			log.WithError(err).Errorf("failed to download file %s from cluster while building log: %s", path, *c.ID)
+			continue
+		}
+		fileContent, err := io.ReadAll(response)
+		if err != nil {
+			log.WithError(err).Errorf("failed to read file data %s (%d) from cluster while building log: %s", path, numberOfBytes, *c.ID)
+			continue
+		}
+		// Determine the manifest type, this will determine where the file is uploaded to
+		isUserManifest, err := m.manifestApi.IsUserManifest(ctx, *c.ID, manifestEntry.Folder, manifestEntry.FileName)
+		manifest_prefix := "system-generated"
+		if err != nil {
+			log.WithError(err).Errorf("Unable to determine if manifest is user generated or not for %s/%s", manifestEntry.Folder, manifestEntry.FileName)
+			manifest_prefix = "unknown"
+		}
+		if isUserManifest {
+			manifest_prefix = "user-supplied"
+		}
+		fileName := fmt.Sprintf("%s/logs/manifest_%s_%s/%s", c.ID, manifest_prefix, manifestEntry.Folder, manifestEntry.FileName)
+		err = m.uploadDataAsFile(ctx, log, string(fileContent), fileName, objectHandler)
+		if err != nil {
+			log.WithError(err).Errorf("Unable to upload %s to logs for cluster id %s", fileName, *c.ID)
+		}
+	}
 }
+
 func (m *Manager) PrepareHostLogFile(ctx context.Context, c *common.Cluster, host *models.Host, objectHandler s3wrapper.API) (string, error) {
 	var (
 		fileName        string
@@ -1192,11 +1232,13 @@ func (m *Manager) PrepareClusterLogFile(ctx context.Context, c *common.Cluster, 
 
 	for _, file := range allFiles {
 		fileNameSplit := strings.Split(file, "/")
+
 		if len(fileNameSplit) < 2 {
 			selectedFiles = append(selectedFiles, file)
 			tarredFilenames = append(tarredFilenames, file)
 			continue
 		}
+
 		hostId := getHostIdFromPath(fileNameSplit)
 		if hostId == nil {
 			tarredFilename = fmt.Sprintf("%s_%s", fileNameSplit[len(fileNameSplit)-2], fileNameSplit[len(fileNameSplit)-1])
