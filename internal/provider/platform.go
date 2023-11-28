@@ -94,7 +94,7 @@ func areExternalSettingsSet(platform models.Platform) bool {
 	return platform.External != nil && (platform.External.PlatformName != nil || platform.External.CloudControllerManager != nil)
 }
 
-func CheckPlatformWrongParamsInput(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) error {
+func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) error {
 	// check if platform compatibility with UMN
 	if platform != nil && userManagedNetworking != nil {
 		userManagedNetworkingStatus := "enabled"
@@ -243,7 +243,7 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 		return nil, nil, nil
 	}
 
-	if err := CheckPlatformWrongParamsInput(platform, userManagedNetworking, cluster); err != nil {
+	if err := checkPlatformWrongParamsInput(platform, userManagedNetworking, cluster); err != nil {
 		return nil, nil, err
 	}
 
@@ -297,7 +297,7 @@ func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userMan
 }
 
 func GetActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string, cpuArchitecture string) (*models.Platform, *bool, error) {
-	if err := CheckPlatformWrongParamsInput(platform, userManagedNetworking, nil); err != nil {
+	if err := checkPlatformWrongParamsInput(platform, userManagedNetworking, nil); err != nil {
 		return nil, nil, err
 	}
 

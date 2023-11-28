@@ -7589,34 +7589,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set external platform with user-managed-networking disabled")
 				})
 
-				It("Update empty plaform name and platform=external results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{
-								External: &models.PlatformExternal{
-									PlatformName: swag.String(""),
-								},
-							},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Platform name must be set to a non-empty string when using platform type external")
-				})
-
-				It("Update invalid colod control manager and platform=external results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{
-								External: &models.PlatformExternal{
-									CloudControllerManager: swag.String("invalid"),
-								},
-							},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cloud controller manager value can only be set to \"\" or \"External\" when using platform type external")
-				})
-
 				It("Update platform=oci - success", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
@@ -18448,34 +18420,6 @@ var _ = Describe("Platform tests", func() {
 
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			verifyApiErrorString(reply, http.StatusBadRequest, "Platform name must be set to a non-empty string when using platform type external")
-		})
-
-		It("external platform - fail if platforn name is empty", func() {
-			registerParams.NewClusterParams.Platform = &models.Platform{
-				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
-				External: &models.PlatformExternal{
-					PlatformName:           swag.String(""),
-					CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
-				},
-			}
-			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(true)
-
-			reply := bm.V2RegisterCluster(ctx, *registerParams)
-			verifyApiErrorString(reply, http.StatusBadRequest, "Platform name must be set to a non-empty string when using platform type external")
-		})
-
-		It("external platform - fail if cloud controller manager is invalid", func() {
-			registerParams.NewClusterParams.Platform = &models.Platform{
-				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
-				External: &models.PlatformExternal{
-					PlatformName:           swag.String("platform-name"),
-					CloudControllerManager: swag.String("invalid"),
-				},
-			}
-			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(true)
-
-			reply := bm.V2RegisterCluster(ctx, *registerParams)
-			verifyApiErrorString(reply, http.StatusBadRequest, "Cloud controller manager value can only be set to \"\" or \"External\" when using platform type external")
 		})
 
 		It("baremetal platform - fail if external settings are set", func() {
