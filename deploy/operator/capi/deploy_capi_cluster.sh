@@ -64,7 +64,6 @@ elif [[ "${IP_STACK}" == "v4v6" ]]; then
 fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
-    export DISCONNECTED_ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/ocp/ocp-release:latest"
     # Disconnected hypershift requires:
     # 1. pull secret in hypershift namespace for the hypershift operator
     oc get namespace hypershift || oc create namespace hypershift
@@ -79,18 +78,15 @@ if [ "${DISCONNECTED}" = "true" ]; then
     mkdir -p ./hypershift-cli
     podman cp $id:/usr/bin/hypershift ./hypershift-cli
     export PATH="$PATH":"$PWD"/hypershift-cli
-    # 4. mirrored openshift release to local registry
-    # disconnected openshift release image will be used as release-image flag for hypershift create cluster
-    oc image mirror -a "${PULL_SECRET_FILE}" "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" "${DISCONNECTED_ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}"
-    export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${DISCONNECTED_ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}"
-    # 5. mirrored capi agent image to local registry
+    # 4. mirrored capi agent image to local registry
     if [ ! -z "$PROVIDER_IMAGE" ]
     then
       export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/localimages/cluster-api-provider-agent:latest"
       oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
       export PROVIDER_IMAGE="${PROVIDER_LOCAL_IMAGE}"
     fi
-    # 6. ImageContentPolicy for local registry
+    # 5. ImageContentPolicy for local mirror registry (prerequisite is the openshift release is mirrored to the local registry)
+    export OCP_MIRROR_REGISTRY="${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
     cat << EOM >> icsp.yaml
 apiVersion: operator.openshift.io/v1alpha1
 kind: ImageContentSourcePolicy
@@ -99,13 +95,15 @@ metadata:
 spec:
   repositoryDigestMirrors:
   - mirrors:
-    - ${LOCAL_REGISTRY}/openshift-release-dev/ocp-release
+    - ${OCP_MIRROR_REGISTRY}
     source: quay.io/openshift-release-dev/ocp-release
   - mirrors:
-    - ${LOCAL_REGISTRY}/openshift-release-dev/ocp-release
+    - ${OCP_MIRROR_REGISTRY}
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
     oc apply -f icsp.yaml
+    # the disconnected openshift release image will also be used as release-image flag for hypershift create cluster command
+    export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
     # disconnected requires the additional trust bundle containing the local registry certificate
     export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --additional-trust-bundle ${REGISTRY_DIR}/certs/${REGISTRY_CRT}"
 fi
