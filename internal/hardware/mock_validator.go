@@ -156,17 +156,17 @@ func (mr *MockValidatorMockRecorder) GetPreflightInfraEnvHardwareRequirements(ct
 }
 
 // IsValidStorageDeviceType mocks base method.
-func (m *MockValidator) IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string) bool {
+func (m *MockValidator) IsValidStorageDeviceType(disk *models.Disk, hostArchitecture, openshiftVersion string, ociPlatformType bool) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsValidStorageDeviceType", disk, hostArchitecture)
+	ret := m.ctrl.Call(m, "IsValidStorageDeviceType", disk, hostArchitecture, openshiftVersion, ociPlatformType)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // IsValidStorageDeviceType indicates an expected call of IsValidStorageDeviceType.
-func (mr *MockValidatorMockRecorder) IsValidStorageDeviceType(disk, hostArchitecture interface{}) *gomock.Call {
+func (mr *MockValidatorMockRecorder) IsValidStorageDeviceType(disk, hostArchitecture, openshiftVersion, ociPlatformType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidStorageDeviceType", reflect.TypeOf((*MockValidator)(nil).IsValidStorageDeviceType), disk, hostArchitecture)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidStorageDeviceType", reflect.TypeOf((*MockValidator)(nil).IsValidStorageDeviceType), disk, hostArchitecture, openshiftVersion, ociPlatformType)
 }
 
 // ListEligibleDisks mocks base method.

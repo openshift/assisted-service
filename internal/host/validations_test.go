@@ -82,7 +82,7 @@ var _ = Describe("Validations test", func() {
 
 	mockAndRefreshStatusWithoutEvents := func(h *models.Host) {
 		mockDefaultClusterHostRequirements(mockHwValidator)
-		mockHwValidator.EXPECT().IsValidStorageDeviceType(gomock.Any(), gomock.Any()).Return(true).AnyTimes()
+		mockHwValidator.EXPECT().IsValidStorageDeviceType(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true).AnyTimes()
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return([]*models.Disk{}).AnyTimes()
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).Return([]api.ValidationResult{
@@ -1557,7 +1557,7 @@ var _ = Describe("Validations test", func() {
 			updateClusterPlatform()
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 
-			mockHwValidator.EXPECT().IsValidStorageDeviceType(CDROM, models.ClusterCPUArchitectureX8664).Return(false).Times(1)
+			mockHwValidator.EXPECT().IsValidStorageDeviceType(CDROM, models.ClusterCPUArchitectureX8664, "", false).Return(false).Times(1)
 			mockAndRefreshStatus(&host)
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)

@@ -694,6 +694,32 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(BeEmpty())
 	})
+	It("iSCSI installation disk on OCI", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
+		cluster.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)}
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s"
+				},
+				{
+					"id": "other-id",
+					"drive_type": "%s"
+				}
+			],
+			"interfaces":[
+				{
+					"name": "eth1",
+					"ipv4_addresses":["10.56.20.80/25"]
+				}
+			]
+		}`, models.DriveTypeISCSI, models.DriveTypeSSD)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=ibft"]`))
+	})
 	It("ip=<nic>:dhcp6 added when machine CIDR is IPv6", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/64"}}
 		host.Inventory = `{
