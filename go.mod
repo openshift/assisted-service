@@ -74,7 +74,7 @@ require (
 	github.com/vincent-petithory/dataurl v1.0.0
 	golang.org/x/crypto v0.14.0
 	golang.org/x/sync v0.4.0
-	golang.org/x/sys v0.13.0
+	golang.org/x/sys v0.15.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
