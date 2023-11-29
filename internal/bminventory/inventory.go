@@ -2546,17 +2546,36 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 	return nil
 }
 
-func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) error {
-	if params.ClusterUpdateParams.Platform != nil && common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type) != "" {
-		updates["platform_type"] = params.ClusterUpdateParams.Platform.Type
-		updates["platform_is_external"] = swag.BoolValue(params.ClusterUpdateParams.Platform.IsExternal)
-
-		err := b.providerRegistry.SetPlatformUsages(
-			common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type), usages, b.usageApi)
-		if err != nil {
-			return fmt.Errorf("failed setting platform usages, error is: %w", err)
-		}
+func setUpdatesForPlatformParams(params installer.V2UpdateClusterParams, updates map[string]interface{}) {
+	updates["platform_type"] = params.ClusterUpdateParams.Platform.Type
+	updates["platform_is_external"] = swag.BoolValue(params.ClusterUpdateParams.Platform.IsExternal)
+	if *params.ClusterUpdateParams.Platform.Type != models.PlatformTypeExternal {
+		// clear any existing values in external settings
+		updates["platform_external_platform_name"] = nil
+		updates["platform_external_cloud_controller_manager"] = nil
+		return
 	}
+
+	if params.ClusterUpdateParams.Platform.External != nil && params.ClusterUpdateParams.Platform.External.PlatformName != nil {
+		updates["platform_external_platform_name"] = params.ClusterUpdateParams.Platform.External.PlatformName
+	}
+	if params.ClusterUpdateParams.Platform.External != nil && params.ClusterUpdateParams.Platform.External.CloudControllerManager != nil {
+		updates["platform_external_cloud_controller_manager"] = params.ClusterUpdateParams.Platform.External.CloudControllerManager
+	}
+}
+
+func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) error {
+	if params.ClusterUpdateParams.Platform == nil || common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type) == "" {
+		return nil
+	}
+
+	setUpdatesForPlatformParams(params, updates)
+	err := b.providerRegistry.SetPlatformUsages(
+		common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type), usages, b.usageApi)
+	if err != nil {
+		return fmt.Errorf("failed setting platform usages, error is: %w", err)
+	}
+
 	return nil
 }
 

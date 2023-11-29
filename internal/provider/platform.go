@@ -11,23 +11,19 @@ import (
 )
 
 func isPlatformBM(platform *models.Platform) bool {
-	return platform != nil && *platform.Type == models.PlatformTypeBaremetal
+	return platform != nil && platform.Type != nil && *platform.Type == models.PlatformTypeBaremetal
 }
 
 func isPlatformNone(platform *models.Platform) bool {
-	return platform != nil && *platform.Type == models.PlatformTypeNone
+	return platform != nil && platform.Type != nil && *platform.Type == models.PlatformTypeNone
 }
 
 func isClusterPlatformNone(cluster *common.Cluster) bool {
 	return cluster != nil && isPlatformNone(cluster.Platform)
 }
 
-func isPlatformExternal(platform *models.Platform) bool {
-	return platform != nil && *platform.Type == models.PlatformTypeOci
-}
-
 func isUMNAllowedForPlatform(platform *models.Platform) bool {
-	if platform == nil {
+	if platform == nil || platform.Type == nil {
 		return true
 	}
 
@@ -39,11 +35,11 @@ func isUMNAllowedForPlatform(platform *models.Platform) bool {
 }
 
 func isUMNMandatoryForPlatform(platform *models.Platform) bool {
-	if platform == nil {
+	if platform == nil || platform.Type == nil {
 		return true
 	}
 
-	if *platform.Type == models.PlatformTypeNone || isPlatformExternal(platform) {
+	if *platform.Type == models.PlatformTypeNone || common.IsPlatformExternal(platform) {
 		return true
 	}
 
@@ -62,7 +58,43 @@ func isUMNMandatoryForCluster(cluster *common.Cluster) bool {
 	return cluster != nil && isUMNMandatoryForPlatform(cluster.Platform)
 }
 
-func CheckPlatformWrongParamsInput(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) error {
+// set default values for the external platform
+func setExternalDefaultValues(platform *models.Platform, cluster *common.Cluster) {
+	if platform == nil {
+		// nothing to update
+		return
+	}
+
+	if platform.Type != nil && *platform.Type != models.PlatformTypeExternal {
+		// not an external platform
+		return
+	}
+
+	if platform.Type == nil && cluster != nil && *cluster.Platform.Type != models.PlatformTypeExternal {
+		// not an external platform
+		return
+	}
+
+	// set platform type to force the update of the platform later in DB
+	platform.Type = common.PlatformTypePtr(models.PlatformTypeExternal)
+
+	// we are creating a new cluster, set CloudControllerManager to "" if unset
+	if cluster == nil && platform.External.CloudControllerManager == nil {
+		platform.External.CloudControllerManager = swag.String(models.PlatformExternalCloudControllerManagerEmpty)
+	}
+
+	// we are updating an existing cluster from a non-external cluster
+	// we must ensure that CloudControllerManager is set
+	if cluster != nil && *cluster.Platform.Type != models.PlatformTypeExternal && platform.External.CloudControllerManager == nil {
+		platform.External.CloudControllerManager = swag.String(models.PlatformExternalCloudControllerManagerEmpty)
+	}
+}
+
+func areExternalSettingsSet(platform models.Platform) bool {
+	return platform.External != nil && (platform.External.PlatformName != nil || platform.External.CloudControllerManager != nil)
+}
+
+func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) error {
 	// check if platform compatibility with UMN
 	if platform != nil && userManagedNetworking != nil {
 		userManagedNetworkingStatus := "enabled"
@@ -93,6 +125,10 @@ func CheckPlatformWrongParamsInput(platform *models.Platform, userManagedNetwork
 		}
 	}
 
+	if err := validateExternalPlatform(platform, cluster); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -119,9 +155,48 @@ func updatePlatformIsExternal(platform *models.Platform) *models.Platform {
 	if platform == nil {
 		return nil
 	}
-	platform.IsExternal = swag.Bool(isPlatformExternal(platform))
+	platform.IsExternal = swag.Bool(common.IsPlatformExternal(platform))
 
 	return platform
+}
+
+// checkExternalPlatformUpdate checks if external settings need to be updated, returns nil if no updates are required
+func checkExternalPlatformUpdate(platform models.Platform, cluster *common.Cluster) *models.Platform {
+	if platform.External == nil {
+		return nil
+	}
+
+	update := false
+	if platform.External.PlatformName != nil && *cluster.Platform.External.PlatformName != *platform.External.PlatformName {
+		update = true
+	}
+
+	if platform.External.CloudControllerManager != nil && *cluster.Platform.External.CloudControllerManager != *platform.External.CloudControllerManager {
+		update = true
+	}
+
+	if update {
+		return updatePlatformIsExternal(&platform)
+	}
+
+	return nil
+}
+
+// checkPlatformUpdate check if platform needs to be updated, returns nil if no updates are required
+func checkPlaformUpdate(platform *models.Platform, cluster *common.Cluster) *models.Platform {
+	if platform == nil || platform.Type == nil {
+		return nil
+	}
+
+	if *cluster.Platform.Type == *platform.Type && *cluster.Platform.Type == models.PlatformTypeExternal {
+		return checkExternalPlatformUpdate(*platform, cluster)
+	}
+
+	if *cluster.Platform.Type == *platform.Type {
+		return nil
+	}
+
+	return updatePlatformIsExternal(platform)
 }
 
 func getUpdateParamsForPlatformBM(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
@@ -140,11 +215,7 @@ func getUpdateParamsForPlatformBM(platform *models.Platform, userManagedNetworki
 func getUpdateParamsForPlatformUMNMandatory(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
 	if (userManagedNetworking == nil || *userManagedNetworking) && isUMNMandatoryForPlatform(platform) {
 		// userManagedNetworking is already set to true, nothing to do
-		if platform == nil || *cluster.Platform.Type == *platform.Type {
-			return nil, nil, nil
-		} else {
-			return createPlatformFromType(*platform.Type), nil, nil
-		}
+		return checkPlaformUpdate(platform, cluster), nil, nil
 	}
 
 	if *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
@@ -172,9 +243,11 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 		return nil, nil, nil
 	}
 
-	if err := CheckPlatformWrongParamsInput(platform, userManagedNetworking, cluster); err != nil {
+	if err := checkPlatformWrongParamsInput(platform, userManagedNetworking, cluster); err != nil {
 		return nil, nil, err
 	}
+
+	setExternalDefaultValues(platform, cluster)
 
 	if doesPlatformAllowUMNOrCMN(platform, cluster) {
 		return updatePlatformIsExternal(platform), userManagedNetworking, nil
@@ -214,7 +287,7 @@ func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userMan
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("Can't disable user-managed-networking on single node OpenShift"))
 		}
 
-		if isPlatformNone(platform) || isPlatformExternal(platform) {
+		if isPlatformNone(platform) || common.IsPlatformExternal(platform) {
 			return updatePlatformIsExternal(platform), swag.Bool(true), nil
 		}
 
@@ -224,9 +297,11 @@ func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userMan
 }
 
 func GetActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string, cpuArchitecture string) (*models.Platform, *bool, error) {
-	if err := CheckPlatformWrongParamsInput(platform, userManagedNetworking, nil); err != nil {
+	if err := checkPlatformWrongParamsInput(platform, userManagedNetworking, nil); err != nil {
 		return nil, nil, err
 	}
+
+	setExternalDefaultValues(platform, nil)
 
 	if cpuArchitecture == models.ClusterCPUArchitectureS390x || cpuArchitecture == models.ClusterCPUArchitecturePpc64le {
 		if userManagedNetworking != nil && !*userManagedNetworking {
@@ -247,6 +322,8 @@ func GetPlatformFeatureID(platformType models.PlatformType) models.FeatureSuppor
 	switch platformType {
 	case models.PlatformTypeOci:
 		return models.FeatureSupportLevelIDEXTERNALPLATFORMOCI
+	case models.PlatformTypeExternal:
+		return models.FeatureSupportLevelIDEXTERNALPLATFORM
 	case models.PlatformTypeVsphere:
 		return models.FeatureSupportLevelIDVSPHEREINTEGRATION
 	case models.PlatformTypeNutanix:

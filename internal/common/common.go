@@ -577,3 +577,21 @@ func GetDefaultV2GetEventsParams(clusterID *strfmt.UUID, hostIds []strfmt.UUID, 
 		Categories: selectedCategories,
 	}
 }
+
+func GetExternalPlaformTypes() []models.PlatformType {
+	return []models.PlatformType{
+		models.PlatformTypeOci,
+		models.PlatformTypeExternal,
+	}
+}
+
+func IsPlatformExternal(platform *models.Platform) bool {
+	if platform == nil || platform.Type == nil {
+		return false
+	}
+	return IsPlatformTypeExternal(*platform.Type)
+}
+
+func IsPlatformTypeExternal(platformType models.PlatformType) bool {
+	return funk.Contains(GetExternalPlaformTypes(), platformType)
+}

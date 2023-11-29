@@ -279,3 +279,49 @@ func (feature *OciIntegrationFeature) getFeatureActiveLevel(cluster *common.Clus
 
 	return activeLevelNotActive
 }
+
+// ExternalPlatformFeature
+type ExternalPlatformFeature struct{}
+
+func (feature *ExternalPlatformFeature) New() SupportLevelFeature {
+	return &ExternalPlatformFeature{}
+}
+
+func (feature *ExternalPlatformFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDEXTERNALPLATFORM
+}
+
+func (feature *ExternalPlatformFeature) GetName() string {
+	return "External Platform Integration"
+}
+
+func (feature *ExternalPlatformFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if isPlatformSet(filters) {
+		return ""
+	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.14", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *ExternalPlatformFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
+		models.FeatureSupportLevelIDVIPAUTOALLOC,
+	}
+}
+
+func (feature *ExternalPlatformFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (feature *ExternalPlatformFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeExternal) {
+		return activeLevelActive
+	}
+
+	return activeLevelNotActive
+}

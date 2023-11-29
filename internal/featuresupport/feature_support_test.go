@@ -193,6 +193,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				models.PlatformTypeOci,
 				models.PlatformTypeBaremetal,
 				models.PlatformTypeNone,
+				models.PlatformTypeExternal,
 			}
 			for _, platform := range platforms {
 				p := platform
@@ -203,12 +204,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil, nil)
-			Expect(len(list)).To(Equal(21))
+			Expect(len(list)).To(Equal(22))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil, nil)
-			Expect(len(list)).To(Equal(21))
+			Expect(len(list)).To(Equal(22))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
@@ -492,11 +493,11 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				Expect((&MinimalIso{}).getSupportLevel(filters)).To(Equal(models.SupportLevelSupported))
 			})
 			It("Empty support level - platforms", func() {
-				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone} {
+				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeExternal} {
 					p := platform
 
 					for _, feature := range []SupportLevelFeature{&VsphereIntegrationFeature{}, &NutanixIntegrationFeature{},
-						&BaremetalPlatformFeature{}, &NonePlatformFeature{}, &OciIntegrationFeature{}} {
+						&BaremetalPlatformFeature{}, &NonePlatformFeature{}, &OciIntegrationFeature{}, &ExternalPlatformFeature{}} {
 						f := feature
 
 						By(fmt.Sprintf("Feature %s", f.GetName()), func() {
@@ -510,7 +511,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				}
 			})
 			It("Empty support level - PlatformManagedNetworkingFeature", func() {
-				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone} {
+				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeExternal} {
 					p := platform
 					feature := &PlatformManagedNetworkingFeature{}
 					filters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil}

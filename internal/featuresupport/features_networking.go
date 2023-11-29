@@ -36,6 +36,7 @@ func (feature *VipAutoAllocFeature) getIncompatibleFeatures(string) *[]models.Fe
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDNONEPLATFORM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORM,
 	}
 }
 
@@ -127,6 +128,7 @@ func (feature *ClusterManagedNetworkingFeature) getIncompatibleFeatures(string) 
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDNONEPLATFORM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORM,
 	}
 }
 
@@ -312,7 +314,7 @@ func (feature *PlatformManagedNetworkingFeature) getSupportLevel(filters Support
 		return ""
 	}
 
-	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeOci || *filters.PlatformType == models.PlatformTypeNone) {
+	if filters.PlatformType != nil && (common.IsPlatformTypeExternal(*filters.PlatformType) || *filters.PlatformType == models.PlatformTypeNone) {
 		return models.SupportLevelSupported
 	}
 
@@ -332,8 +334,13 @@ func (feature *PlatformManagedNetworkingFeature) getIncompatibleArchitectures(_ 
 }
 
 func (feature *PlatformManagedNetworkingFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeNone) || isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeOci) {
-		return activeLevelActive
+	activeLevelPlaforms := common.GetExternalPlaformTypes()
+	activeLevelPlaforms = append(activeLevelPlaforms, models.PlatformTypeNone)
+
+	for _, platform := range activeLevelPlaforms {
+		if isPlatformActive(cluster, clusterUpdateParams, platform) {
+			return activeLevelActive
+		}
 	}
 
 	return activeLevelNotActive

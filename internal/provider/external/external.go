@@ -7,13 +7,32 @@ import (
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
-func (p baseExternalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+type externalProvider struct {
+	baseExternalProvider
+}
+
+func NewExternalProvider(log logrus.FieldLogger) provider.Provider {
+	p := &externalProvider{
+		baseExternalProvider: baseExternalProvider{
+			Log: log,
+		},
+	}
+	p.Provider = p
+	return p
+}
+
+func (p *externalProvider) Name() models.PlatformType {
+	return models.PlatformTypeExternal
+}
+
+func (p *externalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
 	cfg.Platform = installcfg.Platform{
 		External: &installcfg.ExternalInstallConfigPlatform{
-			PlatformName:           string(p.Name()),
-			CloudControllerManager: installcfg.CloudControllerManagerTypeExternal,
+			PlatformName:           *cluster.Platform.External.PlatformName,
+			CloudControllerManager: installcfg.CloudControllerManager(*cluster.Platform.External.CloudControllerManager),
 		},
 	}
 

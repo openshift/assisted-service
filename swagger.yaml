@@ -3643,7 +3643,7 @@ paths:
           name: platform_type
           description: The provider platform type.
           type: string
-          enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'oci' ]
+          enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'oci', 'external' ]
       responses:
         "200":
           description: Success.
@@ -4065,6 +4065,7 @@ definitions:
       - 'DUAL_STACK'
       - 'PLATFORM_MANAGED_NETWORKING'
       - 'SKIP_MCO_REBOOT'
+      - 'EXTERNAL_PLATFORM'
 
   architecture-support-level-id:
     type: string
@@ -5387,6 +5388,9 @@ definitions:
     properties:
       type:
         $ref: '#/definitions/platform_type'
+      external:
+        $ref: '#/definitions/platform_external'
+        x-nullable: true
       is_external:
         description: |-
           Used by the service to indicate that the platform-specific components are not included in
@@ -6195,6 +6199,28 @@ definitions:
       - vsphere
       - none
       - oci
+      - external
+
+  platform_external:
+    type: object
+    x-go-custom-tag: gorm:"embedded;embeddedPrefix:external_"
+    description: Configuration used when installing with an external platform type.
+    properties:
+      platform_name:
+        description: |-
+          Holds the arbitrary string representing the infrastructure provider name.
+        type: string
+        minLength: 1
+        x-nullable: true
+      cloud_controller_manager:
+        description: |-
+          When set to external, this property will enable an external cloud provider.
+        type: string
+        x-nullable: true
+        enum:
+          - ""
+          - External
+        default: ""
 
   memory_method:
     type: string
