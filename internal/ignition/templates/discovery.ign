@@ -37,6 +37,11 @@
         "name": "systemd-journal-gatewayd.socket",
         "enabled": true,
         "contents": {{ executeTemplate "systemd-journal-gatewayd.socket" . | toString | toJson }}
+    }{{end}}{{if .OKDBinaries | not}},
+    {
+        "name": "iscsistart.service",
+        "enabled": true,
+        "contents": {{ executeTemplate "iscsistart.service" . | toString | toJson }}
     }{{end}}
     ]
   },
