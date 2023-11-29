@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/common"
 	hostpkg "github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
@@ -213,11 +214,10 @@ var _ = Describe("Day2 cluster tests", func() {
 		steps = getNextSteps(infraEnvID, *host.ID)
 		areStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck})
 
-		By("checking known state state - one host, no connectivity check")
-		generateApiVipPostStepReply(ctx, h, true)
+		By("checking known state state - one host, ignition will come from host")
+		generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h, cluster.Payload, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h)
-		steps = getNextSteps(infraEnvID, *host.ID)
-		areStepsInList(steps, []models.StepType{models.StepTypeAPIVipConnectivityCheck})
 	})
 
 	It("check host states - two nodes", func() {
@@ -253,10 +253,9 @@ var _ = Describe("Day2 cluster tests", func() {
 		areStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck})
 
 		By("checking known state state")
-		generateApiVipPostStepReply(ctx, h1, true)
+		generateDomainNameResolutionReply(ctx, h1, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h1, cluster.Payload, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h1)
-		steps = getNextSteps(infraEnvID, *h1.ID)
-		areStepsInList(steps, []models.StepType{models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck})
 	})
 
 	It("check installation - one node", func() {
@@ -265,7 +264,8 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
 		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h)
-		generateApiVipPostStepReply(ctx, h, true)
+		generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h, cluster.Payload, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h)
 		_, err := userBMClient.Installer.V2InstallHost(ctx, &installer.V2InstallHostParams{InfraEnvID: infraEnvID, HostID: *h.ID})
 		Expect(err).NotTo(HaveOccurred())
@@ -292,14 +292,16 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateDomainResolution(ctx, h1, "test-cluster", "")
 		generateConnectivityCheckPostStepReply(ctx, h1, ips[1], true)
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h1)
-		generateApiVipPostStepReply(ctx, h1, true)
+		generateDomainNameResolutionReply(ctx, h1, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h1, cluster.Payload, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h1)
 
 		generateEssentialHostSteps(ctx, h2, "hostname2", ips[1])
 		generateDomainResolution(ctx, h2, "test-cluster", "")
 		generateConnectivityCheckPostStepReply(ctx, h2, ips[0], true)
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h2)
-		generateApiVipPostStepReply(ctx, h2, true)
+		generateDomainNameResolutionReply(ctx, h2, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h2, cluster.Payload, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h2)
 
 		_, err := userBMClient.Installer.V2InstallHost(ctx, &installer.V2InstallHostParams{InfraEnvID: infraEnvID, HostID: *h1.ID})
@@ -367,7 +369,8 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
 		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h)
-		generateApiVipPostStepReply(ctx, h, true)
+		generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h, cluster.Payload, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h)
 		_, err := userBMClient.Installer.V2InstallHost(ctx, &installer.V2InstallHostParams{InfraEnvID: infraEnvID, HostID: *h.ID})
 		Expect(err).NotTo(HaveOccurred())
@@ -388,7 +391,8 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
 		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h)
-		generateApiVipPostStepReply(ctx, h, true)
+		generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h, cluster.Payload, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h)
 		_, err := userBMClient.Installer.V2InstallHost(ctx, &installer.V2InstallHostParams{InfraEnvID: infraEnvID, HostID: *h.ID})
 		Expect(err).NotTo(HaveOccurred())
@@ -416,7 +420,8 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
 		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h)
-		generateApiVipPostStepReply(ctx, h, true)
+		generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h, cluster.Payload, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h)
 		_, err := userBMClient.Installer.V2InstallHost(ctx, &installer.V2InstallHostParams{InfraEnvID: infraEnvID, HostID: *h.ID})
 		Expect(err).NotTo(HaveOccurred())
@@ -446,7 +451,8 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
 		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h)
-		generateApiVipPostStepReply(ctx, h, true)
+		generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h, cluster.Payload, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h)
 		_, err := userBMClient.Installer.V2InstallHost(ctx, &installer.V2InstallHostParams{InfraEnvID: infraEnvID, HostID: *h.ID})
 		Expect(err).NotTo(HaveOccurred())
@@ -471,7 +477,8 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateEssentialHostSteps(ctx, h, "hostname", defaultCIDRv4)
 		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h)
-		generateApiVipPostStepReply(ctx, h, true)
+		generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h, cluster.Payload, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h)
 		_, err := userBMClient.Installer.V2InstallHost(ctx, &installer.V2InstallHostParams{InfraEnvID: infraEnvID, HostID: *h.ID})
 		Expect(err).NotTo(HaveOccurred())
@@ -571,7 +578,8 @@ var _ = Describe("Day2 cluster with bind/unbind hosts", func() {
 		By("add connectivity - host h1 becomes known")
 		generateDomainResolution(ctx, h1, "test-cluster", "")
 		generateConnectivityCheckPostStepReply(ctx, h1, ips[1], true)
-		generateApiVipPostStepReply(ctx, h1, true)
+		generateDomainNameResolutionReply(ctx, h1, *common.TestDomainNameResolutionsSuccess)
+		generateApiVipPostStepReply(ctx, h1, cluster.Payload, true)
 		waitForHostStateV2(ctx, models.HostStatusKnown, 60*time.Second, h1)
 	})
 })
@@ -637,7 +645,9 @@ var _ = Describe("Installation progress", func() {
 
 			generateEssentialHostSteps(ctx, c.Hosts[0], "hostname", defaultCIDRv4)
 			generateDomainResolution(ctx, c.Hosts[0], "day2-cluster", "")
-			generateApiVipPostStepReply(ctx, c.Hosts[0], true)
+			generateApiVipPostStepReply(ctx, c.Hosts[0], nil, true)
+			generateDomainNameResolutionReply(ctx, c.Hosts[0], *common.TestDomainNameResolutionsSuccess)
+			generateApiVipPostStepReply(ctx, c.Hosts[0], c, true)
 			waitForHostStateV2(ctx, "known", 60*time.Second, c.Hosts[0])
 
 			_, err := userBMClient.Installer.V2InstallHost(ctx, &installer.V2InstallHostParams{InfraEnvID: infraEnvID, HostID: *c.Hosts[0].ID})

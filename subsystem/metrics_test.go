@@ -771,14 +771,14 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation success
 			h := registerNode(ctx, *day2InfraEnvID, "master-0", defaultCIDRv4)
-			generateApiVipPostStepReply(ctx, h, true)
+			generateApiVipPostStepReply(ctx, h, nil, true)
 			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationChangedMetric)
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationFailedMetric)
 
 			// create a validation failure
-			generateApiVipPostStepReply(ctx, h, false)
+			generateApiVipPostStepReply(ctx, h, nil, false)
 			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
 
 			// check generated events
@@ -797,11 +797,11 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation failure
 			h := registerNode(ctx, *day2InfraEnvID, "master-0", defaultCIDRv4)
-			generateApiVipPostStepReply(ctx, h, false)
+			generateApiVipPostStepReply(ctx, h, nil, false)
 			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
 
 			// create a validation success
-			generateApiVipPostStepReply(ctx, h, true)
+			generateApiVipPostStepReply(ctx, h, nil, true)
 			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
 
 			// check generated events

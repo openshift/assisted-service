@@ -376,30 +376,6 @@ func (v *validator) compatibleWithClusterPlatform(c *validationContext) (Validat
 		common.PlatformTypeValue(c.cluster.Platform.Type))
 }
 
-func (v *validator) getDiskEncryptionForDay2(host *models.Host) (*ignition_types.Luks, error) {
-	var response models.APIVipConnectivityResponse
-	if err := json.Unmarshal([]byte(host.APIVipConnectivity), &response); err != nil {
-		// APIVipConnectivityResponse is not available yet - retrying.
-		return nil, err
-	}
-
-	// Parse ignition from APIVipConnectivity (LUKS is supported in version >= 3.2)
-	config, _, err := v3_2.Parse([]byte(response.Ignition))
-	if err != nil {
-		v.log.WithError(err).Warn("Ignition is empty or invalid - can't get disk encryption")
-		return nil, nil
-	}
-
-	// Checks if LUKS (disk encryption) exists
-	if config.Storage.Luks == nil || len(config.Storage.Luks) == 0 {
-		// Disk encryption is disabled
-		return nil, nil
-	}
-
-	// Return LUKS object
-	return &config.Storage.Luks[0], nil
-}
-
 func (v *validator) areTangServersReachable(c *validationContext) (ValidationStatus, string) {
 	if c.host.TangConnectivity == "" {
 		return ValidationPending, ""
@@ -437,7 +413,7 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 		//day2 validation is taking the disk encryption data solely from
 		//the host inventory and set the diskEncryption field on the cluster
 		//according to that information
-		luks, err := v.getDiskEncryptionForDay2(c.host)
+		luks, err := hostutil.GetDiskEncryptionForDay2(v.log, c.host)
 		if err != nil {
 			return ValidationPending, "Missing ignition information"
 		}

@@ -1386,7 +1386,7 @@ var _ = Describe("Validations test", func() {
 			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
 		})
 
-		It("day2 host - disk encryption is not available", func() {
+		It("day2 host - disk encryption is available", func() {
 			createDay2Cluster()
 
 			h := getDay2Host() //explicit set the role to worker
@@ -1400,7 +1400,7 @@ var _ = Describe("Validations test", func() {
 
 			h = &hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
-			Expect(found).To(BeFalse())
+			Expect(found).To(BeTrue())
 		})
 
 		It("day2 host - pending on APIVipConnectivity response", func() {
@@ -1419,7 +1419,7 @@ var _ = Describe("Validations test", func() {
 			Expect(validationStatus).To(Equal(ValidationPending))
 		})
 
-		It("day2 host - empty ignition in APIVipConnectivity response", func() {
+		It("day2 host - LUKS in APIVipConnectivity response", func() {
 			createDay2Cluster()
 
 			h := getDay2Host()
@@ -1431,7 +1431,7 @@ var _ = Describe("Validations test", func() {
 
 			h = &hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
-			Expect(found).To(BeFalse())
+			Expect(found).To(BeTrue())
 		})
 
 		It("day2 host - no LUKS in cluster ignition", func() {

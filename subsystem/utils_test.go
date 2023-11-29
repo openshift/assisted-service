@@ -357,9 +357,20 @@ func generateNTPPostStepReply(ctx context.Context, h *models.Host, ntpSources []
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func generateApiVipPostStepReply(ctx context.Context, h *models.Host, success bool) {
+func generateApiVipPostStepReply(ctx context.Context, h *models.Host, cluster *models.Cluster, success bool) {
 	checkVipApiResponse := models.APIVipConnectivityResponse{
 		IsSuccess: success,
+	}
+	if cluster != nil && swag.StringValue(cluster.Status) == models.ClusterStatusAddingHosts {
+		checkVipApiResponse.Ignition = `{
+			"ignition": {
+			  "config": {},
+			  "version": "3.2.0"
+			},
+			"storage": {
+			  "files": []
+			}
+		  }`
 	}
 	bytes, jsonErr := json.Marshal(checkVipApiResponse)
 	Expect(jsonErr).NotTo(HaveOccurred())
