@@ -224,6 +224,9 @@ spec:
     - kind: AgentClusterInstall
       name: agentclusterinstalls.extensions.hive.openshift.io
       version: v1beta1
+    - kind: AgentClusterInstall
+      name: agentclusterinstalls.extensions.hive.openshift.io
+      version: v1beta2
     - displayName: Agent
       kind: Agent
       name: agents.agent-install.openshift.io

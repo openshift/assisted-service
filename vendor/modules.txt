@@ -702,6 +702,7 @@ github.com/openshift/assisted-image-service/pkg/servers
 ## explicit; go 1.18
 github.com/openshift/assisted-service/api/common
 github.com/openshift/assisted-service/api/hiveextension/v1beta1
+github.com/openshift/assisted-service/api/hiveextension/v1beta2
 github.com/openshift/assisted-service/api/v1beta1
 # github.com/openshift/assisted-service/client v0.0.0 => ./client
 ## explicit; go 1.18
