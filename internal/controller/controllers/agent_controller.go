@@ -61,6 +61,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -1663,6 +1664,31 @@ func (r *AgentReconciler) setInfraEnvNameLabel(ctx context.Context, log logrus.F
 }
 
 func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	mapSecretToAgents := func(ctx context.Context, secret client.Object) []reconcile.Request {
+		log := logutil.FromContext(ctx, r.Log).WithFields(
+			logrus.Fields{
+				"secret_name":      secret.GetName(),
+				"secret_namespace": secret.GetNamespace(),
+			})
+		agents := aiv1beta1.AgentList{}
+		if err := r.List(ctx, &agents); err != nil {
+			log.Debugf("failed to list agents")
+			return []reconcile.Request{}
+		}
+		reply := make([]reconcile.Request, 0, len(agents.Items))
+		for _, agent := range agents.Items {
+			tokenRef := agent.Spec.IgnitionEndpointTokenReference
+			secretIsIgnitionEndpointToken := tokenRef != nil && secret.GetName() == tokenRef.Name && secret.GetNamespace() == tokenRef.Namespace
+			if secretIsIgnitionEndpointToken {
+				reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
+					Namespace: agent.Namespace,
+					Name:      agent.Name,
+				}})
+			}
+		}
+		return reply
+	}
+
 	var err error
 	r.reclaimer, err = newAgentReclaimer(r.HostFSMountDir)
 	if err != nil {
@@ -1670,6 +1696,7 @@ func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.Agent{}).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(mapSecretToAgents)).
 		WatchesRawSource(&source.Channel{Source: r.CRDEventsHandler.GetAgentUpdates()},
 			&handler.EnqueueRequestForObject{}).
 		Complete(r)

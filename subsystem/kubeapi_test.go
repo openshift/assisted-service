@@ -1640,6 +1640,14 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			dbHost := GetHostByKubeKey(ctx, db, hostkey, waitForReconcileTimeout)
 			return dbHost != nil && dbHost.IgnitionEndpointToken == ignitionEndpointToken
 		}, "30s", "1s").Should(BeTrue())
+		By("Update to ignition endpoint token to trigger reconciliation", func() {
+			updateSecret(ctx, kubeClient, ignitionTokenSecretName, map[string]string{"ignition-token": "updated-token-data"})
+		})
+		By("Verify ignition token updated in DB after reconciliation")
+		Eventually(func() bool {
+			dbHost := GetHostByKubeKey(ctx, db, hostkey, waitForReconcileTimeout)
+			return dbHost != nil && dbHost.IgnitionEndpointToken == "updated-token-data"
+		}, "30s", "1s").Should(BeTrue())
 	})
 
 	It("deploy CD with ACI and agents with node labels", func() {
