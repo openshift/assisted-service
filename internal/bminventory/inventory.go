@@ -1373,42 +1373,29 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 		return err
 	}
 
-	txSuccess := false
-	tx := b.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("InstallSingleDay2HostInternal failed")
-			tx.Rollback()
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		// in case host monitor already updated the state we need to use FOR UPDATE option
+		if cluster, err = common.GetClusterFromDBForUpdate(tx, clusterId, common.UseEagerLoading); err != nil {
+			return err
 		}
-		if r := recover(); r != nil {
-			log.Errorf("InstallSingleDay2HostInternal failed to recover: %s", r)
-			log.Error(string(debug.Stack()))
-			tx.Rollback()
+
+		// move host to installing
+		err = b.createAndUploadDay2NodeIgnition(ctx, cluster, &h.Host, h.IgnitionEndpointToken)
+		if err != nil {
+			log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
+			return err
 		}
-	}()
-
-	// in case host monitor already updated the state we need to use FOR UPDATE option
-	if cluster, err = common.GetClusterFromDBForUpdate(tx, clusterId, common.UseEagerLoading); err != nil {
-		return err
-	}
-
-	// move host to installing
-	err = b.createAndUploadDay2NodeIgnition(ctx, cluster, &h.Host, h.IgnitionEndpointToken)
-	if err != nil {
-		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
-		return err
-	}
-	if installErr := b.hostApi.Install(ctx, &h.Host, tx); installErr != nil {
-		log.WithError(installErr).Errorf("Failed to move host %s to installing", h.RequestedHostname)
-		return installErr
-	}
-
-	err = tx.Commit().Error
+		if installErr := b.hostApi.Install(ctx, &h.Host, tx); installErr != nil {
+			log.WithError(installErr).Errorf("Failed to move host %s to installing", h.RequestedHostname)
+			return installErr
+		}
+		return nil
+	})
 	if err != nil {
 		log.Error(err)
 		return err
 	}
-	txSuccess = true
+
 	eventgen.SendHostInstallationStartedEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
 
 	return nil
@@ -1592,61 +1579,49 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 	var err error
 	query := "id = ?"
 
-	txSuccess := false
-	tx := b.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("UpdateClusterInstallConfigInternal failed")
-			tx.Rollback()
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
+			log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
+			return err
 		}
-		if r := recover(); r != nil {
-			log.Errorf("UpdateClusterInstallConfigInternal failed to recover: %s", r)
-			log.Error(string(debug.Stack()))
-			tx.Rollback()
+
+		clusterInfraenvs, err = b.getClusterInfraenvs(cluster)
+		if err != nil {
+			b.log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
+			return common.NewApiError(http.StatusInternalServerError, errors.New("Failed to get infraenvs for cluster"))
 		}
-	}()
 
-	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
-		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
-		return nil, err
-	}
+		if err = b.installConfigBuilder.ValidateInstallConfigPatch(cluster, clusterInfraenvs, params.InstallConfigParams); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 
-	clusterInfraenvs, err = b.getClusterInfraenvs(cluster)
-	if err != nil {
-		b.log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
-		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to get infraenvs for cluster"))
-	}
+		// Set install config overrides feature usage
+		err = b.setInstallConfigOverridesUsage(cluster.Cluster.FeatureUsage, params.InstallConfigParams, params.ClusterID, tx)
+		if err != nil {
+			// Failure to set the feature usage isn't a failure to update the install config override so we only print the error instead of returning it
+			log.WithError(err).Errorf("failed to set install config overrides feature usage for cluster %s", params.ClusterID)
+		}
 
-	if err = b.installConfigBuilder.ValidateInstallConfigPatch(cluster, clusterInfraenvs, params.InstallConfigParams); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
+		cluster.InstallConfigOverrides = params.InstallConfigParams
+		err = tx.Model(&common.Cluster{}).Where(query, params.ClusterID).Update("install_config_overrides", params.InstallConfigParams).Error
+		if err != nil {
+			log.WithError(err).Errorf("failed to update install config overrides")
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
 
-	// Set install config overrides feature usage
-	err = b.setInstallConfigOverridesUsage(cluster.Cluster.FeatureUsage, params.InstallConfigParams, params.ClusterID, tx)
-	if err != nil {
-		// Failure to set the feature usage isn't a failure to update the install config override so we only print the error instead of returning it
-		log.WithError(err).Errorf("failed to set install config overrides feature usage for cluster %s", params.ClusterID)
-	}
+		err = b.updateMonitoredOperators(tx, cluster)
+		if err != nil {
+			log.WithError(err).Error("failed to update monitored operators")
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		return nil
+	})
 
-	cluster.InstallConfigOverrides = params.InstallConfigParams
-	err = tx.Model(&common.Cluster{}).Where(query, params.ClusterID).Update("install_config_overrides", params.InstallConfigParams).Error
-	if err != nil {
-		log.WithError(err).Errorf("failed to update install config overrides")
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	err = b.updateMonitoredOperators(tx, cluster)
-	if err != nil {
-		log.WithError(err).Error("failed to update monitored operators")
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	err = tx.Commit().Error
 	if err != nil {
 		log.Error(err)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
-	txSuccess = true
+
 	if err == nil {
 		notifiableCluster := stream.GetNotifiableCluster(cluster)
 		err = b.stream.Notify(ctx, notifiableCluster)
@@ -1991,81 +1966,70 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	var err error
 	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
 
-	txSuccess := false
-	tx := b.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("update cluster failed")
-			tx.Rollback()
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		if tx.Error != nil {
+			log.WithError(tx.Error).Errorf("failed to start db transaction")
+			return common.NewApiError(http.StatusInternalServerError,
+				errors.New("DB error, failed to start transaction"))
 		}
-		if r := recover(); r != nil {
-			log.Errorf("update cluster failed to recover: %s", r)
-			log.Error(string(debug.Stack()))
-			tx.Rollback()
+
+		// in case host monitor already updated the state we need to use FOR UPDATE option
+		if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
+			log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
+			return common.NewApiError(http.StatusNotFound, err)
 		}
-	}()
 
-	if tx.Error != nil {
-		log.WithError(tx.Error).Errorf("failed to start db transaction")
-		return nil, common.NewApiError(http.StatusInternalServerError,
-			errors.New("DB error, failed to start transaction"))
-	}
-
-	// in case host monitor already updated the state we need to use FOR UPDATE option
-	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
-		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
-		return nil, common.NewApiError(http.StatusNotFound, err)
-	}
-
-	params, err = b.validateUpdateCluster(ctx, log, cluster, params)
-	if err != nil {
-		return nil, err
-	}
-
-	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
-	if err != nil {
-		log.WithError(err).Errorf("failed to read feature usage from cluster %s", params.ClusterID)
-		return nil, err
-	}
-
-	err = b.updateClusterData(ctx, cluster, params, usages, tx, log, interactivity)
-	if err != nil {
-		log.WithError(err).Error("updateClusterData")
-		return nil, err
-	}
-
-	err = b.updateOperatorsData(ctx, cluster, params, usages, tx, log)
-	if err != nil {
-		return nil, err
-	}
-
-	if interactivity == Interactive {
-		err = b.updateHostsAndClusterStatus(ctx, cluster, tx, log)
+		params, err = b.validateUpdateCluster(ctx, log, cluster, params)
 		if err != nil {
-			log.WithError(err).Errorf("failed to validate or update cluster %s state or its hosts", cluster.ID)
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
+			return err
 		}
-	}
 
-	b.updateClusterNetworkVMUsage(cluster, params.ClusterUpdateParams, usages, log)
-
-	b.updateClusterCPUFeatureUsage(cluster.CPUArchitecture, usages)
-
-	b.usageApi.Save(tx, params.ClusterID, usages)
-
-	newClusterName := swag.StringValue(params.ClusterUpdateParams.Name)
-	if b.ocmClient != nil && newClusterName != "" && newClusterName != cluster.Name {
-		if err = b.integrateWithAMSClusterUpdateName(ctx, cluster, *params.ClusterUpdateParams.Name); err != nil {
-			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update with new name %s", params.ClusterID, newClusterName)
-			return nil, err
+		usages, err1 := usage.Unmarshal(cluster.Cluster.FeatureUsage)
+		if err1 != nil {
+			log.WithError(err1).Errorf("failed to read feature usage from cluster %s", params.ClusterID)
+			return err1
 		}
-	}
 
-	if err = tx.Commit().Error; err != nil {
+		err = b.updateClusterData(ctx, cluster, params, usages, tx, log, interactivity)
+		if err != nil {
+			log.WithError(err).Error("updateClusterData")
+			return err
+		}
+
+		err = b.updateOperatorsData(ctx, cluster, params, usages, tx, log)
+		if err != nil {
+			return err
+		}
+
+		if interactivity == Interactive {
+			err = b.updateHostsAndClusterStatus(ctx, cluster, tx, log)
+			if err != nil {
+				log.WithError(err).Errorf("failed to validate or update cluster %s state or its hosts", cluster.ID)
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
+		}
+
+		b.updateClusterNetworkVMUsage(cluster, params.ClusterUpdateParams, usages, log)
+
+		b.updateClusterCPUFeatureUsage(cluster.CPUArchitecture, usages)
+
+		b.usageApi.Save(tx, params.ClusterID, usages)
+
+		newClusterName := swag.StringValue(params.ClusterUpdateParams.Name)
+		if b.ocmClient != nil && newClusterName != "" && newClusterName != cluster.Name {
+			if err = b.integrateWithAMSClusterUpdateName(ctx, cluster, *params.ClusterUpdateParams.Name); err != nil {
+				log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update with new name %s", params.ClusterID, newClusterName)
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		log.Error(err)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("DB error, failed to commit"))
 	}
-	txSuccess = true
 
 	if proxySettingsChanged(params.ClusterUpdateParams, cluster) {
 		eventgen.SendProxySettingsChangedEvent(ctx, b.eventsHandler, params.ClusterID)
@@ -3969,59 +3933,50 @@ func setInfraEnvPullSecret(infraEnv *common.InfraEnv, pullSecret string) {
 }
 
 func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error) {
-
+	var err error
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("canceling installation for cluster %s", params.ClusterID)
 
 	cluster := &common.Cluster{}
 
-	txSuccess := false
-	tx := b.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("cancel installation failed")
-			tx.Rollback()
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		if tx.Error != nil {
+			msg := "Failed to cancel installation: error starting DB transaction"
+			log.WithError(tx.Error).Errorf(msg)
+			eventgen.SendCancelInstallStartFailedEvent(ctx, b.eventsHandler, *cluster.ID)
+			return common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 		}
-		if r := recover(); r != nil {
-			log.Errorf("cancel installation failed to recover: %s", r)
-			log.Error(string(debug.Stack()))
-			tx.Rollback()
+
+		if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
+			log.WithError(err).Errorf("Failed to cancel installation: could not find cluster %s", params.ClusterID)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return common.NewApiError(http.StatusNotFound, err)
+			}
+			return common.NewApiError(http.StatusInternalServerError, err)
 		}
-	}()
 
-	if tx.Error != nil {
-		msg := "Failed to cancel installation: error starting DB transaction"
-		log.WithError(tx.Error).Errorf(msg)
-		eventgen.SendCancelInstallStartFailedEvent(ctx, b.eventsHandler, *cluster.ID)
-		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
-	}
-
-	var err error
-	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
-		log.WithError(err).Errorf("Failed to cancel installation: could not find cluster %s", params.ClusterID)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, common.NewApiError(http.StatusNotFound, err)
+		// cancellation is made by setting the cluster and and hosts states to error.
+		if err = b.clusterApi.CancelInstallation(ctx, cluster, "Installation was cancelled by user", tx); err != nil {
+			return err
 		}
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
+		for _, h := range cluster.Hosts {
+			if err = b.hostApi.CancelInstallation(ctx, h, "Installation was cancelled by user", tx); err != nil {
+				return err
+			}
+			b.customizeHost(&cluster.Cluster, h)
+		}
 
-	// cancellation is made by setting the cluster and and hosts states to error.
-	if err := b.clusterApi.CancelInstallation(ctx, cluster, "Installation was cancelled by user", tx); err != nil {
+		if err = tx.Commit().Error; err != nil {
+			log.Errorf("Failed to cancel installation: error committing DB transaction (%s)", err)
+			eventgen.SendCancelInstallCommitFailedEvent(ctx, b.eventsHandler, *cluster.ID)
+			return common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
+		}
+		return nil
+	})
+
+	if err != nil {
 		return nil, err
 	}
-	for _, h := range cluster.Hosts {
-		if err := b.hostApi.CancelInstallation(ctx, h, "Installation was cancelled by user", tx); err != nil {
-			return nil, err
-		}
-		b.customizeHost(&cluster.Cluster, h)
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		log.Errorf("Failed to cancel installation: error committing DB transaction (%s)", err)
-		eventgen.SendCancelInstallCommitFailedEvent(ctx, b.eventsHandler, *cluster.ID)
-		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
-	}
-	txSuccess = true
 
 	return cluster, nil
 }
@@ -4951,93 +4906,78 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	success := false
-	tx := b.db.Begin()
-	defer func() {
-		if success {
-			msg := fmt.Sprintf("Successfully updated InfraEnv with id %s", params.InfraEnvID)
-			log.Info(msg)
-		} else {
-			errWrapperLog := log
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		if infraEnv, err = common.GetInfraEnvFromDB(tx, params.InfraEnvID); err != nil {
+			log.WithError(err).Errorf("failed to get infraEnv: %s", params.InfraEnvID)
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+
+		if params.InfraEnvUpdateParams.Proxy != nil {
+			if err = validateProxySettings(params.InfraEnvUpdateParams.Proxy.HTTPProxy,
+				params.InfraEnvUpdateParams.Proxy.HTTPSProxy,
+				params.InfraEnvUpdateParams.Proxy.NoProxy, nil); err != nil {
+				log.WithError(err).Errorf("Failed to validate Proxy settings")
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+		}
+
+		if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraEnvUpdateParams.IgnitionConfigOverride); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
+			if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+		}
+
+		if params.InfraEnvUpdateParams.AdditionalTrustBundle != nil {
+			if *params.InfraEnvUpdateParams.AdditionalTrustBundle != "" {
+				if err = validations.ValidatePEMCertificateBundle(*params.InfraEnvUpdateParams.AdditionalTrustBundle); err != nil {
+					return common.NewApiError(http.StatusBadRequest, err)
+				}
+			}
+		}
+
+		if err = b.validateKernelArguments(ctx, params.InfraEnvUpdateParams.KernelArguments); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		var cluster *common.Cluster
+		clusterId := infraEnv.ClusterID
+		if clusterId != "" {
+			cluster, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: clusterId})
 			if err != nil {
-				errWrapperLog = log.WithError(err)
-			}
-			errWrapperLog.Errorf("Failed to update InfraEnv with id %s", params.InfraEnvID)
-			tx.Rollback()
-			if r := recover(); r != nil {
-				tx.Rollback()
+				// We don't want to fail here if cluster is not found. It's not responsability of this place
+				// to verify that, so if there is a real issue with non-existing cluster it will be detected
+				// and raised by someone else.
+				cluster = nil
 			}
 		}
-	}()
-
-	if infraEnv, err = common.GetInfraEnvFromDB(tx, params.InfraEnvID); err != nil {
-		log.WithError(err).Errorf("failed to get infraEnv: %s", params.InfraEnvID)
-		return nil, common.NewApiError(http.StatusNotFound, err)
-	}
-
-	if params.InfraEnvUpdateParams.Proxy != nil {
-		if err = validateProxySettings(params.InfraEnvUpdateParams.Proxy.HTTPProxy,
-			params.InfraEnvUpdateParams.Proxy.HTTPSProxy,
-			params.InfraEnvUpdateParams.Proxy.NoProxy, nil); err != nil {
-			log.WithError(err).Errorf("Failed to validate Proxy settings")
-			return nil, common.NewApiError(http.StatusBadRequest, err)
+		if err = validateArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion); err != nil {
+			return err
 		}
-	}
-
-	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraEnvUpdateParams.IgnitionConfigOverride); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
+		if err = featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, params.InfraEnvUpdateParams); err != nil {
+			b.log.Error(err)
+			return common.NewApiError(http.StatusBadRequest, err)
 		}
-	}
 
-	if params.InfraEnvUpdateParams.AdditionalTrustBundle != nil {
-		if *params.InfraEnvUpdateParams.AdditionalTrustBundle != "" {
-			if err = validations.ValidatePEMCertificateBundle(*params.InfraEnvUpdateParams.AdditionalTrustBundle); err != nil {
-				return nil, common.NewApiError(http.StatusBadRequest, err)
-			}
-		}
-	}
-
-	if err = b.validateKernelArguments(ctx, params.InfraEnvUpdateParams.KernelArguments); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	var cluster *common.Cluster
-	clusterId := infraEnv.ClusterID
-	if clusterId != "" {
-		cluster, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: clusterId})
+		err = b.updateInfraEnvData(infraEnv, params, internalIgnitionConfig, tx, log)
 		if err != nil {
-			// We don't want to fail here if cluster is not found. It's not responsability of this place
-			// to verify that, so if there is a real issue with non-existing cluster it will be detected
-			// and raised by someone else.
-			cluster = nil
+			log.WithError(err).Error("updateInfraEnvData")
+			return err
 		}
-	}
-	if err = validateArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion); err != nil {
-		return nil, err
-	}
-	if err = featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, params.InfraEnvUpdateParams); err != nil {
-		b.log.Error(err)
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
 
-	err = b.updateInfraEnvData(infraEnv, params, internalIgnitionConfig, tx, log)
+		// Validate discovery ignition after updating InfraEnv data
+		if err = b.validateDiscoveryIgnitionImageSize(ctx, infraEnv, params, tx, log); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		return nil
+	})
+
 	if err != nil {
-		log.WithError(err).Error("updateInfraEnvData")
 		return nil, err
 	}
-
-	// Validate discovery ignition after updating InfraEnv data
-	if err = b.validateDiscoveryIgnitionImageSize(ctx, infraEnv, params, tx, log); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	tx.Commit()
-	success = true
 
 	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
 		log.WithError(err).Errorf("failed to get infraEnv %s after update", params.InfraEnvID)
@@ -6032,103 +5972,90 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 	var clusterID strfmt.UUID
 	var err error
 
-	txSuccess := false
-	tx := b.db.Begin()
-
-	defer func() {
-		if !txSuccess {
-			log.Error("update host failed")
-			tx.Rollback()
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		// Get the cluster id from the host.  The host is not locked for update during this query
+		if clusterID, err = b.getClusterIDFromHost(tx, params.HostID, params.InfraEnvID); err != nil {
+			return err
 		}
-		if r := recover(); r != nil {
-			log.Errorf("update host failed to recover: %s", r)
-			log.Error(string(debug.Stack()))
-			tx.Rollback()
-		}
-	}()
+		if clusterID != "" {
 
-	// Get the cluster id from the host.  The host is not locked for update during this query
-	if clusterID, err = b.getClusterIDFromHost(tx, params.HostID, params.InfraEnvID); err != nil {
-		return nil, err
-	}
-	if clusterID != "" {
-
-		// Get first the bound cluster to verify that the cluster is locked before the host
-		// to avoid deadlocks
-		cluster, err = common.GetClusterFromDBForUpdate(tx, clusterID, common.SkipEagerLoading)
-		if err != nil {
-			err = fmt.Errorf("can not find a cluster for host %s", params.HostID.String())
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
-	}
-	host, err := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID.String(), params.HostID.String())
-	if err != nil {
-		log.WithError(err).Errorf("failed to find host <%s>, infra env <%s>", params.HostID, params.InfraEnvID)
-		return nil, common.NewApiError(http.StatusNotFound, err)
-	}
-
-	err = b.updateHostRole(ctx, host, params.HostUpdateParams.HostRole, tx)
-	if err != nil {
-		return nil, err
-	}
-	err = b.updateHostName(ctx, host, params.HostUpdateParams.HostName, usages, tx)
-	if err != nil {
-		return nil, err
-	}
-	err = b.updateHostDisksSelectionConfig(ctx, host, params.HostUpdateParams.DisksSelectedConfig, tx)
-	if err != nil {
-		return nil, err
-	}
-	err = b.updateHostMachineConfigPoolName(ctx, host, params.HostUpdateParams.MachineConfigPoolName, tx)
-	if err != nil {
-		return nil, err
-	}
-	err = b.updateHostIgnitionEndpointToken(ctx, host, params.HostUpdateParams.IgnitionEndpointToken, tx)
-	if err != nil {
-		return nil, err
-	}
-	err = b.updateNodeLabels(ctx, host, params.HostUpdateParams.NodeLabels, tx)
-	if err != nil {
-		return nil, err
-	}
-	err = b.updateHostSkipFormattingDisks(ctx, host, params.HostUpdateParams.DisksSkipFormatting, tx)
-	if err != nil {
-		return nil, err
-	}
-
-	//get bound cluster
-	if cluster != nil {
-		c = &cluster.Cluster
-
-		//in case a cluster is bound, report the host related usages
-		//make sure that host information is added to the existing data
-		//and not replacing it
-		if funk.NotEmpty(usages) {
-			if clusterusage, e := usage.Unmarshal(cluster.FeatureUsage); e == nil {
-				for k, v := range usages {
-					clusterusage[k] = v
-				}
-				b.usageApi.Save(tx, *cluster.ID, clusterusage)
+			// Get first the bound cluster to verify that the cluster is locked before the host
+			// to avoid deadlocks
+			cluster, err = common.GetClusterFromDBForUpdate(tx, clusterID, common.SkipEagerLoading)
+			if err != nil {
+				err = fmt.Errorf("can not find a cluster for host %s", params.HostID.String())
+				return common.NewApiError(http.StatusInternalServerError, err)
 			}
 		}
-	}
-
-	if interactivity == Interactive {
-		err = b.refreshAfterUpdate(ctx, cluster, host, tx)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to refresh host %s, infra env %s during update", host.ID, host.InfraEnvID)
-			return nil, err
+		host, err1 := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID.String(), params.HostID.String())
+		if err1 != nil {
+			log.WithError(err1).Errorf("failed to find host <%s>, infra env <%s>", params.HostID, params.InfraEnvID)
+			return common.NewApiError(http.StatusNotFound, err1)
 		}
-	}
 
-	if err = tx.Commit().Error; err != nil {
-		log.Error(err)
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		err = b.updateHostRole(ctx, host, params.HostUpdateParams.HostRole, tx)
+		if err != nil {
+			return err
+		}
+		err = b.updateHostName(ctx, host, params.HostUpdateParams.HostName, usages, tx)
+		if err != nil {
+			return err
+		}
+		err = b.updateHostDisksSelectionConfig(ctx, host, params.HostUpdateParams.DisksSelectedConfig, tx)
+		if err != nil {
+			return err
+		}
+		err = b.updateHostMachineConfigPoolName(ctx, host, params.HostUpdateParams.MachineConfigPoolName, tx)
+		if err != nil {
+			return err
+		}
+		err = b.updateHostIgnitionEndpointToken(ctx, host, params.HostUpdateParams.IgnitionEndpointToken, tx)
+		if err != nil {
+			return err
+		}
+		err = b.updateNodeLabels(ctx, host, params.HostUpdateParams.NodeLabels, tx)
+		if err != nil {
+			return err
+		}
+		err = b.updateHostSkipFormattingDisks(ctx, host, params.HostUpdateParams.DisksSkipFormatting, tx)
+		if err != nil {
+			return err
+		}
+
+		//get bound cluster
+		if cluster != nil {
+			c = &cluster.Cluster
+
+			//in case a cluster is bound, report the host related usages
+			//make sure that host information is added to the existing data
+			//and not replacing it
+			if funk.NotEmpty(usages) {
+				if clusterusage, e := usage.Unmarshal(cluster.FeatureUsage); e == nil {
+					for k, v := range usages {
+						clusterusage[k] = v
+					}
+					b.usageApi.Save(tx, *cluster.ID, clusterusage)
+				}
+			}
+		}
+
+		if interactivity == Interactive {
+			err = b.refreshAfterUpdate(ctx, cluster, host, tx)
+			if err != nil {
+				log.WithError(err).Errorf("Failed to refresh host %s, infra env %s during update", host.ID, host.InfraEnvID)
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
-	txSuccess = true
 
 	// get host after update
-	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		log.WithError(err).Errorf("failed to get host <%s>, infra env <%s> after update", params.HostID, params.InfraEnvID)
 		return nil, common.NewApiError(http.StatusNotFound, err)
