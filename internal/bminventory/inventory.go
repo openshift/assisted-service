@@ -302,7 +302,7 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 	return pullSecret, nil
 }
 
-func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context, params installer.V2RegisterClusterParams, id strfmt.UUID) (installer.V2RegisterClusterParams, error) {
+func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context, params installer.V2RegisterClusterParams) (installer.V2RegisterClusterParams, error) {
 	log := logutil.FromContext(ctx, b.log)
 
 	if params.NewClusterParams.ClusterNetworks == nil {
@@ -534,7 +534,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	params, err = b.setDefaultRegisterClusterParams(ctx, params, id)
+	params, err = b.setDefaultRegisterClusterParams(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2104,7 +2104,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Conte
 	return nil
 }
 
-func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
+func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
 	// In order to check if the cluster is dual-stack or single-stack we are building a structure
 	// that is a merge of the current cluster configuration and new configuration coming from
 	// V2UpdateClusterParams. This ensures that the reqDualStack flag reflects a desired state and
@@ -2217,7 +2217,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	return nil
 }
 
-func (b *bareMetalInventory) updateDhcpNetworkParams(db *gorm.DB, id *strfmt.UUID, updates map[string]interface{}, params installer.V2UpdateClusterParams, primaryMachineCIDR string) error {
+func (b *bareMetalInventory) updateDhcpNetworkParams(db *gorm.DB, id *strfmt.UUID, params installer.V2UpdateClusterParams, primaryMachineCIDR string) error {
 	if err := validations.ValidateVIPsWereNotSetDhcpMode(params.ClusterUpdateParams.APIVips, params.ClusterUpdateParams.IngressVips); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -2315,7 +2315,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		// Disk encryption settings for hosts in an imported cluster will be taken from the host ignition.
 		// So we should prevent update of this here and explain the problem to the user.
 		if swag.BoolValue(cluster.Imported) {
-			msg := fmt.Sprintf("cannot update cluster % s, it is not permitted to change disk encryption settings for an imported cluster", cluster.ID)
+			msg := fmt.Sprintf("cannot update cluster %s, it is not permitted to change disk encryption settings for an imported cluster", cluster.ID)
 			log.Error(msg)
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
 		}
@@ -2632,11 +2632,11 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 			if network.IsMachineCidrAvailable(cluster) {
 				primaryMachineCIDR = network.GetMachineCidrById(cluster, 0)
 			}
-			err = b.updateDhcpNetworkParams(db, cluster.ID, updates, params, primaryMachineCIDR)
+			err = b.updateDhcpNetworkParams(db, cluster.ID, params, primaryMachineCIDR)
 		} else {
 			// The primary Machine CIDR can be calculated on not none-platform machines
 			// (the machines are on the same network)
-			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, interactivity)
+			err = b.updateNonDhcpNetworkParams(cluster, params, log, interactivity)
 		}
 		if err != nil {
 			return err
