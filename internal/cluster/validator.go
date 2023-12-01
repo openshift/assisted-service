@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
@@ -533,10 +535,19 @@ func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) (Vali
 	if !validationStatusToBool(clusterCidrDefined) {
 		return ValidationPending, "The Cluster Network CIDR is undefined."
 	}
+
+	skipHostPrefix := v.skipNetworkHostPrefixCheck(c)
+
 	validClusterNetworks := funk.Filter(c.cluster.ClusterNetworks, func(clusterNetwork *models.ClusterNetwork) bool {
+		var hostPrefixForCidrValidation int
+		if !skipHostPrefix {
+			hostPrefixForCidrValidation = int(clusterNetwork.HostPrefix)
+		} else {
+			hostPrefixForCidrValidation = 25 // default to 128 addresses
+		}
 		return clusterNetwork != nil &&
-			network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix) == nil &&
-			network.VerifyClusterCidrSize(int(clusterNetwork.HostPrefix), string(clusterNetwork.Cidr), len(c.cluster.Hosts)) == nil
+			(skipHostPrefix || network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix) == nil) &&
+			network.VerifyClusterCidrSize(hostPrefixForCidrValidation, string(clusterNetwork.Cidr), len(c.cluster.Hosts)) == nil
 	}).([]*models.ClusterNetwork)
 
 	if len(validClusterNetworks) == len(c.cluster.ClusterNetworks) {
@@ -565,4 +576,32 @@ func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) (V
 	}
 	return ValidationFailure, fmt.Sprintf("Hosts' clocks are not synchronized (there's more than a %d minutes gap between clocks), "+
 		"please configure an NTP server via DHCP or set clocks manually.", common.MaximumAllowedTimeDiffMinutes)
+}
+
+// Ignore hostPrefix for non-OVN/SDN plugins.
+func (v *clusterValidator) skipNetworkHostPrefixCheck(c *clusterPreprocessContext) bool {
+	// list of known plugins that require hostPrefix to be set
+	var pluginsUsingHostPrefix = []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN}
+
+	networkType := swag.StringValue(c.cluster.NetworkType)
+	if c.cluster.InstallConfigOverrides != "" {
+		// use networkType from install-config overrides if set
+		overrideDecoder := json.NewDecoder(strings.NewReader(c.cluster.InstallConfigOverrides))
+		overrideDecoder.DisallowUnknownFields()
+
+		cfg := &installcfg.InstallerConfigBaremetal{}
+		if overrideDecoder.Decode(cfg) != nil {
+			v.log.Infof("could not decode install-config overrides %s", c.cluster.InstallConfigOverrides)
+			return false
+		}
+
+		if cfg.Networking.NetworkType != "" {
+			networkType = cfg.Networking.NetworkType
+		}
+	}
+	if !funk.ContainsString(pluginsUsingHostPrefix, networkType) {
+		v.log.Infof("skipping network prefix check for %s", networkType)
+		return true
+	}
+	return false
 }
