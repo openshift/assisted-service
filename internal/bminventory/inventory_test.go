@@ -6551,7 +6551,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true, default cloud controller manager and platform=external - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 					platformName := "platform-name"
 
@@ -7517,7 +7517,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform name - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 					newPlatformName := "new-platform-name"
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -7541,7 +7541,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update cloud controller manager - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeExternal, gomock.Any(), mockUsage)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
 
 					newCloudControllerManager := models.PlatformExternalCloudControllerManagerExternal
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
