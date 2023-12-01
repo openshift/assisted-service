@@ -19383,3 +19383,57 @@ var _ = Describe("GetHostByKubeKey", func() {
 		Expect(err).To(HaveOccurred())
 	})
 })
+
+var _ = Describe("V2UpdateHostIgnition unbound blabla", func() {
+	var (
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		dbName string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("unbound host ignition update", func() {
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		infraEnv := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID,
+			},
+		}
+		Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+
+		hostID := strfmt.UUID(uuid.New().String())
+		host := models.Host{
+			ID:         &hostID,
+			InfraEnvID: infraEnvID,
+			Kind:       swag.String(models.HostKindHost),
+			Status:     swag.String(models.HostStatusKnownUnbound),
+			Role:       models.HostRoleAutoAssign,
+		}
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostDiscoveryIgnitionConfigAppliedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String())))
+
+		response := bm.V2UpdateHostIgnition(context.TODO(), params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostIgnitionCreated{}))
+	})
+})

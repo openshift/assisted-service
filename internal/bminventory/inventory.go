@@ -5839,60 +5839,56 @@ func (b *bareMetalInventory) V2UpdateHostIgnition(ctx context.Context, params in
 func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, params installer.V2UpdateHostIgnitionParams) (*models.Host, error) {
 	log := logutil.FromContext(ctx, b.log)
 
-	txSuccess := false
-	tx := b.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("UpdateHostIgnition failed")
-			tx.Rollback()
-		}
-		if r := recover(); r != nil {
-			log.Error("UpdateHostIgnition failed")
-			tx.Rollback()
-		}
-	}()
-
-	h, err := common.GetHostFromDB(tx, params.InfraEnvID.String(), params.HostID.String())
-	if err != nil {
-		return nil, err
-	}
-
-	if err = b.checkUpdateAccessToObj(ctx, h, "host", &params.HostID); err != nil {
-		return nil, err
-	}
-
-	if params.HostIgnitionParams.Config != "" {
-		_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
+	err := b.db.Transaction(func(tx *gorm.DB) error {
+		h, err := common.GetHostFromDB(tx, params.InfraEnvID.String(), params.HostID.String())
 		if err != nil {
-			log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
+			return err
 		}
-	} else {
-		log.Infof("Removing custom ignition override from host %s in infra-env %s", params.HostID, params.InfraEnvID)
-	}
 
-	err = tx.Model(&common.Host{}).Where("id = ? and infra_env_id = ?", params.HostID, params.InfraEnvID).Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
+		if err = b.checkUpdateAccessToObj(ctx, h, "host", &params.HostID); err != nil {
+			return err
+		}
+
+		if params.HostIgnitionParams.Config != "" {
+			_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
+			if err != nil {
+				log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+		} else {
+			log.Infof("Removing custom ignition override from host %s in infra-env %s", params.HostID, params.InfraEnvID)
+		}
+
+		err = tx.Model(&common.Host{}).Where("id = ? and infra_env_id = ?", params.HostID, params.InfraEnvID).
+			Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
+		if err != nil {
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+
+		log.Infof("Custom discovery ignition config was applied to host %s in infra-env %s", params.HostID, params.InfraEnvID)
+
+		// Set the feature usage for ignition config overrides
+		if h.ClusterID != nil {
+			if err = b.setIgnitionConfigOverrideUsage(*h.ClusterID, params.HostIgnitionParams.Config, "host", tx); err != nil {
+				// Failure to set the feature usage isn't a failure to update the host ignition so we only print the error instead of returning it
+				log.WithError(err).Warnf("failed to set ignition config override usage for cluster %s", h.ClusterID)
+			}
+		}
+		return nil
+	})
 	if err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
-	eventgen.SendHostDiscoveryIgnitionConfigAppliedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID,
-		hostutil.GetHostnameForMsg(&h.Host))
-	log.Infof("Custom discovery ignition config was applied to host %s in infra-env %s", params.HostID, params.InfraEnvID)
-	h, err = common.GetHostFromDB(tx, params.InfraEnvID.String(), params.HostID.String())
+	h, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		log.WithError(err).Errorf("failed to get host %s after update", params.HostID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	// Set the feature usage for ignition config overrides
-	if err = b.setIgnitionConfigOverrideUsage(*h.ClusterID, params.HostIgnitionParams.Config, "host", tx); err != nil {
-		// Failure to set the feature usage isn't a failure to update the host ignition so we only print the error instead of returning it
-		log.WithError(err).Warnf("failed to set ignition config override usage for cluster %s", h.ClusterID)
-	}
+	eventgen.SendHostDiscoveryIgnitionConfigAppliedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID,
+		hostutil.GetHostnameForMsg(&h.Host))
 
-	tx.Commit()
-	txSuccess = true
 	return &h.Host, nil
 }
 
