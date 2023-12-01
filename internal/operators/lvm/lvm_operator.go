@@ -74,25 +74,32 @@ func (o *operator) GetHostValidationID() string {
 
 // ValidateCluster always return "valid" result
 func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
-	if !common.IsSingleNodeCluster(cluster) {
-		message := "Logical Volume Manager is only supported for Single Node Openshift"
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
-	}
-
-	var ocpVersion, minOpenshiftVersionForLvm *version.Version
-	var err error
-
-	ocpVersion, err = version.NewVersion(cluster.OpenshiftVersion)
+	ocpVersion, err := version.NewVersion(cluster.OpenshiftVersion)
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
-	minOpenshiftVersionForLvm, err = version.NewVersion(o.config.LvmMinOpenshiftVersion)
-	if err != nil {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
-	}
-	if ocpVersion.LessThan(minOpenshiftVersionForLvm) {
-		message := fmt.Sprintf("Logical Volume Manager is only supported for openshift versions %s and above", o.config.LvmMinOpenshiftVersion)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
+
+	if common.IsSingleNodeCluster(cluster) {
+		minOpenshiftVersionForLvm, err := version.NewVersion(o.config.LvmMinOpenshiftVersion)
+		if err != nil {
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+		}
+		if ocpVersion.LessThan(minOpenshiftVersionForLvm) {
+			message := fmt.Sprintf("Logical Volume Manager is only supported for openshift versions %s and above", o.config.LvmMinOpenshiftVersion)
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
+		}
+	} else {
+		// HA support was introduced after LVM support in general, so we need to check for a different version
+		minOpenshiftVersionForMultiNodeSupport, err := version.NewVersion(o.config.LvmMinMultiNodeSupportVersion)
+		if err != nil {
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+		}
+		if ocpVersion.LessThan(minOpenshiftVersionForMultiNodeSupport) && !common.IsSingleNodeCluster(cluster) {
+			message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above",
+				minOpenshiftVersionForMultiNodeSupport.String())
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
+		}
+
 	}
 
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetClusterValidationID()}, nil
