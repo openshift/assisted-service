@@ -1,0 +1,8 @@
+[Service]
+Type=oneshot
+ExecStartPre=-/usr/sbin/modprobe iscsi_ibft
+ExecStartPre=-/usr/sbin/iscsistart -f
+ExecStart=-/usr/sbin/iscsistart -b
+
+[Install]
+WantedBy=multi-user.target

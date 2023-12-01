@@ -1415,13 +1415,14 @@ var _ = Describe("IgnitionBuilder", func() {
 		Expect(text).Should(ContainSubstring("/tmp/example"))
 	})
 
-	It("no multipath for okd - config setting", func() {
+	It("no multipath and iscsistart for okd - config setting", func() {
 		ignitionConfig.OKDRPMsImage = "image"
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
 
 		Expect(err).Should(BeNil())
 		Expect(text).ShouldNot(ContainSubstring("multipathd"))
+		Expect(text).ShouldNot(ContainSubstring("iscsistart"))
 	})
 
 	It("okd support disabled", func() {
@@ -1433,7 +1434,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		Expect(text).ShouldNot(ContainSubstring("okd-overlay.servicemultipathd"))
 	})
 
-	It("no multipath for okd - okd payload", func() {
+	It("no multipath and iscsistart for okd - okd payload", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		okdNewImageVersion := "4.12.0-0.okd-2022-11-20-010424"
 		okdNewImageURL := "registry.ci.openshift.org/origin/release:4.12.0-0.okd-2022-11-20-010424"
@@ -1450,6 +1451,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		Expect(err).Should(BeNil())
 		Expect(text).ShouldNot(ContainSubstring("multipathd"))
+		Expect(text).ShouldNot(ContainSubstring("iscsistart"))
 	})
 
 	It("multipath configured for non-okd", func() {
@@ -1460,6 +1462,16 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring("multipathd"))
+	})
+
+	It("iscsistart configured for non-okd", func() {
+		config := ignitionConfig
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO, "")
+
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring("iscsistart"))
 	})
 
 	Context("static network config", func() {
