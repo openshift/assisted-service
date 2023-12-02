@@ -207,14 +207,12 @@ spec:
 $(mirror_config)
 EOCR
 
-  if [ "${DISCONNECTED}" = "true" ]; then
-    echo "Adding osImages to AgentServiceConfig because we're in disconnected mode"
-    wait_for_object_amount agentserviceconfigs/agent 1 10 ${ASSISTED_NAMESPACE}
+  echo "Adding osImages to AgentServiceConfig (to support a filtered list in assisted-image-service)"
+  wait_for_object_amount agentserviceconfigs/agent 1 10 ${ASSISTED_NAMESPACE}
 
-    # We need to patch agentserviceconfig to add the OS_IMAGES, but we need to rename the keys to be camelCase
-    OS_IMAGES_CAMELCASE=$(echo "${OS_IMAGES}" | sed 's/openshift_version/openshiftVersion/g; s/cpu_architecture/cpuArchitecture/g' | jq -c .)
-    oc patch -n ${ASSISTED_NAMESPACE} agentserviceconfig agent --type merge -p '{"spec":{"osImages":'"${OS_IMAGES_CAMELCASE}"'}}'
-  fi
+  # We need to patch agentserviceconfig to add the OS_IMAGES, but we need to rename the keys to be camelCase
+  OS_IMAGES_CAMELCASE=$(echo "${OS_IMAGES}" | sed 's/openshift_version/openshiftVersion/g; s/cpu_architecture/cpuArchitecture/g' | jq -c .)
+  oc patch -n ${ASSISTED_NAMESPACE} agentserviceconfig agent --type merge -p '{"spec":{"osImages":'"${OS_IMAGES_CAMELCASE}"'}}'
 
   wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
   wait_for_condition "agentserviceconfigs/agent" "ReconcileCompleted" "5m"
