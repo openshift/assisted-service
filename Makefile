@@ -141,6 +141,7 @@ REPORTS ?= $(ROOT_DIR)/reports
 GO_TEST_FORMAT = pkgname
 DEFAULT_RELEASE_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_release_images.json))
 DEFAULT_OS_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_os_images.json))
+DEFAULT_OCP_MCE_VERSION_MAP = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_ocp_mce_version_map.json))
 
 # Support all Release/OS images for CI
 ifeq ($(CI), true)
@@ -149,6 +150,7 @@ endif
 
 RELEASE_IMAGES := $(or ${RELEASE_IMAGES},${DEFAULT_RELEASE_IMAGES})
 OS_IMAGES := $(or ${OS_IMAGES},${DEFAULT_OS_IMAGES})
+OCP_MCE_VERSION_MAP := $(or ${OCP_MCE_VERSION_MAP},${DEFAULT_OCP_MCE_VERSION_MAP})
 
 # Support given Release/OS images.
 ifdef OPENSHIFT_VERSION
@@ -323,7 +325,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--disk-encryption-support $(DISK_ENCRYPTION_SUPPORT) --hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' \
 		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)" --disabled-steps "$(DISABLED_STEPS)" \
 		--enable-org-tenancy $(ENABLE_ORG_TENANCY) --enable-org-based-feature-gate $(ENABLE_ORG_BASED_FEATURE_GATES) \
-		$(ALLOW_CONVERGED_FLOW_CMD) $(DISABLE_TLS_CMD)
+		--ocp-mce-version-map '$(subst ",\",$(OCP_MCE_VERSION_MAP))' $(ALLOW_CONVERGED_FLOW_CMD) $(DISABLE_TLS_CMD)
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
 		--namespace "$(NAMESPACE)"  --apply-manifest $(APPLY_MANIFEST) --ca-file-path $(MIRROR_REG_CA_FILE) --registries-file-path $(REGISTRIES_FILE_PATH)

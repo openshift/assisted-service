@@ -29,20 +29,25 @@ var Operator = models.MonitoredOperator{
 }
 
 // NewMceOperator creates new MCE operator.
-func NewMceOperator(log logrus.FieldLogger) *operator {
-	cfg := Config{}
-	err := envconfig.Process(common.EnvConfigPrefix, &cfg)
+func NewMceOperator(log logrus.FieldLogger, config EnvironmentalConfig) *operator {
+	err := envconfig.Process(common.EnvConfigPrefix, &config)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	return newMceOperatorWithConfig(log, &cfg)
+
+	parsedConfig, err := parseMCEConfig(config)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	return newMceOperatorWithConfig(log, parsedConfig)
 }
 
 // newMceOperatorWithConfig creates new MCE operator with the given configuration.
-func newMceOperatorWithConfig(log logrus.FieldLogger, config *Config) *operator {
+func newMceOperatorWithConfig(log logrus.FieldLogger, parsedConfig *Config) *operator {
 	return &operator{
 		log:    log,
-		config: config,
+		config: parsedConfig,
 	}
 }
 
@@ -79,12 +84,16 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
-	minOpenshiftVersionForMce, err = version.NewVersion(o.config.MceMinOpenshiftVersion)
+	mceMinOpenshiftVersion, err := getMinMceOpenshiftVersion(o.config.OcpMceVersionMap)
+	if err != nil {
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+	}
+	minOpenshiftVersionForMce, err = version.NewVersion(*mceMinOpenshiftVersion)
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
 	if ocpVersion.LessThan(minOpenshiftVersionForMce) {
-		message := fmt.Sprintf("multicluster engine is only supported for openshift versions %s and above", o.config.MceMinOpenshiftVersion)
+		message := fmt.Sprintf("multicluster engine is only supported for openshift versions %s and above", *mceMinOpenshiftVersion)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 
@@ -131,8 +140,8 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 }
 
 // GenerateManifests generates manifests for the operator.
-func (o *operator) GenerateManifests(_ *common.Cluster) (map[string][]byte, []byte, error) {
-	return Manifests()
+func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
+	return Manifests(cluster.OpenshiftVersion, o.config)
 }
 
 // GetProperties provides description of operator properties.

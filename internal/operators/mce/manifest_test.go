@@ -9,7 +9,33 @@ import (
 )
 
 var _ = Describe("MCE manifest generation", func() {
-	operator := NewMceOperator(common.GetTestLog())
+
+	config := Config{
+		OcpMceVersionMap: []OcpMceVersionMap{
+			{
+				OpenshiftVersion: "4.11",
+				MceChannel:       "stable-2.3",
+			},
+			{
+				OpenshiftVersion: "4.12",
+				MceChannel:       "stable-2.4",
+			},
+			{
+				OpenshiftVersion: "4.13",
+				MceChannel:       "stable-2.4",
+			},
+			{
+				OpenshiftVersion: "4.14",
+				MceChannel:       "stable-2.4",
+			},
+			{
+				OpenshiftVersion: "4.15",
+				MceChannel:       "stable-2.4",
+			},
+		},
+	}
+
+	operator := NewMceOperator(common.GetTestLog(), EnvironmentalConfig{})
 	var cluster *common.Cluster
 
 	getCluster := func(openshiftVersion string) *common.Cluster {
@@ -20,8 +46,46 @@ var _ = Describe("MCE manifest generation", func() {
 	}
 
 	Context("MCE Manifest", func() {
+		It("Get MCE channel", func() {
+			var (
+				version *string
+				err     error
+			)
+
+			version, err = getMCEVersion("4.15", config.OcpMceVersionMap)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*version).To(Equal("stable-2.4"))
+
+			version, err = getMCEVersion("4.14", config.OcpMceVersionMap)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*version).To(Equal("stable-2.4"))
+
+			version, err = getMCEVersion("4.13", config.OcpMceVersionMap)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*version).To(Equal("stable-2.4"))
+
+			version, err = getMCEVersion("4.12", config.OcpMceVersionMap)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*version).To(Equal("stable-2.4"))
+
+			version, err = getMCEVersion("4.11", config.OcpMceVersionMap)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*version).To(Equal("stable-2.3"))
+
+			_, err = getMCEVersion("4.10", config.OcpMceVersionMap)
+			Expect(err).To(HaveOccurred())
+
+			version, err = getMCEVersion("4.12.0-0.nightly-2022-10-25-210451", config.OcpMceVersionMap)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*version).To(Equal("stable-2.4"))
+
+			version, err = getMCEVersion("4.11.0-ec.3", config.OcpMceVersionMap)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*version).To(Equal("stable-2.3"))
+		})
+
 		It("Check YAMLs of MCE", func() {
-			cluster = getCluster("4.10.17")
+			cluster = getCluster("4.11.0")
 			openshiftManifests, manifest, err := operator.GenerateManifests(cluster)
 
 			Expect(err).ShouldNot(HaveOccurred())
