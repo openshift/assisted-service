@@ -266,6 +266,9 @@ func (f *skipMcoReboot) GetName() string {
 }
 
 func (f *skipMcoReboot) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(f, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
 	enableSkipMcoReboot, err := common.BaseVersionGreaterOrEqual("4.15.0", filters.OpenshiftVersion)
 	if !enableSkipMcoReboot || err != nil {
 		return models.SupportLevelUnavailable
@@ -278,7 +281,9 @@ func (f *skipMcoReboot) getIncompatibleFeatures(openshiftVersion string) *[]mode
 }
 
 func (f *skipMcoReboot) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
-	return nil
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+	}
 }
 
 func (f *skipMcoReboot) getFeatureActiveLevel(cluster *common.Cluster, infraEnv *models.InfraEnv,
