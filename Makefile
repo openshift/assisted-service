@@ -6,6 +6,8 @@ BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR := $(or ${ROOT_DIR},$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 CONTAINER_COMMAND := $(shell hack/utils.sh get_container_runtime_command)
 
+GO_BUILD_TAGS = $(or ${BUILD_TAGS}, "strictfipsruntime")
+
 # Selecting the right podman-remote version since podman-remote4 cannot work against podman-server3 and vice versa.
 # It must be occurred before any other container related task.
 # Makefile syntax force us to assign the shell result to a variable - please ignore it.
@@ -218,10 +220,10 @@ build-in-docker:
 
 build-assisted-service:
 	# We need the CGO_ENABLED for the go-sqlite library build.
-	cd ./cmd && CGO_ENABLED=1 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service
+	cd ./cmd && CGO_ENABLED=1 go build -tags $(GO_BUILD_TAGS) $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service
 
 build-assisted-service-operator:
-	cd ./cmd/operator && CGO_ENABLED=1 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service-operator
+	cd ./cmd/operator && CGO_ENABLED=1 go build -tags $(GO_BUILD_TAGS) $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service-operator
 
 build-minimal: $(BUILD_FOLDER)
 	$(MAKE) -j build-assisted-service build-assisted-service-operator
