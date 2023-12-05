@@ -750,6 +750,20 @@ func (mr *MockInstallerAPIMockRecorder) V2UpdateCluster(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateCluster", reflect.TypeOf((*MockInstallerAPI)(nil).V2UpdateCluster), arg0, arg1)
 }
 
+// V2UpdateClusterFinalizingProgress mocks base method.
+func (m *MockInstallerAPI) V2UpdateClusterFinalizingProgress(arg0 context.Context, arg1 installer.V2UpdateClusterFinalizingProgressParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2UpdateClusterFinalizingProgress", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2UpdateClusterFinalizingProgress indicates an expected call of V2UpdateClusterFinalizingProgress.
+func (mr *MockInstallerAPIMockRecorder) V2UpdateClusterFinalizingProgress(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateClusterFinalizingProgress", reflect.TypeOf((*MockInstallerAPI)(nil).V2UpdateClusterFinalizingProgress), arg0, arg1)
+}
+
 // V2UpdateClusterInstallConfig mocks base method.
 func (m *MockInstallerAPI) V2UpdateClusterInstallConfig(arg0 context.Context, arg1 installer.V2UpdateClusterInstallConfigParams) middleware.Responder {
 	m.ctrl.T.Helper()

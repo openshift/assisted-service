@@ -2640,6 +2640,80 @@ func init() {
         }
       }
     },
+    "/v2/clusters/{cluster_id}/progress": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Update installation finalizing progress.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateClusterFinalizingProgress",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster being updated.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "New progress value.",
+            "name": "finalizing-progress",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/cluster-finalizing-progress"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update install progress."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/clusters/{cluster_id}/supported-platforms": {
       "get": {
         "security": [
@@ -6618,6 +6692,14 @@ func init() {
         }
       }
     },
+    "cluster-finalizing-progress": {
+      "type": "object",
+      "properties": {
+        "finalizing_stage": {
+          "$ref": "#/definitions/finalizing-stage"
+        }
+      }
+    },
     "cluster-host-requirements": {
       "type": "object",
       "properties": {
@@ -6695,11 +6777,29 @@ func init() {
     "cluster-progress-info": {
       "type": "object",
       "properties": {
+        "finalizing_stage": {
+          "$ref": "#/definitions/finalizing-stage"
+        },
         "finalizing_stage_percentage": {
           "type": "integer"
         },
+        "finalizing_stage_started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
         "installing_stage_percentage": {
           "type": "integer"
+        },
+        "node_updater_finished_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "node_updater_started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "preparing_for_installation_stage_percentage": {
           "type": "integer"
@@ -7558,6 +7658,19 @@ func init() {
         "PLATFORM_MANAGED_NETWORKING",
         "SKIP_MCO_REBOOT",
         "EXTERNAL_PLATFORM"
+      ]
+    },
+    "finalizing-stage": {
+      "description": "Cluster finalizing stage managed by controller",
+      "type": "string",
+      "enum": [
+        "Waiting for finalizing",
+        "Waiting for cluster operators",
+        "Adding router ca",
+        "Waiting for olm operators",
+        "Applying manifests",
+        "Waiting for olm operators csv",
+        "Done"
       ]
     },
     "free-addresses-list": {
@@ -13006,6 +13119,80 @@ func init() {
         }
       }
     },
+    "/v2/clusters/{cluster_id}/progress": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Update installation finalizing progress.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2UpdateClusterFinalizingProgress",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster being updated.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "New progress value.",
+            "name": "finalizing-progress",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/cluster-finalizing-progress"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update install progress."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/clusters/{cluster_id}/supported-platforms": {
       "get": {
         "security": [
@@ -17100,6 +17287,14 @@ func init() {
         }
       }
     },
+    "cluster-finalizing-progress": {
+      "type": "object",
+      "properties": {
+        "finalizing_stage": {
+          "$ref": "#/definitions/finalizing-stage"
+        }
+      }
+    },
     "cluster-host-requirements": {
       "type": "object",
       "properties": {
@@ -17177,11 +17372,29 @@ func init() {
     "cluster-progress-info": {
       "type": "object",
       "properties": {
+        "finalizing_stage": {
+          "$ref": "#/definitions/finalizing-stage"
+        },
         "finalizing_stage_percentage": {
           "type": "integer"
         },
+        "finalizing_stage_started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
         "installing_stage_percentage": {
           "type": "integer"
+        },
+        "node_updater_finished_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "node_updater_started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "preparing_for_installation_stage_percentage": {
           "type": "integer"
@@ -18014,6 +18227,19 @@ func init() {
         "PLATFORM_MANAGED_NETWORKING",
         "SKIP_MCO_REBOOT",
         "EXTERNAL_PLATFORM"
+      ]
+    },
+    "finalizing-stage": {
+      "description": "Cluster finalizing stage managed by controller",
+      "type": "string",
+      "enum": [
+        "Waiting for finalizing",
+        "Waiting for cluster operators",
+        "Adding router ca",
+        "Waiting for olm operators",
+        "Applying manifests",
+        "Waiting for olm operators csv",
+        "Done"
       ]
     },
     "free-addresses-list": {

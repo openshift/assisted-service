@@ -327,3 +327,7 @@ func (f fakeInventory) V2GetClusterUISettings(ctx context.Context, params instal
 func (f fakeInventory) V2UpdateClusterUISettings(ctx context.Context, params installer.V2UpdateClusterUISettingsParams) middleware.Responder {
 	return installer.NewV2UpdateClusterUISettingsOK()
 }
+
+func (f fakeInventory) V2UpdateClusterFinalizingProgress(ctx context.Context, params installer.V2UpdateClusterFinalizingProgressParams) middleware.Responder {
+	return installer.NewV2UpdateClusterFinalizingProgressOK()
+}
