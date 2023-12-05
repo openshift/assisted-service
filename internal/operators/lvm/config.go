@@ -19,9 +19,10 @@ const (
 )
 
 type Config struct {
-	LvmCPUPerHost          int64  `envconfig:"LVM_CPU_PER_HOST" default:"1"`
-	LvmMemoryPerHostMiB    int64  `envconfig:"LVM_MEMORY_PER_HOST_MIB" default:"400"`
-	LvmMinOpenshiftVersion string `envconfig:"LVM_MIN_OPENSHIFT_VERSION" default:"4.11.0"`
+	LvmCPUPerHost                 int64  `envconfig:"LVM_CPU_PER_HOST" default:"1"`
+	LvmMemoryPerHostMiB           int64  `envconfig:"LVM_MEMORY_PER_HOST_MIB" default:"400"`
+	LvmMinOpenshiftVersion        string `envconfig:"LVM_MIN_OPENSHIFT_VERSION" default:"4.11.0"`
+	LvmMinMultiNodeSupportVersion string `envconfig:"LVM_MIN_MULTI_NODE_SUPPORT_VERSION" default:"4.15.0"`
 }
 
 // count all disks of drive type ssd or hdd
