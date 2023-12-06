@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveextv1beta2 "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	"github.com/openshift/assisted-service/internal/common"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -61,7 +61,7 @@ func (r *AgentClusterInstallReconciler) Reconcile(origCtx context.Context, req c
 	log.Info("AgentClusterInstall Reconcile started")
 
 	// Retrieve AgentClusterInstall
-	clusterInstall := &hiveext.AgentClusterInstall{}
+	clusterInstall := &hiveextv1beta2.AgentClusterInstall{}
 	if err := r.Get(ctx, req.NamespacedName, clusterInstall); err != nil {
 		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -103,8 +103,8 @@ func (r *AgentClusterInstallReconciler) Reconcile(origCtx context.Context, req c
 
 func (r *AgentClusterInstallReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&hiveext.AgentClusterInstall{}).
-		Watches(&hiveext.AgentClusterInstall{},
+		For(&hiveextv1beta2.AgentClusterInstall{}).
+		Watches(&hiveextv1beta2.AgentClusterInstall{},
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)

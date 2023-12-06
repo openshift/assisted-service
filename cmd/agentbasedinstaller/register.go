@@ -8,7 +8,8 @@ import (
 	"os"
 	"reflect"
 
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveextv1beta1 "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveextv1beta2 "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
@@ -48,30 +49,30 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 		return nil, cdErr
 	}
 
-	var aci hiveext.AgentClusterInstall
-	if aciErr := getFileData(agentClusterInstallPath, &aci); aciErr != nil {
+	var aciv1beta1 hiveextv1beta1.AgentClusterInstall
+	if aciErr := getFileData(agentClusterInstallPath, &aciv1beta1); aciErr != nil {
 		return nil, aciErr
 	}
 
 	desiredApiVips, err := validations.HandleApiVipBackwardsCompatibility(
 		nil,
-		aci.Spec.APIVIP,
-		controllers.ApiVipsEntriesToArray(aci.Spec.APIVIPs))
+		aciv1beta1.Spec.APIVIP,
+		controllers.ApiVipsEntriesToArray(aciv1beta1.Spec.APIVIPs))
 	if err != nil {
 		return nil, err
 	}
-	aci.Spec.APIVIPs = controllers.ApiVipsArrayToStrings(desiredApiVips)
-	aci.Spec.APIVIP = ""
+	aciv1beta1.Spec.APIVIPs = controllers.ApiVipsArrayToStrings(desiredApiVips)
+	aciv1beta1.Spec.APIVIP = ""
 
 	desiredIngressVips, err := validations.HandleIngressVipBackwardsCompatibility(
 		nil,
-		aci.Spec.IngressVIP,
-		controllers.IngressVipsEntriesToArray(aci.Spec.IngressVIPs))
+		aciv1beta1.Spec.IngressVIP,
+		controllers.IngressVipsEntriesToArray(aciv1beta1.Spec.IngressVIPs))
 	if err != nil {
 		return nil, err
 	}
-	aci.Spec.IngressVIPs = controllers.IngressVipsArrayToStrings(desiredIngressVips)
-	aci.Spec.IngressVIP = ""
+	aciv1beta1.Spec.IngressVIPs = controllers.IngressVipsArrayToStrings(desiredIngressVips)
+	aciv1beta1.Spec.IngressVIP = ""
 
 	releaseImage, releaseError := getReleaseVersion(clusterImageSetPath)
 	if releaseError != nil {
@@ -84,10 +85,10 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	log.Info("releaseImage: " + releaseImage)
 	log.Infof("releaseImage version %s cpuarch %s", releaseImageVersion, releaseImageCPUArch)
 
-	clusterParams := controllers.CreateClusterParams(&cd, &aci, pullSecret, releaseImageVersion, releaseImageCPUArch, nil)
+	clusterParams := controllers.CreateClusterParams(&cd, aciV1toV2(aciv1beta1), pullSecret, releaseImageVersion, releaseImageCPUArch, nil)
 
-	if aci.Spec.Networking.NetworkType != "" {
-		clusterParams.NetworkType = &aci.Spec.Networking.NetworkType
+	if aciv1beta1.Spec.Networking.NetworkType != "" {
+		clusterParams.NetworkType = &aciv1beta1.Spec.Networking.NetworkType
 	}
 
 	clientClusterParams := &installer.V2RegisterClusterParams{
@@ -101,7 +102,7 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 
 	log.Infof("Registered cluster with id: %s", clusterResult.Payload.ID)
 
-	annotations := aci.GetAnnotations()
+	annotations := aciv1beta1.GetAnnotations()
 	if installConfigOverrides, ok := annotations[controllers.InstallConfigOverrides]; ok {
 		updateInstallConfigParams := &installer.V2UpdateClusterInstallConfigParams{
 			ClusterID:           *clusterResult.Payload.ID,
@@ -322,4 +323,28 @@ func processNMStateConfig(log log.FieldLogger, infraEnv aiv1beta1.InfraEnv, nmSt
 		NetworkYaml:     string(nmStateConfig.Spec.NetConfig.Raw),
 	})
 	return staticNetworkConfig, nil
+}
+
+func aciV1toV2(aciv1 hiveextv1beta1.AgentClusterInstall) *hiveextv1beta2.AgentClusterInstall {
+	aciv2 := hiveextv1beta2.AgentClusterInstall{}
+	aciv2.Kind = aciv1.Kind
+	aciv2.Name = aciv1.Name
+	aciv2.Namespace = aciv1.Namespace
+	aciv2.Annotations = aciv1.Annotations
+	//aciv2.Status = aciv1.Status
+	//aciv2.
+	//aciv2.Spec.APIVIPs = aciv1.Spec.APIVIPs
+	aciv2.Spec.IngressVIPs = aciv1.Spec.IngressVIPs
+	aciv2.Spec.PlatformType = hiveextv1beta2.PlatformType(aciv1.Spec.PlatformType)
+	aciv2.Spec.Networking.NetworkType = aciv1.Spec.Networking.NetworkType
+	//aciv2.Spec.Networking.NetworkType
+
+	//aciv2.Spec.Networking.ClusterNetwork = aciv1.Spec.Networking.ClusterNetwork
+
+	//aciv2.Spec.Networking.MachineNetwork = aciv1.Spec.Networking.MachineNetwork
+
+	aciv2.Spec.Networking.NetworkType = aciv1.Spec.Networking.NetworkType
+
+	return &aciv2
+
 }

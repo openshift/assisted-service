@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveextv1beta2 "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
@@ -945,7 +945,7 @@ var _ = Describe("bmac reconcile", func() {
 		var agent *v1beta1.Agent
 		var infraEnv *v1beta1.InfraEnv
 		var cluster *hivev1.ClusterDeployment
-		var clusterInstall *hiveext.AgentClusterInstall
+		var clusterInstall *hiveextv1beta2.AgentClusterInstall
 		var adminKubeconfigSecret *corev1.Secret
 		var secretName string
 		var bmhName string
@@ -1004,7 +1004,7 @@ var _ = Describe("bmac reconcile", func() {
 			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			cluster.Spec.Installed = true
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
-			clusterInstall = newAgentClusterInstall(cluster.Spec.ClusterInstallRef.Name, testNamespace, hiveext.AgentClusterInstallSpec{}, cluster)
+			clusterInstall = newAgentClusterInstall(cluster.Spec.ClusterInstallRef.Name, testNamespace, hiveextv1beta2.AgentClusterInstallSpec{}, cluster)
 			Expect(c.Create(ctx, clusterInstall)).ShouldNot(HaveOccurred())
 			secretName = fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)
 			adminKubeconfigSecret = &corev1.Secret{

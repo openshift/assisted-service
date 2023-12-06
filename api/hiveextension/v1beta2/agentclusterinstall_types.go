@@ -247,18 +247,10 @@ type AgentClusterInstallStatus struct {
 	// +optional
 	DebugInfo DebugInfo `json:"debugInfo"`
 
-	// APIVIP is the virtual IP used to reach the OpenShift cluster's API.
-	// +optional
-	APIVIP string `json:"apiVIP,omitempty"`
-
 	// APIVIPs are the virtual IPs used to reach the OpenShift cluster's API.
 	// +kubebuilder:validation:MaxItems=2
 	// +optional
 	APIVIPs []string `json:"apiVIPs,omitempty"`
-
-	// IngressVIP is the virtual IP used for cluster ingress traffic.
-	// +optional
-	IngressVIP string `json:"ingressVIP,omitempty"`
 
 	// IngressVIPs are the virtual IPs used for cluster ingress traffic.
 	// +kubebuilder:validation:MaxItems=2
