@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	yamlpatch "github.com/krishicks/yaml-patch"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
@@ -100,8 +101,10 @@ const NMDebugModeConf = `
 domains=ALL:DEBUG
 `
 
-const ValidationTypeHost = "host"
-const ValidationTypeCluster = "cluster"
+const (
+	ValidationTypeHost    = "host"
+	ValidationTypeCluster = "cluster"
+)
 
 func GetIgnoredValidations(validationsJSON string, clusterID string) ([]string, bool) {
 	ignoredValidations := []string{}
@@ -430,6 +433,21 @@ func GetInventoryInterfaces(inventory string) (string, error) {
 
 	endLocation := endIndex + len("}]")
 	return inventory[interfacesLocation : interfacesLocation+endLocation], nil
+}
+
+// blocking host removal while cluster is progressing
+func CanUnbindhost(c *Cluster) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+	NotAllowedStatuses := []string{
+		models.ClusterStatusFinalizing,
+		models.ClusterStatusInstalled,
+		models.ClusterStatusInstallingPendingUserAction,
+	}
+	if funk.Contains(NotAllowedStatuses, clusterStatus) {
+		err = fmt.Errorf("cluster %s is in %s state, %s cannot be unbind when status is one of: %s",
+			c.ID, clusterStatus, constants.Kubeconfig, NotAllowedStatuses)
+	}
+	return err
 }
 
 // GetTagFromImageRef returns the tag of the given container image reference. For example, if the
