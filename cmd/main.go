@@ -165,6 +165,9 @@ var Options struct {
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
 	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
+
+	// EnableSoftTimeouts is a boolean flag to enable Soft timeouts by assisted installer
+	EnableSoftTimeouts bool `envconfig:"ENABLE_SOFT_TIMEOUTS" default:"false"`
 }
 
 func InitLogs(logLevel, logFormat string) *logrus.Logger {
