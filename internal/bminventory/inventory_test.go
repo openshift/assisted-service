@@ -7842,6 +7842,47 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
+				Context("Update to OCI integration", func() {
+					It("Update PlatformName=oci and CloudControllerManager=External - success", func() {
+						mockSuccess()
+						mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeExternal), gomock.Any(), mockUsage)
+
+						ociPlatformName := "oci"
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Platform: &models.Platform{
+									External: &models.PlatformExternal{
+										PlatformName:           &ociPlatformName,
+										CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+									},
+								},
+							},
+						})
+						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+						actual := reply.(*installer.V2UpdateClusterCreated).Payload
+						Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
+						Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
+						Expect(*actual.Platform.External.PlatformName).Should(Equal(ociPlatformName))
+						Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(models.PlatformExternalCloudControllerManagerExternal))
+						Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
+					})
+
+					It("Update PlatformName=oci results BadRequestError - failure", func() {
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Platform: &models.Platform{
+									External: &models.PlatformExternal{
+										PlatformName: swag.String("oci"),
+									},
+								},
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, "Cloud controller manager must be enabled when using oci external integration")
+					})
+				})
+
 				Context("Single node cluster", func() {
 					BeforeEach(func() {
 						clusterID = strfmt.UUID(uuid.New().String())
@@ -18320,6 +18361,31 @@ var _ = Describe("Platform tests", func() {
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
 		})
 
+		It("external platform - platformName=oci cloudControllerManager=External - HA", func() {
+			MinimalOpenShiftVersionForExternal := "4.14.0"
+			platformName := "oci"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerExternal
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, MinimalOpenShiftVersionForExternal)
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           &platformName,
+					CloudControllerManager: &cloudControllerManager,
+				},
+			}
+
+			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForExternal)
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
+			Expect(cluster.Platform).ShouldNot(BeNil())
+			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
+			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
+			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
+			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
+			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
+		})
+
 		It("external platform - SNO", func() {
 			MinimalOpenShiftVersionForExternal := "4.14.0"
 			platformName := "platform-name"
@@ -18346,6 +18412,119 @@ var _ = Describe("Platform tests", func() {
 			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
 		})
+
+		It("external platform - RHSSO - PlatformExternalCapability is set", func() {
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.14")
+			platformName := "platform-name"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerExternal
+
+			cfg := auth.GetConfigRHSSO()
+			cfg.EnableOrgBasedFeatureGates = true
+			mockOcmAuthz := ocm.NewMockOCMAuthorization(ctrl)
+			mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			payload := &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = "user1"
+			payload.Organization = "org1"
+			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformExternalCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
+
+			registerParams.NewClusterParams.OpenshiftVersion = swag.String("4.14")
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           &platformName,
+					CloudControllerManager: &cloudControllerManager,
+				},
+			}
+			reply := bm.V2RegisterCluster(authCtx, *registerParams)
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
+			Expect(cluster.Platform).ShouldNot(BeNil())
+			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
+			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
+			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
+			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
+			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
+		})
+
+		It("external platform - PlatformName=oci - RHSSO - PlatformExternalCapability is set", func() {
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.14")
+			platformName := "oci"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerExternal
+
+			cfg := auth.GetConfigRHSSO()
+			cfg.EnableOrgBasedFeatureGates = true
+			mockOcmAuthz := ocm.NewMockOCMAuthorization(ctrl)
+			mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			payload := &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = "user1"
+			payload.Organization = "org1"
+			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformExternalCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
+
+			registerParams.NewClusterParams.OpenshiftVersion = swag.String("4.14")
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           &platformName,
+					CloudControllerManager: &cloudControllerManager,
+				},
+			}
+			reply := bm.V2RegisterCluster(authCtx, *registerParams)
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
+			Expect(cluster.Platform).ShouldNot(BeNil())
+			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
+			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
+			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
+			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
+			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
+		})
+
+		It("external platform - PlatformName=oci - RHSSO - PlatformOciCapability is set", func() {
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.14")
+			platformName := "oci"
+			cloudControllerManager := models.PlatformExternalCloudControllerManagerExternal
+
+			cfg := auth.GetConfigRHSSO()
+			cfg.EnableOrgBasedFeatureGates = true
+			mockOcmAuthz := ocm.NewMockOCMAuthorization(ctrl)
+			mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			payload := &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = "user1"
+			payload.Organization = "org1"
+			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
+
+			registerParams.NewClusterParams.OpenshiftVersion = swag.String("4.14")
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           &platformName,
+					CloudControllerManager: &cloudControllerManager,
+				},
+			}
+			reply := bm.V2RegisterCluster(authCtx, *registerParams)
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
+			Expect(cluster.Platform).ShouldNot(BeNil())
+			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
+			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
+			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
+			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
+			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
+		})
+
 	})
 
 	Context("Failed to register cluster", func() {
@@ -18441,6 +18620,33 @@ var _ = Describe("Platform tests", func() {
 
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			verifyApiErrorString(reply, http.StatusBadRequest, "Platform name must be set to a non-empty string when using platform type external")
+		})
+
+		It("external platform - platformName=oci fail if cloudControllerManager is left unset", func() {
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName: swag.String("oci"),
+				},
+			}
+			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(true)
+
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			verifyApiErrorString(reply, http.StatusBadRequest, "Cloud controller manager must be enabled when using oci external integration")
+		})
+
+		It("external platform - platformName=oci fail if cloudControllerManager is disabled", func() {
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           swag.String("oci"),
+					CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerEmpty),
+				},
+			}
+			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(true)
+
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			verifyApiErrorString(reply, http.StatusBadRequest, "Cloud controller manager must be enabled when using oci external integration")
 		})
 
 		It("baremetal platform - fail if external settings are set", func() {

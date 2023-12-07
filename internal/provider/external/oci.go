@@ -14,7 +14,6 @@ import (
 
 const (
 	OCIManufacturer string = "OracleCloud.com"
-	OCIPlaformName  string = "oci"
 )
 
 type ociExternalProvider struct {
@@ -55,7 +54,7 @@ func (p *ociExternalProvider) AreHostsSupported(hosts []*models.Host) (bool, err
 func (p *ociExternalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
 	cfg.Platform = installcfg.Platform{
 		External: &installcfg.ExternalInstallConfigPlatform{
-			PlatformName:           OCIPlaformName,
+			PlatformName:           common.ExternalPlatformNameOCI,
 			CloudControllerManager: installcfg.CloudControllerManagerTypeExternal,
 		},
 	}
@@ -81,22 +80,7 @@ func (p *ociExternalProvider) AddPlatformToInstallConfig(cfg *installcfg.Install
 }
 
 func (p *ociExternalProvider) IsProviderForPlatform(platform *models.Platform) bool {
-	if platform == nil ||
-		platform.Type == nil {
-		return false
-	}
-
-	if *platform.Type == p.Name() {
-		return true
-	}
-
-	if *platform.Type == models.PlatformTypeExternal &&
-		platform.External != nil &&
-		*platform.External.PlatformName == OCIPlaformName {
-		return true
-	}
-
-	return false
+	return common.IsOciExternalIntegrationEnabled(platform)
 }
 
 func IsOciHost(host *models.Host) (bool, error) {

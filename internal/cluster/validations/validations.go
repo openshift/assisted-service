@@ -914,22 +914,27 @@ func ValidatePlatformCapability(platform *models.Platform, ctx context.Context, 
 		return nil
 	}
 
-	var capabilityName *string
-	switch *platform.Type {
-	case models.PlatformTypeOci:
-		capabilityName = swag.String(ocm.PlatformOciCapabilityName)
-	case models.PlatformTypeExternal:
-		capabilityName = swag.String(ocm.PlatformExternalCapabilityName)
+	var checked bool
+
+	if common.IsOciExternalIntegrationEnabled(platform) {
+		available, err := authzHandler.HasOrgBasedCapability(ctx, ocm.PlatformOciCapabilityName)
+		if err == nil && available {
+			return nil
+		}
+		checked = true
 	}
 
-	if capabilityName == nil {
-		return nil
+	if *platform.Type == models.PlatformTypeExternal {
+		available, err := authzHandler.HasOrgBasedCapability(ctx, ocm.PlatformExternalCapabilityName)
+		if err == nil && available {
+			return nil
+		}
+		checked = true
 	}
 
-	available, err := authzHandler.HasOrgBasedCapability(ctx, *capabilityName)
-	if err == nil && available {
-		return nil
+	if checked {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Platform %s is not available", *platform.Type))
 	}
 
-	return common.NewApiError(http.StatusBadRequest, errors.Errorf("Platform %s is not available", *platform.Type))
+	return nil
 }
