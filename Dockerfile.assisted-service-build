@@ -10,8 +10,7 @@ ENV VIRTUAL_ENV=/opt/venv
 ENV TOOLS=/tools/
 ENV PATH="$VIRTUAL_ENV/bin:$GOROOT/bin:$GOPATH/bin:$TOOLS:$PATH"
 
-COPY --from=quay.io/app-sre/golangci-lint:v1.53.2 /usr/bin/golangci-lint /usr/bin/golangci-lint
-
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/bin v1.53.2
 # TODO: Replace with version 0.30.4 once it is released.
 #
 # We need version 5d0a00d of go-swagger because it is the first that contains
