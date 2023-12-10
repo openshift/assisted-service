@@ -40,33 +40,20 @@ func (h *Handler) V2ReportMonitoredOperatorStatus(ctx context.Context, params re
 
 	log := logutil.FromContext(ctx, h.log)
 
-	txSuccess := false
-	tx := h.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("update monitored operator failed")
-			tx.Rollback()
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		if err := h.UpdateMonitoredOperatorStatus(ctx, params.ClusterID, params.ReportParams.Name, params.ReportParams.Version, params.ReportParams.Status, params.ReportParams.StatusInfo, tx); err != nil {
+			return err
 		}
-		if r := recover(); r != nil {
-			log.Error("update monitored operator failed")
-			tx.Rollback()
-		}
-	}()
 
-	if err := h.UpdateMonitoredOperatorStatus(ctx, params.ClusterID, params.ReportParams.Name, params.ReportParams.Version, params.ReportParams.Status, params.ReportParams.StatusInfo, tx); err != nil {
+		if err := h.clusterProgressAPI.UpdateFinalizingProgress(ctx, tx, params.ClusterID); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err)
 		return common.GenerateErrorResponder(err)
 	}
-
-	if err := h.clusterProgressAPI.UpdateFinalizingProgress(ctx, tx, params.ClusterID); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		log.WithError(err).Error("DB error, failed to commit")
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	txSuccess = true
 
 	return restoperators.NewV2ReportMonitoredOperatorStatusOK()
 }
