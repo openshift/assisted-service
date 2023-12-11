@@ -211,9 +211,8 @@ func (feature *FullIso) GetName() string {
 }
 
 func (feature *FullIso) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if filters.PlatformType != nil &&
-		(*filters.PlatformType == models.PlatformTypeOci ||
-			(*filters.PlatformType == models.PlatformTypeExternal && swag.StringValue(filters.ExternalPlatformName) == common.ExternalPlatformNameOci)) {
+	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal &&
+		swag.StringValue(filters.ExternalPlatformName) == common.ExternalPlatformNameOci {
 		return models.SupportLevelUnavailable
 	}
 

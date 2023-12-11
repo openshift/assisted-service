@@ -23,8 +23,7 @@ func (feature *VipAutoAllocFeature) GetName() string {
 }
 
 func (feature *VipAutoAllocFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if filters.PlatformType != nil &&
-		(*filters.PlatformType == models.PlatformTypeOci || *filters.PlatformType == models.PlatformTypeExternal) {
+	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal {
 		return models.SupportLevelUnavailable
 	}
 
@@ -88,8 +87,7 @@ func (feature *ClusterManagedNetworkingFeature) getSupportLevel(filters SupportL
 		}
 	}
 
-	if filters.PlatformType != nil &&
-		(*filters.PlatformType == models.PlatformTypeOci || *filters.PlatformType == models.PlatformTypeExternal) {
+	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal {
 		return models.SupportLevelUnavailable
 	}
 
@@ -207,9 +205,8 @@ func (feature *DualStackVipsFeature) getSupportLevel(filters SupportLevelFilters
 		return models.SupportLevelUnavailable
 	}
 
-	if filters.PlatformType != nil &&
-		(*filters.PlatformType == models.PlatformTypeOci ||
-			(*filters.PlatformType == models.PlatformTypeExternal && swag.StringValue(filters.ExternalPlatformName) == common.ExternalPlatformNameOci)) {
+	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal &&
+		swag.StringValue(filters.ExternalPlatformName) == common.ExternalPlatformNameOci {
 		return models.SupportLevelUnavailable
 	}
 

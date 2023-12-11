@@ -52,12 +52,6 @@ func validateOciExternalIntegration(platform *models.Platform) error {
 		return nil
 	}
 
-	// IsOciExternalIntegrationEnabled check against oci platform type, we need to ignore it
-	// To be removed once PlatformTypeOci is removed
-	if *platform.Type == models.PlatformTypeOci {
-		return nil
-	}
-
 	if platform.External.CloudControllerManager == nil ||
 		*platform.External.CloudControllerManager != models.PlatformExternalCloudControllerManagerExternal {
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Cloud controller manager must be enabled when using oci external integration"))

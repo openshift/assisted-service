@@ -320,8 +320,6 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 
 func GetPlatformFeatureID(platformType models.PlatformType) models.FeatureSupportLevelID {
 	switch platformType {
-	case models.PlatformTypeOci:
-		return models.FeatureSupportLevelIDEXTERNALPLATFORMOCI
 	case models.PlatformTypeExternal:
 		return models.FeatureSupportLevelIDEXTERNALPLATFORM
 	case models.PlatformTypeVsphere:

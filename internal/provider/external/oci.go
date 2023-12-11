@@ -30,10 +30,6 @@ func NewOciExternalProvider(log logrus.FieldLogger) provider.Provider {
 	return p
 }
 
-func (p *ociExternalProvider) Name() models.PlatformType {
-	return models.PlatformTypeOci
-}
-
 func (p *ociExternalProvider) IsHostSupported(host *models.Host) (bool, error) {
 	return IsOciHost(host)
 }

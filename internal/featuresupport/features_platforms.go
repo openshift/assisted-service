@@ -296,10 +296,6 @@ func (feature *OciIntegrationFeature) getIncompatibleArchitectures(_ *string) *[
 }
 
 func (feature *OciIntegrationFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeOci) {
-		return activeLevelActive
-	}
-
 	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeExternal) && isExternalIntegrationActive(cluster, clusterUpdateParams, common.ExternalPlatformNameOci) {
 		return activeLevelActive
 	}

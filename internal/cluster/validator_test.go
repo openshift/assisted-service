@@ -573,7 +573,11 @@ var _ = Describe("Platform validations", func() {
 			ID: &clusterID,
 			Platform: &models.Platform{
 				IsExternal: swag.Bool(true),
-				Type:       common.PlatformTypePtr(models.PlatformTypeOci),
+				Type:       common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           swag.String("oci"),
+					CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+				},
 			},
 			UserManagedNetworking: swag.Bool(true),
 		}}
@@ -588,7 +592,11 @@ var _ = Describe("Platform validations", func() {
 			ID: &clusterID,
 			Platform: &models.Platform{
 				IsExternal: swag.Bool(true),
-				Type:       common.PlatformTypePtr(models.PlatformTypeOci),
+				Type:       common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           swag.String("oci"),
+					CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+				},
 			},
 			UserManagedNetworking: swag.Bool(true),
 			FeatureUsage:          "{\"Custom manifest\":{\"id\":\"CUSTOM_MANIFEST\",\"name\":\"Custom manifest\"}}",

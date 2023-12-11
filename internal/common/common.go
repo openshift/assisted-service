@@ -582,7 +582,6 @@ func GetDefaultV2GetEventsParams(clusterID *strfmt.UUID, hostIds []strfmt.UUID, 
 
 func GetExternalPlaformTypes() []models.PlatformType {
 	return []models.PlatformType{
-		models.PlatformTypeOci,
 		models.PlatformTypeExternal,
 	}
 }
@@ -604,14 +603,9 @@ func IsExternalIntegrationEnabled(platform *models.Platform, platformName string
 		return false
 	}
 
-	if *platform.Type == models.PlatformTypeOci {
-		return true
-	}
-
 	if *platform.Type == models.PlatformTypeExternal &&
 		platform.External != nil &&
-		platform.External.PlatformName != nil &&
-		*platform.External.PlatformName == platformName {
+		swag.StringValue(platform.External.PlatformName) == platformName {
 		return true
 	}
 

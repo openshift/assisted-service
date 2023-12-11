@@ -434,11 +434,11 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname3", "bootMode", true, false)))
 			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname4", "bootMode", true, false)))
 			cluster := createClusterFromHosts(hosts)
-			cluster.Platform = createOciPlatformParams()
+			cluster.Platform = createExternalOciPlatformParams()
 			err := providerRegistry.AddPlatformToInstallConfig(&cfg, &cluster)
 			Expect(err).To(BeNil())
 			Expect(cfg.Platform.External).ToNot(BeNil())
-			Expect(cfg.Platform.External.PlatformName).To(Equal(string(models.PlatformTypeOci)))
+			Expect(cfg.Platform.External.PlatformName).To(Equal(common.ExternalPlatformNameOci))
 			Expect(string(cfg.Platform.External.CloudControllerManager)).To(Equal(models.PlatformExternalCloudControllerManagerExternal))
 		})
 	})
@@ -533,7 +533,7 @@ var _ = Describe("Test SetPlatformUsages", func() {
 	Context("oci", func() {
 		It("success", func() {
 			usageApi.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-			err := providerRegistry.SetPlatformUsages(createOciPlatformParams(), nil, usageApi)
+			err := providerRegistry.SetPlatformUsages(createExternalOciPlatformParams(), nil, usageApi)
 			Expect(err).To(BeNil())
 		})
 	})
@@ -643,9 +643,13 @@ func createBaremetalPlatformParams() *models.Platform {
 	}
 }
 
-func createOciPlatformParams() *models.Platform {
+func createExternalOciPlatformParams() *models.Platform {
 	return &models.Platform{
-		Type: common.PlatformTypePtr(models.PlatformTypeOci),
+		Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+		External: &models.PlatformExternal{
+			PlatformName:           swag.String(common.ExternalPlatformNameOci),
+			CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+		},
 	}
 }
 

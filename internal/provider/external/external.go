@@ -25,10 +25,6 @@ func NewExternalProvider(log logrus.FieldLogger) provider.Provider {
 	return p
 }
 
-func (p *externalProvider) Name() models.PlatformType {
-	return models.PlatformTypeExternal
-}
-
 func (p *externalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
 	cfg.Platform = installcfg.Platform{
 		External: &installcfg.ExternalInstallConfigPlatform{

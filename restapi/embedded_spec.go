@@ -5733,7 +5733,6 @@ func init() {
               "none",
               "nutanix",
               "vsphere",
-              "oci",
               "external"
             ],
             "type": "string",
@@ -9586,7 +9585,6 @@ func init() {
         "nutanix",
         "vsphere",
         "none",
-        "oci",
         "external"
       ]
     },
@@ -16110,7 +16108,6 @@ func init() {
               "none",
               "nutanix",
               "vsphere",
-              "oci",
               "external"
             ],
             "type": "string",
@@ -20039,7 +20036,6 @@ func init() {
         "nutanix",
         "vsphere",
         "none",
-        "oci",
         "external"
       ]
     },

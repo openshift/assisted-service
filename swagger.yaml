@@ -3643,7 +3643,7 @@ paths:
           name: platform_type
           description: The provider platform type.
           type: string
-          enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'oci', 'external' ]
+          enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'external' ]
         - in: query
           name: external_platform_name
           description: External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.
@@ -6202,7 +6202,6 @@ definitions:
       - nutanix
       - vsphere
       - none
-      - oci
       - external
 
   platform_external:

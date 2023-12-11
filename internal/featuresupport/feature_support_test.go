@@ -14,7 +14,6 @@ import (
 
 func getPlatformFilters() []SupportLevelFilters {
 	return []SupportLevelFilters{
-		{PlatformType: models.PlatformTypeOci.Pointer()},
 		{PlatformType: models.PlatformTypeVsphere.Pointer()},
 		{PlatformType: models.PlatformTypeNutanix.Pointer()},
 		{PlatformType: models.PlatformTypeBaremetal.Pointer()},
@@ -398,20 +397,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Expect(err).To(Not(BeNil()))
 			cluster.UserManagedNetworking = swag.Bool(true)
 			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)
-			Expect(err).To(Not(BeNil()))
-		})
-		It("s390x with OCI - fail", func() {
-			cluster := common.Cluster{Cluster: models.Cluster{
-				OpenshiftVersion: "4.14",
-				CPUArchitecture:  models.ClusterCPUArchitectureS390x,
-				Platform: &models.Platform{
-					Type: common.PlatformTypePtr(models.PlatformTypeOci),
-				},
-				UserManagedNetworking: swag.Bool(true),
-			}}
-			infraEnv := models.InfraEnv{CPUArchitecture: models.ClusterCPUArchitectureS390x, Type: common.ImageTypePtr(models.ImageTypeFullIso)}
-
-			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)
 			Expect(err).To(Not(BeNil()))
 		})
 		It("s390x with External and platformName=oci - fail", func() {
