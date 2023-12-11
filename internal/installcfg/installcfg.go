@@ -178,6 +178,14 @@ type ImageContentSource struct {
 	Source  string   `json:"source"`
 }
 
+type ImageDigestSource struct {
+	// Source is the repository that users refer to, e.g. in image pull specifications.
+	Source string `json:"source"`
+
+	// Mirrors is one or more repositories that may also contain the same images.
+	Mirrors []string `json:"mirrors,omitempty"`
+}
+
 type ClusterNetwork struct {
 	Cidr       string `json:"cidr"`
 	HostPrefix int    `json:"hostPrefix"`
@@ -226,16 +234,18 @@ type InstallerConfigBaremetal struct {
 		Name           string `json:"name"`
 		Replicas       int    `json:"replicas"`
 	} `json:"controlPlane"`
-	Platform              Platform             `json:"platform"`
-	BootstrapInPlace      *BootstrapInPlace    `json:"bootstrapInPlace,omitempty"`
-	FIPS                  bool                 `json:"fips"`
-	CPUPartitioningMode   CPUPartitioningMode  `json:"cpuPartitioningMode,omitempty"`
-	PullSecret            string               `json:"pullSecret"`
-	SSHKey                string               `json:"sshKey"`
-	AdditionalTrustBundle string               `json:"additionalTrustBundle,omitempty"`
-	ImageContentSources   []ImageContentSource `json:"imageContentSources,omitempty"`
-	Capabilities          *Capabilities        `json:"capabilities,omitempty"`
-	FeatureSet            configv1.FeatureSet  `json:"featureSet,omitempty"`
+	Platform              Platform            `json:"platform"`
+	BootstrapInPlace      *BootstrapInPlace   `json:"bootstrapInPlace,omitempty"`
+	FIPS                  bool                `json:"fips"`
+	CPUPartitioningMode   CPUPartitioningMode `json:"cpuPartitioningMode,omitempty"`
+	PullSecret            string              `json:"pullSecret"`
+	SSHKey                string              `json:"sshKey"`
+	AdditionalTrustBundle string              `json:"additionalTrustBundle,omitempty"`
+	// The ImageContentSources field is deprecated. Please use ImageDigestSources.
+	DeprecatedImageContentSources []ImageContentSource `json:"imageContentSources,omitempty"`
+	ImageDigestSources            []ImageDigestSource  `json:"imageDigestSources,omitempty"`
+	Capabilities                  *Capabilities        `json:"capabilities,omitempty"`
+	FeatureSet                    configv1.FeatureSet  `json:"featureSet,omitempty"`
 }
 
 func (c *InstallerConfigBaremetal) Validate() error {

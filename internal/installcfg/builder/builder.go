@@ -131,7 +131,7 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 	}
 
 	if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
-		err := i.setImageContentSources(cfg)
+		err := i.setImageDigestMirrorSet(cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -140,17 +140,17 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 	return cfg, nil
 }
 
-func (i *installConfigBuilder) setImageContentSources(cfg *installcfg.InstallerConfigBaremetal) error {
+func (i *installConfigBuilder) setImageDigestMirrorSet(cfg *installcfg.InstallerConfigBaremetal) error {
 	mirrorRegistriesConfigs, err := i.mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries()
 	if err != nil {
-		i.log.WithError(err).Errorf("Failed to get the mirror registries conf need for ImageContentSources")
+		i.log.WithError(err).Errorf("Failed to get the mirror registries conf need for ImageDigestSources")
 		return err
 	}
-	imageContentSourceList := make([]installcfg.ImageContentSource, len(mirrorRegistriesConfigs))
+	imageDigestSourceList := make([]installcfg.ImageDigestSource, len(mirrorRegistriesConfigs))
 	for i, mirrorRegistriesConfig := range mirrorRegistriesConfigs {
-		imageContentSourceList[i] = installcfg.ImageContentSource{Source: mirrorRegistriesConfig.Location, Mirrors: mirrorRegistriesConfig.Mirror}
+		imageDigestSourceList[i] = installcfg.ImageDigestSource{Source: mirrorRegistriesConfig.Location, Mirrors: mirrorRegistriesConfig.Mirror}
 	}
-	cfg.ImageContentSources = imageContentSourceList
+	cfg.ImageDigestSources = imageDigestSourceList
 	return nil
 }
 

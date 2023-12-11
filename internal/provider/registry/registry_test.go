@@ -668,13 +668,14 @@ func getInstallerConfigBaremetal() installcfg.InstallerConfigBaremetal {
 			Name:     "master-test",
 			Replicas: 3,
 		},
-		Platform:              installcfg.Platform{},
-		BootstrapInPlace:      &installcfg.BootstrapInPlace{},
-		FIPS:                  false,
-		PullSecret:            "{\"auths\": fake}",
-		SSHKey:                "ssh-rsa fake",
-		AdditionalTrustBundle: "",
-		ImageContentSources:   nil,
+		Platform:                      installcfg.Platform{},
+		BootstrapInPlace:              &installcfg.BootstrapInPlace{},
+		FIPS:                          false,
+		PullSecret:                    "{\"auths\": fake}",
+		SSHKey:                        "ssh-rsa fake",
+		AdditionalTrustBundle:         "",
+		DeprecatedImageContentSources: nil,
+		ImageDigestSources:            nil,
 	}
 }
 
