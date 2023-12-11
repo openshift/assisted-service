@@ -44,6 +44,10 @@ type GetSupportedFeaturesParams struct {
 	  Default: "x86_64"
 	*/
 	CPUArchitecture *string
+	/*External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.
+	  In: query
+	*/
+	ExternalPlatformName *string
 	/*Version of the OpenShift cluster.
 	  Required: true
 	  In: query
@@ -68,6 +72,11 @@ func (o *GetSupportedFeaturesParams) BindRequest(r *http.Request, route *middlew
 
 	qCPUArchitecture, qhkCPUArchitecture, _ := qs.GetOK("cpu_architecture")
 	if err := o.bindCPUArchitecture(qCPUArchitecture, qhkCPUArchitecture, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qExternalPlatformName, qhkExternalPlatformName, _ := qs.GetOK("external_platform_name")
+	if err := o.bindExternalPlatformName(qExternalPlatformName, qhkExternalPlatformName, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -115,6 +124,24 @@ func (o *GetSupportedFeaturesParams) validateCPUArchitecture(formats strfmt.Regi
 	if err := validate.EnumCase("cpu_architecture", "query", *o.CPUArchitecture, []interface{}{"x86_64", "aarch64", "arm64", "ppc64le", "s390x", "multi"}, true); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// bindExternalPlatformName binds and validates parameter ExternalPlatformName from query.
+func (o *GetSupportedFeaturesParams) bindExternalPlatformName(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.ExternalPlatformName = &raw
 
 	return nil
 }

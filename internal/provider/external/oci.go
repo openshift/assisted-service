@@ -54,7 +54,7 @@ func (p *ociExternalProvider) AreHostsSupported(hosts []*models.Host) (bool, err
 func (p *ociExternalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
 	cfg.Platform = installcfg.Platform{
 		External: &installcfg.ExternalInstallConfigPlatform{
-			PlatformName:           common.ExternalPlatformNameOCI,
+			PlatformName:           common.ExternalPlatformNameOci,
 			CloudControllerManager: installcfg.CloudControllerManagerTypeExternal,
 		},
 	}

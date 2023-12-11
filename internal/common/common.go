@@ -53,7 +53,7 @@ const (
 	S390xCPUArchitecture   = "s390x"
 	MultiCPUArchitecture   = "multi"
 
-	ExternalPlatformNameOCI = "oci"
+	ExternalPlatformNameOci = "oci"
 )
 
 var (
@@ -619,5 +619,5 @@ func IsExternalIntegrationEnabled(platform *models.Platform, platformName string
 }
 
 func IsOciExternalIntegrationEnabled(platform *models.Platform) bool {
-	return IsExternalIntegrationEnabled(platform, ExternalPlatformNameOCI)
+	return IsExternalIntegrationEnabled(platform, ExternalPlatformNameOci)
 }

@@ -3644,6 +3644,10 @@ paths:
           description: The provider platform type.
           type: string
           enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'oci', 'external' ]
+        - in: query
+          name: external_platform_name
+          description: External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.
+          type: string
       responses:
         "200":
           description: Success.

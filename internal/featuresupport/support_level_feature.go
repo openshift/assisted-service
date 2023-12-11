@@ -23,9 +23,10 @@ type SupportLevelFeature interface {
 }
 
 type SupportLevelFilters struct {
-	OpenshiftVersion string
-	CPUArchitecture  *string
-	PlatformType     *models.PlatformType
+	OpenshiftVersion     string
+	CPUArchitecture      *string
+	PlatformType         *models.PlatformType
+	ExternalPlatformName *string
 }
 
 type featureActiveLevel string

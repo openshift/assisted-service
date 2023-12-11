@@ -21,6 +21,29 @@ func isPlatformActive(cluster *common.Cluster, clusterUpdateParams *models.V2Clu
 	return false
 }
 
+func isExternalIntegrationActive(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams, expectedPlatformName string) bool {
+	if cluster == nil {
+		return false
+	}
+
+	if clusterUpdateParams != nil &&
+		clusterUpdateParams.Platform != nil &&
+		clusterUpdateParams.Platform.External != nil &&
+		clusterUpdateParams.Platform.External.PlatformName != nil &&
+		*clusterUpdateParams.Platform.External.PlatformName == expectedPlatformName {
+		return true
+	}
+
+	if cluster.Platform != nil &&
+		cluster.Platform.External != nil &&
+		cluster.Platform.External.PlatformName != nil &&
+		*cluster.Platform.External.PlatformName == expectedPlatformName {
+		return true
+	}
+
+	return false
+}
+
 func isPlatformSet(filters SupportLevelFilters) bool {
 	return filters.PlatformType != nil
 }
@@ -274,6 +297,10 @@ func (feature *OciIntegrationFeature) getIncompatibleArchitectures(_ *string) *[
 
 func (feature *OciIntegrationFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeOci) {
+		return activeLevelActive
+	}
+
+	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeExternal) && isExternalIntegrationActive(cluster, clusterUpdateParams, common.ExternalPlatformNameOci) {
 		return activeLevelActive
 	}
 
