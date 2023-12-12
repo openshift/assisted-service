@@ -4498,184 +4498,177 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	log = log.WithField(ctxparams.ClusterId, id)
 	log.Infof("Register infraenv: %s with id %s", swag.StringValue(params.InfraenvCreateParams.Name), id)
 
-	tx := b.db.Begin()
-	success := false
 	var err error
-	defer func() {
-		if success {
-			err = b.stream.Notify(ctx, &infraEnv)
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		params = b.setDefaultRegisterInfraEnvParams(ctx, params)
+
+		var cluster *common.Cluster
+		clusterId := params.InfraenvCreateParams.ClusterID
+		if clusterId != nil {
+			cluster, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *clusterId})
 			if err != nil {
-				log.WithError(err).Warning("failed to notify infraenv registration event")
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					err = errors.Errorf("Cluster ID %s does not exist", clusterId.String())
+					return common.NewApiError(http.StatusNotFound, err)
+				}
+				return common.NewApiError(http.StatusInternalServerError, err)
 			}
 
-			msg := fmt.Sprintf("Successfully registered InfraEnv %s with id %s",
-				swag.StringValue(params.InfraenvCreateParams.Name), id)
-			log.Info(msg)
-			eventgen.SendInfraEnvRegisteredEvent(ctx, b.eventsHandler, id)
-		} else {
-			errMsg := fmt.Sprintf("Failed to register InfraEnv %s with id %s",
-				swag.StringValue(params.InfraenvCreateParams.Name), id)
-			errString := ""
+			if err = b.checkUpdateAccessToObj(ctx, cluster, "cluster", clusterId); err != nil {
+				return err
+			}
+		}
+
+		// The OpenShift installer validation code for the additional trust bundle
+		// is buggy and doesn't react well to additional newlines at the end of the
+		// certs. We need to strip them out to not bother assisted users with this
+		// quirk.
+		params.InfraenvCreateParams.AdditionalTrustBundle = strings.TrimSpace(params.InfraenvCreateParams.AdditionalTrustBundle)
+
+		if err = b.validateInfraEnvCreateParams(ctx, params, cluster); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		var staticNetworkConfig string
+		staticNetworkConfig, err = b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraenvCreateParams.StaticNetworkConfig)
+		if err != nil {
+			return err
+		}
+
+		var osImage *models.OsImage
+		osImage, err = b.osImages.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		if kubeKey == nil {
+			kubeKey = &types.NamespacedName{}
+		}
+
+		// generate key for signing rhsso image auth tokens
+		var imageTokenKey string
+		imageTokenKey, err = gencrypto.HMACKey(32)
+		if err != nil {
+			return err
+		}
+
+		if err = b.validateKernelArguments(ctx, params.InfraenvCreateParams.KernelArguments); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		var kernelArguments *string
+		if len(params.InfraenvCreateParams.KernelArguments) > 0 {
+			var b []byte
+			b, err = json.Marshal(&params.InfraenvCreateParams.KernelArguments)
 			if err != nil {
-				errString = err.Error()
-				errMsg = fmt.Sprintf("%s. Error: %s", errMsg, errString)
+				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
 			}
-			log.Errorf(errMsg)
-			tx.Rollback()
-			eventgen.SendInfraEnvRegistrationFailedEvent(ctx, b.eventsHandler, id, errString)
+			kernelArguments = swag.String(string(b))
 		}
-	}()
 
-	params = b.setDefaultRegisterInfraEnvParams(ctx, params)
+		infraEnv = common.InfraEnv{
+			Generated: false,
+			InfraEnv: models.InfraEnv{
+				ID:                     &id,
+				Href:                   swag.String(url.String()),
+				Kind:                   swag.String(models.InfraEnvKindInfraEnv),
+				Name:                   params.InfraenvCreateParams.Name,
+				UserName:               ocm.UserNameFromContext(ctx),
+				OrgID:                  ocm.OrgIDFromContext(ctx),
+				EmailDomain:            ocm.EmailDomainFromContext(ctx),
+				OpenshiftVersion:       *osImage.OpenshiftVersion,
+				IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
+				StaticNetworkConfig:    staticNetworkConfig,
+				Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
+				AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
+				SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
+				CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
+				KernelArguments:        kernelArguments,
+				AdditionalTrustBundle:  params.InfraenvCreateParams.AdditionalTrustBundle,
+			},
+			KubeKeyNamespace: kubeKey.Namespace,
+			ImageTokenKey:    imageTokenKey,
+		}
 
-	var cluster *common.Cluster
-	clusterId := params.InfraenvCreateParams.ClusterID
-	if clusterId != nil {
-		cluster, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *clusterId})
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				err = errors.Errorf("Cluster ID %s does not exist", clusterId.String())
-				return nil, common.NewApiError(http.StatusNotFound, err)
+		if err = b.handlerClusterInfoOnRegisterInfraEnv(log, tx, clusterId, &infraEnv, cluster, params.InfraenvCreateParams); err != nil {
+			return err
+		}
+
+		if params.InfraenvCreateParams.Proxy != nil {
+			proxy := models.Proxy{
+				HTTPProxy:  params.InfraenvCreateParams.Proxy.HTTPProxy,
+				HTTPSProxy: params.InfraenvCreateParams.Proxy.HTTPSProxy,
+				NoProxy:    params.InfraenvCreateParams.Proxy.NoProxy,
 			}
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
+			infraEnv.Proxy = &proxy
+			var infraEnvProxyHash string
+			infraEnvProxyHash, err = computeProxyHash(&proxy)
+			if err != nil {
+				msg := "Failed to compute infraEnv proxy hash"
+				log.Error(msg, err)
+				return common.NewApiError(http.StatusInternalServerError, errors.New(msg))
+			}
+			infraEnv.ProxyHash = infraEnvProxyHash
 		}
 
-		if err = b.checkUpdateAccessToObj(ctx, cluster, "cluster", clusterId); err != nil {
-			return nil, err
+		pullSecret := swag.StringValue(params.InfraenvCreateParams.PullSecret)
+		err = b.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx))
+		if err != nil {
+			err = errors.Wrap(secretValidationToUserError(err), "pull secret for new infraEnv is invalid")
+			return common.NewApiError(http.StatusBadRequest, err)
 		}
-	}
+		var ps string
+		ps, err = b.updatePullSecret(pullSecret, log)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest,
+				errors.New("Failed to update Pull-secret with additional credentials"))
+		}
+		setInfraEnvPullSecret(&infraEnv, ps)
 
-	// The OpenShift installer validation code for the additional trust bundle
-	// is buggy and doesn't react well to additional newlines at the end of the
-	// certs. We need to strip them out to not bother assisted users with this
-	// quirk.
-	params.InfraenvCreateParams.AdditionalTrustBundle = strings.TrimSpace(params.InfraenvCreateParams.AdditionalTrustBundle)
+		if err = updateSSHAuthorizedKey(&infraEnv); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 
-	if err = b.validateInfraEnvCreateParams(ctx, params, cluster); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
+		if params.InfraenvCreateParams.IgnitionConfigOverride != "" {
+			var discoveryIgnition string
+			discoveryIgnition, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(
+				ctx, &infraEnv, b.IgnitionConfig,
+				false, b.authHandler.AuthType(), string(params.InfraenvCreateParams.ImageType))
+			if err != nil {
+				log.WithError(err).Error("Failed to format discovery ignition config")
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
+			if err = validations.ValidateIgnitionImageSize(discoveryIgnition); err != nil {
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+		}
 
-	staticNetworkConfig, err := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraenvCreateParams.StaticNetworkConfig)
+		if err = tx.Create(&infraEnv).Error; err != nil {
+			log.WithError(err).Error("failed to create infraenv")
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+
+		return nil
+	})
 	if err != nil {
+		errMsg := fmt.Sprintf("Failed to register InfraEnv %s with id %s",
+			swag.StringValue(params.InfraenvCreateParams.Name), id)
+		errMsg = fmt.Sprintf("%s. Error: %s", errMsg, err.Error())
+		log.Errorf(errMsg)
+		eventgen.SendInfraEnvRegistrationFailedEvent(ctx, b.eventsHandler, id, err.Error())
 		return nil, err
 	}
 
-	osImage, err := b.osImages.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
+	err = b.stream.Notify(ctx, &infraEnv)
 	if err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
+		log.WithError(err).Warning("failed to notify infraenv registration event")
 	}
 
-	if kubeKey == nil {
-		kubeKey = &types.NamespacedName{}
-	}
+	msg := fmt.Sprintf("Successfully registered InfraEnv %s with id %s",
+		swag.StringValue(params.InfraenvCreateParams.Name), id)
+	log.Info(msg)
+	eventgen.SendInfraEnvRegisteredEvent(ctx, b.eventsHandler, id)
 
-	// generate key for signing rhsso image auth tokens
-	imageTokenKey, err := gencrypto.HMACKey(32)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = b.validateKernelArguments(ctx, params.InfraenvCreateParams.KernelArguments); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	var kernelArguments *string
-	if len(params.InfraenvCreateParams.KernelArguments) > 0 {
-		var b []byte
-		b, err = json.Marshal(&params.InfraenvCreateParams.KernelArguments)
-		if err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
-		}
-		kernelArguments = swag.String(string(b))
-	}
-
-	infraEnv = common.InfraEnv{
-		Generated: false,
-		InfraEnv: models.InfraEnv{
-			ID:                     &id,
-			Href:                   swag.String(url.String()),
-			Kind:                   swag.String(models.InfraEnvKindInfraEnv),
-			Name:                   params.InfraenvCreateParams.Name,
-			UserName:               ocm.UserNameFromContext(ctx),
-			OrgID:                  ocm.OrgIDFromContext(ctx),
-			EmailDomain:            ocm.EmailDomainFromContext(ctx),
-			OpenshiftVersion:       *osImage.OpenshiftVersion,
-			IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
-			StaticNetworkConfig:    staticNetworkConfig,
-			Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
-			AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
-			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
-			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
-			KernelArguments:        kernelArguments,
-			AdditionalTrustBundle:  params.InfraenvCreateParams.AdditionalTrustBundle,
-		},
-		KubeKeyNamespace: kubeKey.Namespace,
-		ImageTokenKey:    imageTokenKey,
-	}
-
-	if err = b.handlerClusterInfoOnRegisterInfraEnv(log, tx, clusterId, &infraEnv, cluster, params.InfraenvCreateParams); err != nil {
-		return nil, err
-	}
-
-	if params.InfraenvCreateParams.Proxy != nil {
-		proxy := models.Proxy{
-			HTTPProxy:  params.InfraenvCreateParams.Proxy.HTTPProxy,
-			HTTPSProxy: params.InfraenvCreateParams.Proxy.HTTPSProxy,
-			NoProxy:    params.InfraenvCreateParams.Proxy.NoProxy,
-		}
-		infraEnv.Proxy = &proxy
-		var infraEnvProxyHash string
-		infraEnvProxyHash, err = computeProxyHash(&proxy)
-		if err != nil {
-			msg := "Failed to compute infraEnv proxy hash"
-			log.Error(msg, err)
-			return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
-		}
-		infraEnv.ProxyHash = infraEnvProxyHash
-	}
-
-	pullSecret := swag.StringValue(params.InfraenvCreateParams.PullSecret)
-	err = b.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx))
-	if err != nil {
-		err = errors.Wrap(secretValidationToUserError(err), "pull secret for new infraEnv is invalid")
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-	ps, err := b.updatePullSecret(pullSecret, log)
-	if err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest,
-			errors.New("Failed to update Pull-secret with additional credentials"))
-	}
-	setInfraEnvPullSecret(&infraEnv, ps)
-
-	if err = updateSSHAuthorizedKey(&infraEnv); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if params.InfraenvCreateParams.IgnitionConfigOverride != "" {
-		var discoveryIgnition string
-		discoveryIgnition, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(
-			ctx, &infraEnv, b.IgnitionConfig,
-			false, b.authHandler.AuthType(), string(params.InfraenvCreateParams.ImageType))
-		if err != nil {
-			log.WithError(err).Error("Failed to format discovery ignition config")
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
-		if err = validations.ValidateIgnitionImageSize(discoveryIgnition); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
-
-	if err = tx.Create(&infraEnv).Error; err != nil {
-		log.WithError(err).Error("failed to create infraenv")
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	if err = tx.Commit().Error; err != nil {
-		log.WithError(err).Error("failed to commit transaction registering infraenv")
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	success = true
 	if err = b.GenerateInfraEnvISOInternal(ctx, &infraEnv); err != nil {
 		return nil, err
 	}

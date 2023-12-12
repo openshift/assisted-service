@@ -82,34 +82,30 @@ func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID
 	}
 
 	//each event is saved in its own embedded transaction
-	var dberr error
-	tx := e.db.Begin()
-	defer func() {
+	err = e.db.Transaction(func(tx *gorm.DB) error {
+		// Check and if the event exceeds the limits:
+		limitExceeded, limitReason, dberr := e.exceedsLimits(ctx, tx, &event)
 		if dberr != nil {
-			log.WithError(err).Errorf("failed to add event. Rolling back transaction on event=%s resources: %s",
-				message, strings.Join(errMsg, " "))
-			tx.Rollback()
-		} else {
-			tx.Commit()
-			err = e.stream.Notify(ctx, &event)
-			if err != nil {
-				log.WithError(err).Warning("failed to notify event")
-			}
+			return dberr
+
 		}
-	}()
+		if limitExceeded {
+			e.reportDiscarded(ctx, &event, limitReason)
+			return fmt.Errorf("v2SaveEvent limit exceeded")
+		}
 
-	// Check and if the event exceeds the limits:
-	limitExceeded, limitReason, dberr := e.exceedsLimits(ctx, tx, &event)
-	if dberr != nil {
-		return
-	}
-	if limitExceeded {
-		e.reportDiscarded(ctx, &event, limitReason)
-		return
+		// Create the new event:
+		return tx.Create(&event).Error
+	})
+	if err != nil {
+		log.WithError(err).Errorf("failed to add event. Rolling back transaction on event=%s resources: %s",
+			message, strings.Join(errMsg, " "))
 	}
 
-	// Create the new event:
-	dberr = tx.Create(&event).Error
+	err = e.stream.Notify(ctx, &event)
+	if err != nil {
+		log.WithError(err).Warning("failed to notify event")
+	}
 }
 
 // exceedsLimit checks if there are already events that are too close to the given one. It returns

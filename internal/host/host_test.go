@@ -193,10 +193,11 @@ var _ = Describe("update_role", func() {
 			Expect(h.Role).Should(Equal(models.HostRoleWorker))
 		})
 		By("commit transaction", func() {
-			tx := db.Begin()
-			Expect(tx.Error).ShouldNot(HaveOccurred())
-			Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, tx)).NotTo(HaveOccurred())
-			Expect(tx.Commit().Error).ShouldNot(HaveOccurred())
+			err := db.Transaction(func(tx *gorm.DB) error {
+				Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, tx)).NotTo(HaveOccurred())
+				return nil
+			})
+			Expect(err).ShouldNot(HaveOccurred())
 			h := hostutil.GetHostFromDB(id, infraEnvID, db)
 			Expect(h.Role).Should(Equal(models.HostRoleMaster))
 		})

@@ -881,16 +881,17 @@ var _ = Describe("Install", func() {
 		})
 
 		It("success", func() {
-			tx := db.Begin()
-			Expect(tx.Error).To(BeNil())
-			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
-				eventstest.WithHostIdMatcher(host.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
-				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
-			))
-			Expect(hapi.RefreshStatus(ctx, &host, tx)).ShouldNot(HaveOccurred())
-			Expect(tx.Commit().Error).ShouldNot(HaveOccurred())
+			err := db.Transaction(func(tx *gorm.DB) error {
+				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+					eventstest.WithHostIdMatcher(host.ID.String()),
+					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				))
+				Expect(hapi.RefreshStatus(ctx, &host, tx)).ShouldNot(HaveOccurred())
+				return nil
+			})
+			Expect(err).To(BeNil())
 			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
 			Expect(*h.Status).Should(Equal(models.HostStatusInstalling))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoInstalling))

@@ -77,46 +77,39 @@ func (r *registrar) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) e
 }
 
 func (r *registrar) DeregisterCluster(ctx context.Context, cluster *common.Cluster) error {
-	var txErr error
-	tx := r.db.Begin()
-
-	defer func() {
-		if txErr != nil {
-			tx.Rollback()
-		}
-	}()
+	var err error
 
 	if swag.StringValue(cluster.Status) == models.ClusterStatusInstalling {
-		tx.Rollback()
 		return errors.Errorf("cluster %s can not be removed while being installed", cluster.ID)
 	}
 
-	if txErr = common.DeleteRecordsByClusterID(tx, *cluster.ID, []interface{}{
-		&models.MonitoredOperator{},
-		&models.ClusterNetwork{},
-		&models.ServiceNetwork{},
-		&models.MachineNetwork{},
-	}); txErr != nil {
-		tx.Rollback()
-		return errors.Errorf("failed to delete cluster records %s", cluster.ID)
-	}
-
-	if txErr = tx.Delete(cluster).Error; txErr != nil {
-		tx.Rollback()
-		return errors.Errorf("failed to delete cluster %s", cluster.ID)
-	}
-
-	infraEnv, err := common.GetInfraEnvFromDB(tx, *cluster.ID)
-	if err == nil {
-		if txErr = tx.Delete(infraEnv).Error; txErr != nil {
-			tx.Rollback()
-			return errors.Errorf("failed to delete infra-env %s", cluster.ID)
+	err = r.db.Transaction(func(tx *gorm.DB) error {
+		if err = common.DeleteRecordsByClusterID(tx, *cluster.ID, []interface{}{
+			&models.MonitoredOperator{},
+			&models.ClusterNetwork{},
+			&models.ServiceNetwork{},
+			&models.MachineNetwork{},
+		}); err != nil {
+			return errors.Errorf("failed to delete cluster records %s", cluster.ID)
 		}
+
+		if err = tx.Delete(cluster).Error; err != nil {
+			return errors.Errorf("failed to delete cluster %s", cluster.ID)
+		}
+
+		var infraEnv *common.InfraEnv
+		infraEnv, err = common.GetInfraEnvFromDB(tx, *cluster.ID)
+		if err == nil {
+			if err = tx.Delete(infraEnv).Error; err != nil {
+				return errors.Errorf("failed to delete infra-env %s", cluster.ID)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to deregister cluster %s", cluster.ID)
 	}
 
-	if tx.Commit().Error != nil {
-		tx.Rollback()
-		return errors.Errorf("failed to delete cluster %s, commit tx", cluster.ID)
-	}
 	return nil
 }
