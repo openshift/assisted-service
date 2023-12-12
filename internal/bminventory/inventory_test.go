@@ -7343,7 +7343,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 						UserManagedNetworking: swag.Bool(false),
 						Platform: &models.Platform{
-							Type:       common.PlatformTypePtr(models.PlatformTypeNutanix),
+							Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
 						},
 						CPUArchitecture: common.X86CPUArchitecture,
 					}}
