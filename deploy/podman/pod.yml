@@ -27,7 +27,7 @@ spec:
     envFrom:
     - configMapRef:
         name: config
-  - image: quay.io/agentil/assisted-service:external
+  - image: quay.io/edge-infrastructure/assisted-service:latest
     name: service
     ports:
     - hostPort: 8090

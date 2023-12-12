@@ -307,9 +307,9 @@ func getDBContext() DBContext {
 	if gDbCtx != nil {
 		return gDbCtx
 	}
-	return &NoDBContext{}
 
 	if os.Getenv("SKIP_UT_DB") != "" {
+		return &NoDBContext{}
 	}
 
 	k8sContext, err := getK8sClient()
