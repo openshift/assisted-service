@@ -190,58 +190,41 @@ func (b *bareMetalInventory) V2ResetCluster(ctx context.Context, params installe
 
 	var cluster *common.Cluster
 
-	txSuccess := false
-	tx := b.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("reset cluster failed")
-			tx.Rollback()
+	err := b.db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
+			log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return common.NewApiError(http.StatusNotFound, err)
+			}
+			return common.NewApiError(http.StatusInternalServerError, err)
 		}
-		if r := recover(); r != nil {
-			log.Error("reset cluster failed")
-			tx.Rollback()
+
+		if err := b.clusterApi.ResetCluster(ctx, cluster, "cluster was reset by user", tx); err != nil {
+			return err
 		}
-	}()
 
-	if tx.Error != nil {
-		log.WithError(tx.Error).Errorf("failed to start db transaction")
-		return installer.NewV2ResetClusterInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction")))
-	}
-
-	var err error
-	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
-		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return installer.NewV2ResetClusterNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+		for _, h := range cluster.Hosts {
+			if err := b.hostApi.ResetHost(ctx, h, "cluster was reset by user", tx); err != nil {
+				return err
+			}
+			b.customizeHost(&cluster.Cluster, h)
 		}
-		return installer.NewV2ResetClusterInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
 
-	if err := b.clusterApi.ResetCluster(ctx, cluster, "cluster was reset by user", tx); err != nil {
+		if err := b.clusterApi.ResetClusterFiles(ctx, cluster, b.objectHandler); err != nil {
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+
+		if err := b.deleteDNSRecordSets(ctx, *cluster); err != nil {
+			log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Error(err)
 		return common.GenerateErrorResponder(err)
 	}
-
-	for _, h := range cluster.Hosts {
-		if err := b.hostApi.ResetHost(ctx, h, "cluster was reset by user", tx); err != nil {
-			return common.GenerateErrorResponder(err)
-		}
-		b.customizeHost(&cluster.Cluster, h)
-	}
-
-	if err := b.clusterApi.ResetClusterFiles(ctx, cluster, b.objectHandler); err != nil {
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	if err := b.deleteDNSRecordSets(ctx, *cluster); err != nil {
-		log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		log.Error(err)
-		return installer.NewV2ResetClusterInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction")))
-	}
-	txSuccess = true
 
 	return installer.NewV2ResetClusterAccepted().WithPayload(&cluster.Cluster)
 }

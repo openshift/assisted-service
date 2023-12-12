@@ -37,46 +37,32 @@ func (r *registrar) registerCluster(cluster *common.Cluster, status, statusInfo 
 	cluster.Status = swag.String(status)
 	cluster.StatusInfo = swag.String(statusInfo)
 	cluster.StatusUpdatedAt = strfmt.DateTime(registerTime)
-	tx := r.db.Begin()
-	success := false
-	defer func() {
-		if rec := recover(); rec != nil || !success {
-			r.log.Error("update cluster failed")
-			tx.Rollback()
-		}
-	}()
-	if tx.Error != nil {
-		r.log.WithError(tx.Error).Error("failed to start transaction")
-	}
 
-	var err error
-	if _, err = common.GetClusterFromDB(tx, *cluster.ID, common.SkipEagerLoading); err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
-			return err
-		} else {
-			// Delete any previews record of the cluster if it was soft deleted in the past,
-			// no error will be returned it wasn't existed.
-			if err = tx.Unscoped().Delete(&common.Cluster{}, "id = ?", cluster.ID.String()).Error; err != nil {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		if _, err = common.GetClusterFromDB(tx, *cluster.ID, common.SkipEagerLoading); err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
-				return errors.Wrapf(
-					err,
-					"error while trying to delete previews record from db (if exists) of cluster %s",
-					cluster.ID.String())
+				return err
+			} else {
+				// Delete any previews record of the cluster if it was soft deleted in the past,
+				// no error will be returned it wasn't existed.
+				if err = tx.Unscoped().Delete(&common.Cluster{}, "id = ?", cluster.ID.String()).Error; err != nil {
+					r.log.WithError(err).Errorf("Error registering cluster %s", cluster.Name)
+					return errors.Wrapf(
+						err,
+						"error while trying to delete previews record from db (if exists) of cluster %s",
+						cluster.ID.String())
+				}
 			}
 		}
-	}
-	if err = tx.Create(cluster).Error; err != nil {
-		r.log.Errorf("Error registering cluster %s", cluster.Name)
-		return err
-	}
+		if err = tx.Create(cluster).Error; err != nil {
+			r.log.Errorf("Error registering cluster %s", cluster.Name)
+			return err
+		}
 
-	if err = tx.Commit().Error; err != nil {
-		return err
-	}
-
-	success = true
-	return nil
+		return nil
+	})
 }
 
 func (r *registrar) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {

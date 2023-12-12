@@ -714,27 +714,14 @@ func isPendingUserResetRequired(hostAPI host.API, c *common.Cluster) bool {
 }
 
 func setPendingUserReset(ctx context.Context, c *common.Cluster, db *gorm.DB, hostAPI host.API) error {
-	txSuccess := false
-	tx := db.Begin()
-	defer func() {
-		if !txSuccess {
-			tx.Rollback()
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, h := range c.Hosts {
+			if err := hostAPI.ResetPendingUserAction(ctx, h, tx); err != nil {
+				return err
+			}
 		}
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	for _, h := range c.Hosts {
-		if err := hostAPI.ResetPendingUserAction(ctx, h, tx); err != nil {
-			return err
-		}
-	}
-	if err := tx.Commit().Error; err != nil {
-		return err
-	}
-	txSuccess = true
-	return nil
+		return nil
+	})
 }
 
 // This function initialize the progress bar in the transition between prepare for installing to installing

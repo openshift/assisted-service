@@ -783,7 +783,9 @@ var _ = Describe("GetNextSteps", func() {
 			InfraEnvID: *clusterId,
 			HostID:     *unregistered_hostID,
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2GetNextStepsNotFound()))
+		apiErr, ok := generateReply.(*common.ApiErrorResponse)
+		Expect(ok).Should(BeTrue())
+		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusNotFound)))
 	})
 
 	It("get_next_steps_success", func() {
@@ -1584,10 +1586,10 @@ var _ = Describe("cluster", func() {
 	}
 	setCancelInstallationHostConflict := func() {
 		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockHostApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusConflict, nil)).Times(1)
+		mockHostApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusConflict, fmt.Errorf("error"))).Times(1)
 	}
 	setCancelInstallationInternalServerError := func() {
-		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
+		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, fmt.Errorf("error"))).Times(1)
 	}
 	setResetClusterSuccess := func() {
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
