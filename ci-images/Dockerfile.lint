@@ -1,5 +1,5 @@
 FROM base
 
-COPY --from=quay.io/app-sre/golangci-lint:v1.46.0 /usr/bin/golangci-lint /usr/bin/golangci-lint
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/bin v1.46.0
 
 RUN dnf install -y diffutils
