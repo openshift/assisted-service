@@ -22,32 +22,6 @@ function install_lso() {
 
   catalog_source_name="redhat-operators"
 
-  OC_VERSION_MAJOR_MINOR=$(oc version -o json | jq --raw-output '.openshiftVersion' | cut -d'.' -f1-2)
-  if [[ ${OC_VERSION_MAJOR_MINOR} == "4.15" && "${DISCONNECTED}" != true ]]; then
-      # LSO has not been published to the 4.15 redhat-operators catalog, so
-      # it cannot be installed on OpenShift 4.15. Until this is resolved,
-      # we explicitly install the 4.13 catalog as redhat-operators-v4-14
-      # and then subscribe to the LSO version from the 4.14 rather than the 4.15 catalog.
-      # TODO: Bump the versions once LSO is published to the 4.14 catalog.
-      catalog_source_name="redhat-operators-v4-14"
-      tee << EOCR >(oc apply -f -)
-kind: CatalogSource
-apiVersion: operators.coreos.com/v1alpha1
-metadata:
-  name: redhat-operators-v4-14
-  namespace: openshift-marketplace
-spec:
-  displayName: Red Hat Operators v4.14
-  image: registry.redhat.io/redhat/redhat-operator-index:v4.14
-  priority: -100
-  publisher: Red Hat
-  sourceType: grpc
-  updateStrategy:
-    registryPoll:
-      interval: 10m0s
-EOCR
-  fi
-
   if [ "${DISCONNECTED}" = true ]; then
     if ! which opm; then
         install_opm
