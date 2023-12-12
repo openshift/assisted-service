@@ -5949,8 +5949,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
-
 				})
 
 				It("Update platform=BM and UMN=false - success", func() {
@@ -5966,8 +5964,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
-
 				})
 
 				addVsphereHostWithNetworking := func(clusterId strfmt.UUID, role models.HostRole) {
@@ -6014,11 +6010,9 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					var result installcfg.InstallerConfigBaremetal
 					installConfig := createInstallConfigBuilder()
@@ -6049,7 +6043,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 
@@ -6066,7 +6059,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=true and vphsere platform while cluster platform already set to none - success", func() {
@@ -6082,7 +6074,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
@@ -6101,7 +6092,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=nil and baremetal platform while cluster platform is set to vsphere - success", func() {
@@ -6118,7 +6108,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeNone), gomock.Any(), mockUsage)
@@ -6134,7 +6123,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeNone))
-					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=nil and none platform while cluster platform is set to vsphere - success", func() {
@@ -6150,7 +6138,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any(), mockUsage)
@@ -6166,7 +6153,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
-					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=nil and baremetal platform while cluster platform is set to vsphere and umn true- failure", func() {
@@ -6183,7 +6169,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -6265,7 +6250,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 						Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
 						Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
-						Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 					})
 				})
 
@@ -6283,7 +6267,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -6308,7 +6291,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any(), mockUsage)
@@ -6326,7 +6308,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=false and vphsere platform while cluster platform already set to baremetal - success", func() {
@@ -6346,7 +6327,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=true and vphsere platform while cluster platform already set to baremetal - success", func() {
@@ -6368,7 +6348,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=true - success", func() {
@@ -6412,7 +6391,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 				})
 
@@ -6441,7 +6419,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 				})
 
@@ -6491,7 +6468,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
 					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
 				It("Update UMN=true, default cloud controller manager and platform=external - success", func() {
@@ -6518,7 +6494,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
 					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(models.PlatformExternalCloudControllerManagerEmpty))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
 				It("Update platform=nutanix - success", func() {
@@ -6536,7 +6511,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update platform=nutanix with multi cpu architecture - success", func() {
@@ -6556,7 +6530,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=true and platform=nutanix results BadRequestError - failure", func() {
@@ -6584,7 +6557,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update platform=vsphere - success", func() {
@@ -6601,7 +6573,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=true and platform=vsphere - success", func() {
@@ -6619,7 +6590,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=false and platform=vsphere - success", func() {
@@ -6637,7 +6607,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 			})
 
@@ -6672,7 +6641,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update platform=none - success", func() {
@@ -6687,7 +6655,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 				})
 
@@ -6704,7 +6671,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 				})
 
@@ -6722,7 +6688,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 				})
 
@@ -6750,7 +6715,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 				})
 
@@ -6779,7 +6743,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update platform=external - success", func() {
@@ -6807,7 +6770,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
 					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 
 				})
 
@@ -6847,7 +6809,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
 					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
 				It("Update platform=nutanix - failure", func() {
@@ -6885,7 +6846,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update platform=vsphere - success", func() {
@@ -6902,7 +6862,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=true and platform=vsphere - success", func() {
@@ -6920,7 +6879,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=false and platform=vsphere - success", func() {
@@ -6938,7 +6896,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 			})
 
@@ -6962,7 +6919,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 								PlatformName:           &platformName,
 								CloudControllerManager: &cloudControllerManager,
 							},
-							IsExternal: swag.Bool(true),
 						},
 						CPUArchitecture: common.X86CPUArchitecture,
 					}}
@@ -6986,7 +6942,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
 					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
 				It("Update platform=external - success", func() {
@@ -7003,7 +6958,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
 					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
 				It("Update platform name - success", func() {
@@ -7027,7 +6981,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 					Expect(*actual.Platform.External.PlatformName).Should(Equal(newPlatformName))
 					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
 				It("Update cloud controller manager - success", func() {
@@ -7051,7 +7004,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
 					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(newCloudControllerManager))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
 				It("Update UMN=true and platform=external - success", func() {
@@ -7067,7 +7019,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
 				It("Update UMN=false and platform=external results BadRequestError - failure", func() {
@@ -7117,7 +7068,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
 					Expect(actual.Platform.External.PlatformName).Should(BeNil())
 					Expect(actual.Platform.External.CloudControllerManager).Should(BeNil())
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=false and set platform name and platform=baremetal results BadRequestError - failure", func() {
@@ -7151,7 +7101,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 					Expect(actual.Platform.External.PlatformName).Should(BeNil())
 					Expect(actual.Platform.External.CloudControllerManager).Should(BeNil())
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 				})
 
@@ -7182,7 +7131,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 					Expect(actual.Platform.External.PlatformName).Should(BeNil())
 					Expect(actual.Platform.External.CloudControllerManager).Should(BeNil())
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update platform=nutanix - failure", func() {
@@ -7222,7 +7170,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
 					Expect(actual.Platform.External.PlatformName).Should(BeNil())
 					Expect(actual.Platform.External.CloudControllerManager).Should(BeNil())
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update platform=vsphere - success", func() {
@@ -7241,7 +7188,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 					Expect(actual.Platform.External.PlatformName).Should(BeNil())
 					Expect(actual.Platform.External.CloudControllerManager).Should(BeNil())
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=true and platform=vsphere - success", func() {
@@ -7261,7 +7207,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 					Expect(actual.Platform.External.PlatformName).Should(BeNil())
 					Expect(actual.Platform.External.CloudControllerManager).Should(BeNil())
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=false and platform=vsphere - success", func() {
@@ -7281,7 +7226,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 					Expect(actual.Platform.External.PlatformName).Should(BeNil())
 					Expect(actual.Platform.External.CloudControllerManager).Should(BeNil())
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				Context("Update to OCI integration", func() {
@@ -7307,7 +7251,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 						Expect(*actual.Platform.External.PlatformName).Should(Equal(ociPlatformName))
 						Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(models.PlatformExternalCloudControllerManagerExternal))
-						Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 					})
 
 					It("Update PlatformName=oci results BadRequestError - failure", func() {
@@ -7338,7 +7281,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 									PlatformName:           &platformName,
 									CloudControllerManager: &cloudControllerManager,
 								},
-								IsExternal: swag.Bool(true),
 							},
 						}}).Error
 						Expect(err).ShouldNot(HaveOccurred())
@@ -7388,7 +7330,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						actual := reply.(*installer.V2UpdateClusterCreated).Payload
 						Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 						Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-						Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 					})
 				})
 			})
@@ -7403,7 +7344,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						UserManagedNetworking: swag.Bool(false),
 						Platform: &models.Platform{
 							Type:       common.PlatformTypePtr(models.PlatformTypeNutanix),
-							IsExternal: swag.Bool(false),
 						},
 						CPUArchitecture: common.X86CPUArchitecture,
 					}}
@@ -7434,7 +7374,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=false and platform=nutanix - success", func() {
@@ -7451,7 +7390,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update platform=external - failure", func() {
@@ -7500,7 +7438,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
 					Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
 					Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
 				It("Update platform=vsphere - success", func() {
@@ -7517,7 +7454,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=true and platform=vsphere - success", func() {
@@ -7535,7 +7471,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=false and platform=vsphere - success", func() {
@@ -7553,7 +7488,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 				It("Update platform=baremetal - success", func() {
 					mockSuccess()
@@ -7569,7 +7503,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update UMN=true and platform=baremetal results BadRequestError - failure", func() {
@@ -7597,7 +7530,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
 				It("Update platform=none - failure", func() {
@@ -7635,7 +7567,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 			})
 		})
@@ -13190,7 +13121,6 @@ var _ = Describe("TestRegisterCluster", func() {
 				actual := reply.(*installer.V2RegisterClusterCreated).Payload
 				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeExternal))
-				Expect(*actual.Platform.IsExternal).To(Equal(true))
 				Expect(*actual.Platform.External.PlatformName).Should(Equal(platformName))
 				Expect(*actual.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 				Expect(actual.OpenshiftVersion).To(Equal("4.14"))
@@ -17445,7 +17375,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeBaremetal))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeFalse())
 		})
 
 		It("vsphere platform", func() {
@@ -17458,7 +17387,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeVsphere))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeFalse())
 		})
 
 		It("vsphere platform with credentials", func() {
@@ -17469,7 +17397,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeVsphere))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeFalse())
 		})
 
 		It("nutanix platform", func() {
@@ -17487,7 +17414,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeNutanix))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeFalse())
 		})
 
 		It("external platform - HA", func() {
@@ -17509,7 +17435,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
 			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
 			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
@@ -17532,7 +17457,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
 			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
 			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(models.PlatformExternalCloudControllerManagerEmpty))
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
@@ -17557,7 +17481,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
 			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
 			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
@@ -17584,7 +17507,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
 			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
 			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
@@ -17621,7 +17543,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
 			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
 			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
@@ -17659,7 +17580,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
 			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
 			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
@@ -17696,7 +17616,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeExternal))
-			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
 			Expect(*cluster.Platform.External.PlatformName).Should(Equal(platformName))
 			Expect(*cluster.Platform.External.CloudControllerManager).Should(Equal(cloudControllerManager))
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())

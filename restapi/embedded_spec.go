@@ -9544,11 +9544,6 @@ func init() {
           "x-nullable": true,
           "$ref": "#/definitions/platform_external"
         },
-        "is_external": {
-          "description": "Used by the service to indicate that the platform-specific components are not included in\nOpenShift and must be provided as manifests separately.",
-          "type": "boolean",
-          "readOnly": true
-        },
         "type": {
           "$ref": "#/definitions/platform_type"
         }
@@ -19994,11 +19989,6 @@ func init() {
         "external": {
           "x-nullable": true,
           "$ref": "#/definitions/platform_external"
-        },
-        "is_external": {
-          "description": "Used by the service to indicate that the platform-specific components are not included in\nOpenShift and must be provided as manifests separately.",
-          "type": "boolean",
-          "readOnly": true
         },
         "type": {
           "$ref": "#/definitions/platform_type"

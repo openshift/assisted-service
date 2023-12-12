@@ -5395,12 +5395,6 @@ definitions:
       external:
         $ref: '#/definitions/platform_external'
         x-nullable: true
-      is_external:
-        description: |-
-          Used by the service to indicate that the platform-specific components are not included in
-          OpenShift and must be provided as manifests separately.
-        readOnly: true
-        type: boolean
 
   image_info:
     type: object
