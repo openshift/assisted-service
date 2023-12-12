@@ -55,6 +55,8 @@ func (p *ociExternalProvider) AddPlatformToInstallConfig(cfg *installcfg.Install
 		},
 	}
 
+	cfg.Networking.OvnKubernetesConfig.GatewayConfig.RoutingViaHost = true
+
 	cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
 	if cluster.NetworkType != nil {
 		cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)

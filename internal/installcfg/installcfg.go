@@ -220,6 +220,11 @@ type InstallerConfigBaremetal struct {
 		ClusterNetwork []ClusterNetwork `json:"clusterNetwork"`
 		MachineNetwork []MachineNetwork `json:"machineNetwork,omitempty"`
 		ServiceNetwork []string         `json:"serviceNetwork"`
+		OvnKubernetesConfig struct {
+			GatewayConfig struct {
+				RoutingViaHost bool `json:"routingViaHost,omitempty"`
+			} `json:"gatewayConfig,omitempty"`
+		} `json:"ovnKubernetesConfig,omitempty"`
 	} `json:"networking"`
 	Metadata struct {
 		Name string `json:"name"`

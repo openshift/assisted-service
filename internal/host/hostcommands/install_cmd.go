@@ -308,7 +308,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 				installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
 			} else if disk.DriveType == models.DriveTypeISCSI {
 				// Currently only allowed on the OCI platform
-				installerArgs = append(installerArgs, "--append-karg", "rd.iscsi.firmware=1", "--append-karg", "ip=ibft")
+				installerArgs = append(installerArgs, "--append-karg", "rd.iscsi.firmware=1", "--append-karg", "x-systemd.device-timeout=0")
 			}
 		}
 	}
