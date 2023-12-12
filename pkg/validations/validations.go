@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	baseDomainRegex          = `^[a-z\d]+[\-]*[a-z\d]+$`
-	dnsNameRegex             = `^([a-z\d]([\-]*[a-z\d]+)*\.)+[a-z\d]+[\-]*[a-z\d]+$`
+	baseDomainRegex          = `^[a-z]([\-]*[a-z\d]+)+$`
+	dnsNameRegex             = `^([a-z]([\-]*[a-z\d]+)*\.)+[a-z\d]+([\-]*[a-z\d]+)+$`
 	wildCardDomainRegex      = `^(validateNoWildcardDNS\.).+\.?$`
 	hostnameRegex            = `^[a-z0-9][a-z0-9\-\.]{0,61}[a-z0-9]$`
 	installerArgsValuesRegex = `^[A-Za-z0-9@!#$%*()_+-=//.,";':{}\[\]]+$`
