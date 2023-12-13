@@ -12,13 +12,11 @@ type eqPlatformTypeMatcher struct {
 }
 
 func (e eqPlatformTypeMatcher) Matches(x interface{}) bool {
-	platform, ok := x.(*models.Platform)
-	if !ok {
-		return false
+	if platform, ok := x.(*models.Platform); ok {
+		return e.platformType == *platform.Type
 	}
 
-	toto := (e.platformType == *platform.Type)
-	return toto
+	return false
 }
 
 func (e eqPlatformTypeMatcher) String() string {
@@ -26,12 +24,11 @@ func (e eqPlatformTypeMatcher) String() string {
 }
 
 func (e eqPlatformTypeMatcher) Got(got interface{}) string {
-	platform, ok := got.(*models.Platform)
-	if !ok {
-		return "not a platform"
+	if platform, ok := got.(*models.Platform); ok {
+		return "platform type " + string(*platform.Type)
 	}
 
-	return "platform type " + string(*platform.Type)
+	return "not a platform"
 }
 
 // EqPlatformType returns a matcher able to match the platform type inside a platform parameter.
