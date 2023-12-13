@@ -347,6 +347,14 @@ func newConditions(v *validator) []condition {
 			id: SuccessfulContainerImageAvailability,
 			fn: v.isSuccessfulContainerImageAvailability,
 		},
+		{
+			id: HostStageTimedOut,
+			fn: v.isHostStageTimedOut,
+		},
+		{
+			id: SoftTimeoutsEnabled,
+			fn: v.softTimeoutsEnabled,
+		},
 	}
 	return ret
 }

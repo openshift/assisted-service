@@ -8096,6 +8096,10 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "stage_timed_out": {
+          "description": "Indicate of the current stage has been timed out.",
+          "type": "boolean"
+        },
         "stage_updated_at": {
           "description": "Time at which the current progress stage was last updated.",
           "type": "string",
@@ -18663,6 +18667,10 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "stage_timed_out": {
+          "description": "Indicate of the current stage has been timed out.",
+          "type": "boolean"
         },
         "stage_updated_at": {
           "description": "Time at which the current progress stage was last updated.",

@@ -76,7 +76,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		mockVersions := versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
-		hapi = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, mockProviderRegistry, false, nil, mockVersions)
+		hapi = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, mockProviderRegistry, false, nil, mockVersions, false)
 	})
 
 	tests := []struct {
