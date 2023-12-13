@@ -335,8 +335,10 @@ func (feature *PlatformManagedNetworkingFeature) getIncompatibleArchitectures(_ 
 }
 
 func (feature *PlatformManagedNetworkingFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	activeLevelPlaforms := common.GetExternalPlaformTypes()
-	activeLevelPlaforms = append(activeLevelPlaforms, models.PlatformTypeNone)
+	activeLevelPlaforms := []models.PlatformType{
+		models.PlatformTypeExternal,
+		models.PlatformTypeNone,
+	}
 
 	for _, platform := range activeLevelPlaforms {
 		if isPlatformActive(cluster, clusterUpdateParams, platform) {
