@@ -713,9 +713,8 @@ func getPlatform(aciSpec hiveext.AgentClusterInstallSpec) (*models.Platform, err
 					CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
 				},
 			}, nil
-		} else {
-			return nil, errors.New(fmt.Sprintf("For external platform, the platformName must be %s", common.ExternalPlatformNameOci))
 		}
+		return nil, errors.New(fmt.Sprintf("For external platform, the platformName must be %s", common.ExternalPlatformNameOci))
 	case hiveext.NutanixPlatformType:
 		return &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
