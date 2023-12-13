@@ -440,7 +440,7 @@ func CanUnbindhost(c *Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	NotAllowedStatuses := []string{
 		models.ClusterStatusFinalizing,
-		models.ClusterStatusInstalled,
+		models.ClusterStatusInstalling,
 		models.ClusterStatusInstallingPendingUserAction,
 		models.ClusterStatusPreparingForInstallation,
 	}
