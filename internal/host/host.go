@@ -146,7 +146,8 @@ type Manager struct {
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.Notifier, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
 	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry, kubeApiEnabled bool, objectHandler s3wrapper.API,
-	versionHandler versions.Handler) *Manager {
+	versionHandler versions.Handler,
+) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -227,8 +228,10 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 		reason: "installation command failed",
 	})
 	if err == nil {
-		m.reportInstallationMetrics(ctx, h, &models.HostProgressInfo{CurrentStage: "installation command failed",
-			StageStartedAt: lastStatusUpdateTime}, models.HostStageFailed)
+		m.reportInstallationMetrics(ctx, h, &models.HostProgressInfo{
+			CurrentStage:   "installation command failed",
+			StageStartedAt: lastStatusUpdateTime,
+		}, models.HostStageFailed)
 	}
 	return err
 }
@@ -275,15 +278,16 @@ func (m *Manager) populateDisksId(inventory *models.Inventory) {
 }
 
 func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error {
-
 	lastStatusUpdateTime := h.StatusUpdatedAt
 	err := m.sm.Run(TransitionTypeHostInstallationFailed, newStateHost(h), &TransitionArgsHostInstallationFailed{
 		ctx:    ctx,
 		reason: reason,
 	})
 	if err == nil {
-		m.reportInstallationMetrics(ctx, h, &models.HostProgressInfo{CurrentStage: "installation command failed",
-			StageStartedAt: lastStatusUpdateTime}, models.HostStageFailed)
+		m.reportInstallationMetrics(ctx, h, &models.HostProgressInfo{
+			CurrentStage:   "installation command failed",
+			StageStartedAt: lastStatusUpdateTime,
+		}, models.HostStageFailed)
 	}
 	return err
 }
@@ -425,16 +429,16 @@ func (m *Manager) UpdateMediaConnected(ctx context.Context, h *models.Host) erro
 }
 
 func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *gorm.DB, forceRefresh bool) error {
-	//update suggested role, if not yet set
+	// update suggested role, if not yet set
 	var suggestedRole models.HostRole
 	var err error
 	if m.Config.EnableAutoAssign || forceRefresh {
-		//because of possible hw changes, or new host being registered
-		//suggested role should be calculated periodically even if the
-		//suggested role is already set
+		// because of possible hw changes, or new host being registered
+		// suggested role should be calculated periodically even if the
+		// suggested role is already set
 		if h.Role == models.HostRoleAutoAssign &&
 			funk.ContainsString(hostStatusesBeforeInstallation[:], *h.Status) {
-			host := *h //must have a defensive copy becuase selectRole changes the host object
+			host := *h // must have a defensive copy becuase selectRole changes the host object
 			if suggestedRole, err = m.selectRole(ctx, &host, db); err == nil {
 				m.log.Debugf("calculated role for host %s is %s (original suggested = %s)", hostutil.GetHostnameForMsg(h), suggestedRole, h.SuggestedRole)
 				if h.SuggestedRole != suggestedRole {
@@ -451,7 +455,8 @@ func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *g
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *common.Cluster, i *common.InfraEnv,
-	inventoryCache InventoryCache, db *gorm.DB) error {
+	inventoryCache InventoryCache, db *gorm.DB,
+) error {
 	log := logutil.FromContext(ctx, m.log)
 	if db == nil {
 		db = m.db
@@ -667,8 +672,8 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 }
 
 func (m *Manager) UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
-	srcStatus string, srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{}) error {
-
+	srcStatus string, srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{},
+) error {
 	extra = append(append(make([]interface{}, 0), "progress_current_stage", newStage, "progress_progress_info", progressInfo,
 		"progress_stage_updated_at", strfmt.DateTime(time.Now())), extra...)
 
@@ -703,6 +708,7 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 	}
 	return nil
 }
+
 func (m *Manager) UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error {
 	_, err := hostutil.UpdateLogsProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 		swag.StringValue(h.Status), progress)
@@ -760,9 +766,9 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.Ho
 		cdb = db
 	}
 
-	//UpdateRole is always invoked from an API and therefore
-	//the roles are user-selected. In this case suggested roles
-	//takes the user selection
+	// UpdateRole is always invoked from an API and therefore
+	// the roles are user-selected. In this case suggested roles
+	// takes the user selection
 	return updateRole(m.log, h, role, role, cdb, string(h.Role))
 }
 
@@ -854,7 +860,6 @@ func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*m
 	updates := map[string]interface{}{"ntp_sources": string(bytes)}
 
 	return m.updateHost(ctx, db, h, updates).Error
-
 }
 
 func (m *Manager) UpdateDomainNameResolution(ctx context.Context, h *models.Host, domainResolutionResponse models.DomainResolutionResponse, db *gorm.DB) error {
@@ -1092,7 +1097,7 @@ func (m *Manager) IsInstallable(h *models.Host) bool {
 
 func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host, previousProgress *models.HostProgressInfo, CurrentStage models.HostStage) {
 	log := logutil.FromContext(ctx, m.log)
-	//get openshift version from cluster
+	// get openshift version from cluster
 	var cluster common.Cluster
 	err := m.db.First(&cluster, "id = ?", h.ClusterID).Error
 	if err != nil {
@@ -1133,7 +1138,8 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 }
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,
-	newValidationRes, currentValidationRes ValidationsStatus) {
+	newValidationRes, currentValidationRes ValidationsStatus,
+) {
 	log := logutil.FromContext(ctx, m.log)
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
@@ -1191,11 +1197,11 @@ func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.D
 		log := logutil.FromContext(ctx, m.log)
 		// If role is auto-assigned calculate the suggested roles
 		// to make sure the suggestion is fresh
-		if err := m.RefreshRole(ctx, h, db); err != nil { //force refresh
+		if err := m.RefreshRole(ctx, h, db); err != nil { // force refresh
 			return false, err
 		}
 
-		//copy the suggested role into the role and update the host record
+		// copy the suggested role into the role and update the host record
 		log.Infof("suggested role %s for host %s cluster %s", h.SuggestedRole, h.ID.String(), h.ClusterID.String())
 		if err := updateRole(m.log, h, h.SuggestedRole, h.SuggestedRole, db, string(models.HostRoleAutoAssign)); err != nil {
 			log.WithError(err).Errorf("failed to update role %s for host %s cluster %s",
@@ -1441,15 +1447,23 @@ func (m *Manager) GetHostByKubeKey(key types.NamespacedName) (*common.Host, erro
 }
 
 func (m *Manager) UnRegisterHost(ctx context.Context, h *models.Host) error {
-	if err := common.DeleteHostFromDB(m.db, h.ID.String(), h.InfraEnvID.String()); err != nil {
-		return err
-	}
 	if h.ClusterID != nil {
+		var cluster *common.Cluster
+		if err := m.db.Select("status").Take(&cluster, "id = ?", h.ClusterID.String()).Error; err != nil {
+			return fmt.Errorf("failed to get cluster from DB: %+v", err)
+		}
+		if err := common.CanUnbindhost(cluster); err != nil {
+			return err
+		}
+		if err := common.DeleteHostFromDB(m.db, h.ID.String(), h.InfraEnvID.String()); err != nil {
+			return err
+		}
 		if err := m.db.Model(&common.Cluster{}).Where("id = ?", h.ClusterID).Update("trigger_monitor_timestamp", time.Now()).Error; err != nil {
 			return err
 		}
+		return nil
 	}
-	return nil
+	return fmt.Errorf("UnRegisterHost failed to locate ClusterID")
 }
 
 func (m *Manager) GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error) {
