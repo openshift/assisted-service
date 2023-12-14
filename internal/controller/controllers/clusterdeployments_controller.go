@@ -705,16 +705,16 @@ func getPlatform(aciSpec hiveext.AgentClusterInstallSpec) (*models.Platform, err
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 		}, nil
 	case hiveext.ExternalPlatformType:
-		if aciSpec.ExternalPlatformSpec != nil && aciSpec.ExternalPlatformSpec.PlatformName == common.ExternalPlatformNameOci {
+		if aciSpec.ExternalPlatformSpec != nil {
 			return &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
 				External: &models.PlatformExternal{
 					PlatformName:           &aciSpec.ExternalPlatformSpec.PlatformName,
-					CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+					CloudControllerManager: swag.String(string(aciSpec.ExternalPlatformSpec.CloudControllerManager)),
 				},
 			}, nil
 		}
-		return nil, errors.New(fmt.Sprintf("For external platform, the platformName must be %s", common.ExternalPlatformNameOci))
+		return nil, errors.New("For external platform, the external platform spec must be set")
 	case hiveext.NutanixPlatformType:
 		return &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
