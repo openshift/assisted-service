@@ -47,6 +47,7 @@ func mergePlatforms(platform *models.Platform, cluster *common.Cluster) *models.
 	return &mergedPlatform
 }
 
+// validateOciExternalIntegration checks if CCM is enabled when OCI integration is enabled
 func validateOciExternalIntegration(platform *models.Platform) error {
 	if !common.IsOciExternalIntegrationEnabled(platform) {
 		return nil
@@ -60,6 +61,7 @@ func validateOciExternalIntegration(platform *models.Platform) error {
 	return nil
 }
 
+// validateExternalSettingsForCreate checks if platform.external struct is a valid external definition
 func validateExternalSettingsForCreate(platform models.Platform) error {
 	if platform.External == nil {
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("External setting must be set when using platform type external"))
@@ -72,6 +74,7 @@ func validateExternalSettingsForCreate(platform models.Platform) error {
 	return nil
 }
 
+// validateExternalPlatform check if platform is a valid external platform definition, the validation can be performed against an existing cluster in case of update
 func validateExternalPlatform(platform *models.Platform, cluster *common.Cluster) error {
 	if platform == nil {
 		// nothing to check

@@ -90,6 +90,7 @@ func setExternalDefaultValues(platform *models.Platform, cluster *common.Cluster
 	}
 }
 
+// areExternalSettingsSet returns true when at least one of the parameters in platform.External is set
 func areExternalSettingsSet(platform models.Platform) bool {
 	return platform.External != nil && (platform.External.PlatformName != nil || platform.External.CloudControllerManager != nil)
 }
