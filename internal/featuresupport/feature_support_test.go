@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -147,6 +148,59 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitectureArm64)
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
 		})
+	})
+
+	Context("Test skip MCO reboot", func() {
+		feature := models.FeatureSupportLevelIDSKIPMCOREBOOT
+		It("IsFeatureAvailable", func() {
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitecturePpc64le))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureX8664))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureS390x))).To(Equal(false))
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureArm64))).To(Equal(true))
+		})
+		It("GetSupportLevel on architecture", func() {
+			featureSupportParams := SupportLevelFilters{OpenshiftVersion: "4.15", CPUArchitecture: swag.String(models.ClusterCPUArchitectureX8664)}
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
+
+			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitectureS390x)
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
+
+			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitecturePpc64le)
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
+
+			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitectureArm64)
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
+		})
+		DescribeTable("feature compatible with architecture",
+			func(cpuArchitecture string, expected bool) {
+				feature := &skipMcoReboot{}
+				openshiftVersion := "4.15"
+				Expect(isFeatureCompatibleWithArchitecture(feature, openshiftVersion, cpuArchitecture)).To(Equal(expected))
+			},
+			Entry(models.ClusterCPUArchitectureX8664, models.ClusterCPUArchitectureX8664, true),
+			Entry(models.ClusterCPUArchitectureArm64, models.ClusterCPUArchitectureArm64, true),
+			Entry(models.ClusterCPUArchitectureAarch64, models.ClusterCPUArchitectureAarch64, true),
+			Entry(models.ClusterCPUArchitectureS390x, models.ClusterCPUArchitectureS390x, false),
+			Entry(models.ClusterCPUArchitecturePpc64le, models.ClusterCPUArchitecturePpc64le, true),
+		)
+		DescribeTable("feature active level",
+			func(openshiftVersion, cpuArchitecture string, expected featureActiveLevel) {
+				feature := &skipMcoReboot{}
+				cluster := common.Cluster{
+					Cluster: models.Cluster{
+						OpenshiftVersion: openshiftVersion,
+						CPUArchitecture:  cpuArchitecture,
+					},
+				}
+				Expect(feature.getFeatureActiveLevel(&cluster, nil, nil, nil)).To(Equal(expected))
+			},
+			Entry("4.14/x86_64", "4.14", models.ClusterCPUArchitectureX8664, activeLevelNotActive),
+			Entry("4.15/x86_64", "4.15", models.ClusterCPUArchitectureX8664, activeLevelActive),
+			Entry("4.15/ppc64le", "4.15", models.ClusterCPUArchitecturePpc64le, activeLevelActive),
+			Entry("4.15/aarch64", "4.15", models.ClusterCPUArchitectureAarch64, activeLevelActive),
+			Entry("4.15/arm64", "4.15", models.ClusterCPUArchitectureArm64, activeLevelActive),
+			Entry("4.15/s390x", "4.15", models.ClusterCPUArchitectureS390x, activeLevelNotActive),
+		)
 	})
 
 	Context("Test MCE not supported under 4.10", func() {
