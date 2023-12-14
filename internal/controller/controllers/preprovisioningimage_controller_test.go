@@ -537,6 +537,48 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			checkImageConditionFailed(c, ppi, archMismatchReason, "does not match InfraEnv CPU architecture")
 		})
 
+		It("doesn't fail when the normalized preprovisioning architecture matches the infraenv architecture", func() {
+			infraEnv.Spec.CpuArchitecture = "arm64"
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			ppi.Spec.Architecture = "aarch64"
+			Expect(c.Update(ctx, ppi)).To(Succeed())
+
+			setInfraEnvIronicConfig()
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			ppiKey := types.NamespacedName{Namespace: ppi.Namespace, Name: ppi.Name}
+			Expect(c.Get(ctx, ppiKey, ppi)).To(Succeed())
+			readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+			Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
+			errorCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
+			Expect(errorCondition.Status).To(Equal(metav1.ConditionFalse))
+		})
+
+		It("doesn't fail when the normalized infraenv architecture matches the preprovisioning architecture", func() {
+			infraEnv.Spec.CpuArchitecture = "aarch64"
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			ppi.Spec.Architecture = "arm64"
+			Expect(c.Update(ctx, ppi)).To(Succeed())
+
+			setInfraEnvIronicConfig()
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			ppiKey := types.NamespacedName{Namespace: ppi.Namespace, Name: ppi.Name}
+			Expect(c.Get(ctx, ppiKey, ppi)).To(Succeed())
+			readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+			Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
+			errorCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
+			Expect(errorCondition.Status).To(Equal(metav1.ConditionFalse))
+		})
+
 		It("doesn't fail when the infraEnv image has not been created yet", func() {
 			infraEnv.Status = aiv1beta1.InfraEnvStatus{}
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
