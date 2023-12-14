@@ -13,7 +13,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	yamlpatch "github.com/krishicks/yaml-patch"
-	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
@@ -438,15 +437,15 @@ func GetInventoryInterfaces(inventory string) (string, error) {
 // blocking host removal while cluster is progressing
 func CanUnbindhost(c *Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	NotAllowedStatuses := []string{
+	NotAllowedStatus := []string{
 		models.ClusterStatusFinalizing,
 		models.ClusterStatusInstalling,
 		models.ClusterStatusInstallingPendingUserAction,
 		models.ClusterStatusPreparingForInstallation,
 	}
-	if funk.Contains(NotAllowedStatuses, clusterStatus) {
-		err = fmt.Errorf("cluster %s is in %s state, %s cannot be unbind when status is one of: %s",
-			c.ID, clusterStatus, constants.Kubeconfig, NotAllowedStatuses)
+	if funk.Contains(NotAllowedStatus, clusterStatus) {
+		err = fmt.Errorf("cluster %s is in %s state, host cannot be unbind when status is one of: %s",
+			c.ID, clusterStatus, NotAllowedStatus)
 	}
 	return err
 }

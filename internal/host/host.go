@@ -1447,6 +1447,13 @@ func (m *Manager) GetHostByKubeKey(key types.NamespacedName) (*common.Host, erro
 }
 
 func (m *Manager) UnRegisterHost(ctx context.Context, h *models.Host) error {
+	if h.ClusterID == nil {
+		// try to get ClusterId if not provided. (API)
+		err := m.db.Table("hosts").Select("cluster_id").Where("id = ?", h.ID.String()).Scan(&h.ClusterID).Error
+		if err != nil {
+			m.log.Infof("Host %v is not Bound to Cluster.", h.ID)
+		}
+	}
 	if h.ClusterID != nil {
 		var cluster *common.Cluster
 		if err := m.db.Select("status").Take(&cluster, "id = ?", h.ClusterID.String()).Error; err != nil {
@@ -1455,15 +1462,15 @@ func (m *Manager) UnRegisterHost(ctx context.Context, h *models.Host) error {
 		if err := common.CanUnbindhost(cluster); err != nil {
 			return err
 		}
-		if err := common.DeleteHostFromDB(m.db, h.ID.String(), h.InfraEnvID.String()); err != nil {
-			return err
-		}
-		if err := m.db.Model(&common.Cluster{}).Where("id = ?", h.ClusterID).Update("trigger_monitor_timestamp", time.Now()).Error; err != nil {
-			return err
-		}
-		return nil
 	}
-	return fmt.Errorf("UnRegisterHost failed to locate ClusterID")
+	// allow deleting hosts when is not bound to a cluster
+	if err := common.DeleteHostFromDB(m.db, h.ID.String(), h.InfraEnvID.String()); err != nil {
+		return err
+	}
+	if err := m.db.Model(&common.Cluster{}).Where("id = ?", h.ClusterID).Update("trigger_monitor_timestamp", time.Now()).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func (m *Manager) GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error) {

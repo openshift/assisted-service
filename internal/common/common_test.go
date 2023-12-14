@@ -493,7 +493,9 @@ var _ = Describe("Test CanUnbindhost", func() {
 				cluster.Status = swag.String(failState)
 				err := CanUnbindhost(&cluster)
 
-				Expect(err).ToNot(BeNil())
+				errMsg := fmt.Errorf("cluster %s is in %s state, host cannot be unbind when status is one of: %s",
+					cluster.ID, failState, notAllowedStatus)
+				Expect(err).To(Equal(errMsg))
 			}
 		})
 		It("success unbind host", func() {
