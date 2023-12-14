@@ -315,6 +315,55 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/progress:
+    put:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Update installation finalizing progress.
+      operationId: v2UpdateClusterFinalizingProgress
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster being updated.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: finalizing-progress
+          description: New progress value.
+          required: true
+          schema:
+            $ref: '#/definitions/cluster-finalizing-progress'
+      responses:
+        "200":
+          description: Update install progress.
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
   /v2/clusters/{cluster_id}/hosts:
     get:
       tags:
@@ -5008,6 +5057,19 @@ definitions:
         format: uuid
         description: The id of the OCP cluster, that hosts will be added to
 
+  finalizing-stage:
+    description: Cluster finalizing stage managed by controller
+    type: string
+    enum:
+    - Waiting for finalizing
+    - Waiting for cluster operators
+    - Adding router ca
+    - Waiting for olm operators
+    - Applying manifests
+    - Waiting for olm operators csv
+    - Done
+
+
   cluster:
     type: object
     required:
@@ -5601,6 +5663,26 @@ definitions:
         type: integer
       finalizing_stage_percentage:
         type: integer
+      finalizing_stage:
+        $ref: '#/definitions/finalizing-stage'
+      finalizing_stage_started_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+      node_updater_started_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+      node_updater_finished_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+
+  cluster-finalizing-progress:
+    type: object
+    properties:
+      finalizing_stage:
+        $ref: '#/definitions/finalizing-stage'
 
   disk-encryption:
     type: object

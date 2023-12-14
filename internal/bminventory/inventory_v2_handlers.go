@@ -1000,3 +1000,7 @@ func (b *bareMetalInventory) GetInfraEnvPresignedFileURL(ctx context.Context, pa
 		},
 	}
 }
+
+func (b *bareMetalInventory) V2UpdateClusterFinalizingProgress(ctx context.Context, params installer.V2UpdateClusterFinalizingProgressParams) middleware.Responder {
+	return installer.NewV2UpdateClusterFinalizingProgressOK()
+}
