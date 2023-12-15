@@ -78,11 +78,12 @@ func removeEmptySupportLevel(supportLevels models.SupportLevels) {
 }
 
 // GetFeatureSupportList Get features support level list, cpuArchitecture is optional and the default value is x86
-func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string, platformType *models.PlatformType) models.SupportLevels {
+func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string, platformType *models.PlatformType, externalPlatformName *string) models.SupportLevels {
 	filters := SupportLevelFilters{
-		OpenshiftVersion: openshiftVersion,
-		CPUArchitecture:  cpuArchitecture,
-		PlatformType:     platformType,
+		OpenshiftVersion:     openshiftVersion,
+		CPUArchitecture:      cpuArchitecture,
+		PlatformType:         platformType,
+		ExternalPlatformName: externalPlatformName,
 	}
 
 	if cpuArchitecture == nil {

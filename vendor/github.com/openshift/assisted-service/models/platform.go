@@ -22,11 +22,6 @@ type Platform struct {
 	// external
 	External *PlatformExternal `json:"external,omitempty" gorm:"embedded;embeddedPrefix:external_"`
 
-	// Used by the service to indicate that the platform-specific components are not included in
-	// OpenShift and must be provided as manifests separately.
-	// Read Only: true
-	IsExternal *bool `json:"is_external,omitempty"`
-
 	// type
 	// Required: true
 	Type *PlatformType `json:"type"`
@@ -101,10 +96,6 @@ func (m *Platform) ContextValidate(ctx context.Context, formats strfmt.Registry)
 		res = append(res, err)
 	}
 
-	if err := m.contextValidateIsExternal(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.contextValidateType(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -126,15 +117,6 @@ func (m *Platform) contextValidateExternal(ctx context.Context, formats strfmt.R
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *Platform) contextValidateIsExternal(ctx context.Context, formats strfmt.Registry) error {
-
-	if err := validate.ReadOnly(ctx, "is_external", "body", m.IsExternal); err != nil {
-		return err
 	}
 
 	return nil

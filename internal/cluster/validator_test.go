@@ -572,8 +572,11 @@ var _ = Describe("Platform validations", func() {
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID: &clusterID,
 			Platform: &models.Platform{
-				IsExternal: swag.Bool(true),
-				Type:       common.PlatformTypePtr(models.PlatformTypeOci),
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           swag.String("oci"),
+					CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+				},
 			},
 			UserManagedNetworking: swag.Bool(true),
 		}}
@@ -587,8 +590,11 @@ var _ = Describe("Platform validations", func() {
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID: &clusterID,
 			Platform: &models.Platform{
-				IsExternal: swag.Bool(true),
-				Type:       common.PlatformTypePtr(models.PlatformTypeOci),
+				Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+				External: &models.PlatformExternal{
+					PlatformName:           swag.String("oci"),
+					CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+				},
 			},
 			UserManagedNetworking: swag.Bool(true),
 			FeatureUsage:          "{\"Custom manifest\":{\"id\":\"CUSTOM_MANIFEST\",\"name\":\"Custom manifest\"}}",
@@ -603,8 +609,7 @@ var _ = Describe("Platform validations", func() {
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID: &clusterID,
 			Platform: &models.Platform{
-				IsExternal: swag.Bool(false),
-				Type:       common.PlatformTypePtr(models.PlatformTypeBaremetal),
+				Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 			},
 		}}
 		status, message := validator.platformRequirementsSatisfied(preprocessContext)

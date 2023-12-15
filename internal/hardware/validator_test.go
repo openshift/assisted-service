@@ -133,7 +133,6 @@ var _ = Describe("Disk eligibility", func() {
 	It("Check if SSD is eligible", func() {
 		testDisk.DriveType = models.DriveTypeSSD
 
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 
 		Expect(err).ToNot(HaveOccurred())
@@ -149,7 +148,6 @@ var _ = Describe("Disk eligibility", func() {
 	It("Check if HDD is eligible", func() {
 		testDisk.DriveType = models.DriveTypeHDD
 
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 
 		Expect(err).ToNot(HaveOccurred())
@@ -169,7 +167,6 @@ var _ = Describe("Disk eligibility", func() {
 		hostInventory.SystemVendor.Manufacturer = "OracleCloud.com"
 		hw, _ := json.Marshal(&hostInventory)
 		host.Inventory = string(hw)
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(true, nil).AnyTimes()
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 
 		Expect(err).ToNot(HaveOccurred())
@@ -194,7 +191,6 @@ var _ = Describe("Disk eligibility", func() {
 		testDisk.Name = "dm-0"
 		testDisk.DriveType = models.DriveTypeMultipath
 		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeFC, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeFC, Holders: "dm-0"}}
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, allDisks)
 
@@ -212,7 +208,6 @@ var _ = Describe("Disk eligibility", func() {
 		testDisk.Name = "dm-0"
 		testDisk.DriveType = models.DriveTypeMultipath
 		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}}
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, allDisks)
 
@@ -228,7 +223,6 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check if FC is not eligible on non-s390x", func() {
 		testDisk.DriveType = models.DriveTypeFC
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 
@@ -244,7 +238,6 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check if FC is eligible for s390x", func() {
 		testDisk.DriveType = models.DriveTypeFC
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureS390x, []*models.Disk{&testDisk})
 
@@ -260,7 +253,6 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check if ECKD is not eligible on non-s390x", func() {
 		testDisk.DriveType = models.DriveTypeECKD
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 
@@ -276,7 +268,6 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check if ECKD is eligible for s390x", func() {
 		testDisk.DriveType = models.DriveTypeECKD
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureS390x, []*models.Disk{&testDisk})
 
@@ -292,7 +283,6 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check if FBA is not eligible on non-s390x", func() {
 		testDisk.DriveType = models.DriveTypeFBA
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 
@@ -308,7 +298,6 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check if FBA is eligible for s390x", func() {
 		testDisk.DriveType = models.DriveTypeFBA
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureS390x, []*models.Disk{&testDisk})
 
@@ -324,7 +313,6 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check that ODD is not eligible", func() {
 		testDisk.DriveType = models.DriveTypeODD
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 
@@ -340,7 +328,6 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check that a big enough size is eligible", func() {
 		testDisk.SizeBytes = bigEnoughSize
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 
@@ -367,7 +354,6 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check that a small size is not eligible", func() {
 		testDisk.SizeBytes = tooSmallSize
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 
@@ -384,7 +370,6 @@ var _ = Describe("Disk eligibility", func() {
 	It("Check that existing non-eligibility reasons are preserved", func() {
 		existingReasons := []string{"Reason 1", "Reason 2"}
 		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 
@@ -400,7 +385,6 @@ var _ = Describe("Disk eligibility", func() {
 	It("Check that a small size reason is added to existing reasons", func() {
 		existingReasons := []string{"Reason 1", "Reason 2"}
 		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		testDisk.SizeBytes = tooSmallSize
 
@@ -422,7 +406,6 @@ var _ = Describe("Disk eligibility", func() {
 		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil)
 		existingReasons := []string{"Reason 1", "Reason 2"}
 		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
-		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeOci, gomock.Any()).Return(false, nil).AnyTimes()
 
 		testDisk.SizeBytes = tooSmallSize
 

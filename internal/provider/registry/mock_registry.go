@@ -9,6 +9,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	provider "github.com/openshift/assisted-service/internal/provider"
+	models "github.com/openshift/assisted-service/models"
 )
 
 // MockRegistry is a mock of Registry interface.
@@ -35,7 +36,7 @@ func (m *MockRegistry) EXPECT() *MockRegistryMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockRegistry) Get(arg0 string) (provider.Provider, error) {
+func (m *MockRegistry) Get(arg0 *models.Platform) (provider.Provider, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0)
 	ret0, _ := ret[0].(provider.Provider)

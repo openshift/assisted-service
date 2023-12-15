@@ -705,7 +705,8 @@ func getDefaultExternalPlatformAgentClusterInstallSpec(clusterDeploymentName str
 		},
 		PlatformType: hiveext.ExternalPlatformType,
 		ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
-			PlatformName: "oci",
+			PlatformName:           "oci",
+			CloudControllerManager: "External",
 		},
 		SSHPublicKey: sshPublicKey,
 		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},

@@ -90,6 +90,7 @@ func setExternalDefaultValues(platform *models.Platform, cluster *common.Cluster
 	}
 }
 
+// areExternalSettingsSet returns true when at least one of the parameters in platform.External is set
 func areExternalSettingsSet(platform models.Platform) bool {
 	return platform.External != nil && (platform.External.PlatformName != nil || platform.External.CloudControllerManager != nil)
 }
@@ -148,15 +149,6 @@ func createPlatformFromType(platformType models.PlatformType) *models.Platform {
 	platform := &models.Platform{
 		Type: &platformType,
 	}
-	return updatePlatformIsExternal(platform)
-}
-
-func updatePlatformIsExternal(platform *models.Platform) *models.Platform {
-	if platform == nil {
-		return nil
-	}
-	platform.IsExternal = swag.Bool(common.IsPlatformExternal(platform))
-
 	return platform
 }
 
@@ -176,7 +168,7 @@ func checkExternalPlatformUpdate(platform models.Platform, cluster *common.Clust
 	}
 
 	if update {
-		return updatePlatformIsExternal(&platform)
+		return &platform
 	}
 
 	return nil
@@ -196,7 +188,7 @@ func checkPlaformUpdate(platform *models.Platform, cluster *common.Cluster) *mod
 		return nil
 	}
 
-	return updatePlatformIsExternal(platform)
+	return platform
 }
 
 func getUpdateParamsForPlatformBM(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
@@ -209,7 +201,7 @@ func getUpdateParamsForPlatformBM(platform *models.Platform, userManagedNetworki
 		return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
 	}
 
-	return updatePlatformIsExternal(platform), userManagedNetworking, nil
+	return platform, userManagedNetworking, nil
 }
 
 func getUpdateParamsForPlatformUMNMandatory(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
@@ -235,7 +227,7 @@ func getUpdateParamsForPlatformUMNMandatory(platform *models.Platform, userManag
 		}
 	}
 
-	return updatePlatformIsExternal(platform), userManagedNetworking, nil
+	return platform, userManagedNetworking, nil
 }
 
 func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
@@ -250,7 +242,7 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 	setExternalDefaultValues(platform, cluster)
 
 	if doesPlatformAllowUMNOrCMN(platform, cluster) {
-		return updatePlatformIsExternal(platform), userManagedNetworking, nil
+		return platform, userManagedNetworking, nil
 	}
 
 	if isClusterPlatformBM(cluster) {
@@ -261,7 +253,7 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 		return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("User-managed-networking is not supported with platform %s", common.PlatformTypeValue(cluster.Platform.Type)))
 	}
 
-	return updatePlatformIsExternal(platform), userManagedNetworking, nil
+	return platform, userManagedNetworking, nil
 }
 
 func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string) (*models.Platform, *bool, error) {
@@ -275,7 +267,7 @@ func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userMan
 				// default to None platform
 				return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
 			} else {
-				return updatePlatformIsExternal(platform), swag.Bool(true), nil
+				return platform, swag.Bool(true), nil
 			}
 		}
 	} else { // *highAvailabilityMode == models.ClusterHighAvailabilityModeNone
@@ -288,7 +280,7 @@ func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userMan
 		}
 
 		if isPlatformNone(platform) || common.IsPlatformExternal(platform) {
-			return updatePlatformIsExternal(platform), swag.Bool(true), nil
+			return platform, swag.Bool(true), nil
 		}
 
 		return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
@@ -313,15 +305,13 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 	}
 
 	if platform != nil && !isPlatformBM(platform) && !isUMNMandatoryForPlatform(platform) {
-		return updatePlatformIsExternal(platform), userManagedNetworking, nil
+		return platform, userManagedNetworking, nil
 	}
 	return GetClusterPlatformByHighAvailabilityMode(platform, userManagedNetworking, highAvailabilityMode)
 }
 
 func GetPlatformFeatureID(platformType models.PlatformType) models.FeatureSupportLevelID {
 	switch platformType {
-	case models.PlatformTypeOci:
-		return models.FeatureSupportLevelIDEXTERNALPLATFORMOCI
 	case models.PlatformTypeExternal:
 		return models.FeatureSupportLevelIDEXTERNALPLATFORM
 	case models.PlatformTypeVsphere:

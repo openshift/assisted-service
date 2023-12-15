@@ -8,6 +8,60 @@ import (
 	"github.com/pkg/errors"
 )
 
+// merge the current platform set in cluster with the platform given in input
+func mergePlatforms(platform *models.Platform, cluster *common.Cluster) *models.Platform {
+	if cluster == nil {
+		return platform
+	}
+
+	var mergedPlatform models.Platform
+
+	mergedPlatform.Type = platform.Type
+	if mergedPlatform.Type == nil {
+		mergedPlatform.Type = cluster.Platform.Type
+	}
+
+	if platform.External == nil {
+		mergedPlatform.External = cluster.Platform.External
+		return &mergedPlatform
+	}
+
+	mergedPlatform.External = &models.PlatformExternal{
+		PlatformName:           platform.External.PlatformName,
+		CloudControllerManager: platform.External.CloudControllerManager,
+	}
+
+	if cluster.Platform.External == nil {
+		// existing cluster has no external setting set, nothing else do to
+		return &mergedPlatform
+	}
+
+	if mergedPlatform.External.PlatformName == nil {
+		mergedPlatform.External.PlatformName = cluster.Platform.External.PlatformName
+	}
+
+	if mergedPlatform.External.CloudControllerManager == nil {
+		mergedPlatform.External.CloudControllerManager = cluster.Platform.External.CloudControllerManager
+	}
+
+	return &mergedPlatform
+}
+
+// validateOciExternalIntegration checks if CCM is enabled when OCI integration is enabled
+func validateOciExternalIntegration(platform *models.Platform) error {
+	if !common.IsOciExternalIntegrationEnabled(platform) {
+		return nil
+	}
+
+	if platform.External.CloudControllerManager == nil ||
+		*platform.External.CloudControllerManager != models.PlatformExternalCloudControllerManagerExternal {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Cloud controller manager must be enabled when using oci external integration"))
+	}
+
+	return nil
+}
+
+// validateExternalSettingsForCreate checks if platform.external struct is a valid external definition
 func validateExternalSettingsForCreate(platform models.Platform) error {
 	if platform.External == nil {
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("External setting must be set when using platform type external"))
@@ -20,31 +74,40 @@ func validateExternalSettingsForCreate(platform models.Platform) error {
 	return nil
 }
 
+// validateExternalPlatform check if platform is a valid external platform definition, the validation can be performed against an existing cluster in case of update
 func validateExternalPlatform(platform *models.Platform, cluster *common.Cluster) error {
 	if platform == nil {
 		// nothing to check
 		return nil
 	}
 
-	// No existing cluster or existing cluster is not external.
-	if cluster == nil || *cluster.Platform.Type != models.PlatformTypeExternal {
+	var err error
+
+	if cluster == nil || *cluster.Platform.Type != models.PlatformTypeExternal { // No existing cluster or existing cluster is not external
 		if platform.Type != nil && *platform.Type == models.PlatformTypeExternal {
 			// We require valid external settings when platform is set to external
-			return validateExternalSettingsForCreate(*platform)
+			err = validateExternalSettingsForCreate(*platform)
 		} else if areExternalSettingsSet(*platform) {
-			// external setting shouldn't be set if platform type is not external
-			return common.NewApiError(http.StatusBadRequest, errors.Errorf("External settings can only be set with external platform type"))
+			// external settings shouldn't be set if platform type is not external
+			err = common.NewApiError(http.StatusBadRequest, errors.Errorf("External settings can only be set with external platform type"))
 		}
-	}
-
-	// Existing cluster is external and platform type is not external
-	if cluster != nil &&
+	} else if cluster != nil &&
 		*cluster.Platform.Type == models.PlatformTypeExternal &&
 		platform.Type != nil &&
 		*platform.Type != models.PlatformTypeExternal &&
 		areExternalSettingsSet(*platform) {
 		// external setting shouldn't be set if platform type is not external
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("External settings can only be set with external platform type"))
+		err = common.NewApiError(http.StatusBadRequest, errors.Errorf("External settings can only be set with external platform type"))
+	}
+
+	if err != nil {
+		return err
+	}
+
+	mergedPlatform := mergePlatforms(platform, cluster)
+	err = validateOciExternalIntegration(mergedPlatform)
+	if err != nil {
+		return err
 	}
 
 	return nil

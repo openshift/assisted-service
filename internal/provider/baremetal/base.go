@@ -29,3 +29,9 @@ func (p *baremetalProvider) IsHostSupported(_ *models.Host) (bool, error) {
 func (p *baremetalProvider) AreHostsSupported(_ []*models.Host) (bool, error) {
 	return true, nil
 }
+
+func (p *baremetalProvider) IsProviderForPlatform(platform *models.Platform) bool {
+	return platform != nil &&
+		platform.Type != nil &&
+		*platform.Type == p.Name()
+}

@@ -293,6 +293,22 @@ spec:
                 description: ExternalPlatformSpec represents generic infrastructure
                   provider. Platform-specific components should be supplemented separately.
                 properties:
+                  cloudControllerManager:
+                    allOf:
+                    - enum:
+                      - ""
+                      - BareMetal
+                      - None
+                      - VSphere
+                      - Nutanix
+                      - External
+                    - enum:
+                      - ""
+                      - External
+                    default: ""
+                    description: CloudControllerManager when set to external, this
+                      property will enable an external cloud provider.
+                    type: string
                   platformName:
                     default: Unknown
                     description: PlatformName holds the arbitrary string representing

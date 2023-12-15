@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/common/testing"
+	commontesting "github.com/openshift/assisted-service/internal/common/testing"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/feature"
@@ -781,8 +782,8 @@ var _ = Describe("Install", func() {
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		pr := registry.NewMockProviderRegistry(ctrl)
-		pr.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
-		pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+		pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
+		pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 		mockVersions := versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
@@ -1323,7 +1324,7 @@ var _ = Describe("Refresh Host", func() {
 		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operatorsOptions, nil, nil)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 		pr = registry.NewMockProviderRegistry(ctrl)
-		pr.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
+		pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
 
 		mockVersions := versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -1343,7 +1344,7 @@ var _ = Describe("Refresh Host", func() {
 	Context("connection timeout", func() {
 
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
 
@@ -1464,7 +1465,7 @@ var _ = Describe("Refresh Host", func() {
 	Context("host installation timeout - cluster is pending user action", func() {
 
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
 
@@ -1491,7 +1492,7 @@ var _ = Describe("Refresh Host", func() {
 		for _, t := range tests {
 			t := t
 			It(fmt.Sprintf("checking timeout from stage %s", t.stage), func() {
-				pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+				pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 				hostCheckInAt := strfmt.DateTime(time.Now())
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusInstallingInProgress)
 				host.Inventory = hostutil.GenerateMasterInventory()
@@ -1584,7 +1585,7 @@ var _ = Describe("Refresh Host", func() {
 			}
 
 			It("Known to insufficient", func() {
-				pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+				pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 				pr.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return([]models.PlatformType{models.PlatformTypeBaremetal}, nil).AnyTimes()
 
 				createHost(models.HostStatusKnown)
@@ -1603,7 +1604,7 @@ var _ = Describe("Refresh Host", func() {
 	Context("host disconnected", func() {
 
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
 
@@ -1708,7 +1709,7 @@ var _ = Describe("Refresh Host", func() {
 
 	Context("host disconnected", func() {
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
 
@@ -1811,7 +1812,7 @@ var _ = Describe("Refresh Host", func() {
 	Context("host installation timeout", func() {
 
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
 
@@ -1865,7 +1866,7 @@ var _ = Describe("Refresh Host", func() {
 	Context("host installationInProgress timeout", func() {
 
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
 		})
@@ -2010,7 +2011,7 @@ var _ = Describe("Refresh Host", func() {
 
 	Context("Validate host", func() {
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 		})
 
 		tests := []struct {
@@ -2294,7 +2295,7 @@ var _ = Describe("Refresh Host", func() {
 
 	Context("Preparing for installation", func() {
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 		})
 
 		tests := []struct {
@@ -2553,7 +2554,7 @@ var _ = Describe("Refresh Host", func() {
 
 	Context("Preparing successful", func() {
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 		})
 		tests := []struct {
 			// Test parameters
@@ -2638,7 +2639,7 @@ var _ = Describe("Refresh Host", func() {
 		var srcState string
 
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 		})
 
 		type TransitionTestStruct struct {
@@ -4564,7 +4565,7 @@ var _ = Describe("Refresh Host", func() {
 	})
 	Context("Pending timed out", func() {
 		BeforeEach(func() {
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
 		tests := []struct {
@@ -4628,7 +4629,7 @@ var _ = Describe("Refresh Host", func() {
 
 		BeforeEach(func() {
 			otherHostID = strfmt.UUID(uuid.New().String())
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			ntpSources = defaultNTPSources
 			imageStatuses = map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess}
 			mockDefaultClusterHostRequirements(mockHwValidator)
@@ -5090,7 +5091,7 @@ var _ = Describe("Refresh Host", func() {
 	Context("Cluster Errors", func() {
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
 		})
 
@@ -5163,7 +5164,7 @@ var _ = Describe("Refresh Host", func() {
 
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 
 			defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
 			Expect(err).NotTo(HaveOccurred())
@@ -5238,7 +5239,7 @@ var _ = Describe("Refresh Host", func() {
 
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 				eventstest.WithHostIdMatcher(hostId.String()),
@@ -5300,7 +5301,7 @@ var _ = Describe("Refresh Host", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 
 			mockVersions := versions.NewMockHandler(ctrl)
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -5548,7 +5549,7 @@ var _ = Describe("Refresh Host", func() {
 			mockVersions := versions.NewMockHandler(ctrl)
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
-			pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 
 			hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions)
 			mockDefaultClusterHostRequirements(mockHwValidator)
@@ -6168,8 +6169,8 @@ var _ = Describe("Upgrade agent feature", func() {
 		}}
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(disks).AnyTimes()
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
-		pr.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
-		pr.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
+		pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
+		pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), gomock.Any()).AnyTimes()
 
 		// Refresh the host:
