@@ -6,23 +6,13 @@ function running_from_skipper() {
 }
 
 function get_container_runtime_command() {
+  if [[ "${CONTAINER_TOOL}" == "docker" ]]; then
+      >&2 echo "WARNING: docker is not supported. For seamless experience use podman or podman-remote"
+  fi
   # if CONTAINER_TOOL is defined skipping
   if [ -z "${CONTAINER_TOOL+x}" ]; then
-    if running_from_skipper; then
-      if [ -z ${CONTAINER_RUNTIME_COMMAND+x} ]; then
-        echo "CONTAINER_RUNTIME_COMMAND doesn't set on old skipper version -> default to docker. Upgrade your skipper to the latest version" 1>&2;
-      fi
-
-      if [ "${CONTAINER_RUNTIME_COMMAND:-docker}" == "docker" ]; then
-        CONTAINER_TOOL="docker"
-      else
-        CONTAINER_TOOL=$( command -v podman &> /dev/null && echo "podman" || echo "podman-remote")
-      fi
-    else
-      CONTAINER_TOOL=$( command -v podman &> /dev/null && echo "podman" || echo "docker")
-    fi
+      CONTAINER_TOOL=$( command -v podman &> /dev/null && echo "podman" || echo "podman-remote")
   fi
-
   echo $CONTAINER_TOOL
 }
 
