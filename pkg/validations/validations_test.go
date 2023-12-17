@@ -185,10 +185,6 @@ var _ = Describe("dns name", func() {
 			valid:      false,
 		},
 		{
-			domainName: "a.com",
-			valid:      true,
-		},
-		{
 			domainName: "a",
 			valid:      false,
 		},
@@ -201,23 +197,31 @@ var _ = Describe("dns name", func() {
 			valid:      false,
 		},
 		{
+			domainName: "1c",
+			valid:      false,
+		},
+		{
+			domainName: "1-c",
+			valid:      false,
+		},
+		{
+			domainName: "1--c",
+			valid:      false,
+		},
+		{
+			domainName: "a.c",
+			valid:      false,
+		},
+		{
+			domainName: "aaa.c",
+			valid:      false,
+		},
+		{
 			domainName: "co",
 			valid:      true,
 		},
 		{
-			domainName: "1c",
-			valid:      true,
-		},
-		{
-			domainName: "1-c",
-			valid:      true,
-		},
-		{
-			domainName: "1--c",
-			valid:      true,
-		},
-		{
-			domainName: "aaa",
+			domainName: "a.com",
 			valid:      true,
 		},
 		{
@@ -242,7 +246,7 @@ var _ = Describe("dns name", func() {
 		},
 		{
 			domainName: "0-example.com0",
-			valid:      true,
+			valid:      false,
 		},
 		{
 			domainName: "example-example-example.com",
@@ -271,14 +275,6 @@ var _ = Describe("dns name", func() {
 		{
 			domainName: "validateNoWildcardDNS.test.com.",
 			valid:      true,
-		},
-		{
-			domainName: "a.c",
-			valid:      false,
-		},
-		{
-			domainName: "aaa.c",
-			valid:      false,
 		},
 	}
 	for _, t := range tests {
