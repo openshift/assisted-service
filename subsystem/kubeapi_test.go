@@ -1060,6 +1060,51 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnvSpec = getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 	})
 
+	It("Should use full-iso for s390x cpu architecture", func() {
+		By("Request S390x infraenv")
+		infraEnvSpec.ClusterRef = nil
+		infraEnvSpec.CpuArchitecture = models.ClusterCPUArchitectureS390x
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		By("Verify full-iso requested on creation of infra-env")
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		var infraEnv *common.InfraEnv
+		Eventually(func() bool {
+			infraEnv = getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+			return string(*infraEnv.InfraEnv.Type) == "full-iso"
+		}, "1m", "20s").Should(BeTrue())
+
+		By("Set infra-env to minimal iso to test update")
+		err := db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(map[string]interface{}{"type": models.ImageTypeMinimalIso}).Error
+		Expect(err).ToNot(HaveOccurred())
+		Eventually(func() bool {
+			infraEnv = getInfraEnvFromDBByKubeKey(ctx, db, types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      infraNsName.Name,
+			}, waitForReconcileTimeout)
+			return string(*infraEnv.InfraEnv.Type) == "minimal-iso"
+		}, "1m", "20s").Should(BeTrue())
+
+		By("Update infraenv and observe that type is set to full-iso")
+		infraEnvCR := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+		infraEnvCR.ObjectMeta.Labels = map[string]string{"foo": "bmhName"}
+		err = kubeClient.Update(ctx, infraEnvCR)
+		Expect(err).ToNot(HaveOccurred())
+		infraEnvKey = types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		Eventually(func() bool {
+			infraEnv = getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+			return string(*infraEnv.InfraEnv.Type) == "full-iso"
+		}, "1m", "20s").Should(BeTrue())
+	})
+
 	It("Pull Secret validation error", func() {
 		By("setting pull secret with wrong data")
 		updateSecret(ctx, kubeClient, pullSecretName, map[string]string{

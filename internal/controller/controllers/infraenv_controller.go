@@ -140,6 +140,15 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 	return r.ensureISO(ctx, log, infraEnv)
 }
 
+func (r *InfraEnvReconciler) getImageType(ctx context.Context, infraEnv *aiv1beta1.InfraEnv) models.ImageType {
+	// S390X platform does not support minimal ISO, ensure that full ISO is requested instead.
+	imageType := r.Config.ImageType
+	if infraEnv.Spec.CpuArchitecture == models.ClusterCPUArchitectureS390x {
+		imageType = models.ImageTypeFullIso
+	}
+	return imageType
+}
+
 func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (*common.InfraEnv, error) {
 	updateParams := installer.UpdateInfraEnvParams{
 		InfraEnvID:           *internalInfraEnv.ID,
@@ -198,7 +207,7 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 		updateParams.InfraEnvUpdateParams.StaticNetworkConfig = staticNetworkConfig
 	}
 
-	updateParams.InfraEnvUpdateParams.ImageType = r.Config.ImageType
+	updateParams.InfraEnvUpdateParams.ImageType = r.getImageType(ctx, infraEnv)
 
 	existingKargs, err := kubeKernelArgs(internalInfraEnv)
 	if err != nil {
@@ -476,7 +485,7 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 	if cluster != nil {
 		clusterID = cluster.ID
 	}
-	createParams := CreateInfraEnvParams(infraEnv, r.Config.ImageType, pullSecret, clusterID, osImageVersion)
+	createParams := CreateInfraEnvParams(infraEnv, r.getImageType(ctx, infraEnv), pullSecret, clusterID, osImageVersion)
 
 	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {
