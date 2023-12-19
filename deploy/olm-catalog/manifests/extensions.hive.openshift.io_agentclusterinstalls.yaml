@@ -6,6 +6,18 @@ metadata:
   creationTimestamp: null
   name: agentclusterinstalls.extensions.hive.openshift.io
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: assisted-service
+          namespace: assisted-installer
+          path: /convert
+          port: 443
+      conversionReviewVersions:
+      - v1beta2
+      - v1beta1
   group: extensions.hive.openshift.io
   names:
     kind: AgentClusterInstall

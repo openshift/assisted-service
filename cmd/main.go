@@ -20,6 +20,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-image-service/pkg/servers"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
@@ -627,6 +628,8 @@ func main() {
 				Client: ctrlMgr.GetClient(),
 				Log:    log,
 			}).SetupWithManager(ctrlMgr), "unable to create controller AgentLabel")
+
+			failOnError((&hiveext.AgentClusterInstall{}).SetupWebhookWithManager(ctrlMgr), "unable to create webhook")
 
 			if useConvergedFlow {
 				failOnError((&controllers.PreprovisioningImageReconciler{

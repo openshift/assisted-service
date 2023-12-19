@@ -96,6 +96,7 @@ const (
 var (
 	servicePort          = intstr.Parse("8090")
 	serviceHTTPPort      = intstr.Parse("8091")
+	webhookPort          = intstr.Parse("9443")
 	databasePort         = intstr.Parse("5432")
 	imageHandlerPort     = intstr.Parse("8080")
 	imageHandlerHTTPPort = intstr.Parse("8081")
@@ -600,9 +601,9 @@ func newAgentService(ctx context.Context, log logrus.FieldLogger, asc ASC) (clie
 		}
 		addAppLabel(serviceName, &svc.ObjectMeta)
 		setAnnotation(&svc.ObjectMeta, servingCertAnnotation, serviceName)
-		if len(svc.Spec.Ports) != 2 {
+		if len(svc.Spec.Ports) != 3 {
 			svc.Spec.Ports = []corev1.ServicePort{}
-			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
+			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{}, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = serviceName
 		svc.Spec.Ports[0].Port = int32(servicePort.IntValue())
@@ -612,6 +613,10 @@ func newAgentService(ctx context.Context, log logrus.FieldLogger, asc ASC) (clie
 		svc.Spec.Ports[1].Port = int32(serviceHTTPPort.IntValue())
 		svc.Spec.Ports[1].TargetPort = serviceHTTPPort
 		svc.Spec.Ports[1].Protocol = corev1.ProtocolTCP
+		svc.Spec.Ports[2].Name = fmt.Sprintf("%s-webhooks", serviceName)
+		svc.Spec.Ports[2].Port = 443
+		svc.Spec.Ports[2].TargetPort = webhookPort
+		svc.Spec.Ports[2].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": serviceName}
 		svc.Spec.Type = corev1.ServiceTypeClusterIP
 		return nil
@@ -1497,6 +1502,10 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			},
 			{
 				ContainerPort: int32(serviceHTTPPort.IntValue()),
+				Protocol:      corev1.ProtocolTCP,
+			},
+			{
+				ContainerPort: int32(webhookPort.IntValue()),
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
