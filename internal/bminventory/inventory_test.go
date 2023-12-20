@@ -2146,6 +2146,97 @@ var _ = Describe("cluster", func() {
 			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 		})
 
+		DescribeTable(
+			"update cluster with compatible network_type and openshift version successfully",
+			func(openshiftVersion, networkType string) {
+				cpuArchitecture := "irrelevant"
+				mockOperators := operators.NewMockAPI(ctrl)
+				bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
+
+				mockClusterRegisterSuccessWithVersion(cpuArchitecture, openshiftVersion)
+
+				mockEvents.EXPECT().SendClusterEvent(ctx, gomock.Any())
+				mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any())
+
+				clusterCreateParams := &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(fakePullSecret),
+					Platform: &models.Platform{
+						Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+					},
+					CPUArchitecture:      models.ClusterCPUArchitectureX8664,
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+				}
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: clusterCreateParams,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				c, err := bm.getCluster(ctx, actual.Payload.ID.String())
+				Expect(err).ToNot(HaveOccurred())
+
+				newClusterName := "day1-cluster-new-name"
+				reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: *c.ID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						Name:        &newClusterName,
+						NetworkType: &networkType,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+			},
+			Entry("OVN supported for 4.15", "4.15.2", models.ClusterCreateParamsNetworkTypeOVNKubernetes),
+			Entry("OVN supported for versions above 4.15", "4.18.3", models.ClusterCreateParamsNetworkTypeOVNKubernetes),
+			Entry("OVN supported for versions below 4.15", "4.13.1", models.ClusterCreateParamsNetworkTypeOVNKubernetes),
+			Entry("SDN supported until 4.14", "4.14.0", models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
+		)
+
+		DescribeTable(
+			"update cluster with incompatible network_type and openshift version failed",
+			func(openshiftVersion, networkType string) {
+				cpuArchitecture := "irrelevant"
+				mockOperators := operators.NewMockAPI(ctrl)
+				bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
+
+				mockClusterRegisterSuccessWithVersion(cpuArchitecture, openshiftVersion)
+				clusterCreateParams := &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(fakePullSecret),
+					Platform: &models.Platform{
+						Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+					},
+					CPUArchitecture:      models.ClusterCPUArchitectureX8664,
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+				}
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: clusterCreateParams,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				c, err := bm.getCluster(ctx, actual.Payload.ID.String())
+				Expect(err).ToNot(HaveOccurred())
+
+				newClusterName := "day1-cluster-new-name"
+
+				reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: *c.ID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						Name:        &newClusterName,
+						NetworkType: &networkType,
+					},
+				})
+				expectedErrorMessage := fmt.Sprintf("Openshift version %s is not supported for %s NetworkType", openshiftVersion, networkType)
+				verifyApiErrorString(reply, http.StatusBadRequest, expectedErrorMessage)
+			},
+			Entry("SDN not supported for 4.15", "4.15.2", models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
+			Entry("SDN not supported for versions above 4.15", "4.17.6", models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
+		)
+
 		Context("Monitored Operators", func() {
 			var (
 				testOLMOperators = []*models.MonitoredOperator{
@@ -12905,6 +12996,58 @@ var _ = Describe("TestRegisterCluster", func() {
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
+
+	DescribeTable(
+		"NetworkType/OpenShift version successful registration",
+		func(openshiftVersion, networkType string) {
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, openshiftVersion)
+			mockAMSSubscription(ctx)
+
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OpenshiftVersion = swag.String(openshiftVersion)
+			clusterParams.NetworkType = &networkType
+
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: clusterParams,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+		},
+		Entry("OVN supported for 4.15", "4.15.2", models.ClusterCreateParamsNetworkTypeOVNKubernetes),
+		Entry("OVN supported for versions above 4.15", "4.18.3", models.ClusterCreateParamsNetworkTypeOVNKubernetes),
+		Entry("OVN supported for versions below 4.15", "4.13.1", models.ClusterCreateParamsNetworkTypeOVNKubernetes),
+		Entry("SDN supported until 4.14", "4.14.0", models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
+	)
+
+	DescribeTable(
+		"NetworkType/OpenShift version failed registration",
+		func(openshiftVersion, networkType string) {
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OpenshiftVersion = swag.String(openshiftVersion)
+			clusterParams.NetworkType = &networkType
+
+			cpuArchitecture := "irrelevant"
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  swag.String(cpuArchitecture),
+				CPUArchitectures: []string{cpuArchitecture},
+				OpenshiftVersion: swag.String(openshiftVersion),
+				URL:              swag.String("release_" + openshiftVersion),
+				Version:          swag.String(openshiftVersion),
+			}
+
+			mockVersions.EXPECT().GetReleaseImage(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil).Times(1)
+			mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: clusterParams,
+			})
+
+			verifyApiError(reply, http.StatusBadRequest)
+		},
+		Entry("SDN not supported for 4.15", "4.15.2", models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
+		Entry("SDN not supported for versions above 4.15", "4.17.6", models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
+	)
 
 	// Testing the default network type setting during register flow, with various combinations of platforms,
 	// OpenShift version and high availability modes

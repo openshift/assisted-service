@@ -18,6 +18,34 @@ func GetSupportLevel[T models.FeatureSupportLevelID | models.ArchitectureSupport
 	return cpuFeaturesList[models.ArchitectureSupportLevelID(featureId)].getSupportLevel(filters.(string))
 }
 
+func ValidateActiveFeatures(log logrus.FieldLogger, cluster *common.Cluster, infraEnv *models.InfraEnv, updateParams interface{}) error {
+	var err error
+	if cluster == nil {
+		return err
+	}
+	activatedFeatures := getActivatedFeatures(log, cluster, infraEnv, updateParams)
+	for _, feature := range activatedFeatures {
+		logFields := logrus.Fields{
+			"cluster_id":            cluster.ID,
+			"cluster_version":       swag.String(cluster.OpenshiftVersion),
+			"arch":                  swag.String(cluster.CPUArchitecture),
+			"support_level_feature": feature.GetName(),
+		}
+		// Once all features can validate themselves, we can merge SupportLevelFeatureValidator interface
+		// with SupportLevelFeature interface and remove this type check
+		if validatingFeature, ok := feature.(SupportLevelFeatureValidator); ok {
+			log.WithFields(logFields).Infof("validating feature")
+			if err := validatingFeature.Validate(cluster, updateParams); err != nil {
+				log.WithFields(logFields).WithError(err).Warning("could not validate fature")
+				return err
+			}
+			continue
+		}
+		log.WithFields(logFields).Info("feature does not implement SupportLevelFeatureValidator, skipping validation")
+	}
+	return nil
+}
+
 func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string, cluster *common.Cluster, infraEnv *models.InfraEnv, updateParams interface{}) error {
 	var openshiftVersion *string
 	if cluster != nil {
@@ -49,13 +77,15 @@ func getActivatedFeatures(log logrus.FieldLogger, cluster *common.Cluster, infra
 	var clusterUpdateParams *models.V2ClusterUpdateParams
 	var infraenvUpdateParams *models.InfraEnvUpdateParams
 
-	if updateParams != nil {
-		t := reflect.Indirect(reflect.ValueOf(updateParams))
-		if t.Type().Name() == "V2ClusterUpdateParams" {
-			clusterUpdateParams = updateParams.(*models.V2ClusterUpdateParams)
-		} else if t.Type().Name() == "InfraEnvUpdateParams" {
-			infraenvUpdateParams = updateParams.(*models.InfraEnvUpdateParams)
-		} else {
+	// reflection used to protect against typed nils
+	if updateParams != nil && !reflect.ValueOf(updateParams).IsNil() {
+		if clusterParams, ok := updateParams.(*models.V2ClusterUpdateParams); ok {
+			clusterUpdateParams = clusterParams
+		}
+		if infraenvParams, ok := updateParams.(*models.InfraEnvUpdateParams); ok {
+			infraenvUpdateParams = infraenvParams
+		}
+		if infraenvUpdateParams == nil && clusterUpdateParams == nil {
 			panic("updateParams must be one of type *models.V2ClusterUpdateParams or *models.InfraEnvUpdateParams")
 		}
 	}

@@ -623,8 +623,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 	cluster.MonitoredOperators = append(monitoredOperators, newOLMOperators...)
 
-	if err = featuresupport.ValidateIncompatibleFeatures(log, params.NewClusterParams.CPUArchitecture, cluster, nil, nil); err != nil {
-		b.log.Error(err)
+	if err = b.validateFeatureSupportLevel(ctx, cluster, params.NewClusterParams); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -676,6 +675,48 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	b.metricApi.ClusterRegistered()
 	cluster, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *cluster.ID})
 	return cluster, err
+}
+
+// Validates support level features incompatibilities and validates all active features implementing
+// SupportLevelFeatureValidator interface. This function can be used to validate both cluster creation
+// and cluster update as it accepts parameters of type *models.V2ClusterUpdateParams
+// or *models.ClusterCreateParams as argument. If the argument is not of one of those types
+// it will be ignored.
+func (b *bareMetalInventory) validateFeatureSupportLevel(ctx context.Context, cluster *common.Cluster, params interface{}) error {
+	var cpuArchitecture string
+	var updateParams *models.V2ClusterUpdateParams
+	if createParams, ok := params.(*models.ClusterCreateParams); ok {
+		cpuArchitecture = createParams.CPUArchitecture
+	}
+	if uParams, ok := params.(*models.V2ClusterUpdateParams); ok {
+		updateParams = uParams
+	}
+
+	// infraEnvs will be available only in case of update. No infra env when registering cluster
+	infraEnvs, err := b.ListInfraEnvsInternal(ctx, cluster.ID, nil)
+	if err != nil {
+		return err
+	}
+
+	// Validate with infra-envs architecture
+	for _, infraEnv := range infraEnvs {
+		if err := featuresupport.ValidateActiveFeatures(b.log, cluster, infraEnv, nil); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		if err := featuresupport.ValidateIncompatibleFeatures(b.log, infraEnv.CPUArchitecture, cluster, infraEnv, updateParams); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	// Validate with cluster architecture - CPUArchitecture can be multi when multi cpu architecture is selected
+	if err := featuresupport.ValidateActiveFeatures(b.log, cluster, nil, updateParams); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err := featuresupport.ValidateIncompatibleFeatures(b.log, cpuArchitecture, cluster, nil, updateParams); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	return nil
 }
 
 func setDiskEncryptionWithDefaultValues(c *models.Cluster, config *models.DiskEncryption) {
@@ -1904,7 +1945,7 @@ func (b *bareMetalInventory) validateUpdateCluster(
 		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	params, err = b.validateUpdateClusterIncompatibleFeatures(ctx, cluster, params)
+	err = b.validateFeatureSupportLevel(ctx, cluster, params.ClusterUpdateParams)
 	if err != nil {
 		return params, err
 	}
@@ -1928,28 +1969,6 @@ func (b *bareMetalInventory) setUpdatedPlatformParams(log logrus.FieldLogger, cl
 	}
 	if userManagedNetworking != nil {
 		log.Infof("User managed networking verification completed, setting user-managed-networking to %t", *userManagedNetworking)
-	}
-
-	return params, nil
-}
-
-func (b *bareMetalInventory) validateUpdateClusterIncompatibleFeatures(ctx context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams) (installer.V2UpdateClusterParams, error) {
-	infraEnvs, err := b.ListInfraEnvsInternal(ctx, cluster.ID, nil)
-	if err != nil {
-		return params, err
-	}
-
-	// Validate with infra-envs architecture
-	for _, infraEnv := range infraEnvs {
-		if err = featuresupport.ValidateIncompatibleFeatures(b.log, infraEnv.CPUArchitecture, cluster, infraEnv, params.ClusterUpdateParams); err != nil {
-			b.log.Error(err)
-			return params, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
-	// Validate with cluster architecture - CPUArchitecture can be multi when multi cpu architecture is selected
-	if err = featuresupport.ValidateIncompatibleFeatures(b.log, cluster.CPUArchitecture, cluster, nil, params.ClusterUpdateParams); err != nil {
-		b.log.Error(err)
-		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	return params, nil
