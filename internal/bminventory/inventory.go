@@ -1222,6 +1222,17 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
+	err = b.db.Model(&models.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(&models.Cluster{
+		LastInstallationPreparation: models.LastInstallationPreparation{
+			Status: models.LastInstallationPreparationStatusNotStarted,
+			Reason: "Preparation never performed",
+		},
+	}).Error
+	if err != nil {
+		b.log.WithError(err).Errorf("Failed to reset last installation preparation state for cluster %s", cluster.ID.String())
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	var autoAssigned bool
 
 	// auto select hosts roles if not selected yet.

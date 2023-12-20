@@ -5423,9 +5423,9 @@ definitions:
     properties:
       status:
         type: string
-        default: "preparation_never_performed"
+        default: "not_started"
         x-nullable: false
-        enum: [preparation_never_performed, failed, success]
+        enum: [not_started, failed, success]
         description: The last installation preparation status
       reason:
         type: string
