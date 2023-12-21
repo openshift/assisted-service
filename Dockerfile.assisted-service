@@ -4,10 +4,9 @@ COPY swagger.yaml .
 COPY tools/generate_python_client.sh .
 RUN chmod +x ./generate_python_client.sh && SWAGGER_FILE=swagger.yaml OUTPUT=/build ./generate_python_client.sh
 
-# TODO: Find a pure Python3 base image, rather than relying on the golang one
-FROM registry.ci.openshift.org/openshift/release:golang-1.20 as pybuilder
-COPY . /assisted-service
-COPY --from=swagger_py /build /assisted-service/build
+FROM registry.access.redhat.com/ubi9/python-311:latest as pybuilder
+COPY --chown=1001:0 . /assisted-service
+COPY --from=swagger_py --chown=1001:0 /build /assisted-service/build
 RUN python3 -m pip install -I pip && pip3 install -I -r /assisted-service/dev-requirements.txt
 RUN cd /assisted-service/build && python3 ../tools/client_package_initializer.py ./ https://github.com/openshift/assisted-service
 
