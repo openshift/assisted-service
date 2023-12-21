@@ -9,7 +9,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"

@@ -9,8 +9,8 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/openshift/api/config/v1"
-	v1beta1 "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
-	v1beta10 "github.com/openshift/assisted-service/api/v1beta1"
+	v1beta2 "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
+	v1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	v10 "github.com/openshift/hive/apis/hive/v1"
 	v11 "k8s.io/api/core/v1"
 )
@@ -39,7 +39,7 @@ func (m *MockClusterImportOperations) EXPECT() *MockClusterImportOperationsMockR
 }
 
 // CreateAgentClusterInstall mocks base method.
-func (m *MockClusterImportOperations) CreateAgentClusterInstall(agentClusterInstall *v1beta1.AgentClusterInstall) error {
+func (m *MockClusterImportOperations) CreateAgentClusterInstall(agentClusterInstall *v1beta2.AgentClusterInstall) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateAgentClusterInstall", agentClusterInstall)
 	ret0, _ := ret[0].(error)
@@ -109,10 +109,10 @@ func (mr *MockClusterImportOperationsMockRecorder) CreateSecret(namespace, secre
 }
 
 // GetAgentServiceConfig mocks base method.
-func (m *MockClusterImportOperations) GetAgentServiceConfig() (*v1beta10.AgentServiceConfig, error) {
+func (m *MockClusterImportOperations) GetAgentServiceConfig() (*v1beta1.AgentServiceConfig, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAgentServiceConfig")
-	ret0, _ := ret[0].(*v1beta10.AgentServiceConfig)
+	ret0, _ := ret[0].(*v1beta1.AgentServiceConfig)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

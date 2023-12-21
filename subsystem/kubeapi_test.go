@@ -31,7 +31,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
@@ -663,8 +663,8 @@ func getDefaultAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.Ag
 			ControlPlaneAgents: 3,
 			WorkerAgents:       0,
 		},
-		APIVIP:               "1.2.3.8",
-		IngressVIP:           "1.2.3.9",
+		APIVIPs:              []string{"1.2.3.8"},
+		IngressVIPs:          []string{"1.2.3.9"},
 		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterDeploymentName},
 	}
 }
@@ -757,8 +757,8 @@ func getDefaultAgentClusterIPv6InstallSpec(clusterDeploymentName string) *hiveex
 			ControlPlaneAgents: 3,
 			WorkerAgents:       0,
 		},
-		APIVIP:               "1001:db8::64",
-		IngressVIP:           "1001:db8::65",
+		APIVIPs:              []string{"1001:db8::64"},
+		IngressVIPs:          []string{"1001:db8::65"},
 		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterDeploymentName},
 	}
 }
@@ -1103,7 +1103,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
-		generateVerifyVipsPostStepReply(ctx, hosts[0], []string{aciV6Spec.APIVIP}, []string{aciV6Spec.IngressVIP}, models.VipVerificationSucceeded)
+		generateVerifyVipsPostStepReply(ctx, hosts[0], aciV6Spec.APIVIPs, aciV6Spec.IngressVIPs, models.VipVerificationSucceeded)
 		for _, h := range hosts {
 			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
@@ -3932,17 +3932,17 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.LogsURL
 		}, "30s", "10s").Should(Equal(""))
 
-		By("Ensure APIVIP exists in status")
-		Eventually(func() string {
+		By("Ensure APIVIPs exists in status")
+		Eventually(func() []string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-			return aci.Status.APIVIP
-		}, "30s", "1s").Should(Equal(aciSNOSpec.APIVIP))
+			return aci.Status.APIVIPs
+		}, "30s", "1s").Should(Equal(aciSNOSpec.APIVIPs))
 
-		By("Ensure IngressVIP exists in status")
-		Eventually(func() string {
+		By("Ensure IngressVIPs exists in status")
+		Eventually(func() []string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-			return aci.Status.IngressVIP
-		}, "30s", "1s").Should(Equal(aciSNOSpec.IngressVIP))
+			return aci.Status.IngressVIPs
+		}, "30s", "1s").Should(Equal(aciSNOSpec.IngressVIPs))
 
 		By("verify platform type status")
 		checkPlatformStatus(ctx, installkey, "", hiveext.NonePlatformType, swag.Bool(true))
@@ -4471,12 +4471,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.LogsURL
 		}, "30s", "10s").ShouldNot(Equal(""))
 
-		By("Ensure APIVIP exists in status")
-		Eventually(func() string {
-			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-			return aci.Status.APIVIP
-		}, "30s", "1s").Should(Equal(aciSpec.APIVIP))
-
 		By("Ensure APIVIPs exist in status")
 		Eventually(func() int {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
@@ -4487,13 +4481,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.APIVIPs[0]
-		}, "30s", "1s").Should(Equal(aciSpec.APIVIP))
-
-		By("Ensure IngressVIP exists in status")
-		Eventually(func() string {
-			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-			return aci.Status.IngressVIP
-		}, "30s", "1s").Should(Equal(aciSpec.IngressVIP))
+		}, "30s", "1s").Should(Equal(aciSpec.APIVIPs[0]))
 
 		By("Ensure IngressVIPs exists in status")
 		Eventually(func() int {
@@ -4505,7 +4493,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.IngressVIPs[0]
-		}, "30s", "1s").Should(Equal(aciSpec.IngressVIP))
+		}, "30s", "1s").Should(Equal(aciSpec.IngressVIPs[0]))
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)

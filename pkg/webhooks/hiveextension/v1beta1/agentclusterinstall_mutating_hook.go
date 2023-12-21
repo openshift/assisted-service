@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-openapi/swag"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
-	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/provider"
 	log "github.com/sirupsen/logrus"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -172,7 +171,7 @@ func patchUserManagedNetworking(newObject *hiveext.AgentClusterInstall, logger *
 	// 1. Cluster topology is SNO.
 	// 2. Platform is specified.
 	if !isNonePlatformOrSNO(newObject) && newObject.Spec.PlatformType != "" {
-		platform := common.PlatformTypeToPlatform(newObject.Spec.PlatformType)
+		platform := platformTypeToPlatform(newObject.Spec.PlatformType)
 		_, platformUserManagedNetworking, err = provider.GetClusterPlatformByHighAvailabilityMode(platform, nil, highAvailabilityMode)
 		if err != nil {
 			logger.Warnf("Cannot set UserManagedNetworking automatically due to: %s", err.Error())

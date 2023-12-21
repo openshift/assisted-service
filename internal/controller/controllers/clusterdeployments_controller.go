@@ -32,12 +32,11 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/openshift/assisted-service/api/common"
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	restclient "github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
-	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -930,29 +929,14 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 	// indicate a scenario when backend calculates them automatically, e.g. SNO cluster.
 	isDHCPEnabled := swag.BoolValue(cluster.VipDhcpAllocation)
 
-	if !isDHCPEnabled && (clusterInstall.Spec.APIVIP != "" || clusterInstall.Spec.IngressVIP != "" ||
-		len(clusterInstall.Spec.APIVIPs) > 0 || len(clusterInstall.Spec.IngressVIPs) > 0) {
-		desiredApiVips, err := validations.HandleApiVipBackwardsCompatibility(
-			cluster.ID,
-			clusterInstall.Spec.APIVIP,
-			ApiVipsEntriesToArray(clusterInstall.Spec.APIVIPs))
-		if err != nil {
-			return nil, err
-		}
-
+	if !isDHCPEnabled && (len(clusterInstall.Spec.APIVIPs) > 0 || len(clusterInstall.Spec.IngressVIPs) > 0) {
+		desiredApiVips := ApiVipsEntriesToArray(clusterInstall.Spec.APIVIPs)
 		if !network.AreApiVipsIdentical(desiredApiVips, cluster.APIVips) {
 			params.APIVips = desiredApiVips
 			update = true
 		}
 
-		desiredIngressVips, err := validations.HandleIngressVipBackwardsCompatibility(
-			cluster.ID,
-			clusterInstall.Spec.IngressVIP,
-			IngressVipsEntriesToArray(clusterInstall.Spec.IngressVIPs))
-		if err != nil {
-			return nil, err
-		}
-
+		desiredIngressVips := IngressVipsEntriesToArray(clusterInstall.Spec.IngressVIPs)
 		if !network.AreIngressVipsIdentical(desiredIngressVips, cluster.IngressVips) {
 			params.IngressVips = desiredIngressVips
 			update = true
@@ -1714,8 +1698,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			} else {
 				clusterInstall.Status.Progress.TotalPercentage = c.Progress.TotalPercentage
 			}
-			clusterInstall.Status.APIVIP = network.GetApiVipById(c, 0)
-			clusterInstall.Status.IngressVIP = network.GetIngressVipById(c, 0)
+			clusterInstall.Status.APIVIPs = network.GetApiVips(c)
+			clusterInstall.Status.IngressVIPs = network.GetIngressVips(c)
 			clusterInstall.Status.APIVIPs = ApiVipsArrayToStrings(c.APIVips)
 			clusterInstall.Status.IngressVIPs = IngressVipsArrayToStrings(c.IngressVips)
 			clusterInstall.Status.UserManagedNetworking = c.UserManagedNetworking

@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"

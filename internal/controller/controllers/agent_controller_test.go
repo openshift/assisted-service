@@ -18,7 +18,7 @@ import (
 	authzv1 "github.com/openshift/api/authorization/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	common_api "github.com/openshift/assisted-service/api/common"
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"

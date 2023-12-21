@@ -7,7 +7,7 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 	configv1 "github.com/openshift/api/config/v1"
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/openshift/hive/apis/hive/v1/agent"

@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
-	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -363,7 +362,7 @@ func isUserManagedNetworkingSetToFalseWithSNO(newObject *hiveext.AgentClusterIns
 }
 
 func validateCreatePlatformAndUMN(newObject *hiveext.AgentClusterInstall) error {
-	platform := common.PlatformTypeToPlatform(newObject.Spec.PlatformType)
+	platform := platformTypeToPlatform(newObject.Spec.PlatformType)
 	_, _, err := provider.GetActualCreateClusterPlatformParams(
 		platform, newObject.Spec.Networking.UserManagedNetworking, getHighAvailabilityMode(newObject, nil), "")
 	return err
@@ -376,9 +375,9 @@ func validateUpdatePlatformAndUMNUpdate(oldObject, newObject *hiveext.AgentClust
 	)
 
 	if newObject.Spec.PlatformType != "" {
-		platform = common.PlatformTypeToPlatform(newObject.Spec.PlatformType)
+		platform = platformTypeToPlatform(newObject.Spec.PlatformType)
 	} else {
-		platform = common.PlatformTypeToPlatform(oldObject.Spec.PlatformType)
+		platform = platformTypeToPlatform(oldObject.Spec.PlatformType)
 	}
 
 	if newObject.Spec.Networking.UserManagedNetworking != nil {

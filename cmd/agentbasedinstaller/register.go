@@ -8,12 +8,12 @@ import (
 	"os"
 	"reflect"
 
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveextv1beta1 "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveextv1beta2 "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/manifests"
-	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
@@ -48,30 +48,15 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 		return nil, cdErr
 	}
 
-	var aci hiveext.AgentClusterInstall
-	if aciErr := getFileData(agentClusterInstallPath, &aci); aciErr != nil {
+	var v1beta1aci hiveextv1beta1.AgentClusterInstall
+	if aciErr := getFileData(agentClusterInstallPath, &v1beta1aci); aciErr != nil {
 		return nil, aciErr
 	}
 
-	desiredApiVips, err := validations.HandleApiVipBackwardsCompatibility(
-		nil,
-		aci.Spec.APIVIP,
-		controllers.ApiVipsEntriesToArray(aci.Spec.APIVIPs))
-	if err != nil {
+	var aci hiveextv1beta2.AgentClusterInstall
+	if err := v1beta1aci.ConvertTo(&aci); err != nil {
 		return nil, err
 	}
-	aci.Spec.APIVIPs = controllers.ApiVipsArrayToStrings(desiredApiVips)
-	aci.Spec.APIVIP = ""
-
-	desiredIngressVips, err := validations.HandleIngressVipBackwardsCompatibility(
-		nil,
-		aci.Spec.IngressVIP,
-		controllers.IngressVipsEntriesToArray(aci.Spec.IngressVIPs))
-	if err != nil {
-		return nil, err
-	}
-	aci.Spec.IngressVIPs = controllers.IngressVipsArrayToStrings(desiredIngressVips)
-	aci.Spec.IngressVIP = ""
 
 	releaseImage, releaseError := getReleaseVersion(clusterImageSetPath)
 	if releaseError != nil {

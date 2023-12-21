@@ -366,38 +366,6 @@ func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCID
 	return nil
 }
 
-func HandleApiVipBackwardsCompatibility(clusterId *strfmt.UUID, apiVip string, apiVips []*models.APIVip) ([]*models.APIVip, error) {
-	// APIVip provided, but APIVips were not.
-	if apiVip != "" && len(apiVips) == 0 {
-		vips := []*models.APIVip{{IP: models.IP(apiVip)}}
-		if clusterId != nil {
-			vips[0].ClusterID = *clusterId
-		}
-		return vips, nil
-	}
-	// Both APIVip and APIVips were provided.
-	if apiVip != "" && len(apiVips) > 0 && apiVip != string(apiVips[0].IP) {
-		return nil, errors.New("apiVIP must be the same as the first element of apiVIPs")
-	}
-	return apiVips, nil
-}
-
-func HandleIngressVipBackwardsCompatibility(clusterId *strfmt.UUID, ingressVip string, ingressVips []*models.IngressVip) ([]*models.IngressVip, error) {
-	// IngressVip provided, but IngressVips were not.
-	if ingressVip != "" && len(ingressVips) == 0 {
-		vips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
-		if clusterId != nil {
-			vips[0].ClusterID = *clusterId
-		}
-		return vips, nil
-	}
-	// Both IngressVip and IngressVips were provided.
-	if ingressVip != "" && len(ingressVips) > 0 && ingressVip != string(ingressVips[0].IP) {
-		return nil, errors.New("ingressVIP must be the same as the first element of ingressVIPs")
-	}
-	return ingressVips, nil
-}
-
 func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID, params *models.ClusterCreateParams) error {
 	targetConfiguration := common.Cluster{}
 

@@ -1425,9 +1425,10 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		found := &appsv1.Deployment{}
 		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
 		Expect(found.Spec.Template.Spec.Containers).To(HaveLen(2))
-		Expect(found.Spec.Template.Spec.Containers[0].Ports).To(HaveLen(2))
+		Expect(found.Spec.Template.Spec.Containers[0].Ports).To(HaveLen(3))
 		Expect(found.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(int32(servicePort.IntValue())))
 		Expect(found.Spec.Template.Spec.Containers[0].Ports[1].ContainerPort).To(Equal(int32(serviceHTTPPort.IntValue())))
+		Expect(found.Spec.Template.Spec.Containers[0].Ports[2].ContainerPort).To(Equal(int32(webhookPort.IntValue())))
 	})
 })
 
