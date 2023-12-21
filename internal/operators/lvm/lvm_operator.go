@@ -84,7 +84,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 		if err != nil {
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 		}
-		if ocpVersion.LessThan(minOpenshiftVersionForLvm) {
+		if ok, _ := common.BaseVersionLessThan(minOpenshiftVersionForLvm.String(), ocpVersion.String()); ok {
 			message := fmt.Sprintf("Logical Volume Manager is only supported for openshift versions %s and above", o.config.LvmMinOpenshiftVersion)
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 		}
@@ -94,7 +94,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 		if err != nil {
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 		}
-		if ocpVersion.LessThan(minOpenshiftVersionForMultiNodeSupport) && !common.IsSingleNodeCluster(cluster) {
+		if ok, _ := common.BaseVersionLessThan(minOpenshiftVersionForMultiNodeSupport.String(), ocpVersion.String()); ok {
 			message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above",
 				minOpenshiftVersionForMultiNodeSupport.String())
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
