@@ -87,9 +87,19 @@ const snoDnsmasqConf = `#!/usr/bin/env bash
 # SNO_CLUSTER_NAME_OVERRIDE=<new cluster name>
 # SNO_BASE_DOMAIN_OVERRIDE=<your new base domain>
 # SNO_DNSMASQ_IP_OVERRIDE=<new ip>
-source /etc/default/sno_dnsmasq_configuration_overrides
 
-HOST_IP=${SNO_DNSMASQ_IP_OVERRIDE:-"{{.HOST_IP}}"}
+OVERRIDES_FILE=/etc/default/sno_dnsmasq_configuration_overrides
+if [ -f "${OVERRIDES_FILE}" ]; then
+    source "${OVERRIDES_FILE}"
+fi
+
+FILE=/var/run/nodeip-configuration/primary-ip
+if [ -f "${FILE}" ]; then
+    HOST_IP=$(cat "${FILE}")
+else
+    exit 1
+fi
+HOST_IP=${SNO_DNSMASQ_IP_OVERRIDE:-"${HOST_IP}"}
 CLUSTER_NAME=${SNO_CLUSTER_NAME_OVERRIDE:-"{{.CLUSTER_NAME}}"}
 BASE_DOMAIN=${SNO_BASE_DOMAIN_OVERRIDE:-"{{.DNS_DOMAIN}}"}
 CLUSTER_FULL_DOMAIN="${CLUSTER_NAME}.${BASE_DOMAIN}"
@@ -112,21 +122,33 @@ const forceDnsDispatcherScript = `#!/bin/bash
 # SNO_CLUSTER_NAME_OVERRIDE=<new cluster name>
 # SNO_BASE_DOMAIN_OVERRIDE=<your new base domain>
 # SNO_DNSMASQ_IP_OVERRIDE=<new ip>
-source /etc/default/sno_dnsmasq_configuration_overrides
 
-HOST_IP=${SNO_DNSMASQ_IP_OVERRIDE:-"{{.HOST_IP}}"}
+OVERRIDES_FILE=/etc/default/sno_dnsmasq_configuration_overrides
+if [ -f "${OVERRIDES_FILE}" ]; then
+    source "${OVERRIDES_FILE}"
+fi
+
+FILE=/var/run/nodeip-configuration/primary-ip
+if [ -f "${FILE}" ]; then
+    HOST_IP=$(cat "${FILE}")
+fi
+
+HOST_IP=${SNO_DNSMASQ_IP_OVERRIDE:-"${HOST_IP}"}
 CLUSTER_NAME=${SNO_CLUSTER_NAME_OVERRIDE:-"{{.CLUSTER_NAME}}"}
 BASE_DOMAIN=${SNO_BASE_DOMAIN_OVERRIDE:-"{{.DNS_DOMAIN}}"}
 CLUSTER_FULL_DOMAIN="${CLUSTER_NAME}.${BASE_DOMAIN}"
+
 
 export BASE_RESOLV_CONF=/run/NetworkManager/resolv.conf
 if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
 	export TMP_FILE=$(mktemp /etc/forcedns_resolv.conf.XXXXXX)
 	cp  $BASE_RESOLV_CONF $TMP_FILE
 	chmod --reference=$BASE_RESOLV_CONF $TMP_FILE
-	sed -i -e "s/${CLUSTER_FULL_DOMAIN}//" \
-	-e "s/search /& ${CLUSTER_FULL_DOMAIN} /" \
-	-e "0,/nameserver/s/nameserver/& $HOST_IP\n&/" $TMP_FILE
+	if [ ! -z "${HOST_IP}" ]; then
+        sed -i -e "s/${CLUSTER_FULL_DOMAIN}//" \
+        -e "s/search /& ${CLUSTER_FULL_DOMAIN} /" \
+        -e "0,/nameserver/s/nameserver/& $HOST_IP\n&/" $TMP_FILE
+	fi
 	mv $TMP_FILE /etc/resolv.conf
 fi
 `
@@ -167,7 +189,7 @@ spec:
             [Unit]
             Description=Run dnsmasq to provide local dns for Single Node OpenShift
             Before=kubelet.service crio.service
-            After=network.target
+            After=network.target ovs-configuration.service
 
             [Service]
             TimeoutStartSec=30
@@ -416,19 +438,13 @@ func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log lo
 }
 
 func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
-	hostIp, err := GetIpForSingleNodeInstallation(cluster, log)
-	if err != nil {
-		return nil, err
-	}
-
 	var manifestParams = map[string]interface{}{
 		"CLUSTER_NAME": cluster.Cluster.Name,
 		"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
-		"HOST_IP":      hostIp,
 	}
 
-	log.Infof("Creating dnsmasq manifest with values: cluster name: %q, domain - %q, host ip - %q",
-		cluster.Cluster.Name, cluster.Cluster.BaseDNSDomain, hostIp)
+	log.Infof("Creating dnsmasq manifest with values: cluster name: %q, domain - %q",
+		cluster.Cluster.Name, cluster.Cluster.BaseDNSDomain)
 
 	content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
 	if err != nil {
