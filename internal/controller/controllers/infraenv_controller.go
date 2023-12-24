@@ -196,6 +196,9 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	if len(staticNetworkConfig) > 0 {
 		log.Infof("the amount of nmStateConfigs included in the image is: %d", len(staticNetworkConfig))
 		updateParams.InfraEnvUpdateParams.StaticNetworkConfig = staticNetworkConfig
+	} else if internalInfraEnv.StaticNetworkConfig != "" {
+		log.Infof("removed all nmStateConfigs from the image")
+		updateParams.InfraEnvUpdateParams.StaticNetworkConfig = []*models.HostStaticNetworkConfig{}
 	}
 
 	updateParams.InfraEnvUpdateParams.ImageType = r.Config.ImageType

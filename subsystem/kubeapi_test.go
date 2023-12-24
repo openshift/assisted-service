@@ -542,6 +542,13 @@ func getSecret(ctx context.Context, client k8sclient.Client, key types.Namespace
 	return secret
 }
 
+func getNMStateConfig(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1beta1.NMStateConfig {
+	nmstateConfig := &v1beta1.NMStateConfig{}
+	err := client.Get(ctx, key, nmstateConfig)
+	Expect(err).To(BeNil())
+	return nmstateConfig
+}
+
 // configureLoclAgentClient reassigns the global agentBMClient variable to a client instance using local token auth
 func configureLocalAgentClient(infraEnvID string) {
 	if Options.AuthType != auth.TypeLocal {
@@ -3264,6 +3271,69 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, "Unsupported keys found")
+	})
+
+	It("ensure StaticNetworkConfig is empty after NMStateConfig deletion", func() {
+		var (
+			NMStateLabelName  = "someName"
+			NMStateLabelValue = "someValue"
+			nicPrimary        = "eth0"
+			nicSecondary      = "eth1"
+			macPrimary        = "09:23:0f:d8:92:AA"
+			macSecondary      = "09:23:0f:d8:92:AB"
+			ip4Primary        = "192.168.126.30"
+			ip4Secondary      = "192.168.140.30"
+			dnsGW             = "192.168.126.1"
+		)
+		hostStaticNetworkConfig := common.FormatStaticConfigHostYAML(
+			nicPrimary, nicSecondary, ip4Primary, ip4Secondary, dnsGW,
+			models.MacInterfaceMap{
+				{MacAddress: macPrimary, LogicalNicName: nicPrimary},
+				{MacAddress: macSecondary, LogicalNicName: nicSecondary},
+			})
+		nmstateConfigSpec := getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, hostStaticNetworkConfig.NetworkYaml)
+
+		// Deploy MMStateConfig/CD/ACI/InfraEnv
+		deployNMStateConfigCRD(ctx, kubeClient, "nmstate1", NMStateLabelName, NMStateLabelValue, nmstateConfigSpec)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		infraEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		infraEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+
+		// InfraEnv Reconcile takes longer, since it needs to generate the image.
+		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		var staticNetworkConfig []*models.HostStaticNetworkConfig
+		Expect(json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfig)).ToNot(HaveOccurred())
+		Expect(staticNetworkConfig).To(HaveLen(1))
+		Expect(staticNetworkConfig[0].NetworkYaml).To(Equal(hostStaticNetworkConfig.NetworkYaml))
+		Expect(infraEnv.Generated).Should(Equal(true))
+
+		// Delete NMState config
+		nmstateConfigKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      "nmstate1",
+		}
+		Expect(kubeClient.Delete(ctx, getNMStateConfig(ctx, kubeClient, nmstateConfigKey))).ShouldNot(HaveOccurred())
+
+		// Ensure StaticNetworkConfig is empty
+		Eventually(func() string {
+			infraEnv = getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+			return infraEnv.StaticNetworkConfig
+		}, "1m", "20s").Should(Equal(""))
 	})
 
 	It("Unbind", func() {
