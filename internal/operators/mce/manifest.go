@@ -6,7 +6,7 @@ import (
 )
 
 // Manifests returns manifests needed to deploy MCE.
-func Manifests(openshiftVersion string, config *Config) (openshiftManifests map[string][]byte, customManifests []byte, err error) {
+func Manifests() (openshiftManifests map[string][]byte, customManifests []byte, err error) {
 	// Generate the OpenShift manifests:
 	namespaceManifest, err := getNamespace()
 	if err != nil {
@@ -16,7 +16,7 @@ func Manifests(openshiftVersion string, config *Config) (openshiftManifests map[
 	if err != nil {
 		return
 	}
-	operatorSubscriptionManifest, err := getSubscription(openshiftVersion, config)
+	operatorSubscriptionManifest, err := getSubscription()
 	if err != nil {
 		return
 	}
@@ -34,16 +34,10 @@ func Manifests(openshiftVersion string, config *Config) (openshiftManifests map[
 	return openshiftManifests, mceManifest, nil
 }
 
-func getSubscription(openshiftVersion string, config *Config) ([]byte, error) {
-	mceChannel, err := getMCEVersion(openshiftVersion, config.OcpMceVersionMap)
-	if err != nil {
-		return nil, err
-	}
-
+func getSubscription() ([]byte, error) {
 	data := map[string]string{
-		"OPERATOR_NAMESPACE":            Operator.Namespace,
-		"OPERATOR_SUBSCRIPTION_NAME":    Operator.SubscriptionName,
-		"OPERATOR_SUBSCRIPTION_CHANNEL": *mceChannel,
+		"OPERATOR_NAMESPACE":         Operator.Namespace,
+		"OPERATOR_SUBSCRIPTION_NAME": Operator.SubscriptionName,
 	}
 	return executeTemplate(data, operatorSubscriptionManifestTemplate)
 }
@@ -97,7 +91,6 @@ metadata:
   namespace: "{{ .OPERATOR_NAMESPACE }}"
   name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
 spec:
-  channel: "{{.OPERATOR_SUBSCRIPTION_CHANNEL}}"
   sourceNamespace: openshift-marketplace
   source: redhat-operators
   name: multicluster-engine
