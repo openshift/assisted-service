@@ -102,8 +102,10 @@ const NMDebugModeConf = `
 domains=ALL:DEBUG
 `
 
-const ValidationTypeHost = "host"
-const ValidationTypeCluster = "cluster"
+const (
+	ValidationTypeHost    = "host"
+	ValidationTypeCluster = "cluster"
+)
 
 func GetIgnoredValidations(validationsJSON string, clusterID string) ([]string, bool) {
 	ignoredValidations := []string{}
@@ -432,6 +434,22 @@ func GetInventoryInterfaces(inventory string) (string, error) {
 
 	endLocation := endIndex + len("}]")
 	return inventory[interfacesLocation : interfacesLocation+endLocation], nil
+}
+
+// blocking host removal while cluster is progressing
+func CanUnbindhost(c *Cluster) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+	NotAllowedStatus := []string{
+		models.ClusterStatusFinalizing,
+		models.ClusterStatusInstalling,
+		models.ClusterStatusInstallingPendingUserAction,
+		models.ClusterStatusPreparingForInstallation,
+	}
+	if funk.Contains(NotAllowedStatus, clusterStatus) {
+		err = fmt.Errorf("cluster %s is in %s state, host cannot be unbind when status is one of: %s",
+			c.ID, clusterStatus, NotAllowedStatus)
+	}
+	return err
 }
 
 // GetTagFromImageRef returns the tag of the given container image reference. For example, if the
