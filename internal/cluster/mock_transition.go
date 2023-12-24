@@ -34,6 +34,20 @@ func (m *MockTransitionHandler) EXPECT() *MockTransitionHandlerMockRecorder {
 	return m.recorder
 }
 
+// FinalizingStageTimeoutMinutes mocks base method.
+func (m *MockTransitionHandler) FinalizingStageTimeoutMinutes(sCluster *stateCluster) interface{} {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FinalizingStageTimeoutMinutes", sCluster)
+	ret0, _ := ret[0].(interface{})
+	return ret0
+}
+
+// FinalizingStageTimeoutMinutes indicates an expected call of FinalizingStageTimeoutMinutes.
+func (mr *MockTransitionHandlerMockRecorder) FinalizingStageTimeoutMinutes(sCluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizingStageTimeoutMinutes", reflect.TypeOf((*MockTransitionHandler)(nil).FinalizingStageTimeoutMinutes), sCluster)
+}
+
 // InstallCluster mocks base method.
 func (m *MockTransitionHandler) InstallCluster(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	m.ctrl.T.Helper()
@@ -61,6 +75,21 @@ func (m *MockTransitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args st
 func (mr *MockTransitionHandlerMockRecorder) IsFinalizing(sw, args interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsFinalizing", reflect.TypeOf((*MockTransitionHandler)(nil).IsFinalizing), sw, args)
+}
+
+// IsFinalizingStageTimedOut mocks base method.
+func (m *MockTransitionHandler) IsFinalizingStageTimedOut(sw stateswitch.StateSwitch, arg1 stateswitch.TransitionArgs) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsFinalizingStageTimedOut", sw, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsFinalizingStageTimedOut indicates an expected call of IsFinalizingStageTimedOut.
+func (mr *MockTransitionHandlerMockRecorder) IsFinalizingStageTimedOut(sw, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsFinalizingStageTimedOut", reflect.TypeOf((*MockTransitionHandler)(nil).IsFinalizingStageTimedOut), sw, arg1)
 }
 
 // IsFinalizingTimedOut mocks base method.
@@ -224,17 +253,36 @@ func (mr *MockTransitionHandlerMockRecorder) PostPreparingTimedOut(sw, args inte
 }
 
 // PostRefreshCluster mocks base method.
-func (m *MockTransitionHandler) PostRefreshCluster(reason string) stateswitch.PostTransition {
+func (m *MockTransitionHandler) PostRefreshCluster(reason string, formatFuncs ...formatFunction) stateswitch.PostTransition {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PostRefreshCluster", reason)
+	varargs := []interface{}{reason}
+	for _, a := range formatFuncs {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PostRefreshCluster", varargs...)
 	ret0, _ := ret[0].(stateswitch.PostTransition)
 	return ret0
 }
 
 // PostRefreshCluster indicates an expected call of PostRefreshCluster.
-func (mr *MockTransitionHandlerMockRecorder) PostRefreshCluster(reason interface{}) *gomock.Call {
+func (mr *MockTransitionHandlerMockRecorder) PostRefreshCluster(reason interface{}, formatFuncs ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRefreshCluster", reflect.TypeOf((*MockTransitionHandler)(nil).PostRefreshCluster), reason)
+	varargs := append([]interface{}{reason}, formatFuncs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRefreshCluster", reflect.TypeOf((*MockTransitionHandler)(nil).PostRefreshCluster), varargs...)
+}
+
+// PostRefreshFinalizingStageSoftTimedOut mocks base method.
+func (m *MockTransitionHandler) PostRefreshFinalizingStageSoftTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostRefreshFinalizingStageSoftTimedOut", sw, args)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PostRefreshFinalizingStageSoftTimedOut indicates an expected call of PostRefreshFinalizingStageSoftTimedOut.
+func (mr *MockTransitionHandlerMockRecorder) PostRefreshFinalizingStageSoftTimedOut(sw, args interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRefreshFinalizingStageSoftTimedOut", reflect.TypeOf((*MockTransitionHandler)(nil).PostRefreshFinalizingStageSoftTimedOut), sw, args)
 }
 
 // PostRefreshLogsProgress mocks base method.
@@ -277,6 +325,21 @@ func (m *MockTransitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch
 func (mr *MockTransitionHandlerMockRecorder) PostUpdateFinalizingAMSConsoleUrl(sw, args interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostUpdateFinalizingAMSConsoleUrl", reflect.TypeOf((*MockTransitionHandler)(nil).PostUpdateFinalizingAMSConsoleUrl), sw, args)
+}
+
+// SoftTimeoutsEnabled mocks base method.
+func (m *MockTransitionHandler) SoftTimeoutsEnabled(arg0 stateswitch.StateSwitch, arg1 stateswitch.TransitionArgs) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SoftTimeoutsEnabled", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SoftTimeoutsEnabled indicates an expected call of SoftTimeoutsEnabled.
+func (mr *MockTransitionHandlerMockRecorder) SoftTimeoutsEnabled(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SoftTimeoutsEnabled", reflect.TypeOf((*MockTransitionHandler)(nil).SoftTimeoutsEnabled), arg0, arg1)
 }
 
 // WithAMSSubscriptions mocks base method.

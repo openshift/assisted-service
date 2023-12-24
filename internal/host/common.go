@@ -40,7 +40,7 @@ const (
 	statusInfoInstallationInProgressTimedOut                       = "Host failed to install because its installation stage $STAGE took longer than expected $MAX_TIME"
 	statusInfoInstallationInProgressSoftTimedOut                   = "Host installation stage $STAGE is taking longer than expected $MAX_TIME"
 	statusInfoInstallationInProgressWritingImageToDiskTimedOut     = "Host failed to install because its installation stage $STAGE did not sufficiently progress in the last $MAX_TIME."
-	statusInfoInstallationInProgressWritingImageToDiskSoftTimedOut = "Host installation stage $STAGE is not progressing sufficiently in the last $MAX_TIME."
+	statusInfoInstallationInProgressWritingImageToDiskSoftTimedOut = "Host installation stage $STAGE is not progressing sufficiently in the last $MAX_TIME. To troubleshoot use kubeconfig or connect to the node using ssh"
 	statusInfoHostReadyToBeBound                                   = "Host is ready to be bound to a cluster"
 	statusInfoBinding                                              = "Host is waiting to be bound to the cluster"
 	statusRebootTimeout                                            = "Host timed out when pulling the configuration files. Verify in the host console that the host boots from the OpenShift installation disk $INSTALLATION_DISK and has network access to the cluster API. The installation will resume after the host successfully boots and can access the cluster API"

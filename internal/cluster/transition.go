@@ -43,6 +43,7 @@ type transitionHandler struct {
 	installationTimeout time.Duration
 	finalizingTimeout   time.Duration
 	eventsHandler       eventsapi.Handler
+	softTimeoutsEnabled bool
 }
 
 //go:generate mockgen -source=transition.go -package=cluster -destination=mock_transition.go
@@ -61,12 +62,16 @@ type TransitionHandler interface {
 	IsFinalizingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	PostPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
-	PostRefreshCluster(reason string) stateswitch.PostTransition
+	PostRefreshCluster(reason string, formatFuncs ...formatFunction) stateswitch.PostTransition
 	InstallCluster(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRefreshLogsProgress(progress string) stateswitch.PostTransition
 	IsLogCollectionTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	areAllHostsDone(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
 	hasClusterCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	IsFinalizingStageTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	PostRefreshFinalizingStageSoftTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	SoftTimeoutsEnabled(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	FinalizingStageTimeoutMinutes(sCluster *stateCluster) interface{}
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -566,8 +571,10 @@ func (th *transitionHandler) PostPreparingTimedOut(sw stateswitch.StateSwitch, a
 	return nil
 }
 
+type formatFunction func(sCluster *stateCluster) interface{}
+
 // Return a post transition function with a constant reason
-func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostTransition {
+func (th *transitionHandler) PostRefreshCluster(template string, formatFuncs ...formatFunction) stateswitch.PostTransition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 		sCluster, ok := sw.(*stateCluster)
 		if !ok {
@@ -577,6 +584,11 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		if !ok {
 			return errors.New("PostRefreshCluster invalid argument")
 		}
+		var values []interface{}
+		for _, formatFunc := range formatFuncs {
+			values = append(values, formatFunc(sCluster))
+		}
+		reason := fmt.Sprintf(template, values...)
 
 		var (
 			err            error
@@ -628,6 +640,66 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		return nil
 	}
 	return ret
+}
+
+func FinalizingStage(sCluster *stateCluster) interface{} {
+	return sCluster.cluster.Progress.FinalizingStage
+}
+
+func (th *transitionHandler) finalizingStageTimeoutMinutes(sCluster *stateCluster) int64 {
+	return int64(finalizingStageTimeout(sCluster.cluster.Progress.FinalizingStage, sCluster.cluster.MonitoredOperators, th.log).Minutes())
+}
+
+func (th *transitionHandler) FinalizingStageTimeoutMinutes(sCluster *stateCluster) interface{} {
+	return th.finalizingStageTimeoutMinutes(sCluster)
+}
+
+func (th *transitionHandler) PostRefreshFinalizingStageSoftTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return errors.New("PostRefreshFinalizingStageSoftTimedOut incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshCluster)
+	if !ok {
+		return errors.New("PostRefreshFinalizingStageSoftTimedOut invalid argument")
+	}
+
+	var log = logutil.FromContext(params.ctx, th.log)
+	minutes := th.finalizingStageTimeoutMinutes(sCluster)
+	statusInfo := fmt.Sprintf(statusInfoFinalizingStageSoftTimeout, sCluster.cluster.Progress.FinalizingStage, minutes)
+	updatedCluster, err := notifyFinalizingStageTimeout(params.ctx, log, params.db, th.stream, *sCluster.cluster.ID, sCluster.srcState, statusInfo,
+		string(sCluster.cluster.Progress.FinalizingStage), minutes, params.eventHandler)
+	if err != nil {
+		return err
+	}
+	if updatedCluster != nil {
+		params.updatedCluster = updatedCluster
+	}
+	return nil
+}
+
+func (th *transitionHandler) IsFinalizingStageTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return false, errors.New("IsFinalizingStageTimedOut incompatible type of StateSwitch")
+	}
+	if sCluster.cluster.Progress == nil || sCluster.cluster.Progress.FinalizingStage == "" {
+		return false, nil
+	}
+	timeout := finalizingStageTimeout(sCluster.cluster.Progress.FinalizingStage, sCluster.cluster.MonitoredOperators, th.log)
+	return time.Since(time.Time(sCluster.cluster.Progress.FinalizingStageStartedAt)) > timeout, nil
+}
+
+func finalizingStageTimeoutTriggered(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return false, errors.New("finalizingStageTimeoutTriggered incompatible type of StateSwitch")
+	}
+	return sCluster.cluster.Progress != nil && sCluster.cluster.Progress.FinalizingStageTimedOut, nil
+}
+
+func (tr *transitionHandler) SoftTimeoutsEnabled(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+	return tr.softTimeoutsEnabled, nil
 }
 
 func (th *transitionHandler) InstallCluster(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {

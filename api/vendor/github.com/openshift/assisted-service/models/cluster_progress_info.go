@@ -29,16 +29,11 @@ type ClusterProgressInfo struct {
 	// Format: date-time
 	FinalizingStageStartedAt strfmt.DateTime `json:"finalizing_stage_started_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// finalizing stage timed out
+	FinalizingStageTimedOut bool `json:"finalizing_stage_timed_out,omitempty"`
+
 	// installing stage percentage
 	InstallingStagePercentage int64 `json:"installing_stage_percentage,omitempty"`
-
-	// node updater finished at
-	// Format: date-time
-	NodeUpdaterFinishedAt strfmt.DateTime `json:"node_updater_finished_at,omitempty" gorm:"type:timestamp with time zone"`
-
-	// node updater started at
-	// Format: date-time
-	NodeUpdaterStartedAt strfmt.DateTime `json:"node_updater_started_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// preparing for installation stage percentage
 	PreparingForInstallationStagePercentage int64 `json:"preparing_for_installation_stage_percentage,omitempty"`
@@ -56,14 +51,6 @@ func (m *ClusterProgressInfo) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateFinalizingStageStartedAt(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateNodeUpdaterFinishedAt(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateNodeUpdaterStartedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -96,30 +83,6 @@ func (m *ClusterProgressInfo) validateFinalizingStageStartedAt(formats strfmt.Re
 	}
 
 	if err := validate.FormatOf("finalizing_stage_started_at", "body", "date-time", m.FinalizingStageStartedAt.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *ClusterProgressInfo) validateNodeUpdaterFinishedAt(formats strfmt.Registry) error {
-	if swag.IsZero(m.NodeUpdaterFinishedAt) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("node_updater_finished_at", "body", "date-time", m.NodeUpdaterFinishedAt.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *ClusterProgressInfo) validateNodeUpdaterStartedAt(formats strfmt.Registry) error {
-	if swag.IsZero(m.NodeUpdaterStartedAt) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("node_updater_started_at", "body", "date-time", m.NodeUpdaterStartedAt.String(), formats); err != nil {
 		return err
 	}
 

@@ -132,6 +132,7 @@ type API interface {
 	TransformClusterToDay2(ctx context.Context, cluster *common.Cluster, db *gorm.DB) error
 	RefreshSchedulableMastersForcedTrue(ctx context.Context, clusterID strfmt.UUID) error
 	HandleVerifyVipsResponse(ctx context.Context, clusterID strfmt.UUID, stepReply string) error
+	UpdateFinalizingStage(ctx context.Context, clusterID strfmt.UUID, finalizingStage models.FinalizingStage) error
 }
 
 type LogTimeoutConfig struct {
@@ -177,7 +178,7 @@ type Manager struct {
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.Notifier, eventsHandler eventsapi.Handler,
 	uploadClient uploader.Client, hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
 	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API,
-	dnsApi dns.DNSApi, authHandler auth.Authenticator, manifestApi manifestsapi.ManifestsAPI) *Manager {
+	dnsApi dns.DNSApi, authHandler auth.Authenticator, manifestApi manifestsapi.ManifestsAPI, softTimeoutsEnabled bool) *Manager {
 	th := &transitionHandler{
 		log:                 log,
 		db:                  db,
@@ -186,6 +187,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.N
 		installationTimeout: cfg.InstallationTimeout,
 		finalizingTimeout:   cfg.FinalizingTimeout,
 		eventsHandler:       eventsHandler,
+		softTimeoutsEnabled: softTimeoutsEnabled,
 	}
 	return &Manager{
 		Config:                cfg,
@@ -564,8 +566,7 @@ func (m *Manager) initMonitorQueryGenerator() {
 				models.ClusterStatusInstalled,
 			}
 
-			dbWithCondition := common.LoadTableFromDB(db, common.HostsTable)
-			dbWithCondition = common.LoadClusterTablesFromDB(dbWithCondition, common.HostsTable)
+			dbWithCondition := common.LoadClusterTablesFromDB(db)
 			dbWithCondition = dbWithCondition.Where("status NOT IN (?)", noNeedToMonitorInStates)
 			return dbWithCondition
 		}
@@ -1808,4 +1809,35 @@ func (m *Manager) HandleVerifyVipsResponse(ctx context.Context, clusterID strfmt
 		}
 		return nil
 	})
+}
+
+func (m *Manager) UpdateFinalizingStage(ctx context.Context, clusterID strfmt.UUID, finalizingStage models.FinalizingStage) error {
+	if !funk.Contains(finalizingStages, finalizingStage) {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("invalid finaling stage '%s'", finalizingStage))
+	}
+	cls, err := common.GetClusterFromDB(m.db, clusterID, common.SkipEagerLoading)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	allowedStatuses := []string{
+		models.ClusterStatusInstalling,
+		models.ClusterStatusFinalizing,
+		models.ClusterStatusInstallingPendingUserAction,
+	}
+	if !funk.ContainsString(allowedStatuses, swag.StringValue(cls.Status)) {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("cluster is %s, not in one of allowed statuses: %v", swag.StringValue(cls.Status), allowedStatuses))
+	}
+	if cls.Progress == nil || cls.Progress.FinalizingStage != finalizingStage {
+		if err = m.db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Updates(map[string]interface{}{
+			"progress_finalizing_stage":            finalizingStage,
+			"progress_finalizing_stage_started_at": time.Now(),
+			"progress_finalizing_stage_timed_out":  false,
+		}).Error; err != nil {
+			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "update finalizing stage for cluster %s", clusterID.String()))
+		}
+	}
+	return nil
 }

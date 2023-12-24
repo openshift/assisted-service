@@ -6815,18 +6815,11 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "finalizing_stage_timed_out": {
+          "type": "boolean"
+        },
         "installing_stage_percentage": {
           "type": "integer"
-        },
-        "node_updater_finished_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
-        },
-        "node_updater_started_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "preparing_for_installation_stage_percentage": {
           "type": "integer"
@@ -7698,6 +7691,7 @@ func init() {
         "Adding router ca",
         "Waiting for olm operators",
         "Applying manifests",
+        "Waiting for olm operators csv initialization",
         "Waiting for olm operators csv",
         "Done"
       ]
@@ -17437,18 +17431,11 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "finalizing_stage_timed_out": {
+          "type": "boolean"
+        },
         "installing_stage_percentage": {
           "type": "integer"
-        },
-        "node_updater_finished_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
-        },
-        "node_updater_started_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "preparing_for_installation_stage_percentage": {
           "type": "integer"
@@ -18294,6 +18281,7 @@ func init() {
         "Adding router ca",
         "Waiting for olm operators",
         "Applying manifests",
+        "Waiting for olm operators csv initialization",
         "Waiting for olm operators csv",
         "Done"
       ]

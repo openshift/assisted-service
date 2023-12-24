@@ -1922,6 +1922,87 @@ func (e *ClusterOperatorStatusEvent) FormatMessage() string {
 }
 
 //
+// Event finalizing_stage_timed_out
+//
+type FinalizingStageTimedOutEvent struct {
+    eventName string
+    ClusterId strfmt.UUID
+    Stage string
+    Minutes int64
+}
+
+var FinalizingStageTimedOutEventName string = "finalizing_stage_timed_out"
+
+func NewFinalizingStageTimedOutEvent(
+    clusterId strfmt.UUID,
+    stage string,
+    minutes int64,
+) *FinalizingStageTimedOutEvent {
+    return &FinalizingStageTimedOutEvent{
+        eventName: FinalizingStageTimedOutEventName,
+        ClusterId: clusterId,
+        Stage: stage,
+        Minutes: minutes,
+    }
+}
+
+func SendFinalizingStageTimedOutEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    clusterId strfmt.UUID,
+    stage string,
+    minutes int64,) {
+    ev := NewFinalizingStageTimedOutEvent(
+        clusterId,
+        stage,
+        minutes,
+    )
+    eventsHandler.SendClusterEvent(ctx, ev)
+}
+
+func SendFinalizingStageTimedOutEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    clusterId strfmt.UUID,
+    stage string,
+    minutes int64,
+    eventTime time.Time) {
+    ev := NewFinalizingStageTimedOutEvent(
+        clusterId,
+        stage,
+        minutes,
+    )
+    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *FinalizingStageTimedOutEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *FinalizingStageTimedOutEvent) GetSeverity() string {
+    return "warning"
+}
+func (e *FinalizingStageTimedOutEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
+}
+
+
+
+func (e *FinalizingStageTimedOutEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{stage}", fmt.Sprint(e.Stage),
+        "{minutes}", fmt.Sprint(e.Minutes),
+    )
+    return r.Replace(*message)
+}
+
+func (e *FinalizingStageTimedOutEvent) FormatMessage() string {
+    s := "Cluster {cluster_id}: finalizing stage {stage} has been active more than the expected completion time ({minutes} minutes)"
+    return e.format(&s)
+}
+
+//
 // Event host_deregistered
 //
 type HostDeregisteredEvent struct {

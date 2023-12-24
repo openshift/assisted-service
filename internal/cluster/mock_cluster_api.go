@@ -685,6 +685,20 @@ func (mr *MockAPIMockRecorder) UpdateFinalizingProgress(ctx, db, clusterID inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFinalizingProgress", reflect.TypeOf((*MockAPI)(nil).UpdateFinalizingProgress), ctx, db, clusterID)
 }
 
+// UpdateFinalizingStage mocks base method.
+func (m *MockAPI) UpdateFinalizingStage(ctx context.Context, clusterID strfmt.UUID, finalizingStage models.FinalizingStage) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateFinalizingStage", ctx, clusterID, finalizingStage)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateFinalizingStage indicates an expected call of UpdateFinalizingStage.
+func (mr *MockAPIMockRecorder) UpdateFinalizingStage(ctx, clusterID, finalizingStage interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFinalizingStage", reflect.TypeOf((*MockAPI)(nil).UpdateFinalizingStage), ctx, clusterID, finalizingStage)
+}
+
 // UpdateInstallProgress mocks base method.
 func (m *MockAPI) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UUID) error {
 	m.ctrl.T.Helper()
