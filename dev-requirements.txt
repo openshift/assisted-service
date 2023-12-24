@@ -1,4 +1,4 @@
-requests==2.27.1
+requests==2.31.0
 setuptools==59.2.0
 twine==3.8.0
 vcversioner==2.16.0.0
