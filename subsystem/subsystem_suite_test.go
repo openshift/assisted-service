@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/versions"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/pkg/auth"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/sirupsen/logrus"
@@ -26,14 +27,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
+var getHighestOpenshiftVersion = func() string {
+	versionFinder := common.NewVersionFinder()
+	highestOpenshiftVersion, err := versionFinder.GetHigestOpenshiftVersionFromDefaultOsImages()
+	Expect(err).ToNot(HaveOccurred())
+	return highestOpenshiftVersion
+}
+
 var db *gorm.DB
 var log *logrus.Logger
 var wiremock *WireMock
 var kubeClient k8sclient.Client
-var openshiftVersion string = "4.9.0-0.0"
-var snoVersion string = "4.9"
-var multiarchOpenshiftVersion string = "4.11.0-multi"
-var dualstackVipsOpenShiftVersion string = "4.12.0"
+var openshiftVersion string
+var snoVersion string
+var multiarchOpenshiftVersion string
+var dualstackVipsOpenShiftVersion string
 var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
 
 var (
@@ -170,12 +178,21 @@ func init() {
 	}
 }
 
+func initOpenshiftVersions() {
+	highestOpenshiftVersion := getHighestOpenshiftVersion()
+	openshiftVersion = highestOpenshiftVersion
+	snoVersion = highestOpenshiftVersion
+	multiarchOpenshiftVersion = "4.11.0-multi"
+	dualstackVipsOpenShiftVersion = "4.12.0"
+}
+
 func TestSubsystem(t *testing.T) {
 	AfterEach(func() {
 		subsystemAfterEach()
 	})
 
 	RegisterFailHandler(Fail)
+	initOpenshiftVersions()
 	subsystemAfterEach() // make sure we start tests from scratch
 	RunSpecs(t, "Subsystem Suite")
 }
