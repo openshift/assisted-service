@@ -81,6 +81,58 @@ spec:
         overwrite: true
 `
 
+const snoDnsmasqConfTill_4_11 = `#!/usr/bin/env bash
+
+# In order to override cluster domain please provide this file with the following params:
+# SNO_CLUSTER_NAME_OVERRIDE=<new cluster name>
+# SNO_BASE_DOMAIN_OVERRIDE=<your new base domain>
+# SNO_DNSMASQ_IP_OVERRIDE=<new ip>
+
+OVERRIDES_FILE=/etc/default/sno_dnsmasq_configuration_overrides
+if [ -f "${OVERRIDES_FILE}" ]; then
+    source "${OVERRIDES_FILE}"
+fi
+
+CLUSTER_NAME=${SNO_CLUSTER_NAME_OVERRIDE:-"{{.CLUSTER_NAME}}"}
+BASE_DOMAIN=${SNO_BASE_DOMAIN_OVERRIDE:-"{{.DNS_DOMAIN}}"}
+CLUSTER_FULL_DOMAIN="${CLUSTER_NAME}.${BASE_DOMAIN}"
+
+cat << EOF > /etc/dnsmasq.d/single-node.conf
+address=/apps.${CLUSTER_FULL_DOMAIN}/${HOST_IP}
+address=/api-int.${CLUSTER_FULL_DOMAIN}/${HOST_IP}
+address=/api.${CLUSTER_FULL_DOMAIN}/${HOST_IP}
+EOF
+`
+const forceDnsDispatcherScriptTill_4_11 = `#!/bin/bash
+
+# In order to override cluster domain please provide this file with the following params:
+# SNO_CLUSTER_NAME_OVERRIDE=<new cluster name>
+# SNO_BASE_DOMAIN_OVERRIDE=<your new base domain>
+# SNO_DNSMASQ_IP_OVERRIDE=<new ip>
+
+OVERRIDES_FILE=/etc/default/sno_dnsmasq_configuration_overrides
+if [ -f "${OVERRIDES_FILE}" ]; then
+    source "${OVERRIDES_FILE}"
+fi
+
+HOST_IP=${SNO_DNSMASQ_IP_OVERRIDE:-"{{.HOST_IP}}"}
+CLUSTER_NAME=${SNO_CLUSTER_NAME_OVERRIDE:-"{{.CLUSTER_NAME}}"}
+BASE_DOMAIN=${SNO_BASE_DOMAIN_OVERRIDE:-"{{.DNS_DOMAIN}}"}
+CLUSTER_FULL_DOMAIN="${CLUSTER_NAME}.${BASE_DOMAIN}"
+
+
+export BASE_RESOLV_CONF=/run/NetworkManager/resolv.conf
+if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
+	export TMP_FILE=$(mktemp /etc/forcedns_resolv.conf.XXXXXX)
+	cp  $BASE_RESOLV_CONF $TMP_FILE
+	chmod --reference=$BASE_RESOLV_CONF $TMP_FILE
+	sed -i -e "s/${CLUSTER_FULL_DOMAIN}//" \
+    -e "s/search /& ${CLUSTER_FULL_DOMAIN} /" \
+    -e "0,/nameserver/s/nameserver/& $HOST_IP\n&/" $TMP_FILE
+	mv $TMP_FILE /etc/resolv.conf
+fi
+`
+
 const snoDnsmasqConf = `#!/usr/bin/env bash
 
 # In order to override cluster domain please provide this file with the following params:
@@ -123,11 +175,14 @@ const forceDnsDispatcherScript = `#!/bin/bash
 # SNO_BASE_DOMAIN_OVERRIDE=<your new base domain>
 # SNO_DNSMASQ_IP_OVERRIDE=<new ip>
 
+# Left to support old versions and external cnis
+HOST_IP="{{.HOST_IP}}"
 OVERRIDES_FILE=/etc/default/sno_dnsmasq_configuration_overrides
 if [ -f "${OVERRIDES_FILE}" ]; then
     source "${OVERRIDES_FILE}"
 fi
 
+# Take ip from node-ip service
 FILE=/var/run/nodeip-configuration/primary-ip
 if [ -f "${FILE}" ]; then
     HOST_IP=$(cat "${FILE}")
@@ -438,21 +493,39 @@ func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log lo
 }
 
 func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
+	hostIp, err := GetIpForSingleNodeInstallation(cluster, log)
+	if err != nil {
+		return nil, err
+	}
+
 	var manifestParams = map[string]interface{}{
 		"CLUSTER_NAME": cluster.Cluster.Name,
 		"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
 	}
 
-	log.Infof("Creating dnsmasq manifest with values: cluster name: %q, domain - %q",
-		cluster.Cluster.Name, cluster.Cluster.BaseDNSDomain)
+	log.Infof("Creating dnsmasq manifest with values: cluster name: %q, domain - %q, host ip - %q",
+		cluster.Cluster.Name, cluster.Cluster.BaseDNSDomain, hostIp)
 
-	content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+	greaterOrEqualOf4_12, err := common.BaseVersionGreaterOrEqual("4.12.0", cluster.OpenshiftVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	dnsmasqConf := snoDnsmasqConf
+	dispatcherScript := forceDnsDispatcherScript
+	if !greaterOrEqualOf4_12 {
+		dnsmasqConf = snoDnsmasqConfTill_4_11
+		dispatcherScript = forceDnsDispatcherScriptTill_4_11
+		manifestParams["HOST_IP"] = hostIp
+	}
+
+	content, err := fillTemplate(manifestParams, dnsmasqConf, log)
 	if err != nil {
 		return nil, err
 	}
 	dnsmasqContent := base64.StdEncoding.EncodeToString(content)
 
-	content, err = fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+	content, err = fillTemplate(manifestParams, dispatcherScript, log)
 	if err != nil {
 		return nil, err
 	}
