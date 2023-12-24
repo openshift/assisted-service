@@ -95,6 +95,7 @@ type validationContext struct {
 	minCPUCoresRequirement  int64
 	minRAMMibRequirement    int64
 	kubeApiEnabled          bool
+	softTimeoutsEnabled     bool
 	objectHandler           s3wrapper.API
 	ctx                     context.Context
 }
@@ -207,16 +208,17 @@ func (c *validationContext) loadGeneralInfraEnvMinRequirements(hwValidator hardw
 	return err
 }
 
-func newValidationContext(ctx context.Context, host *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB, inventoryCache InventoryCache, hwValidator hardware.Validator, kubeApiEnabled bool, objectHandler s3wrapper.API) (*validationContext, error) {
+func newValidationContext(ctx context.Context, host *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB, inventoryCache InventoryCache, hwValidator hardware.Validator, kubeApiEnabled bool, objectHandler s3wrapper.API, softTimeoutsEnabled bool) (*validationContext, error) {
 	ret := &validationContext{
-		ctx:            ctx,
-		host:           host,
-		db:             db,
-		cluster:        c,
-		infraEnv:       i,
-		inventoryCache: inventoryCache,
-		kubeApiEnabled: kubeApiEnabled,
-		objectHandler:  objectHandler,
+		ctx:                 ctx,
+		host:                host,
+		db:                  db,
+		cluster:             c,
+		infraEnv:            i,
+		inventoryCache:      inventoryCache,
+		kubeApiEnabled:      kubeApiEnabled,
+		softTimeoutsEnabled: softTimeoutsEnabled,
+		objectHandler:       objectHandler,
 	}
 	if host.ClusterID != nil {
 		err := ret.loadCluster()

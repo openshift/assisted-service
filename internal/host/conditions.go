@@ -23,6 +23,8 @@ const (
 	StageInWrongBootStages               = conditionId("stage-in-wrong-boot-stages")
 	ClusterInError                       = conditionId("cluster-in-error")
 	SuccessfulContainerImageAvailability = conditionId("successful-container-image-availability")
+	HostStageTimedOut                    = conditionId("host-stage-timed-out")
+	SoftTimeoutsEnabled                  = conditionId("soft-timeouts-enabled")
 )
 
 func (c conditionId) String() string {
@@ -91,4 +93,12 @@ func (v *validator) isSuccessfulContainerImageAvailability(c *validationContext)
 	}
 	imagesStatuses, err := common.UnmarshalImageStatuses(c.host.ImagesStatus)
 	return err == nil && len(imagesStatuses) > 0 && allImagesValid(imagesStatuses)
+}
+
+func (v *validator) isHostStageTimedOut(c *validationContext) bool {
+	return c.host != nil && c.host.Progress != nil && c.host.Progress.StageTimedOut
+}
+
+func (v *validator) softTimeoutsEnabled(c *validationContext) bool {
+	return c.softTimeoutsEnabled
 }

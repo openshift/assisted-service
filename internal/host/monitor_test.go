@@ -70,7 +70,7 @@ var _ = Describe("monitor_disconnection", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, defaultConfig, dummy, mockOperators, pr, false, nil, mockVersions)
+			mockMetricApi, defaultConfig, dummy, mockOperators, pr, false, nil, mockVersions, false)
 		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnvID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, models.HostStatusDiscovering)
@@ -205,7 +205,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, pr, false, nil, mockVersions)
+			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, pr, false, nil, mockVersions, false)
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
@@ -360,7 +360,7 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, nil, false, nil, mockVersions)
+			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, nil, false, nil, mockVersions, false)
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{

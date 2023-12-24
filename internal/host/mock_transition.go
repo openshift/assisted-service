@@ -283,6 +283,20 @@ func (mr *MockTransitionHandlerMockRecorder) PostHostProgress(sw, args interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHostProgress", reflect.TypeOf((*MockTransitionHandler)(nil).PostHostProgress), sw, args)
 }
 
+// PostHostStageTimeout mocks base method.
+func (m *MockTransitionHandler) PostHostStageTimeout(reason string) stateswitch.PostTransition {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostHostStageTimeout", reason)
+	ret0, _ := ret[0].(stateswitch.PostTransition)
+	return ret0
+}
+
+// PostHostStageTimeout indicates an expected call of PostHostStageTimeout.
+func (mr *MockTransitionHandlerMockRecorder) PostHostStageTimeout(reason interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHostStageTimeout", reflect.TypeOf((*MockTransitionHandler)(nil).PostHostStageTimeout), reason)
+}
+
 // PostInstallHost mocks base method.
 func (m *MockTransitionHandler) PostInstallHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	m.ctrl.T.Helper()

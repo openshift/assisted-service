@@ -164,7 +164,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 			createCluster()
 			mockFailAllValidations()
 			var err error
-			validationContext, err = newValidationContext(ctx, host, cluster, infraEnv, db, inventoryCache, mockHardwareValidator, false, mockS3WrapperAPI)
+			validationContext, err = newValidationContext(ctx, host, cluster, infraEnv, db, inventoryCache, mockHardwareValidator, false, mockS3WrapperAPI, false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

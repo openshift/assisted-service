@@ -108,7 +108,7 @@ var _ = Describe("RegisterHost", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -642,7 +642,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil, false, nil, nil)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -688,7 +688,7 @@ var _ = Describe("Cancel host installation", func() {
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
 	})
 
 	AfterEach(func() {
@@ -787,7 +787,7 @@ var _ = Describe("Install", func() {
 		mockVersions := versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -934,7 +934,7 @@ var _ = Describe("Unbind", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -1330,7 +1330,7 @@ var _ = Describe("Refresh Host", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		defaultConfig.PrepareConfig.PrepareForInstallationTimeout = 8 * time.Minute
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -1863,7 +1863,7 @@ var _ = Describe("Refresh Host", func() {
 		}
 	})
 
-	Context("host installationInProgress timeout", func() {
+	Context("host installationInProgress timeout - hard timeouts", func() {
 
 		BeforeEach(func() {
 			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
@@ -2004,6 +2004,158 @@ var _ = Describe("Refresh Host", func() {
 			Expect(swag.StringValue(resultMaster.StatusInfo)).To(Equal(info))
 
 			info = formatProgressTimedOutInfo(defaultConfig, models.HostStageConfiguring)
+			Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+		})
+	})
+
+	Context("host installationInProgress timeout - soft timeouts", func() {
+
+		BeforeEach(func() {
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
+			mockDefaultClusterHostRequirements(mockHwValidator)
+			mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
+			hapi.(*Manager).softTimeoutsEnabled = true
+		})
+
+		var srcState string
+		var invalidStage models.HostStage = "not_mentioned_stage"
+
+		installationStages := []models.HostStage{
+			models.HostStageStartingInstallation,
+			models.HostStageWritingImageToDisk,
+			models.HostStageRebooting,
+			models.HostStageConfiguring,
+			models.HostStageInstalling,
+			invalidStage,
+		}
+		timePassedTypes := map[string]time.Duration{
+			"under_timeout": 5 * time.Minute,
+			"over_timeout":  90 * time.Minute,
+		}
+
+		ClusterHighAvailabilityModes := []string{models.ClusterHighAvailabilityModeNone, models.ClusterHighAvailabilityModeFull}
+		for i := range ClusterHighAvailabilityModes {
+			highAvailabilityMode := ClusterHighAvailabilityModes[i]
+			for j := range installationStages {
+				stage := installationStages[j]
+				for passedTimeKey, passedTimeValue := range timePassedTypes {
+					for _, st := range []bool{false, true} {
+						stageTimedOut := st
+						name := fmt.Sprintf("installationInProgress stage %s %s", stage, passedTimeKey)
+						passedTimeKind := passedTimeKey
+						passedTime := passedTimeValue
+						It(name, func() {
+							hostCheckInAt := strfmt.DateTime(time.Now())
+							srcState = models.HostStatusInstallingInProgress
+							host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
+							host.Inventory = hostutil.GenerateMasterInventory()
+							host.InstallationDiskPath = common.TestDiskId
+							host.Role = models.HostRoleMaster
+							host.CheckedInAt = hostCheckInAt
+							progress := models.HostProgressInfo{
+								CurrentStage:   stage,
+								StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+								StageUpdatedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+								StageTimedOut:  stageTimedOut,
+							}
+							host.Progress = &progress
+							Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+							cluster = hostutil.GenerateTestCluster(clusterId)
+							cluster.HighAvailabilityMode = &highAvailabilityMode
+							Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+							shouldTimeout := passedTimeKind == "over_timeout" && (!stageTimedOut || stage == models.HostStageRebooting)
+							if shouldTimeout {
+								if stage == models.HostStageRebooting {
+									mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+										eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+										eventstest.WithHostIdMatcher(hostId.String()),
+										eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+										eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+										eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusInstallingPendingUserAction))))
+								} else {
+									mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+										eventstest.WithNameMatcher(eventgen.HostStageTimedOutEventName),
+										eventstest.WithHostIdMatcher(hostId.String()),
+										eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+										eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+										eventstest.WithSeverityMatcher(models.EventSeverityWarning))).Times(1)
+								}
+							}
+							err := hapi.RefreshStatus(ctx, &host, db)
+
+							Expect(err).ToNot(HaveOccurred())
+							var resultHost models.Host
+							Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+							if !shouldTimeout {
+								Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingInProgress))
+							} else {
+								if stage == models.HostStageRebooting {
+									Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
+									statusInfo := strings.Replace(statusRebootTimeout, "$INSTALLATION_DISK", fmt.Sprintf("(test-disk, %s)", common.TestDiskId), 1)
+									Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(statusInfo))
+								} else {
+									Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingInProgress))
+									info := formatProgressTimedOutInfoWithSoftTimeouts(defaultConfig, stage)
+									Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
+									Expect(resultHost.Progress.StageTimedOut).To(BeTrue())
+								}
+							}
+						})
+					}
+				}
+			}
+		}
+		It("state info progress when failed", func() {
+
+			cluster = hostutil.GenerateTestCluster(clusterId)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			masterID := strfmt.UUID("1")
+			master := hostutil.GenerateTestHost(masterID, infraEnvId, clusterId, models.HostStatusInstallingInProgress)
+			master.Inventory = hostutil.GenerateMasterInventory()
+			master.Role = models.HostRoleMaster
+			master.CheckedInAt = strfmt.DateTime(time.Now())
+			master.Progress = &models.HostProgressInfo{
+				CurrentStage:   models.HostStageWaitingForControlPlane,
+				StageStartedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+				StageUpdatedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+			}
+			Expect(db.Create(&master).Error).ShouldNot(HaveOccurred())
+
+			hostId = strfmt.UUID("2")
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusInstallingInProgress)
+			host.Inventory = hostutil.GenerateMasterInventory()
+			host.Role = models.HostRoleWorker
+			host.CheckedInAt = strfmt.DateTime(time.Now())
+			progress := models.HostProgressInfo{
+				CurrentStage:   models.HostStageConfiguring,
+				StageStartedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+				StageUpdatedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+			}
+			host.Progress = &progress
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithSeverityMatcher(models.EventSeverityWarning))).AnyTimes()
+
+			err := hapi.RefreshStatus(ctx, &master, db)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = hapi.RefreshStatus(ctx, &host, db)
+			Expect(err).ToNot(HaveOccurred())
+
+			var resultMaster models.Host
+			Expect(db.Take(&resultMaster, "id = ? and cluster_id = ?", masterID.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+			info := formatProgressTimedOutInfoWithSoftTimeouts(defaultConfig, models.HostStageWaitingForControlPlane)
+			Expect(swag.StringValue(resultMaster.StatusInfo)).To(Equal(info))
+
+			info = formatProgressTimedOutInfoWithSoftTimeouts(defaultConfig, models.HostStageConfiguring)
 			Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
 		})
 
@@ -5212,7 +5364,7 @@ var _ = Describe("Refresh Host", func() {
 				mockVersions := versions.NewMockHandler(ctrl)
 				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
-				hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions)
+				hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
 
 				err := hapi.RefreshStatus(ctx, &host, db)
 				Expect(err).ToNot(HaveOccurred())
@@ -5306,7 +5458,7 @@ var _ = Describe("Refresh Host", func() {
 			mockVersions := versions.NewMockHandler(ctrl)
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
-			hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions)
+			hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
 		})
 
 		const (
@@ -5551,7 +5703,7 @@ var _ = Describe("Refresh Host", func() {
 				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 
-			hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions)
+			hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			cluster = hostutil.GenerateTestCluster(clusterId)
 			cluster.UserManagedNetworking = swag.Bool(true)
@@ -6117,6 +6269,7 @@ var _ = Describe("Upgrade agent feature", func() {
 			false,
 			nil,
 			mockVersions,
+			false,
 		)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -6257,15 +6410,32 @@ func mockPreflightInfraEnvHardwareRequirements(mockHwValidator *hardware.MockVal
 		}, nil)
 }
 
-func formatProgressTimedOutInfo(config *Config, stage models.HostStage) string {
+func formatProgressTimedOutInfoWithSoftTimeoutsValue(config *Config, stage models.HostStage, enableSoftTimeouts bool) string {
 	timeFormat := config.HostStageTimeout(stage).String()
-	statusInfo := statusInfoInstallationInProgressTimedOut
-	if stage == models.HostStageWritingImageToDisk {
-		statusInfo = statusInfoInstallationInProgressWritingImageToDiskTimedOut
+	var statusInfo string
+	if enableSoftTimeouts {
+		statusInfo = statusInfoInstallationInProgressSoftTimedOut
+		if stage == models.HostStageWritingImageToDisk {
+			statusInfo = statusInfoInstallationInProgressWritingImageToDiskSoftTimedOut
+		}
+	} else {
+		statusInfo = statusInfoInstallationInProgressTimedOut
+		if stage == models.HostStageWritingImageToDisk {
+			statusInfo = statusInfoInstallationInProgressWritingImageToDiskTimedOut
+		}
+
 	}
+
 	info := strings.Replace(statusInfo, "$STAGE", string(stage), 1)
 	info = strings.Replace(info, "$MAX_TIME", timeFormat, 1)
 	return info
+}
+func formatProgressTimedOutInfo(config *Config, stage models.HostStage) string {
+	return formatProgressTimedOutInfoWithSoftTimeoutsValue(config, stage, false)
+}
+
+func formatProgressTimedOutInfoWithSoftTimeouts(config *Config, stage models.HostStage) string {
+	return formatProgressTimedOutInfoWithSoftTimeoutsValue(config, stage, true)
 }
 
 func formatStatusInfoFailedValidation(statusInfo string, validationMessages ...string) string {
@@ -6444,6 +6614,10 @@ var _ = Describe("State machine test - refresh transition", func() {
 		).AnyTimes()
 
 		mockTransitionHandler.EXPECT().PostRefreshLogsProgress(gomock.Any()).Return(
+			func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+		).AnyTimes()
+
+		mockTransitionHandler.EXPECT().PostHostStageTimeout(gomock.Any()).Return(
 			func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
 		).AnyTimes()
 	}

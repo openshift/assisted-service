@@ -69,7 +69,7 @@ var _ = Describe("Validations test", func() {
 		mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
 		mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
 		mockVersions = versions.NewMockHandler(ctrl)
-		m = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, mockOperators, mockProviderRegistry, false, nil, mockVersions)
+		m = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, mockOperators, mockProviderRegistry, false, nil, mockVersions, false)
 
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
