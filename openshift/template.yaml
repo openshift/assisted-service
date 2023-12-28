@@ -202,8 +202,6 @@ parameters:
   value: "false"
 - name: ENVOY_CONFIGMAP_NAME
   value: assisted-service-envoy-config
-- name: OCP_MCE_VERSION_MAP
-  value: '[{"openshift_version": "4.11", "mce_channel": "stable-2.3"}, {"openshift_version": "4.12", "mce_channel": "stable-2.4"}, {"openshift_version": "4.13", "mce_channel": "stable-2.3"}, {"openshift_version": "4.14", "mce_channel": "stable-2.4"}, {"openshift_version": "4.15", "mce_channel": "stable-2.4"}]'
 apiVersion: v1
 kind: Template
 metadata:
@@ -463,8 +461,6 @@ objects:
                 value: ${INSTALLER_CACHE_CAPACITY}
               - name: ENABLE_OKD_SUPPORT
                 value: ${ENABLE_OKD_SUPPORT}
-              - name: OCP_MCE_VERSION_MAP
-                value: ${OCP_MCE_VERSION_MAP}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
