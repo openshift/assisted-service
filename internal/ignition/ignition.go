@@ -58,8 +58,9 @@ import (
 )
 
 const (
-	masterIgn = "master.ign"
-	workerIgn = "worker.ign"
+	masterIgn      = "master.ign"
+	workerIgn      = "worker.ign"
+	nodeIpHintFile = "/etc/default/nodeip-configuration"
 )
 
 // Names of some relevant templates:
@@ -451,7 +452,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		return err
 	}
 
-	err = g.createHostIgnitions(g.serviceBaseURL, authType)
+	err = g.createHostIgnitions()
 	if err != nil {
 		log.Error(err)
 		return err
@@ -1510,7 +1511,7 @@ func (g *installerGenerator) modifyPointerIgnitionMCP(poolName string, ignitionS
 	return "", errors.Errorf("machine config pool %s was not found", poolName)
 }
 
-func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile string, workDir, serviceBaseURL, bootReporter string, authType auth.AuthType) error {
+func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile string, workDir string) error {
 	config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
 	if err != nil {
 		return err
@@ -1522,6 +1523,14 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 	}
 
 	setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
+	if common.IsSingleNodeCluster(g.cluster) {
+		machineCidr := g.cluster.MachineNetworks[0]
+		ip, _, errP := net.ParseCIDR(string(machineCidr.Cidr))
+		if errP != nil {
+			return errors.Wrapf(errP, "Failed to parse machine cidr for node ip hint content")
+		}
+		setFileInIgnition(config, nodeIpHintFile, fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", ip), false, 420, true)
+	}
 
 	configBytes, err := json.Marshal(config)
 	if err != nil {
@@ -1554,12 +1563,12 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 	return nil
 }
 
-func (g *installerGenerator) writeHostFiles(hosts []*models.Host, baseFile string, workDir string, serviceBaseURL string, authType auth.AuthType) error {
+func (g *installerGenerator) writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error {
 	errGroup := new(errgroup.Group)
 	for i := range hosts {
 		host := hosts[i]
 		errGroup.Go(func() error {
-			return g.writeSingleHostFile(host, baseFile, workDir, serviceBaseURL, "", authType)
+			return g.writeSingleHostFile(host, baseFile, workDir)
 		})
 	}
 
@@ -1567,15 +1576,15 @@ func (g *installerGenerator) writeHostFiles(hosts []*models.Host, baseFile strin
 }
 
 // createHostIgnitions builds an ignition file for each host in the cluster based on the generated <role>.ign file
-func (g *installerGenerator) createHostIgnitions(serviceBaseURL string, authType auth.AuthType) error {
+func (g *installerGenerator) createHostIgnitions() error {
 	masters, workers := sortHosts(g.cluster.Hosts)
 
-	err := g.writeHostFiles(masters, masterIgn, g.workDir, serviceBaseURL, authType)
+	err := g.writeHostFiles(masters, masterIgn, g.workDir)
 	if err != nil {
 		return errors.Wrapf(err, "error writing master host ignition files")
 	}
 
-	err = g.writeHostFiles(workers, workerIgn, g.workDir, serviceBaseURL, authType)
+	err = g.writeHostFiles(workers, workerIgn, g.workDir)
 	if err != nil {
 		return errors.Wrapf(err, "error writing worker host ignition files")
 	}
