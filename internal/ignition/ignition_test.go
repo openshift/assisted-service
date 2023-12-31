@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -545,7 +546,7 @@ var _ = Describe("createHostIgnitions", func() {
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
-			err := g.createHostIgnitions("http://www.example.com:6008", auth.TypeRHSSO)
+			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, host := range cluster.Hosts {
@@ -580,6 +581,93 @@ var _ = Describe("createHostIgnitions", func() {
 		})
 	})
 
+	Context("node ip hint", func() {
+		It("SNO: adds nodeip hint file", func() {
+			cluster.Hosts = []*models.Host{
+				{
+					RequestedHostname: "master0.example.com",
+					Role:              models.HostRoleMaster,
+				},
+			}
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			cluster.MachineNetworks = network.CreateMachineNetworksArray("3.3.3.0/24")
+
+			// create an ID for each host
+			for _, host := range cluster.Hosts {
+				id := strfmt.UUID(uuid.New().String())
+				host.ID = &id
+			}
+
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+
+			err := g.createHostIgnitions()
+			Expect(err).NotTo(HaveOccurred())
+
+			for _, host := range cluster.Hosts {
+				ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", host.Role, host.ID)))
+				Expect(err).NotTo(HaveOccurred())
+				config, _, err := config_32.Parse(ignBytes)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Validating nodeip hint was added")
+				var f *config_32_types.File
+				for fileidx, file := range config.Storage.Files {
+					if file.Node.Path == nodeIpHintFile {
+						f = &config.Storage.Files[fileidx]
+						break
+					}
+				}
+				Expect(f).NotTo(BeNil())
+				Expect(*f.Node.User.Name).To(Equal("root"))
+				Expect(*f.FileEmbedded1.Contents.Source).To(Equal(fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", "3.3.3.0")))
+				Expect(*f.FileEmbedded1.Mode).To(Equal(420))
+				Expect(*f.Node.Overwrite).To(Equal(true))
+
+			}
+		})
+
+		It("MULTI NODE: no nodeip hint file", func() {
+			cluster.Hosts = []*models.Host{
+				{
+					RequestedHostname: "master0.example.com",
+					Role:              models.HostRoleMaster,
+				},
+			}
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.MachineNetworks = network.CreateMachineNetworksArray("3.3.3.0/24")
+
+			// create an ID for each host
+			for _, host := range cluster.Hosts {
+				id := strfmt.UUID(uuid.New().String())
+				host.ID = &id
+			}
+
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+
+			err := g.createHostIgnitions()
+			Expect(err).NotTo(HaveOccurred())
+
+			for _, host := range cluster.Hosts {
+				ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", host.Role, host.ID)))
+				Expect(err).NotTo(HaveOccurred())
+				config, _, err := config_32.Parse(ignBytes)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Validating nodeip hint was not added")
+				var f *config_32_types.File
+				for fileidx, file := range config.Storage.Files {
+					if file.Node.Path == nodeIpHintFile {
+						f = &config.Storage.Files[fileidx]
+						break
+					}
+				}
+				Expect(f).To(BeNil())
+			}
+		})
+	})
+
 	It("applies overrides correctly", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		cluster.Hosts = []*models.Host{{
@@ -592,7 +680,7 @@ var _ = Describe("createHostIgnitions", func() {
 		g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 			mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
-		err := g.createHostIgnitions("http://www.example.com:6008", auth.TypeNone)
+		err := g.createHostIgnitions()
 		Expect(err).NotTo(HaveOccurred())
 
 		ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", models.HostRoleMaster, hostID)))
@@ -666,7 +754,7 @@ spec:
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(io.NopCloser(strings.NewReader(mcp)), int64(0), nil)
-			err := g.writeSingleHostFile(cluster.Hosts[0], workerIgn, g.workDir, "http://www.example.com:6008", "", auth.TypeNone)
+			err := g.writeSingleHostFile(cluster.Hosts[0], workerIgn, g.workDir)
 			Expect(err).NotTo(HaveOccurred())
 
 			ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", models.HostRoleWorker, hostID)))
@@ -693,7 +781,7 @@ spec:
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(io.NopCloser(strings.NewReader(mc)), int64(0), nil)
-			err := g.writeSingleHostFile(cluster.Hosts[0], workerIgn, g.workDir, "http://www.example.com:6008", "", auth.TypeNone)
+			err := g.writeSingleHostFile(cluster.Hosts[0], workerIgn, g.workDir)
 			Expect(err).To(HaveOccurred())
 		})
 	})

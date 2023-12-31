@@ -1554,10 +1554,6 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 		return errors.Wrap(err, "failed to add disk encryption manifest")
 	}
 
-	if err := m.manifestsGeneratorAPI.AddNodeIpHint(ctx, log, cluster); err != nil {
-		return errors.Wrap(err, "failed to add node ip hint")
-	}
-
 	return nil
 }
 
