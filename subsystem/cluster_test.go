@@ -2450,7 +2450,7 @@ name: exampleNamespace2`
 			Expect(err).NotTo(HaveOccurred())
 			tarReader := tar.NewReader(file)
 			numOfarchivedFiles := 0
-			expectedFiles := []string{"manifest_user-supplied_openshift_manifest1.yaml", "manifest_user-supplied_openshift_manifest2.yaml", "cluster_events.json", "cluster_metadata.json", "controller_logs.tar.gz", "test-cluster_auto-assign_h1.tar", "test-cluster_auto-assign_h2.tar", "test-cluster_auto-assign_h3.tar"}
+			expectedFiles := []string{"cluster_manifest_user-supplied_openshift_manifest1.yaml", "cluster_manifest_user-supplied_openshift_manifest2.yaml", "cluster_events.json", "cluster_metadata.json", "controller_logs.tar.gz", "test-cluster_auto-assign_h1.tar", "test-cluster_auto-assign_h2.tar", "test-cluster_auto-assign_h3.tar"}
 			for {
 				header, err := tarReader.Next()
 				if err == io.EOF {
