@@ -24,7 +24,7 @@ type LastInstallationPreparation struct {
 	Reason string `json:"reason,omitempty"`
 
 	// The last installation preparation status
-	// Enum: [preparation_never_performed failed success]
+	// Enum: [not_started failed success]
 	Status string `json:"status,omitempty"`
 }
 
@@ -46,7 +46,7 @@ var lastInstallationPreparationTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["preparation_never_performed","failed","success"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["not_started","failed","success"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -56,8 +56,8 @@ func init() {
 
 const (
 
-	// LastInstallationPreparationStatusPreparationNeverPerformed captures enum value "preparation_never_performed"
-	LastInstallationPreparationStatusPreparationNeverPerformed string = "preparation_never_performed"
+	// LastInstallationPreparationStatusNotStarted captures enum value "not_started"
+	LastInstallationPreparationStatusNotStarted string = "not_started"
 
 	// LastInstallationPreparationStatusFailed captures enum value "failed"
 	LastInstallationPreparationStatusFailed string = "failed"

@@ -5197,6 +5197,14 @@ var _ = Describe("cluster", func() {
 				eventstest.WithClusterIdMatcher(clusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
 
+			err := db.Model(&models.Cluster{}).Where("id = ?", clusterID).Updates(&models.Cluster{
+				LastInstallationPreparation: models.LastInstallationPreparation{
+					Status: models.LastInstallationPreparationStatusFailed,
+					Reason: "Testing clear of failure reason on installation start",
+				},
+			}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
 			})
@@ -5206,6 +5214,11 @@ var _ = Describe("cluster", func() {
 
 			count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
 			Expect(count).To(Equal(int64(1)))
+
+			cluster, err := common.GetClusterFromDBWhere(db, common.UseEagerLoading, common.DeleteRecordsState(false), "id = ? AND last_installation_preparation_status = ?", clusterID, models.LastInstallationPreparationStatusNotStarted)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cluster.LastInstallationPreparation.Status).To(Equal(models.LastInstallationPreparationStatusNotStarted))
+			Expect(cluster.LastInstallationPreparation.Reason).To(Equal("Preparation never performed"))
 		})
 
 		It("Should send event in case of ignored validations", func() {

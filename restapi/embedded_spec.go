@@ -9106,9 +9106,9 @@ func init() {
         "status": {
           "description": "The last installation preparation status",
           "type": "string",
-          "default": "preparation_never_performed",
+          "default": "not_started",
           "enum": [
-            "preparation_never_performed",
+            "not_started",
             "failed",
             "success"
           ],
@@ -19680,9 +19680,9 @@ func init() {
         "status": {
           "description": "The last installation preparation status",
           "type": "string",
-          "default": "preparation_never_performed",
+          "default": "not_started",
           "enum": [
-            "preparation_never_performed",
+            "not_started",
             "failed",
             "success"
           ],
