@@ -15,7 +15,8 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
+	hiveextv1beta1 "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	hiveextv1beta2 "github.com/openshift/assisted-service/api/hiveextension/v1beta2"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	restclient "github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -222,7 +223,8 @@ func GetKubeClientSchemes() *runtime.Scheme {
 	utilruntime.Must(corev1.AddToScheme(schemes))
 	utilruntime.Must(aiv1beta1.AddToScheme(schemes))
 	utilruntime.Must(hivev1.AddToScheme(schemes))
-	utilruntime.Must(hiveext.AddToScheme(schemes))
+	utilruntime.Must(hiveextv1beta1.AddToScheme(schemes))
+	utilruntime.Must(hiveextv1beta2.AddToScheme(schemes))
 	utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
 	utilruntime.Must(machinev1beta1.AddToScheme(schemes))
 	utilruntime.Must(monitoringv1.AddToScheme(schemes))
@@ -268,14 +270,14 @@ func checksumMap(m map[string]string) (string, error) {
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
-func clusterNetworksArrayToEntries(networks []*models.ClusterNetwork) []hiveext.ClusterNetworkEntry {
-	return funk.Map(networks, func(net *models.ClusterNetwork) hiveext.ClusterNetworkEntry {
-		return hiveext.ClusterNetworkEntry{CIDR: string(net.Cidr), HostPrefix: int32(net.HostPrefix)}
-	}).([]hiveext.ClusterNetworkEntry)
+func clusterNetworksArrayToEntries(networks []*models.ClusterNetwork) []hiveextv1beta2.ClusterNetworkEntry {
+	return funk.Map(networks, func(net *models.ClusterNetwork) hiveextv1beta2.ClusterNetworkEntry {
+		return hiveextv1beta2.ClusterNetworkEntry{CIDR: string(net.Cidr), HostPrefix: int32(net.HostPrefix)}
+	}).([]hiveextv1beta2.ClusterNetworkEntry)
 }
 
-func clusterNetworksEntriesToArray(entries []hiveext.ClusterNetworkEntry) []*models.ClusterNetwork {
-	return funk.Map(entries, func(entry hiveext.ClusterNetworkEntry) *models.ClusterNetwork {
+func clusterNetworksEntriesToArray(entries []hiveextv1beta2.ClusterNetworkEntry) []*models.ClusterNetwork {
+	return funk.Map(entries, func(entry hiveextv1beta2.ClusterNetworkEntry) *models.ClusterNetwork {
 		return &models.ClusterNetwork{Cidr: models.Subnet(entry.CIDR), HostPrefix: int64(entry.HostPrefix)}
 	}).([]*models.ClusterNetwork)
 }
@@ -292,14 +294,14 @@ func serviceNetworksEntriesToArray(entries []string) []*models.ServiceNetwork {
 	}).([]*models.ServiceNetwork)
 }
 
-func machineNetworksArrayToEntries(networks []*models.MachineNetwork) []hiveext.MachineNetworkEntry {
-	return funk.Map(networks, func(net *models.MachineNetwork) hiveext.MachineNetworkEntry {
-		return hiveext.MachineNetworkEntry{CIDR: string(net.Cidr)}
-	}).([]hiveext.MachineNetworkEntry)
+func machineNetworksArrayToEntries(networks []*models.MachineNetwork) []hiveextv1beta2.MachineNetworkEntry {
+	return funk.Map(networks, func(net *models.MachineNetwork) hiveextv1beta2.MachineNetworkEntry {
+		return hiveextv1beta2.MachineNetworkEntry{CIDR: string(net.Cidr)}
+	}).([]hiveextv1beta2.MachineNetworkEntry)
 }
 
-func machineNetworksEntriesToArray(entries []hiveext.MachineNetworkEntry) []*models.MachineNetwork {
-	return funk.Map(entries, func(entry hiveext.MachineNetworkEntry) *models.MachineNetwork {
+func machineNetworksEntriesToArray(entries []hiveextv1beta2.MachineNetworkEntry) []*models.MachineNetwork {
+	return funk.Map(entries, func(entry hiveextv1beta2.MachineNetworkEntry) *models.MachineNetwork {
 		return &models.MachineNetwork{Cidr: models.Subnet(entry.CIDR)}
 	}).([]*models.MachineNetwork)
 }
@@ -354,7 +356,7 @@ func isNonePlatformCluster(ctx context.Context, client client.Client, cd *hivev1
 	if cd.Spec.ClusterInstallRef == nil {
 		return false, false, errors.Errorf("Cluster Install Reference is null for cluster deployment ns=%s name=%s", cd.Namespace, cd.Name)
 	}
-	clusterInstall := hiveext.AgentClusterInstall{}
+	clusterInstall := hiveextv1beta2.AgentClusterInstall{}
 	namespacedName := types.NamespacedName{
 		Namespace: cd.Namespace,
 		Name:      cd.Spec.ClusterInstallRef.Name,

@@ -9,6 +9,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -813,8 +814,13 @@ func createControllerManager() (manager.Manager, error) {
 
 		}
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:           schemes,
-			WebhookServer:    webhook.NewServer(webhook.Options{Port: 9443}),
+			Scheme: schemes,
+			WebhookServer: webhook.NewServer(webhook.Options{
+				Port:     9443,
+				CertDir:  filepath.Dir(Options.HTTPSKeyFile),
+				CertName: filepath.Base(Options.HTTPSCertFile),
+				KeyName:  filepath.Base(Options.HTTPSKeyFile),
+			}),
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.agent-install.openshift.io",
 			Cache: cache.Options{
