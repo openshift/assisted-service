@@ -3,6 +3,7 @@ package hostcommands
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -50,9 +51,12 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 		request.CaCertificate = cluster.IgnitionEndpoint.CaCertificate
 	}
 
+	var requestHeaders []*models.APIVipConnectivityAdditionalRequestHeader
 	if commonHost.IgnitionEndpointToken != "" {
+		requestHeaders = append(requestHeaders, &models.APIVipConnectivityAdditionalRequestHeader{Key: "Authorization", Value: fmt.Sprintf("Bearer %s", commonHost.IgnitionEndpointToken)})
 		request.IgnitionEndpointToken = &commonHost.IgnitionEndpointToken
 	}
+	request.RequestHeaders = requestHeaders
 
 	requestBytes, err := json.Marshal(request)
 	if err != nil {

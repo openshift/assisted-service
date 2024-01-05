@@ -5986,6 +5986,19 @@ func init() {
         }
       }
     },
+    "api_vip_connectivity_additional_request_header": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "description": "Value of the header's key when making a request",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value corresponding to the header key",
+          "type": "string"
+        }
+      }
+    },
     "api_vip_connectivity_request": {
       "type": "object",
       "required": [
@@ -5998,9 +6011,18 @@ func init() {
           "x-nullable": true
         },
         "ignition_endpoint_token": {
-          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
+          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url (DEPRECATED use request_headers to pass this token).",
           "type": "string",
           "x-nullable": true
+        },
+        "request_headers": {
+          "description": "Additional request headers to include when fetching the ignition from ignition_endpoint_url.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/api_vip_connectivity_additional_request_header"
+          },
+          "x-nullable": true,
+          "x-omitempty": true
         },
         "url": {
           "description": "URL address of the API.",
@@ -16584,6 +16606,19 @@ func init() {
         }
       }
     },
+    "api_vip_connectivity_additional_request_header": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "description": "Value of the header's key when making a request",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value corresponding to the header key",
+          "type": "string"
+        }
+      }
+    },
     "api_vip_connectivity_request": {
       "type": "object",
       "required": [
@@ -16596,9 +16631,18 @@ func init() {
           "x-nullable": true
         },
         "ignition_endpoint_token": {
-          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
+          "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url (DEPRECATED use request_headers to pass this token).",
           "type": "string",
           "x-nullable": true
+        },
+        "request_headers": {
+          "description": "Additional request headers to include when fetching the ignition from ignition_endpoint_url.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/api_vip_connectivity_additional_request_header"
+          },
+          "x-nullable": true,
+          "x-omitempty": true
         },
         "url": {
           "description": "URL address of the API.",
