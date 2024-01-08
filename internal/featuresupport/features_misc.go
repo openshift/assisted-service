@@ -211,7 +211,13 @@ func (feature *FullIso) GetName() string {
 }
 
 func (feature *FullIso) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeOci {
+	platform := &models.Platform{
+		Type: filters.PlatformType,
+		External: &models.PlatformExternal{
+			PlatformName: filters.ExternalPlatformName,
+		},
+	}
+	if common.IsOciExternalIntegrationEnabled(platform) {
 		return models.SupportLevelUnavailable
 	}
 
@@ -289,8 +295,8 @@ func (f *skipMcoReboot) getIncompatibleArchitectures(openshiftVersion *string) *
 func (f *skipMcoReboot) getFeatureActiveLevel(cluster *common.Cluster, infraEnv *models.InfraEnv,
 	clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
 	if cluster != nil {
-		active, err := common.BaseVersionGreaterOrEqual("4.15.0", cluster.OpenshiftVersion)
-		if err != nil || !active {
+		activeForVersion, err := common.BaseVersionGreaterOrEqual("4.15.0", cluster.OpenshiftVersion)
+		if err != nil || !activeForVersion || cluster.CPUArchitecture == models.ClusterCPUArchitectureS390x {
 			return activeLevelNotActive
 		}
 	}

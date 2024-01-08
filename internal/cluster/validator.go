@@ -400,7 +400,7 @@ func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext
 
 func (v *clusterValidator) platformRequirementsSatisfied(c *clusterPreprocessContext) (ValidationStatus, string) {
 	// If cluster platform type is not OCI ignore that validation
-	if c.cluster.Platform != nil && common.PlatformTypeValue(c.cluster.Platform.Type) != models.PlatformTypeOci {
+	if !common.IsOciExternalIntegrationEnabled(c.cluster.Platform) {
 		return ValidationSuccess, "Platform requirements satisfied"
 	}
 

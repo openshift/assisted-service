@@ -66,6 +66,24 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 	return host, nil
 }
 
+func UpdateHostStageTimeout(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
+	srcStatus string, statusInfo string, maxDurationMinutes int64, extra ...interface{}) (*common.Host, error) {
+	var host *common.Host
+	var err error
+
+	extra = append(append(make([]interface{}, 0), "status_info", statusInfo, "progress_stage_timed_out", true), extra...)
+
+	if host, err = UpdateHost(log, db, infraEnvId, hostId, srcStatus, extra...); err != nil {
+		return nil, errors.Wrapf(err, "failed to set timeout for host %s belonging to infra-env %s",
+			hostId, infraEnvId)
+	}
+
+	eventgen.SendHostStageTimedOutEvent(ctx, eventsHandler, hostId, infraEnvId, host.ClusterID, GetHostnameForMsg(&host.Host), string(host.Progress.CurrentStage), maxDurationMinutes)
+	log.Infof("host %s from infra env %s has been updated with the following updates %+v", hostId, infraEnvId, extra)
+
+	return host, nil
+}
+
 func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, infraEnvId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, extra ...interface{}) (*common.Host, error) {
 	updates := make(map[string]interface{})

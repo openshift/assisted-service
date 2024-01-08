@@ -14,6 +14,7 @@ type externalProvider struct {
 	baseExternalProvider
 }
 
+// baseExternalProvider provides a generic implementation suitable for any platforms relying on the external platform.
 func NewExternalProvider(log logrus.FieldLogger) provider.Provider {
 	p := &externalProvider{
 		baseExternalProvider: baseExternalProvider{
@@ -22,10 +23,6 @@ func NewExternalProvider(log logrus.FieldLogger) provider.Provider {
 	}
 	p.Provider = p
 	return p
-}
-
-func (p *externalProvider) Name() models.PlatformType {
-	return models.PlatformTypeExternal
 }
 
 func (p *externalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
@@ -54,4 +51,18 @@ func (p *externalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerC
 	}
 
 	return nil
+}
+
+func (p *externalProvider) IsProviderForPlatform(platform *models.Platform) bool {
+	if platform == nil ||
+		platform.Type == nil {
+		return false
+	}
+
+	if *platform.Type == models.PlatformTypeExternal &&
+		platform.External != nil {
+		return true
+	}
+
+	return false
 }

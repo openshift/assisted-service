@@ -140,13 +140,14 @@ type Manager struct {
 	monitorClusterQueryGenerator  *common.MonitorClusterQueryGenerator
 	monitorInfraEnvQueryGenerator *common.MonitorInfraEnvQueryGenerator
 	kubeApiEnabled                bool
+	softTimeoutsEnabled           bool
 	objectHandler                 s3wrapper.API
 	versionHandler                versions.Handler
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.Notifier, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
 	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry, kubeApiEnabled bool, objectHandler s3wrapper.API,
-	versionHandler versions.Handler) *Manager {
+	versionHandler versions.Handler, softTimeoutsEnabled bool) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -156,20 +157,21 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.N
 	sm := NewHostStateMachine(stateswitch.NewStateMachine(), th)
 	sm = NewPoolHostStateMachine(sm, th)
 	return &Manager{
-		log:            log,
-		db:             db,
-		stream:         notificationStream,
-		instructionApi: instructionApi,
-		hwValidator:    hwValidator,
-		eventsHandler:  eventsHandler,
-		sm:             sm,
-		rp:             newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, config.DisabledHostvalidations, providerRegistry, versionHandler),
-		metricApi:      metricApi,
-		Config:         *config,
-		leaderElector:  leaderElector,
-		kubeApiEnabled: kubeApiEnabled,
-		objectHandler:  objectHandler,
-		versionHandler: versionHandler,
+		log:                 log,
+		db:                  db,
+		stream:              notificationStream,
+		instructionApi:      instructionApi,
+		hwValidator:         hwValidator,
+		eventsHandler:       eventsHandler,
+		sm:                  sm,
+		rp:                  newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, config.DisabledHostvalidations, providerRegistry, versionHandler),
+		metricApi:           metricApi,
+		Config:              *config,
+		leaderElector:       leaderElector,
+		kubeApiEnabled:      kubeApiEnabled,
+		softTimeoutsEnabled: softTimeoutsEnabled,
+		objectHandler:       objectHandler,
+		versionHandler:      versionHandler,
 	}
 }
 
@@ -462,7 +464,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		conditions       map[string]bool
 		newValidationRes ValidationsStatus
 	)
-	vc, err = newValidationContext(ctx, h, c, i, db, inventoryCache, m.hwValidator, m.kubeApiEnabled, m.objectHandler)
+	vc, err = newValidationContext(ctx, h, c, i, db, inventoryCache, m.hwValidator, m.kubeApiEnabled, m.objectHandler, m.softTimeoutsEnabled)
 	if err != nil {
 		return err
 	}
@@ -673,7 +675,7 @@ func (m *Manager) UpdateHostProgress(ctx context.Context, log logrus.FieldLogger
 		"progress_stage_updated_at", strfmt.DateTime(time.Now())), extra...)
 
 	if newStage != srcStage {
-		extra = append(extra, "progress_stage_started_at", strfmt.DateTime(time.Now()))
+		extra = append(extra, "progress_stage_started_at", strfmt.DateTime(time.Now()), "progress_stage_timed_out", false)
 	}
 
 	var host *common.Host
@@ -1248,7 +1250,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 
 	if len(masters) < common.MinMasterHostsNeededForInstallation {
 		h.Role = models.HostRoleMaster
-		vc, err = newValidationContext(ctx, h, nil, nil, db, make(InventoryCache), m.hwValidator, m.kubeApiEnabled, m.objectHandler)
+		vc, err = newValidationContext(ctx, h, nil, nil, db, make(InventoryCache), m.hwValidator, m.kubeApiEnabled, m.objectHandler, m.softTimeoutsEnabled)
 		if err != nil {
 			log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 			return autoSelectedRole, err
@@ -1275,7 +1277,7 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *
 
 	ctx := context.TODO()
 
-	vc, err := newValidationContext(ctx, h, c, nil, db, make(InventoryCache), m.hwValidator, m.kubeApiEnabled, m.objectHandler)
+	vc, err := newValidationContext(ctx, h, c, nil, db, make(InventoryCache), m.hwValidator, m.kubeApiEnabled, m.objectHandler, m.softTimeoutsEnabled)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 		return false, err

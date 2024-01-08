@@ -1222,6 +1222,17 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
+	err = b.db.Model(&models.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(&models.Cluster{
+		LastInstallationPreparation: models.LastInstallationPreparation{
+			Status: models.LastInstallationPreparationStatusNotStarted,
+			Reason: "Preparation never performed",
+		},
+	}).Error
+	if err != nil {
+		b.log.WithError(err).Errorf("Failed to reset last installation preparation state for cluster %s", cluster.ID.String())
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	var autoAssigned bool
 
 	// auto select hosts roles if not selected yet.
@@ -1562,7 +1573,7 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
-	return featuresupport.GetFeatureSupportList(params.OpenshiftVersion, params.CPUArchitecture, (*models.PlatformType)(params.PlatformType)), nil
+	return featuresupport.GetFeatureSupportList(params.OpenshiftVersion, params.CPUArchitecture, (*models.PlatformType)(params.PlatformType), params.ExternalPlatformName), nil
 }
 
 func (b *bareMetalInventory) GetArchitecturesSupportLevelListInternal(_ context.Context, params installer.GetSupportedArchitecturesParams) (models.SupportLevels, error) {
@@ -2500,7 +2511,6 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 
 func setUpdatesForPlatformParams(params installer.V2UpdateClusterParams, updates map[string]interface{}) {
 	updates["platform_type"] = params.ClusterUpdateParams.Platform.Type
-	updates["platform_is_external"] = swag.BoolValue(params.ClusterUpdateParams.Platform.IsExternal)
 	if *params.ClusterUpdateParams.Platform.Type != models.PlatformTypeExternal {
 		// clear any existing values in external settings
 		updates["platform_external_platform_name"] = nil
@@ -2522,8 +2532,7 @@ func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClust
 	}
 
 	setUpdatesForPlatformParams(params, updates)
-	err := b.providerRegistry.SetPlatformUsages(
-		common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type), usages, b.usageApi)
+	err := b.providerRegistry.SetPlatformUsages(params.ClusterUpdateParams.Platform, usages, b.usageApi)
 	if err != nil {
 		return fmt.Errorf("failed setting platform usages, error is: %w", err)
 	}
@@ -2684,7 +2693,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 		&map[string]interface{}{"hyperthreading_enabled": cluster.Hyperthreading}, usages)
 	b.setUserManagedNetworkingAndMultiNodeUsage(swag.BoolValue(cluster.UserManagedNetworking), swag.StringValue(cluster.HighAvailabilityMode), usages)
 	//write all the usages to the cluster object
-	err := b.providerRegistry.SetPlatformUsages(common.PlatformTypeValue(cluster.Platform.Type), usages, b.usageApi)
+	err := b.providerRegistry.SetPlatformUsages(cluster.Platform, usages, b.usageApi)
 	if err != nil {
 		return fmt.Errorf("failed setting platform usages, error is: %w", err)
 	}

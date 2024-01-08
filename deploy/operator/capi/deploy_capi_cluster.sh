@@ -73,6 +73,7 @@ if [ "${DISCONNECTED}" = "true" ]; then
     HYPERSHIFT_LOCAL_IMAGE="${LOCAL_REGISTRY}/localimages/hypershift:latest"
     oc image mirror -a "${PULL_SECRET_FILE}" "${HYPERSHIFT_IMAGE}" "${HYPERSHIFT_LOCAL_IMAGE}"
     export HYPERSHIFT_IMAGE="${HYPERSHIFT_LOCAL_IMAGE}"
+    export CONTROL_PLANE_OPERATOR_IMAGE=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for hypershift)
     # 3. the hypershift cli must be available on the local environment
     id=$(podman create $HYPERSHIFT_LOCAL_IMAGE)
     mkdir -p ./hypershift-cli
@@ -102,6 +103,19 @@ spec:
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
     oc apply -f icsp.yaml
+    # 6. Image content source for hosted cluster to be passed in through the hypershift create command
+  cat << EOM >> icsp-hc.yaml
+- mirrors:
+  - ${OCP_MIRROR_REGISTRY}
+  source: quay.io/openshift-release-dev/ocp-release
+- mirrors:
+  - ${OCP_MIRROR_REGISTRY}
+  source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+EOM
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources $(pwd)/icsp-hc.yaml"
+    # 7. Machine config operator image must be added to hypershift operator's pod's arguments
+    export MCO_IMAGE=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for machine-config-operator)
+    export LOCAL_MCO_IMAGE="${OCP_MIRROR_REGISTRY}@$(oc image info $MCO_IMAGE -ojson | jq -r '.digest')"
     # the disconnected openshift release image will also be used as release-image flag for hypershift create cluster command
     export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
     # disconnected requires the additional trust bundle containing the local registry certificate
@@ -163,8 +177,9 @@ function hypershift_cli() {
 echo "Installing HyperShift using upstream image"
 hypershift_cli install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift $EXTRA_HYPERSHIFT_INSTALL_FLAGS
 if [ "${DISCONNECTED}" = "true" ]; then
-  # disconnected hypershift requires patching the operator deployment with the local image mirror of the capi agent 
-  oc patch deploy/operator -n hypershift --type=strategic --patch="{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"operator\",\"env\":[{\"name\":\"IMAGE_AGENT_CAPI_PROVIDER\",\"value\":\"${PROVIDER_IMAGE}\"}]}]}}}}"
+  # disconnected hypershift requires patching the operator deployment with the local image mirror of the capi agent and the machine config operator image (registry override flag)
+  oc patch deploy/operator -n hypershift --type=strategic \
+    --patch="{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"operator\",\"env\":[{\"name\":\"IMAGE_AGENT_CAPI_PROVIDER\",\"value\":\"${PROVIDER_IMAGE}\"}], \"args\":[\"run\",\"--namespace=\$(MY_NAMESPACE)\",\"--pod-name=\$(MY_NAME)\",\"--metrics-addr=:9000\",\"--enable-ocp-cluster-monitoring=false\",\"--enable-ci-debug-output=false\",\"--private-platform=None\",\"--cert-dir=/var/run/secrets/serving-cert\",\"--enable-uwm-telemetry-remote-write\",\"--registry-overrides=${MCO_IMAGE}=${LOCAL_MCO_IMAGE}\"]}]}}}}"
   # delete all rs since patching the deployment doesn't actually remove the running rs
   oc delete rs --all -n hypershift
 fi
@@ -195,12 +210,6 @@ hypershift_cli create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain 
   $CONTROL_PLANE_OPERATOR_FLAG_FOR_CREATE_COMMAND \
   $PROVIDER_FLAG_FOR_CREATE_COMMAND \
   $EXTRA_HYPERSHIFT_CREATE_COMMANDS
-
-if [ "${DISCONNECTED}" = "true" ]; then
-  # Disconnected requires annotating the hosted cluster with the mirrored hypershift operator image (with digest instead of tag)
-  export HYPERSHIFT_IMAGE_WITH_DIGEST="${LOCAL_REGISTRY}/localimages/hypershift@$(oc image info $HYPERSHIFT_IMAGE -o json | jq -r '.digest')"
-  oc annotate hostedcluster $ASSISTED_CLUSTER_NAME hypershift.openshift.io/control-plane-operator-image=$HYPERSHIFT_IMAGE_WITH_DIGEST -n $SPOKE_NAMESPACE
-fi
 
 # Wait for a hypershift hostedcontrolplane to report ready status
 wait_for_resource "hostedcontrolplane/${ASSISTED_CLUSTER_NAME}" "${SPOKE_NAMESPACE}-${ASSISTED_CLUSTER_NAME}"

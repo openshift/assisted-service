@@ -1025,6 +1025,11 @@ var _ = Describe("Validate BaseDNSDomain when creating a cluster", func() {
 			ShouldThrow:   true,
 		},
 		{
+			It:            "V2RegisterCluster should throw an error. BaseDNSDomain='1-example.com', Illegal first character in domain name",
+			BaseDNSDomain: "1-example.com",
+			ShouldThrow:   true,
+		},
+		{
 			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='example.com', valid DNS",
 			BaseDNSDomain: "example.com",
 			ShouldThrow:   false,
@@ -1047,11 +1052,6 @@ var _ = Describe("Validate BaseDNSDomain when creating a cluster", func() {
 		{
 			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='exam--ple.com', valid DNS",
 			BaseDNSDomain: "exam--ple.com",
-			ShouldThrow:   false,
-		},
-		{
-			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='1-example.com', valid DNS",
-			BaseDNSDomain: "1-example.com",
 			ShouldThrow:   false,
 		},
 		{
@@ -2450,7 +2450,7 @@ name: exampleNamespace2`
 			Expect(err).NotTo(HaveOccurred())
 			tarReader := tar.NewReader(file)
 			numOfarchivedFiles := 0
-			expectedFiles := []string{"manifest_user-supplied_openshift_manifest1.yaml", "manifest_user-supplied_openshift_manifest2.yaml", "cluster_events.json", "cluster_metadata.json", "controller_logs.tar.gz", "test-cluster_auto-assign_h1.tar", "test-cluster_auto-assign_h2.tar", "test-cluster_auto-assign_h3.tar"}
+			expectedFiles := []string{"cluster_manifest_user-supplied_openshift_manifest1.yaml", "cluster_manifest_user-supplied_openshift_manifest2.yaml", "cluster_events.json", "cluster_metadata.json", "controller_logs.tar.gz", "test-cluster_auto-assign_h1.tar", "test-cluster_auto-assign_h2.tar", "test-cluster_auto-assign_h3.tar"}
 			for {
 				header, err := tarReader.Next()
 				if err == io.EOF {

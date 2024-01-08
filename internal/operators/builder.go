@@ -29,12 +29,11 @@ var OperatorConsole = models.MonitoredOperator{
 type Options struct {
 	CheckClusterVersion bool
 	CNVConfig           cnv.Config
-	MCEConfig           mce.EnvironmentalConfig
 }
 
 // NewManager creates new instance of an Operator Manager
 func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, options Options, objectHandler s3wrapper.API, extracter oc.Extracter) *Manager {
-	return NewManagerWithOperators(log, manifestAPI, options, objectHandler, lso.NewLSOperator(), odf.NewOcsOperator(log), odf.NewOdfOperator(log, extracter), cnv.NewCNVOperator(log, options.CNVConfig, extracter), lvm.NewLvmOperator(log, extracter), mce.NewMceOperator(log, options.MCEConfig))
+	return NewManagerWithOperators(log, manifestAPI, options, objectHandler, lso.NewLSOperator(), odf.NewOcsOperator(log), odf.NewOdfOperator(log, extracter), cnv.NewCNVOperator(log, options.CNVConfig, extracter), lvm.NewLvmOperator(log, extracter), mce.NewMceOperator(log))
 }
 
 // NewManagerWithOperators creates new instance of an Operator Manager and configures it with given operators

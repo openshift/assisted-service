@@ -385,6 +385,18 @@ const (
 // +kubebuilder:validation:Enum="";BareMetal;None;VSphere;Nutanix;External
 type PlatformType string
 
+// CloudControllerManager describes the type of cloud controller manager to be enabled.
+// +kubebuilder:validation:Enum="";BareMetal;None;VSphere;Nutanix;External
+type CloudControllerManager string
+
+const (
+	// CloudControllerManagerTypeExternal specifies that an external cloud provider is to be configured.
+	CloudControllerManagerTypeExternal = "External"
+
+	// CloudControllerManagerTypeNone specifies that no cloud provider is to be configured.
+	CloudControllerManagerTypeNone = ""
+)
+
 // ExternalPlatformSpec holds the desired state for the generic External infrastructure provider.
 type ExternalPlatformSpec struct {
 	// PlatformName holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.
@@ -394,6 +406,13 @@ type ExternalPlatformSpec struct {
 	// +kubebuilder:validation:XValidation:rule="oldSelf == 'Unknown' || self == oldSelf",message="platform name cannot be changed once set"
 	// +optional
 	PlatformName string `json:"platformName,omitempty"`
+
+	// CloudControllerManager when set to external, this property will enable an external cloud provider.
+	// +kubebuilder:default:=""
+	// +default=""
+	// +kubebuilder:validation:Enum="";External
+	// +optional
+	CloudControllerManager CloudControllerManager `json:"cloudControllerManager,omitempty"`
 }
 
 const (

@@ -52,6 +52,8 @@ const (
 	PowerCPUArchitecture   = "ppc64le"
 	S390xCPUArchitecture   = "s390x"
 	MultiCPUArchitecture   = "multi"
+
+	ExternalPlatformNameOci = "oci"
 )
 
 var (
@@ -578,13 +580,6 @@ func GetDefaultV2GetEventsParams(clusterID *strfmt.UUID, hostIds []strfmt.UUID, 
 	}
 }
 
-func GetExternalPlaformTypes() []models.PlatformType {
-	return []models.PlatformType{
-		models.PlatformTypeOci,
-		models.PlatformTypeExternal,
-	}
-}
-
 func IsPlatformExternal(platform *models.Platform) bool {
 	if platform == nil || platform.Type == nil {
 		return false
@@ -593,5 +588,24 @@ func IsPlatformExternal(platform *models.Platform) bool {
 }
 
 func IsPlatformTypeExternal(platformType models.PlatformType) bool {
-	return funk.Contains(GetExternalPlaformTypes(), platformType)
+	return platformType == models.PlatformTypeExternal
+}
+
+func IsExternalIntegrationEnabled(platform *models.Platform, platformName string) bool {
+	if platform == nil ||
+		platform.Type == nil {
+		return false
+	}
+
+	if *platform.Type == models.PlatformTypeExternal &&
+		platform.External != nil &&
+		swag.StringValue(platform.External.PlatformName) == platformName {
+		return true
+	}
+
+	return false
+}
+
+func IsOciExternalIntegrationEnabled(platform *models.Platform) bool {
+	return IsExternalIntegrationEnabled(platform, ExternalPlatformNameOci)
 }

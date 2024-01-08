@@ -49,3 +49,9 @@ func (p *vsphereProvider) AreHostsSupported(hosts []*models.Host) (bool, error) 
 	}
 	return true, nil
 }
+
+func (p *vsphereProvider) IsProviderForPlatform(platform *models.Platform) bool {
+	return platform != nil &&
+		platform.Type != nil &&
+		*platform.Type == p.Name()
+}

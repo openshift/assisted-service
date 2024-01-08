@@ -39,21 +39,21 @@ func (m *MockProviderRegistry) EXPECT() *MockProviderRegistryMockRecorder {
 }
 
 // AddPlatformToInstallConfig mocks base method.
-func (m *MockProviderRegistry) AddPlatformToInstallConfig(arg0 models.PlatformType, arg1 *installcfg.InstallerConfigBaremetal, arg2 *common.Cluster) error {
+func (m *MockProviderRegistry) AddPlatformToInstallConfig(arg0 *installcfg.InstallerConfigBaremetal, arg1 *common.Cluster) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddPlatformToInstallConfig", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "AddPlatformToInstallConfig", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AddPlatformToInstallConfig indicates an expected call of AddPlatformToInstallConfig.
-func (mr *MockProviderRegistryMockRecorder) AddPlatformToInstallConfig(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockProviderRegistryMockRecorder) AddPlatformToInstallConfig(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddPlatformToInstallConfig", reflect.TypeOf((*MockProviderRegistry)(nil).AddPlatformToInstallConfig), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddPlatformToInstallConfig", reflect.TypeOf((*MockProviderRegistry)(nil).AddPlatformToInstallConfig), arg0, arg1)
 }
 
 // AreHostsSupported mocks base method.
-func (m *MockProviderRegistry) AreHostsSupported(arg0 models.PlatformType, arg1 []*models.Host) (bool, error) {
+func (m *MockProviderRegistry) AreHostsSupported(arg0 *models.Platform, arg1 []*models.Host) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AreHostsSupported", arg0, arg1)
 	ret0, _ := ret[0].(bool)
@@ -68,7 +68,7 @@ func (mr *MockProviderRegistryMockRecorder) AreHostsSupported(arg0, arg1 interfa
 }
 
 // Get mocks base method.
-func (m *MockProviderRegistry) Get(arg0 string) (provider.Provider, error) {
+func (m *MockProviderRegistry) Get(arg0 *models.Platform) (provider.Provider, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0)
 	ret0, _ := ret[0].(provider.Provider)
@@ -98,7 +98,7 @@ func (mr *MockProviderRegistryMockRecorder) GetSupportedProvidersByHosts(arg0 in
 }
 
 // IsHostSupported mocks base method.
-func (m *MockProviderRegistry) IsHostSupported(arg0 models.PlatformType, arg1 *models.Host) (bool, error) {
+func (m *MockProviderRegistry) IsHostSupported(arg0 *models.Platform, arg1 *models.Host) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsHostSupported", arg0, arg1)
 	ret0, _ := ret[0].(bool)
@@ -153,7 +153,7 @@ func (mr *MockProviderRegistryMockRecorder) Register(arg0 interface{}) *gomock.C
 }
 
 // SetPlatformUsages mocks base method.
-func (m *MockProviderRegistry) SetPlatformUsages(arg0 models.PlatformType, arg1 map[string]models.Usage, arg2 usage.API) error {
+func (m *MockProviderRegistry) SetPlatformUsages(arg0 *models.Platform, arg1 map[string]models.Usage, arg2 usage.API) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetPlatformUsages", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
