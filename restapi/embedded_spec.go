@@ -7662,7 +7662,9 @@ func init() {
         "DUAL_STACK",
         "PLATFORM_MANAGED_NETWORKING",
         "SKIP_MCO_REBOOT",
-        "EXTERNAL_PLATFORM"
+        "EXTERNAL_PLATFORM",
+        "OVN_NETWORK_TYPE",
+        "SDN_NETWORK_TYPE"
       ]
     },
     "finalizing-stage": {
@@ -18234,7 +18236,9 @@ func init() {
         "DUAL_STACK",
         "PLATFORM_MANAGED_NETWORKING",
         "SKIP_MCO_REBOOT",
-        "EXTERNAL_PLATFORM"
+        "EXTERNAL_PLATFORM",
+        "OVN_NETWORK_TYPE",
+        "SDN_NETWORK_TYPE"
       ]
     },
     "finalizing-stage": {

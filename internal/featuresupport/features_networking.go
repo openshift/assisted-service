@@ -1,6 +1,8 @@
 package featuresupport
 
 import (
+	"fmt"
+
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
@@ -347,4 +349,114 @@ func (feature *PlatformManagedNetworkingFeature) getFeatureActiveLevel(cluster *
 	}
 
 	return activeLevelNotActive
+}
+
+// SDNNetworkTypeFeature
+type SDNNetworkTypeFeature struct{}
+
+func (feature *SDNNetworkTypeFeature) New() SupportLevelFeature {
+	return &SDNNetworkTypeFeature{}
+}
+
+func (feature *SDNNetworkTypeFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDSDNNETWORKTYPE
+}
+
+func (feature *SDNNetworkTypeFeature) GetName() string {
+	return "Openshift SDN"
+}
+
+func (feature *SDNNetworkTypeFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if feature.hasValidOpenshiftVersion(filters.OpenshiftVersion) {
+		return models.SupportLevelSupported
+	}
+	return models.SupportLevelUnavailable
+}
+
+func (feature *SDNNetworkTypeFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	networkType := getNetworkType(cluster, clusterUpdateParams)
+	if networkType == models.ClusterNetworkTypeOpenShiftSDN {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+func (feature *SDNNetworkTypeFeature) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (feature *SDNNetworkTypeFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDOVNNETWORKTYPE,
+	}
+}
+
+func (feature *SDNNetworkTypeFeature) Validate(cluster *common.Cluster, updateParams interface{}) error {
+	if cluster == nil {
+		return nil
+	}
+	if feature.hasValidOpenshiftVersion(cluster.OpenshiftVersion) {
+		return nil
+	}
+	return fmt.Errorf("Openshift version %s is not supported for OpenShiftSDN NetworkType", cluster.OpenshiftVersion)
+}
+
+func (feature *SDNNetworkTypeFeature) hasValidOpenshiftVersion(openshiftVersion string) bool {
+	if isAvailable, err := common.BaseVersionLessThan("4.15", openshiftVersion); openshiftVersion == "" || err == nil && isAvailable {
+		return true
+	}
+	return false
+}
+
+// OVNNetworkTypeFeature
+type OVNNetworkTypeFeature struct{}
+
+func (feature *OVNNetworkTypeFeature) New() SupportLevelFeature {
+	return &OVNNetworkTypeFeature{}
+}
+
+func (feature *OVNNetworkTypeFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDOVNNETWORKTYPE
+}
+
+func (feature *OVNNetworkTypeFeature) GetName() string {
+	return "Openshift OVN"
+}
+
+func (feature *OVNNetworkTypeFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelSupported
+}
+
+func (feature *OVNNetworkTypeFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	networkType := getNetworkType(cluster, clusterUpdateParams)
+	if networkType == models.ClusterNetworkTypeOVNKubernetes {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+func (feature *OVNNetworkTypeFeature) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (feature *OVNNetworkTypeFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDSDNNETWORKTYPE,
+	}
+}
+
+func (feature *OVNNetworkTypeFeature) Validate(cluster *common.Cluster) error {
+	return nil
+}
+
+// Returns NetworkType, from either clusterUpdateParams or cluster state
+func getNetworkType(cluster *common.Cluster, updateParams *models.V2ClusterUpdateParams) string {
+	if cluster == nil || cluster.NetworkType == nil {
+		return ""
+	}
+	networkType := *cluster.NetworkType
+	if updateParams != nil && updateParams.NetworkType != nil {
+		networkType = *updateParams.NetworkType
+	}
+	return networkType
 }

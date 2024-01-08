@@ -5,6 +5,12 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+// Interface for support level features that can validate themselves
+type SupportLevelFeatureValidator interface {
+	// Validate the feature against cluster state and updateParams. Returns descriptive error
+	Validate(cluster *common.Cluster, updateParams interface{}) error
+}
+
 type SupportLevelFeature interface {
 	// New - Initialize new SupportLevelFeature structure while setting its default attributes
 	New() SupportLevelFeature
