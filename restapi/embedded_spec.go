@@ -5807,12 +5807,17 @@ func init() {
               "none",
               "nutanix",
               "vsphere",
-              "oci",
               "external"
             ],
             "type": "string",
             "description": "The provider platform type.",
             "name": "platform_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.",
+            "name": "external_platform_name",
             "in": "query"
           }
         ],
@@ -8091,6 +8096,10 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "stage_timed_out": {
+          "description": "Indicate of the current stage has been timed out.",
+          "type": "boolean"
+        },
         "stage_updated_at": {
           "description": "Time at which the current progress stage was last updated.",
           "type": "string",
@@ -9097,9 +9106,9 @@ func init() {
         "status": {
           "description": "The last installation preparation status",
           "type": "string",
-          "default": "preparation_never_performed",
+          "default": "not_started",
           "enum": [
-            "preparation_never_performed",
+            "not_started",
             "failed",
             "success"
           ],
@@ -9652,11 +9661,6 @@ func init() {
           "x-nullable": true,
           "$ref": "#/definitions/platform_external"
         },
-        "is_external": {
-          "description": "Used by the service to indicate that the platform-specific components are not included in\nOpenShift and must be provided as manifests separately.",
-          "type": "boolean",
-          "readOnly": true
-        },
         "type": {
           "$ref": "#/definitions/platform_type"
         }
@@ -9693,7 +9697,6 @@ func init() {
         "nutanix",
         "vsphere",
         "none",
-        "oci",
         "external"
       ]
     },
@@ -16291,12 +16294,17 @@ func init() {
               "none",
               "nutanix",
               "vsphere",
-              "oci",
               "external"
             ],
             "type": "string",
             "description": "The provider platform type.",
             "name": "platform_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.",
+            "name": "external_platform_name",
             "in": "query"
           }
         ],
@@ -18660,6 +18668,10 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "stage_timed_out": {
+          "description": "Indicate of the current stage has been timed out.",
+          "type": "boolean"
+        },
         "stage_updated_at": {
           "description": "Time at which the current progress stage was last updated.",
           "type": "string",
@@ -19668,9 +19680,9 @@ func init() {
         "status": {
           "description": "The last installation preparation status",
           "type": "string",
-          "default": "preparation_never_performed",
+          "default": "not_started",
           "enum": [
-            "preparation_never_performed",
+            "not_started",
             "failed",
             "success"
           ],
@@ -20212,11 +20224,6 @@ func init() {
           "x-nullable": true,
           "$ref": "#/definitions/platform_external"
         },
-        "is_external": {
-          "description": "Used by the service to indicate that the platform-specific components are not included in\nOpenShift and must be provided as manifests separately.",
-          "type": "boolean",
-          "readOnly": true
-        },
         "type": {
           "$ref": "#/definitions/platform_type"
         }
@@ -20253,7 +20260,6 @@ func init() {
         "nutanix",
         "vsphere",
         "none",
-        "oci",
         "external"
       ]
     },

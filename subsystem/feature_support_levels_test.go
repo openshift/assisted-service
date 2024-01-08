@@ -75,7 +75,7 @@ var _ = Describe("Feature support levels API", func() {
 		Context("GetSupportedFeatures", func() {
 
 			It("With Platform", func() {
-				features, err := featureSupport("4.14", swag.String("oci"), swag.String(models.ClusterCPUArchitectureX8664))
+				features, err := featureSupport("4.14", swag.String("external"), swag.String(models.ClusterCPUArchitectureX8664))
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING))).To(Equal(true))

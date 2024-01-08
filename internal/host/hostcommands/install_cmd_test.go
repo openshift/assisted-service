@@ -703,7 +703,13 @@ var _ = Describe("construct host install arguments", func() {
 	})
 	It("iSCSI installation disk on OCI", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
-		cluster.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)}
+		cluster.Platform = &models.Platform{
+			Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+			External: &models.PlatformExternal{
+				PlatformName:           swag.String(common.ExternalPlatformNameOci),
+				CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+			},
+		}
 		host.Inventory = fmt.Sprintf(`{
 			"disks":[
 				{

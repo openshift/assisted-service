@@ -319,7 +319,12 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 
 	// Check if Manufacturer is IBM/S390 and ProductName is not "KVM/Linux" (the case for z/VM and LPAR).
 	// If this is the case than we need to extract the necessary z/VM kargs and append them.
-	log.Debugf("Check for SystemVendor and ProductName: %s:%s\n", inventory.SystemVendor.Manufacturer, inventory.SystemVendor.ProductName)
+	if inventory.SystemVendor != nil {
+		log.Debugf("Check for SystemVendor and ProductName: %s:%s\n", inventory.SystemVendor.Manufacturer, inventory.SystemVendor.ProductName)
+	} else {
+		log.Debug("Check for SystemVendor and ProductName: <nil>:<nil>\n")
+	}
+
 	if inventory.SystemVendor != nil && strings.EqualFold(inventory.SystemVendor.Manufacturer, ZVM_VENDOR_ID) &&
 		((inventory.SystemVendor.ProductName == "") || (!strings.HasSuffix(inventory.SystemVendor.ProductName, VM_CTRL_PRG))) {
 		// Commandline for dasd and static IP w/o nmstate might look like:

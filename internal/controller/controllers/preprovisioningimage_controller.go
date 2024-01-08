@@ -126,9 +126,11 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
-	if infraEnv.Spec.CpuArchitecture != image.Spec.Architecture {
-		log.Infof("Image arch %s does not match infraEnv arch %s", image.Spec.Architecture, infraEnv.Spec.CpuArchitecture)
-		setMismatchedArchCondition(image, infraEnv.Spec.CpuArchitecture)
+	imageArch := common.NormalizeCPUArchitecture(image.Spec.Architecture)
+	infraArch := common.NormalizeCPUArchitecture(infraEnv.Spec.CpuArchitecture)
+	if infraArch != imageArch {
+		log.Infof("Image arch %s does not match infraEnv arch %s", imageArch, infraArch)
+		setMismatchedArchCondition(image, imageArch, infraArch)
 		err = r.Status().Update(ctx, image)
 		if err != nil {
 			log.WithError(err).Error("failed to update status")
@@ -281,8 +283,8 @@ func setUnsupportedFormatCondition(image *metal3_v1alpha1.PreprovisioningImage) 
 		reason, message)
 }
 
-func setMismatchedArchCondition(image *metal3_v1alpha1.PreprovisioningImage, infraArch string) {
-	message := fmt.Sprintf("PreprovisioningImage CPU architecture (%s) does not match InfraEnv CPU architecture (%s)", image.Spec.Architecture, infraArch)
+func setMismatchedArchCondition(image *metal3_v1alpha1.PreprovisioningImage, imageArch, infraArch string) {
+	message := fmt.Sprintf("PreprovisioningImage CPU architecture (%s) does not match InfraEnv CPU architecture (%s)", imageArch, infraArch)
 	reason := imageConditionReason(archMismatchReason)
 	setImageCondition(image.GetGeneration(), &image.Status,
 		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,

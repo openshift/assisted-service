@@ -1701,7 +1701,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 			apiVips:            common.TestIPv4Networking.APIVips,
 			ingressVips:        common.TestIPv4Networking.IngressVips,
 			dstState:           models.ClusterStatusPreparingForInstallation,
-			installationStatus: models.LastInstallationPreparationStatusPreparationNeverPerformed,
+			installationStatus: models.LastInstallationPreparationStatusNotStarted,
 			hosts: []models.Host{
 				{
 					ID:     &hid1,
@@ -1723,7 +1723,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 			apiVips:            common.TestIPv4Networking.APIVips,
 			ingressVips:        common.TestIPv4Networking.IngressVips,
 			dstState:           models.ClusterStatusInsufficient,
-			installationStatus: models.LastInstallationPreparationStatusPreparationNeverPerformed,
+			installationStatus: models.LastInstallationPreparationStatusNotStarted,
 			hosts: []models.Host{
 				{
 					ID:     &hid1,

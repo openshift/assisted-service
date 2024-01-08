@@ -251,6 +251,18 @@ x-events:
     new_status: string
     info: string
 
+- name: host_stage_timed_out
+  message: "Host {host_name}: host stage {stage} has been active more than the expected completion time ({minutes} minutes)"
+  event_type: host
+  severity: "warning"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    cluster_id: UUID_PTR
+    host_name: string
+    stage: string
+    minutes: int64
+
 - name: host_role_updated
   message: "Host {host_name}: calculated role is {suggested_role}"
   event_type: host

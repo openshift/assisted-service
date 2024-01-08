@@ -51,6 +51,7 @@ type TransitionHandler interface {
 	PostPreparingForInstallationHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostReclaim(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRefreshHost(reason string) stateswitch.PostTransition
+	PostHostStageTimeout(reason string) stateswitch.PostTransition
 	PostRefreshHostRefreshStageUpdateTime(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRefreshLogsProgress(progress string) stateswitch.PostTransition
 	PostRefreshReclaimTimeout(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
@@ -698,6 +699,39 @@ func (th *transitionHandler) PostHostPreparationTimeout() stateswitch.PostTransi
 	return ret
 }
 
+func IsInStages(stages ...models.HostStage) func(stateswitch.StateSwitch, stateswitch.TransitionArgs) (bool, error) {
+	return func(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+		sHost, ok := sw.(*stateHost)
+		if !ok {
+			return false, errors.New("IsInStage incompatible type of StateSwitch")
+		}
+		return sHost.host != nil && sHost.host.Progress != nil && funk.Contains(stages, sHost.host.Progress.CurrentStage), nil
+	}
+}
+
+func (th *transitionHandler) replaceMacros(template string, sHost *stateHost, params *TransitionArgsRefreshHost) string {
+	template = strings.Replace(template, "$STAGE", string(sHost.host.Progress.CurrentStage), 1)
+	maxTime := th.config.HostStageTimeout(sHost.host.Progress.CurrentStage)
+	template = strings.Replace(template, "$MAX_TIME", maxTime.String(), 1)
+	if strings.Contains(template, "$INSTALLATION_DISK") {
+		var installationDisk *models.Disk
+		installationDisk, err := hostutil.GetHostInstallationDisk(sHost.host)
+		if err != nil {
+			// in case we fail to parse the inventory replace $INSTALLATION_DISK with nothing
+			template = strings.Replace(template, "$INSTALLATION_DISK", "", 1)
+		} else {
+			template = strings.Replace(template, "$INSTALLATION_DISK", fmt.Sprintf("(%s, %s)", installationDisk.Name, common.GetDeviceIdentifier(installationDisk)), 1)
+
+		}
+	}
+	if strings.Contains(template, "$FAILING_VALIDATIONS") {
+		failedValidations := getFailedValidations(params)
+		sort.Strings(failedValidations)
+		template = strings.Replace(template, "$FAILING_VALIDATIONS", strings.Join(failedValidations, " ; "), 1)
+	}
+	return template
+}
+
 // Return a post transition function with a constant reason
 func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTransition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -714,34 +748,41 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 		var (
 			err error
 		)
-		if sHost.host.Progress.CurrentStage == models.HostStageWritingImageToDisk &&
-			reason == statusInfoInstallationInProgressTimedOut {
-			template = statusInfoInstallationInProgressWritingImageToDiskTimedOut
-		}
-		template = strings.Replace(template, "$STAGE", string(sHost.host.Progress.CurrentStage), 1)
-		maxTime := th.config.HostStageTimeout(sHost.host.Progress.CurrentStage)
-		template = strings.Replace(template, "$MAX_TIME", maxTime.String(), 1)
-		if strings.Contains(template, "$INSTALLATION_DISK") {
-			var installationDisk *models.Disk
-			installationDisk, err = hostutil.GetHostInstallationDisk(sHost.host)
-			if err != nil {
-				// in case we fail to parse the inventory replace $INSTALLATION_DISK with nothing
-				template = strings.Replace(template, "$INSTALLATION_DISK", "", 1)
-			} else {
-				template = strings.Replace(template, "$INSTALLATION_DISK", fmt.Sprintf("(%s, %s)", installationDisk.Name, common.GetDeviceIdentifier(installationDisk)), 1)
 
-			}
-		}
-		if strings.Contains(template, "$FAILING_VALIDATIONS") {
-			failedValidations := getFailedValidations(params)
-			sort.Strings(failedValidations)
-			template = strings.Replace(template, "$FAILING_VALIDATIONS", strings.Join(failedValidations, " ; "), 1)
-		}
+		statusInfo := th.replaceMacros(template, sHost, params)
 
-		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != template {
+		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != statusInfo {
 			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
 				th.eventsHandler, sHost.host.InfraEnvID, *sHost.host.ID,
-				sHost.srcState, swag.StringValue(sHost.host.Status), template)
+				sHost.srcState, swag.StringValue(sHost.host.Status), statusInfo)
+		}
+		return err
+	}
+	return ret
+}
+
+func (th *transitionHandler) PostHostStageTimeout(reason string) stateswitch.PostTransition {
+	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+		// Not using reason directly to avoid closures issue.
+		template := reason
+		sHost, ok := sw.(*stateHost)
+		if !ok {
+			return errors.New("PostHostStageTimeout incompatible type of StateSwitch")
+		}
+		params, ok := args.(*TransitionArgsRefreshHost)
+		if !ok {
+			return errors.New("PostHostStageTimeout invalid argument")
+		}
+		var (
+			err error
+		)
+
+		statusInfo := th.replaceMacros(template, sHost, params)
+		maxDurationMinutes := int64(th.config.HostStageTimeout(sHost.host.Progress.CurrentStage).Minutes())
+		if swag.StringValue(sHost.host.StatusInfo) != statusInfo && (sHost.host.Progress == nil || !sHost.host.Progress.StageTimedOut) {
+			_, err = hostutil.UpdateHostStageTimeout(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
+				th.eventsHandler, sHost.host.InfraEnvID, *sHost.host.ID,
+				sHost.srcState, statusInfo, maxDurationMinutes)
 		}
 		return err
 	}

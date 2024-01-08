@@ -36,7 +36,6 @@ def handle_arguments():
     parser.add_argument("--enable-org-tenancy", default="False")
     parser.add_argument("--enable-org-based-feature-gates", default="False")
     parser.add_argument("--allow-converged-flow", default=False, action='store_true')
-    parser.add_argument("--ocp-mce-version-map")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -106,7 +105,6 @@ def main():
     data = data.replace('REPLACE_HW_VALIDATOR_REQUIREMENTS', '"{}"'.format(deploy_options.hw_requirements))
     data = data.replace('REPLACE_DISABLED_HOST_VALIDATIONS', '"{}"'.format(deploy_options.disabled_host_validations))
     data = data.replace('REPLACE_DISABLED_STEPS', '"{}"'.format(deploy_options.disabled_steps))
-    data = data.replace('REPLACE_OCP_MCE_VERSION_MAP', '"{}"'.format(deploy_options.ocp_mce_version_map))
 
     versions = {"INSTALLER_IMAGE": "assisted-installer",
                 "CONTROLLER_IMAGE": "assisted-installer-controller",

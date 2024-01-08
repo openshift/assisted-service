@@ -175,7 +175,7 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, cluster
 		return nil, err
 	}
 
-	err = i.providerRegistry.AddPlatformToInstallConfig(common.PlatformTypeValue(cluster.Platform.Type), cfg, cluster)
+	err = i.providerRegistry.AddPlatformToInstallConfig(cfg, cluster)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"error while adding Platfom %s to install config, error is: %w", common.PlatformTypeValue(cluster.Platform.Type), err)

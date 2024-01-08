@@ -13,6 +13,10 @@ type baseExternalProvider struct {
 	Log logrus.FieldLogger
 }
 
+func (p *baseExternalProvider) Name() models.PlatformType {
+	return models.PlatformTypeExternal
+}
+
 func (p *baseExternalProvider) IsHostSupported(_ *models.Host) (bool, error) {
 	return true, nil
 }

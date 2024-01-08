@@ -2336,6 +2336,117 @@ func (e *HostStatusUpdatedEvent) FormatMessage() string {
 }
 
 //
+// Event host_stage_timed_out
+//
+type HostStageTimedOutEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
+    HostName string
+    Stage string
+    Minutes int64
+}
+
+var HostStageTimedOutEventName string = "host_stage_timed_out"
+
+func NewHostStageTimedOutEvent(
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,
+    stage string,
+    minutes int64,
+) *HostStageTimedOutEvent {
+    return &HostStageTimedOutEvent{
+        eventName: HostStageTimedOutEventName,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
+        HostName: hostName,
+        Stage: stage,
+        Minutes: minutes,
+    }
+}
+
+func SendHostStageTimedOutEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,
+    stage string,
+    minutes int64,) {
+    ev := NewHostStageTimedOutEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+        hostName,
+        stage,
+        minutes,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendHostStageTimedOutEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,
+    stage string,
+    minutes int64,
+    eventTime time.Time) {
+    ev := NewHostStageTimedOutEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+        hostName,
+        stage,
+        minutes,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *HostStageTimedOutEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *HostStageTimedOutEvent) GetSeverity() string {
+    return "warning"
+}
+func (e *HostStageTimedOutEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *HostStageTimedOutEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *HostStageTimedOutEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *HostStageTimedOutEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{host_name}", fmt.Sprint(e.HostName),
+        "{stage}", fmt.Sprint(e.Stage),
+        "{minutes}", fmt.Sprint(e.Minutes),
+    )
+    return r.Replace(*message)
+}
+
+func (e *HostStageTimedOutEvent) FormatMessage() string {
+    s := "Host {host_name}: host stage {stage} has been active more than the expected completion time ({minutes} minutes)"
+    return e.format(&s)
+}
+
+//
 // Event host_role_updated
 //
 type HostRoleUpdatedEvent struct {
