@@ -35,8 +35,6 @@ function setup_disconnected_parameters() {
 
     merge_authfiles "${PULL_SECRET_FILE}" "${REGISTRY_CREDS}" "${AUTHFILE}"
 
-    ${__root}/hack/setup_env.sh hive_from_upstream
-
     ocp_mirror_release \
         "${PULL_SECRET_FILE}" \
         "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" \
