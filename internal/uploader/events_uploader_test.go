@@ -160,6 +160,7 @@ var _ = Describe("prepareFiles", func() {
 		mockEvents     *eventsapi.MockHandler
 		hostID         strfmt.UUID
 		infraEnvID     strfmt.UUID
+		cfg            Config
 		serviceVersion versions.Versions
 	)
 
@@ -179,6 +180,9 @@ var _ = Describe("prepareFiles", func() {
 			ControllerImage: "controller-image",
 			ReleaseTag:      "v1.2.3",
 		}
+		cfg = Config{
+			Versions: serviceVersion,
+		}
 	})
 
 	AfterEach(func() {
@@ -191,7 +195,7 @@ var _ = Describe("prepareFiles", func() {
 
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain), Username: username}
-		buf, err := prepareFiles(ctx, db, cluster, mockEvents, &pullSecret, serviceVersion)
+		buf, err := prepareFiles(ctx, db, cluster, mockEvents, &pullSecret, cfg)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(buf.Bytes()).NotTo(BeEmpty())
 		testFiles := map[string]*testFile{
@@ -200,6 +204,7 @@ var _ = Describe("prepareFiles", func() {
 			"hosts":    {expected: true},
 			"events":   {expected: true},
 			"versions": {expected: true},
+			"metadata": {expected: true},
 		}
 
 		readtgzFiles(testFiles, clusterID, buf.Bytes())
@@ -208,6 +213,7 @@ var _ = Describe("prepareFiles", func() {
 		checkInfraEnvFile(db, testFiles["infraenv"], infraEnvID)
 		checkEventsFile(testFiles["events"], []string{}, 0)
 		checkVersionsFile(testFiles["versions"], serviceVersion)
+		checkMetadataFile(testFiles["metadata"], cfg)
 	})
 	It("prepares only the event data for the current cluster", func() {
 		clusterID2 := strfmt.UUID(uuid.New().String())
@@ -217,7 +223,7 @@ var _ = Describe("prepareFiles", func() {
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
 		createTestObjects(db, &clusterID2, nil, nil)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain), Username: username}
-		buf, err := prepareFiles(ctx, db, cluster, eventsHandler, &pullSecret, serviceVersion)
+		buf, err := prepareFiles(ctx, db, cluster, eventsHandler, &pullSecret, cfg)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(buf.Bytes()).NotTo(BeEmpty())
 		testFiles := map[string]*testFile{
@@ -226,6 +232,7 @@ var _ = Describe("prepareFiles", func() {
 			"hosts":    {expected: true},
 			"events":   {expected: true},
 			"versions": {expected: true},
+			"metadata": {expected: true},
 		}
 
 		readtgzFiles(testFiles, clusterID, buf.Bytes())
@@ -234,6 +241,7 @@ var _ = Describe("prepareFiles", func() {
 		checkInfraEnvFile(db, testFiles["infraenv"], infraEnvID)
 		checkEventsFile(testFiles["events"], []string{models.ClusterStatusAddingHosts}, 1)
 		checkVersionsFile(testFiles["versions"], serviceVersion)
+		checkMetadataFile(testFiles["metadata"], cfg)
 	})
 	It("prepares only the cluster, host, and event data when missing infraEnv ID", func() {
 		mockEvents.EXPECT().V2GetEvents(
@@ -241,7 +249,7 @@ var _ = Describe("prepareFiles", func() {
 
 		cluster := createTestObjects(db, &clusterID, &hostID, nil)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain), Username: username}
-		buf, err := prepareFiles(ctx, db, cluster, mockEvents, &pullSecret, serviceVersion)
+		buf, err := prepareFiles(ctx, db, cluster, mockEvents, &pullSecret, cfg)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(buf.Bytes()).NotTo(BeEmpty())
 		testFiles := map[string]*testFile{
@@ -250,6 +258,7 @@ var _ = Describe("prepareFiles", func() {
 			"hosts":    {expected: true},
 			"events":   {expected: true},
 			"versions": {expected: true},
+			"metadata": {expected: true},
 		}
 
 		readtgzFiles(testFiles, clusterID, buf.Bytes())
@@ -258,12 +267,13 @@ var _ = Describe("prepareFiles", func() {
 		checkInfraEnvFile(db, testFiles["infraenv"], infraEnvID)
 		checkEventsFile(testFiles["events"], []string{}, 0)
 		checkVersionsFile(testFiles["versions"], serviceVersion)
+		checkMetadataFile(testFiles["metadata"], cfg)
 	})
 	It("fails to prepare files when there is no data", func() {
 		mockEvents.EXPECT().V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(nil, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).Return(
 			nil, errors.New("no events found")).Times(1)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain)}
-		buf, err := prepareFiles(ctx, db, &common.Cluster{}, mockEvents, &pullSecret, serviceVersion)
+		buf, err := prepareFiles(ctx, db, &common.Cluster{}, mockEvents, &pullSecret, cfg)
 		Expect(err).To(HaveOccurred())
 		Expect(buf).To(BeNil())
 		testFiles := map[string]*testFile{
@@ -272,6 +282,7 @@ var _ = Describe("prepareFiles", func() {
 			"hosts":    {expected: false},
 			"events":   {expected: false},
 			"versions": {expected: false},
+			"metadata": {expected: false},
 		}
 
 		readtgzFiles(testFiles, clusterID, nil)
@@ -280,6 +291,7 @@ var _ = Describe("prepareFiles", func() {
 		checkInfraEnvFile(db, testFiles["infraenv"], infraEnvID)
 		checkEventsFile(testFiles["events"], []string{}, 0)
 		checkVersionsFile(testFiles["versions"], serviceVersion)
+		checkMetadataFile(testFiles["metadata"], cfg)
 	})
 })
 
@@ -321,7 +333,10 @@ var _ = Describe("UploadEvents", func() {
 			ControllerImage: "controller-image",
 			ReleaseTag:      "v1.2.3",
 		}
-
+		cfg := Config{
+			AssistedServiceVersion: serviceVersion,
+			Versions:               servicesVersion,
+		}
 		dataUploadServer = func(expectedEvents []string, expectedNumberOfEvents int, testFiles map[string]*testFile) http.HandlerFunc {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				Expect(r.Method).To(Equal(http.MethodPost))
@@ -346,18 +361,17 @@ var _ = Describe("UploadEvents", func() {
 					checkHostsFile(db, testFiles["hosts"], clusterID)
 					checkEventsFile(testFiles["events"], expectedEvents, expectedNumberOfEvents)
 					checkVersionsFile(testFiles["versions"], servicesVersion)
+					checkMetadataFile(testFiles["metadata"], cfg)
 				}
 				w.WriteHeader(http.StatusOK)
 			})
 		}
-		cfg := &Config{
-			AssistedServiceVersion: serviceVersion,
-		}
+
 		uploader = &eventsUploader{
 			db:     db,
 			log:    common.GetTestLog(),
 			client: mockK8sClient,
-			Config: *cfg,
+			Config: cfg,
 		}
 	})
 	AfterEach(func() {
@@ -383,6 +397,7 @@ var _ = Describe("UploadEvents", func() {
 			"infraenv": {expected: true},
 			"events":   {expected: true},
 			"versions": {expected: true},
+			"metadata": {expected: true},
 		}
 		server := httptest.NewServer(dataUploadServer([]string{models.ClusterStatusAddingHosts}, 1, testFiles))
 		uploader.Config.DataUploadEndpoint = fmt.Sprintf("%s/%s", server.URL, "upload/test")
@@ -527,6 +542,8 @@ func readFiles(tr *tar.Reader, testFiles map[string]*testFile, clusterID strfmt.
 			fileName = "events"
 		case fmt.Sprintf("%s/versions.json", clusterID):
 			fileName = "versions"
+		case fmt.Sprintf("%s/metadata.json", clusterID):
+			fileName = "metadata"
 		}
 		if fileName != "" {
 			fileContents, err := io.ReadAll(tr)
@@ -639,5 +656,17 @@ func checkVersionsFile(versionsFile *testFile, expectedVersions versions.Version
 		var serviceVersion models.Versions
 		Expect(json.Unmarshal(versionsFile.contents, &serviceVersion)).ShouldNot(HaveOccurred())
 		Expect(serviceVersion).To(BeEquivalentTo(versions.GetModelVersions(expectedVersions)))
+	}
+}
+
+func checkMetadataFile(metadataFile *testFile, cfg Config) {
+	Expect(metadataFile.expected).To(Equal(metadataFile.exists))
+	if metadataFile.expected {
+		var metadataContents models.Versions
+		Expect(json.Unmarshal(metadataFile.contents, &metadataContents)).ShouldNot(HaveOccurred())
+		expectedMetadata := versions.GetModelVersions(cfg.Versions)
+		expectedMetadata["deployment-type"] = cfg.DeploymentType
+		expectedMetadata["deployment-version"] = cfg.DeploymentVersion
+		Expect(metadataContents).To(BeEquivalentTo(expectedMetadata))
 	}
 }
