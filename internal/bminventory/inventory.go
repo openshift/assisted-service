@@ -3307,7 +3307,7 @@ func (b *bareMetalInventory) updateFreeAddressesReport(ctx context.Context, host
 func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, host *models.Host, dhcpAllocationResponseStr string) error {
 	log := logutil.FromContext(ctx, b.log)
 
-	cluster, err := common.GetClusterFromDB(common.LoadTableFromDB(b.db, common.MachineNetworksTable),
+	cluster, err := common.GetClusterFromDB(b.db.Preload(common.MachineNetworksTable).Preload(common.APIVIPsTable).Preload(common.IngressVIPsTable),
 		strfmt.UUID(host.ClusterID.String()), common.SkipEagerLoading)
 	if err != nil {
 		log.WithError(err).Warnf("Get cluster %s", host.ClusterID.String())

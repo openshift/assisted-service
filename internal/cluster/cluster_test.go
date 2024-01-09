@@ -2192,9 +2192,6 @@ var _ = Describe("SetVipsData", func() {
 			Expect(swag.StringValue(c.Status)).To(Equal(t.expectedState))
 		})
 	}
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Majority groups", func() {

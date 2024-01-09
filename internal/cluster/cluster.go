@@ -1030,14 +1030,14 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 	}
 	log := logutil.FromContext(ctx, m.log)
 	formattedApiLease := network.FormatLease(apiVipLease)
-	formattedIngressVip := network.FormatLease(ingressVipLease)
+	formattedIngressLease := network.FormatLease(ingressVipLease)
 	clusterIngressVip := network.GetIngressVipById(c, 0)
 	clusterApiVip := network.GetApiVipById(c, 0)
 
 	if apiVip == clusterApiVip &&
 		ingressVip == clusterIngressVip &&
 		formattedApiLease == c.ApiVipLease &&
-		formattedIngressVip == c.IngressVipLease {
+		formattedIngressLease == c.IngressVipLease {
 		return nil
 	}
 	switch swag.StringValue(c.Status) {
@@ -1050,7 +1050,7 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 		if err = db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
 			Updates(map[string]interface{}{
 				"api_vip_lease":     formattedApiLease,
-				"ingress_vip_lease": formattedIngressVip,
+				"ingress_vip_lease": formattedIngressLease,
 			}).Error; err != nil {
 			log.WithError(err).Warnf("Update vips of cluster %s", c.ID.String())
 			return err
