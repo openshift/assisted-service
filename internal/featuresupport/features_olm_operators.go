@@ -65,7 +65,7 @@ func (feature *LvmFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelUnavailable
 	}
 
-	if isEqual, _ := common.BaseVersionEqual("4.11", filters.OpenshiftVersion); isEqual {
+	if isGreaterEqual, _ := common.BaseVersionGreaterOrEqual("4.11", filters.OpenshiftVersion); isGreaterEqual {
 		return models.SupportLevelDevPreview
 	}
 
@@ -79,12 +79,19 @@ func (feature *LvmFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	return activeLevelNotActive
 }
 
-func (feature *LvmFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
-	return &[]models.FeatureSupportLevelID{
+func (feature *LvmFeature) getIncompatibleFeatures(OCPVersion string) *[]models.FeatureSupportLevelID {
+	incompatibleFeatures := []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 		models.FeatureSupportLevelIDODF,
 	}
+	if isEqual, _ := common.BaseVersionEqual("4.11", OCPVersion); isEqual {
+		incompatibleFeatures = append(incompatibleFeatures,
+			models.FeatureSupportLevelIDVIPAUTOALLOC,
+			models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
+		)
+	}
+	return &incompatibleFeatures
 }
 
 func (feature *LvmFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
