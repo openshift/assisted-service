@@ -403,7 +403,7 @@ func getDHCPArgPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, dual
 			dhcp = "dhcp,dhcp6"
 		}
 		log.Debugf("Host %s: Added kernel argument ip=%s:%s", hostID, nic.Name, dhcp)
-		return append(args, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp)), nil
+		return args, nil
 	}
 	return args, nil
 }
