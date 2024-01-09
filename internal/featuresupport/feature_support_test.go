@@ -127,6 +127,30 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		}
 	})
 
+	Context("Test LVM feature", func() {
+		feature := models.FeatureSupportLevelIDLVM
+		It("Validate LVM on arch", func() {
+			supportedCpuArch := []string{
+				models.ClusterCPUArchitectureArm64,
+				models.ClusterCPUArchitectureMulti,
+				models.ClusterCPUArchitectureX8664,
+			}
+			notSupportedCpuArch := []string{
+				models.ClusterCPUArchitectureS390x,
+				models.ClusterCPUArchitecturePpc64le,
+			}
+			for _, arch := range supportedCpuArch {
+				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch))).To(BeTrue())
+			}
+			for _, arch := range notSupportedCpuArch {
+				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch))).To(BeFalse())
+			}
+		})
+		// It("validate LVM on version 4.15", func() {
+		// 	featureSupportParams := SupportLevelFilters{OpenshiftVersion: "4.15", CPUArchitecture: swag.String(models.ClusterCPUArchitectureX8664,ex)}
+		// 	Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
+		// })
+	})
 	Context("Test LSO CPU compatibility", func() {
 		feature := models.FeatureSupportLevelIDLSO
 		It("LSO IsFeatureAvailable", func() {
