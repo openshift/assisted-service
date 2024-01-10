@@ -326,7 +326,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 	}
 
 	if inventory.SystemVendor != nil && strings.EqualFold(inventory.SystemVendor.Manufacturer, ZVM_VENDOR_ID) &&
-		((inventory.SystemVendor.ProductName == "") || (!strings.HasSuffix(inventory.SystemVendor.ProductName, VM_CTRL_PRG))) {
+		!strings.HasSuffix(inventory.SystemVendor.ProductName, VM_CTRL_PRG) {
 		// Commandline for dasd and static IP w/o nmstate might look like:
 		// rd.neednet=1 console=ttysclp0 coreos.live.rootfs_url=http://172.23.236.156:8080/assisted-installer/rootfs.img
 		// ip=10.14.6.3::10.14.6.1:255.255.255.0:master-0.boea3e06.lnxero1.boe:encbdd0:none nameserver=10.14.6.1
