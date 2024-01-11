@@ -65,7 +65,11 @@ func (feature *LvmFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelUnavailable
 	}
 
-	if isGreaterEqual, _ := common.BaseVersionGreaterOrEqual("4.11", filters.OpenshiftVersion); isGreaterEqual {
+	if isEqual, _ := common.BaseVersionEqual("4.11", filters.OpenshiftVersion); isEqual {
+		return models.SupportLevelDevPreview
+	}
+
+	if isEqual, _ := common.BaseVersionEqual("4.15", filters.OpenshiftVersion); isEqual {
 		return models.SupportLevelDevPreview
 	}
 
@@ -85,7 +89,7 @@ func (feature *LvmFeature) getIncompatibleFeatures(OCPVersion string) *[]models.
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 		models.FeatureSupportLevelIDODF,
 	}
-	if isEqual, _ := common.BaseVersionEqual("4.11", OCPVersion); isEqual {
+	if isEqual, _ := common.BaseVersionLessThan("4.15", OCPVersion); isEqual {
 		incompatibleFeatures = append(incompatibleFeatures,
 			models.FeatureSupportLevelIDVIPAUTOALLOC,
 			models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
