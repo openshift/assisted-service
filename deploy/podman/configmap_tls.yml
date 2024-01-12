@@ -16,6 +16,7 @@ data:
   DB_PORT: "5432"
   DB_USER: admin
   DEPLOY_TARGET: onprem
+  DEPLOYMENT_TYPE: "Podman"
   DISK_ENCRYPTION_SUPPORT: "true"
   DUMMY_IGNITION: "false"
   ENABLE_SINGLE_NODE_DNSMASQ: "true"

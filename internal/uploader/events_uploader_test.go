@@ -667,6 +667,7 @@ func checkMetadataFile(metadataFile *testFile, cfg Config) {
 		expectedMetadata := versions.GetModelVersions(cfg.Versions)
 		expectedMetadata["deployment-type"] = cfg.DeploymentType
 		expectedMetadata["deployment-version"] = cfg.DeploymentVersion
+		expectedMetadata["git-ref"] = cfg.AssistedServiceVersion
 		Expect(metadataContents).To(BeEquivalentTo(expectedMetadata))
 	}
 }
