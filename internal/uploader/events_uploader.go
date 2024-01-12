@@ -180,6 +180,7 @@ func metadataFile(tw *tar.Writer, clusterID *strfmt.UUID, config Config) {
 	metadata := versions.GetModelVersions(config.Versions)
 	metadata["deployment-type"] = config.DeploymentType
 	metadata["deployment-version"] = config.DeploymentVersion
+	metadata["git-ref"] = config.AssistedServiceVersion
 
 	if metadataJson, err := json.Marshal(metadata); err == nil {
 		addFile(tw, metadataJson, fmt.Sprintf("%s/metadata.json", *clusterID)) //nolint:errcheck // errors adding this file shouldn't prevent the data from being sent

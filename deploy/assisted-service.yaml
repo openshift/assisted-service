@@ -44,6 +44,8 @@ spec:
               value: "ai-kafka-0.ai-kafka-headless.assisted-installer.svc.cluster.local:9092"
             - name: KAFKA_EVENT_STREAM_TOPIC
               value: "events-stream"
+            - name: DEPLOYMENT_TYPE
+              value: "SaaS"
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:
