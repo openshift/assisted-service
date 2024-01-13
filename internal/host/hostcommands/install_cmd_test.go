@@ -1144,7 +1144,7 @@ var _ = Describe("construct host install arguments", func() {
 		_, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).To(HaveOccurred())
 	})
-	It("s390x and z/VM - static ip w/o nmstate, multi dasds", func() {
+	It("s390x and z/VM - DHCP, multi dasds", func() {
 		host.Inventory = `{
 				"interfaces":[
 					{
@@ -1161,25 +1161,7 @@ var _ = Describe("construct host install arguments", func() {
 
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.neednet=1","--append-karg","ip=10.14.6.3::10.14.6.1:255.255.255.0:master-0.boea3e06.lnxero1.boe:encbdd0:none","--append-karg","nameserver=10.14.6.1","--append-karg","ip=[fd00::3]::[fd00::1]:64::encbdd0:none","--append-karg","nameserver=[fd00::1]","--append-karg","zfcp.allow_lun_scan=0","--append-karg","rd.znet=qeth,0.0.bdd0,0.0.bdd1,0.0.bdd2,layer2=1","--append-karg","rd.dasd=0.0.5235","--append-karg","rd.dasd=0.0.5236"]`))
-	})
-	It("s390x and z/VM - static ip w/o nmstate, fcp", func() {
-		host.Inventory = `{
-				"interfaces":[
-					{
-						"name": "eth0",
-						"ipv4_addresses":["192.186.10.12/24"]
-					}
-				]
-			}`
-		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/120"}}
-		inventory, _ := common.UnmarshalInventory(host.Inventory)
-		inventory.SystemVendor = &models.SystemVendor{Manufacturer: "IBM/S390"}
-		inventory.SystemVendor.ProductName = "z/VM    7.2.0"
-		inventory.Boot = &models.Boot{CommandLine: "rd.neednet=1 console=ttysclp0 coreos.live.rootfs_url=http://172.23.236.156:8080/assisted-installer/rootfs.img ip=10.14.6.3::10.14.6.1:255.255.255.0:master-0.boea3e06.lnxero1.boe:encbdd0:none nameserver=10.14.6.1 ip=[fd00::3]::[fd00::1]:64::encbdd0:none nameserver=[fd00::1] zfcp.allow_lun_scan=0 rd.znet=qeth,0.0.bdd0,0.0.bdd1,0.0.bdd2,layer2=1 rd.zfcp=0.0.8002,0x500507630400d1e3,0x4000404600000000 random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8"}
-		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.neednet=1","--append-karg","ip=10.14.6.3::10.14.6.1:255.255.255.0:master-0.boea3e06.lnxero1.boe:encbdd0:none","--append-karg","nameserver=10.14.6.1","--append-karg","ip=[fd00::3]::[fd00::1]:64::encbdd0:none","--append-karg","nameserver=[fd00::1]","--append-karg","zfcp.allow_lun_scan=0","--append-karg","rd.znet=qeth,0.0.bdd0,0.0.bdd1,0.0.bdd2,layer2=1","--append-karg","rd.zfcp=0.0.8002,0x500507630400d1e3,0x4000404600000000"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.neednet=1","--append-karg","zfcp.allow_lun_scan=0","--append-karg","rd.znet=qeth,0.0.bdd0,0.0.bdd1,0.0.bdd2,layer2=1","--append-karg","rd.dasd=0.0.5235","--append-karg","rd.dasd=0.0.5236"]`))
 	})
 	It("s390x and LPAR - static ip w/o nmstate, fcp", func() {
 		host.Inventory = `{
@@ -1198,7 +1180,7 @@ var _ = Describe("construct host install arguments", func() {
 
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.neednet=1","--append-karg","ip=10.14.6.3::10.14.6.1:255.255.255.0:master-0.boea3e06.lnxero1.boe:encbdd0:none","--append-karg","nameserver=10.14.6.1","--append-karg","ip=[fd00::3]::[fd00::1]:64::encbdd0:none","--append-karg","nameserver=[fd00::1]","--append-karg","zfcp.allow_lun_scan=0","--append-karg","rd.znet=qeth,0.0.bdd0,0.0.bdd1,0.0.bdd2,layer2=1","--append-karg","rd.zfcp=0.0.8002,0x500507630400d1e3,0x4000404600000000"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.neednet=1","--append-karg","zfcp.allow_lun_scan=0","--append-karg","rd.znet=qeth,0.0.bdd0,0.0.bdd1,0.0.bdd2,layer2=1","--append-karg","rd.zfcp=0.0.8002,0x500507630400d1e3,0x4000404600000000"]`))
 	})
 	It("s390x and LPAR - static ip w/ nmstate, fcp", func() {
 		host.Inventory = `{
@@ -1213,6 +1195,25 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		inventory.SystemVendor = &models.SystemVendor{Manufacturer: "IBM/S390"}
 		inventory.SystemVendor.ProductName = ""
+		inventory.Boot = &models.Boot{CommandLine: "rd.neednet=1 console=ttysclp0 coreos.live.rootfs_url=http://172.23.236.156:8080/assisted-installer/rootfs.img zfcp.allow_lun_scan=0 rd.znet=qeth,0.0.bdd0,0.0.bdd1,0.0.bdd2,layer2=1 rd.zfcp=0.0.8002,0x500507630400d1e3,0x4000404600000000 random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8"}
+
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.neednet=1","--append-karg","zfcp.allow_lun_scan=0","--append-karg","rd.znet=qeth,0.0.bdd0,0.0.bdd1,0.0.bdd2,layer2=1","--append-karg","rd.zfcp=0.0.8002,0x500507630400d1e3,0x4000404600000000"]`))
+	})
+	It("s390x and zVM - static ip w/ nmstate, fcp", func() {
+		host.Inventory = `{
+				"interfaces":[
+					{
+						"name": "eth0",
+						"ipv4_addresses":["192.186.10.12/24"]
+					}
+				]
+			}`
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/120"}}
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		inventory.SystemVendor = &models.SystemVendor{Manufacturer: "IBM/S390"}
+		inventory.SystemVendor.ProductName = "z/VM    7.2.0"
 		inventory.Boot = &models.Boot{CommandLine: "rd.neednet=1 console=ttysclp0 coreos.live.rootfs_url=http://172.23.236.156:8080/assisted-installer/rootfs.img zfcp.allow_lun_scan=0 rd.znet=qeth,0.0.bdd0,0.0.bdd1,0.0.bdd2,layer2=1 rd.zfcp=0.0.8002,0x500507630400d1e3,0x4000404600000000 random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8"}
 
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)

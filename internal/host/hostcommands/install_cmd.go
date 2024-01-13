@@ -26,15 +26,13 @@ import (
 )
 
 const (
-	ZVM_VENDOR_ID  = "IBM/S390"
-	VM_CTRL_PRG    = "KVM/Linux"
-	ZVM_LUN_SCAN   = "zfcp.allow_lun_scan"
-	ZVM_IP         = "ip"
-	ZVM_NAMESERVER = "nameserver"
-	ZVM_ZNET       = "rd.znet"
-	ZVM_DASD       = "rd.dasd"
-	ZVM_NEEDNET    = "rd.neednet"
-	ZVM_FCP        = "rd.zfcp"
+	ZVM_VENDOR_ID = "IBM/S390"
+	VM_CTRL_PRG   = "KVM/Linux"
+	ZVM_LUN_SCAN  = "zfcp.allow_lun_scan"
+	ZVM_ZNET      = "rd.znet"
+	ZVM_DASD      = "rd.dasd"
+	ZVM_NEEDNET   = "rd.neednet"
+	ZVM_FCP       = "rd.zfcp"
 )
 
 type installCmd struct {
@@ -321,7 +319,14 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 
 	// Check if Manufacturer is IBM/S390 and ProductName is not "KVM/Linux" (the case for z/VM and LPAR).
 	// If this is the case than we need to extract the necessary z/VM kargs and append them.
-	if inventory.SystemVendor != nil && strings.EqualFold(inventory.SystemVendor.Manufacturer, ZVM_VENDOR_ID) && !strings.HasSuffix(inventory.SystemVendor.ProductName, VM_CTRL_PRG) {
+	if inventory.SystemVendor != nil {
+		log.Debugf("Check for SystemVendor and ProductName: %s:%s\n", inventory.SystemVendor.Manufacturer, inventory.SystemVendor.ProductName)
+	} else {
+		log.Debug("Check for SystemVendor and ProductName: <nil>:<nil>\n")
+	}
+
+	if inventory.SystemVendor != nil && strings.EqualFold(inventory.SystemVendor.Manufacturer, ZVM_VENDOR_ID) &&
+		!strings.HasSuffix(inventory.SystemVendor.ProductName, VM_CTRL_PRG) {
 		// Commandline for dasd and static IP w/o nmstate might look like:
 		// rd.neednet=1 console=ttysclp0 coreos.live.rootfs_url=http://172.23.236.156:8080/assisted-installer/rootfs.img
 		// ip=10.14.6.3::10.14.6.1:255.255.255.0:master-0.boea3e06.lnxero1.boe:encbdd0:none nameserver=10.14.6.1
@@ -331,10 +336,9 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		// rd.neednet=1 console=ttysclp0 coreos.live.rootfs_url=http://172.23.236.156:8080/assisted-installer/rootfs.img zfcp.allow_lun_scan=0
 		// rd.znet=qeth,0.0.bdd0,0.0.bdd1,0.0.bdd2,layer2=1 rd.zfcp=0.0.8004,0x500507630400d1e3,0x4000404800000000
 		// random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"
+		log.Debugf("Check current boot cmdline: %s\n", strings.TrimSpace(inventory.Boot.CommandLine))
 		for _, part := range strings.Split(strings.TrimSpace(inventory.Boot.CommandLine), " ") {
 			if strings.HasPrefix(strings.ToLower(part), ZVM_NEEDNET) ||
-				strings.HasPrefix(strings.ToLower(part), ZVM_IP) ||
-				strings.HasPrefix(strings.ToLower(part), ZVM_NAMESERVER) ||
 				strings.HasPrefix(strings.ToLower(part), ZVM_LUN_SCAN) ||
 				strings.HasPrefix(strings.ToLower(part), ZVM_ZNET) ||
 				strings.HasPrefix(strings.ToLower(part), ZVM_DASD) ||
