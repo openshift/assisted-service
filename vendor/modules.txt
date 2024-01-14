@@ -699,12 +699,12 @@ github.com/openshift/assisted-image-service/pkg/isoeditor
 github.com/openshift/assisted-image-service/pkg/overlay
 github.com/openshift/assisted-image-service/pkg/servers
 # github.com/openshift/assisted-service/api v0.0.0 => ./api
-## explicit; go 1.18
+## explicit; go 1.20
 github.com/openshift/assisted-service/api/common
 github.com/openshift/assisted-service/api/hiveextension/v1beta1
 github.com/openshift/assisted-service/api/v1beta1
 # github.com/openshift/assisted-service/client v0.0.0 => ./client
-## explicit; go 1.18
+## explicit; go 1.20
 github.com/openshift/assisted-service/client
 github.com/openshift/assisted-service/client/events
 github.com/openshift/assisted-service/client/installer
@@ -713,7 +713,7 @@ github.com/openshift/assisted-service/client/manifests
 github.com/openshift/assisted-service/client/operators
 github.com/openshift/assisted-service/client/versions
 # github.com/openshift/assisted-service/models v0.0.0 => ./models
-## explicit; go 1.18
+## explicit; go 1.20
 github.com/openshift/assisted-service/models
 # github.com/openshift/client-go v0.0.0-20230926161409-848405da69e1
 ## explicit; go 1.20
