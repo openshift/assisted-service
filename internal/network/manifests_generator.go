@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"net"
 	"strings"
 	"text/template"
 
@@ -28,7 +27,6 @@ import (
 type ManifestsGeneratorAPI interface {
 	AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
-	AddNodeIpHint(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error
 	AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
@@ -505,76 +503,4 @@ func NewConfig() (*Config, error) {
 		return &networkCfg, errors.Wrapf(err, "failed to process env var to build network config")
 	}
 	return &networkCfg, nil
-}
-
-const nodeIpHint = `
-apiVersion: machineconfiguration.openshift.io/v1
-kind: MachineConfig
-metadata:
-  labels:
-    machineconfiguration.openshift.io/role: {{.ROLE}}
-  name: 10-{{.ROLE}}s-node-ip-hint
-spec:
-  config:
-    ignition:
-      version: 3.1.0
-    storage:
-      files:
-        - contents:
-            source: data:text/plain;charset=utf-8;base64,{{.NODE_IP_CONTENT}}
-            verification: {}
-          filesystem: root
-          mode: 420
-          path: /etc/default/nodeip-configuration
-`
-
-// Add node ip hint (is supported from 4.10 but it makes no harm to push this file to any version)
-// it will allow us to tell to node-ip script which ip kubelet should run with
-// https://github.com/openshift/machine-config-operator/commit/a0c9a3caa54018eb89eb5bdd6ec1b8fbf97f6fb7
-func (m *ManifestsGenerator) AddNodeIpHint(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
-	if !common.IsSingleNodeCluster(cluster) {
-		return nil
-	}
-
-	if hintSupported, err := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, "4.10.15"); err != nil || !hintSupported {
-		return err
-	}
-
-	if !IsMachineCidrAvailable(cluster) {
-		return fmt.Errorf("node-ip-hint allowed only if machine network was configured")
-	}
-
-	log.Infof("Adding node add ip hint manifests")
-	for _, role := range []models.HostRole{models.HostRoleMaster, models.HostRoleWorker} {
-		filename := fmt.Sprintf("node-ip-hint-%s.yaml", role)
-		content, err := createNodeIpHintContent(log, cluster, string(role))
-		if err != nil {
-			log.WithError(err).Errorf("Failed to create node ip hint manifest")
-			return err
-		}
-
-		if err := m.createManifests(ctx, cluster, filename, content); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func createNodeIpHintContent(log logrus.FieldLogger, cluster *common.Cluster, role string) ([]byte, error) {
-	log.Infof("Creating content for node-ip-hint manifest")
-	machineCidr := cluster.MachineNetworks[0]
-	ip, _, err := net.ParseCIDR(string(machineCidr.Cidr))
-	if err != nil {
-		log.WithError(err).Warn("Failed to parse machine cidr for node ip hint content")
-		return nil, err
-	}
-
-	content := fmt.Sprintf("KUBELET_NODEIP_HINT=%s", ip)
-
-	var manifestParams = map[string]interface{}{
-		"NODE_IP_CONTENT": base64.StdEncoding.EncodeToString([]byte(content)),
-		"ROLE":            role,
-	}
-
-	return fillTemplate(manifestParams, nodeIpHint, log)
 }
