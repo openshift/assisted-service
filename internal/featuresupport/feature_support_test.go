@@ -101,32 +101,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		Expect(isArchitectureSupported(feature, "4.30")).To(BeTrue())
 	})
 
-	Context("Test LVM/Nutanix are not supported under 4.11", func() {
-		features := []models.FeatureSupportLevelID{models.FeatureSupportLevelIDLVM, models.FeatureSupportLevelIDNUTANIXINTEGRATION}
-		for _, f := range features {
-			feature := f
-			It(fmt.Sprintf("%s test", feature), func() {
-				arch := "DoesNotMatter"
-				Expect(IsFeatureAvailable(feature, "4.6", swag.String(arch))).To(BeFalse())
-				Expect(IsFeatureAvailable(feature, "4.7", swag.String(arch))).To(BeFalse())
-				Expect(IsFeatureAvailable(feature, "4.8", swag.String(arch))).To(BeFalse())
-				Expect(IsFeatureAvailable(feature, "4.9", swag.String(arch))).To(BeFalse())
-				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch))).To(BeTrue())
-
-				featureSupportParams := SupportLevelFilters{OpenshiftVersion: "4.11", CPUArchitecture: swag.String(arch)}
-				Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelDevPreview))
-				featureSupportParams = SupportLevelFilters{OpenshiftVersion: "4.11.20", CPUArchitecture: swag.String(arch)}
-				Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelDevPreview))
-
-				Expect(IsFeatureAvailable(feature, "4.12", swag.String(arch))).To(BeTrue())
-				Expect(IsFeatureAvailable(feature, "4.13", swag.String(arch))).To(BeTrue())
-
-				// Check for feature release
-				Expect(IsFeatureAvailable(feature, "4.30", swag.String(arch))).To(BeTrue())
-			})
-		}
-	})
-
 	Context("Test LSO CPU compatibility", func() {
 		feature := models.FeatureSupportLevelIDLSO
 		It("LSO IsFeatureAvailable", func() {

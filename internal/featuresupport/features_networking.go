@@ -36,7 +36,6 @@ func (feature *VipAutoAllocFeature) getIncompatibleFeatures(string) *[]models.Fe
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
-		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDNONEPLATFORM,
 		models.FeatureSupportLevelIDEXTERNALPLATFORM,
 	}
@@ -128,7 +127,6 @@ func (feature *ClusterManagedNetworkingFeature) getIncompatibleFeatures(string) 
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
-		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDNONEPLATFORM,
 		models.FeatureSupportLevelIDEXTERNALPLATFORM,
 	}
