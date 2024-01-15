@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-openapi/swag"
@@ -84,13 +85,15 @@ const (
 	assistedConfigHashAnnotation         = "agent-install.openshift.io/config-hash"
 	mirrorConfigHashAnnotation           = "agent-install.openshift.io/mirror-hash"
 	userConfigHashAnnotation             = "agent-install.openshift.io/user-config-hash"
+	osImagesCAConfigHashAnnotation       = "agent-install.openshift.io/os-images-ca-hash"
 	imageServiceStatefulSetFinalizerName = imageServiceName + "." + aiv1beta1.Group + "/ai-deprovision"
 	agentServiceConfigFinalizerName      = "agentserviceconfig." + aiv1beta1.Group + "/ai-deprovision"
 
 	servingCertAnnotation    = "service.beta.openshift.io/serving-cert-secret-name"
 	injectCABundleAnnotation = "service.beta.openshift.io/inject-cabundle"
 
-	defaultNamespace = "default"
+	defaultNamespace                 = "default"
+	osImageDownloadTrustedCAFilename = "tls.crt"
 )
 
 var (
@@ -1238,8 +1241,6 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 
 		var replicas int32 = 1
 		statefulSet.Spec.Replicas = &replicas
-
-		statefulSet.Spec.Template.Spec.Containers = []corev1.Container{container}
 		statefulSet.Spec.Template.Spec.ServiceAccountName = imageServiceName
 
 		volumes := ensureVolume(statefulSet.Spec.Template.Spec.Volumes, corev1.Volume{
@@ -1260,6 +1261,34 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 				},
 			},
 		})
+
+		if asc.spec.OSImageCACertRef != nil {
+			cm := &corev1.ConfigMap{}
+			namespacedName := types.NamespacedName{Name: asc.spec.OSImageCACertRef.Name, Namespace: asc.namespace}
+			err := asc.Client.Get(ctx, namespacedName, cm)
+			if err != nil {
+				return err
+			}
+			osImagesCAConfigHash, err := checksumMap(cm.Data)
+			if err != nil {
+				return err
+			}
+			setAnnotation(&statefulSet.ObjectMeta, osImagesCAConfigHashAnnotation, osImagesCAConfigHash)
+			container.Env = append(container.Env, corev1.EnvVar{Name: "OS_IMAGE_DOWNLOAD_TRUSTED_CA_FILE", Value: filepath.Join("/etc/image-service/os-images-ca-bundle", osImageDownloadTrustedCAFilename)})
+			container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{Name: "os-images-ca-bundle", MountPath: "/etc/image-service/os-images-ca-bundle"})
+			volumes = ensureVolume(volumes, corev1.Volume{
+				Name: "os-images-ca-bundle",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: asc.spec.OSImageCACertRef.Name,
+						},
+					},
+				},
+			})
+		}
+
+		statefulSet.Spec.Template.Spec.Containers = []corev1.Container{container}
 
 		if asc.spec.ImageStorage != nil {
 			var found bool
@@ -2356,7 +2385,40 @@ func getImageService(ctx context.Context, log logrus.FieldLogger, asc ASC) strin
 	return imageServiceURL
 }
 
+func registerCACertFailureCondition(ctx context.Context, log logrus.FieldLogger, err error, asc ASC) error {
+	conditionsv1.SetStatusConditionNoHeartbeat(
+		asc.conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionTrue,
+			Reason:  aiv1beta1.ReasonOSImageCACertRefFailure,
+			Message: err.Error(),
+		},
+	)
+	err = asc.Client.Status().Update(ctx, asc.Object)
+	if err != nil {
+		log.Errorf("Unable to update status of ASC while attempting to set condition failure for condition %s", aiv1beta1.ConditionReconcileCompleted)
+		return err
+	}
+	return nil
+}
+
 func validate(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error) {
+	if asc.spec.OSImageCACertRef != nil && asc.spec.OSImageCACertRef.Name != "" {
+		osImageCACertConfigMap := &corev1.ConfigMap{}
+		err := asc.Client.Get(ctx, types.NamespacedName{
+			Name:      asc.spec.OSImageCACertRef.Name,
+			Namespace: asc.namespace,
+		}, osImageCACertConfigMap)
+		if err != nil {
+			return false, registerCACertFailureCondition(ctx, log, err, asc)
+		}
+		_, ok := osImageCACertConfigMap.Data[osImageDownloadTrustedCAFilename]
+		if !ok || len(osImageCACertConfigMap.Data) != 1 {
+			err = fmt.Errorf("ConfigMap referenced by OSImgaeCACertRef is expected to contain a single key named \"%s\"", osImageDownloadTrustedCAFilename)
+			return false, registerCACertFailureCondition(ctx, log, err, asc)
+		}
+	}
+
 	// Validate the storage configuration. If that returns warnings then generate the
 	// corresponding events. If it returns errors then update the conditions and stop the
 	// reconciliation.

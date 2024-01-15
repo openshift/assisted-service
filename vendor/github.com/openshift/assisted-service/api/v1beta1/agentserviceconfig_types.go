@@ -109,6 +109,12 @@ type AgentServiceConfigSpec struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="List of container registries without authentication"
 	// +optional
 	UnauthenticatedRegistries []string `json:"unauthenticatedRegistries,omitempty"`
+	// OSImageCACertRef is a reference to a config map containing a certificate authority certificate
+	// this is an optional certificate to allow a user to add a certificate authority for a HTTPS source of images
+	// this certificate will be used by the assisted-image-service when pulling OS images.
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="OS Image CA Cert ConfigMap reference"
+	// +optional
+	OSImageCACertRef *corev1.LocalObjectReference `json:"OSImageCACertRef,omitempty"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons
@@ -181,6 +187,8 @@ const (
 	ReasonSpokeClientCreationFailure string = "ReasonSpokeClientCreationFailure"
 	// ReasonKonnectivityAgentFailure when there was a failure creating the namespace.
 	ReasonKonnectivityAgentFailure string = "KonnectivityAgentFailure"
+	// ReasonOSImageCACertRefFailure when there has been a failure resolving the OS image CA using OSImageCACertRef.
+	ReasonOSImageCACertRefFailure string = "OSImageCACertRefFailure"
 
 	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to enable the route
 	IPXEHTTPRouteEnabled string = "enabled"

@@ -12,6 +12,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/testing"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -29,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	clnt "sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -40,6 +42,7 @@ const (
 	testHost                         = "my.test"
 	testConfigmapName                = "test-configmap"
 	testMirrorRegConfigmapName       = "test-mirror-configmap"
+	testOSImageCACertConfigmapName   = "test-os-image-ca-configmap"
 )
 
 func newTestReconciler(initObjs ...client.Object) *AgentServiceConfigReconciler {
@@ -84,6 +87,236 @@ func AssertReconcileFailure(ctx context.Context, log logrus.FieldLogger, ascc AS
 	_, _, err := fn(ctx, log, ascc)
 	Expect(err).ToNot(BeNil())
 }
+
+var _ = Describe("Agent service config controller ConfigMap validation", func() {
+	var (
+		ctx        context.Context
+		cluster    *testing.FakeCluster
+		client     clnt.Client
+		subject    *aiv1beta1.AgentServiceConfig
+		key        clnt.ObjectKey
+		request    ctrl.Request
+		reconciler *AgentServiceConfigReconciler
+	)
+
+	BeforeEach(func() {
+		// Create a context for the test:
+		ctx = context.Background()
+
+		// Create the fake cluster:
+		cluster = testing.NewFakeCluster().
+			Logger(logger).
+			Build()
+
+		// Create the client:
+		client = cluster.Client()
+
+		// Create the default object to be reconciled, with a storage configuration that
+		// passes all validations. Specific tests will later adapt these settings as needed.
+		subject = &aiv1beta1.AgentServiceConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "agent",
+			},
+			Spec: aiv1beta1.AgentServiceConfigSpec{
+				DatabaseStorage: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("1Ti"),
+						},
+					},
+				},
+				FileSystemStorage: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("1Ti"),
+						},
+					},
+				},
+				ImageStorage: &corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("1Ti"),
+						},
+					},
+				},
+			},
+		}
+		key = clnt.ObjectKeyFromObject(subject)
+		request = ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name: subject.Name,
+			},
+		}
+
+		// Create the reconciler:
+		reconciler = &AgentServiceConfigReconciler{
+			AgentServiceConfigReconcileContext: AgentServiceConfigReconcileContext{
+				Scheme:   cluster.Scheme(),
+				Log:      logrusLogger,
+				Recorder: cluster.Recorder(),
+			},
+			Client:    client,
+			Namespace: "assisted-installer",
+		}
+	})
+
+	AfterEach(func() {
+		cluster.Stop()
+	})
+
+	var getOSImageCACertConfigMap = func(data map[string]string) *corev1.ConfigMap {
+		configMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "osImageCACertConfigMap",
+				Namespace: reconciler.Namespace,
+			},
+			Data: data,
+		}
+		return configMap
+	}
+
+	var awaitOSImageCACertValidation = func(reason string, status corev1.ConditionStatus, message *string) {
+		Eventually(func(g Gomega) {
+			_, err := reconciler.Reconcile(ctx, request)
+			g.Expect(err).ToNot(HaveOccurred())
+			err = client.Get(ctx, key, subject)
+			g.Expect(err).ToNot(HaveOccurred())
+			condition := conditionsv1.FindStatusCondition(
+				subject.Status.Conditions,
+				aiv1beta1.ConditionReconcileCompleted,
+			)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Status).To(Equal(status))
+			g.Expect(condition.Reason).To(Equal(reason))
+			if message != nil {
+				g.Expect(condition.Message).To(ContainSubstring(
+					*message,
+				))
+			}
+		}).Should(Succeed())
+	}
+
+	var awaitOSImageCACertValidationFail = func(message string) {
+		awaitOSImageCACertValidation(aiv1beta1.ReasonOSImageCACertRefFailure, corev1.ConditionTrue, &message)
+	}
+
+	var awaitOSImageCACertValidationSuccess = func() {
+		awaitOSImageCACertValidation(aiv1beta1.ReasonReconcileSucceeded, corev1.ConditionTrue, nil)
+	}
+
+	var assertOSImageCACertVolumePresent = func() {
+		// Grab the statefulset and verify that a volume has been mapped
+		imageServiceStatefulSet := &appsv1.StatefulSet{}
+		Expect(client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: reconciler.Namespace}, imageServiceStatefulSet)).To(Succeed())
+		hasVolume := false
+		for _, volume := range imageServiceStatefulSet.Spec.Template.Spec.Volumes {
+			if volume.Name == "os-images-ca-bundle" {
+				hasVolume = true
+				break
+			}
+		}
+		hasMount := false
+		for _, volumeMount := range imageServiceStatefulSet.Spec.Template.Spec.Containers[0].VolumeMounts {
+			if volumeMount.Name == "os-images-ca-bundle" {
+				hasMount = true
+				break
+			}
+		}
+		Expect(hasVolume).To(BeTrue())
+		Expect(hasMount).To(BeTrue())
+	}
+
+	var assertOSImageCACertVolumeAbsent = func() {
+		// Grab the statefulset and verify that a volume has been mapped
+		imageServiceStatefulSet := &appsv1.StatefulSet{}
+		Expect(client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: reconciler.Namespace}, imageServiceStatefulSet)).To(Succeed())
+		hasOsImageCACertVolume := false
+		for _, volume := range imageServiceStatefulSet.Spec.Template.Spec.Volumes {
+			if volume.Name == "os-images-ca-bundle" {
+				hasOsImageCACertVolume = true
+				break
+			}
+		}
+		Expect(hasOsImageCACertVolume).To(BeFalse())
+	}
+
+	It("Should not accept an OSImageCACert Config Map that contains multiple files", func() {
+		osImageCACertConfigMap := getOSImageCACertConfigMap(
+			map[string]string{
+				osImageDownloadTrustedCAFilename: "-----BEGIN CERTIFICATE-----\nMIIDZTCCAk2gAwIBAgIUASRIJ1X9QHbJ/+daV+IjQdS1NIowDQYJKoZIhvcNAQEL\nBQAwQjELMAkGA1UEBhMCWFgxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UE\nCgwTRGVmYXVsdCBDb21wYW55IEx0ZDAeFw0yNDAxMDkxMzA0MzFaFw0zNDAxMDYx\nMzA0MzFaMEIxCzAJBgNVBAYTAlhYMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAa\nBgNVBAoME0RlZmF1bHQgQ29tcGFueSBMdGQwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQC+Z9BqGKzPINWCSMdeTX52gLDoeTU3q4fH8QyHSO3hNo/eKtaE\nrHOqnsn/ntcsjFwX9Wfwxt1B73uqXkqWWCsH2QKGsw36gPJmSc6ZuqP7oUTApx0U\nOktdxOm96MouqN5OAXoPvzH5dFytJyW3TWpKJ3jP9ZWJrqmp4YcgnU+U6Vlen4iy\nN0NciJtdVDDsWoWqh0zg0YOHJpd43c7aQ0PFoPp4QEj4j29I7X91UmRP67dA8kSw\n2mPcZZFDkKY9fA0TuF1a3Dvx7yssvQoAC9F+jZYgBsTcFNGcc2roJVA8RwcdVZQ3\nbTwA0nLql5EDLdXHSthJiXHPhp6niOTsJx4bAgMBAAGjUzBRMB0GA1UdDgQWBBQr\nbklK4KlO6lgMM5MpVxqWcpWhxzAfBgNVHSMEGDAWgBQrbklK4KlO6lgMM5MpVxqW\ncpWhxzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAEF3pv541h\nXKwDMqHShbpvqEqnhN74c6zc6b8nnIohRK5rNkEkIEf2ikJ6Pdik2te4IHEoA4V9\nHqtpKUtgNqge6GAw/p3kOB4C6eObZYZTaJ4ZiQ5UvO6R7w5MvFkjQH5hFO+fjhQv\n8whWWO7HRlt/Hll/VF3JNVALtIv2SGi51WHFqwe+ERKl0kGKWH8PyY4X6XflHQfa\n1FDev/NRnOVjRcXipsaZwRXcjRUiRX1KuOixlc8Reul8RdrL1Mt7lpl8+e/hqhoO\n2O5thhnTuV/mID3zE+5J8w6UcCdeZo4VDNWdZqPzrI/ymSgARVwUu0MFeYfCbMmB\neEpiSixb6YRM\n-----END CERTIFICATE-----\n",
+				"CA2.pem":                        "-----BEGIN CERTIFICATE-----\nMIIDZTCCAk2gAwIBAgIUSS+V3nF9Pb7SGXTKq0Ggca5Ed6owDQYJKoZIhvcNAQEL\nBQAwQjELMAkGA1UEBhMCWFgxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UE\nCgwTRGVmYXVsdCBDb21wYW55IEx0ZDAeFw0yNDAxMDkxMzA1MjZaFw0zNDAxMDYx\nMzA1MjZaMEIxCzAJBgNVBAYTAlhYMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAa\nBgNVBAoME0RlZmF1bHQgQ29tcGFueSBMdGQwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDK7E8quzVQkdBcRFeNJNVLgnERkTWGaacbTlFYVJi04BRENc4i\nWc/4zvt+VxLeGLFUA6fLGtNjiPhaqw5Tg7IjRd8t6Ho0+xODdADP3phg1bPZN2VL\neWpuNiszngk9CAZ8s2qWDFyY6FoNk3zykH4G69vyXS2DXjlX+y7MJpjuTsHqBhNS\nfg4oJNy/XtIm4eeGVa3o3A23qZkpI3JeZAdPEjsSwxYzsD93dMmZKbqZ0UkU9sbF\nVMbuwPOEde1eBAdIdg2K51SGwL84RUGsMUCcS2ASqED9wdEcFQfCbg8MtdwdUkT8\nNXsw3MuehcRXksLfMntg97mJJ7v3wJLahlcdAgMBAAGjUzBRMB0GA1UdDgQWBBQA\nP+6zc3wM6V0dVswyGh0sOsEkCzAfBgNVHSMEGDAWgBQAP+6zc3wM6V0dVswyGh0s\nOsEkCzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQCWQXTdQOvX\neE+9PZye/xhxxGrjNlyrhzUk3+uVR0bFgoucakF7qfIFph/EPCfY7jR14Gwnlaty\nhZ/bpH4yh3Y6gAXztGkfyZW39x4MBKyUuD49ZW6BKz8daWR3TVBWU9yJLE53aJUD\nYLVSeglquQOjnfclL+0jE8mYCld6K9mxYrIjig58JQ24NcHMfpzcRgf5qYMpY2nj\ni5aXTd8D2FBs5a2/5rGQDG/9tN8YKPoFpg7V+UnBH9yaVL7LkTZUjZVzy8sGLpZ2\nXz2WeZ9oFpBEi+dYMtLnwkHwc5IOCsj6aK5/TTQlW8AyUO9iSUpShrADoANQzNsY\ni7xTDV88P0fU\n-----END CERTIFICATE-----\n",
+			})
+		subject.Spec.OSImageCACertRef = &corev1.LocalObjectReference{
+			Name: osImageCACertConfigMap.Name,
+		}
+		err := client.Create(ctx, osImageCACertConfigMap)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Create(ctx, subject)
+		Expect(err).ToNot(HaveOccurred())
+		awaitOSImageCACertValidationFail(fmt.Sprintf("ConfigMap referenced by OSImgaeCACertRef is expected to contain a single key named \"%s\"", osImageDownloadTrustedCAFilename))
+	})
+
+	It("Should not accept an OSImageCACert Config Map that contains an incorrectly named file", func() {
+		osImageCACertConfigMap := getOSImageCACertConfigMap(
+			map[string]string{
+				"CA2.pem": "-----BEGIN CERTIFICATE-----\nMIIDZTCCAk2gAwIBAgIUSS+V3nF9Pb7SGXTKq0Ggca5Ed6owDQYJKoZIhvcNAQEL\nBQAwQjELMAkGA1UEBhMCWFgxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UE\nCgwTRGVmYXVsdCBDb21wYW55IEx0ZDAeFw0yNDAxMDkxMzA1MjZaFw0zNDAxMDYx\nMzA1MjZaMEIxCzAJBgNVBAYTAlhYMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAa\nBgNVBAoME0RlZmF1bHQgQ29tcGFueSBMdGQwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDK7E8quzVQkdBcRFeNJNVLgnERkTWGaacbTlFYVJi04BRENc4i\nWc/4zvt+VxLeGLFUA6fLGtNjiPhaqw5Tg7IjRd8t6Ho0+xODdADP3phg1bPZN2VL\neWpuNiszngk9CAZ8s2qWDFyY6FoNk3zykH4G69vyXS2DXjlX+y7MJpjuTsHqBhNS\nfg4oJNy/XtIm4eeGVa3o3A23qZkpI3JeZAdPEjsSwxYzsD93dMmZKbqZ0UkU9sbF\nVMbuwPOEde1eBAdIdg2K51SGwL84RUGsMUCcS2ASqED9wdEcFQfCbg8MtdwdUkT8\nNXsw3MuehcRXksLfMntg97mJJ7v3wJLahlcdAgMBAAGjUzBRMB0GA1UdDgQWBBQA\nP+6zc3wM6V0dVswyGh0sOsEkCzAfBgNVHSMEGDAWgBQAP+6zc3wM6V0dVswyGh0s\nOsEkCzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQCWQXTdQOvX\neE+9PZye/xhxxGrjNlyrhzUk3+uVR0bFgoucakF7qfIFph/EPCfY7jR14Gwnlaty\nhZ/bpH4yh3Y6gAXztGkfyZW39x4MBKyUuD49ZW6BKz8daWR3TVBWU9yJLE53aJUD\nYLVSeglquQOjnfclL+0jE8mYCld6K9mxYrIjig58JQ24NcHMfpzcRgf5qYMpY2nj\ni5aXTd8D2FBs5a2/5rGQDG/9tN8YKPoFpg7V+UnBH9yaVL7LkTZUjZVzy8sGLpZ2\nXz2WeZ9oFpBEi+dYMtLnwkHwc5IOCsj6aK5/TTQlW8AyUO9iSUpShrADoANQzNsY\ni7xTDV88P0fU\n-----END CERTIFICATE-----\n",
+			})
+		subject.Spec.OSImageCACertRef = &corev1.LocalObjectReference{
+			Name: osImageCACertConfigMap.Name,
+		}
+		err := client.Create(ctx, osImageCACertConfigMap)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Create(ctx, subject)
+		Expect(err).ToNot(HaveOccurred())
+		awaitOSImageCACertValidationFail(fmt.Sprintf("ConfigMap referenced by OSImgaeCACertRef is expected to contain a single key named \"%s\"", osImageDownloadTrustedCAFilename))
+
+		// Now update the config map and see that the condition changes...
+		osImageCACertConfigMap = getOSImageCACertConfigMap(
+			map[string]string{
+				osImageDownloadTrustedCAFilename: "-----BEGIN CERTIFICATE-----\nMIIDZTCCAk2gAwIBAgIUASRIJ1X9QHbJ/+daV+IjQdS1NIowDQYJKoZIhvcNAQEL\nBQAwQjELMAkGA1UEBhMCWFgxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UE\nCgwTRGVmYXVsdCBDb21wYW55IEx0ZDAeFw0yNDAxMDkxMzA0MzFaFw0zNDAxMDYx\nMzA0MzFaMEIxCzAJBgNVBAYTAlhYMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAa\nBgNVBAoME0RlZmF1bHQgQ29tcGFueSBMdGQwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQC+Z9BqGKzPINWCSMdeTX52gLDoeTU3q4fH8QyHSO3hNo/eKtaE\nrHOqnsn/ntcsjFwX9Wfwxt1B73uqXkqWWCsH2QKGsw36gPJmSc6ZuqP7oUTApx0U\nOktdxOm96MouqN5OAXoPvzH5dFytJyW3TWpKJ3jP9ZWJrqmp4YcgnU+U6Vlen4iy\nN0NciJtdVDDsWoWqh0zg0YOHJpd43c7aQ0PFoPp4QEj4j29I7X91UmRP67dA8kSw\n2mPcZZFDkKY9fA0TuF1a3Dvx7yssvQoAC9F+jZYgBsTcFNGcc2roJVA8RwcdVZQ3\nbTwA0nLql5EDLdXHSthJiXHPhp6niOTsJx4bAgMBAAGjUzBRMB0GA1UdDgQWBBQr\nbklK4KlO6lgMM5MpVxqWcpWhxzAfBgNVHSMEGDAWgBQrbklK4KlO6lgMM5MpVxqW\ncpWhxzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAEF3pv541h\nXKwDMqHShbpvqEqnhN74c6zc6b8nnIohRK5rNkEkIEf2ikJ6Pdik2te4IHEoA4V9\nHqtpKUtgNqge6GAw/p3kOB4C6eObZYZTaJ4ZiQ5UvO6R7w5MvFkjQH5hFO+fjhQv\n8whWWO7HRlt/Hll/VF3JNVALtIv2SGi51WHFqwe+ERKl0kGKWH8PyY4X6XflHQfa\n1FDev/NRnOVjRcXipsaZwRXcjRUiRX1KuOixlc8Reul8RdrL1Mt7lpl8+e/hqhoO\n2O5thhnTuV/mID3zE+5J8w6UcCdeZo4VDNWdZqPzrI/ymSgARVwUu0MFeYfCbMmB\neEpiSixb6YRM\n-----END CERTIFICATE-----\n",
+			})
+		err = client.Update(ctx, osImageCACertConfigMap)
+		Expect(err).ToNot(HaveOccurred())
+		awaitOSImageCACertValidationSuccess()
+
+		// Grab the statefulset and verify that a volume has been mapped
+		assertOSImageCACertVolumePresent()
+	})
+
+	It("Should add volume and volumemap for OSImageCACert when OSImageCACertRef is provided", func() {
+		osImageCACertConfigMap := getOSImageCACertConfigMap(
+			map[string]string{
+				osImageDownloadTrustedCAFilename: "-----BEGIN CERTIFICATE-----\nMIIDZTCCAk2gAwIBAgIUASRIJ1X9QHbJ/+daV+IjQdS1NIowDQYJKoZIhvcNAQEL\nBQAwQjELMAkGA1UEBhMCWFgxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UE\nCgwTRGVmYXVsdCBDb21wYW55IEx0ZDAeFw0yNDAxMDkxMzA0MzFaFw0zNDAxMDYx\nMzA0MzFaMEIxCzAJBgNVBAYTAlhYMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAa\nBgNVBAoME0RlZmF1bHQgQ29tcGFueSBMdGQwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQC+Z9BqGKzPINWCSMdeTX52gLDoeTU3q4fH8QyHSO3hNo/eKtaE\nrHOqnsn/ntcsjFwX9Wfwxt1B73uqXkqWWCsH2QKGsw36gPJmSc6ZuqP7oUTApx0U\nOktdxOm96MouqN5OAXoPvzH5dFytJyW3TWpKJ3jP9ZWJrqmp4YcgnU+U6Vlen4iy\nN0NciJtdVDDsWoWqh0zg0YOHJpd43c7aQ0PFoPp4QEj4j29I7X91UmRP67dA8kSw\n2mPcZZFDkKY9fA0TuF1a3Dvx7yssvQoAC9F+jZYgBsTcFNGcc2roJVA8RwcdVZQ3\nbTwA0nLql5EDLdXHSthJiXHPhp6niOTsJx4bAgMBAAGjUzBRMB0GA1UdDgQWBBQr\nbklK4KlO6lgMM5MpVxqWcpWhxzAfBgNVHSMEGDAWgBQrbklK4KlO6lgMM5MpVxqW\ncpWhxzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAEF3pv541h\nXKwDMqHShbpvqEqnhN74c6zc6b8nnIohRK5rNkEkIEf2ikJ6Pdik2te4IHEoA4V9\nHqtpKUtgNqge6GAw/p3kOB4C6eObZYZTaJ4ZiQ5UvO6R7w5MvFkjQH5hFO+fjhQv\n8whWWO7HRlt/Hll/VF3JNVALtIv2SGi51WHFqwe+ERKl0kGKWH8PyY4X6XflHQfa\n1FDev/NRnOVjRcXipsaZwRXcjRUiRX1KuOixlc8Reul8RdrL1Mt7lpl8+e/hqhoO\n2O5thhnTuV/mID3zE+5J8w6UcCdeZo4VDNWdZqPzrI/ymSgARVwUu0MFeYfCbMmB\neEpiSixb6YRM\n-----END CERTIFICATE-----\n",
+			})
+		subject.Spec.OSImageCACertRef = &corev1.LocalObjectReference{
+			Name: osImageCACertConfigMap.Name,
+		}
+		err := client.Create(ctx, osImageCACertConfigMap)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Create(ctx, subject)
+		Expect(err).ToNot(HaveOccurred())
+		awaitOSImageCACertValidationSuccess()
+		assertOSImageCACertVolumePresent()
+	})
+
+	It("Should create statful set with no OSImageCACert volume if OSImageCACert ConfigMap has not been supplied", func() {
+		subject.Spec.OSImageCACertRef = nil
+		err := client.Create(ctx, subject)
+		Expect(err).ToNot(HaveOccurred())
+		awaitOSImageCACertValidationSuccess()
+		assertOSImageCACertVolumeAbsent()
+	})
+
+})
 
 var _ = Describe("agentserviceconfig_controller reconcile", func() {
 	var (
@@ -1327,6 +1560,31 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		})
 	})
 
+	Describe("ConfigMap hashing as annotations on assisted-image-service stateful set", func() {
+		It("should add OSImageCACertHash annotation if the OSImageCACert config map is present in AgentServiceConfig", func() {
+			asc = newASCOSImageCACertConfig()
+			osImageCACertCM := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testOSImageCACertConfigmapName,
+					Namespace: testNamespace,
+				},
+				Data: map[string]string{
+					osImageDownloadTrustedCAFilename: "-----BEGIN CERTIFICATE-----\nMIIDZTCCAk2gAwIBAgIUASRIJ1X9QHbJ/+daV+IjQdS1NIowDQYJKoZIhvcNAQEL\nBQAwQjELMAkGA1UEBhMCWFgxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UE\nCgwTRGVmYXVsdCBDb21wYW55IEx0ZDAeFw0yNDAxMDkxMzA0MzFaFw0zNDAxMDYx\nMzA0MzFaMEIxCzAJBgNVBAYTAlhYMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAa\nBgNVBAoME0RlZmF1bHQgQ29tcGFueSBMdGQwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQC+Z9BqGKzPINWCSMdeTX52gLDoeTU3q4fH8QyHSO3hNo/eKtaE\nrHOqnsn/ntcsjFwX9Wfwxt1B73uqXkqWWCsH2QKGsw36gPJmSc6ZuqP7oUTApx0U\nOktdxOm96MouqN5OAXoPvzH5dFytJyW3TWpKJ3jP9ZWJrqmp4YcgnU+U6Vlen4iy\nN0NciJtdVDDsWoWqh0zg0YOHJpd43c7aQ0PFoPp4QEj4j29I7X91UmRP67dA8kSw\n2mPcZZFDkKY9fA0TuF1a3Dvx7yssvQoAC9F+jZYgBsTcFNGcc2roJVA8RwcdVZQ3\nbTwA0nLql5EDLdXHSthJiXHPhp6niOTsJx4bAgMBAAGjUzBRMB0GA1UdDgQWBBQr\nbklK4KlO6lgMM5MpVxqWcpWhxzAfBgNVHSMEGDAWgBQrbklK4KlO6lgMM5MpVxqW\ncpWhxzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAEF3pv541h\nXKwDMqHShbpvqEqnhN74c6zc6b8nnIohRK5rNkEkIEf2ikJ6Pdik2te4IHEoA4V9\nHqtpKUtgNqge6GAw/p3kOB4C6eObZYZTaJ4ZiQ5UvO6R7w5MvFkjQH5hFO+fjhQv\n8whWWO7HRlt/Hll/VF3JNVALtIv2SGi51WHFqwe+ERKl0kGKWH8PyY4X6XflHQfa\n1FDev/NRnOVjRcXipsaZwRXcjRUiRX1KuOixlc8Reul8RdrL1Mt7lpl8+e/hqhoO\n2O5thhnTuV/mID3zE+5J8w6UcCdeZo4VDNWdZqPzrI/ymSgARVwUu0MFeYfCbMmB\neEpiSixb6YRM\n-----END CERTIFICATE-----\n",
+				},
+			}
+			ascr = newTestReconciler(asc, osImageCACertCM)
+			ascc = initASC(ascr, asc)
+
+			obj, mutateFn := newImageServiceStatefulSet(ctx, log, ascc)
+			_, err := controllerutil.CreateOrUpdate(ctx, ascc.Client, obj, mutateFn)
+			Expect(err).To(BeNil())
+
+			found := &appsv1.StatefulSet{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(found.ObjectMeta.Annotations).To(HaveLen(1))
+		})
+	})
+
 	Describe("ConfigMap hashing as annotations on assisted-service deployment", func() {
 		Context("with assisted-service configmap", func() {
 			It("should fail if assisted configMap not found", func() {
@@ -1825,6 +2083,14 @@ func newASCWithMirrorRegistryConfig() *aiv1beta1.AgentServiceConfig {
 	asc := newASCDefault()
 	asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{
 		Name: testMirrorRegConfigmapName,
+	}
+	return asc
+}
+
+func newASCOSImageCACertConfig() *aiv1beta1.AgentServiceConfig {
+	asc := newASCDefault()
+	asc.Spec.OSImageCACertRef = &corev1.LocalObjectReference{
+		Name: testOSImageCACertConfigmapName,
 	}
 	return asc
 }

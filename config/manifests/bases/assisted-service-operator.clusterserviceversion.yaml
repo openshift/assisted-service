@@ -27,6 +27,12 @@ spec:
       kind: AgentServiceConfig
       name: agentserviceconfigs.agent-install.openshift.io
       specDescriptors:
+      - description: OSImageCACertRef is a reference to a config map containing a
+          certificate authority certificate this is an optional certificate to allow
+          a user to add a certificate authority for a HTTPS source of images this
+          certificate will be used by the assisted-image-service when pulling OS images.
+        displayName: OS Image CA Cert ConfigMap reference
+        path: OSImageCACertRef
       - description: DatabaseStorage defines the spec of the PersistentVolumeClaim
           to be created for the database's filesystem. With respect to the resource
           requests, minimum 10GiB is recommended.

@@ -36,6 +36,18 @@ spec:
           spec:
             description: AgentServiceConfigSpec defines the desired state of AgentServiceConfig.
             properties:
+              OSImageCACertRef:
+                description: OSImageCACertRef is a reference to a config map containing
+                  a certificate authority certificate this is an optional certificate
+                  to allow a user to add a certificate authority for a HTTPS source
+                  of images this certificate will be used by the assisted-image-service
+                  when pulling OS images.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
               databaseStorage:
                 description: DatabaseStorage defines the spec of the PersistentVolumeClaim
                   to be created for the database's filesystem. With respect to the
