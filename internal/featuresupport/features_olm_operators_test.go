@@ -93,7 +93,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					id:       6,
 					version:  "4.15",
 					platform: models.PlatformTypeNone.Pointer(),
-					expected: models.SupportLevelDevPreview,
+					expected: models.SupportLevelSupported,
 				},
 			}
 

@@ -69,10 +69,6 @@ func (feature *LvmFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelDevPreview
 	}
 
-	if isEqual, _ := common.BaseVersionEqual("4.15", filters.OpenshiftVersion); isEqual {
-		return models.SupportLevelDevPreview
-	}
-
 	return models.SupportLevelSupported
 }
 
