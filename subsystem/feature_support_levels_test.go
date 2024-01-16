@@ -101,7 +101,7 @@ var _ = Describe("Feature support levels API", func() {
 		})
 
 		Context("Update cluster", func() {
-			It("Update umn true won't fail on 4.13 with s390x without infra-env", func() {
+			FIt("Update umn true won't fail on 4.13 with s390x without infra-env", func() {
 				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
@@ -113,9 +113,12 @@ var _ = Describe("Feature support levels API", func() {
 					ClusterID: *cluster.Payload.ID,
 				})
 				Expect(err).NotTo(HaveOccurred())
+
+				GinkgoLogger(fmt.Sprintln(cluster.GetPayload()))
+				Expect(1).To(Equal(2))
 			})
 
-			It("Update umn true fail on 4.13 with s390x with infra-env", func() {
+			FIt("Update umn true fail on 4.13 with s390x with infra-env", func() {
 				expectedError := "cannot use Cluster Managed Networking because it's not compatible with the s390x architecture on version 4.13"
 				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
@@ -134,13 +137,19 @@ var _ = Describe("Feature support levels API", func() {
 				Expect(err).To(HaveOccurred())
 				err2 := err.(*installer.V2UpdateClusterBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
+
+				GinkgoLogger(fmt.Sprintln(cluster.GetPayload()))
+				GinkgoLogger(fmt.Sprintln(infraEnv.GetPayload()))
+				Expect(1).To(Equal(2))
 			})
 
-			It("Create infra-env after updating OLM operators on s390x architecture ", func() {
+			FIt("Create infra-env after updating OLM operators on s390x architecture ", func() {
 				expectedError := "cannot use OpenShift Virtualization because it's not compatible with the s390x architecture on version 4.13"
 				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+
+				GinkgoLogger(fmt.Sprintln(cluster.GetPayload()))
 
 				_, err = user2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -154,9 +163,13 @@ var _ = Describe("Feature support levels API", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				_, err = registerNewInfraEnv(cluster.Payload.ID, "4.13", "s390x")
+				ie, err := registerNewInfraEnv(cluster.Payload.ID, "4.13", "s390x")
 				err2 := err.(*installer.RegisterInfraEnvBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
+
+				GinkgoLogger(fmt.Sprintln(cluster.GetPayload()))
+				GinkgoLogger(fmt.Sprintln(ie.GetPayload()))
+				Expect(1).To(Equal(2))
 			})
 			Context("UpdateInfraEnv", func() {
 				It("Update ppc64le infra env minimal iso without cluster", func() {
