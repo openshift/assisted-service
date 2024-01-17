@@ -88,6 +88,7 @@ const (
 	BMH_AGENT_IGNITION_CONFIG_OVERRIDES = "bmac.agent-install.openshift.io/ignition-config-overrides"
 	BMH_FINALIZER_NAME                  = "bmac.agent-install.openshift.io/deprovision"
 	BMH_DELETE_ANNOTATION               = "bmac.agent-install.openshift.io/remove-agent-and-node-on-delete"
+	BMH_CLUSTER_REFERENCE               = "bmac.agent-install.openshift.io/cluster-reference"
 	MACHINE_ROLE                        = "machine.openshift.io/cluster-api-machine-role"
 	MACHINE_TYPE                        = "machine.openshift.io/cluster-api-machine-type"
 	MCS_CERT_NAME                       = "ca.crt"
@@ -253,6 +254,10 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 			"agent_namespace": agent.Namespace,
 		})
 	}
+	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
+	if err != nil {
+		return reconcileError{err: err}.Result()
+	}
 
 	result := r.handleBMHFinalizer(ctx, log, bmh, agent)
 	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
@@ -266,7 +271,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	result = r.reconcileBMH(ctx, log, bmh, agent)
+	result = r.reconcileBMH(ctx, log, bmh, agent, infraEnv)
 	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
 		return res.Result()
 	}
@@ -282,7 +287,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// with the BMH being reconciled. We will call both, reconcileAgentSpec and
 	// reconcileAgentInventory, every time. The logic to decide whether there's
 	// any action to take is implemented in each function respectively.
-	result = r.reconcileAgentSpec(log, bmh, agent)
+	result = r.reconcileAgentSpec(log, bmh, agent, infraEnv)
 	if res := r.handleReconcileResult(ctx, log, result, agent); res != nil {
 		return res.Result()
 	}
@@ -403,7 +408,7 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 // Unless there are errors, the agent should be `Approved` at the end of this
 // reconcile and a label should be set on it referencing the BMH. No changes to
 // the BMH should happen in this reconcile step.
-func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) reconcileResult {
 
 	log.Debugf("Setting agent spec according to BMH")
 
@@ -472,6 +477,15 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 		dirty = true
 	}
 
+	setDirty, err := r.reconcileClusterReference(bmh, agent, infraEnv)
+	if err != nil {
+		log.WithError(err).Errorf("failed to reconcile bmh cluster reference %s/%s", bmh.Namespace, bmh.Name)
+		return reconcileError{err: err}
+	}
+	if setDirty {
+		dirty = true
+	}
+
 	if r.reconcileNodeLabels(bmh, agent) {
 		dirty = true
 	}
@@ -497,6 +511,38 @@ func (r *BMACReconciler) reconcileNodeLabels(bmh *bmh_v1alpha1.BareMetalHost, ag
 		return true
 	}
 	return false
+}
+
+func (r *BMACReconciler) reconcileClusterReference(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) (bool, error) {
+	clusterReferenceStr, annotationExists := bmh.Annotations[BMH_CLUSTER_REFERENCE]
+
+	switch {
+	case clusterReferenceStr != "":
+		if infraEnv != nil && infraEnv.Spec.ClusterRef != nil {
+			return false, errors.Errorf("failed to reconcile cluster reference.  InfraEnv already has cluster reference %s/%s",
+				infraEnv.Spec.ClusterRef.Namespace, infraEnv.Spec.ClusterRef.Name)
+		}
+		splits := strings.Split(clusterReferenceStr, "/")
+		if len(splits) != 2 {
+			return false, errors.Errorf("failed to reconcile cluster reference.  Parse of cluster reference %s failed",
+				clusterReferenceStr)
+		}
+		clusterReference := aiv1beta1.ClusterReference{
+			Namespace: splits[0],
+			Name:      splits[1],
+		}
+
+		if !reflect.DeepEqual(agent.Spec.ClusterDeploymentName, &clusterReference) {
+			agent.Spec.ClusterDeploymentName = &clusterReference
+			return true, nil
+		}
+
+	case annotationExists && clusterReferenceStr == "" && agent.Spec.ClusterDeploymentName != nil &&
+		(infraEnv == nil || infraEnv.Spec.ClusterRef == nil):
+		agent.Spec.ClusterDeploymentName = nil
+		return true, nil
+	}
+	return false, nil
 }
 
 // The detached annotation is added if the BMH provisioning state is provisioned
@@ -824,14 +870,10 @@ func (r *BMACReconciler) findInfraEnvForBMH(ctx context.Context, log logrus.Fiel
 // The above changes will be done only if the ISODownloadURL value has already
 // been set in the `InfraEnv` resource and the Image.URL value has not been
 // set in the `BareMetalHost`
-func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) reconcileResult {
 	log.Debugf("Started BMH reconcile")
 	log.Debugf("BMH value %v", bmh)
 
-	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
-	if err != nil {
-		return reconcileError{err: err}
-	}
 	// Stop `Reconcile` if BMH does not have an InfraEnv.
 	if infraEnv == nil {
 		return reconcileComplete{stop: true}

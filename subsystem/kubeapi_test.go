@@ -5244,6 +5244,42 @@ var _ = Describe("bmac reconcile flow", func() {
 				return true
 			}, "60s", "10s").Should(Equal(true))
 		})
+		It("reconcile bmh cluster deployment", func() {
+			const (
+				clusterNamespace = "cluster-namespace"
+				clusterName      = "cluster-name"
+			)
+			By("Set cluster reference annotation on BMH")
+			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
+			if bmh.ObjectMeta.Annotations == nil {
+				bmh.ObjectMeta.Annotations = make(map[string]string)
+				bmh.ObjectMeta.Annotations[controllers.BMH_CLUSTER_REFERENCE] = fmt.Sprintf(`%s/%s`, clusterNamespace, clusterName)
+			}
+
+			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
+
+			Eventually(func() bool {
+				// expect agent cluster reference to be set
+				agent := getAgentCRD(ctx, kubeClient, agentNsName)
+				return reflect.DeepEqual(agent.Spec.ClusterDeploymentName, &v1beta1.ClusterReference{
+					Name:      clusterName,
+					Namespace: clusterNamespace,
+				})
+			}, "60s", "10s").Should(Equal(true))
+
+			By("Clear cluster reference annotation on BMH")
+			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
+			if bmh.ObjectMeta.Annotations != nil {
+				bmh.ObjectMeta.Annotations[controllers.BMH_CLUSTER_REFERENCE] = ""
+			}
+			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
+
+			Eventually(func() bool {
+				// expect agent cluster reference to be set
+				agent := getAgentCRD(ctx, kubeClient, agentNsName)
+				return agent.Spec.ClusterDeploymentName == nil
+			}, "60s", "10s").Should(Equal(true))
+		})
 	})
 })
 
