@@ -64,11 +64,11 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 
 	It("get_step custom ignition endpoint", func() {
 		customEndpoint := "https://foo.bar:33735/acme"
-		expectedURL := fmt.Sprintf("{\"url\":\"%s/worker\"}", customEndpoint)
+		expectedUrl := fmt.Sprintf("{\"url\":\"%s/worker\"}", customEndpoint)
 		Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
 		stepReply, stepErr = apivipConnectivityCheckCmd.GetSteps(ctx, &host)
 		Expect(stepReply[0]).ShouldNot(BeNil())
-		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal(expectedURL))
+		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal(expectedUrl))
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 
@@ -87,18 +87,18 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	It("get_step custom ignition endpoint and pool name", func() {
 		customEndpoint := "https://foo.bar:33735/acme"
 		poolName := "testpool"
-		expectedURL := fmt.Sprintf("{\"url\":\"%s/%s\"}", customEndpoint, poolName)
+		expectedUrl := fmt.Sprintf("{\"url\":\"%s/%s\"}", customEndpoint, poolName)
 		Expect(db.Model(&host).Update("MachineConfigPoolName", poolName).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
 		stepReply, stepErr = apivipConnectivityCheckCmd.GetSteps(ctx, &host)
 		Expect(stepReply[0]).ShouldNot(BeNil())
-		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal(expectedURL))
+		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal(expectedUrl))
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 
 	It("get_step custom token", func() {
 		token := "verysecrettoken"
-		expectedArgs := fmt.Sprintf("{\"ignition_endpoint_token\":\"%s\",\"url\":\"http://test.com:22624/config/worker\"}", token)
+		expectedArgs := fmt.Sprintf("{\"ignition_endpoint_token\":\"%s\",\"request_headers\":[{\"key\":\"Authorization\",\"value\":\"Bearer %s\"}],\"url\":\"http://test.com:22624/config/worker\"}", token, token)
 		Expect(db.Model(&host).Update("ignition_endpoint_token", token).Error).ShouldNot(HaveOccurred())
 		stepReply, stepErr = apivipConnectivityCheckCmd.GetSteps(ctx, &host)
 		Expect(stepReply[0]).ShouldNot(BeNil())
@@ -111,8 +111,8 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 		poolName := "testpool"
 		customEndpoint := "https://foo.bar:33735/acme"
 		customCACert := "somecertificatestring"
-		expectedArgs := fmt.Sprintf("{\"ca_certificate\":\"%s\",\"ignition_endpoint_token\":\"%s\",\"url\":\"%s/%s\"}",
-			customCACert, token, customEndpoint, poolName)
+		expectedArgs := fmt.Sprintf("{\"ca_certificate\":\"%s\",\"ignition_endpoint_token\":\"%s\",\"request_headers\":[{\"key\":\"Authorization\",\"value\":\"Bearer %s\"}],\"url\":\"%s/%s\"}",
+			customCACert, token, token, customEndpoint, poolName)
 		Expect(db.Model(&host).Update("MachineConfigPoolName", poolName).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&host).Update("ignition_endpoint_token", token).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())

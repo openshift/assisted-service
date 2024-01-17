@@ -6132,7 +6132,24 @@ definitions:
       ignition_endpoint_token:
         x-nullable: true
         type: string
-        description: A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
+        description: A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url (DEPRECATED use request_headers to pass this token).
+      request_headers:
+        type: array
+        x-nullable: true
+        x-omitempty: true
+        description: Additional request headers to include when fetching the ignition from ignition_endpoint_url.
+        items:
+          $ref: "#/definitions/api_vip_connectivity_additional_request_header"
+
+  api_vip_connectivity_additional_request_header:
+    type: object
+    properties:
+      key:
+        type: string
+        description: Value of the header's key when making a request
+      value:
+        type: string
+        description: The value corresponding to the header key
 
   api_vip_connectivity_response:
     type: object
