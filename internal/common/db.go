@@ -208,6 +208,20 @@ func (i *InfraEnv) Payload() any {
 	return &i.InfraEnv
 }
 
+type ReleaseImage struct {
+	CreatedAt time.Time
+	models.ReleaseImage
+
+	// The release channel from which the release was fetched from
+	Channel string
+}
+
+type OpenshiftVersionSupportLevel struct {
+	OpenshiftVersion string `gorm:"primarykey"`
+	SupportLevel     string
+	CreatedAt        time.Time
+}
+
 type EagerLoadingState bool
 
 const (
@@ -248,12 +262,55 @@ func AutoMigrate(db *gorm.DB) error {
 		&Cluster{},
 		&Event{},
 		&InfraEnv{},
+		&ReleaseImage{},
+		&OpenshiftVersionSupportLevel{},
 		&models.ClusterNetwork{},
 		&models.ServiceNetwork{},
 		&models.MachineNetwork{},
 		&models.APIVip{},
 		&models.IngressVip{},
 	)
+}
+
+func GetOpenshiftVersionsSupportLevelsFromDBWhere(db *gorm.DB, where ...interface{}) ([]*OpenshiftVersionSupportLevel, error) {
+	dbOpenshiftVersionsSupportLevel := []*OpenshiftVersionSupportLevel{}
+	if err := db.Model(&OpenshiftVersionSupportLevel{}).Find(&dbOpenshiftVersionsSupportLevel, where...).Error; err != nil {
+		return nil, err
+	}
+
+	return dbOpenshiftVersionsSupportLevel, nil
+}
+
+func GetReleaseImagesFromDBWhere(db *gorm.DB, where ...interface{}) (models.ReleaseImages, error) {
+	releaseImages := models.ReleaseImages{}
+	dbReleaseImages := []*ReleaseImage{}
+	if err := db.Model(&ReleaseImage{}).Find(&dbReleaseImages, where...).Error; err != nil {
+		return nil, err
+	}
+
+	for _, releaseImage := range dbReleaseImages {
+		cpuArchitectures := []string{*releaseImage.CPUArchitecture}
+		if *releaseImage.CPUArchitecture == MultiCPUArchitecture {
+			cpuArchitectures = SupportedMultiArchitectures
+		}
+		releaseImage.CPUArchitectures = cpuArchitectures
+		releaseImages = append(releaseImages, &releaseImage.ReleaseImage)
+	}
+
+	return releaseImages, nil
+}
+
+func GetReleaseImageFromDBWhere(db *gorm.DB, where ...interface{}) (*models.ReleaseImage, error) {
+	releaseImages, err := GetReleaseImagesFromDBWhere(db, where...)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(releaseImages) == 0 {
+		return nil, nil
+	}
+
+	return releaseImages[0], nil
 }
 
 func LoadTableFromDB(db *gorm.DB, tableName string, conditions ...interface{}) *gorm.DB {

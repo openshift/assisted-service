@@ -243,7 +243,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				swag.String(models.ClusterCPUArchitectureS390x),
 				swag.Bool(false),
 			)
-			Expect(cluster.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureMulti))
+			Expect(cluster.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureS390x))
 			Expect(len(cluster.Payload.MonitoredOperators)).To(Equal(1))
 
 			// Register infra-env with ppc64le CPU architecture

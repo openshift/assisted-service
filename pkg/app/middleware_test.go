@@ -35,7 +35,7 @@ var _ = Describe("WithHealthMiddleware", func() {
 		mHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 		failure := thread.New(logger, "failed test", 10*time.Millisecond, func() {
 		})
-		failure.Start()
+		failure.Start(false)
 		req := httptest.NewRequest("GET", "/health", nil)
 		h1 := WithHealthMiddleware(mHandler, []*thread.Thread{failure}, logger, timeout)
 		h1 = WithIPXEScriptMiddleware(h1)

@@ -15,6 +15,7 @@ import (
 	"github.com/go-openapi/runtime/security"
 
 	"github.com/openshift/assisted-service/restapi/operations"
+	"github.com/openshift/assisted-service/restapi/operations/configuration"
 	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
@@ -26,6 +27,14 @@ import (
 type contextKey string
 
 const AuthKey contextKey = "Auth"
+
+//go:generate mockery -name ConfigurationAPI -inpkg
+
+/* ConfigurationAPI  */
+type ConfigurationAPI interface {
+	/* V2ListReleaseSources Retrieves openshift release sources configuration. */
+	V2ListReleaseSources(ctx context.Context, params configuration.V2ListReleaseSourcesParams) middleware.Responder
+}
 
 //go:generate mockery -name EventsAPI -inpkg
 
@@ -288,6 +297,7 @@ type VersionsAPI interface {
 
 // Config is configuration for Handler
 type Config struct {
+	ConfigurationAPI
 	EventsAPI
 	InstallerAPI
 	ManagedDomainsAPI
@@ -692,6 +702,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2ListHosts(ctx, params)
+	})
+	api.ConfigurationV2ListReleaseSourcesHandler = configuration.V2ListReleaseSourcesHandlerFunc(func(params configuration.V2ListReleaseSourcesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ConfigurationAPI.V2ListReleaseSources(ctx, params)
 	})
 	api.VersionsV2ListSupportedOpenshiftVersionsHandler = versions.V2ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.V2ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

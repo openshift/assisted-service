@@ -54,11 +54,20 @@ const (
 	MultiCPUArchitecture   = "multi"
 
 	ExternalPlatformNameOci = "oci"
+
+	OpenshiftReleaseChannelStable    = "stable"
+	OpenshiftReleaseChannelCandidate = "candidate"
 )
 
 var (
 	UnlimitedEvents *int64 = swag.Int64(-1)
 	NoOffsetEvents  *int64 = swag.Int64(0)
+)
+
+var SupportedMultiArchitectures []string = []string{X86CPUArchitecture, ARM64CPUArchitecture, S390xCPUArchitecture, PowerCPUArchitecture}
+
+const (
+	ReleaseImageReferenceTemplateSaaS string = "quay.io/openshift-release-dev/ocp-release:%s-%s"
 )
 
 // Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same
@@ -608,4 +617,8 @@ func IsExternalIntegrationEnabled(platform *models.Platform, platformName string
 
 func IsOciExternalIntegrationEnabled(platform *models.Platform) bool {
 	return IsExternalIntegrationEnabled(platform, ExternalPlatformNameOci)
+}
+
+func GetURLForReleaseImageInSaaS(openshiftVersion, cpuArchitecture string) string {
+	return fmt.Sprintf(ReleaseImageReferenceTemplateSaaS, openshiftVersion, cpuArchitecture)
 }

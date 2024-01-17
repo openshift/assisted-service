@@ -320,6 +320,163 @@ var _ = Describe("Get Major.Minor version", func() {
 	})
 })
 
+var _ = Describe("Test isVersionPreRelease", func() {
+	It("With ec/rc/fc/alpha/nightly", func() {
+		isPreRelease, err := IsVersionPreRelease("4.14.0-ec.2")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*isPreRelease).To(BeTrue())
+
+		isPreRelease, err = IsVersionPreRelease("4.14.0-fc.2")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*isPreRelease).To(BeTrue())
+
+		isPreRelease, err = IsVersionPreRelease("4.14.0-rc.2")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*isPreRelease).To(BeTrue())
+
+		isPreRelease, err = IsVersionPreRelease("4.14.0-alpha")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*isPreRelease).To(BeTrue())
+
+		isPreRelease, err = IsVersionPreRelease("4.14.0-nightly")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*isPreRelease).To(BeTrue())
+	})
+
+	It("With versions that are not prerelease", func() {
+		isPreRelease, err := IsVersionPreRelease("4.13.17")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*isPreRelease).To(BeFalse())
+
+		isPreRelease, err = IsVersionPreRelease("4.14.17")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*isPreRelease).To(BeFalse())
+
+		isPreRelease, err = IsVersionPreRelease("4.12.17")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*isPreRelease).To(BeFalse())
+	})
+})
+
+var _ = Describe("Test CheckIfValidVersion", func() {
+	It("With different lengths", func() {
+		Expect(CheckIfValidVersion("4.12")).To(BeNil())
+		Expect(CheckIfValidVersion("4.12.4")).To(BeNil())
+		Expect(CheckIfValidVersion("4.12.4-323")).To(BeNil())
+		Expect(CheckIfValidVersion("aaa aa")).ToNot(BeNil())
+	})
+})
+
+var _ = Describe("Test GetVersionSegment", func() {
+	It("With different lengths", func() {
+		segments, err := GetVersionSegments("4.14.2")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(segments).To(Equal([]string{"4", "14", "2"}))
+
+		segments, err = GetVersionSegments("4.12")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(segments).To(Equal([]string{"4", "12"}))
+
+		segments, err = GetVersionSegments("4")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(segments).To(Equal([]string{"4"}))
+
+		segments, err = GetVersionSegments("")
+		Expect(err).To(HaveOccurred())
+		Expect(segments).To(BeNil())
+	})
+})
+
+var _ = Describe("Test getVersionSegmentsLength", func() {
+	It("With different lengths", func() {
+		segmentsLength, err := GetVersionSegmentsLength("4.14.2")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*segmentsLength).To(Equal(3))
+
+		segmentsLength, err = GetVersionSegmentsLength("4.12")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*segmentsLength).To(Equal(2))
+
+		segmentsLength, err = GetVersionSegmentsLength("4")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*segmentsLength).To(Equal(1))
+
+		segmentsLength, err = GetVersionSegmentsLength("")
+		Expect(err).To(HaveOccurred())
+		Expect(segmentsLength).To(BeNil())
+	})
+
+	It("With ec/rc/fc/alpha/nightly", func() {
+		segmentsLength, err := GetVersionSegmentsLength("4.14.0-ec.2")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*segmentsLength).To(Equal(3))
+
+		segmentsLength, err = GetVersionSegmentsLength("4.14.0-fc.2")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*segmentsLength).To(Equal(3))
+
+		segmentsLength, err = GetVersionSegmentsLength("4.14.0-rc.2")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*segmentsLength).To(Equal(3))
+
+		segmentsLength, err = GetVersionSegmentsLength("4.14.0-alpha")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*segmentsLength).To(Equal(3))
+	})
+})
+
+var _ = Describe("Test GetMajorMinorVersion", func() {
+	It("works for x.y", func() {
+		res, err := GetMajorMinorVersion("4.6")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*res).Should(Equal("4.6"))
+	})
+
+	It("works for x.y.z", func() {
+		res, err := GetMajorMinorVersion("4.6.9")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*res).Should(Equal("4.6"))
+	})
+
+	It("works for x.y.z-thing", func() {
+		res, err := GetMajorMinorVersion("4.6.9-beta")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*res).Should(Equal("4.6"))
+	})
+
+	It("fails when the version cannot parse", func() {
+		res, err := GetMajorMinorVersion("ere.654.45")
+		Expect(err).Should(HaveOccurred())
+		Expect(res).Should(BeNil())
+	})
+})
+
+var _ = Describe("Test GetMajorVersion", func() {
+	It("works for x.y", func() {
+		res, err := GetMajorVersion("4.6")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*res).Should(Equal("4"))
+	})
+
+	It("works for x.y.z", func() {
+		res, err := GetMajorVersion("4.6.9")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*res).Should(Equal("4"))
+	})
+
+	It("works for x.y.z-thing", func() {
+		res, err := GetMajorVersion("4.6.9-beta")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*res).Should(Equal("4"))
+	})
+
+	It("fails when the version cannot parse", func() {
+		res, err := GetMajorVersion("ere.654.45")
+		Expect(err).Should(HaveOccurred())
+		Expect(res).Should(BeNil())
+	})
+})
+
 var _ = Describe("Test AreMastersSchedulable", func() {
 	Context("for every combination of schedulableMastersForcedTrue and schedulableMasters", func() {
 		for _, test := range []struct {

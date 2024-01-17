@@ -467,7 +467,7 @@ func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, para
 		return nil, errors.Wrapf(err, "Openshift version %s for CPU architecture %s is not supported",
 			swag.StringValue(params.OpenshiftVersion), arch)
 	}
-	if models.OpenshiftVersionSupportLevelMaintenance == releaseImage.SupportLevel {
+	if models.OpenshiftVersionSupportLevelEndOfLife == releaseImage.SupportLevel {
 		return nil, errors.Errorf("Openshift version %s support level is: %s, and can't be used for creating a new cluster",
 			swag.StringValue(params.OpenshiftVersion), releaseImage.SupportLevel)
 	}
@@ -683,8 +683,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 // or *models.ClusterCreateParams as argument. If the argument is not of one of those types
 // it will be ignored.
 func (b *bareMetalInventory) validateFeatureSupportLevel(ctx context.Context, cluster *common.Cluster, params interface{}) error {
-	var cpuArchitecture string
+	var cpuArchitecture string = cluster.CPUArchitecture
 	var updateParams *models.V2ClusterUpdateParams
+
 	if createParams, ok := params.(*models.ClusterCreateParams); ok {
 		cpuArchitecture = createParams.CPUArchitecture
 	}

@@ -536,7 +536,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 		var tmpPullSecret string
 		var clusterID strfmt.UUID
 
-		registerClusterForMultiArch := func(cpuArchitecture string) *models.Cluster {
+		registerClusterWithArch := func(cpuArchitecture string) *models.Cluster {
 			clusterReq, err := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                  swag.String("test-cluster"),
@@ -548,7 +548,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(clusterReq.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
+			Expect(clusterReq.Payload.CPUArchitecture).To(Equal(cpuArchitecture))
 
 			return clusterReq.Payload
 		}
@@ -572,7 +572,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 		})
 
 		It("Default image type on s390x", func() {
-			cluster := registerClusterForMultiArch(models.ClusterCPUArchitectureS390x)
+			cluster := registerClusterWithArch(models.ClusterCPUArchitectureS390x)
 			infraEnv := registerInfraEnvSpecificVersionAndArch(cluster.ID, "", common.S390xCPUArchitecture, "")
 			Expect(*infraEnv.Type).To(Equal(models.ImageTypeFullIso))
 
@@ -591,7 +591,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 			Expect(err).To(HaveOccurred())
 		})
 		It("Default image type on ppc64le", func() {
-			cluster := registerClusterForMultiArch(models.ClusterCPUArchitecturePpc64le)
+			cluster := registerClusterWithArch(models.ClusterCPUArchitecturePpc64le)
 			infraEnv := registerInfraEnvSpecificVersionAndArch(cluster.ID, "", common.PowerCPUArchitecture, "")
 			Expect(*infraEnv.Type).To(Equal(models.ImageTypeFullIso))
 

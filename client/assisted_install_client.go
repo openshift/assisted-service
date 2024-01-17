@@ -13,6 +13,7 @@ import (
 	rtclient "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
+	"github.com/openshift/assisted-service/client/configuration"
 	"github.com/openshift/assisted-service/client/events"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/managed_domains"
@@ -63,6 +64,7 @@ func New(c Config) *AssistedInstall {
 
 	cli := new(AssistedInstall)
 	cli.Transport = transport
+	cli.Configuration = configuration.New(transport, strfmt.Default, c.AuthInfo)
 	cli.Events = events.New(transport, strfmt.Default, c.AuthInfo)
 	cli.Installer = installer.New(transport, strfmt.Default, c.AuthInfo)
 	cli.ManagedDomains = managed_domains.New(transport, strfmt.Default, c.AuthInfo)
@@ -74,6 +76,7 @@ func New(c Config) *AssistedInstall {
 
 // AssistedInstall is a client for assisted install
 type AssistedInstall struct {
+	Configuration  *configuration.Client
 	Events         *events.Client
 	Installer      *installer.Client
 	ManagedDomains *managed_domains.Client

@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewV2ListSupportedOpenshiftVersionsParams creates a new V2ListSupportedOpenshiftVersionsParams object,
@@ -60,6 +61,19 @@ V2ListSupportedOpenshiftVersionsParams contains all the parameters to send to th
 	Typically these are written to a http.Request.
 */
 type V2ListSupportedOpenshiftVersionsParams struct {
+
+	/* OnlyLatest.
+
+	   If true, returns only the latest version for each minor.
+	*/
+	OnlyLatest *bool
+
+	/* VersionPattern.
+
+	   Version pattern for the returned releases. E.g. '4.12'.
+	*/
+	VersionPattern *string
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -77,7 +91,18 @@ func (o *V2ListSupportedOpenshiftVersionsParams) WithDefaults() *V2ListSupported
 //
 // All values with no default are reset to their zero value.
 func (o *V2ListSupportedOpenshiftVersionsParams) SetDefaults() {
-	// no default values defined for this parameter
+	var (
+		onlyLatestDefault = bool(false)
+	)
+
+	val := V2ListSupportedOpenshiftVersionsParams{
+		OnlyLatest: &onlyLatestDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the v2 list supported openshift versions params
@@ -113,6 +138,28 @@ func (o *V2ListSupportedOpenshiftVersionsParams) SetHTTPClient(client *http.Clie
 	o.HTTPClient = client
 }
 
+// WithOnlyLatest adds the onlyLatest to the v2 list supported openshift versions params
+func (o *V2ListSupportedOpenshiftVersionsParams) WithOnlyLatest(onlyLatest *bool) *V2ListSupportedOpenshiftVersionsParams {
+	o.SetOnlyLatest(onlyLatest)
+	return o
+}
+
+// SetOnlyLatest adds the onlyLatest to the v2 list supported openshift versions params
+func (o *V2ListSupportedOpenshiftVersionsParams) SetOnlyLatest(onlyLatest *bool) {
+	o.OnlyLatest = onlyLatest
+}
+
+// WithVersionPattern adds the versionPattern to the v2 list supported openshift versions params
+func (o *V2ListSupportedOpenshiftVersionsParams) WithVersionPattern(versionPattern *string) *V2ListSupportedOpenshiftVersionsParams {
+	o.SetVersionPattern(versionPattern)
+	return o
+}
+
+// SetVersionPattern adds the versionPattern to the v2 list supported openshift versions params
+func (o *V2ListSupportedOpenshiftVersionsParams) SetVersionPattern(versionPattern *string) {
+	o.VersionPattern = versionPattern
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *V2ListSupportedOpenshiftVersionsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -120,6 +167,40 @@ func (o *V2ListSupportedOpenshiftVersionsParams) WriteToRequest(r runtime.Client
 		return err
 	}
 	var res []error
+
+	if o.OnlyLatest != nil {
+
+		// query param only_latest
+		var qrOnlyLatest bool
+
+		if o.OnlyLatest != nil {
+			qrOnlyLatest = *o.OnlyLatest
+		}
+		qOnlyLatest := swag.FormatBool(qrOnlyLatest)
+		if qOnlyLatest != "" {
+
+			if err := r.SetQueryParam("only_latest", qOnlyLatest); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.VersionPattern != nil {
+
+		// query param version_pattern
+		var qrVersionPattern string
+
+		if o.VersionPattern != nil {
+			qrVersionPattern = *o.VersionPattern
+		}
+		qVersionPattern := qrVersionPattern
+		if qVersionPattern != "" {
+
+			if err := r.SetQueryParam("version_pattern", qVersionPattern); err != nil {
+				return err
+			}
+		}
+	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

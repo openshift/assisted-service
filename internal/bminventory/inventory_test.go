@@ -4127,7 +4127,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting Bare-Metal platform is not allowed for clusters with non-x86_64 CPU architecture")
+					verifyApiErrorString(reply, http.StatusBadRequest, "cannot use Cluster Managed Networking because it's not compatible with the arm64 architecture on version 4.10 of OpenShift")
 				})
 
 				It("Success with non-x86_64 CPU architecture in case override is supported - 4.11", func() {
@@ -14117,7 +14117,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		verifyApiError(reply, http.StatusBadRequest)
 	})
 
-	It("Fail openshift version support level is maintenance", func() {
+	It("Fail openshift version support level is end of life", func() {
 		clusterParams := getDefaultClusterCreateParams()
 		openShiftVersionWithMaintenanceSupportLevel := "4.7.0"
 		clusterParams.OpenshiftVersion = swag.String(openShiftVersionWithMaintenanceSupportLevel)
@@ -14126,7 +14126,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			OpenshiftVersion: &openShiftVersionWithMaintenanceSupportLevel,
 			URL:              common.TestDefaultConfig.ReleaseImage.URL,
 			Version:          &openShiftVersionWithMaintenanceSupportLevel,
-			SupportLevel:     models.OpenshiftVersionSupportLevelMaintenance,
+			SupportLevel:     models.OpenshiftVersionSupportLevelEndOfLife,
 		}
 		mockVersions.EXPECT().GetReleaseImage(ctx, *releaseImage.OpenshiftVersion, *releaseImage.CPUArchitecture, *clusterParams.PullSecret).Return(releaseImage, nil).Times(1)
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{

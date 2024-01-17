@@ -5663,11 +5663,70 @@ func init() {
           "versions"
         ],
         "operationId": "v2ListSupportedOpenshiftVersions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Version pattern for the returned releases. E.g. '4.12'.",
+            "name": "version_pattern",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, returns only the latest version for each minor.",
+            "name": "only_latest",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/release-sources": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves openshift release sources configuration.",
+        "tags": [
+          "configuration"
+        ],
+        "operationId": "v2ListReleaseSources",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/release-sources"
             }
           },
           "400": {
@@ -9472,7 +9531,8 @@ func init() {
           "enum": [
             "beta",
             "production",
-            "maintenance"
+            "maintenance",
+            "end of life"
           ]
         }
       }
@@ -9798,7 +9858,8 @@ func init() {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "x-go-custom-tag": "gorm:\"type:text[]\""
         },
         "default": {
           "description": "Indication that the version is the recommended one.",
@@ -9814,12 +9875,14 @@ func init() {
           "enum": [
             "beta",
             "production",
-            "maintenance"
+            "maintenance",
+            "end of life"
           ]
         },
         "url": {
           "description": "The installation image of the OpenShift cluster.",
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"primarykey\""
         },
         "version": {
           "description": "OCP version from the release metadata.",
@@ -9831,6 +9894,31 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/release-image"
+      }
+    },
+    "release-source": {
+      "type": "object",
+      "required": [
+        "openshift_version",
+        "upgrade_channels"
+      ],
+      "properties": {
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
+        "upgrade_channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/upgrade-channel"
+          }
+        }
+      }
+    },
+    "release-sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/release-source"
       }
     },
     "route": {
@@ -10113,6 +10201,40 @@ func init() {
             "openshift"
           ],
           "x-nullable": true
+        }
+      }
+    },
+    "upgrade-channel": {
+      "type": "object",
+      "required": [
+        "cpu_architecture",
+        "channels"
+      ],
+      "properties": {
+        "channels": {
+          "type": "array",
+          "items": {
+            "description": "Release channel.",
+            "type": "string",
+            "enum": [
+              "stable",
+              "candidate"
+            ]
+          }
+        },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image.",
+          "type": "string",
+          "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
+          "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         }
       }
     },
@@ -10474,6 +10596,10 @@ func init() {
     {
       "description": "Agent-driven installation",
       "name": "Assisted installation"
+    },
+    {
+      "description": "Information about configuration.",
+      "name": "configuration"
     },
     {
       "description": "Events related to a cluster installation.",
@@ -16152,11 +16278,70 @@ func init() {
           "versions"
         ],
         "operationId": "v2ListSupportedOpenshiftVersions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Version pattern for the returned releases. E.g. '4.12'.",
+            "name": "version_pattern",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, returns only the latest version for each minor.",
+            "name": "only_latest",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/release-sources": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves openshift release sources configuration.",
+        "tags": [
+          "configuration"
+        ],
+        "operationId": "v2ListReleaseSources",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/release-sources"
             }
           },
           "400": {
@@ -20037,7 +20222,8 @@ func init() {
           "enum": [
             "beta",
             "production",
-            "maintenance"
+            "maintenance",
+            "end of life"
           ]
         }
       }
@@ -20363,7 +20549,8 @@ func init() {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "x-go-custom-tag": "gorm:\"type:text[]\""
         },
         "default": {
           "description": "Indication that the version is the recommended one.",
@@ -20379,12 +20566,14 @@ func init() {
           "enum": [
             "beta",
             "production",
-            "maintenance"
+            "maintenance",
+            "end of life"
           ]
         },
         "url": {
           "description": "The installation image of the OpenShift cluster.",
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"primarykey\""
         },
         "version": {
           "description": "OCP version from the release metadata.",
@@ -20396,6 +20585,31 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/release-image"
+      }
+    },
+    "release-source": {
+      "type": "object",
+      "required": [
+        "openshift_version",
+        "upgrade_channels"
+      ],
+      "properties": {
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
+        "upgrade_channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/upgrade-channel"
+          }
+        }
+      }
+    },
+    "release-sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/release-source"
       }
     },
     "route": {
@@ -20652,6 +20866,40 @@ func init() {
             "openshift"
           ],
           "x-nullable": true
+        }
+      }
+    },
+    "upgrade-channel": {
+      "type": "object",
+      "required": [
+        "cpu_architecture",
+        "channels"
+      ],
+      "properties": {
+        "channels": {
+          "type": "array",
+          "items": {
+            "description": "Release channel.",
+            "type": "string",
+            "enum": [
+              "stable",
+              "candidate"
+            ]
+          }
+        },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image.",
+          "type": "string",
+          "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
+          "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         }
       }
     },
@@ -21013,6 +21261,10 @@ func init() {
     {
       "description": "Agent-driven installation",
       "name": "Assisted installation"
+    },
+    {
+      "description": "Information about configuration.",
+      "name": "configuration"
     },
     {
       "description": "Events related to a cluster installation.",

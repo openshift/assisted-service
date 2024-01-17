@@ -37,6 +37,8 @@ function validate_swagger_file() {
 function generate_configuration() {
     OS_IMAGES=$(< ${__root}/data/default_os_images.json tr -d "\n\t ")
     RELEASE_IMAGES=$(< ${__root}/data/default_release_images.json tr -d "\n\t ")
+    RELEASE_SOURCES=$(< ${__root}/data/default_release_sources.json tr -d "\n\t ")
+    IGNORED_RELEASE_IMAGES=$(< ${__root}/data/default_ignored_release_images.json tr -d "\n\t ")
     OKD_OS_IMAGES=$(< ${__root}/data/default_okd_os_images.json tr -d "\n\t ")
     OKD_RELEASE_IMAGES=$(< ${__root}/data/default_okd_release_images.json tr -d "\n\t ")
     MUST_GATHER_IMAGES=$(< ${__root}/data/default_must_gather_versions.json tr -d "\n\t ")
@@ -52,6 +54,9 @@ function generate_configuration() {
 
     sed -i "s|OS_IMAGES:.*|OS_IMAGES: '${OS_IMAGES}'|" ${__root}/deploy/podman/configmap.yml
     sed -i "s|RELEASE_IMAGES:.*|RELEASE_IMAGES: '${RELEASE_IMAGES}'|" ${__root}/deploy/podman/configmap.yml
+    sed -i "s|RELEASE_SOURCES:.*|RELEASE_SOURCES: '${RELEASE_SOURCES}'|" ${__root}/deploy/podman/configmap.yml
+    sed -i "s|IGNORED_RELEASE_IMAGES:.*|IGNORED_RELEASE_IMAGES: '${IGNORED_RELEASE_IMAGES}'|" ${__root}/deploy/podman/configmap.yml
+
     sed -i "s|OS_IMAGES:.*|OS_IMAGES: '${OKD_OS_IMAGES}'|" ${__root}/deploy/podman/okd-configmap.yml
     sed -i "s|RELEASE_IMAGES:.*|RELEASE_IMAGES: '${OKD_RELEASE_IMAGES}'|" ${__root}/deploy/podman/okd-configmap.yml
     sed -i "s|PUBLIC_CONTAINER_REGISTRIES:.*|PUBLIC_CONTAINER_REGISTRIES: '${PUBLIC_CONTAINER_REGISTRIES}'|" ${__root}/deploy/podman/{okd-,}configmap.yml

@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
@@ -216,15 +215,8 @@ func getUpdateParamsForPlatformUMNMandatory(platform *models.Platform, userManag
 		}
 	}
 
-	if !swag.BoolValue(userManagedNetworking) {
-		if platform == nil || isPlatformBM(platform) {
-			if cluster.CPUArchitecture != common.X86CPUArchitecture &&
-				!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
-				return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting Bare-Metal platform is not allowed for clusters with non-x86_64 CPU architecture"))
-			}
-
-			return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
-		}
+	if !swag.BoolValue(userManagedNetworking) && (platform == nil || isPlatformBM(platform)) {
+		return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
 	}
 
 	return platform, userManagedNetworking, nil

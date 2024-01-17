@@ -19,6 +19,15 @@ parameters:
 - name: RELEASE_IMAGES
   value: '[{"openshift_version":"4.9","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"quay.io/openshift-release-dev/ocp-release:4.9.59-x86_64","version":"4.9.59"},{"openshift_version":"4.10","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"quay.io/openshift-release-dev/ocp-release:4.10.67-x86_64","version":"4.10.67"},{"openshift_version":"4.10","cpu_architecture":"arm64","cpu_architectures":["arm64"],"url":"quay.io/openshift-release-dev/ocp-release:4.10.67-aarch64","version":"4.10.67"},{"openshift_version":"4.11","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"quay.io/openshift-release-dev/ocp-release:4.11.56-x86_64","version":"4.11.56"},{"openshift_version":"4.11","cpu_architecture":"arm64","cpu_architectures":["arm64"],"url":"quay.io/openshift-release-dev/ocp-release:4.11.56-aarch64","version":"4.11.56"},{"openshift_version":"4.11.0-multi","cpu_architecture":"multi","cpu_architectures":["x86_64","arm64","ppc64le","s390x"],"url":"quay.io/openshift-release-dev/ocp-release:4.11.0-multi","version":"4.11.0-multi"},{"openshift_version":"4.12","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"quay.io/openshift-release-dev/ocp-release:4.12.46-x86_64","version":"4.12.46"},{"openshift_version":"4.12","cpu_architecture":"arm64","cpu_architectures":["arm64"],"url":"quay.io/openshift-release-dev/ocp-release:4.12.46-aarch64","version":"4.12.46"},{"openshift_version":"4.12-multi","cpu_architecture":"multi","cpu_architectures":["x86_64","arm64","ppc64le","s390x"],"url":"quay.io/openshift-release-dev/ocp-release:4.12.46-multi","version":"4.12.46-multi"},{"openshift_version":"4.13","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"quay.io/openshift-release-dev/ocp-release:4.13.28-x86_64","version":"4.13.28"},{"openshift_version":"4.13","cpu_architecture":"arm64","cpu_architectures":["arm64"],"url":"quay.io/openshift-release-dev/ocp-release:4.13.28-aarch64","version":"4.13.28"},{"openshift_version":"4.13-multi","cpu_architecture":"multi","cpu_architectures":["x86_64","arm64","ppc64le","s390x"],"url":"quay.io/openshift-release-dev/ocp-release:4.13.28-multi","version":"4.13.28-multi"},{"openshift_version":"4.14","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"quay.io/openshift-release-dev/ocp-release:4.14.8-x86_64","version":"4.14.8","default":true},{"openshift_version":"4.14","cpu_architecture":"arm64","cpu_architectures":["arm64"],"url":"quay.io/openshift-release-dev/ocp-release:4.14.8-aarch64","version":"4.14.8"},{"openshift_version":"4.14-multi","cpu_architecture":"multi","cpu_architectures":["x86_64","arm64","ppc64le","s390x"],"url":"quay.io/openshift-release-dev/ocp-release:4.14.8-multi","version":"4.14.8-multi"},{"openshift_version":"4.15","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"quay.io/openshift-release-dev/ocp-release:4.15.0-rc.2-x86_64","support_level":"beta","version":"4.15.0-rc.2"},{"openshift_version":"4.15","cpu_architecture":"arm64","cpu_architectures":["arm64"],"url":"quay.io/openshift-release-dev/ocp-release:4.15.0-rc.2-aarch64","support_level":"beta","version":"4.15.0-rc.2"},{"openshift_version":"4.15-multi","cpu_architecture":"multi","cpu_architectures":["x86_64","arm64","ppc64le","s390x"],"url":"quay.io/openshift-release-dev/ocp-release:4.15.0-rc.2-multi","support_level":"beta","version":"4.15.0-rc.2-multi"}]' # release images
   required: false
+- name: RELEASE_SOURCES
+  value: '[{"openshift_version":"4.11","upgrade_channels":[{"cpu_architecture":"x86_64","channels":["stable"]},{"cpu_architecture":"arm64","channels":["stable"]},{"cpu_architecture":"ppc64le","channels":["stable"]},{"cpu_architecture":"s390x","channels":["stable"]},{"cpu_architecture":"multi","channels":["stable"]}]},{"openshift_version":"4.12","upgrade_channels":[{"cpu_architecture":"x86_64","channels":["stable"]},{"cpu_architecture":"arm64","channels":["stable"]},{"cpu_architecture":"ppc64le","channels":["stable"]},{"cpu_architecture":"s390x","channels":["stable"]},{"cpu_architecture":"multi","channels":["stable"]}]},{"openshift_version":"4.13","upgrade_channels":[{"cpu_architecture":"x86_64","channels":["stable"]},{"cpu_architecture":"arm64","channels":["stable"]},{"cpu_architecture":"ppc64le","channels":["stable"]},{"cpu_architecture":"s390x","channels":["stable"]},{"cpu_architecture":"multi","channels":["stable"]}]},{"openshift_version":"4.14","upgrade_channels":[{"cpu_architecture":"x86_64","channels":["stable","candidate"]},{"cpu_architecture":"arm64","channels":["stable","candidate"]},{"cpu_architecture":"ppc64le","channels":["stable","candidate"]},{"cpu_architecture":"s390x","channels":["stable","candidate"]},{"cpu_architecture":"multi","channels":["stable","candidate"]}]},{"openshift_version":"4.15","upgrade_channels":[{"cpu_architecture":"x86_64","channels":["stable","candidate"]},{"cpu_architecture":"arm64","channels":["stable","candidate"]},{"cpu_architecture":"ppc64le","channels":["stable","candidate"]},{"cpu_architecture":"s390x","channels":["stable","candidate"]},{"cpu_architecture":"multi","channels":["stable","candidate"]}]}]'
+  required: false
+- name: OPENSHIFT_RELEASE_SYNCER_INTERVAL
+  value: "30m"
+  required: false
+- name: IGNORED_RELEASE_IMAGES
+  value: "[]"
+  required: false
 - name: MUST_GATHER_IMAGES
   value: '{"4.8-x86_64":{"cnv":"registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5","ocs":"registry.redhat.io/ocs4/ocs-must-gather-rhel8:v4.8","lso":"registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.8"},"4.9-x86_64":{"cnv":"registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v4.9.3","ocs":"registry.redhat.io/odf4/ocs-must-gather-rhel8:v4.9","lso":"registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.9"},"4.10-x86_64":{"cnv":"registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v4.10.0","ocs":"registry.redhat.io/odf4/ocs-must-gather-rhel8:v4.10","lso":"registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.10"},"4.10-arm64":{"ocs":"registry.redhat.io/odf4/ocs-must-gather-rhel8:v4.10","lso":"registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.10"}}' # must-gather images
   required: false
@@ -202,6 +211,12 @@ parameters:
   value: "false"
 - name: ENVOY_CONFIGMAP_NAME
   value: assisted-service-envoy-config
+- name: OPENSHIFT_MAJOR_VERSION
+  value: "4"
+- name: OPENSHIFT_RELEASE_API_BASE_URL
+  value: "https://api.openshift.com/api/upgrades_info/v1/graph"
+- name: OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL
+  value: "https://access.redhat.com/product-life-cycles/api/v1/products"
 apiVersion: v1
 kind: Template
 metadata:
@@ -379,6 +394,10 @@ objects:
                 value: ${OS_IMAGES}
               - name: RELEASE_IMAGES
                 value: ${RELEASE_IMAGES}
+              - name: RELEASE_SOURCES
+                value: ${RELEASE_SOURCES}
+              - name: OPENSHIFT_RELEASE_SYNCER_INTERVAL
+                value: ${OPENSHIFT_RELEASE_SYNCER_INTERVAL}
               - name: MUST_GATHER_IMAGES
                 value: ${MUST_GATHER_IMAGES}
               - name: AUTH_TYPE
@@ -461,6 +480,14 @@ objects:
                 value: ${INSTALLER_CACHE_CAPACITY}
               - name: ENABLE_OKD_SUPPORT
                 value: ${ENABLE_OKD_SUPPORT}
+              - name: OPENSHIFT_MAJOR_VERSION
+                value: ${OPENSHIFT_MAJOR_VERSION}
+              - name: OPENSHIFT_RELEASE_API_BASE_URL
+                value: ${OPENSHIFT_RELEASE_API_BASE_URL}
+              - name: OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL
+                value: ${OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL}
+              - name: IGNORED_RELEASE_IMAGES
+                value: ${IGNORED_RELEASE_IMAGES}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"

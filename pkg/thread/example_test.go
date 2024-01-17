@@ -24,7 +24,7 @@ func useThread() {
 	}
 	m := thread.New(log, "health-monitor", time.Millisecond*100, threadFunction)
 
-	m.Start()
+	m.Start(false)
 	defer m.Stop()
 	time.Sleep(time.Second * 1)
 }

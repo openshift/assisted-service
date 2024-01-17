@@ -15,6 +15,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -22,7 +23,7 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestHandler_ListComponentVersions(t *testing.T) {
+func TestHandlerVersions(t *testing.T) {
 	RegisterFailHandler(Fail)
 	common.InitializeDBTest()
 	defer common.TerminateDBTest()
@@ -83,191 +84,699 @@ var defaultReleaseImages = models.ReleaseImages{
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture},
 		OpenshiftVersion: swag.String("4.12"),
-		URL:              swag.String("release_4.12.999-x86_64"),
+		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.999-rc.4-x86_64"),
 		Version:          swag.String("4.12.999-rc.4"),
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
 		OpenshiftVersion: swag.String("4.12-multi"),
-		URL:              swag.String("release_4.12.999-multi"),
-		Version:          swag.String("4.12.999-rc.4"),
+		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.999-rc.4-multi"),
+		Version:          swag.String("4.12.999-rc.4-multi"),
 	},
 	&models.ReleaseImage{
 		// This image uses a syntax with missing "cpu_architectures". It is crafted
 		// in order to make sure the change in MGMT-11494 is backwards-compatible.
-		CPUArchitecture:  swag.String("fake-architecture-chocobomb"),
+		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 		CPUArchitectures: []string{},
 		OpenshiftVersion: swag.String("4.11.2"),
-		URL:              swag.String("release_4.11.2"),
-		Version:          swag.String("4.11.2-fake-chocobomb"),
+		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.2-x86_64"),
+		Version:          swag.String("4.11.2"),
+		SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
-		OpenshiftVersion: swag.String("4.11.1"),
-		URL:              swag.String("release_4.11.1"),
+		OpenshiftVersion: swag.String("4.11.1-multi"),
+		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-multi"),
 		Version:          swag.String("4.11.1-multi"),
+		SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture},
 		OpenshiftVersion: swag.String("4.10.1"),
-		URL:              swag.String("release_4.10.1"),
-		Version:          swag.String("4.10.1-candidate"),
+		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.10.1-x86_64"),
+		Version:          swag.String("4.10.1"),
+		SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture},
 		OpenshiftVersion: swag.String("4.10.2"),
-		URL:              swag.String("release_4.10.2"),
-		Version:          swag.String("4.10.1-candidate"),
+		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.10.2-x86_64"),
+		Version:          swag.String("4.10.2"),
+		SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture},
 		OpenshiftVersion: swag.String("4.9"),
-		URL:              swag.String("release_4.9"),
-		Version:          swag.String("4.9-candidate"),
+		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.9.0-x86_64"),
+		Version:          swag.String("4.9.3"),
+		SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 		Default:          true,
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
 		CPUArchitectures: []string{common.ARM64CPUArchitecture},
 		OpenshiftVersion: swag.String("4.9"),
-		URL:              swag.String("release_4.9_arm64"),
-		Version:          swag.String("4.9-candidate_arm64"),
+		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.9.0-aarch64"),
+		Version:          swag.String("4.9.2"),
+		SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture},
 		OpenshiftVersion: swag.String("4.9.1"),
-		URL:              swag.String("release_4.9.1"),
-		Version:          swag.String("4.9.1-candidate"),
+		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.9.1-x86_64"),
+		Version:          swag.String("4.9.1"),
+		SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture},
 		OpenshiftVersion: swag.String("4.8"),
-		URL:              swag.String("release_4.8"),
-		Version:          swag.String("4.8-candidate"),
+		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.8.0-x86_64"),
+		Version:          swag.String("4.8.1"),
+		SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 	},
+}
+
+func createSupportLevelTable(db *gorm.DB) error {
+	supportLevels := []common.OpenshiftVersionSupportLevel{
+		{
+			OpenshiftVersion: "4.15",
+			SupportLevel:     "beta",
+		},
+		{
+			OpenshiftVersion: "4.14",
+			SupportLevel:     "production",
+		},
+		{
+			OpenshiftVersion: "4.13",
+			SupportLevel:     "production",
+		},
+		{
+			OpenshiftVersion: "4.12",
+			SupportLevel:     "maintenance",
+		},
+		{
+			OpenshiftVersion: "4.11",
+			SupportLevel:     "maintenance",
+		},
+		{
+			OpenshiftVersion: "4.10",
+			SupportLevel:     "end of life",
+		},
+		{
+			OpenshiftVersion: "4.9",
+			SupportLevel:     "end of life",
+		},
+		{
+			OpenshiftVersion: "4.8",
+			SupportLevel:     "end of life",
+		},
+		{
+			OpenshiftVersion: "4.7",
+			SupportLevel:     "end of life",
+		},
+		{
+			OpenshiftVersion: "4.6",
+			SupportLevel:     "end of life",
+		},
+		{
+			OpenshiftVersion: "4.5",
+			SupportLevel:     "end of life",
+		},
+		{
+			OpenshiftVersion: "4.4",
+			SupportLevel:     "end of life",
+		},
+		{
+			OpenshiftVersion: "4.3",
+			SupportLevel:     "end of life",
+		},
+		{
+			OpenshiftVersion: "4.2",
+			SupportLevel:     "end of life",
+		},
+		{
+			OpenshiftVersion: "4.1",
+			SupportLevel:     "end of life",
+		},
+	}
+
+	return db.Create(&supportLevels).Error
 }
 
 var _ = Describe("GetReleaseImage", func() {
 	var (
 		h           *handler
-		osImages    OSImages
 		ctx         = context.Background()
 		pullSecret  = "mypullsecret"
 		ctrl        *gomock.Controller
 		mockRelease *oc.MockRelease
+		db          *gorm.DB
+		dbName      string
 	)
 
 	BeforeEach(func() {
 		var err error
-		osImages, err = NewOSImages(defaultOsImages)
+		db, dbName = common.PrepareTestDB()
 		Expect(err).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
-		h, err = NewHandler(common.GetTestLog(), mockRelease, defaultReleaseImages, nil, "", nil)
+		h, err = NewHandler(NewVersionHandlerParams{
+			Log:            common.GetTestLog(),
+			ReleaseHandler: mockRelease,
+			ReleaseImages:  defaultReleaseImages,
+			DB:             db,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		err = createSupportLevelTable(db)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
-	It("unsupported openshiftVersion", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, "unsupported", common.TestDefaultConfig.CPUArchitecture, pullSecret)
-		Expect(err).Should(HaveOccurred())
-		Expect(releaseImage).Should(BeNil())
+	Context("Without db releases", func() {
+		It("unsupported openshiftVersion", func() {
+			releaseImage, err := h.GetReleaseImage(ctx, "unsupported", common.TestDefaultConfig.CPUArchitecture, pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(releaseImage).Should(BeNil())
+		})
+
+		It("unsupported cpuArchitecture", func() {
+			releaseImage, err := h.GetReleaseImage(ctx, common.TestDefaultConfig.OpenShiftVersion, "unsupported", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(releaseImage).Should(BeNil())
+			Expect(err.Error()).To(ContainSubstring("is not a valid release image CPU architecture"))
+		})
+
+		It("empty openshiftVersion", func() {
+			releaseImage, err := h.GetReleaseImage(ctx, "", common.TestDefaultConfig.CPUArchitecture, pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(releaseImage).Should(BeNil())
+		})
+
+		It("empty cpuArchitecture", func() {
+			releaseImage, err := h.GetReleaseImage(ctx, common.TestDefaultConfig.OpenShiftVersion, "", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(releaseImage).Should(BeNil())
+		})
+
+		It("fetch release image by major.minor", func() {
+			releaseImage, err := h.GetReleaseImage(ctx, "4.9", common.DefaultCPUArchitecture, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.9"))
+			Expect(*releaseImage.Version).Should(Equal("4.9.3"))
+		})
+
+		It("gets successfuly image with old syntax", func() {
+			releaseImage, err := h.GetReleaseImage(ctx, "4.11.2", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.2"))
+			Expect(*releaseImage.Version).Should(Equal("4.11.2"))
+		})
+
+		It("gets successfuly image with new syntax", func() {
+			releaseImage, err := h.GetReleaseImage(ctx, "4.10.1", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.10.1"))
+			Expect(*releaseImage.Version).Should(Equal("4.10.1"))
+		})
 	})
 
-	It("unsupported cpuArchitecture", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, common.TestDefaultConfig.OpenShiftVersion, "unsupported", pullSecret)
-		Expect(err).Should(HaveOccurred())
-		Expect(releaseImage).Should(BeNil())
-		Expect(err.Error()).To(ContainSubstring("isn't specified in release images list"))
-	})
-
-	It("empty openshiftVersion", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, "", common.TestDefaultConfig.CPUArchitecture, pullSecret)
-		Expect(err).Should(HaveOccurred())
-		Expect(releaseImage).Should(BeNil())
-	})
-
-	It("empty cpuArchitecture", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, common.TestDefaultConfig.OpenShiftVersion, "", pullSecret)
-		Expect(err).Should(HaveOccurred())
-		Expect(releaseImage).Should(BeNil())
-	})
-
-	It("fetch release image by major.minor", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, "4.9", common.DefaultCPUArchitecture, pullSecret)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.9"))
-		Expect(*releaseImage.Version).Should(Equal("4.9-candidate"))
-	})
-
-	It("get from ReleaseImages", func() {
-		for _, key := range osImages.GetOpenshiftVersions() {
-			for _, architecture := range osImages.GetCPUArchitectures(key) {
-				releaseImage, err := h.GetReleaseImage(ctx, key, architecture, pullSecret)
-				if err != nil {
-					releaseImage, err = h.GetReleaseImage(ctx, key, common.MultiCPUArchitecture, pullSecret)
-					Expect(err).ShouldNot(HaveOccurred())
-				}
-
-				for _, release := range defaultReleaseImages {
-					if *release.OpenshiftVersion == key && *release.CPUArchitecture == architecture {
-						Expect(releaseImage).Should(Equal(release))
-					}
-				}
-			}
+	Context("With DB releases", func() {
+		dbReleases := []*common.ReleaseImage{
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.9.12"),
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.9.12", common.X86CPUArchitecture)),
+				},
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.9.13"),
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.9.13", common.X86CPUArchitecture)),
+				},
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.6.11"),
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.6.11", common.X86CPUArchitecture)),
+				},
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.6.12"),
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.6.12", common.X86CPUArchitecture)),
+				},
+			},
 		}
+
+		It("Get release image from DB when it is not in the configuration", func() {
+			err := db.Create(&dbReleases).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			release, err := h.GetReleaseImage(ctx, "4.9.12", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*release.Version).To(Equal("4.9.12"))
+		})
+
+		It("Can't get release image from DB as well as the configuration with wildcards", func() {
+			err := db.Create(&dbReleases).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			err = db.Create(
+				&common.ReleaseImage{
+
+					ReleaseImage: models.ReleaseImage{
+						Version:         swag.String("4.6.10-%"),
+						CPUArchitecture: swag.String(common.X86CPUArchitecture),
+						URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.16.10-%", common.X86CPUArchitecture)),
+					},
+				},
+			).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			release, err := h.GetReleaseImage(ctx, "%", common.X86CPUArchitecture, pullSecret)
+			Expect(release).To(BeNil())
+			Expect(err).Should(HaveOccurred())
+
+			release, err = h.GetReleaseImage(ctx, "_", common.X86CPUArchitecture, pullSecret)
+			Expect(release).To(BeNil())
+			Expect(err).Should(HaveOccurred())
+
+			release, err = h.GetReleaseImage(ctx, "/", common.X86CPUArchitecture, pullSecret)
+			Expect(release).To(BeNil())
+			Expect(err).Should(HaveOccurred())
+		})
+
+		It("Can't get release image from neither DB nor configuration, should get the latest major.minor from configuration", func() {
+			err := db.Create(&dbReleases).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			release, err := h.GetReleaseImage(ctx, "4.9.17", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*release.Version).To(Equal("4.9.3"))
+		})
+
+		It("Can't get release image from neither DB nor configuration, should get the latest major.minor from DB", func() {
+			err := db.Create(&dbReleases).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			release, err := h.GetReleaseImage(ctx, "4.6.7", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*release.Version).To(Equal("4.6.12"))
+		})
+
+		It("Can't get release image from neither DB nor configuration, should not find a release and return an error", func() {
+			err := db.Create(&dbReleases).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			release, err := h.GetReleaseImage(ctx, "4.7.2", common.X86CPUArchitecture, pullSecret)
+			Expect(release).To(BeNil())
+			Expect(err).Should(HaveOccurred())
+		})
 	})
 
-	It("gets successfuly image with old syntax", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, "4.11.2", "fake-architecture-chocobomb", pullSecret)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.2"))
-		Expect(*releaseImage.Version).Should(Equal("4.11.2-fake-chocobomb"))
-	})
+	Context("with both configuration and DB releases, different scenarios", func() {
+		configurationReleaseImages := models.ReleaseImages{
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.14-multi"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.2-multi"),
+				Version:          swag.String("4.14.2-multi"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.14"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.2-x86_64"),
+				Version:          swag.String("4.14.2"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.14.1-multi"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.1-multi"),
+				Version:          swag.String("4.14.1-multi"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.14.1"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.1-x86_64"),
+				Version:          swag.String("4.14.1"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.13-multi"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.2-multi"),
+				Version:          swag.String("4.13.2-multi"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.13"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.2-x86_64"),
+				Version:          swag.String("4.13.2"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.13.1-multi"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.1-multi"),
+				Version:          swag.String("4.13.1-multi"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.13.1"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.1-x86_64"),
+				Version:          swag.String("4.13.1"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12-multi"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.2-multi"),
+				Version:          swag.String("4.12.2-multi"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.2-x86_64"),
+				Version:          swag.String("4.12.2"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12.1-multi"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.1-multi"),
+				Version:          swag.String("4.12.1-multi"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12.1"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.1-x86_64"),
+				Version:          swag.String("4.12.1"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			},
+		}
 
-	It("gets successfuly image with new syntax", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, "4.10.1", common.X86CPUArchitecture, pullSecret)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.10.1"))
-		Expect(*releaseImage.Version).Should(Equal("4.10.1-candidate"))
-	})
+		dbReleaseImages := []*common.ReleaseImage{
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.15.3"),
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					Default:         false,
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.15.3", common.X86CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.15.3"),
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					Default:         false,
+					CPUArchitecture: swag.String(common.ARM64CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.15.3", common.ARM64CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.15.3"),
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					Default:         false,
+					CPUArchitecture: swag.String(common.MultiCPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.15.3", common.MultiCPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.15.4"),
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					Default:         false,
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.15.4", common.X86CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.15.4"),
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					Default:         false,
+					CPUArchitecture: swag.String(common.ARM64CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.15.4", common.ARM64CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.15.4"),
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					Default:         false,
+					CPUArchitecture: swag.String(common.MultiCPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.15.4", common.MultiCPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.15.5"),
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					Default:         false,
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.15.5", common.X86CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.15.5"),
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					Default:         false,
+					CPUArchitecture: swag.String(common.ARM64CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.15.5", common.ARM64CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.15.6"),
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					Default:         false,
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.15.6", common.X86CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.15.6"),
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					Default:         false,
+					CPUArchitecture: swag.String(common.ARM64CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.15.6", common.ARM64CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+		}
 
-	It("gets successfuly image using generic multiarch query", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, "4.11.1", common.MultiCPUArchitecture, pullSecret)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
-		Expect(*releaseImage.Version).Should(Equal("4.11.1-multi"))
-	})
+		BeforeEach(func() {
+			err := db.Create(&dbReleaseImages).Error
+			Expect(err).ToNot(HaveOccurred())
+			h.releaseImages = configurationReleaseImages
+		})
 
-	It("gets successfuly image using sub-architecture", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, "4.11.1", common.PowerCPUArchitecture, pullSecret)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
-		Expect(*releaseImage.Version).Should(Equal("4.11.1-multi"))
-	})
+		Context("REST API mode", func() {
+			Context("With full openshift version", func() {
+				Context("Should find the release in the configuration", func() {
+					It("By OpenshiftVersion", func() {
+						release, err := h.GetReleaseImage(ctx, "4.14.2", common.X86CPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.14.2"))
+					})
 
-	It("gets successfuly multi-arch image for multiple images with the same version", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, "4.12.999-rc.4", common.MultiCPUArchitecture, pullSecret)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.12-multi"))
-		Expect(*releaseImage.Version).Should(Equal("4.12.999-rc.4"))
-	})
+					It("By Version", func() {
+						release, err := h.GetReleaseImage(ctx, "4.14.1", common.X86CPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.14.1"))
+					})
 
-	It("gets successfuly single-arch image for multiple images with the same version", func() {
-		releaseImage, err := h.GetReleaseImage(ctx, "4.12.999-rc.4", common.X86CPUArchitecture, pullSecret)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.12"))
-		Expect(*releaseImage.Version).Should(Equal("4.12.999-rc.4"))
+					It("By OpenshiftVersion - multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.14.2-multi", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.14.2-multi"))
+					})
+
+					It("By Version - multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.14.1-multi", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.14.1-multi"))
+					})
+				})
+
+				Context("Should Find the release in the DB", func() {
+					It("Single arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.15.3", common.X86CPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.15.3"))
+					})
+
+					It("Multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.15.3", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.15.3"))
+					})
+				})
+
+				Context("Should fallback to latest major.minor from configuration", func() {
+					It("Single arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.14.0", common.X86CPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.14.2"))
+					})
+
+					It("Multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.14.0", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.14.2-multi"))
+					})
+				})
+
+				Context("Should fallback to latest major.minor from DB", func() {
+					It("Single arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.15.2", common.X86CPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.15.6"))
+					})
+
+					It("Multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.15.2", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.15.4"))
+					})
+				})
+
+				Context("Should fail when no release matches", func() {
+					It("Single arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.17.2", common.X86CPUArchitecture, pullSecret)
+						Expect(err).Should(HaveOccurred())
+						Expect(release).To(BeNil())
+					})
+
+					It("Multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.17.2", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).Should(HaveOccurred())
+						Expect(release).To(BeNil())
+					})
+				})
+			})
+
+			Context("With major.minor openshift version", func() {
+				Context("Should get the latest major.minor from configuration", func() {
+					It("Single arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.14", common.X86CPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.14.2"))
+					})
+
+					It("Multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.14-multi", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.14.2-multi"))
+					})
+				})
+
+				Context("Should get the latest major.minor from DB", func() {
+					It("Single arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.15", common.X86CPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.15.6"))
+					})
+
+					It("Multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.15-multi", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.15.4"))
+					})
+				})
+
+				Context("Should fail when no release matches", func() {
+					It("Single arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.17", common.X86CPUArchitecture, pullSecret)
+						Expect(err).Should(HaveOccurred())
+						Expect(release).To(BeNil())
+					})
+
+					It("Multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4.17", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).Should(HaveOccurred())
+						Expect(release).To(BeNil())
+					})
+				})
+			})
+
+			Context("With major openshift version", func() {
+				Context("Should get the latest major.minor from configuration", func() {
+					It("Single arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4", common.X86CPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.14.2"))
+					})
+
+					It("Multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "4-multi", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(*release.Version).To(Equal("4.14.2-multi"))
+					})
+				})
+
+				Context("Should fail when no release matches", func() {
+					It("Single arch", func() {
+						release, err := h.GetReleaseImage(ctx, "3", common.X86CPUArchitecture, pullSecret)
+						Expect(err).Should(HaveOccurred())
+						Expect(release).To(BeNil())
+					})
+
+					It("Multi arch", func() {
+						release, err := h.GetReleaseImage(ctx, "3-multi", common.MultiCPUArchitecture, pullSecret)
+						Expect(err).Should(HaveOccurred())
+						Expect(release).To(BeNil())
+					})
+				})
+			})
+		})
 	})
 
 	Context("with a kube client", func() {
@@ -287,27 +796,27 @@ var _ = Describe("GetReleaseImage", func() {
 			Expect(image).To(BeNil())
 		})
 
-		It("returns an existing image from the cache", func() {
-			image, err := h.GetReleaseImage(ctx, "4.11.1", common.X86CPUArchitecture, pullSecret)
+		It("returns an existing image from the configuration", func() {
+			image, err := h.GetReleaseImage(ctx, "4.11.1-multi", common.MultiCPUArchitecture, pullSecret)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(image.URL).To(HaveValue(Equal("release_4.11.1")))
+			Expect(image.URL).To(HaveValue(Equal("quay.io/openshift-release-dev/ocp-release:4.11.1-multi")))
 		})
 
-		It("adds a release to the cache from a clusterimageset when no image in the cache matches", func() {
-			releaseImageURL := "example.com/openshift-release-dev/ocp-release:4.11.999"
+		It("adds a release to the configuration from a clusterimageset when no image in the configuration matches", func() {
+			releaseImageURL := "example.com/openshift-release-dev/ocp-release:4.13.999"
 			cis := &hivev1.ClusterImageSet{
 				ObjectMeta: metav1.ObjectMeta{Name: "new-release"},
 				Spec:       hivev1.ClusterImageSetSpec{ReleaseImage: releaseImageURL},
 			}
 			Expect(client.Create(ctx, cis)).To(Succeed())
 
-			mockRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), releaseImageURL, "", pullSecret).Return("4.11.999", nil).Times(1)
+			mockRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), releaseImageURL, "", pullSecret).Return("4.13.999", nil).Times(1)
 			mockRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), releaseImageURL, "", pullSecret).Return([]string{common.X86CPUArchitecture}, nil).Times(1)
 
-			image, err := h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+			image, err := h.GetReleaseImage(ctx, "4.13.999", common.X86CPUArchitecture, pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
-			image, err = h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+			image, err = h.GetReleaseImage(ctx, "4.13.999", common.X86CPUArchitecture, pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
 		})
@@ -320,17 +829,17 @@ var _ = Describe("GetReleaseImage", func() {
 				}
 				Expect(client.Create(ctx, cis)).To(Succeed())
 			}
-			releaseImageURL := "example.com/openshift-release-dev/ocp-release:4.11.999"
+			releaseImageURL := "example.com/openshift-release-dev/ocp-release:4.13.999"
 			cis := &hivev1.ClusterImageSet{
 				ObjectMeta: metav1.ObjectMeta{Name: "new-release"},
 				Spec:       hivev1.ClusterImageSetSpec{ReleaseImage: releaseImageURL},
 			}
 			Expect(client.Create(ctx, cis)).To(Succeed())
 
-			mockRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), releaseImageURL, "", pullSecret).Return("4.11.999", nil).Times(1)
+			mockRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), releaseImageURL, "", pullSecret).Return("4.13.999", nil).Times(1)
 			mockRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), releaseImageURL, "", pullSecret).Return([]string{common.X86CPUArchitecture}, nil).Times(1)
 
-			image, err := h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+			image, err := h.GetReleaseImage(ctx, "4.13.999", common.X86CPUArchitecture, pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
 		})
@@ -360,7 +869,10 @@ var _ = Describe("ValidateReleaseImageForRHCOS", func() {
 			},
 		}
 		var err error
-		h, err = NewHandler(common.GetTestLog(), nil, releaseImages, nil, "", nil)
+		h, err = NewHandler(NewVersionHandlerParams{
+			Log:           common.GetTestLog(),
+			ReleaseImages: releaseImages,
+		})
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -389,25 +901,138 @@ var _ = Describe("ValidateReleaseImageForRHCOS", func() {
 	})
 })
 
-var _ = Describe("GetDefaultReleaseImage", func() {
-	It("Default release image exists", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, defaultReleaseImages, nil, "", nil)
+var _ = Describe("GetDefaultReleaseImageByCPUArchitecture", func() {
+
+	var (
+		db     *gorm.DB
+		dbName string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("Default release image exists in configuration but not in DB", func() {
+		h, err := NewHandler(NewVersionHandlerParams{
+			Log:           common.GetTestLog(),
+			ReleaseImages: defaultReleaseImages,
+			DB:            db,
+		})
 		Expect(err).ShouldNot(HaveOccurred())
 
-		releaseImage, err := h.GetDefaultReleaseImage(common.TestDefaultConfig.CPUArchitecture)
+		releaseImage, err := h.GetDefaultReleaseImageByCPUArchitecture(common.TestDefaultConfig.CPUArchitecture)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(releaseImage.Default).Should(Equal(true))
 		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.9"))
 		Expect(*releaseImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
 	})
 
-	It("Missing default release image", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, models.ReleaseImages{}, nil, "", nil)
+	It("Default release image exists in DB but not in configuration", func() {
+		dbReleases := []*common.ReleaseImage{
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.11.2"),
+					Default:         false,
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.11.2", common.X86CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.11.3"),
+					Default:         true,
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.11.3", common.X86CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+		}
+
+		err := db.Create(&dbReleases).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
-		_, err = h.GetDefaultReleaseImage(common.TestDefaultConfig.CPUArchitecture)
+		h, err := NewHandler(NewVersionHandlerParams{
+			Log: common.GetTestLog(),
+			DB:  db,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+
+		releaseImage, err := h.GetDefaultReleaseImageByCPUArchitecture(common.X86CPUArchitecture)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(releaseImage.Default).Should(Equal(true))
+		Expect(*releaseImage.Version).Should(Equal("4.11.3"))
+		Expect(*releaseImage.CPUArchitecture).Should(Equal(common.X86CPUArchitecture))
+	})
+
+	It("Default is missing in both configuration and DB", func() {
+		h, err := NewHandler(NewVersionHandlerParams{
+			Log: common.GetTestLog(),
+			DB:  db,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+
+		_, err = h.GetDefaultReleaseImageByCPUArchitecture(common.TestDefaultConfig.CPUArchitecture)
 		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).Should(Equal("Default release image is not available"))
+	})
+
+	It("Default is exists in both configuration and DB - configuration has precedence", func() {
+		dbReleases := []*common.ReleaseImage{
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.11.2"),
+					Default:         false,
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.11.12", common.X86CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+			{
+				ReleaseImage: models.ReleaseImage{
+					Version:         swag.String("4.11.3"),
+					Default:         true,
+					SupportLevel:    models.OpenshiftVersionSupportLevelProduction,
+					CPUArchitecture: swag.String(common.X86CPUArchitecture),
+					URL:             swag.String(common.GetURLForReleaseImageInSaaS("4.11.13", common.X86CPUArchitecture)),
+				},
+				Channel: common.OpenshiftReleaseChannelStable,
+			},
+		}
+
+		configReleases := models.ReleaseImages{
+			{
+				OpenshiftVersion: swag.String("4.12"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				Default:          true,
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+				Version:          swag.String("4.12.2"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.2-x86_64"),
+			},
+		}
+
+		err := db.Create(&dbReleases).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		h, err := NewHandler(NewVersionHandlerParams{
+			Log:           common.GetTestLog(),
+			DB:            db,
+			ReleaseImages: configReleases,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+
+		releaseImage, err := h.GetDefaultReleaseImageByCPUArchitecture(common.TestDefaultConfig.CPUArchitecture)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(releaseImage.Default).Should(Equal(true))
+		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.12"))
+		Expect(*releaseImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
 	})
 })
 
@@ -418,7 +1043,7 @@ var _ = Describe("GetMustGatherImages", func() {
 		mockRelease      *oc.MockRelease
 		cpuArchitecture  = common.TestDefaultConfig.CPUArchitecture
 		pullSecret       = "test_pull_secret"
-		ocpVersion       = "4.8.0-fc.1"
+		ocpVersion       = "4.8"
 		mirror           = "release-mirror"
 		imagesKey        = fmt.Sprintf("4.8-%s", cpuArchitecture)
 		mustgatherImages = MustGatherVersions{
@@ -428,18 +1053,31 @@ var _ = Describe("GetMustGatherImages", func() {
 				"lso": "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8",
 			},
 		}
+		db     *gorm.DB
+		dbName string
 	)
 
 	BeforeEach(func() {
 		var err error
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
-		h, err = NewHandler(common.GetTestLog(), mockRelease, defaultReleaseImages, mustgatherImages, mirror, nil)
+		db, dbName = common.PrepareTestDB()
+		h, err = NewHandler(NewVersionHandlerParams{
+			Log:                common.GetTestLog(),
+			ReleaseHandler:     mockRelease,
+			ReleaseImages:      defaultReleaseImages,
+			MustGatherVersions: mustgatherImages,
+			ReleaseImageMirror: mirror,
+			DB:                 db,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		err = createSupportLevelTable(db)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	verifyOcpVersion := func(images MustGatherVersion, size int) {
@@ -448,7 +1086,7 @@ var _ = Describe("GetMustGatherImages", func() {
 	}
 
 	It("happy flow", func() {
-		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.8", mirror, pullSecret).Return("blah", nil).Times(1)
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "quay.io/openshift-release-dev/ocp-release:4.8.0-x86_64", mirror, pullSecret).Return("blah", nil).Times(1)
 		images, err := h.GetMustGatherImages(ocpVersion, cpuArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -473,8 +1111,8 @@ var _ = Describe("GetMustGatherImages", func() {
 	})
 
 	It("properly handles separate images for multiple architectures of the same version", func() {
-		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.12.999-multi", mirror, pullSecret).Return("must-gather-multi", nil).AnyTimes()
-		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.12.999-x86_64", mirror, pullSecret).Return("must-gather-x86", nil).AnyTimes()
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "quay.io/openshift-release-dev/ocp-release:4.12.999-rc.4-multi", mirror, pullSecret).Return("must-gather-multi", nil).AnyTimes()
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "quay.io/openshift-release-dev/ocp-release:4.12.999-rc.4-x86_64", mirror, pullSecret).Return("must-gather-x86", nil).AnyTimes()
 
 		images, err := h.GetMustGatherImages("4.12", common.MultiCPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -500,23 +1138,34 @@ var _ = Describe("GetReleaseImageByURL", func() {
 		mockRelease        *oc.MockRelease
 		cpuArchitecture    = common.TestDefaultConfig.CPUArchitecture
 		pullSecret         = "test_pull_secret"
-		releaseImageUrl    = "releaseImage"
-		customOcpVersion   = "4.8.0"
+		releaseImageUrl    = "quay.io/openshift-release-dev/ocp-release:4.7.0-x86_64"
+		customOcpVersion   = "4.7.0"
 		existingOcpVersion = "4.9.1"
 		ctx                = context.Background()
+		db                 *gorm.DB
+		dbName             string
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
+		db, dbName = common.PrepareTestDB()
 
 		var err error
-		h, err = NewHandler(common.GetTestLog(), mockRelease, defaultReleaseImages, nil, "", nil)
+		h, err = NewHandler(NewVersionHandlerParams{
+			Log:            common.GetTestLog(),
+			ReleaseHandler: mockRelease,
+			ReleaseImages:  defaultReleaseImages,
+			DB:             db,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		err = createSupportLevelTable(db)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("for single-arch release image", func() {
@@ -591,7 +1240,7 @@ var _ = Describe("GetReleaseImageByURL", func() {
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture, common.ARM64CPUArchitecture}, nil).AnyTimes()
 
 			releaseImageFromCache := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
-				return *releaseImage.OpenshiftVersion == "4.11.1" && *releaseImage.CPUArchitecture == common.MultiCPUArchitecture
+				return *releaseImage.OpenshiftVersion == "4.11.1-multi" && *releaseImage.CPUArchitecture == common.MultiCPUArchitecture
 			})
 			Expect(releaseImageFromCache).ShouldNot(BeNil())
 
@@ -599,21 +1248,13 @@ var _ = Describe("GetReleaseImageByURL", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Query for multi-arch release image using generic multiarch
-			releaseImage, err := h.GetReleaseImage(ctx, "4.11.1", common.MultiCPUArchitecture, pullSecret)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
-
-			// Query for multi-arch release image using specific arch
-			releaseImage, err = h.GetReleaseImage(ctx, "4.11.1", common.X86CPUArchitecture, pullSecret)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
-			releaseImage, err = h.GetReleaseImage(ctx, "4.11.1", common.ARM64CPUArchitecture, pullSecret)
+			releaseImage, err := h.GetReleaseImage(ctx, "4.11.1-multi", common.MultiCPUArchitecture, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
 
 			// Query for non-existing architecture
 			_, err = h.GetReleaseImage(ctx, "4.11.1", "architecture-chocobomb", pullSecret)
-			Expect(err.Error()).Should(Equal("The requested CPU architecture (architecture-chocobomb) isn't specified in release images list"))
+			Expect(err.Error()).Should(Equal("architecture-chocobomb is not a valid release image CPU architecture"))
 		})
 	})
 
@@ -652,7 +1293,10 @@ var _ = Describe("GetReleaseImageByURL", func() {
 
 var _ = Describe("NewHandler", func() {
 	validateNewHandler := func(releaseImages models.ReleaseImages) error {
-		_, err := NewHandler(common.GetTestLog(), nil, releaseImages, nil, "", nil)
+		_, err := NewHandler(NewVersionHandlerParams{
+			Log:           common.GetTestLog(),
+			ReleaseImages: releaseImages,
+		})
 		return err
 	}
 
@@ -729,31 +1373,5 @@ var _ = Describe("NewHandler", func() {
 		err := validateNewHandler(releaseImages)
 		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("version"))
-	})
-})
-
-var _ = Describe("toMajorMinor", func() {
-	It("works for x.y", func() {
-		res, err := toMajorMinor("4.6")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(res).Should(Equal("4.6"))
-	})
-
-	It("works for x.y.z", func() {
-		res, err := toMajorMinor("4.6.9")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(res).Should(Equal("4.6"))
-	})
-
-	It("works for x.y.z-thing", func() {
-		res, err := toMajorMinor("4.6.9-beta")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(res).Should(Equal("4.6"))
-	})
-
-	It("fails when the version cannot parse", func() {
-		res, err := toMajorMinor("ere.654.45")
-		Expect(err).Should(HaveOccurred())
-		Expect(res).Should(Equal(""))
 	})
 })

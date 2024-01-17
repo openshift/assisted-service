@@ -101,6 +101,10 @@ DISABLE_TLS := $(or ${DISABLE_TLS},false)
 ENABLE_ORG_TENANCY := $(or ${ENABLE_ORG_TENANCY},False)
 ALLOW_CONVERGED_FLOW := $(or ${ALLOW_CONVERGED_FLOW}, false)
 ENABLE_ORG_BASED_FEATURE_GATES := $(or ${ENABLE_ORG_BASED_FEATURE_GATES},False)
+OPENSHIFT_MAJOR_VERSION := $(or ${OPENSHIFT_MAJOR_VERSION}, 4)
+OPENSHIFT_RELEASE_API_BASE_URL := $(or ${OPENSHIFT_RELEASE_API_BASE_URL}, https://api.openshift.com/api/upgrades_info/v1/graph)
+OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL := $(or ${OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL}, https://access.redhat.com/product-life-cycles/api/v1/products)
+OPENSHIFT_RELEASE_SYNCER_INTERVAL := $(or ${OPENSHIFT_RELEASE_SYNCER_INTERVAL}, 30m)
 
 ifeq ($(DISABLE_TLS),true)
 	DISABLE_TLS_CMD := --disable-tls
@@ -143,6 +147,8 @@ REPORTS ?= $(ROOT_DIR)/reports
 GO_TEST_FORMAT = pkgname
 DEFAULT_RELEASE_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_release_images.json))
 DEFAULT_OS_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_os_images.json))
+DEFAULT_RELEASE_SOURCES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_release_sources.json))
+DEFAULT_IGNORED_RELEASE_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_ignored_release_images.json))
 
 # Support all Release/OS images for CI
 ifeq ($(CI), true)
@@ -151,6 +157,8 @@ endif
 
 RELEASE_IMAGES := $(or ${RELEASE_IMAGES},${DEFAULT_RELEASE_IMAGES})
 OS_IMAGES := $(or ${OS_IMAGES},${DEFAULT_OS_IMAGES})
+RELEASE_SOURCES := $(or ${RELEASE_SOURCES},${DEFAULT_RELEASE_SOURCES})
+IGNORED_RELEASE_IMAGES := $(or ${IGNORED_RELEASE_IMAGES},${DEFAULT_IGNORED_RELEASE_IMAGES})
 
 # Support given Release/OS images.
 ifdef OPENSHIFT_VERSION
@@ -325,7 +333,13 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--disk-encryption-support $(DISK_ENCRYPTION_SUPPORT) --hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' \
 		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)" --disabled-steps "$(DISABLED_STEPS)" \
 		--enable-org-tenancy $(ENABLE_ORG_TENANCY) \
-		--enable-org-based-feature-gate $(ENABLE_ORG_BASED_FEATURE_GATES) $(ALLOW_CONVERGED_FLOW_CMD) $(DISABLE_TLS_CMD)
+		--enable-org-based-feature-gate $(ENABLE_ORG_BASED_FEATURE_GATES) \
+		--release-sources '$(subst ",\",$(RELEASE_SOURCES))' \
+		--openshift-major-version $(OPENSHIFT_MAJOR_VERSION) \
+		--openshift-release-api-base-url $(OPENSHIFT_RELEASE_API_BASE_URL) \
+		--openshift-support-level-api-base-url $(OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL) \
+		--ignored-release-images '$(subst ",\",$(IGNORED_RELEASE_IMAGES))' \
+		--openshift-release-syncer-interval $(OPENSHIFT_RELEASE_SYNCER_INTERVAL) $(ALLOW_CONVERGED_FLOW_CMD) $(DISABLE_TLS_CMD)
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
 		--namespace "$(NAMESPACE)"  --apply-manifest $(APPLY_MANIFEST) --ca-file-path $(MIRROR_REG_CA_FILE) --registries-file-path $(REGISTRIES_FILE_PATH)

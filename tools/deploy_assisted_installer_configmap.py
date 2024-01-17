@@ -36,9 +36,15 @@ def handle_arguments():
     parser.add_argument("--enable-org-tenancy", default="False")
     parser.add_argument("--enable-org-based-feature-gates", default="False")
     parser.add_argument("--allow-converged-flow", default=False, action='store_true')
+    parser.add_argument("--release-sources", default="")
+    parser.add_argument("--openshift-release-syncer-interval", default="30m")
+    parser.add_argument("--openshift-major-version", default="4")
+    parser.add_argument("--openshift-release-api-base-url", default="https://api.openshift.com/api/upgrades_info/v1/graph")
+    parser.add_argument("--openshift-support-level-api-base-url", default="https://access.redhat.com/product-life-cycles/api/v1/products")
+    parser.add_argument("--ignored-release-images", default="")
+
 
     return deployment_options.load_deployment_options(parser)
-
 
 deploy_options = handle_arguments()
 log = utils.get_logger('deploy-service-configmap')
@@ -105,6 +111,12 @@ def main():
     data = data.replace('REPLACE_HW_VALIDATOR_REQUIREMENTS', '"{}"'.format(deploy_options.hw_requirements))
     data = data.replace('REPLACE_DISABLED_HOST_VALIDATIONS', '"{}"'.format(deploy_options.disabled_host_validations))
     data = data.replace('REPLACE_DISABLED_STEPS', '"{}"'.format(deploy_options.disabled_steps))
+    data = data.replace('REPLACE_RELEASE_SOURCES', '"{}"'.format(deploy_options.release_sources))
+    data = data.replace('REPLACE_OPENSHIFT_RELEASE_SYNCER_INTERVAL', '"{}"'.format(deploy_options.openshift_release_syncer_interval))
+    data = data.replace('REPLACE_OPENSHIFT_MAJOR_VERSION', '"{}"'.format(deploy_options.openshift_major_version))
+    data = data.replace('REPLACE_OPENSHIFT_RELEASE_API_BASE_URL', '"{}"'.format(deploy_options.openshift_release_api_base_url))
+    data = data.replace('REPLACE_OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL', '"{}"'.format(deploy_options.openshift_support_level_api_base_url))
+    data = data.replace('REPLACE_IGNORED_RELEASE_IMAGES', '"{}"'.format(deploy_options.ignored_release_images))
 
     versions = {"INSTALLER_IMAGE": "assisted-installer",
                 "CONTROLLER_IMAGE": "assisted-installer-controller",

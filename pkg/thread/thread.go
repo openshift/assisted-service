@@ -37,9 +37,12 @@ func New(log logrus.FieldLogger, name string, interval time.Duration, exec func(
 }
 
 // Start thread
-func (t *Thread) Start() {
+func (t *Thread) Start(withoutWaiting bool) {
 	t.log.Infof("Started %s", t.name)
 	t.lastRunStartedAt = time.Now()
+	if withoutWaiting {
+		t.exec()
+	}
 	go t.loop()
 }
 

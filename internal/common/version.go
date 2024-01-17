@@ -5,8 +5,26 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
 )
+
+func CheckIfValidVersion(v string) error {
+	_, err := version.NewVersion(v)
+	return err
+}
+
+func GetVersionSegments(v string) ([]string, error) {
+	if err := CheckIfValidVersion(v); err != nil {
+		return nil, err
+	}
+
+	// We use strings manipulation instead of go-version manipulation
+	// because for example go-version treats '4.14' == '4.14.0' (as it should in semantic versioning)
+	// but we want to see difference
+	coreVersion := strings.Split(v, "-")[0]
+	return strings.Split(coreVersion, "."), nil
+}
 
 func createTwoVersions(version1, version2 string) (*version.Version, *version.Version, error) {
 	v1, err := version.NewVersion(version1)
@@ -59,14 +77,43 @@ func BaseVersionEqual(version1, versionMayEqual string) (bool, error) {
 	return *majorMinorVersion1 == *majorMinorVersionMayEqual, nil
 }
 
-func GetMajorMinorVersion(version string) (*string, error) {
-	version = strings.Split(version, "-")[0]
-	splittedVersion := strings.Split(version, ".")
+func IsVersionPreRelease(v string) (*bool, error) {
+	semVersion, err := version.NewVersion(v)
+	if err != nil {
+		return nil, err
+	}
 
-	if len(splittedVersion) < 2 {
+	return swag.Bool(semVersion.Prerelease() != ""), nil
+}
+
+func GetVersionSegmentsLength(version string) (*int, error) {
+	versionSegments, err := GetVersionSegments(version)
+	if err != nil {
+		return nil, err
+	}
+
+	return swag.Int(len(versionSegments)), nil
+}
+
+func GetMajorMinorVersion(version string) (*string, error) {
+	versionSegments, err := GetVersionSegments(version)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(versionSegments) < 2 {
 		return nil, errors.New("invalid version")
 	}
 
-	versionStr := fmt.Sprintf("%s.%s", splittedVersion[0], splittedVersion[1])
+	versionStr := fmt.Sprintf("%s.%s", versionSegments[0], versionSegments[1])
 	return &versionStr, nil
+}
+
+func GetMajorVersion(version string) (*string, error) {
+	versionSegments, err := GetVersionSegments(version)
+	if err != nil {
+		return nil, err
+	}
+
+	return swag.String(versionSegments[0]), nil
 }

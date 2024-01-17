@@ -47,6 +47,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/handler"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/releasesources"
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/internal/stream"
@@ -116,13 +117,17 @@ var Options struct {
 	InstructionConfig                    hostcommands.InstructionConfig
 	OperatorsConfig                      operators.Options
 	GCConfig                             garbagecollector.Config
+	ReleaseSourcesConfig                 releasesources.Config
 	ClusterStateMonitorInterval          time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	ClusterEventsUploaderInterval        time.Duration `envconfig:"CLUSTER_EVENTS_UPLOADER_INTERVAL" default:"15m"`
+	OpenShiftReleaseSyncerInterval       time.Duration `envconfig:"OPENSHIFT_RELEASE_SYNCER_INTERVAL" default:"30m"`
 	S3Config                             s3wrapper.Config
 	HostStateMonitorInterval             time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                             versions.Versions
 	OsImages                             string        `envconfig:"OS_IMAGES" default:""`
 	ReleaseImages                        string        `envconfig:"RELEASE_IMAGES" default:""`
+	ReleaseSources                       string        `envconfig:"RELEASE_SOURCES" default:""`
+	IgnoredReleaseImages                 string        `envconfig:"IGNORED_RELEASE_IMAGES" default:""`
 	MustGatherImages                     string        `envconfig:"MUST_GATHER_IMAGES" default:""`
 	ReleaseImageMirror                   string        `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	CreateS3Bucket                       bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
@@ -265,6 +270,18 @@ func main() {
 			"Failed to parse RELEASE_IMAGES json %s", Options.ReleaseImages)
 	}
 
+	var releaseSourcesArray = models.ReleaseSources{}
+	if Options.ReleaseSources != "" {
+		failOnError(json.Unmarshal([]byte(Options.ReleaseSources), &releaseSourcesArray),
+			"Failed to parse RELEASE_SOURCES json %s", Options.ReleaseSources)
+	}
+
+	var ignoredReleaseImages = []string{}
+	if Options.IgnoredReleaseImages != "" {
+		failOnError(json.Unmarshal([]byte(Options.IgnoredReleaseImages), &ignoredReleaseImages),
+			"Failed to parse IGNORED_RELEASE_IMAGES json %s", Options.IgnoredReleaseImages)
+	}
+
 	log.Println(fmt.Sprintf("Started service with OS images %v, Release images %v",
 		Options.OsImages, Options.ReleaseImages))
 
@@ -320,8 +337,13 @@ func main() {
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 
-	versionHandler, versionsAPIHandler, err := createVersionHandlers(log, ctrlMgr, releaseHandler, osImages, releaseImagesArray, authzHandler)
+	versionHandler, versionsAPIHandler, err := createVersionHandlers(
+		log, ctrlMgr, releaseHandler, osImages, releaseImagesArray, authzHandler, db,
+		ignoredReleaseImages, releaseSourcesArray, Options.ReleaseSourcesConfig.OpenshiftMajorVersion,
+		Options.ReleaseSourcesConfig.OpenshiftSupportLevelAPIBaseUrl,
+	)
 	failOnError(err, "failed to create Versions handlers")
+	releaseSourcesHandler := releasesources.NewReleaseSourcesHandler(releaseSourcesArray, log, db, Options.ReleaseSourcesConfig)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
 	ignitionBuilder, err := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, releaseHandler, versionHandler)
@@ -406,21 +428,29 @@ func main() {
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		notificationStream, eventsHandler, uploadClient, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi, authHandler, manifestsApi)
 	infraEnvApi := infraenv.NewManager(log.WithField("pkg", "host-state"), db, objectHandler)
+	releaseSourcesAPIHandler := releasesources.NewAPIHandler(log, releaseSourcesHandler)
 
 	clusterEventsUploader := thread.New(
 		log.WithField("pkg", "cluster-events-uploader"), "Cluster Events Uploader", Options.ClusterEventsUploaderInterval, clusterApi.UploadEvents)
-	clusterEventsUploader.Start()
+	clusterEventsUploader.Start(false)
 	defer clusterEventsUploader.Stop()
 
 	clusterStateMonitor := thread.New(
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
-	clusterStateMonitor.Start()
+	clusterStateMonitor.Start(false)
 	defer clusterStateMonitor.Stop()
 
 	hostStateMonitor := thread.New(
 		log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
-	hostStateMonitor.Start()
+	hostStateMonitor.Start(false)
 	defer hostStateMonitor.Stop()
+
+	if !Options.EnableKubeAPI {
+		OpenShiftReleaseSyncer := thread.New(
+			log.WithField("pkg", "opensift-release-syncer"), "Openshift Releases Syncer", Options.OpenShiftReleaseSyncerInterval, releaseSourcesHandler.SyncReleaseImages)
+		OpenShiftReleaseSyncer.Start(true)
+		defer OpenShiftReleaseSyncer.Stop()
+	}
 
 	newUrl, err := s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL)
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
@@ -446,7 +476,7 @@ func main() {
 				Options.DeregisterWorkerInterval,
 				gc.DeregisterInactiveClusters)
 
-			deregisterWorker.Start()
+			deregisterWorker.Start(false)
 			defer deregisterWorker.Stop()
 		}
 
@@ -457,7 +487,7 @@ func main() {
 				Options.DeletionWorkerInterval,
 				gc.PermanentlyDeleteUnregisteredClustersAndHosts)
 
-			deletionWorker.Start()
+			deletionWorker.Start(false)
 			defer deletionWorker.Stop()
 		}
 
@@ -470,7 +500,7 @@ func main() {
 				Options.InfraEnvDeletionWorkerInterval,
 				gc.DeleteOrphans)
 
-			deletionInfraEnvWorker.Start()
+			deletionInfraEnvWorker.Start(false)
 			defer deletionInfraEnvWorker.Stop()
 		}
 	}
@@ -519,6 +549,7 @@ func main() {
 		ManifestsAPI:        manifestsApi,
 		OperatorsAPI:        operatorsHandler,
 		JSONConsumer:        jsonConsumer,
+		ConfigurationAPI:    releaseSourcesAPIHandler,
 	})
 	failOnError(err, "Failed to init rest handler")
 
@@ -834,7 +865,11 @@ func createControllerManager() (manager.Manager, error) {
 	return nil, nil
 }
 
-func createVersionHandlers(log logrus.FieldLogger, ctrlMgr manager.Manager, releaseHandler oc.Release, osImages versions.OSImages, releaseImagesArray models.ReleaseImages, authzHandler auth.Authorizer) (versions.Handler, restapi.VersionsAPI, error) {
+func createVersionHandlers(log logrus.FieldLogger, ctrlMgr manager.Manager, releaseHandler oc.Release,
+	osImages versions.OSImages, releaseImagesArray models.ReleaseImages,
+	authzHandler auth.Authorizer, db *gorm.DB, ignoredReleaseImages []string,
+	releaseSources models.ReleaseSources, openshiftMajorVersion,
+	supportLevelAPIBaseUrl string) (versions.Handler, restapi.VersionsAPI, error) {
 	var versionsClient client.Client
 	if ctrlMgr != nil {
 		versionsClient = ctrlMgr.GetClient()
@@ -845,12 +880,30 @@ func createVersionHandlers(log logrus.FieldLogger, ctrlMgr manager.Manager, rele
 			return nil, nil, errors.Wrapf(err, "Failed to parse feature must-gather images JSON %s", Options.MustGatherImages)
 		}
 	}
-	versionsHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
-		releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror, versionsClient)
+
+	versionsHandler, err := versions.NewHandler(versions.NewVersionHandlerParams{
+		Log:                  log.WithField("pkg", "versions"),
+		ReleaseHandler:       releaseHandler,
+		ReleaseImages:        releaseImagesArray,
+		MustGatherVersions:   mustGatherVersionsMap,
+		ReleaseImageMirror:   Options.ReleaseImageMirror,
+		KubeClient:           versionsClient,
+		DB:                   db,
+		IgnoredReleaseImages: ignoredReleaseImages,
+		ReleaseSources:       releaseSources,
+	})
+
 	if err != nil {
 		return nil, nil, err
 	}
-	versionsAPIHandler := versions.NewAPIHandler(log, Options.Versions, authzHandler, versionsHandler, osImages)
+
+	versionsAPIHandler := versions.NewAPIHandler(versions.NewVersionsAPIHandlerParams{
+		Log:             log,
+		Versions:        Options.Versions,
+		AuthzHandler:    authzHandler,
+		VersionsHandler: versionsHandler,
+		OSImages:        osImages,
+	})
 
 	return versionsHandler, versionsAPIHandler, nil
 }
