@@ -198,17 +198,19 @@ function gather_hypershift_data() {
     done
   fi
   
-  oc get secret "${ASSISTED_PULLSECRET_NAME}" -ojson -n "${ASSISTED_NAMESPACE}" > /tmp/pull_secret.json
-  export ASSISTED_PULLSECRET_JSON="/tmp/pull_secret.json"
-  hypershift dump cluster --name "${SPOKE_CLUSTER_NAME}" --dump-guest-cluster=true --artifact-dir "${spoke_dir}/artifacts"
+  if [ ! -z "${SPOKE_CLUSTER_NAME}" ] ; then
+    hypershift_cli
+    hypershift dump cluster --name "${SPOKE_CLUSTER_NAME}" --namespace "${SPOKE_NAMESPACE}" --dump-guest-cluster=true --artifact-dir "${spoke_dir}/artifacts"
+  fi
 }
 
-# Hypershift CLI needs access to the kubeconfig, pull-secret and public SSH key
-function hypershift() {
+# Download Hypershift CLI
+function hypershift_cli() {
   HYPERSHIFT_IMAGE="${HYPERSHIFT_IMAGE:-quay.io/hypershift/hypershift-operator:4.11}"
-  podman run -it --net host --rm --entrypoint /usr/bin/hypershift \
-    -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:/root/pull-secret.json \
-    -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_IMAGE "$@"
+  id=$(podman create $HYPERSHIFT_IMAGE)
+  mkdir -p ./hypershift-cli
+  podman cp $id:/usr/bin/hypershift ./hypershift-cli
+  export PATH="$PATH":"$PWD"/hypershift-cli
 }
 
 function gather_all() {
