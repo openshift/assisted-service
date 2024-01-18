@@ -520,7 +520,7 @@ github.com/mitchellh/go-wordwrap
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/moby/moby v20.10.24+incompatible
+# github.com/moby/moby v24.0.7+incompatible
 ## explicit
 github.com/moby/moby/pkg/ioutils
 # github.com/moby/spdystream v0.2.0
@@ -916,7 +916,7 @@ github.com/stretchr/objx
 ## explicit; go 1.20
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
-# github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d
+# github.com/thedevsaddam/retry v1.2.1
 ## explicit; go 1.13
 github.com/thedevsaddam/retry
 # github.com/thoas/go-funk v0.9.3

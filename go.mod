@@ -42,7 +42,7 @@ require (
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/metal3-io/baremetal-operator/apis v0.2.0
-	github.com/moby/moby v20.10.24+incompatible
+	github.com/moby/moby v24.0.7+incompatible
 	github.com/nmstate/nmstate/rust/src/go/nmstate v0.0.0-20220811151154-801022633c42
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.28.1
@@ -69,7 +69,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/go-http-metrics v0.11.0
 	github.com/stretchr/testify v1.8.4
-	github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d
+	github.com/thedevsaddam/retry v1.2.1
 	github.com/thoas/go-funk v0.9.3
 	github.com/vincent-petithory/dataurl v1.0.0
 	golang.org/x/crypto v0.14.0
