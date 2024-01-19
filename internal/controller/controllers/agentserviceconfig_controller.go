@@ -1114,10 +1114,67 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 		copyEnv(cm.Data, "HTTP_PROXY")
 		copyEnv(cm.Data, "HTTPS_PROXY")
 		copyEnv(cm.Data, "NO_PROXY")
+		copyEnv(cm.Data, "DEPLOYMENT_TYPE")
+		copyEnv(cm.Data, "DEPLOYMENT_VERSION")
+		getDeploymentData(ctx, cm, asc)
 		return nil
 	}
 
 	return cm, mutateFn, nil
+}
+
+// TODO: Remove this whole block and getVersionFromDeployment() function
+// once ACM/MCE allows env var injection https://issues.redhat.com/browse/ACM-9362
+func getDeploymentData(ctx context.Context, cm *corev1.ConfigMap, asc ASC) {
+	const (
+		acmDeployName      = "multiclusterhub-operator"
+		acmDeployNamespace = "open-cluster-management"
+		acmContainerName   = "multiclusterhub-operator"
+		mceDeployName      = "multicluster-engine-operator"
+		mceDeployNamespace = "multicluster-engine"
+		mceContainerName   = "backplane-operator"
+	)
+
+	if cm.Data["DEPLOYMENT_TYPE"] != "" && cm.Data["DEPLOYMENT_VERSION"] != "" {
+		return
+	}
+
+	deploy := &appsv1.Deployment{}
+	// Try getting the ACM deployment first
+	if err := asc.Client.Get(ctx, types.NamespacedName{Name: acmDeployName, Namespace: acmDeployNamespace}, deploy); err == nil {
+		cm.Data["DEPLOYMENT_TYPE"] = "ACM"
+		cm.Data["DEPLOYMENT_VERSION"] = getVersionFromDeployment(deploy, acmContainerName)
+		return
+
+	}
+	// Try getting the MCE deployment if the ACM deployment does not exist
+	if err := asc.Client.Get(ctx, types.NamespacedName{Name: mceDeployName, Namespace: mceDeployNamespace}, deploy); err == nil {
+		cm.Data["DEPLOYMENT_TYPE"] = "MCE"
+		cm.Data["DEPLOYMENT_VERSION"] = getVersionFromDeployment(deploy, mceContainerName)
+		return
+
+	}
+	//  Both ACM and MCE are not deployed so this is a stand-alone operator deployment
+	cm.Data["DEPLOYMENT_TYPE"] = "Operator"
+	cm.Data["DEPLOYMENT_VERSION"] = ServiceImage()
+}
+
+// Extracts the environment variable OPERATOR_VERSION from a k8s deployment
+// Used for ACM/MCE deployments
+func getVersionFromDeployment(deploy *appsv1.Deployment, containerName string) string {
+	for _, container := range deploy.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			for _, env := range container.Env {
+				if env.Name == "OPERATOR_VERSION" {
+					if env.Value != "" {
+						return env.Value
+					}
+				}
+			}
+			break
+		}
+	}
+	return "Unknown"
 }
 
 func ensureVolume(volumes []corev1.Volume, vol corev1.Volume) []corev1.Volume {

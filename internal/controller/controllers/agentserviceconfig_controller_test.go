@@ -1770,6 +1770,123 @@ var _ = Describe("newAssistedCM", func() {
 	})
 })
 
+var _ = Describe("getDeploymentData", func() {
+
+	const (
+		acmDeployName      = "multiclusterhub-operator"
+		acmDeployNamespace = "open-cluster-management"
+		acmContainerName   = "multiclusterhub-operator"
+		mceDeployName      = "multicluster-engine-operator"
+		mceDeployNamespace = "multicluster-engine"
+		mceContainerName   = "backplane-operator"
+	)
+
+	var (
+		ascc ASC
+		ctx  context.Context
+		cm   *corev1.ConfigMap
+		asc  = newASCDefault()
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		ascr := newTestReconciler(asc)
+		ascc = initASC(ascr, asc)
+		cm = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: ascc.namespace,
+			},
+			Data: map[string]string{},
+		}
+	})
+	It("doesn't change the DEPLOYMENT TYPE and VERSION if it's already set in the configmap", func() {
+		cm.Data["DEPLOYMENT_TYPE"] = "TEST"
+		cm.Data["DEPLOYMENT_VERSION"] = "1.0.0"
+		getDeploymentData(ctx, cm, ascc)
+		Expect(cm.Data["DEPLOYMENT_TYPE"]).To(Equal("TEST"))
+		Expect(cm.Data["DEPLOYMENT_VERSION"]).To(Equal("1.0.0"))
+	})
+	It("gets the ACM DEPLOYMENT TYPE and VERSION when the ACM deployment exists", func() {
+		deploy := createDeploy(acmDeployName, acmDeployNamespace, acmContainerName, "1.1.1")
+		ascr := newTestReconciler(asc, deploy)
+		ascc = initASC(ascr, asc)
+		getDeploymentData(ctx, cm, ascc)
+		Expect(cm.Data["DEPLOYMENT_TYPE"]).To(Equal("ACM"))
+		Expect(cm.Data["DEPLOYMENT_VERSION"]).To(Equal("1.1.1"))
+	})
+	It("gets the MCE DEPLOYMENT TYPE and VERSION when the ACM deployment doesn't exists", func() {
+		deploy := createDeploy(mceDeployName, mceDeployNamespace, mceContainerName, "1.2.3")
+		ascr := newTestReconciler(asc, deploy)
+		ascc = initASC(ascr, asc)
+		getDeploymentData(ctx, cm, ascc)
+		Expect(cm.Data["DEPLOYMENT_TYPE"]).To(Equal("MCE"))
+		Expect(cm.Data["DEPLOYMENT_VERSION"]).To(Equal("1.2.3"))
+	})
+	It("gets the ACM DEPLOYMENT TYPE and VERSION when both the ACM and MCE deployments exist", func() {
+		acmDeploy := createDeploy(acmDeployName, acmDeployNamespace, acmContainerName, "1.1.1")
+		mceDeploy := createDeploy(mceDeployName, mceDeployNamespace, mceContainerName, "1.2.3")
+		ascr := newTestReconciler(asc, acmDeploy, mceDeploy)
+		ascc = initASC(ascr, asc)
+		getDeploymentData(ctx, cm, ascc)
+		Expect(cm.Data["DEPLOYMENT_TYPE"]).To(Equal("ACM"))
+		Expect(cm.Data["DEPLOYMENT_VERSION"]).To(Equal("1.1.1"))
+	})
+	It("sets the DEPLOYMENT TYPE and VERSION to operator when both ACM/MCE don't exist", func() {
+		getDeploymentData(ctx, cm, ascc)
+		version := ServiceImage()
+		Expect(cm.Data["DEPLOYMENT_TYPE"]).To(Equal("Operator"))
+		Expect(cm.Data["DEPLOYMENT_VERSION"]).To(Equal(version))
+	})
+	It("sets DEPLOYMENT VERSION to unknown when env var OPERATOR_VERSION doesn't exist in the deployment", func() {
+		deploy := createDeploy(acmDeployName, acmDeployNamespace, acmContainerName, "")
+		ascr := newTestReconciler(asc, deploy)
+		ascc = initASC(ascr, asc)
+		getDeploymentData(ctx, cm, ascc)
+		Expect(cm.Data["DEPLOYMENT_TYPE"]).To(Equal("ACM"))
+		Expect(cm.Data["DEPLOYMENT_VERSION"]).To(Equal("Unknown"))
+	})
+	It("sets DEPLOYMENT VERSION to unknown when the container doesn't exist in the deployment", func() {
+		deploy := createDeploy(acmDeployName, acmDeployNamespace, "", "1.1.1")
+		ascr := newTestReconciler(asc, deploy)
+		ascc = initASC(ascr, asc)
+		getDeploymentData(ctx, cm, ascc)
+		Expect(cm.Data["DEPLOYMENT_TYPE"]).To(Equal("ACM"))
+		Expect(cm.Data["DEPLOYMENT_VERSION"]).To(Equal("Unknown"))
+	})
+})
+
+func createDeploy(name, namespace, containerName, version string) *appsv1.Deployment {
+	var envVar corev1.EnvVar
+	if version != "" {
+		envVar = corev1.EnvVar{
+			Name:  "OPERATOR_VERSION",
+			Value: version,
+		}
+	}
+	var container corev1.Container
+	if containerName != "" {
+		container = corev1.Container{
+			Name: containerName,
+			Env:  []corev1.EnvVar{envVar},
+		}
+	}
+
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{container},
+				},
+			},
+		},
+	}
+}
+
 func ensureNewAssistedConfigmapValue(ctx context.Context, log logrus.FieldLogger, ascc ASC, key, value string) {
 	cm, mutateFn, err := newAssistedCM(ctx, log, ascc)
 
