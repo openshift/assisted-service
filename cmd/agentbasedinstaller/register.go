@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"reflect"
+	"regexp"
 
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
@@ -103,6 +104,7 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 
 	annotations := aci.GetAnnotations()
 	if installConfigOverrides, ok := annotations[controllers.InstallConfigOverrides]; ok {
+		var reJsonField = regexp.MustCompile(`(?i)"([^"]*(password)[^"]*)":\s*"(\\{2}|\\"|[^"])*"`)
 		updateInstallConfigParams := &installer.V2UpdateClusterInstallConfigParams{
 			ClusterID:           *clusterResult.Payload.ID,
 			InstallConfigParams: installConfigOverrides,
@@ -112,7 +114,8 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 			return nil, errorutil.GetAssistedError(updateClusterErr)
 		}
 
-		log.Infof("Updated cluster %s with installConfigOverrides %s", clusterResult.Payload.ID, installConfigOverrides)
+		filteredICOverrides := reJsonField.ReplaceAllString(installConfigOverrides, fmt.Sprintf(`"$1":"%s"`, "[redacted]"))
+		log.Infof("Updated cluster %s with installConfigOverrides %s", clusterResult.Payload.ID, filteredICOverrides)
 
 		// Need to GET cluster again so we can give a proper return value
 		getClusterResult, err := bmInventory.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{
@@ -120,7 +123,7 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 		})
 
 		if err != nil {
-			log.Warnf("Updated cluster %s with installConfigOverrides %s", clusterResult.Payload.ID, installConfigOverrides)
+			log.Warnf("Updated cluster %s with installConfigOverrides %s", clusterResult.Payload.ID, filteredICOverrides)
 		} else {
 			result = getClusterResult.GetPayload()
 		}
