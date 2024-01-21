@@ -7791,6 +7791,10 @@ func init() {
           "x-go-custom-tag": "gorm:\"foreignkey:Cluster\"",
           "x-nullable": true
         },
+        "connection_timed_out": {
+          "description": "Indicate that connection to assisted service was timed out when soft timeout is enabled.",
+          "type": "boolean"
+        },
         "connectivity": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
@@ -18408,6 +18412,10 @@ func init() {
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"foreignkey:Cluster\"",
           "x-nullable": true
+        },
+        "connection_timed_out": {
+          "description": "Indicate that connection to assisted service was timed out when soft timeout is enabled.",
+          "type": "boolean"
         },
         "connectivity": {
           "type": "string",

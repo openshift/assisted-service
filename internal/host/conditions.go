@@ -25,6 +25,7 @@ const (
 	SuccessfulContainerImageAvailability = conditionId("successful-container-image-availability")
 	HostStageTimedOut                    = conditionId("host-stage-timed-out")
 	SoftTimeoutsEnabled                  = conditionId("soft-timeouts-enabled")
+	ConnectionTimedOut                   = conditionId("connection-timed-out")
 )
 
 func (c conditionId) String() string {
@@ -101,4 +102,8 @@ func (v *validator) isHostStageTimedOut(c *validationContext) bool {
 
 func (v *validator) softTimeoutsEnabled(c *validationContext) bool {
 	return c.softTimeoutsEnabled && (c.cluster != nil && c.cluster.OrgSoftTimeoutsEnabled)
+}
+
+func (v *validator) connectionTimedOut(c *validationContext) bool {
+	return c.host.ConnectionTimedOut
 }

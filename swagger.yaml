@@ -4537,6 +4537,9 @@ definitions:
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: The last time the host's agent communicated with the service.
+      connection_timed_out:
+        type: boolean
+        description: Indicate that connection to assisted service was timed out when soft timeout is enabled.
       registered_at:
         type: string
         format: date-time

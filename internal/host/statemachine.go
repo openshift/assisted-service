@@ -729,14 +729,47 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusInstalling),
 			stateswitch.State(models.HostStatusInstallingInProgress),
 		},
-		Condition:        stateswitch.Not(If(IsConnected)),
+		Condition:        stateswitch.And(stateswitch.Not(If(IsConnected)), stateswitch.Not(If(SoftTimeoutsEnabled))),
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoConnectionTimedOutInstalling),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Move installing host to error when connection times out",
-			Description: "TODO: Document this transition rule.",
+			Description: "When host is in one of the installation phases and soft timeout is not enabled and host fails to connect to assisted service, move the host to error",
 		},
 	})
+
+	for _, st := range []string{models.HostStatusInstalling, models.HostStatusInstallingInProgress} {
+		sm.AddTransitionRule(stateswitch.TransitionRule{
+			TransitionType: TransitionTypeRefresh,
+			SourceStates: []stateswitch.State{
+				stateswitch.State(st),
+			},
+			Condition: stateswitch.And(stateswitch.Not(If(IsConnected)),
+				If(SoftTimeoutsEnabled),
+				stateswitch.Not(If(ConnectionTimedOut))),
+			DestinationState: stateswitch.State(st),
+			PostTransition:   th.PostRefreshHostDisconnection(statusInfoConnectionSoftTimedOutInstalling, true),
+			Documentation: stateswitch.TransitionRuleDoc{
+				Name:        "Keep installing host when connection times out",
+				Description: "When host is in one of the installation phases and soft timeout is enabled and host fails to connect to assisted service, keep installing host and indicate that timeout has occurred",
+			},
+		})
+		sm.AddTransitionRule(stateswitch.TransitionRule{
+			TransitionType: TransitionTypeRefresh,
+			SourceStates: []stateswitch.State{
+				stateswitch.State(st),
+			},
+			Condition: stateswitch.And(If(IsConnected),
+				If(SoftTimeoutsEnabled),
+				If(ConnectionTimedOut)),
+			DestinationState: stateswitch.State(st),
+			PostTransition:   th.PostRefreshHostDisconnection(statusInfoConnectionSoftTimedOutInstallingReconnected, false),
+			Documentation: stateswitch.TransitionRuleDoc{
+				Name:        "Keep installing host when host recovers from disconnection",
+				Description: "When host is in one of the installation phases and soft timeout is enabled and host recovers from disconnection to assisted service, keep installing host and clear the disconnection indication",
+			},
+		})
+	}
 	shouldIgnoreInstallationProgressTimeout := stateswitch.And(If(StageInWrongBootStages), If(ClusterPendingUserAction))
 
 	sm.AddTransitionRule(stateswitch.TransitionRule{
