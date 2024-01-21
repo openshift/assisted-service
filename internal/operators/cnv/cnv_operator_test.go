@@ -51,7 +51,7 @@ var _ = Describe("CNV operator", func() {
 		It("request for lso, ocp version older than 4.11 will not get lvmo", func() {
 			haMode := models.ClusterHighAvailabilityModeNone
 			cluster := common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: "4.11.0-0.0"},
+				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: "4.10.0-0.0"},
 			}
 
 			requirements, err := operator.GetDependencies(&cluster)
