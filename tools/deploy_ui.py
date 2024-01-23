@@ -31,8 +31,8 @@ def main():
 
     if tag == "latest":
         log.warning("No hash specified. Will run the deployment generation script from the top of master branch")
-    else:
-        cmd += f" && git reset --hard {tag}"
+    #else:
+        #cmd += f" && git reset --hard {tag}"
 
     cmd += f" && apps/assisted-ui/deploy/deploy_config.sh -t {clone_directory}/apps/assisted-ui/deploy/deployment-template.yaml " \
            f"-i {image_fqdn} -n {deploy_options.namespace} > {dst_file}"
