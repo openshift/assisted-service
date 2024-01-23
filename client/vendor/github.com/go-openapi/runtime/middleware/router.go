@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/runtime/security"
+	"github.com/go-openapi/swag"
 
 	"github.com/go-openapi/analysis"
 	"github.com/go-openapi/errors"
@@ -418,6 +419,15 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 		produces := d.analyzer.ProducesFor(operation)
 		parameters := d.analyzer.ParamsFor(method, strings.TrimPrefix(path, bp))
 
+		// add API defaults if not part of the spec
+		if defConsumes := d.api.DefaultConsumes(); defConsumes != "" && !swag.ContainsStringsCI(consumes, defConsumes) {
+			consumes = append(consumes, defConsumes)
+		}
+
+		if defProduces := d.api.DefaultProduces(); defProduces != "" && !swag.ContainsStringsCI(produces, defProduces) {
+			produces = append(produces, defProduces)
+		}
+
 		record := denco.NewRecord(pathConverter.ReplaceAllString(path, ":$1"), &routeEntry{
 			BasePath:       bp,
 			PathPattern:    path,
@@ -439,11 +449,11 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 
 func (d *defaultRouteBuilder) buildAuthenticators(operation *spec.Operation) RouteAuthenticators {
 	requirements := d.analyzer.SecurityRequirementsFor(operation)
-	var auths []RouteAuthenticator
+	auths := make([]RouteAuthenticator, 0, len(requirements))
 	for _, reqs := range requirements {
-		var schemes []string
+		schemes := make([]string, 0, len(reqs))
 		scopes := make(map[string][]string, len(reqs))
-		var scopeSlices [][]string
+		scopeSlices := make([][]string, 0, len(reqs))
 		for _, req := range reqs {
 			schemes = append(schemes, req.Name)
 			scopes[req.Name] = req.Scopes

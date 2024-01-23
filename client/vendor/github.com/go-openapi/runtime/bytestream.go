@@ -38,7 +38,7 @@ type byteStreamOpts struct {
 	Close bool
 }
 
-// ByteStreamConsumer creates a consmer for byte streams,
+// ByteStreamConsumer creates a consumer for byte streams,
 // takes a Writer/BinaryUnmarshaler interface or binary slice by reference,
 // and reads from the provided reader
 func ByteStreamConsumer(opts ...byteStreamOpt) Consumer {
@@ -52,13 +52,15 @@ func ByteStreamConsumer(opts ...byteStreamOpt) Consumer {
 			return errors.New("ByteStreamConsumer requires a reader") // early exit
 		}
 
-		close := defaultCloser
+		closer := defaultCloser
 		if vals.Close {
 			if cl, ok := reader.(io.Closer); ok {
-				close = cl.Close
+				closer = cl.Close
 			}
 		}
-		defer close()
+		defer func() {
+			_ = closer()
+		}()
 
 		if wrtr, ok := data.(io.Writer); ok {
 			_, err := io.Copy(wrtr, reader)
@@ -74,6 +76,13 @@ func ByteStreamConsumer(opts ...byteStreamOpt) Consumer {
 
 		if bu, ok := data.(encoding.BinaryUnmarshaler); ok {
 			return bu.UnmarshalBinary(b)
+		}
+
+		if data != nil {
+			if str, ok := data.(*string); ok {
+				*str = string(b)
+				return nil
+			}
 		}
 
 		if t := reflect.TypeOf(data); data != nil && t.Kind() == reflect.Ptr {
@@ -101,13 +110,15 @@ func ByteStreamProducer(opts ...byteStreamOpt) Producer {
 		if writer == nil {
 			return errors.New("ByteStreamProducer requires a writer") // early exit
 		}
-		close := defaultCloser
+		closer := defaultCloser
 		if vals.Close {
 			if cl, ok := writer.(io.Closer); ok {
-				close = cl.Close
+				closer = cl.Close
 			}
 		}
-		defer close()
+		defer func() {
+			_ = closer()
+		}()
 
 		if rc, ok := data.(io.ReadCloser); ok {
 			defer rc.Close()
@@ -129,6 +140,11 @@ func ByteStreamProducer(opts ...byteStreamOpt) Producer {
 		}
 
 		if data != nil {
+			if str, ok := data.(string); ok {
+				_, err := writer.Write([]byte(str))
+				return err
+			}
+
 			if e, ok := data.(error); ok {
 				_, err := writer.Write([]byte(e.Error()))
 				return err
