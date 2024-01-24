@@ -45,6 +45,9 @@ const (
 	// FinalizingStageApplyingManifests captures enum value "Applying manifests"
 	FinalizingStageApplyingManifests FinalizingStage = "Applying manifests"
 
+	// FinalizingStageWaitingForOlmOperatorsCsvInitialization captures enum value "Waiting for olm operators csv initialization"
+	FinalizingStageWaitingForOlmOperatorsCsvInitialization FinalizingStage = "Waiting for olm operators csv initialization"
+
 	// FinalizingStageWaitingForOlmOperatorsCsv captures enum value "Waiting for olm operators csv"
 	FinalizingStageWaitingForOlmOperatorsCsv FinalizingStage = "Waiting for olm operators csv"
 
@@ -57,7 +60,7 @@ var finalizingStageEnum []interface{}
 
 func init() {
 	var res []FinalizingStage
-	if err := json.Unmarshal([]byte(`["Waiting for finalizing","Waiting for cluster operators","Adding router ca","Waiting for olm operators","Applying manifests","Waiting for olm operators csv","Done"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Waiting for finalizing","Waiting for cluster operators","Adding router ca","Waiting for olm operators","Applying manifests","Waiting for olm operators csv initialization","Waiting for olm operators csv","Done"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

@@ -69,7 +69,7 @@ var _ = Describe("Transition tests", func() {
 
 	Context("cancel_installation", func() {
 		BeforeEach(func() {
-			capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), eventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
+			capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), eventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
 		})
 
 		It("cancel_installation", func() {
@@ -366,7 +366,7 @@ var _ = Describe("Transition tests", func() {
 					mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, models.ClusterStatusFinalizing, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 				}
 
-				capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), eventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api, nil, nil, nil)
+				capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), eventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api, nil, nil, nil, false)
 
 				// Test
 				clusterAfterRefresh, err := capi.RefreshStatus(ctx, &c, db)
@@ -414,7 +414,7 @@ var _ = Describe("Cancel cluster installation", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		uploadClient = uploader.NewClient(&uploader.Config{EnableDataCollection: false}, nil, logrus.New(), nil)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
 	})
 
 	AfterEach(func() {
@@ -488,7 +488,7 @@ var _ = Describe("Reset cluster", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsHandler, nil, nil, nil, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsHandler, nil, nil, nil, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
 	})
 
 	AfterEach(func() {
@@ -654,7 +654,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1405,7 +1405,7 @@ var _ = Describe("Refresh Cluster - Same networks", func() {
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1670,7 +1670,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		dnsApi := dns.NewDNSHandler(nil, common.GetTestLog())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil, false)
 
 		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		hid1 = strfmt.UUID(uuid.New().String())
@@ -1904,7 +1904,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -2924,7 +2924,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -3537,7 +3537,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -3871,7 +3871,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
 					ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{}}
 					clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
-						mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api, nil, nil, nil)
+						mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api, nil, nil, nil, false)
 					if !t.requiresAMSUpdate {
 						cluster.IsAmsSubscriptionConsoleUrlSet = true
 					}
@@ -3970,7 +3970,7 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		clusterApi = NewManager(logTimeoutConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
@@ -4112,7 +4112,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -4415,7 +4415,7 @@ var _ = Describe("Single node", func() {
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		dnsApi := dns.NewDNSHandler(nil, common.GetTestLog())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil, false)
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
@@ -4690,6 +4690,116 @@ var _ = Describe("ValidationResult sort", func() {
 		Expect(validationResults[1].ID.String()).Should(Equal("acb"))
 		Expect(validationResults[2].ID.String()).Should(Equal("bac"))
 		Expect(validationResults[3].ID.String()).Should(Equal("cab"))
+	})
+})
+
+var _ = Describe("finalizing timeouts", func() {
+	var (
+		ctx              = context.Background()
+		db               *gorm.DB
+		clusterId        strfmt.UUID
+		clusterApi       *Manager
+		mockEvents       *eventsapi.MockHandler
+		mockHostAPI      *host.MockAPI
+		mockMetric       *metrics.MockAPI
+		ctrl             *gomock.Controller
+		dbName           string
+		operatorsManager *operators.Manager
+		mockS3Api        *s3wrapper.MockAPI
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		mockS3Api = s3wrapper.NewMockAPI(ctrl)
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+	createCluster := func(status string, stage models.FinalizingStage, statusTimestamp, stageTimestamp time.Time) *common.Cluster {
+		cls := &common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterId,
+				Status:           swag.String(status),
+				StatusInfo:       swag.String(statusInfoFinalizing),
+				StatusUpdatedAt:  strfmt.DateTime(statusTimestamp),
+				OpenshiftVersion: "4.15",
+				EmailDomain:      "redhat.com",
+				Progress: &models.ClusterProgressInfo{
+					FinalizingStage:          stage,
+					FinalizingStageStartedAt: strfmt.DateTime(stageTimestamp),
+				},
+			},
+		}
+		Expect(db.Create(cls).Error).ToNot(HaveOccurred())
+		return cls
+	}
+	testUnexpiredTimeout := func(stage models.FinalizingStage, timeout time.Duration) {
+		cls := createCluster(models.ClusterStatusFinalizing, stage, time.Now(), time.Now().Add(-(timeout - time.Second)))
+		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+		clusterAfterUpdate, err := clusterApi.RefreshStatus(ctx, cls, db)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(swag.StringValue(clusterAfterUpdate.Status)).To(Equal(models.ClusterStatusFinalizing))
+		Expect(swag.StringValue(clusterAfterUpdate.StatusInfo)).To(Equal(statusInfoFinalizing))
+	}
+	Context("soft timeouts disabled", func() {
+		BeforeEach(func() {
+			clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
+				mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false)
+		})
+		for _, st := range finalizingStages {
+			stage := st
+			timeout := finalizingStageTimeout(stage, nil, logrus.New())
+			It(fmt.Sprintf("finalizing stage '%s' timeout expired", stage), func() {
+				cls := createCluster(models.ClusterStatusFinalizing, stage, time.Now(), time.Now().Add(-(timeout + time.Second)))
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)
+				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, models.ClusterStatusFinalizing, cls.OpenshiftVersion, *cls.ID, cls.EmailDomain, gomock.Any())
+				clusterAfterUpdate, err := clusterApi.RefreshStatus(ctx, cls, db)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(swag.StringValue(clusterAfterUpdate.Status)).To(Equal(models.ClusterStatusError))
+				Expect(swag.StringValue(clusterAfterUpdate.StatusInfo)).To(Equal(fmt.Sprintf(statusInfoFinalizingStageTimeout, stage, int64(timeout.Minutes()))))
+			})
+			It(fmt.Sprintf("finalizing stage '%s' timeout didn't expire", stage), func() {
+				testUnexpiredTimeout(stage, timeout)
+			})
+		}
+	})
+	Context("soft timeouts enabled", func() {
+		BeforeEach(func() {
+			clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
+				mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, true)
+
+		})
+		It("finalizing status timeout not active", func() {
+			cls := createCluster(models.ClusterStatusFinalizing, "", time.Now().Add(-(clusterApi.Config.FinalizingTimeout + time.Second)), time.Now())
+			mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+			clusterAfterUpdate, err := clusterApi.RefreshStatus(ctx, cls, db)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(swag.StringValue(clusterAfterUpdate.Status)).To(Equal(models.ClusterStatusFinalizing))
+		})
+		for _, st := range finalizingStages {
+			stage := st
+			timeout := finalizingStageTimeout(stage, nil, logrus.New())
+			It(fmt.Sprintf("finalizing stage '%s' timeout expired", stage), func() {
+				cls := createCluster(models.ClusterStatusFinalizing, stage, time.Now(), time.Now().Add(-(timeout + time.Second)))
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)
+				clusterAfterUpdate, err := clusterApi.RefreshStatus(ctx, cls, db)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(swag.StringValue(clusterAfterUpdate.Status)).To(Equal(models.ClusterStatusFinalizing))
+				Expect(swag.StringValue(clusterAfterUpdate.StatusInfo)).To(Equal(fmt.Sprintf(statusInfoFinalizingStageSoftTimeout, stage, int64(timeout.Minutes()))))
+				Expect(clusterAfterUpdate.Progress.FinalizingStageTimedOut).To(BeTrue())
+			})
+			It(fmt.Sprintf("finalizing stage '%s' timeout didn't expire", stage), func() {
+				testUnexpiredTimeout(stage, timeout)
+			})
+		}
 	})
 })
 

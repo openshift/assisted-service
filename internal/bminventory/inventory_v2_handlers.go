@@ -1002,5 +1002,10 @@ func (b *bareMetalInventory) GetInfraEnvPresignedFileURL(ctx context.Context, pa
 }
 
 func (b *bareMetalInventory) V2UpdateClusterFinalizingProgress(ctx context.Context, params installer.V2UpdateClusterFinalizingProgressParams) middleware.Responder {
+	if err := b.clusterApi.UpdateFinalizingStage(ctx, params.ClusterID, params.FinalizingProgress.FinalizingStage); err != nil {
+		b.log.WithError(err).Errorf("failed to update finalizing stage of cluster %s", params.ClusterID)
+		return common.GenerateErrorResponder(err)
+	}
+	b.log.Infof("updated finalizing stage of cluster %s to %s", params.ClusterID, params.FinalizingProgress.FinalizingStage)
 	return installer.NewV2UpdateClusterFinalizingProgressOK()
 }

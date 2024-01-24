@@ -34,6 +34,8 @@ const (
 	statusInfoPreparingForInstallation        = "Preparing cluster for installation"
 	statusInfoPreparingForInstallationTimeout = "Preparing cluster for installation timeout"
 	statusInfoFinalizingTimeout               = "Cluster installation timeout while finalizing"
+	statusInfoFinalizingStageTimeout          = "Cluster finalizing stage '%s' has been timed out after timeout duration of %d minutes"
+	statusInfoFinalizingStageSoftTimeout      = "Cluster finalizing stage '%s' is taking longer than the expected duration (%d minutes). To troubleshoot use kubeconfig or connect to any node using ssh"
 	statusInfoPendingForInput                 = "User input required"
 	statusInfoError                           = "cluster has hosts in error"
 	statusInfoTimeout                         = "cluster installation timed out while pending user action (a manual booting from installation disk)"
@@ -73,6 +75,23 @@ func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.D
 		eventgen.SendClusterStatusUpdatedEvent(ctx, events, clusterId, *cluster.Status, statusInfo)
 		log.Infof("cluster %s has been updated with the following updates %+v", clusterId, extra)
 	}
+
+	return cluster, nil
+}
+
+func notifyFinalizingStageTimeout(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, stream stream.Notifier, clusterId strfmt.UUID,
+	srcStatus string, statusInfo string, finalizingStage string, minutes int64, events eventsapi.Handler, extra ...interface{}) (*common.Cluster, error) {
+	var cluster *common.Cluster
+	var err error
+	extra = append(append(make([]interface{}, 0), "status_info", statusInfo,
+		"progress_finalizing_stage_timed_out", true), extra...)
+
+	if cluster, err = UpdateCluster(ctx, log, db, stream, clusterId, srcStatus, extra...); err != nil {
+		return nil, errors.Wrapf(err, "failed to update cluster %s finalizing stage timeout", clusterId)
+	}
+
+	eventgen.SendFinalizingStageTimedOutEvent(ctx, events, clusterId, finalizingStage, minutes)
+	log.Infof("cluster %s has been updated with the following updates %+v", clusterId, extra)
 
 	return cluster, nil
 }

@@ -207,6 +207,15 @@ x-events:
     status: string
     status_info: string
 
+- name: finalizing_stage_timed_out
+  message: "Cluster {cluster_id}: finalizing stage {stage} has been active more than the expected completion time ({minutes} minutes)"
+  event_type: cluster
+  severity: "warning"
+  properties:
+    cluster_id: UUID
+    stage: string
+    minutes: int64
+
 - name: host_deregistered
   message: "Host {host_name} deregistered"
   event_type: host

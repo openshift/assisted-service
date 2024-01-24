@@ -24,7 +24,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 	)
 
 	BeforeEach(func() {
-		validator = clusterValidator{logrus.New(), nil}
+		validator = clusterValidator{log: logrus.New()}
 		preprocessContext = &clusterPreprocessContext{}
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
@@ -278,7 +278,7 @@ var _ = Describe("areVipsValid", func() {
 	}
 
 	BeforeEach(func() {
-		validator = clusterValidator{logrus.New(), nil}
+		validator = clusterValidator{log: logrus.New()}
 		preprocessContext = &clusterPreprocessContext{}
 		clusterID = strfmt.UUID(uuid.New().String())
 		hosts = []*models.Host{
@@ -495,7 +495,7 @@ var _ = Describe("Validator tests", func() {
 	)
 
 	BeforeEach(func() {
-		validator = clusterValidator{logrus.New(), nil}
+		validator = clusterValidator{log: logrus.New()}
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
 
@@ -563,7 +563,7 @@ var _ = Describe("Platform validations", func() {
 	)
 
 	BeforeEach(func() {
-		validator = clusterValidator{logrus.New(), nil}
+		validator = clusterValidator{log: logrus.New()}
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
 
@@ -627,7 +627,7 @@ var _ = Describe("skipNetworkHostPrefixCheck", func() {
 	)
 
 	BeforeEach(func() {
-		validator = clusterValidator{logrus.New(), nil}
+		validator = clusterValidator{log: logrus.New()}
 		preprocessContext = &clusterPreprocessContext{}
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
