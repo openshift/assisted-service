@@ -1031,6 +1031,11 @@ var _ = Describe("Validate BaseDNSDomain when creating a cluster", func() {
 			ShouldThrow:   true,
 		},
 		{
+			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='1-example.com', valid DNS",
+			BaseDNSDomain: "1-example.com",
+			ShouldThrow:   false,
+		},
+		{
 			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='example.com', valid DNS",
 			BaseDNSDomain: "example.com",
 			ShouldThrow:   false,
