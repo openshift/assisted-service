@@ -18,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"golang.org/x/sync/semaphore"
+	"gorm.io/gorm"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -33,18 +34,28 @@ type Handler interface {
 	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
 
-func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, releaseImages models.ReleaseImages,
-	mustGatherVersions MustGatherVersions, releaseImageMirror string, kubeClient client.Client) (*handler, error) {
+func NewHandler(
+	log logrus.FieldLogger,
+	releaseHandler oc.Release,
+	releaseImages models.ReleaseImages,
+	mustGatherVersions MustGatherVersions,
+	releaseImageMirror string,
+	kubeClient client.Client,
+	ignoredOpenshiftVersions []string,
+	db *gorm.DB,
+) (*handler, error) {
 
 	h := &handler{
-		mustGatherVersions:     mustGatherVersions,
-		mustGatherVersionsLock: &sync.Mutex{},
-		releaseImages:          releaseImages,
-		releaseHandler:         releaseHandler,
-		releaseImageMirror:     releaseImageMirror,
-		log:                    log,
-		kubeClient:             kubeClient,
-		sem:                    semaphore.NewWeighted(30),
+		mustGatherVersions:       mustGatherVersions,
+		mustGatherVersionsLock:   &sync.Mutex{},
+		releaseImages:            releaseImages,
+		releaseHandler:           releaseHandler,
+		releaseImageMirror:       releaseImageMirror,
+		log:                      log,
+		kubeClient:               kubeClient,
+		sem:                      semaphore.NewWeighted(30),
+		ignoredOpenshiftVersions: ignoredOpenshiftVersions,
+		db:                       db,
 	}
 
 	if err := h.validateVersions(); err != nil {
@@ -55,15 +66,17 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, releaseImages
 }
 
 type handler struct {
-	mustGatherVersions     MustGatherVersions
-	mustGatherVersionsLock *sync.Mutex
-	releaseImages          models.ReleaseImages
-	imagesLock             sync.Mutex
-	sem                    *semaphore.Weighted
-	releaseHandler         oc.Release
-	releaseImageMirror     string
-	log                    logrus.FieldLogger
-	kubeClient             client.Client
+	mustGatherVersions       MustGatherVersions
+	mustGatherVersionsLock   *sync.Mutex
+	releaseImages            models.ReleaseImages
+	imagesLock               sync.Mutex
+	sem                      *semaphore.Weighted
+	releaseHandler           oc.Release
+	releaseImageMirror       string
+	log                      logrus.FieldLogger
+	kubeClient               client.Client
+	ignoredOpenshiftVersions []string
+	db                       *gorm.DB
 }
 
 func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {

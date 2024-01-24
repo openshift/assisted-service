@@ -3113,6 +3113,15 @@ paths:
         - userAuth: [admin, read-only-admin, user]
       operationId: v2ListSupportedOpenshiftVersions
       description: Retrieves the list of OpenShift supported versions.
+      parameters:
+        - in: query
+          name: version
+          description: Retrieves only the versions that contain the specified substring in their display name.
+          type: string
+        - in: query
+          name: only_latest
+          description: If true, returns only the latest version for each minor.
+          type: boolean
       responses:
         "200":
           description: Success.

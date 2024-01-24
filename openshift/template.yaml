@@ -25,6 +25,17 @@ parameters:
 - name: OPENSHIFT_RELEASE_SYNCER_INTERVAL
   value: "30m"
   required: false
+<<<<<<< HEAD
+=======
+- name: RELEASE_SOURCES
+  value: '[{"openshift_version":"4.11","multi_cpu_architectures":["x86_64","arm64","s390x","ppc64le"],"upgrade_channels":[{"cpu_architecture":"x86_64","channels":["stable"]},{"cpu_architecture":"arm64","channels":["stable"]},{"cpu_architecture":"ppc64le","channels":["stable"]},{"cpu_architecture":"s390x","channels":["stable"]},{"cpu_architecture":"multi","channels":["stable"]}]},{"openshift_version":"4.12","multi_cpu_architectures":["x86_64","arm64","s390x","ppc64le"],"upgrade_channels":[{"cpu_architecture":"x86_64","channels":["stable"]},{"cpu_architecture":"arm64","channels":["stable"]},{"cpu_architecture":"ppc64le","channels":["stable"]},{"cpu_architecture":"s390x","channels":["stable"]},{"cpu_architecture":"multi","channels":["stable"]}]},{"openshift_version":"4.13","multi_cpu_architectures":["x86_64","arm64","s390x","ppc64le"],"upgrade_channels":[{"cpu_architecture":"x86_64","channels":["stable"]},{"cpu_architecture":"arm64","channels":["stable"]},{"cpu_architecture":"ppc64le","channels":["stable"]},{"cpu_architecture":"s390x","channels":["stable"]},{"cpu_architecture":"multi","channels":["stable"]}]},{"openshift_version":"4.14","multi_cpu_architectures":["x86_64","arm64","s390x","ppc64le"],"upgrade_channels":[{"cpu_architecture":"x86_64","channels":["stable","candidate"]},{"cpu_architecture":"arm64","channels":["stable","candidate"]},{"cpu_architecture":"ppc64le","channels":["stable","candidate"]},{"cpu_architecture":"s390x","channels":["stable","candidate"]},{"cpu_architecture":"multi","channels":["stable","candidate"]}]},{"openshift_version":"4.15","multi_cpu_architectures":["x86_64","arm64","s390x","ppc64le"],"upgrade_channels":[{"cpu_architecture":"x86_64","channels":["stable","candidate"]},{"cpu_architecture":"arm64","channels":["stable","candidate"]},{"cpu_architecture":"ppc64le","channels":["stable","candidate"]},{"cpu_architecture":"s390x","channels":["stable","candidate"]},{"cpu_architecture":"multi","channels":["stable","candidate"]}]}]'
+  required: false
+- name: OPENSHIFT_RELEASE_SYNCER_INTERVAL
+  value: "30m"
+  required: false
+- name: IGNORED_OPENSHIFT_VERSIONS
+  value: ""
+>>>>>>> 9b76c0dd4 (MGMT-16263: Part 2 of implementing usage of custom OCP releases - use the new db release images in openshift-versions api instead of the static ones)
 - name: MUST_GATHER_IMAGES
   value: '{"4.8-x86_64":{"cnv":"registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5","ocs":"registry.redhat.io/ocs4/ocs-must-gather-rhel8:v4.8","lso":"registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.8"},"4.9-x86_64":{"cnv":"registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v4.9.3","ocs":"registry.redhat.io/odf4/ocs-must-gather-rhel8:v4.9","lso":"registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.9"},"4.10-x86_64":{"cnv":"registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v4.10.0","ocs":"registry.redhat.io/odf4/ocs-must-gather-rhel8:v4.10","lso":"registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.10"},"4.10-arm64":{"ocs":"registry.redhat.io/odf4/ocs-must-gather-rhel8:v4.10","lso":"registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.10"}}' # must-gather images
   required: false
@@ -485,6 +496,8 @@ objects:
                 value: ${OPENSHIFT_RELEASE_SYNCER_INTERVAL}
               - name: OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL
                 value: ${OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL}
+              - name: IGNORED_OPENSHIFT_VERSIONS
+                value: ${IGNORED_OPENSHIFT_VERSIONS}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
