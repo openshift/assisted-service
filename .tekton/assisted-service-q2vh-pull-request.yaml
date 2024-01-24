@@ -129,7 +129,7 @@ spec:
       - name: skip-checks
         value: $(params.skip-checks)
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-init:0.1@sha256:c35cc37d6f40fef0f2ed614b502b058e13fe7af29c0888bc4799fd625b6f3374
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-init:0.2@sha256:3d8f01fa59596a998d30dc700fcf7377f09d60008337290eebaeaf604512ce2b
         name: init
     - name: clone-repository
       params:
@@ -179,8 +179,6 @@ spec:
         value: $(params.dockerfile)
       - name: CONTEXT
         value: $(params.path-context)
-      - name: DOCKER_AUTH
-        value: $(tasks.init.results.container-registry-secret)
       - name: HERMETIC
         value: $(params.hermetic)
       - name: PREFETCH_INPUT
@@ -206,8 +204,6 @@ spec:
         value: $(tasks.build-container.results.IMAGE_URL)
       - name: IMAGE_DIGEST
         value: $(tasks.build-container.results.IMAGE_DIGEST)
-      - name: DOCKER_AUTH
-        value: $(tasks.init.results.container-registry-secret)
       runAfter:
       - build-container
       taskRef:
@@ -270,8 +266,6 @@ spec:
         value: $(tasks.build-container.results.IMAGE_DIGEST)
       - name: image-url
         value: $(tasks.build-container.results.IMAGE_URL)
-      - name: docker-auth
-        value: $(tasks.init.results.container-registry-secret)
       runAfter:
       - build-container
       taskRef:
@@ -309,8 +303,6 @@ spec:
         value: $(tasks.build-container.results.IMAGE_DIGEST)
       - name: image-url
         value: $(tasks.build-container.results.IMAGE_URL)
-      - name: docker-auth
-        value: $(tasks.init.results.container-registry-secret)
       runAfter:
       - build-container
       taskRef:
