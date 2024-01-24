@@ -29,17 +29,26 @@ type apiHandler struct {
 	log             logrus.FieldLogger
 	versionsHandler *handler
 	osImages        OSImages
+	releaseSources  models.ReleaseSources
 }
 
 var _ restapi.VersionsAPI = (*apiHandler)(nil)
 
-func NewAPIHandler(log logrus.FieldLogger, versions Versions, authzHandler auth.Authorizer, versionsHandler *handler, osImages OSImages) restapi.VersionsAPI {
+func NewAPIHandler(
+	log logrus.FieldLogger,
+	versions Versions,
+	authzHandler auth.Authorizer,
+	versionsHandler *handler,
+	osImages OSImages,
+	releaseSources models.ReleaseSources,
+) restapi.VersionsAPI {
 	return &apiHandler{
 		authzHandler:    authzHandler,
 		versions:        versions,
 		log:             log,
 		versionsHandler: versionsHandler,
 		osImages:        osImages,
+		releaseSources:  releaseSources,
 	}
 }
 
@@ -151,6 +160,10 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 		}
 	}
 	return operations.NewV2ListSupportedOpenshiftVersionsOK().WithPayload(openshiftVersions)
+}
+
+func (r *apiHandler) V2ListReleaseSources(ctx context.Context, params operations.V2ListReleaseSourcesParams) middleware.Responder {
+	return operations.NewV2ListReleaseSourcesOK().WithPayload(r.releaseSources)
 }
 
 func getSupportLevel(releaseImage models.ReleaseImage) *string {

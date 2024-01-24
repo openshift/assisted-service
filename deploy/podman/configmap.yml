@@ -31,3 +31,4 @@ data:
   SERVICE_BASE_URL: http://127.0.0.1:8090
   STORAGE: filesystem
   ENABLE_UPGRADE_AGENT: "true"
+

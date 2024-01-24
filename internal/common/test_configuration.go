@@ -53,7 +53,7 @@ const TestDiskPath = "/dev/test-disk"
 var (
 	OpenShiftVersion string = "4.6"
 	ReleaseVersion          = "4.6.0"
-	ReleaseImage            = "quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64"
+	ReleaseImageURL         = "quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64"
 	RhcosImage              = "rhcos_4.6.0"
 	RhcosVersion            = "version-46.123-0"
 	SupportLevel            = "beta"
@@ -64,12 +64,12 @@ var (
 var TestDefaultConfig = &TestConfiguration{
 	OpenShiftVersion: OpenShiftVersion,
 	ReleaseVersion:   ReleaseVersion,
-	ReleaseImageUrl:  ReleaseImage,
+	ReleaseImageUrl:  ReleaseImageURL,
 	CPUArchitecture:  CPUArchitecture,
 	ReleaseImage: &models.ReleaseImage{
 		CPUArchitecture:  &CPUArchitecture,
 		OpenshiftVersion: &OpenShiftVersion,
-		URL:              &ReleaseImage,
+		URL:              &ReleaseImageURL,
 		Version:          &ReleaseVersion,
 		CPUArchitectures: []string{CPUArchitecture},
 	},
