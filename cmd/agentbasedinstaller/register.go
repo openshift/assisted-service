@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
@@ -292,6 +293,10 @@ func getReleaseVersionAndCpuArch(log *log.Logger, releaseImage string, releaseMi
 	// but given the caller of this function here does not check that, we want to explicitly handle this scenario.
 	if len(cpuArchs) == 0 {
 		return "", "", errors.New("could not get release architecture")
+	}
+	if len(cpuArchs) > 1 {
+		log.Info("multi arch release payload detected")
+		return version, common.MultiCPUArchitecture, nil
 	}
 	return version, cpuArchs[0], nil
 }
