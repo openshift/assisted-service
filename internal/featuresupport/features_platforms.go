@@ -272,11 +272,15 @@ func (feature *OciIntegrationFeature) getSupportLevel(filters SupportLevelFilter
 		return models.SupportLevelUnavailable
 	}
 
-	if isNotSupported, err := common.BaseVersionLessThan("4.14", filters.OpenshiftVersion); isNotSupported || err != nil {
-		return models.SupportLevelUnavailable
+	if isDevPreview, err := common.BaseVersionEqual("4.14", filters.OpenshiftVersion); isDevPreview || err != nil {
+		return models.SupportLevelDevPreview
 	}
 
-	return models.SupportLevelSupported
+	if isTechPreview, err := common.BaseVersionGreaterOrEqual("4.15", filters.OpenshiftVersion); isTechPreview || err != nil {
+		return models.SupportLevelTechPreview
+	}
+
+	return models.SupportLevelUnavailable
 }
 
 func (feature *OciIntegrationFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {

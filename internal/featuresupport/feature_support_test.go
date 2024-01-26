@@ -245,6 +245,24 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 	})
 
+	Context("Test OCI platform support", func() {
+		DescribeTable(
+			"Validation pass",
+			func(openshiftVersion string, expectedSupportLevel models.SupportLevel) {
+				filters := SupportLevelFilters{
+					OpenshiftVersion: openshiftVersion,
+					CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				}
+				supportLevel := GetSupportLevel(models.FeatureSupportLevelIDEXTERNALPLATFORMOCI, filters)
+				Expect(supportLevel).To(Equal(expectedSupportLevel))
+			},
+			Entry("OCI unavailable with Openshift 4.13", "4.13", models.SupportLevelUnavailable),
+			Entry("OCI dev-preview with Openshift 4.14", "4.14", models.SupportLevelDevPreview),
+			Entry("OCI tech-preview with Openshidt 4.15", "4.15", models.SupportLevelTechPreview),
+			Entry("OCI tech-preview with Openshift 4.16", "4.16", models.SupportLevelTechPreview),
+		)
+	})
+
 	Context("GetSupportList", func() {
 
 		for _, filters := range getPlatformFilters() {
