@@ -120,8 +120,8 @@ github.com/chai2010/gettext-go/po
 # github.com/containerd/continuity v0.3.0
 ## explicit; go 1.17
 github.com/containerd/continuity/pathdriver
-# github.com/containers/image/v5 v5.20.0
-## explicit; go 1.13
+# github.com/containers/image/v5 v5.21.1
+## explicit; go 1.16
 github.com/containers/image/v5/docker/reference
 # github.com/coreos/go-json v0.0.0-20211020211907-c63f628265de
 ## explicit; go 1.15
