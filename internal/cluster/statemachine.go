@@ -314,7 +314,8 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusFinalizing),
 		},
 		Condition: stateswitch.And(stateswitch.Not(th.SoftTimeoutsEnabled),
-			th.IsFinalizingStageTimedOut),
+			th.IsFinalizingStageTimedOut,
+			stateswitch.Not(isInFinalizingStages(nonFailingFinalizingStages...))),
 		DestinationState: stateswitch.State(models.ClusterStatusError),
 		PostTransition:   th.PostRefreshCluster(statusInfoFinalizingStageTimeout, FinalizingStage, th.FinalizingStageTimeoutMinutes),
 		Documentation: stateswitch.TransitionRuleDoc{
@@ -331,7 +332,8 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 			},
 			Condition: stateswitch.And(
 				stateswitch.Not(finalizingStageTimeoutTriggered),
-				th.SoftTimeoutsEnabled,
+				stateswitch.Or(th.SoftTimeoutsEnabled,
+					isInFinalizingStages(nonFailingFinalizingStages...)),
 				th.IsFinalizingStageTimedOut),
 			DestinationState: stateswitch.State(st),
 			PostTransition:   th.PostRefreshFinalizingStageSoftTimedOut,

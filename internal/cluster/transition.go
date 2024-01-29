@@ -763,6 +763,16 @@ func (th *transitionHandler) IsLogCollectionTimedOut(sw stateswitch.StateSwitch,
 	return false, nil
 }
 
+func isInFinalizingStages(stages ...models.FinalizingStage) stateswitch.Condition {
+	return func(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+		sCluster, ok := sw.(*stateCluster)
+		if !ok {
+			return false, errors.New("Cluster isInStages isInFinalizingStages type of StateSwitch")
+		}
+		return sCluster.cluster != nil && sCluster.cluster.Progress != nil && funk.Contains(stages, sCluster.cluster.Progress.FinalizingStage), nil
+	}
+}
+
 func setPendingUserResetIfNeeded(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, hostApi host.API, c *common.Cluster) {
 	if swag.StringValue(c.Status) == models.ClusterStatusInsufficient {
 		if isPendingUserResetRequired(hostApi, c) {

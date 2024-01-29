@@ -7689,8 +7689,7 @@ func init() {
         "Waiting for finalizing",
         "Waiting for cluster operators",
         "Adding router ca",
-        "Waiting for olm operators",
-        "Applying manifests",
+        "Applying olm manifests",
         "Waiting for olm operators csv initialization",
         "Waiting for olm operators csv",
         "Done"
@@ -18279,8 +18278,7 @@ func init() {
         "Waiting for finalizing",
         "Waiting for cluster operators",
         "Adding router ca",
-        "Waiting for olm operators",
-        "Applying manifests",
+        "Applying olm manifests",
         "Waiting for olm operators csv initialization",
         "Waiting for olm operators csv",
         "Done"

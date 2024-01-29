@@ -4757,14 +4757,30 @@ var _ = Describe("finalizing timeouts", func() {
 		for _, st := range finalizingStages {
 			stage := st
 			timeout := finalizingStageTimeout(stage, nil, logrus.New())
-			It(fmt.Sprintf("finalizing stage '%s' timeout expired", stage), func() {
-				cls := createCluster(models.ClusterStatusFinalizing, stage, time.Now(), time.Now().Add(-(timeout + time.Second)))
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)
-				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, models.ClusterStatusFinalizing, cls.OpenshiftVersion, *cls.ID, cls.EmailDomain, gomock.Any())
-				clusterAfterUpdate, err := clusterApi.RefreshStatus(ctx, cls, db)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(swag.StringValue(clusterAfterUpdate.Status)).To(Equal(models.ClusterStatusError))
-				Expect(swag.StringValue(clusterAfterUpdate.StatusInfo)).To(Equal(fmt.Sprintf(statusInfoFinalizingStageTimeout, stage, int64(timeout.Minutes()))))
+			Context(fmt.Sprintf("finalizing stage '%s' timeout expired", stage), func() {
+				if funk.Contains(nonFailingFinalizingStages, stage) {
+					It("should stay in same status and trigger soft timeout", func() {
+						cls := createCluster(models.ClusterStatusFinalizing, stage, time.Now(), time.Now().Add(-(timeout + time.Second)))
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)
+						clusterAfterUpdate, err := clusterApi.RefreshStatus(ctx, cls, db)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(swag.StringValue(clusterAfterUpdate.Status)).To(Equal(models.ClusterStatusFinalizing))
+						Expect(swag.StringValue(clusterAfterUpdate.StatusInfo)).To(Equal(fmt.Sprintf(statusInfoFinalizingStageSoftTimeout, stage, int64(timeout.Minutes()))))
+						Expect(clusterAfterUpdate.Progress.FinalizingStageTimedOut).To(BeTrue())
+					})
+				} else {
+					It("should move to error", func() {
+						cls := createCluster(models.ClusterStatusFinalizing, stage, time.Now(), time.Now().Add(-(timeout + time.Second)))
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)
+						mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, models.ClusterStatusFinalizing,
+							cls.OpenshiftVersion, *cls.ID, cls.EmailDomain, gomock.Any()).Times(1)
+						clusterAfterUpdate, err := clusterApi.RefreshStatus(ctx, cls, db)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(swag.StringValue(clusterAfterUpdate.Status)).To(Equal(models.ClusterStatusError))
+						Expect(swag.StringValue(clusterAfterUpdate.StatusInfo)).To(Equal(fmt.Sprintf(statusInfoFinalizingStageTimeout, stage, int64(timeout.Minutes()))))
+						Expect(clusterAfterUpdate.Progress.FinalizingStageTimedOut).To(BeFalse())
+					})
+				}
 			})
 			It(fmt.Sprintf("finalizing stage '%s' timeout didn't expire", stage), func() {
 				testUnexpiredTimeout(stage, timeout)
