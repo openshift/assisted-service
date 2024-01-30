@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
+	"github.com/openshift/assisted-service/internal/common/testing"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/models"
@@ -57,7 +58,7 @@ var _ = Describe("update_host_state", func() {
 					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 					eventstest.WithInfoMatcher(fmt.Sprintf("(%s)", newStatusInfo))))
 
-			returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, common.TestDefaultConfig.Status,
+			returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, testing.GetDummyNotificationStream(ctrl), host.InfraEnvID, *host.ID, common.TestDefaultConfig.Status,
 				newStatus, newStatusInfo)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(*returnedHost.Status).Should(Equal(newStatus))
@@ -67,16 +68,16 @@ var _ = Describe("update_host_state", func() {
 
 		Describe("negative", func() {
 			It("invalid_extras_amount", func() {
-				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status,
+				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, testing.GetDummyNotificationStream(ctrl), host.InfraEnvID, *host.ID, *host.Status,
 					newStatus, newStatusInfo, "1")
 				Expect(err).Should(HaveOccurred())
 				Expect(returnedHost).Should(BeNil())
-				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status,
+				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, testing.GetDummyNotificationStream(ctrl), host.InfraEnvID, *host.ID, *host.Status,
 					newStatus, newStatusInfo, "1", "2", "3")
 			})
 
 			It("no_matching_rows", func() {
-				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, "otherStatus",
+				returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, testing.GetDummyNotificationStream(ctrl), host.InfraEnvID, *host.ID, "otherStatus",
 					newStatus, newStatusInfo)
 			})
 
@@ -93,7 +94,7 @@ var _ = Describe("update_host_state", func() {
 
 		It("db_failure", func() {
 			common.CloseDB(db)
-			_, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status,
+			_, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, testing.GetDummyNotificationStream(ctrl), host.InfraEnvID, *host.ID, *host.Status,
 				newStatus, newStatusInfo)
 			Expect(err).Should(HaveOccurred())
 		})

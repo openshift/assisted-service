@@ -151,6 +151,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.N
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
+		stream:        notificationStream,
 		config:        config,
 		eventsHandler: eventsHandler,
 	}
@@ -570,11 +571,9 @@ func (m *Manager) updateHostAndNotify(ctx context.Context, db *gorm.DB, h *model
 		}).Warn("Updated host that could not be retrieved from database")
 		return response
 	}
-	if host != nil {
-		err = m.stream.Notify(ctx, host)
-		if err != nil {
-			m.log.WithError(err).Warning("failed to notify host update event")
-		}
+	err = m.stream.Notify(ctx, host)
+	if err != nil {
+		m.log.WithError(err).Warning("failed to notify host update event")
 	}
 	return response
 }
@@ -644,7 +643,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 		}
 
-		_, err = hostutil.UpdateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
+		_, err = hostutil.UpdateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, m.stream, h.InfraEnvID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 	case models.HostStageRebooting:
 		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
