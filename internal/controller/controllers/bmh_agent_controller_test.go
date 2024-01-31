@@ -312,6 +312,7 @@ var _ = Describe("bmac reconcile", func() {
 					CreatedTime:    &isoTimestamp,
 				}
 				Expect(c.Create(ctx, infraEnv)).To(BeNil())
+				Expect(c.Get(ctx, types.NamespacedName{Name: infraEnv.Name, Namespace: infraEnv.Namespace}, infraEnv)).ToNot(HaveOccurred())
 			})
 
 			AfterEach(func() {
@@ -341,7 +342,7 @@ var _ = Describe("bmac reconcile", func() {
 				host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
 				host.Status.Provisioning.State = bmh_v1alpha1.StateRegistering
 
-				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil, infraEnv)
 				Expect(result).To(Equal(reconcileComplete{dirty: true, stop: true}))
 				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
@@ -351,14 +352,14 @@ var _ = Describe("bmac reconcile", func() {
 				host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
 				host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
 
-				result = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
+				result = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil, infraEnv)
 				Expect(result).To(Equal(reconcileComplete{dirty: false, stop: true}))
 				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
 				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeMetadata))
 
 				// This should not return a dirty result because label is already set
-				result = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
+				result = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil, infraEnv)
 				Expect(result).To(Equal(reconcileComplete{dirty: false, stop: true}))
 				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
@@ -389,7 +390,7 @@ var _ = Describe("bmac reconcile", func() {
 			})
 			It("should not reconcile BMH if the updated image has not been around longer than the grace period", func() {
 				// Reconcile with the original ISO
-				_ = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
+				_ = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil, infraEnv)
 
 				// Generate a new ISO with the current timestamp
 				infraEnv.Status = v1beta1.InfraEnvStatus{
@@ -400,7 +401,7 @@ var _ = Describe("bmac reconcile", func() {
 
 				// Should not reconcile because ISO is too recent.
 				// We expect the old URL to be still attached to the BMH.
-				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil, infraEnv)
 				Expect(result).To(BeAssignableToTypeOf(reconcileRequeue{}))
 				Expect(host.Spec.Image.URL).To(Equal(isoImageURL))
 			})
@@ -413,7 +414,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(c.Update(ctx, infraEnv)).To(BeNil())
 
 				// There was no previous ISO attached, so the BMH should not have any URL.
-				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil, infraEnv)
 				Expect(result).To(BeAssignableToTypeOf(reconcileRequeue{}))
 				Expect(host.Spec.Image).To(BeNil())
 			})
@@ -426,7 +427,7 @@ var _ = Describe("bmac reconcile", func() {
 
 				// The ISO is old enough to pass through the filter, thus we expect the new
 				// URL to be attached to the BMH.
-				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil, infraEnv)
 				Expect(result).To(Equal(reconcileComplete{dirty: true, stop: true}))
 				Expect(host.Spec.Image.URL).To(Equal(isoImageURL + ".new"))
 			})
@@ -657,7 +658,136 @@ var _ = Describe("bmac reconcile", func() {
 					Expect(updatedAgent.Spec.NodeLabels).To(BeEmpty())
 				})
 			})
+			Context("reconcile cluster reference", func() {
+				const (
+					clusterName              = "cluster-name"
+					clusterNamespace         = "cluster-namespace"
+					infraenvClusterName      = "infraenv-name"
+					infraenvClusterNamespace = "infraenv-namespace"
+				)
+				setClusterReferenceInAgent := func(name, namespace string) {
+					toUpdate := &v1beta1.Agent{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, toUpdate)).ToNot(HaveOccurred())
+					clusterRef := &v1beta1.ClusterReference{
+						Name:      name,
+						Namespace: namespace,
+					}
+					toUpdate.Spec.ClusterDeploymentName = clusterRef
+					Expect(c.Update(ctx, toUpdate)).ToNot(HaveOccurred())
+					updatedAgent := &v1beta1.Agent{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)).ToNot(HaveOccurred())
+					Expect(updatedAgent.Spec.ClusterDeploymentName).To(Equal(clusterRef))
+				}
+				setClusterReferenceInBMH := func(name, namespace string) {
+					toUpdate := &bmh_v1alpha1.BareMetalHost{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: host.Namespace}, toUpdate)).ToNot(HaveOccurred())
+					clusterRef := fmt.Sprintf("%s/%s", namespace, name)
+					toUpdate.ObjectMeta.Annotations[BMH_CLUSTER_REFERENCE] = clusterRef
+					Expect(c.Update(ctx, toUpdate)).ToNot(HaveOccurred())
+					updatedBMH := &bmh_v1alpha1.BareMetalHost{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: host.Namespace}, updatedBMH)).ToNot(HaveOccurred())
+					Expect(updatedBMH.ObjectMeta.Annotations[BMH_CLUSTER_REFERENCE]).To(Equal(clusterRef))
+				}
+				setEmptyClusterReferenceInBMH := func() {
+					toUpdate := &bmh_v1alpha1.BareMetalHost{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: host.Namespace}, toUpdate)).ToNot(HaveOccurred())
+					toUpdate.ObjectMeta.Annotations[BMH_CLUSTER_REFERENCE] = ""
+					Expect(c.Update(ctx, toUpdate)).ToNot(HaveOccurred())
+					updatedBMH := &bmh_v1alpha1.BareMetalHost{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: host.Namespace}, updatedBMH)).ToNot(HaveOccurred())
+					Expect(updatedBMH.ObjectMeta.Annotations[BMH_CLUSTER_REFERENCE]).To(Equal(""))
+				}
+				setClusterReferenceInInfraenv := func(name, namespace string) {
+					toUpdate := &v1beta1.InfraEnv{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: infraEnv.Name, Namespace: infraEnv.Namespace}, toUpdate)).ToNot(HaveOccurred())
+					clusterRef := &v1beta1.ClusterReference{
+						Name:      name,
+						Namespace: namespace,
+					}
+					toUpdate.Spec.ClusterRef = clusterRef
+					Expect(c.Update(ctx, toUpdate)).ToNot(HaveOccurred())
+					updatedInfraenv := &v1beta1.InfraEnv{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: infraEnv.Name, Namespace: infraEnv.Namespace}, updatedInfraenv)).ToNot(HaveOccurred())
+					Expect(updatedInfraenv.Spec.ClusterRef).To(Equal(clusterRef))
+				}
+				It("no cluster reference in BMH and agent - should not set cluster reference in agent", func() {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
 
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.ClusterDeploymentName).To(BeNil())
+				})
+				It("no cluster reference in BMH  - should not clear cluster reference in agent", func() {
+					setClusterReferenceInAgent(clusterName, clusterNamespace)
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.ClusterDeploymentName).To(Equal(&v1beta1.ClusterReference{
+						Name:      clusterName,
+						Namespace: clusterNamespace,
+					}))
+				})
+				It("empty cluster-reference in BMH - should clear cluster reference in agent", func() {
+					setEmptyClusterReferenceInBMH()
+					setClusterReferenceInAgent(clusterName, clusterNamespace)
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.ClusterDeploymentName).To(BeNil())
+				})
+				It("BMH has cluster reference - should copy to agent", func() {
+					setClusterReferenceInBMH(clusterName, clusterNamespace)
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.ClusterDeploymentName).To(Equal(&v1beta1.ClusterReference{
+						Name:      clusterName,
+						Namespace: clusterNamespace,
+					}))
+				})
+				It("Infraenv has cluster reference - should not copy to agent and stop", func() {
+					setClusterReferenceInBMH(clusterName, clusterNamespace)
+					setClusterReferenceInInfraenv(infraenvClusterName, infraenvClusterNamespace)
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(HaveOccurred())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.ClusterDeploymentName).To(BeNil())
+				})
+				It("Infraenv has cluster reference - should not clear cluster reference in agent", func() {
+					setClusterReferenceInAgent(clusterName, clusterNamespace)
+					setClusterReferenceInInfraenv(infraenvClusterName, infraenvClusterNamespace)
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.ClusterDeploymentName).To(Equal(&v1beta1.ClusterReference{
+						Name:      clusterName,
+						Namespace: clusterNamespace,
+					}))
+				})
+			})
 			It("should set invalid InstallationDiskID if RootDeviceHints device name doesn't match", func() {
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
 				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
