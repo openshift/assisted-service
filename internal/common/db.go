@@ -136,6 +136,9 @@ type Host struct {
 
 	// A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
 	IgnitionEndpointToken string `json:"ignition_endpoint_token" gorm:"type:TEXT"`
+
+	// Json formatted string of the additional HTTP headers when fetching the ignition.
+	IgnitionEndpointHTTPHeaders string `json:"ignition_endpoint_http_headers,omitempty" gorm:"type:TEXT"`
 }
 
 func (h *Host) GetClusterID() *strfmt.UUID {
