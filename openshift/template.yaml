@@ -195,6 +195,8 @@ parameters:
 - name: ENABLE_DATA_COLLECTION
   value: "false"
   required: false
+- name: DEPLOYMENT_TYPE
+  value: "SaaS"
 - name: INSTALLER_CACHE_CAPACITY
   value: "6442450944"
   required: false
@@ -459,6 +461,8 @@ objects:
                 value: ${ENABLE_REJECT_UNKNOWN_FIELDS}
               - name: ENABLE_DATA_COLLECTION
                 value: ${ENABLE_DATA_COLLECTION}
+              - name: DEPLOYMENT_TYPE
+                value: ${DEPLOYMENT_TYPE}
               - name: INSTALLER_CACHE_CAPACITY
                 value: ${INSTALLER_CACHE_CAPACITY}
               - name: ENABLE_OKD_SUPPORT
