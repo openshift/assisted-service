@@ -8221,6 +8221,14 @@ func init() {
           ],
           "x-nullable": true
         },
+        "ignition_endpoint_http_headers": {
+          "description": "JSON-formatted string of additional HTTP headers when fetching the ignition.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ignition-endpoint-http-headers-params"
+          },
+          "x-nullable": true
+        },
         "ignition_endpoint_token": {
           "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
           "type": "string",
@@ -8360,6 +8368,23 @@ func init() {
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:ignition_endpoint_\""
+    },
+    "ignition-endpoint-http-headers-params": {
+      "type": "object",
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "description": "The key for the http header's key-value pair.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value for the http header's key-value pair.",
+          "type": "string"
+        }
+      }
     },
     "ignored-validations": {
       "type": "object",
@@ -18811,6 +18836,14 @@ func init() {
           ],
           "x-nullable": true
         },
+        "ignition_endpoint_http_headers": {
+          "description": "JSON-formatted string of additional HTTP headers when fetching the ignition.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ignition-endpoint-http-headers-params"
+          },
+          "x-nullable": true
+        },
         "ignition_endpoint_token": {
           "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
           "type": "string",
@@ -18950,6 +18983,23 @@ func init() {
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:ignition_endpoint_\""
+    },
+    "ignition-endpoint-http-headers-params": {
+      "type": "object",
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "description": "The key for the http header's key-value pair.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value for the http header's key-value pair.",
+          "type": "string"
+        }
+      }
     },
     "ignored-validations": {
       "type": "object",
