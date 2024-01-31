@@ -6404,6 +6404,10 @@ func init() {
         "org_id": {
           "type": "string"
         },
+        "org_soft_timeouts_enabled": {
+          "description": "Indication if organization soft timeouts is enabled for the cluster.",
+          "type": "boolean"
+        },
         "platform": {
           "$ref": "#/definitions/platform"
         },
@@ -17019,6 +17023,10 @@ func init() {
         },
         "org_id": {
           "type": "string"
+        },
+        "org_soft_timeouts_enabled": {
+          "description": "Indication if organization soft timeouts is enabled for the cluster.",
+          "type": "boolean"
         },
         "platform": {
           "$ref": "#/definitions/platform"

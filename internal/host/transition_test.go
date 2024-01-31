@@ -1912,6 +1912,7 @@ var _ = Describe("Refresh Host", func() {
 						Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 						cluster = hostutil.GenerateTestCluster(clusterId)
 						cluster.HighAvailabilityMode = &highAvailabilityMode
+						cluster.OrgSoftTimeoutsEnabled = true
 						Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 						if passedTimeKind == "over_timeout" {
@@ -1957,6 +1958,7 @@ var _ = Describe("Refresh Host", func() {
 		It("state info progress when failed", func() {
 
 			cluster = hostutil.GenerateTestCluster(clusterId)
+			cluster.OrgSoftTimeoutsEnabled = true
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 			masterID := strfmt.UUID("1")
@@ -2061,6 +2063,7 @@ var _ = Describe("Refresh Host", func() {
 							Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 							cluster = hostutil.GenerateTestCluster(clusterId)
 							cluster.HighAvailabilityMode = &highAvailabilityMode
+							cluster.OrgSoftTimeoutsEnabled = true
 							Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 							shouldTimeout := passedTimeKind == "over_timeout" && (!stageTimedOut || stage == models.HostStageRebooting)
@@ -2109,6 +2112,7 @@ var _ = Describe("Refresh Host", func() {
 		It("state info progress when failed", func() {
 
 			cluster = hostutil.GenerateTestCluster(clusterId)
+			cluster.OrgSoftTimeoutsEnabled = true
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 			masterID := strfmt.UUID("1")

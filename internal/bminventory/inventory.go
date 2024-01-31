@@ -570,6 +570,13 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 	}
 
+	var orgSoftTimeoutsEnabled bool
+	orgSoftTimeoutsEnabled, err = b.authzHandler.HasOrgBasedCapability(ctx, ocm.SoftTimeoutsCapabilityName)
+	if err != nil {
+		orgSoftTimeoutsEnabled = false
+		b.log.WithError(err).Warningf("Failed to query if capability %s has org capability for cluster %s", ocm.SoftTimeoutsCapabilityName, id.String())
+	}
+
 	if kubeKey == nil {
 		kubeKey = &types.NamespacedName{}
 	}
@@ -610,6 +617,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			CPUArchitecture:              cpuArchitecture,
 			IgnitionEndpoint:             params.NewClusterParams.IgnitionEndpoint,
 			Tags:                         swag.StringValue(params.NewClusterParams.Tags),
+			OrgSoftTimeoutsEnabled:       orgSoftTimeoutsEnabled,
 		},
 		KubeKeyName:                 kubeKey.Name,
 		KubeKeyNamespace:            kubeKey.Namespace,
