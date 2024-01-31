@@ -194,6 +194,8 @@ type AgentSpec struct {
 	IgnitionConfigOverrides string `json:"ignitionConfigOverrides,omitempty"`
 	// IgnitionEndpointTokenReference references a secret containing an Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
 	IgnitionEndpointTokenReference *IgnitionEndpointTokenReference `json:"ignitionEndpointTokenReference,omitempty"`
+	// IgnitionEndpointHTTPHeaders are the additional HTTP headers used when fetching the ignition.
+	IgnitionEndpointHTTPHeaders map[string]string `json:"ignitionEndpointHTTPHeaders,omitempty"`
 	// NodeLabels are the labels to be applied on the node associated with this agent
 	NodeLabels map[string]string `json:"nodeLabels,omitempty"`
 }

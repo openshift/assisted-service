@@ -775,6 +775,12 @@ spec:
                 description: Json formatted string containing the user overrides for
                   the host's ignition config
                 type: string
+              ignitionEndpointHTTPHeaders:
+                additionalProperties:
+                  type: string
+                description: IgnitionEndpointHTTPHeaders are the additional HTTP headers
+                  used when fetching the ignition.
+                type: object
               ignitionEndpointTokenReference:
                 description: IgnitionEndpointTokenReference references a secret containing
                   an Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
