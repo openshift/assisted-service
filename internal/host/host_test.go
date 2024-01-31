@@ -4853,7 +4853,7 @@ var _ = Describe("UpdateHostProgress", func() {
 
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
-		manager = NewManager(common.GetTestLog(), db, nil, mockEvents, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
 
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())

@@ -15,6 +15,7 @@ import (
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
@@ -25,6 +26,7 @@ import (
 
 type transitionHandler struct {
 	db            *gorm.DB
+	stream        stream.Notifier
 	log           logrus.FieldLogger
 	config        *Config
 	eventsHandler eventsapi.Handler
@@ -110,7 +112,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		extra = append(extra, resetLogsField...)
 		extra = append(extra, resetProgressFields...)
 		var dbHost *common.Host
-		if dbHost, err = hostutil.UpdateHostStatus(params.ctx, log, params.db, th.eventsHandler, hostParam.InfraEnvID, *hostParam.ID, sHost.srcState,
+		if dbHost, err = hostutil.UpdateHostStatus(params.ctx, log, params.db, th.eventsHandler, th.stream, hostParam.InfraEnvID, *hostParam.ID, sHost.srcState,
 			swag.StringValue(hostParam.Status), statusInfoDiscovering, extra...); err != nil {
 			return err
 		} else {
@@ -537,7 +539,7 @@ func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.State
 func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, state *stateHost,
 	statusInfo string, extra ...interface{}) error {
 
-	if host, err := hostutil.UpdateHostStatus(ctx, log, db, th.eventsHandler, state.host.InfraEnvID, *state.host.ID, state.srcState,
+	if host, err := hostutil.UpdateHostStatus(ctx, log, db, th.eventsHandler, th.stream, state.host.InfraEnvID, *state.host.ID, state.srcState,
 		swag.StringValue(state.host.Status), statusInfo, extra...); err != nil {
 		return err
 	} else {
@@ -691,7 +693,7 @@ func (th *transitionHandler) PostHostPreparationTimeout() stateswitch.PostTransi
 		statusInfo := strings.Replace(statusInfoPreparationTimeout, "$FAILING_CONDITIONS", strings.Join(failingConditons, "\n"), 1)
 		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != statusInfo {
 			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
-				th.eventsHandler, sHost.host.InfraEnvID, *sHost.host.ID,
+				th.eventsHandler, th.stream, sHost.host.InfraEnvID, *sHost.host.ID,
 				sHost.srcState, swag.StringValue(sHost.host.Status), statusInfo)
 		}
 		return err
@@ -753,7 +755,7 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 
 		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != statusInfo {
 			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
-				th.eventsHandler, sHost.host.InfraEnvID, *sHost.host.ID,
+				th.eventsHandler, th.stream, sHost.host.InfraEnvID, *sHost.host.ID,
 				sHost.srcState, swag.StringValue(sHost.host.Status), statusInfo)
 		}
 		return err
@@ -781,7 +783,7 @@ func (th *transitionHandler) PostHostStageTimeout(reason string) stateswitch.Pos
 		maxDurationMinutes := int64(th.config.HostStageTimeout(sHost.host.Progress.CurrentStage).Minutes())
 		if swag.StringValue(sHost.host.StatusInfo) != statusInfo && (sHost.host.Progress == nil || !sHost.host.Progress.StageTimedOut) {
 			_, err = hostutil.UpdateHostStageTimeout(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
-				th.eventsHandler, sHost.host.InfraEnvID, *sHost.host.ID,
+				th.eventsHandler, th.stream, sHost.host.InfraEnvID, *sHost.host.ID,
 				sHost.srcState, statusInfo, maxDurationMinutes)
 		}
 		return err

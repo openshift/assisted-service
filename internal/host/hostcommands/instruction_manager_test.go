@@ -15,12 +15,14 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
+	common_testing "github.com/openshift/assisted-service/internal/common/testing"
 	"github.com/openshift/assisted-service/internal/connectivity"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
+	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
@@ -71,7 +73,7 @@ var _ = Describe("instruction_manager", func() {
 	})
 
 	checkStep := func(state string, expectedStepTypes []models.StepType) {
-		checkStepsByState(state, &host, db, mockEvents, instMng, hwValidator, mockRelease, mockVersions, cnValidator, ctx, expectedStepTypes)
+		checkStepsByState(state, &host, db, mockEvents, common_testing.GetDummyNotificationStream(ctrl), instMng, hwValidator, mockRelease, mockVersions, cnValidator, ctx, expectedStepTypes)
 	}
 
 	Context("No DHCP", func() {
@@ -520,14 +522,14 @@ var _ = Describe("agent_upgrade", func() {
 })
 
 func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents *eventsapi.MockHandler,
-	instMng *InstructionManager, mockValidator *hardware.MockValidator, mockRelease *oc.MockRelease, mockVersions *versions.MockHandler,
+	dummyNotificationStream stream.Notifier, instMng *InstructionManager, mockValidator *hardware.MockValidator, mockRelease *oc.MockRelease, mockVersions *versions.MockHandler,
 	mockConnectivity *connectivity.MockValidator, ctx context.Context, expectedStepTypes []models.StepType) {
 
 	mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 		eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 		eventstest.WithHostIdMatcher(host.ID.String()),
 		eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
-	updateReply, updateErr := hostutil.UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status, state, "")
+	updateReply, updateErr := hostutil.UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, dummyNotificationStream, host.InfraEnvID, *host.ID, *host.Status, state, "")
 	ExpectWithOffset(1, updateErr).ShouldNot(HaveOccurred())
 	ExpectWithOffset(1, updateReply).ShouldNot(BeNil())
 	h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)

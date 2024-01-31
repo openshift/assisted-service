@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -36,7 +37,7 @@ func UpdateLogsProgress(_ context.Context, log logrus.FieldLogger, db *gorm.DB, 
 	return host, nil
 }
 
-func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
+func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, stream stream.Notifier, infraEnvId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, newStatus string, statusInfo string, extra ...interface{}) (*common.Host, error) {
 	var host *common.Host
 	var err error
@@ -48,7 +49,7 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 		extra = append(extra, "trigger_monitor_timestamp", time.Now())
 	}
 
-	if host, err = UpdateHost(log, db, infraEnvId, hostId, srcStatus, extra...); err != nil ||
+	if host, err = UpdateHostAndNotify(ctx, log, db, stream, infraEnvId, hostId, srcStatus, extra...); err != nil ||
 		swag.StringValue(host.Status) != newStatus {
 		return nil, errors.Wrapf(err, "failed to update host %s from cluster %s state from %s to %s",
 			hostId, infraEnvId, srcStatus, newStatus)
@@ -66,14 +67,14 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 	return host, nil
 }
 
-func UpdateHostStageTimeout(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
+func UpdateHostStageTimeout(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, stream stream.Notifier, infraEnvId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, statusInfo string, maxDurationMinutes int64, extra ...interface{}) (*common.Host, error) {
 	var host *common.Host
 	var err error
 
 	extra = append(append(make([]interface{}, 0), "status_info", statusInfo, "progress_stage_timed_out", true), extra...)
 
-	if host, err = UpdateHost(log, db, infraEnvId, hostId, srcStatus, extra...); err != nil {
+	if host, err = UpdateHostAndNotify(ctx, log, db, stream, infraEnvId, hostId, srcStatus, extra...); err != nil {
 		return nil, errors.Wrapf(err, "failed to set timeout for host %s belonging to infra-env %s",
 			hostId, infraEnvId)
 	}
@@ -82,6 +83,20 @@ func UpdateHostStageTimeout(ctx context.Context, log logrus.FieldLogger, db *gor
 	log.Infof("host %s from infra env %s has been updated with the following updates %+v", hostId, infraEnvId, extra)
 
 	return host, nil
+}
+
+func UpdateHostAndNotify(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, stream stream.Notifier, infraEnvId strfmt.UUID,
+	hostId strfmt.UUID, srcStatus string, extra ...interface{}) (*common.Host, error) {
+	host, err := UpdateHost(log, db, infraEnvId, hostId, srcStatus, extra...)
+	if err != nil {
+		return nil, err
+	}
+	err = stream.Notify(ctx, host)
+	if err != nil {
+		log.WithError(err).Warning("failed to notify host update event")
+	}
+	return host, nil
+
 }
 
 func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, infraEnvId strfmt.UUID, hostId strfmt.UUID,
