@@ -82,18 +82,25 @@ const (
 	configmapAnnotation                 = "unsupported.agent-install.openshift.io/assisted-service-configmap"
 	imageServiceSkipVerifyTLSAnnotation = "unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls"
 
-	assistedConfigHashAnnotation         = "agent-install.openshift.io/config-hash"
-	mirrorConfigHashAnnotation           = "agent-install.openshift.io/mirror-hash"
-	userConfigHashAnnotation             = "agent-install.openshift.io/user-config-hash"
-	osImagesCAConfigHashAnnotation       = "agent-install.openshift.io/os-images-ca-hash"
-	imageServiceStatefulSetFinalizerName = imageServiceName + "." + aiv1beta1.Group + "/ai-deprovision"
-	agentServiceConfigFinalizerName      = "agentserviceconfig." + aiv1beta1.Group + "/ai-deprovision"
+	assistedConfigHashAnnotation                 = "agent-install.openshift.io/config-hash"
+	mirrorConfigHashAnnotation                   = "agent-install.openshift.io/mirror-hash"
+	userConfigHashAnnotation                     = "agent-install.openshift.io/user-config-hash"
+	osImagesAdditionalParamsConfigHashAnnotation = "agent-install.openshift.io/os-images-additional-params-config-hash"
+	osImagesCAConfigHashAnnotation               = "agent-install.openshift.io/os-images-ca-hash"
+	imageServiceStatefulSetFinalizerName         = imageServiceName + "." + aiv1beta1.Group + "/ai-deprovision"
+	agentServiceConfigFinalizerName              = "agentserviceconfig." + aiv1beta1.Group + "/ai-deprovision"
 
 	servingCertAnnotation    = "service.beta.openshift.io/serving-cert-secret-name"
 	injectCABundleAnnotation = "service.beta.openshift.io/inject-cabundle"
 
 	defaultNamespace                 = "default"
 	osImageDownloadTrustedCAFilename = "tls.crt"
+
+	osImageAdditionalParamsHeadersEnvVar     = "OS_IMAGES_REQUEST_HEADERS"
+	osImageAdditionalParamsQueryParamsEnvVar = "OS_IMAGES_REQUEST_QUERY_PARAMS"
+
+	osImageAdditionalParamsHeadersKey     = "headers"
+	osImageAdditionalParamsQueryParamsKey = "query_params"
 )
 
 var (
@@ -1345,6 +1352,26 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 			})
 		}
 
+		if asc.spec.OSImageAdditionalParamsRef != nil {
+			secret := &corev1.Secret{}
+			namespacedName := types.NamespacedName{Name: asc.spec.OSImageAdditionalParamsRef.Name, Namespace: asc.namespace}
+			err := asc.Client.Get(ctx, namespacedName, secret)
+			if err != nil {
+				return err
+			}
+			osImagesAdditionalParamsConfigHash, err := checksumSecret(secret.Data)
+			if err != nil {
+				return err
+			}
+			setAnnotation(&statefulSet.ObjectMeta, osImagesAdditionalParamsConfigHashAnnotation, osImagesAdditionalParamsConfigHash)
+			if secret.Data[osImageAdditionalParamsHeadersKey] != nil {
+				container.Env = append(container.Env, newSecretEnvVar(osImageAdditionalParamsHeadersEnvVar, osImageAdditionalParamsHeadersKey, asc.spec.OSImageAdditionalParamsRef.Name))
+			}
+			if secret.Data[osImageAdditionalParamsQueryParamsKey] != nil {
+				container.Env = append(container.Env, newSecretEnvVar(osImageAdditionalParamsQueryParamsEnvVar, osImageAdditionalParamsQueryParamsKey, asc.spec.OSImageAdditionalParamsRef.Name))
+			}
+		}
+
 		statefulSet.Spec.Template.Spec.Containers = []corev1.Container{container}
 
 		if asc.spec.ImageStorage != nil {
@@ -2459,6 +2486,23 @@ func registerCACertFailureCondition(ctx context.Context, log logrus.FieldLogger,
 	return nil
 }
 
+func registerOSImagesAdditionalParamsFailureCondition(ctx context.Context, log logrus.FieldLogger, err error, asc ASC) error {
+	conditionsv1.SetStatusConditionNoHeartbeat(
+		asc.conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionTrue,
+			Reason:  aiv1beta1.ReasonOSImageAdditionalParamsRefFailure,
+			Message: err.Error(),
+		},
+	)
+	err = asc.Client.Status().Update(ctx, asc.Object)
+	if err != nil {
+		log.Errorf("Unable to update status of ASC while attempting to set condition failure for condition %s", aiv1beta1.ConditionReconcileCompleted)
+		return err
+	}
+	return nil
+}
+
 func validate(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error) {
 	if asc.spec.OSImageCACertRef != nil && asc.spec.OSImageCACertRef.Name != "" {
 		osImageCACertConfigMap := &corev1.ConfigMap{}
@@ -2473,6 +2517,25 @@ func validate(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error
 		if !ok || len(osImageCACertConfigMap.Data) != 1 {
 			err = fmt.Errorf("ConfigMap referenced by OSImgaeCACertRef is expected to contain a single key named \"%s\"", osImageDownloadTrustedCAFilename)
 			return false, registerCACertFailureCondition(ctx, log, err, asc)
+		}
+	}
+
+	if asc.spec.OSImageAdditionalParamsRef != nil && asc.spec.OSImageAdditionalParamsRef.Name != "" {
+		secret := &corev1.Secret{}
+		namespacedName := types.NamespacedName{Name: asc.spec.OSImageAdditionalParamsRef.Name, Namespace: asc.namespace}
+		err := asc.Client.Get(ctx, namespacedName, secret)
+		if err != nil {
+			return false, registerOSImagesAdditionalParamsFailureCondition(ctx, log, err, asc)
+		}
+		count := 0
+		for k := range secret.Data {
+			if swag.ContainsStrings([]string{"headers", "query_params"}, k) {
+				count++
+			}
+		}
+		if count != len(secret.Data) {
+			err = fmt.Errorf("secret referenced by OSImageAdditionalParamsRef is expected to contain either `headers` and/or `query_params` and no other entries")
+			return false, registerOSImagesAdditionalParamsFailureCondition(ctx, log, err, asc)
 		}
 	}
 

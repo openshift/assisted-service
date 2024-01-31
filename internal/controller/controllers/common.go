@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"hash"
+	"io"
 	"math/big"
 	"net/url"
 	"sort"
@@ -234,6 +236,25 @@ func GetKubeClientSchemes() *runtime.Scheme {
 	return schemes
 }
 
+func newHashAndEncoder() (hash.Hash, io.WriteCloser) {
+	hash := sha256.New()
+	return hash, base64.NewEncoder(base64.StdEncoding, hash)
+}
+
+func hashForKey(data []byte, hash hash.Hash, encoder io.WriteCloser) (hash.Hash, error) {
+	// We base64 encode the data to limit the character set and then use
+	// ":" as a separator.
+	_, err := encoder.Write(data)
+	if err != nil {
+		return nil, err
+	}
+	_, err = hash.Write([]byte(":"))
+	if err != nil {
+		return nil, err
+	}
+	return hash, nil
+}
+
 // checksumMap produces a checksum of a ConfigMap's Data attribute. The checksum
 // can be used to detect when the contents of a ConfigMap have changed.
 func checksumMap(m map[string]string) (string, error) {
@@ -243,28 +264,46 @@ func checksumMap(m map[string]string) (string, error) {
 	}
 	keys.Sort()
 
-	hash := sha256.New()
-	encoder := base64.NewEncoder(base64.StdEncoding, hash)
-
+	hash, encoder := newHashAndEncoder()
 	for _, k := range keys {
 		for _, data := range [][]byte{
 			[]byte(k),
 			[]byte(m[k]),
 		} {
-			// We base64 encode the data to limit the character set and then use
-			// ":" as a separator.
-			_, err := encoder.Write(data)
+			var err error
+			hash, err = hashForKey(data, hash, encoder)
 			if err != nil {
-				return "", err
-			}
-			_, err = hash.Write([]byte(":"))
-			if err != nil {
-				return "", err
+				return "", nil
 			}
 		}
 	}
 	encoder.Close()
 
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+}
+
+// checksumSecret produces a checksum of a Secret's Data attribute. The checksum
+// can be used to detect when the contents of a Secret have changed.
+func checksumSecret(m map[string][]byte) (string, error) {
+	keys := sort.StringSlice([]string{})
+	for k := range m {
+		keys = append(keys, k)
+	}
+	keys.Sort()
+	hash, encoder := newHashAndEncoder()
+	for _, k := range keys {
+		for _, data := range [][]byte{
+			[]byte(k),
+			m[k],
+		} {
+			var err error
+			hash, err = hashForKey(data, hash, encoder)
+			if err != nil {
+				return "", nil
+			}
+		}
+	}
+	encoder.Close()
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 

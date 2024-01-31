@@ -43,6 +43,7 @@ const (
 	testConfigmapName                = "test-configmap"
 	testMirrorRegConfigmapName       = "test-mirror-configmap"
 	testOSImageCACertConfigmapName   = "test-os-image-ca-configmap"
+	testOSImagesAdditionalParamsName = "test-os-images-additional-params-secret"
 )
 
 func newTestReconciler(initObjs ...client.Object) *AgentServiceConfigReconciler {
@@ -173,6 +174,17 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		cluster.Stop()
 	})
 
+	var getOSImagesAdditionalParamsSecret = func(data map[string][]byte) *corev1.Secret {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "osImagesAdditionalParamsSecret",
+				Namespace: reconciler.Namespace,
+			},
+			Data: data,
+		}
+		return secret
+	}
+
 	var getOSImageCACertConfigMap = func(data map[string]string) *corev1.ConfigMap {
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
@@ -184,7 +196,7 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		return configMap
 	}
 
-	var awaitOSImageCACertValidation = func(reason string, status corev1.ConditionStatus, message *string) {
+	var awaitReconcileStatusConditionUpdate = func(reason string, status corev1.ConditionStatus, message *string) {
 		Eventually(func(g Gomega) {
 			_, err := reconciler.Reconcile(ctx, request)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -205,12 +217,12 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		}).Should(Succeed())
 	}
 
-	var awaitOSImageCACertValidationFail = func(message string) {
-		awaitOSImageCACertValidation(aiv1beta1.ReasonOSImageCACertRefFailure, corev1.ConditionTrue, &message)
+	var awaitValidationFail = func(reason string, message string) {
+		awaitReconcileStatusConditionUpdate(reason, corev1.ConditionTrue, &message)
 	}
 
-	var awaitOSImageCACertValidationSuccess = func() {
-		awaitOSImageCACertValidation(aiv1beta1.ReasonReconcileSucceeded, corev1.ConditionTrue, nil)
+	var awaitValidationSuccess = func() {
+		awaitReconcileStatusConditionUpdate(aiv1beta1.ReasonReconcileSucceeded, corev1.ConditionTrue, nil)
 	}
 
 	var assertOSImageCACertVolumePresent = func() {
@@ -249,6 +261,104 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		Expect(hasOsImageCACertVolume).To(BeFalse())
 	}
 
+	var isEnvVarPresent = func(envVar string, key string, secretName string) bool {
+		imageServiceStatefulSet := &appsv1.StatefulSet{}
+		Expect(client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: reconciler.Namespace}, imageServiceStatefulSet)).To(Succeed())
+		for _, e := range imageServiceStatefulSet.Spec.Template.Spec.Containers[0].Env {
+			if e.Name == envVar && e.ValueFrom.SecretKeyRef != nil && e.ValueFrom.SecretKeyRef.Key == key && e.ValueFrom.SecretKeyRef.LocalObjectReference.Name == secretName {
+				return true
+			}
+		}
+		return false
+	}
+
+	var assertEnvVarPresent = func(envVar string, key string, secretName string) {
+		Expect(isEnvVarPresent(envVar, key, secretName)).To(BeTrue())
+	}
+
+	var assertEnvVarAbsent = func(envVar string, key string, secretName string) {
+		Expect(isEnvVarPresent(envVar, key, secretName)).To(BeFalse())
+	}
+
+	It("Should not accept an OSImagesAdditionalParamsSecret that contains entries other than `headers` or `query_params`", func() {
+		osImageAdditionalParamsSecret := getOSImagesAdditionalParamsSecret(map[string][]byte{
+			"headers":          []byte(`{"header_foo":"foo", "header_bar":"bar"}`),
+			"query_params":     []byte(`{"query_foo":"qfoo", "query_bar":"qbar"}`),
+			"some_extra_param": []byte(`{"this":"should not be here!"}`),
+		})
+		subject.Spec.OSImageAdditionalParamsRef = &corev1.LocalObjectReference{
+			Name: osImageAdditionalParamsSecret.Name,
+		}
+		err := client.Create(ctx, osImageAdditionalParamsSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Create(ctx, subject)
+		Expect(err).ToNot(HaveOccurred())
+		awaitValidationFail(aiv1beta1.ReasonOSImageAdditionalParamsRefFailure, "secret referenced by OSImageAdditionalParamsRef is expected to contain either `headers` and/or `query_params` and no other entries")
+	})
+
+	It("Should not accept an OSImagesAdditionalParamsSecret that does not contain entries  `header` or `query_params`", func() {
+		osImagesAdditionalParamsSecret := getOSImagesAdditionalParamsSecret(map[string][]byte{
+			"irrelevant": []byte(`{"foo":"foo", "bar":"bar"}`),
+		})
+		subject.Spec.OSImageAdditionalParamsRef = &corev1.LocalObjectReference{
+			Name: osImagesAdditionalParamsSecret.Name,
+		}
+		err := client.Create(ctx, osImagesAdditionalParamsSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Create(ctx, subject)
+		Expect(err).ToNot(HaveOccurred())
+		awaitValidationFail(aiv1beta1.ReasonOSImageAdditionalParamsRefFailure, "secret referenced by OSImageAdditionalParamsRef is expected to contain either `headers` and/or `query_params` and no other entries")
+	})
+
+	It("Should accept an OSImagesAdditionalParamsSecret that contains only `headers`, EnvFrom mapping should be present", func() {
+		osImagesAdditionalParamsSecret := getOSImagesAdditionalParamsSecret(map[string][]byte{
+			"headers": []byte(`{"foo":"foo", "bar":"bar"}`),
+		})
+		subject.Spec.OSImageAdditionalParamsRef = &corev1.LocalObjectReference{
+			Name: osImagesAdditionalParamsSecret.Name,
+		}
+		err := client.Create(ctx, osImagesAdditionalParamsSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Create(ctx, subject)
+		Expect(err).ToNot(HaveOccurred())
+		awaitValidationSuccess()
+		assertEnvVarPresent(osImageAdditionalParamsHeadersEnvVar, osImageAdditionalParamsHeadersKey, osImagesAdditionalParamsSecret.Name)
+		assertEnvVarAbsent(osImageAdditionalParamsQueryParamsEnvVar, osImageAdditionalParamsQueryParamsKey, osImagesAdditionalParamsSecret.Name)
+	})
+
+	It("Should accept an OSImagesAdditionalParamsSecret that contains only `query_params`, EnvFrom mapping should be present", func() {
+		osImagesAdditionalParamsSecret := getOSImagesAdditionalParamsSecret(map[string][]byte{
+			"query_params": []byte(`{"query_foo":"qfoo", "query_bar":"qbar"}`),
+		})
+		subject.Spec.OSImageAdditionalParamsRef = &corev1.LocalObjectReference{
+			Name: osImagesAdditionalParamsSecret.Name,
+		}
+		err := client.Create(ctx, osImagesAdditionalParamsSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Create(ctx, subject)
+		Expect(err).ToNot(HaveOccurred())
+		awaitValidationSuccess()
+		assertEnvVarPresent(osImageAdditionalParamsQueryParamsEnvVar, osImageAdditionalParamsQueryParamsKey, osImagesAdditionalParamsSecret.Name)
+		assertEnvVarAbsent(osImageAdditionalParamsHeadersEnvVar, osImageAdditionalParamsHeadersKey, osImagesAdditionalParamsSecret.Name)
+	})
+
+	It("Should accept an OSImagesAdditionalParamsSecret that contains both `headers` and `query_params`, EnvFrom mappings should be present", func() {
+		osImagesAdditionalParamsSecret := getOSImagesAdditionalParamsSecret(map[string][]byte{
+			"headers":      []byte(`{"foo":"foo", "bar":"bar"}`),
+			"query_params": []byte(`{"query_foo":"qfoo", "query_bar":"qbar"}`),
+		})
+		subject.Spec.OSImageAdditionalParamsRef = &corev1.LocalObjectReference{
+			Name: osImagesAdditionalParamsSecret.Name,
+		}
+		err := client.Create(ctx, osImagesAdditionalParamsSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Create(ctx, subject)
+		Expect(err).ToNot(HaveOccurred())
+		awaitValidationSuccess()
+		assertEnvVarPresent(osImageAdditionalParamsQueryParamsEnvVar, osImageAdditionalParamsQueryParamsKey, osImagesAdditionalParamsSecret.Name)
+		assertEnvVarPresent(osImageAdditionalParamsHeadersEnvVar, osImageAdditionalParamsHeadersKey, osImagesAdditionalParamsSecret.Name)
+	})
+
 	It("Should not accept an OSImageCACert Config Map that contains multiple files", func() {
 		osImageCACertConfigMap := getOSImageCACertConfigMap(
 			map[string]string{
@@ -262,7 +372,7 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Create(ctx, subject)
 		Expect(err).ToNot(HaveOccurred())
-		awaitOSImageCACertValidationFail(fmt.Sprintf("ConfigMap referenced by OSImgaeCACertRef is expected to contain a single key named \"%s\"", osImageDownloadTrustedCAFilename))
+		awaitValidationFail(aiv1beta1.ReasonOSImageCACertRefFailure, fmt.Sprintf("ConfigMap referenced by OSImgaeCACertRef is expected to contain a single key named \"%s\"", osImageDownloadTrustedCAFilename))
 	})
 
 	It("Should not accept an OSImageCACert Config Map that contains an incorrectly named file", func() {
@@ -277,7 +387,7 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Create(ctx, subject)
 		Expect(err).ToNot(HaveOccurred())
-		awaitOSImageCACertValidationFail(fmt.Sprintf("ConfigMap referenced by OSImgaeCACertRef is expected to contain a single key named \"%s\"", osImageDownloadTrustedCAFilename))
+		awaitValidationFail(aiv1beta1.ReasonOSImageCACertRefFailure, fmt.Sprintf("ConfigMap referenced by OSImgaeCACertRef is expected to contain a single key named \"%s\"", osImageDownloadTrustedCAFilename))
 
 		// Now update the config map and see that the condition changes...
 		osImageCACertConfigMap = getOSImageCACertConfigMap(
@@ -286,7 +396,7 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 			})
 		err = client.Update(ctx, osImageCACertConfigMap)
 		Expect(err).ToNot(HaveOccurred())
-		awaitOSImageCACertValidationSuccess()
+		awaitValidationSuccess()
 
 		// Grab the statefulset and verify that a volume has been mapped
 		assertOSImageCACertVolumePresent()
@@ -304,7 +414,7 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Create(ctx, subject)
 		Expect(err).ToNot(HaveOccurred())
-		awaitOSImageCACertValidationSuccess()
+		awaitValidationSuccess()
 		assertOSImageCACertVolumePresent()
 	})
 
@@ -312,7 +422,7 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		subject.Spec.OSImageCACertRef = nil
 		err := client.Create(ctx, subject)
 		Expect(err).ToNot(HaveOccurred())
-		awaitOSImageCACertValidationSuccess()
+		awaitValidationSuccess()
 		assertOSImageCACertVolumeAbsent()
 	})
 
@@ -1583,6 +1693,29 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
 			Expect(found.ObjectMeta.Annotations).To(HaveLen(1))
 		})
+
+		It("should add osImagesAdditionalParamsConfigHashAnnotation annotation if the OSImagesAdditionalParams secret is present in AgentServiceConfig", func() {
+			asc = newASCOSImageAdditionalParametersSecretConfig()
+			osImageAdditionalParametersSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testOSImagesAdditionalParamsName,
+					Namespace: testNamespace,
+				},
+				Data: map[string][]byte{
+					"headers":      []byte(`{"header_foo":"foo", "header_bar":"bar"}`),
+					"query_params": []byte(`{"query_foo":"qfoo", "query_bar":"qbar"}`),
+				},
+			}
+			ascr = newTestReconciler(asc, osImageAdditionalParametersSecret)
+			ascc = initASC(ascr, asc)
+			obj, mutateFn := newImageServiceStatefulSet(ctx, log, ascc)
+			_, err := controllerutil.CreateOrUpdate(ctx, ascc.Client, obj, mutateFn)
+			Expect(err).To(BeNil())
+
+			found := &appsv1.StatefulSet{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(found.ObjectMeta.Annotations).To(HaveLen(1))
+		})
 	})
 
 	Describe("ConfigMap hashing as annotations on assisted-service deployment", func() {
@@ -2208,6 +2341,14 @@ func newASCOSImageCACertConfig() *aiv1beta1.AgentServiceConfig {
 	asc := newASCDefault()
 	asc.Spec.OSImageCACertRef = &corev1.LocalObjectReference{
 		Name: testOSImageCACertConfigmapName,
+	}
+	return asc
+}
+
+func newASCOSImageAdditionalParametersSecretConfig() *aiv1beta1.AgentServiceConfig {
+	asc := newASCDefault()
+	asc.Spec.OSImageAdditionalParamsRef = &corev1.LocalObjectReference{
+		Name: testOSImagesAdditionalParamsName,
 	}
 	return asc
 }

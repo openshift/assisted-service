@@ -235,6 +235,10 @@ spec:
       kind: AgentServiceConfig
       name: agentserviceconfigs.agent-install.openshift.io
       specDescriptors:
+      - description: OSImageAdditionalParamsRef is a reference to a secret containing
+          a headers and query parameters to be used during OS image fetch.
+        displayName: OS Images additional parameters reference
+        path: OSImageAdditionalParamsRef
       - description: OSImageCACertRef is a reference to a config map containing a
           certificate authority certificate this is an optional certificate to allow
           a user to add a certificate authority for a HTTPS source of images this
