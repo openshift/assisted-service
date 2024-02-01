@@ -38,6 +38,14 @@ func (c *tangConnectivityCheckCmd) getTangServersFromHostIgnition(host *models.H
 		if err != nil {
 			return nil, err
 		}
+		if luks == nil {
+			return nil, nil
+		}
+		if luks.Clevis == nil {
+			// This cluster does not use tang, so we shouldn't perform a tang connectivity check
+			c.log.Warn("luks clevis configuration is missing or incomplete in the host ignition, disk encryption will be assumed to be disabled. (MGMT-16721)")
+			return nil, nil
+		}
 		if len(luks.Clevis.Tang) != 0 {
 			if tangServers, err = json.Marshal(luks.Clevis.Tang); err != nil {
 				return nil, err
