@@ -168,7 +168,9 @@ func (feature *CnvFeature) getSupportLevel(filters SupportLevelFilters) models.S
 }
 
 func (feature *CnvFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
-	return nil
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+	}
 }
 
 func (feature *CnvFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
