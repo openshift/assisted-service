@@ -233,6 +233,7 @@ func (feature *VsphereIntegrationFeature) getIncompatibleFeatures(openshiftVersi
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
+		models.FeatureSupportLevelIDCNV,
 	}
 
 	if isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion); isNotSupported || err != nil {

@@ -481,7 +481,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)
 			Expect(err).To(Not(BeNil()))
 		})
-		It("Nutanix is activated with incompatible features - fail", func() {
+		It("Nutanix with incompatible features - fail", func() {
 			operatorsCNV := []*models.MonitoredOperator{
 				{
 					Name:             "cnv",
@@ -516,6 +516,25 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				MonitoredOperators: operatorsMCE,
 			}}
 			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)
+			Expect(err).To(HaveOccurred())
+		})
+		It("VSphere with incompatible features - fail", func() {
+			operatorsCNV := []*models.MonitoredOperator{
+				{
+					Name:             "cnv",
+					Namespace:        "openshift-cnv",
+					OperatorType:     models.OperatorTypeOlm,
+					SubscriptionName: "hco-operatorhub",
+					TimeoutSeconds:   60 * 60,
+				},
+			}
+			cluster := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion:   "4.14",
+				CPUArchitecture:    models.ClusterCPUArchitectureX8664,
+				Platform:           &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+				MonitoredOperators: operatorsCNV,
+			}}
+			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)
 			Expect(err).To(HaveOccurred())
 		})
 	})
