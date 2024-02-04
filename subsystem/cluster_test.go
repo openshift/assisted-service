@@ -2900,13 +2900,14 @@ spec:
 	Context("NoProxy with Wildcard", func() {
 
 		It("OpenshiftVersion does support NoProxy wildcard", func() {
+
 			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					BaseDNSDomain:        "example.com",
 					ClusterNetworks:      []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:      []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:                 swag.String("sno-cluster"),
-					OpenshiftVersion:     swag.String("4.9.0"),
+					OpenshiftVersion:     swag.String(getHighestOpenshiftVersion()),
 					NoProxy:              swag.String("*"),
 					PullSecret:           swag.String(pullSecret),
 					SSHPublicKey:         sshPublicKey,

@@ -383,7 +383,6 @@ ci-deploy-for-subsystem: _verify_cluster generate-keys
 	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
 	export IPV6_SUPPORT="True" && export ENABLE_ORG_TENANCY="True" && export ENABLE_ORG_BASED_FEATURE_GATES="True" && \
 	$(MAKE) deploy-wiremock deploy-all
-
 patch-service: _verify_cluster update-local-image
 ifdef DEBUG_SERVICE
 	$(KUBECTL) patch deployment assisted-service --type json -p='[{"op": "add", "path": "/spec/template/spec/containers/0/ports/-", "value": {"containerPort": 40000}}]'
@@ -394,6 +393,7 @@ endif
 
 deploy-test: _verify_cluster generate-keys update-local-image
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
+	export OS_IMAGES="$(subst ",\", $(shell python3 tools/get_os_versions_for_subsystem_test.py | tr -d "\n\t "))" && \
 	export SERVICE=${LOCAL_SERVICE_IMAGE} && export TEST_FLAGS=--subsystem-test && \
 	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && \
 	export IPV6_SUPPORT="True" && ENABLE_ORG_TENANCY="True" && ENABLE_ORG_BASED_FEATURE_GATES="True" && \
