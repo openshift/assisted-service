@@ -508,7 +508,6 @@ var _ = Describe("Day2 cluster tests", func() {
 		h = getHostV2(infraEnvID, *host.ID)
 		Expect(*h.Status).Should(Equal("discovering"))
 	})
-
 })
 
 var _ = Describe("Day2 cluster with bind/unbind hosts", func() {
