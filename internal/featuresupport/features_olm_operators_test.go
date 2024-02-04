@@ -178,7 +178,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			for _, feature := range features {
 				Expect(isFeatureCompatible("4.15", featuresList[feature], lvmFeatureList)).To(BeNil())
 			}
-
 		})
 	})
 })

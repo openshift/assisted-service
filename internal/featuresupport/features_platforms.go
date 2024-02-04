@@ -180,6 +180,7 @@ func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) *[]mod
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDMCE,
+		models.FeatureSupportLevelIDCNV,
 		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 	}
 }
