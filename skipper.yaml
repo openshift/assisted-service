@@ -11,7 +11,6 @@ volumes:
   - $MINIKUBE_HOME:$MINIKUBE_HOME
   - $HOME/.minikube:$HOME/.minikube
   - $HOME/.kube/:$HOME/.kube
-  - $HOME/.docker/:$HOME/.docker
   - $KUBECONFIG:$KUBECONFIG
   - /etc/subuid:/etc/subuid
   - /etc/subgid:/etc/subgid
