@@ -325,6 +325,13 @@ func (in *AgentSpec) DeepCopyInto(out *AgentSpec) {
 		*out = new(IgnitionEndpointTokenReference)
 		**out = **in
 	}
+	if in.IgnitionEndpointHTTPHeaders != nil {
+		in, out := &in.IgnitionEndpointHTTPHeaders, &out.IgnitionEndpointHTTPHeaders
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.NodeLabels != nil {
 		in, out := &in.NodeLabels, &out.NodeLabels
 		*out = make(map[string]string, len(*in))

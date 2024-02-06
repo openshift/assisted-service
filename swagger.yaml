@@ -4899,6 +4899,12 @@ definitions:
         x-nullable: true
         type: string
         description: A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
+      ignition_endpoint_http_headers:
+        type: array
+        x-nullable: true
+        description: JSON-formatted string of additional HTTP headers when fetching the ignition.
+        items: 
+            $ref: '#/definitions/ignition-endpoint-http-headers-params'
       node_labels:
         type: array
         description: Labels to be added to the corresponding node.
@@ -6364,6 +6370,19 @@ definitions:
     enum:
       - 'none'
       - 'install'
+
+  ignition-endpoint-http-headers-params:
+    type: object
+    required:
+    - 'key'
+    - 'value'
+    properties:
+      key:
+        description: The key for the http header's key-value pair.
+        type: string
+      value:
+        description: The value for the http header's key-value pair.
+        type: string
 
   node-label-params:
     type: object
