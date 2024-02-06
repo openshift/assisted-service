@@ -404,7 +404,7 @@ func getDHCPArgPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, dual
 	}
 	if found {
 		if dualStack {
-			dhcp = "dhcp,dhcp6"
+			dhcp = "on"
 		}
 		log.Debugf("Host %s: Added kernel argument ip=%s:%s", hostID, nic.Name, dhcp)
 		return append(args, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp)), nil

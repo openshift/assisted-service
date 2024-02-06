@@ -116,6 +116,7 @@ type NutanixInstallConfigPlatform struct {
 	PrismCentral         NutanixPrismCentral   `yaml:"prismCentral"`
 	PrismElements        []NutanixPrismElement `yaml:"prismElements"`
 	SubnetUUIDs          []strfmt.UUID         `yaml:"subnetUUIDs"`
+	FailureDomains []NutanixFailureDomain `yaml:"failureDomains,omitempty"`
 }
 
 type NutanixPrismCentral struct {
@@ -140,6 +141,23 @@ type NutanixPrismElement struct {
 	UUID                           strfmt.UUID     `yaml:"uuid"`
 	Name                           string          `yaml:"name"`
 }
+
+// NutanixFailureDomain configures failure domain information for the Nutanix platform.
+type NutanixFailureDomain struct {
+	// Name defines the unique name of a failure domain.
+	Name string `json:"name"`
+
+	// prismElement holds the identification (name, uuid) and the optional endpoint address and port of the Nutanix Prism Element.
+	// When a cluster-wide proxy is installed, by default, this endpoint will be accessed via the proxy.
+	// Should you wish for communication with this endpoint not to be proxied, please add the endpoint to the
+	// proxy spec.noProxy list.
+	PrismElement NutanixPrismElement `json:"prismElement"`
+
+	// SubnetUUIDs identifies the network subnets of the Prism Element.
+	// Currently we only support one subnet for a failure domain.
+	SubnetUUIDs []string `json:"subnetUUIDs"`
+}
+
 
 // CloudControllerManager describes the type of cloud controller manager to be enabled.
 type CloudControllerManager string
