@@ -974,7 +974,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	return &newCluster, nil
 }
 
-func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context, cluster *common.Cluster, host *models.Host, ignitionEndpointToken string) error {
+func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context, cluster *common.Cluster, host *models.Host, ignitionEndpointToken, ignitionEndpointHTTPHeaders string) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Starting createAndUploadDay2NodeIgnition for cluster %s, host %s", cluster.ID, host.ID)
 
@@ -988,7 +988,7 @@ func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context
 		caCert = cluster.IgnitionEndpoint.CaCertificate
 	}
 
-	fullIgnition, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, caCert, ignitionEndpointToken, host)
+	fullIgnition, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, caCert, ignitionEndpointToken, ignitionEndpointHTTPHeaders, host)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create ignition string for cluster %s, host %s", cluster.ID, host.ID)
 	}
@@ -1430,9 +1430,9 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 			return err
 		}
 		// move host to installing
-		err = b.createAndUploadDay2NodeIgnition(ctx, cluster, &h.Host, h.IgnitionEndpointToken)
+		err = b.createAndUploadDay2NodeIgnition(ctx, cluster, &h.Host, h.IgnitionEndpointToken, h.IgnitionEndpointHTTPHeaders)
 		if err != nil {
-			log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
+			log.WithError(err).Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
 			return err
 		}
 		if installErr := b.hostApi.Install(ctx, &h.Host, tx); installErr != nil {
@@ -1501,7 +1501,7 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 	if cluster, err = common.GetClusterFromDB(b.db, *h.ClusterID, common.SkipEagerLoading); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	err = b.createAndUploadDay2NodeIgnition(ctx, cluster, h, host.IgnitionEndpointToken)
+	err = b.createAndUploadDay2NodeIgnition(ctx, cluster, h, host.IgnitionEndpointToken, host.IgnitionEndpointHTTPHeaders)
 	if err != nil {
 		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
 		return common.GenerateErrorResponder(err)

@@ -214,7 +214,7 @@ type Generator interface {
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
 	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string) (string, error)
-	FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken string, host *models.Host) ([]byte, error)
+	FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken, ignitionEndpointHTTPHeaders string, host *models.Host) ([]byte, error)
 }
 
 type installerGenerator struct {
@@ -1906,7 +1906,7 @@ func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(ctx context.Con
 	return filesList, nil
 }
 
-func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken string, host *models.Host) ([]byte, error) {
+func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken, ignitionEndpointHTTPHeaders string, host *models.Host) ([]byte, error) {
 	var ignitionParams = map[string]interface{}{
 		// https://github.com/openshift/machine-config-operator/blob/master/docs/MachineConfigServer.md#endpoint
 		"SOURCE":  url,
@@ -1915,6 +1915,17 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 	}
 	if bearerToken != "" {
 		ignitionParams["HEADERS"].(map[string]string)["Authorization"] = fmt.Sprintf("Bearer %s", bearerToken)
+	}
+
+	if ignitionEndpointHTTPHeaders != "" {
+		additionalHeaders := make(map[string]string)
+		if err := json.Unmarshal([]byte(ignitionEndpointHTTPHeaders), &additionalHeaders); err != nil {
+			return nil, errors.Wrapf(err, "failed to unmarshal ignition endpoint HTTP headers for host %s", host.ID)
+		}
+		for k, v := range additionalHeaders {
+			ignitionParams["HEADERS"].(map[string]string)[k] = v
+		}
+
 	}
 
 	if caCert != nil {
