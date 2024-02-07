@@ -1013,7 +1013,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=eth1:dhcp,dhcp6"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=eth1:on"]`))
 	})
 	It("existing args updated with ip=<nic>:dhcp when machine CIDR is IPv4", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
