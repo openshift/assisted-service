@@ -5969,6 +5969,11 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 		if err != nil {
 			return err
 		}
+		err = b.updateIgnitionEndpointHTTPHeaders(ctx, host, params.HostUpdateParams.IgnitionEndpointHTTPHeaders, tx)
+		if err != nil {
+			return err
+		}
+
 		err = b.updateNodeLabels(ctx, host, params.HostUpdateParams.NodeLabels, tx)
 		if err != nil {
 			return err
@@ -6115,6 +6120,32 @@ func (b *bareMetalInventory) updateHostIgnitionEndpointToken(ctx context.Context
 			host.ID,
 			host.InfraEnvID)
 		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateIgnitionEndpointHTTPHeaders(ctx context.Context, host *common.Host, ignitionEndpointHTTPHeadersList []*models.IgnitionEndpointHTTPHeadersParams, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if ignitionEndpointHTTPHeadersList == nil {
+		log.Infof("No request for ignition endpoint HTTP Headers update for host %s", host.ID)
+		return nil
+	}
+
+	ignitionEndpointHTTPHeaders := make(map[string]string)
+	for _, hdr := range ignitionEndpointHTTPHeadersList {
+		ignitionEndpointHTTPHeaders[*hdr.Key] = *hdr.Value
+	}
+
+	ignitionEndpointHTTPHeadersStr, err := json.Marshal(ignitionEndpointHTTPHeaders)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "failed to marshal ignition endpoint HTTP Headers for host %s", host.ID))
+	}
+
+	err = b.hostApi.UpdateIgnitionEndpointHTTPHeaders(ctx, &host.Host, string(ignitionEndpointHTTPHeadersStr), db)
+	if err != nil {
+		log.WithError(err).Errorf("failed to set ignition endpoint HTTP Headers <%s> host <%s>, infra env <%s>",
+			ignitionEndpointHTTPHeadersStr, host.ID, host.InfraEnvID)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return nil
 }

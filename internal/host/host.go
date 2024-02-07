@@ -108,6 +108,7 @@ type API interface {
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
 	UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, h *models.Host, token string) error
+	UpdateIgnitionEndpointHTTPHeaders(ctx context.Context, h *models.Host, nodeLabelsStr string, db *gorm.DB) error
 	UpdateNodeLabels(ctx context.Context, h *models.Host, nodeLabelsStr string, db *gorm.DB) error
 	UpdateNodeSkipDiskFormatting(ctx context.Context, h *models.Host, skipDiskFormatting string, db *gorm.DB) error
 	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
@@ -806,6 +807,22 @@ func (m *Manager) UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, 
 		"ignition_endpoint_token_set": tokenSet,
 		"trigger_monitor_timestamp":   time.Now(),
 	}
+	return m.updateHost(ctx, cdb, h, updates).Error
+}
+
+func (m *Manager) UpdateIgnitionEndpointHTTPHeaders(ctx context.Context, h *models.Host, nodeLabelsStr string, db *gorm.DB) error {
+	hostStatus := swag.StringValue(h.Status)
+	if !funk.ContainsString(hostStatusesBeforeInstallationOrUnbound[:], hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, ignition endpoint HTTP headers can be set only in one of %s states",
+				hostStatus, hostStatusesBeforeInstallation[:]))
+	}
+
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+	updates := map[string]interface{}{"ignition_endpoint_http_headers": nodeLabelsStr, "trigger_monitor_timestamp": time.Now()}
 	return m.updateHost(ctx, cdb, h, updates).Error
 }
 
