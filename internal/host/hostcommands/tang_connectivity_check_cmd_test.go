@@ -39,36 +39,88 @@ var _ = Describe("tangConnectivitycheckcmd", func() {
 
 	})
 
-	It("get_step: Tang imported cluster should use host ignition", func() {
+	const hostIgnition = `{
+		"ignition": {
+		  "config": {},
+		  "version": "3.2.0"
+		},
+		"storage": {
+			"luks": [
+				{
+				  "clevis": {
+					"tang": [
+					  {
+						"thumbprint": "nWW89qAs1hDPKiIcae-ey2cQmUk",
+						"url": "http://foo.bar"
+					  }
+					]
+				  },
+				  "device": "/dev/disk/by-partlabel/root",
+				  "name": "root",
+				  "options": [
+					"--cipher",
+					"aes-cbc-essiv:sha256"
+				  ],
+				  "wipeVolume": true
+				}
+			],
+		  "files": []
+		}
+	  }`
 
-		const hostIgnition = `{
-			"ignition": {
-			  "config": {},
-			  "version": "3.2.0"
-			},
-			"storage": {
-				"luks": [
-					{
-					  "clevis": {
-						"tang": [
-						  {
-							"thumbprint": "nWW89qAs1hDPKiIcae-ey2cQmUk",
-							"url": "http://foo.bar"
-						  }
-						]
-					  },
-					  "device": "/dev/disk/by-partlabel/root",
-					  "name": "root",
-					  "options": [
-						"--cipher",
-						"aes-cbc-essiv:sha256"
-					  ],
-					  "wipeVolume": true
-					}
-				],
-			  "files": []
-			}
-		  }`
+	const hostIgnitionWithoutLuks = `{
+		"ignition": {
+		  "config": {},
+		  "version": "3.2.0"
+		},
+		"storage": {
+		  "files": []
+		}
+	  }`
+
+	const hostIgnitionWithoutClevis = `{
+		"ignition": {
+		  "config": {},
+		  "version": "3.2.0"
+		},
+		"storage": {
+			"luks": [
+			],
+		  "files": []
+		}
+	  }`
+
+	It("Should not panic if Luks is undefined", func() {
+		imported := true
+		cluster.Imported = &imported
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
+			IsSuccess: true,
+			Ignition:  hostIgnitionWithoutLuks,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		host.APIVipConnectivity = string(apiVipConnectivity)
+		Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
+		stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+		Expect(stepErr).ShouldNot(HaveOccurred())
+	})
+
+	It("Should not panic if Clevis is undefined", func() {
+		imported := true
+		cluster.Imported = &imported
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
+			IsSuccess: true,
+			Ignition:  hostIgnitionWithoutClevis,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		host.APIVipConnectivity = string(apiVipConnectivity)
+		Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
+		stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+		Expect(stepErr).ShouldNot(HaveOccurred())
+	})
+
+	It("get_step: Tang imported cluster should use host ignition", func() {
 
 		By("Set cluster to imported and inject host ignition for test", func() {
 			imported := true

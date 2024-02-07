@@ -420,7 +420,7 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 			return ValidationPending, "Missing ignition information"
 		}
 		if luks == nil || luks.Clevis == nil {
-			// Disk encryption is disabled for workers on day1 cluster
+			// No tang servers to validate for the target cluster
 			return ValidationSuccessSuppressOutput, ""
 		}
 		c.cluster.DiskEncryption = &models.DiskEncryption{}
