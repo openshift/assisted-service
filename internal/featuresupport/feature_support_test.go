@@ -768,11 +768,30 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 		Context("Test validate active features", func() {
 			DescribeTable(
-				"Validation pass",
+				"Valid VipDhcpAllocation and OpenShift version",
+				func(openshiftVersion string) {
+					Expect(IsFeatureAvailable(models.FeatureSupportLevelIDVIPAUTOALLOC, openshiftVersion, swag.String("anyarch"))).To(BeFalse())
+				},
+				Entry("VipAutoAllocation disabled for 4.15", "4.15.3"),
+				Entry("VipAutoAllocation disabled for 4.16", "4.16.2"),
+			)
+
+			DescribeTable(
+				"Valid VipDhcpAllocation and OpenShift version",
+				func(openshiftVersion string) {
+					Expect(IsFeatureAvailable(models.FeatureSupportLevelIDVIPAUTOALLOC, openshiftVersion, swag.String("anyarch"))).To(BeTrue())
+				},
+				Entry("VipAutoAllocation enabled for 4.14", "4.14.3"),
+				Entry("VipAutoAllocation enabled for 4.12", "4.12.24"),
+			)
+
+			DescribeTable(
+				"Valid Network Type and OpenShift version",
 				func(openshiftVersion, networkType string) {
 					cluster := &common.Cluster{Cluster: models.Cluster{
 						OpenshiftVersion: openshiftVersion,
 						NetworkType:      &networkType,
+						Platform:         &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
 					}}
 					log := logrus.New()
 
@@ -786,7 +805,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			)
 
 			DescribeTable(
-				"Validation failed",
+				"Invalid Network Type and OpenShift version",
 				func(openshiftVersion, networkType, expectedErrorMessage string) {
 					cluster := &common.Cluster{Cluster: models.Cluster{
 						OpenshiftVersion: openshiftVersion,
