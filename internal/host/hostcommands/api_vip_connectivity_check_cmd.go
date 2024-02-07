@@ -56,6 +56,14 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 		requestHeaders = append(requestHeaders, &models.APIVipConnectivityAdditionalRequestHeader{Key: "Authorization", Value: fmt.Sprintf("Bearer %s", commonHost.IgnitionEndpointToken)})
 		request.IgnitionEndpointToken = &commonHost.IgnitionEndpointToken
 	}
+	if commonHost.IgnitionEndpointHTTPHeaders != "" {
+		additionalHeaders := make(map[string]string)
+		if err = json.Unmarshal([]byte(commonHost.IgnitionEndpointHTTPHeaders), &additionalHeaders); err == nil { //nolint:errcheck // errors adding additional headers shouldn't prevent the request from being sent
+			for k, v := range additionalHeaders {
+				requestHeaders = append(requestHeaders, &models.APIVipConnectivityAdditionalRequestHeader{Key: k, Value: v})
+			}
+		}
+	}
 	request.RequestHeaders = requestHeaders
 
 	requestBytes, err := json.Marshal(request)
