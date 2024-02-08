@@ -33,14 +33,14 @@ First we must prepare the minikube cluster -
 podman network rm minikube || true
 
 # Start minikube
-minikube start --driver=podman --addons dashboard --force
+minikube start --insecure-registry=$(hostname --ip):5000 --driver=podman --addons dashboard --force
 
 # enable the registry addon using quay.io images (to overcome docker-hub's rate-limiter)
 minikube addons enable registry --images="Registry=quay.io/libpod/registry:2.8"
 
 # Make the registry addon accessible locally:
-nohup kubectl port-forward svc/registry 5000:80 -n kube-system &>/dev/null &
-export LOCAL_SUBSYSTEM_REGISTRY=localhost:5000
+nohup kubectl port-forward svc/registry --address 0.0.0.0 5000:80 -n kube-system &>/dev/null &
+export LOCAL_SUBSYSTEM_REGISTRY=$(hostname --ip):5000
 
 echo "Waiting for registry to become ready..."
 while ! curl --location $LOCAL_SUBSYSTEM_REGISTRY; do
