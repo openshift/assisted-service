@@ -22,8 +22,7 @@ var finalizingStagesTimeoutsDefaults = map[models.FinalizingStage]time.Duration{
 	models.FinalizingStageWaitingForFinalizing:                    longWaitTimeout,
 	models.FinalizingStageWaitingForClusterOperators:              longWaitTimeout,
 	models.FinalizingStageAddingRouterCa:                          generalWaitTimeout,
-	models.FinalizingStageWaitingForOlmOperators:                  shortWaitTimeout,
-	models.FinalizingStageApplyingManifests:                       shortWaitTimeout,
+	models.FinalizingStageApplyingOlmManifests:                    shortWaitTimeout,
 	models.FinalizingStageWaitingForOlmOperatorsCsv:               generalWaitTimeout,
 	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization: generalWaitTimeout,
 	models.FinalizingStageDone:                                    shortWaitTimeout,
@@ -33,11 +32,16 @@ var finalizingStages = []models.FinalizingStage{
 	models.FinalizingStageWaitingForFinalizing,
 	models.FinalizingStageWaitingForClusterOperators,
 	models.FinalizingStageAddingRouterCa,
-	models.FinalizingStageWaitingForOlmOperators,
-	models.FinalizingStageApplyingManifests,
+	models.FinalizingStageApplyingOlmManifests,
 	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization,
 	models.FinalizingStageWaitingForOlmOperatorsCsv,
 	models.FinalizingStageDone,
+}
+
+var nonFailingFinalizingStages = []models.FinalizingStage{
+	models.FinalizingStageApplyingOlmManifests,
+	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization,
+	models.FinalizingStageWaitingForOlmOperatorsCsv,
 }
 
 func convertStageToEnvVar(stage models.FinalizingStage) string {

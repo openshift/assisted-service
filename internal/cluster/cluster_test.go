@@ -4084,17 +4084,19 @@ var _ = Describe("ResetClusterFiles", func() {
 
 var _ = Describe("update finalizing stage", func() {
 	var (
-		ctx       = context.Background()
-		db        *gorm.DB
-		dbName    string
-		clusterID strfmt.UUID
-		capi      API
-		ctrl      *gomock.Controller
+		ctx        = context.Background()
+		db         *gorm.DB
+		dbName     string
+		clusterID  strfmt.UUID
+		capi       API
+		ctrl       *gomock.Controller
+		mockEvents *eventsapi.MockHandler
 	)
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
 	createCluster := func(status string) {
@@ -4134,6 +4136,7 @@ var _ = Describe("update finalizing stage", func() {
 		stage := st
 		It(fmt.Sprintf("success for stage '%s'", stage), func() {
 			createCluster(models.ClusterStatusFinalizing)
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)
 			start := time.Now()
 			Expect(capi.UpdateFinalizingStage(ctx, clusterID, stage)).ToNot(HaveOccurred())
 			duration := time.Since(start)

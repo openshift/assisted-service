@@ -119,6 +119,14 @@ x-events:
     cluster_status: string
     status_info: string
 
+- name: cluster_finalizing_stage_updated
+  message: "Updated finalizing stage of the cluster to '{finalizing_stage}'"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    finalizing_stage: string
+
 - name: cluster_installation_reset
   message: "Reset cluster installation"
   event_type: cluster

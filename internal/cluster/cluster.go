@@ -1838,6 +1838,7 @@ func (m *Manager) UpdateFinalizingStage(ctx context.Context, clusterID strfmt.UU
 		}).Error; err != nil {
 			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "update finalizing stage for cluster %s", clusterID.String()))
 		}
+		eventgen.SendClusterFinalizingStageUpdatedEvent(ctx, m.eventsHandler, clusterID, string(finalizingStage))
 	}
 	return nil
 }

@@ -1119,6 +1119,79 @@ func (e *ClusterStatusUpdatedEvent) FormatMessage() string {
 }
 
 //
+// Event cluster_finalizing_stage_updated
+//
+type ClusterFinalizingStageUpdatedEvent struct {
+    eventName string
+    ClusterId strfmt.UUID
+    FinalizingStage string
+}
+
+var ClusterFinalizingStageUpdatedEventName string = "cluster_finalizing_stage_updated"
+
+func NewClusterFinalizingStageUpdatedEvent(
+    clusterId strfmt.UUID,
+    finalizingStage string,
+) *ClusterFinalizingStageUpdatedEvent {
+    return &ClusterFinalizingStageUpdatedEvent{
+        eventName: ClusterFinalizingStageUpdatedEventName,
+        ClusterId: clusterId,
+        FinalizingStage: finalizingStage,
+    }
+}
+
+func SendClusterFinalizingStageUpdatedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    clusterId strfmt.UUID,
+    finalizingStage string,) {
+    ev := NewClusterFinalizingStageUpdatedEvent(
+        clusterId,
+        finalizingStage,
+    )
+    eventsHandler.SendClusterEvent(ctx, ev)
+}
+
+func SendClusterFinalizingStageUpdatedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    clusterId strfmt.UUID,
+    finalizingStage string,
+    eventTime time.Time) {
+    ev := NewClusterFinalizingStageUpdatedEvent(
+        clusterId,
+        finalizingStage,
+    )
+    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *ClusterFinalizingStageUpdatedEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *ClusterFinalizingStageUpdatedEvent) GetSeverity() string {
+    return "info"
+}
+func (e *ClusterFinalizingStageUpdatedEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
+}
+
+
+
+func (e *ClusterFinalizingStageUpdatedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{finalizing_stage}", fmt.Sprint(e.FinalizingStage),
+    )
+    return r.Replace(*message)
+}
+
+func (e *ClusterFinalizingStageUpdatedEvent) FormatMessage() string {
+    s := "Updated finalizing stage of the cluster to '{finalizing_stage}'"
+    return e.format(&s)
+}
+
+//
 // Event cluster_installation_reset
 //
 type ClusterInstallationResetEvent struct {
