@@ -698,8 +698,12 @@ func finalizingStageTimeoutTriggered(sw stateswitch.StateSwitch, _ stateswitch.T
 	return sCluster.cluster.Progress != nil && sCluster.cluster.Progress.FinalizingStageTimedOut, nil
 }
 
-func (tr *transitionHandler) SoftTimeoutsEnabled(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
-	return tr.softTimeoutsEnabled, nil
+func (tr *transitionHandler) SoftTimeoutsEnabled(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return false, errors.New("SoftTimeoutsEnabled incompatible type of StateSwitch")
+	}
+	return tr.softTimeoutsEnabled && (sCluster.cluster != nil && sCluster.cluster.OrgSoftTimeoutsEnabled), nil
 }
 
 func (th *transitionHandler) InstallCluster(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {

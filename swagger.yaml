@@ -5422,6 +5422,10 @@ definitions:
         description: A comma-separated list of tags that are associated to the cluster.
       last-installation-preparation:
         $ref: '#/definitions/last-installation-preparation'
+      org_soft_timeouts_enabled:
+        type: boolean
+        description: Indication if organization soft timeouts is enabled for the cluster.
+
 
   last-installation-preparation:
     type: object

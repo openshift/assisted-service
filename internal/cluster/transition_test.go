@@ -4736,6 +4736,7 @@ var _ = Describe("finalizing timeouts", func() {
 					FinalizingStage:          stage,
 					FinalizingStageStartedAt: strfmt.DateTime(stageTimestamp),
 				},
+				OrgSoftTimeoutsEnabled: true,
 			},
 		}
 		Expect(db.Create(cls).Error).ToNot(HaveOccurred())

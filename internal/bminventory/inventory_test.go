@@ -15060,6 +15060,62 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 	})
 
+	Context("Authz and soft timeouts", func() {
+		var (
+			authCtx      context.Context
+			mockOcmAuthz *ocm.MockOCMAuthorization
+			payload      *ocm.AuthPayload
+			orgID1       = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
+			userName1    = "test_user_1"
+		)
+
+		BeforeEach(func() {
+			db, dbName = common.PrepareTestDB()
+			bm = createInventory(db, Config{})
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+			cfg := auth.GetConfigRHSSO()
+			cfg.EnableOrgBasedFeatureGates = true
+			mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+			mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+			bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			payload = &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = userName1
+			payload.Organization = orgID1
+			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+			mockClusterRegisterSteps()
+			mockUsageReports()
+			mockAMSSubscription(authCtx)
+			mockMetric.EXPECT().ClusterRegistered().Times(1)
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
+		})
+		DescribeTable("organizational soft timeouts", func(softTimeouts, withError, expected bool) {
+			var err error
+			if withError {
+				err = errors.New("fail")
+			}
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), userName1, ocm.SoftTimeoutsCapabilityName, ocm.OrganizationCapabilityType).Return(softTimeouts, err).Times(1)
+
+			reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String("4.12.0-someFakeFlavour"),
+					CPUArchitecture:  common.X86CPUArchitecture,
+					PullSecret:       swag.String(fakePullSecret),
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated)
+			Expect(actual.Payload.OrgSoftTimeoutsEnabled).To(Equal(expected))
+		},
+			Entry("soft timeouts prohibited - no error", false, false, false),
+			Entry("soft timeouts allowed - no error", true, false, true),
+			Entry("soft timeouts prohibited - with error", false, true, false),
+			Entry("soft timeouts allowed - with error", true, true, false),
+		)
+	})
+
 	Context("Authz and Multiarch", func() {
 		var (
 			authCtx      context.Context
@@ -15108,6 +15164,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockAMSSubscription(authCtx)
 				mockUsageReports()
 				mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
+				mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), userName1, ocm.SoftTimeoutsCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 
 				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
@@ -17686,6 +17743,7 @@ var _ = Describe("Platform tests", func() {
 			payload.Organization = "org1"
 			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
 			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformExternalCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.SoftTimeoutsCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String("4.14")
 			registerParams.NewClusterParams.Platform = &models.Platform{
@@ -17723,6 +17781,7 @@ var _ = Describe("Platform tests", func() {
 			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
 			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformExternalCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
 			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.SoftTimeoutsCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String("4.14")
 			registerParams.NewClusterParams.Platform = &models.Platform{
@@ -17759,6 +17818,7 @@ var _ = Describe("Platform tests", func() {
 			payload.Organization = "org1"
 			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
 			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.SoftTimeoutsCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String("4.14")
 			registerParams.NewClusterParams.Platform = &models.Platform{

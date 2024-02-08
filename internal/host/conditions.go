@@ -100,5 +100,5 @@ func (v *validator) isHostStageTimedOut(c *validationContext) bool {
 }
 
 func (v *validator) softTimeoutsEnabled(c *validationContext) bool {
-	return c.softTimeoutsEnabled
+	return c.softTimeoutsEnabled && (c.cluster != nil && c.cluster.OrgSoftTimeoutsEnabled)
 }

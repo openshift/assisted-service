@@ -207,6 +207,9 @@ type Cluster struct {
 	// org id
 	OrgID string `json:"org_id,omitempty"`
 
+	// Indication if organization soft timeouts is enabled for the cluster.
+	OrgSoftTimeoutsEnabled bool `json:"org_soft_timeouts_enabled,omitempty"`
+
 	// platform
 	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embeddedPrefix:platform_"`
 
