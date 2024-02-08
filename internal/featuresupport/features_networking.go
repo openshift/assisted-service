@@ -28,8 +28,10 @@ func (feature *VipAutoAllocFeature) getSupportLevel(filters SupportLevelFilters)
 	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal {
 		return models.SupportLevelUnavailable
 	}
-
-	return models.SupportLevelDevPreview
+	if openshiftVersionLessThan("4.15", filters.OpenshiftVersion) {
+		return models.SupportLevelDevPreview
+	}
+	return models.SupportLevelUnavailable
 }
 
 func (feature *VipAutoAllocFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
@@ -400,10 +402,7 @@ func (feature *SDNNetworkTypeFeature) Validate(cluster *common.Cluster, updatePa
 }
 
 func (feature *SDNNetworkTypeFeature) hasValidOpenshiftVersion(openshiftVersion string) bool {
-	if isAvailable, err := common.BaseVersionLessThan("4.15", openshiftVersion); openshiftVersion == "" || err == nil && isAvailable {
-		return true
-	}
-	return false
+	return openshiftVersionLessThan("4.15", openshiftVersion)
 }
 
 // OVNNetworkTypeFeature
@@ -457,4 +456,11 @@ func getNetworkType(cluster *common.Cluster, updateParams *models.V2ClusterUpdat
 		networkType = *updateParams.NetworkType
 	}
 	return networkType
+}
+
+// Returns true if openshiftVersion is less than targetVersion or undefined
+func openshiftVersionLessThan(targetVersion, openshiftVersion string) bool {
+	isAvailable, err := common.BaseVersionLessThan(targetVersion, openshiftVersion)
+
+	return openshiftVersion == "" || err == nil && isAvailable
 }
