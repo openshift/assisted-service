@@ -24,6 +24,7 @@ export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V4}"
 export SERVICE_SUBNET="${SERVICE_SUBNET_V4}"
 export PUBLIC_CONTAINER_REGISTRIES="${PUBLIC_CONTAINER_REGISTRIES:-quay.io}"
 export EXTRA_HYPERSHIFT_INSTALL_FLAGS="${EXTRA_HYPERSHIFT_INSTALL_FLAGS:-}"
+export IRONIC_IMAGE=$(oc adm release info --image-for=ironic-agent "$(oc get clusterversion version -ojsonpath='{.status.desired.image}')")
 
 set -o nounset
 set -o pipefail

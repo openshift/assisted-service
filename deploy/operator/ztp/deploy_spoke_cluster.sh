@@ -23,6 +23,7 @@ export ADD_NONE_PLATFORM_LIBVIRT_DNS="${ADD_NONE_PLATFORM_LIBVIRT_DNS:-false}"
 export LIBVIRT_NONE_PLATFORM_NETWORK="${LIBVIRT_NONE_PLATFORM_NETWORK:-ostestbm}"
 export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
 export API_IP=${LOAD_BALANCER_IP}
+export IRONIC_IMAGE=$(oc adm release info --image-for=ironic-agent "$(oc get clusterversion version -ojsonpath='{.status.desired.image}')")
 
 if [[ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ]]; then
     export USER_MANAGED_NETWORKING="true"

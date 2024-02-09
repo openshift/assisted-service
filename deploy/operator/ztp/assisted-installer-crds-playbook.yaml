@@ -36,6 +36,7 @@
     - node_labels: "{{ lookup('env', 'NODE_LABELS') }}"
     - manifests: "{{ lookup('env', 'MANIFESTS') }}"
     - infraenv_label: ""
+    - ironic_image: "{{ lookup('env', 'IRONIC_IMAGE') }}"
 
   tasks:
   - name: create directory for generated CRDs
