@@ -310,7 +310,7 @@ func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, sp
 	Expect(err).To(BeNil())
 }
 
-func deployBMHCRD(ctx context.Context, client k8sclient.Client, name string, spec *metal3_v1alpha1.BareMetalHostSpec) {
+func deployBMHCRD(ctx context.Context, client k8sclient.Client, id string, spec *metal3_v1alpha1.BareMetalHostSpec) {
 	bmh := metal3_v1alpha1.BareMetalHost{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "BareMetalHost",
@@ -318,7 +318,7 @@ func deployBMHCRD(ctx context.Context, client k8sclient.Client, name string, spe
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Options.Namespace,
-			Name:      name,
+			Name:      createBMHCRDNameFromID(id),
 		},
 		Spec: *spec,
 		Status: metal3_v1alpha1.BareMetalHostStatus{
@@ -1027,6 +1027,10 @@ func generateTestCertificate() (string, error) {
 
 	// Encode certificate
 	return certPEM.String(), nil
+}
+
+func createBMHCRDNameFromID(id string) string {
+	return fmt.Sprintf("bare-metal-host-%s", id)
 }
 
 const waitForReconcileTimeout = 30
@@ -2177,12 +2181,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
+		bmhKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      createBMHCRDNameFromID(host.ID.String()),
+		}
 
 		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key)}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 
 		Eventually(func() error {
-			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh := getBmhCRD(ctx, kubeClient, bmhKey)
 			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
 			bmh.SetAnnotations(map[string]string{controllers.BMH_AGENT_IGNITION_CONFIG_OVERRIDES: fakeIgnitionConfigOverride})
 			return kubeClient.Update(ctx, bmh)
@@ -2209,7 +2217,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(h.IgnitionConfigOverrides).NotTo(BeEmpty())
 
 		Eventually(func() error {
-			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh := getBmhCRD(ctx, kubeClient, bmhKey)
 			bmh.SetAnnotations(map[string]string{controllers.BMH_AGENT_IGNITION_CONFIG_OVERRIDES: ""})
 			return kubeClient.Update(ctx, bmh)
 		}, "30s", "10s").Should(BeNil())
@@ -2244,12 +2252,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
+		bmhKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      createBMHCRDNameFromID(host.ID.String()),
+		}
 
 		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key)}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 
 		Eventually(func() error {
-			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh := getBmhCRD(ctx, kubeClient, bmhKey)
 			bmh.SetAnnotations(map[string]string{controllers.NODE_LABEL_PREFIX + "my-label": "blah"})
 			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
 			return kubeClient.Update(ctx, bmh)
@@ -2270,7 +2282,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("Clean node labels")
 		Eventually(func() error {
-			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh := getBmhCRD(ctx, kubeClient, bmhKey)
 			bmh.SetAnnotations(make(map[string]string))
 			return kubeClient.Update(ctx, bmh)
 		}, "30s", "10s").Should(BeNil())
@@ -2506,6 +2518,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
+		bmhKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      createBMHCRDNameFromID(host.ID.String()),
+		}
 
 		image := &metal3_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
 		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key), Image: image}
@@ -2514,7 +2530,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		installerArgs := `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
 
 		Eventually(func() error {
-			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh := getBmhCRD(ctx, kubeClient, bmhKey)
 			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
 			bmh.SetAnnotations(map[string]string{controllers.BMH_AGENT_INSTALLER_ARGS: installerArgs})
 			return kubeClient.Update(ctx, bmh)
@@ -2547,7 +2563,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(h.InstallerArgs).NotTo(BeEmpty())
 
 		Eventually(func() error {
-			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh := getBmhCRD(ctx, kubeClient, bmhKey)
 			bmh.SetAnnotations(map[string]string{controllers.BMH_AGENT_INSTALLER_ARGS: ""})
 			return kubeClient.Update(ctx, bmh)
 		}, "30s", "10s").Should(BeNil())
@@ -5204,7 +5220,7 @@ var _ = Describe("bmac reconcile flow", func() {
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 		bmhNsName = types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      host.ID.String(),
+			Name:      createBMHCRDNameFromID(host.ID.String()),
 		}
 	})
 
