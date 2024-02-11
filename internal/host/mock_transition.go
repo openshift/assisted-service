@@ -353,6 +353,20 @@ func (mr *MockTransitionHandlerMockRecorder) PostRefreshHost(reason interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRefreshHost", reflect.TypeOf((*MockTransitionHandler)(nil).PostRefreshHost), reason)
 }
 
+// PostRefreshHostDisconnection mocks base method.
+func (m *MockTransitionHandler) PostRefreshHostDisconnection(statusInfo string, connectionTimedOut bool) stateswitch.PostTransition {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostRefreshHostDisconnection", statusInfo, connectionTimedOut)
+	ret0, _ := ret[0].(stateswitch.PostTransition)
+	return ret0
+}
+
+// PostRefreshHostDisconnection indicates an expected call of PostRefreshHostDisconnection.
+func (mr *MockTransitionHandlerMockRecorder) PostRefreshHostDisconnection(statusInfo, connectionTimedOut interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRefreshHostDisconnection", reflect.TypeOf((*MockTransitionHandler)(nil).PostRefreshHostDisconnection), statusInfo, connectionTimedOut)
+}
+
 // PostRefreshHostRefreshStageUpdateTime mocks base method.
 func (m *MockTransitionHandler) PostRefreshHostRefreshStageUpdateTime(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	m.ctrl.T.Helper()

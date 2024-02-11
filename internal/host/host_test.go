@@ -4939,6 +4939,119 @@ var _ = Describe("UpdateHostProgress", func() {
 	})
 })
 
+var _ = Describe("disconnection - soft timeouts", func() {
+	var (
+		ctx                  = context.Background()
+		manager              *Manager
+		db                   *gorm.DB
+		dbName               string
+		ctrl                 *gomock.Controller
+		mockEvents           *eventsapi.MockHandler
+		mockHwValidator      *hardware.MockValidator
+		mockProviderRegistry *registry.MockProviderRegistry
+		mockOperatorManager  *operators.MockAPI
+		hostID               strfmt.UUID
+		infraEnvID           strfmt.UUID
+		clusterID            strfmt.UUID
+
+		host models.Host
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+		clusterRequirements := models.ClusterHostRequirements{
+			Total: &models.ClusterHostRequirementsDetails{
+				CPUCores:   1,
+				DiskSizeGb: 20,
+				RAMMib:     2,
+			},
+		}
+		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).Return(&clusterRequirements, nil)
+		mockHwValidator.EXPECT().GetPreflightHardwareRequirements(gomock.Any(), gomock.Any()).AnyTimes().Return(&models.PreflightHardwareRequirements{
+			Ocp: &models.HostTypeHardwareRequirementsWrapper{
+				Worker: &models.HostTypeHardwareRequirements{
+					Quantitative: &models.ClusterHostRequirementsDetails{},
+				},
+				Master: &models.HostTypeHardwareRequirements{
+					Quantitative: &models.ClusterHostRequirementsDetails{},
+				},
+			},
+		}, nil)
+		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return([]*models.Disk{
+			{
+				Name: "name",
+			},
+		})
+		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
+		mockHwValidator.EXPECT().IsValidStorageDeviceType(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true).AnyTimes()
+		mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
+		mockProviderRegistry.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockOperatorManager = operators.NewMockAPI(ctrl)
+		mockOperatorManager.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil,
+			createValidatorCfg(), nil, defaultConfig, nil, mockOperatorManager, mockProviderRegistry, false,
+			nil, nil, true)
+
+		hostID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		clusterID = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusInstallingInProgress)
+		host.StatusInfo = swag.String(models.HostStatusInstallingInProgress)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		cluster := hostutil.GenerateTestCluster(clusterID)
+		cluster.Status = swag.String(models.ClusterStatusInstalling)
+		cluster.OrgSoftTimeoutsEnabled = true
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+	})
+
+	getHost := func() *models.Host {
+		h, err := common.GetHostFromDB(db, infraEnvID.String(), hostID.String())
+		Expect(err).ToNot(HaveOccurred())
+		return &h.Host
+	}
+
+	It("should not trigger soft disconnection timeout", func() {
+		Expect(manager.RefreshStatus(ctx, &host, db)).ToNot(HaveOccurred())
+		h := getHost()
+		Expect(swag.StringValue(h.Status)).To(Equal(models.HostStatusInstallingInProgress))
+		Expect(swag.StringValue(h.StatusInfo)).To(Equal(models.HostStatusInstallingInProgress))
+		Expect(h.ConnectionTimedOut).To(BeFalse())
+	})
+
+	It("should trigger soft disconnection timeout", func() {
+		err := db.Model(&models.Host{}).Where("infra_env_id = ? and id = ?", infraEnvID.String(), hostID.String()).
+			Update("checked_in_at", time.Now().Add(-4*time.Minute)).Error
+		Expect(err).ToNot(HaveOccurred())
+		h := getHost()
+		Expect(manager.RefreshStatus(ctx, h, db)).ToNot(HaveOccurred())
+		h = getHost()
+		Expect(swag.StringValue(h.Status)).To(Equal(models.HostStatusInstallingInProgress))
+		Expect(swag.StringValue(h.StatusInfo)).To(Equal(statusInfoConnectionSoftTimedOutInstalling))
+		Expect(h.ConnectionTimedOut).To(BeTrue())
+	})
+
+	It("should recover from soft disconnection timeout", func() {
+		err := db.Model(&models.Host{}).Where("infra_env_id = ? and id = ?", infraEnvID.String(), hostID.String()).
+			Update("connection_timed_out", true).Error
+		Expect(err).ToNot(HaveOccurred())
+		h := getHost()
+		Expect(manager.RefreshStatus(ctx, h, db)).ToNot(HaveOccurred())
+		h = getHost()
+		Expect(swag.StringValue(h.Status)).To(Equal(models.HostStatusInstallingInProgress))
+		Expect(swag.StringValue(h.StatusInfo)).To(Equal(statusInfoConnectionSoftTimedOutInstallingReconnected))
+		Expect(h.ConnectionTimedOut).To(BeFalse())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
 var _ = Describe("Garbage Collection", func() {
 	var (
 		ctx     = context.Background()

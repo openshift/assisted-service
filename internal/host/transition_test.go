@@ -6623,6 +6623,9 @@ var _ = Describe("State machine test - refresh transition", func() {
 		mockTransitionHandler.EXPECT().PostHostStageTimeout(gomock.Any()).Return(
 			func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
 		).AnyTimes()
+		mockTransitionHandler.EXPECT().PostRefreshHostDisconnection(gomock.Any(), gomock.Any()).Return(
+			func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+		).AnyTimes()
 	}
 
 	BeforeEach(func() {

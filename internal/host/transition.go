@@ -54,6 +54,7 @@ type TransitionHandler interface {
 	PostReclaim(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRefreshHost(reason string) stateswitch.PostTransition
 	PostHostStageTimeout(reason string) stateswitch.PostTransition
+	PostRefreshHostDisconnection(statusInfo string, connectionTimedOut bool) stateswitch.PostTransition
 	PostRefreshHostRefreshStageUpdateTime(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRefreshLogsProgress(progress string) stateswitch.PostTransition
 	PostRefreshReclaimTimeout(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
@@ -789,6 +790,26 @@ func (th *transitionHandler) PostHostStageTimeout(reason string) stateswitch.Pos
 		return err
 	}
 	return ret
+}
+
+func (th *transitionHandler) PostRefreshHostDisconnection(statusInfo string, connectionTimedOut bool) stateswitch.PostTransition {
+	return func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+		sHost, ok := sw.(*stateHost)
+		if !ok {
+			return errors.New("PostRefreshHostDisconnected incompatible type of StateSwitch")
+		}
+		params, ok := args.(*TransitionArgsRefreshHost)
+		if !ok {
+			return errors.New("PostRefreshHostDisconnected invalid argument")
+		}
+		var err error
+		if swag.StringValue(sHost.host.StatusInfo) != statusInfo || sHost.host.ConnectionTimedOut != connectionTimedOut {
+			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
+				th.eventsHandler, th.stream, sHost.host.InfraEnvID, *sHost.host.ID,
+				sHost.srcState, swag.StringValue(sHost.host.Status), statusInfo, "connection_timed_out", connectionTimedOut)
+		}
+		return err
+	}
 }
 
 func (th *transitionHandler) IsDay2Host(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {

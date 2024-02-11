@@ -36,6 +36,8 @@ const (
 	statusInfoAbortingDueClusterErrors                             = "Host is part of a cluster that failed to install"
 	statusInfoInstallationTimedOut                                 = "Host failed to install due to timeout while starting installation"
 	statusInfoConnectionTimedOutInstalling                         = "Host failed to install due to timeout while connecting to host during the installation phase."
+	statusInfoConnectionSoftTimedOutInstalling                     = "Host is failing to perform periodic health check during the installation phase."
+	statusInfoConnectionSoftTimedOutInstallingReconnected          = "Host recovered from failure to perform periodic health check during the installation phase."
 	statusInfoConnectionTimedOutPreparing                          = "Host failed to install due to timeout while connecting to host during the preparation phase."
 	statusInfoInstallationInProgressTimedOut                       = "Host failed to install because its installation stage $STAGE took longer than expected $MAX_TIME"
 	statusInfoInstallationInProgressSoftTimedOut                   = "Host installation stage $STAGE is taking longer than expected $MAX_TIME"

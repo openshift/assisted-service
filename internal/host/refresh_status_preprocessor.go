@@ -355,6 +355,10 @@ func newConditions(v *validator) []condition {
 			id: SoftTimeoutsEnabled,
 			fn: v.softTimeoutsEnabled,
 		},
+		{
+			id: ConnectionTimedOut,
+			fn: v.connectionTimedOut,
+		},
 	}
 	return ret
 }
