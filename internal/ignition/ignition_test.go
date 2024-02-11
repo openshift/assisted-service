@@ -1497,7 +1497,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		}}
 		serviceBaseURL := "http://10.56.20.70:7878"
 
-		text, err := builder.FormatSecondDayWorkerIgnitionFile(serviceBaseURL, nil, "", cluster.Hosts[0])
+		text, err := builder.FormatSecondDayWorkerIgnitionFile(serviceBaseURL, nil, "", "", cluster.Hosts[0])
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring("/tmp/example"))
@@ -1797,7 +1797,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 	Context("test custom ignition endpoint", func() {
 
 		It("are rendered properly without ca cert and token", func() {
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, "", mockHost)
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, "", "", mockHost)
 			Expect(err).NotTo(HaveOccurred())
 
 			ignConfig, _, err := config_31.Parse(ign)
@@ -1809,7 +1809,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 
 		It("are rendered properly with token", func() {
 			token := "xyzabc123"
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, token, mockHost)
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, token, "", mockHost)
 			Expect(err).NotTo(HaveOccurred())
 
 			ignConfig, _, err := config_31.Parse(ign)
@@ -1826,7 +1826,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 				"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
 			encodedCa := base64.StdEncoding.EncodeToString([]byte(ca))
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, "", mockHost)
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, "", "", mockHost)
 			Expect(err).NotTo(HaveOccurred())
 
 			ignConfig, _, err := config_31.Parse(ign)
@@ -1843,7 +1843,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 				"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
 			encodedCa := base64.StdEncoding.EncodeToString([]byte(ca))
-			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, token, mockHost)
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, token, "", mockHost)
 
 			Expect(err).NotTo(HaveOccurred())
 

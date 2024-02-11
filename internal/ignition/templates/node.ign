@@ -4,7 +4,8 @@
     "config": {
     "merge": [{
       "source": "{{.SOURCE}}"{{if .HEADERS}},
-          "httpHeaders": [{{range $k,$v := .HEADERS}}{"name": "{{$k}}", "value": "{{$v}}"}{{end}}]{{end}}
+          "httpHeaders": [{{ $first := true }}{{range $k,$v := .HEADERS}}{{ if not $first }}, {{else}} {{ $first = false }} {{end}}{"name": "{{$k}}", "value": "{{$v}}"}{{end}}]
+      {{end}}
     }]
     }{{if .CACERT}},
           "security": {
