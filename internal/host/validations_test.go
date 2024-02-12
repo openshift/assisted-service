@@ -1453,6 +1453,62 @@ var _ = Describe("Validations test", func() {
 			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeFalse())
 		})
+
+	})
+
+	Context("Cluster platform compatability validation", func() {
+		BeforeEach(func() {
+			mockProviderRegistry.EXPECT().
+				IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).
+				Return(true, nil).
+				Times(1)
+		})
+
+		It("day2 Nutanix host - with Nutanix cluster should pass validation", func() {
+			c := generateDay2Cluster()
+			c.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventory()
+			configBytes, err := json.Marshal(ignition_types.Config{})
+			Expect(err).To(Not(HaveOccurred()))
+			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockProviderRegistry.EXPECT().
+				IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeNutanix), h).
+				Return(true, nil).
+				Times(1)
+			mockAndRefreshStatus(h)
+
+			h = &hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			status, _, _ := getValidationResult(h.ValidationsInfo, CompatibleWithClusterPlatform)
+			Expect(status).To(BeEquivalentTo(ValidationSuccess))
+		})
+
+		It("day2 non nutanix host - with Nutanix cluster should fail validation", func() {
+			c := generateDay2Cluster()
+			c.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventory()
+			configBytes, err := json.Marshal(ignition_types.Config{})
+			Expect(err).To(Not(HaveOccurred()))
+			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockProviderRegistry.EXPECT().
+				IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeNutanix), h).
+				Return(false, nil).
+				Times(1)
+			mockAndRefreshStatus(h)
+
+			h = &hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			status, _, _ := getValidationResult(h.ValidationsInfo, CompatibleWithClusterPlatform)
+			Expect(status).To(BeEquivalentTo(ValidationFailure))
+		})
 	})
 
 	Context("VSphere host UUID enable validation", func() {

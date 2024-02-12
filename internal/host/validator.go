@@ -361,9 +361,6 @@ func (v *validator) compatibleWithClusterPlatform(c *validationContext) (Validat
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput, ""
 	}
-	if *c.cluster.Kind == models.ClusterKindAddHostsCluster {
-		return ValidationSuccess, fmt.Sprintf("Host is compatible with cluster platform %s", common.PlatformTypeValue(c.cluster.Platform.Type))
-	}
 	if c.inventory == nil || common.PlatformTypeValue(c.cluster.Platform.Type) == "" {
 		return ValidationPending, "Missing inventory or platform isn't set"
 	}
