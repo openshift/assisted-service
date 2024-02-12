@@ -11,7 +11,7 @@ const (
 	LvmsMinOpenshiftVersion4_12                        string = "4.12.0"
 	LvmsMinOpenshiftVersion_ForNewResourceRequirements string = "4.13.0"
 
-	LvmoSubscriptionName string = "odf-lvm-operator"
+	LvmoSubscriptionName string = "lvmo-operator"
 	LvmsSubscriptionName string = "lvms-operator"
 
 	// LvmsMemoryRequirement           int64 = 400
