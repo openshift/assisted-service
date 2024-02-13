@@ -438,7 +438,7 @@ func (mgr *Manager) EnsureOperatorArchCapability(cluster *common.Cluster, cpuArc
 
 func EnsureLVMAndCNVDoNotClash(cluster *common.Cluster, openshiftVersion string, operators []*models.MonitoredOperator) error {
 	// Openshift version greater or Equal to 4.12.0 support cnv and lvms
-	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(openshiftVersion, lvm.LvmsMinOpenshiftVersion); !isGreaterOrEqual {
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(openshiftVersion, lvm.LvmsMinOpenshiftVersion4_12); !isGreaterOrEqual {
 		return nil
 	}
 

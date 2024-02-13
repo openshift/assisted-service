@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/go-version"
+	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -17,7 +17,7 @@ import (
 // operator is an ODF LVM OLM operator plugin; it implements api.Operator
 type operator struct {
 	log       logrus.FieldLogger
-	config    *Config
+	Config    *Config
 	extracter oc.Extracter
 }
 
@@ -43,7 +43,7 @@ func NewLvmOperator(log logrus.FieldLogger, extracter oc.Extracter) *operator {
 func newLvmOperatorWithConfig(log logrus.FieldLogger, config *Config, extracter oc.Extracter) *operator {
 	return &operator{
 		log:       log,
-		config:    config,
+		Config:    config,
 		extracter: extracter,
 	}
 }
@@ -74,34 +74,17 @@ func (o *operator) GetHostValidationID() string {
 
 // ValidateCluster always return "valid" result
 func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
-	ocpVersion, err := version.NewVersion(cluster.OpenshiftVersion)
-	if err != nil {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+	if ok, _ := common.BaseVersionLessThan(o.Config.LvmMinOpenshiftVersion, cluster.OpenshiftVersion); ok {
+		message := fmt.Sprintf("Logical Volume Manager is only supported for openshift versions %s and above", o.Config.LvmMinOpenshiftVersion)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 
-	if common.IsSingleNodeCluster(cluster) {
-		minOpenshiftVersionForLvm, err := version.NewVersion(o.config.LvmMinOpenshiftVersion)
-		if err != nil {
-			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+	if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeFull {
+		if ok, _ := common.BaseVersionLessThan(o.Config.LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); ok {
+			message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above", o.Config.LvmMinMultiNodeSupportVersion)
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
 		}
-		if ok, _ := common.BaseVersionLessThan(minOpenshiftVersionForLvm.String(), ocpVersion.String()); ok {
-			message := fmt.Sprintf("Logical Volume Manager is only supported for openshift versions %s and above", o.config.LvmMinOpenshiftVersion)
-			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
-		}
-	} else {
-		// HA support was introduced after LVM support in general, so we need to check for a different version
-		minOpenshiftVersionForMultiNodeSupport, err := version.NewVersion(o.config.LvmMinMultiNodeSupportVersion)
-		if err != nil {
-			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
-		}
-		if ok, _ := common.BaseVersionLessThan(minOpenshiftVersionForMultiNodeSupport.String(), ocpVersion.String()); ok {
-			message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above",
-				minOpenshiftVersionForMultiNodeSupport.String())
-			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
-		}
-
 	}
-
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetClusterValidationID()}, nil
 }
 
@@ -118,14 +101,20 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, err
 	}
 
-	// GetValidDiskCount counts the total number of valid disks in each host and return an error if we don't have the disk of required size
 	diskCount := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
-	if err != nil {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+
+	role := common.GetEffectiveRole(host)
+	message := "Logical Volume Manager requires at least one non-installation HDD/SSD disk on the host"
+	// if (role == models.HostRoleWorker && !*cluster.SchedulableMasters) || *cluster.SchedulableMasters {
+	if role == models.HostRoleWorker || *cluster.SchedulableMasters {
+		if diskCount == 0 {
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
+		}
 	}
-	if diskCount == 0 {
-		message := "Logical Volume Manager requires at least one non-installation HDD/SSD disk on the host"
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
+
+	if role == models.HostRoleAutoAssign && !*cluster.SchedulableMasters {
+		status := "For LVM Standard Mode, host role must be assigned to master or worker."
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
 	}
 
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID()}, nil
@@ -147,13 +136,22 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 }
 
 // GetHostRequirements provides operator's requirements towards the host
-func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster, _ *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	log := logutil.FromContext(ctx, o.log)
 	preflightRequirements, err := o.GetPreflightRequirements(ctx, cluster)
 	if err != nil {
-		log.WithError(err).Errorf("Cannot retrieve preflight requirements for cluster %s", cluster.ID)
+		log.WithError(err).Errorf("Cannot retrieve preflight requirements for host %s", host.ID)
 		return nil, err
 	}
+
+	role := common.GetEffectiveRole(host)
+	if role == models.HostRoleMaster && !swag.BoolValue(cluster.SchedulableMasters) {
+		return &models.ClusterHostRequirementsDetails{
+			CPUCores: 0,
+			RAMMib:   0,
+		}, nil
+	}
+
 	return preflightRequirements.Requirements.Master.Quantitative, nil
 }
 
@@ -163,17 +161,25 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 	if err != nil {
 		return &models.OperatorHardwareRequirements{}, err
 	}
+
+	memoryRequirements := o.Config.LvmMemoryPerHostMiB
+	if ok, _ := common.BaseVersionLessThan(LvmsMinOpenshiftVersion_ForNewResourceRequirements, cluster.OpenshiftVersion); ok {
+		memoryRequirements = o.Config.LvmMemoryPerHostMiBBefore4_13
+	}
+
 	return &models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
 		Dependencies: dependecies,
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
-				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores: o.config.LvmCPUPerHost,
-					RAMMib:   o.getLvmMemoryPerHostMib(context, cluster),
-				},
 				Qualitative: []string{
-					"At least 1 non-installation disk with no partitions or filesystems",
+					"At least 1 non-boot disk on one or more host",
+					fmt.Sprintf("%d GiB of additional RAM", memoryRequirements),
+					fmt.Sprintf("%d additional CPUs for each non-boot disk", memoryRequirements),
+				},
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores: o.Config.LvmCPUPerHost,
+					RAMMib:   memoryRequirements,
 				},
 			},
 			Worker: &models.HostTypeHardwareRequirements{
@@ -185,18 +191,4 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDLVM
-}
-
-func (o *operator) getLvmMemoryPerHostMib(ctx context.Context, cluster *common.Cluster) int64 {
-	log := logutil.FromContext(ctx, o.log)
-	greaterOrEqual, err := common.BaseVersionGreaterOrEqual(LvmsMinOpenshiftVersionForNewResourceRequirements, cluster.OpenshiftVersion)
-	if err != nil {
-		log.Warnf("Error parsing cluster.OpenshiftVersion: %s, setting lvms memory requirement to %d", err.Error(), o.config.LvmMemoryPerHostMiB)
-		return o.config.LvmMemoryPerHostMiB
-	}
-	if !greaterOrEqual {
-		return LvmsMemoryRequirementBefore4_13
-	}
-
-	return o.config.LvmMemoryPerHostMiB
 }
