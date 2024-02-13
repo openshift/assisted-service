@@ -2958,7 +2958,7 @@ func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperato
 	for _, monitoredOperator := range operatorDependencies {
 		// TODO - Need to find a better way for creating LVMO/LVMS operator on different openshift-version
 		if monitoredOperator.Name == "lvm" {
-			lvmsMetMinOpenshiftVersion, err := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion, cluster.OpenshiftVersion)
+			lvmsMetMinOpenshiftVersion, err := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion)
 			if err != nil {
 				log.Warnf("Error parsing cluster.OpenshiftVersion: %s, setting subscription name to %s", err.Error(), lvm.LvmsSubscriptionName)
 				monitoredOperator.SubscriptionName = lvm.LvmsSubscriptionName

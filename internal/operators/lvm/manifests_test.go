@@ -47,6 +47,7 @@ var _ = Describe("LVM manifest generation", func() {
 		subscriptionInfo, err := getSubscriptionInfo(cluster.OpenshiftVersion)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(subscriptionInfo["OPERATOR_SUBSCRIPTION_NAME"]).To(Equal(LvmsSubscriptionName))
+		Expect(subscriptionInfo["OPERATOR_SUBSCRIPTION_SPEC_NAME"]).To(Equal(LvmsSubscriptionName))
 	})
 
 	It("Check Subscription information", func() {
@@ -54,6 +55,7 @@ var _ = Describe("LVM manifest generation", func() {
 		subscriptionInfo, err := getSubscriptionInfo(cluster.OpenshiftVersion)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(subscriptionInfo["OPERATOR_SUBSCRIPTION_NAME"]).To(Equal(LvmsSubscriptionName))
+		Expect(subscriptionInfo["OPERATOR_SUBSCRIPTION_SPEC_NAME"]).To(Equal(LvmsSubscriptionName))
 	})
 
 	It("Check Subscription information", func() {
@@ -61,5 +63,13 @@ var _ = Describe("LVM manifest generation", func() {
 		subscriptionInfo, err := getSubscriptionInfo(cluster.OpenshiftVersion)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(subscriptionInfo["OPERATOR_SUBSCRIPTION_NAME"]).To(Equal(LvmoSubscriptionName))
+		Expect(subscriptionInfo["OPERATOR_SUBSCRIPTION_SPEC_NAME"]).To(Equal(LvmoSubscriptionName))
+	})
+	It("Check Subscription information", func() {
+		cluster = getCluster("4.11.0")
+		subscriptionInfo, err := getSubscriptionInfo(cluster.OpenshiftVersion)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(subscriptionInfo["OPERATOR_SUBSCRIPTION_NAME"]).To(Equal(LvmoSubscriptionName))
+		Expect(subscriptionInfo["OPERATOR_SUBSCRIPTION_SPEC_NAME"]).To(Equal(LvmoSubscriptionName))
 	})
 })

@@ -33,7 +33,7 @@ func GenerateTestClusterWithMachineNetworks(clusterID strfmt.UUID, machineNetwor
 				EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
 				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 			},
-			OpenshiftVersion: lvm.LvmsMinOpenshiftVersion,
+			OpenshiftVersion: lvm.LvmsMinOpenshiftVersion4_12,
 		},
 	}
 }
@@ -51,7 +51,7 @@ func GenerateTestCluster(clusterID strfmt.UUID) common.Cluster {
 				EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
 				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 			},
-			OpenshiftVersion: lvm.LvmsMinOpenshiftVersion,
+			OpenshiftVersion: lvm.LvmsMinOpenshiftVersion4_12,
 		},
 	}
 }
