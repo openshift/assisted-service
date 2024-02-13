@@ -127,9 +127,6 @@ github.com/cespare/xxhash/v2
 # github.com/containerd/continuity v0.3.0
 ## explicit; go 1.17
 github.com/containerd/continuity/pathdriver
-# github.com/containers/image/v5 v5.20.0
-## explicit; go 1.13
-github.com/containers/image/v5/docker/reference
 # github.com/coreos/go-json v0.0.0-20211020211907-c63f628265de
 ## explicit; go 1.15
 github.com/coreos/go-json
@@ -170,6 +167,9 @@ github.com/danielerez/go-dns-client/pkg/dnsproviders
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
+# github.com/distribution/reference v0.5.0
+## explicit; go 1.20
+github.com/distribution/reference
 # github.com/docker/cli v20.10.14+incompatible
 ## explicit
 github.com/docker/cli/cli/compose/interpolation
@@ -1106,6 +1106,8 @@ google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/known/wrapperspb
+# gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
+## explicit; go 1.11
 # gopkg.in/inf.v0 v0.9.1
 ## explicit
 gopkg.in/inf.v0
