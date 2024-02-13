@@ -36,6 +36,16 @@ spec:
           spec:
             description: AgentServiceConfigSpec defines the desired state of AgentServiceConfig.
             properties:
+              OSImageAdditionalParamsRef:
+                description: OSImageAdditionalParamsRef is a reference to a secret
+                  containing a headers and query parameters to be used during OS image
+                  fetch.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
               OSImageCACertRef:
                 description: OSImageCACertRef is a reference to a config map containing
                   a certificate authority certificate this is an optional certificate

@@ -109,12 +109,19 @@ type AgentServiceConfigSpec struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="List of container registries without authentication"
 	// +optional
 	UnauthenticatedRegistries []string `json:"unauthenticatedRegistries,omitempty"`
+
 	// OSImageCACertRef is a reference to a config map containing a certificate authority certificate
 	// this is an optional certificate to allow a user to add a certificate authority for a HTTPS source of images
 	// this certificate will be used by the assisted-image-service when pulling OS images.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="OS Image CA Cert ConfigMap reference"
 	// +optional
 	OSImageCACertRef *corev1.LocalObjectReference `json:"OSImageCACertRef,omitempty"`
+
+	// OSImageAdditionalParamsRef is a reference to a secret containing a headers and query parameters to be used during OS image fetch.
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="OS Images additional parameters reference"
+	// +optional
+	OSImageAdditionalParamsRef *corev1.LocalObjectReference `json:"OSImageAdditionalParamsRef,omitempty"`
+
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons
@@ -194,6 +201,8 @@ const (
 	IPXEHTTPRouteEnabled string = "enabled"
 	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to disable the route
 	IPXEHTTPRouteDisabled string = "disabled"
+	// ReasonOSImageAdditionalParamsRefFailure when there has been a failure resolving the OS image additional params secret using OSImageAdditionalParamsRef.
+	ReasonOSImageAdditionalParamsRefFailure string = "ReasonOSImageAdditionalParamsRefFailure"
 )
 
 // AgentServiceConfigStatus defines the observed state of AgentServiceConfig
