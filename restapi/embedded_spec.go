@@ -7690,7 +7690,6 @@ func init() {
       "description": "Cluster finalizing stage managed by controller",
       "type": "string",
       "enum": [
-        "Waiting for finalizing",
         "Waiting for cluster operators",
         "Adding router ca",
         "Applying olm manifests",
@@ -18312,7 +18311,6 @@ func init() {
       "description": "Cluster finalizing stage managed by controller",
       "type": "string",
       "enum": [
-        "Waiting for finalizing",
         "Waiting for cluster operators",
         "Adding router ca",
         "Applying olm manifests",

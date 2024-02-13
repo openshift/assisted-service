@@ -186,7 +186,7 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 
 	log := logutil.FromContext(params.ctx, th.log)
 	if cluster, err := params.clusterAPI.CompleteInstallation(params.ctx, params.db, sCluster.cluster,
-		true, th.createClusterCompletionStatusInfo(params.ctx, log, sCluster.cluster, th.eventsHandler)); err != nil {
+		th.createClusterCompletionStatusInfo(params.ctx, log, sCluster.cluster, th.eventsHandler)); err != nil {
 		return err
 	} else {
 		sCluster.cluster = cluster

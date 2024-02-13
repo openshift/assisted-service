@@ -693,16 +693,12 @@ func failInstallation(client *client.AssistedInstall, clusterID strfmt.UUID) {
 }
 
 func completeInstallationAndVerify(ctx context.Context, client *client.AssistedInstall, clusterID strfmt.UUID, completeSuccess bool) {
-	expectedStatus := models.ClusterStatusError
-
 	if completeSuccess {
 		completeInstallation(client, clusterID)
-		expectedStatus = models.ClusterStatusInstalled
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, IgnoreStateInfo)
 	} else {
 		failInstallation(client, clusterID)
 	}
-
-	waitForClusterState(ctx, clusterID, expectedStatus, defaultWaitForClusterStateTimeout, IgnoreStateInfo)
 }
 
 func setClusterAsInstalling(ctx context.Context, clusterID strfmt.UUID) {
@@ -1935,17 +1931,6 @@ var _ = Describe("cluster install", func() {
 			setClusterAsFinalizing(ctx, clusterID)
 			By("Completing installation installation")
 			completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
-		})
-
-		It("install_cluster fail", func() {
-			By("Installing cluster till finalize")
-			setClusterAsFinalizing(ctx, clusterID)
-			By("Failing installation")
-			completeInstallationAndVerify(context.Background(), agentBMClient, clusterID, false)
-
-			By("Verifying completion date field")
-			resp, _ := agentBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: clusterID})
-			Expect(resp.GetPayload().InstallCompletedAt).Should(Equal(resp.GetPayload().StatusUpdatedAt))
 		})
 
 		It("install_cluster install command failed", func() {

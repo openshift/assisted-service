@@ -4116,13 +4116,13 @@ var _ = Describe("update finalizing stage", func() {
 		ctrl.Finish()
 	})
 	It("cluster doesn't exist", func() {
-		err := capi.UpdateFinalizingStage(ctx, clusterID, models.FinalizingStageWaitingForFinalizing)
+		err := capi.UpdateFinalizingStage(ctx, clusterID, models.FinalizingStageWaitingForOlmOperatorsCsvInitialization)
 		Expect(err).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 		Expect(err.(*common.ApiErrorResponse).Code()).To(BeEquivalentTo(http.StatusNotFound))
 	})
 	It("cluster in wrong status", func() {
 		createCluster(models.ClusterStatusReady)
-		err := capi.UpdateFinalizingStage(ctx, clusterID, models.FinalizingStageWaitingForFinalizing)
+		err := capi.UpdateFinalizingStage(ctx, clusterID, models.FinalizingStageWaitingForOlmOperatorsCsvInitialization)
 		Expect(err).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 		Expect(err.(*common.ApiErrorResponse).Code()).To(BeEquivalentTo(http.StatusBadRequest))
 	})

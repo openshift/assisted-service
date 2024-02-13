@@ -355,15 +355,8 @@ func (b *bareMetalInventory) V2CompleteInstallation(ctx context.Context, params 
 				log.Errorf("Bad format of cluster operator report %s", err.Error())
 			}
 		}
-
-		if _, err := b.clusterApi.CompleteInstallation(ctx, b.db, cluster, false, params.CompletionParams.ErrorInfo); err != nil {
-			log.WithError(err).Errorf("Failed to set complete cluster state on %s ", params.ClusterID.String())
-			return common.GenerateErrorResponder(err)
-		}
-	} else {
-		log.Warnf("Cluster %s tried to complete its installation using deprecated CompleteInstallation API. The service decides whether the cluster completed", params.ClusterID)
 	}
-
+	log.Warnf("Cluster %s tried to complete its installation using deprecated CompleteInstallation API. The service decides whether the cluster completed", params.ClusterID)
 	return installer.NewV2CompleteInstallationAccepted().WithPayload(&cluster.Cluster)
 }
 
