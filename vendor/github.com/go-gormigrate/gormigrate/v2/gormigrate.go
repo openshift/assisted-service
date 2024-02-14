@@ -1,8 +1,10 @@
+// Package gormigrate is a minimalistic migration helper for Gorm (http://gorm.io)
 package gormigrate
 
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	"gorm.io/gorm"
 )
@@ -330,8 +332,8 @@ func (g *Gormigrate) rollbackMigration(m *Migration) error {
 		return err
 	}
 
-	sql := fmt.Sprintf("DELETE FROM %s WHERE %s = ?", g.options.TableName, g.options.IDColumnName)
-	return g.tx.Exec(sql, m.ID).Error
+	cond := fmt.Sprintf("%s = ?", g.options.IDColumnName)
+	return g.tx.Table(g.options.TableName).Where(cond, m.ID).Delete(g.model()).Error
 }
 
 func (g *Gormigrate) runInitSchema() error {
@@ -372,13 +374,31 @@ func (g *Gormigrate) runMigration(migration *Migration) error {
 	return nil
 }
 
+// model returns pointer to dynamically created gorm migration model struct value
+//
+//	struct defined as {
+//	  ID string `gorm:"primaryKey;column:<Options.IDColumnName>;size:<Options.IDColumnSize>"`
+//	}
+func (g *Gormigrate) model() interface{} {
+	f := reflect.StructField{
+		Name: reflect.ValueOf("ID").Interface().(string),
+		Type: reflect.TypeOf(""),
+		Tag: reflect.StructTag(fmt.Sprintf(
+			`gorm:"primaryKey;column:%s;size:%d"`,
+			g.options.IDColumnName,
+			g.options.IDColumnSize,
+		)),
+	}
+	structType := reflect.StructOf([]reflect.StructField{f})
+	structValue := reflect.New(structType).Elem()
+	return structValue.Addr().Interface()
+}
+
 func (g *Gormigrate) createMigrationTableIfNotExists() error {
 	if g.tx.Migrator().HasTable(g.options.TableName) {
 		return nil
 	}
-
-	sql := fmt.Sprintf("CREATE TABLE %s (%s VARCHAR(%d) PRIMARY KEY)", g.options.TableName, g.options.IDColumnName, g.options.IDColumnSize)
-	return g.tx.Exec(sql).Error
+	return g.tx.Table(g.options.TableName).AutoMigrate(g.model())
 }
 
 func (g *Gormigrate) migrationRan(m *Migration) (bool, error) {
@@ -412,8 +432,7 @@ func (g *Gormigrate) canInitializeSchema() (bool, error) {
 }
 
 func (g *Gormigrate) unknownMigrationsHaveHappened() (bool, error) {
-	sql := fmt.Sprintf("SELECT %s FROM %s", g.options.IDColumnName, g.options.TableName)
-	rows, err := g.tx.Raw(sql).Rows()
+	rows, err := g.tx.Table(g.options.TableName).Select(g.options.IDColumnName).Rows()
 	if err != nil {
 		return false, err
 	}
@@ -439,8 +458,8 @@ func (g *Gormigrate) unknownMigrationsHaveHappened() (bool, error) {
 }
 
 func (g *Gormigrate) insertMigration(id string) error {
-	sql := fmt.Sprintf("INSERT INTO %s (%s) VALUES (?)", g.options.TableName, g.options.IDColumnName)
-	return g.tx.Exec(sql, id).Error
+	record := map[string]interface{}{g.options.IDColumnName: id}
+	return g.tx.Table(g.options.TableName).Create(record).Error
 }
 
 func (g *Gormigrate) begin() {
