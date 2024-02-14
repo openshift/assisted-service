@@ -25,7 +25,6 @@ import (
 )
 
 const customManifestFile = "custom_manifests.json"
-const minimalOpenShiftVersionForLVMAndCNV = "4.12.0"
 
 // Manifest store the operator manifest used by assisted-installer to create CRs of the OLM.
 type Manifest struct {
@@ -437,21 +436,7 @@ func (mgr *Manager) EnsureOperatorArchCapability(cluster *common.Cluster, cpuArc
 }
 
 func EnsureLVMAndCNVDoNotClash(cluster *common.Cluster, openshiftVersion string, operators []*models.MonitoredOperator) error {
-	// Openshift version greater or Equal to 4.12.0 support cnv and lvms
-	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(openshiftVersion, lvm.LvmsMinOpenshiftVersion4_12); !isGreaterOrEqual {
-		return nil
-	}
-
-	cnvEnabled := false
-	lvmEnabled := false
-
-	operatorsCanCoexist, err := common.BaseVersionGreaterOrEqual(minimalOpenShiftVersionForLVMAndCNV, openshiftVersion)
-	if err != nil {
-		return err
-	}
-	if operatorsCanCoexist {
-		return nil
-	}
+	var cnvEnabled, lvmEnabled bool
 
 	for _, updatedOperator := range operators {
 		if updatedOperator.Name == "lvm" {
@@ -463,13 +448,24 @@ func EnsureLVMAndCNVDoNotClash(cluster *common.Cluster, openshiftVersion string,
 		}
 	}
 
-	if lvmEnabled && cnvEnabled {
+	if !lvmEnabled || !cnvEnabled {
+		return nil
+	}
+
+	// Openshift version greater or Equal to 4.12.0 support cnv and lvms
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, openshiftVersion); !isGreaterOrEqual {
 		return errors.Errorf("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator.")
 	}
 
-	if lvmEnabled && !common.IsSingleNodeCluster(cluster) {
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmMinMultiNodeSupportVersion, openshiftVersion); isGreaterOrEqual {
+		return nil
+	}
+
+	// before 4.15 muli node LVM not supported
+	if !common.IsSingleNodeCluster(cluster) {
 		return errors.Errorf("OpenShift Data Foundation Logical Volume Manager operator is only supported for Single Node Openshift")
 	}
+
 	return nil
 }
 

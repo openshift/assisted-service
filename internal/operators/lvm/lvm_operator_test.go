@@ -112,7 +112,7 @@ var _ = Describe("Lvm Operator", func() {
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("High Availability Mode Full",
-				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &fullHaMode, Hosts: []*models.Host{hostWithSufficientResources, hostWithSufficientResources}, OpenshiftVersion: operator.Config.LvmMinMultiNodeSupportVersion}},
+				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &fullHaMode, Hosts: []*models.Host{hostWithSufficientResources, hostWithSufficientResources}, OpenshiftVersion: LvmMinMultiNodeSupportVersion}},
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
 			),
 			table.Entry("High Availability Mode Full with pre-release version",

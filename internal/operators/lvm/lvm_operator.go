@@ -80,8 +80,8 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 	}
 
 	if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeFull {
-		if ok, _ := common.BaseVersionLessThan(o.Config.LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); ok {
-			message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above", o.Config.LvmMinMultiNodeSupportVersion)
+		if ok, _ := common.BaseVersionLessThan(LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); ok {
+			message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above", LvmMinMultiNodeSupportVersion)
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
 		}
 	}
