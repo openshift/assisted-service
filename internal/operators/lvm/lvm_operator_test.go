@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -43,8 +44,6 @@ var _ = Describe("Lvm Operator", func() {
 		mockProviderRegistry          *registry.MockProviderRegistry
 		defaultConfig                 *host.Config
 		hostID, clusterID, infraEnvID strfmt.UUID
-
-		templateDisk models.Disk
 
 		diskID1 = "/dev/disk/by-id/test-disk-1"
 		diskID2 = "/dev/disk/by-id/test-disk-2"
@@ -112,7 +111,7 @@ var _ = Describe("Lvm Operator", func() {
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("High Availability Mode Full",
-				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &fullHaMode, Hosts: []*models.Host{hostWithSufficientResources, hostWithSufficientResources}, OpenshiftVersion: operator.Config.LvmMinMultiNodeSupportVersion}},
+				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &fullHaMode, Hosts: []*models.Host{hostWithSufficientResources, hostWithSufficientResources}, OpenshiftVersion: LvmMinMultiNodeSupportVersion}},
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
 			),
 			table.Entry("High Availability Mode Full with pre-release version",
@@ -347,12 +346,6 @@ var _ = Describe("Lvm Operator", func() {
 					Disks: []*models.Disk{},
 				}),
 			}
-
-			templateDisk = models.Disk{
-				ID:        diskID1,
-				SizeBytes: 20 * conversions.GB,
-				DriveType: models.DriveTypeHDD,
-			}
 		})
 		hostValidationTests := []struct {
 			name                 string
@@ -492,13 +485,17 @@ var _ = Describe("Lvm Operator", func() {
 			test := hostValidationTests[i]
 			It(fmt.Sprintf("ValidateHost , %s", test.name), func() {
 				disks := make([]*models.Disk, test.diskCount)
-				for i := range disks {
-					disks[i] = &templateDisk
-					disks[i].ID = fmt.Sprintf("/dev/disk/by-id/test-disk-%d", i+1)
+				for x := range disks {
+					disks[x] = &models.Disk{
+						ID:        fmt.Sprintf("/dev/disk/by-id/test-disk-%d", x+1),
+						DriveType: models.DriveTypeHDD,
+						SizeBytes: 20 * conversions.GB,
+					}
 				}
 
 				testHost := templateHost
 				testHost.Role = test.hostRole
+				testHost.SuggestedRole = models.HostRoleAutoAssign
 				testHost.Inventory = Inventory(&InventoryResources{
 					Cpus:  test.hostCPU,
 					Ram:   int64(test.hostMem),
@@ -510,7 +507,12 @@ var _ = Describe("Lvm Operator", func() {
 				if len(test.hosts) <= 3 {
 					schedulableMasters = true
 				}
-				cluster := &common.Cluster{Cluster: models.Cluster{OpenshiftVersion: test.ocpVersion, Hosts: test.hosts, HighAvailabilityMode: &test.HighAvailabilityMode, SchedulableMasters: &schedulableMasters}}
+				cluster := &common.Cluster{Cluster: models.Cluster{
+					OpenshiftVersion: test.ocpVersion,
+					Hosts:            test.hosts, HighAvailabilityMode: &test.HighAvailabilityMode,
+					SchedulableMasters:           swag.Bool(false),
+					SchedulableMastersForcedTrue: &schedulableMasters,
+				}}
 
 				res, _ := operator.ValidateHost(ctx, cluster, testHost)
 
@@ -521,5 +523,4 @@ var _ = Describe("Lvm Operator", func() {
 		}
 
 	})
-
 })
