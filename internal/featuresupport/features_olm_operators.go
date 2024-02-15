@@ -164,6 +164,10 @@ func (feature *CnvFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelUnavailable
 	}
 
+	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeNutanix || *filters.PlatformType == models.PlatformTypeVsphere) {
+		return models.SupportLevelUnavailable
+	}
+
 	return models.SupportLevelSupported
 }
 
@@ -251,6 +255,10 @@ func (feature *MceFeature) getSupportLevel(filters SupportLevelFilters) models.S
 
 	isNotSupported, err := common.BaseVersionLessThan("4.10", filters.OpenshiftVersion)
 	if isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeNutanix) {
 		return models.SupportLevelUnavailable
 	}
 
