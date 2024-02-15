@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -163,41 +164,103 @@ var _ = Describe("Operators manager", func() {
 
 	Context("EnsureLVMAndCNVDoNotClash", func() {
 		It("should return error when both cnv and lvm operator enabled before 4.12", func() {
+			testVersion := "4.11.0"
 			monitoredOperators := []*models.MonitoredOperator{
 				{Name: "lvm"},
 				{Name: "lso"},
 				{Name: "odf"},
 				{Name: "cnv"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.11.0", monitoredOperators)
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, testVersion, monitoredOperators)
 			Expect(err).To(Not(BeNil()))
 		})
 		It("no error when both cnv and lvm operator enabled after 4.12", func() {
+			testVersion := "4.12.0"
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 			monitoredOperators := []*models.MonitoredOperator{
 				{Name: "lvm"},
 				{Name: "lso"},
 				{Name: "odf"},
+				{Name: "cnv"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.12.0", monitoredOperators)
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, testVersion, monitoredOperators)
 			Expect(err).To(BeNil())
+
 		})
 		It("lvm operator enabled without cnv before 4.12", func() {
+			testVersion := "4.11.0"
 			monitoredOperators := []*models.MonitoredOperator{
 				{Name: "lvm"},
 				{Name: "lso"},
 				{Name: "odf"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.11.0", monitoredOperators)
-			Expect(err).To(Not(BeNil()))
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, testVersion, monitoredOperators)
+			Expect(err).To(BeNil())
+		})
+		It("lvm operator enabled without cnv after 4.12", func() {
+			testVersion := "4.13.0"
+			monitoredOperators := []*models.MonitoredOperator{
+				{Name: "lvm"},
+				{Name: "lso"},
+				{Name: "odf"},
+			}
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, testVersion, monitoredOperators)
+			Expect(err).To(BeNil())
 		})
 		It("cnv operator enabled without lvm before 4.12", func() {
+			testVersion := "4.11.0"
 			monitoredOperators := []*models.MonitoredOperator{
 				{Name: "cnv"},
 				{Name: "lso"},
 				{Name: "odf"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.11.0", monitoredOperators)
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, testVersion, monitoredOperators)
 			Expect(err).To(BeNil())
+		})
+		It("cnv operator enabled without lvm after 4.12", func() {
+			testVersion := "4.13.0"
+			monitoredOperators := []*models.MonitoredOperator{
+				{Name: "cnv"},
+				{Name: "lso"},
+				{Name: "odf"},
+			}
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, testVersion, monitoredOperators)
+			Expect(err).To(BeNil())
+		})
+		It("cnv operator enabled with lvm after 4.15", func() {
+			testVersion := "4.15.0"
+			monitoredOperators := []*models.MonitoredOperator{
+				{Name: "cnv"},
+				{Name: "lso"},
+				{Name: "odf"},
+				{Name: "lvm"},
+			}
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, testVersion, monitoredOperators)
+			Expect(err).To(BeNil())
+		})
+		It("cnv operator enabled with lvm after 4.15 multinode", func() {
+			testVersion := "4.15.0"
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			monitoredOperators := []*models.MonitoredOperator{
+				{Name: "cnv"},
+				{Name: "lso"},
+				{Name: "odf"},
+				{Name: "lvm"},
+			}
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, testVersion, monitoredOperators)
+			Expect(err).To(BeNil())
+		})
+		It("fail cnv operator enabled with lvm before 4.15 multinode", func() {
+			testVersion := "4.14.0"
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			monitoredOperators := []*models.MonitoredOperator{
+				{Name: "cnv"},
+				{Name: "lso"},
+				{Name: "odf"},
+				{Name: "lvm"},
+			}
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, testVersion, monitoredOperators)
+			Expect(err).ToNot(BeNil())
 		})
 	})
 
