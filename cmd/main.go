@@ -398,6 +398,10 @@ func main() {
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
 	Options.UploaderConfig.AssistedServiceVersion = versions.GetRevision()
+	Options.UploaderConfig.Versions = Options.Versions
+	if Options.GeneratorConfig.InstallInvoker == "agent-installer" {
+		Options.UploaderConfig.DeploymentType = "ABI"
+	}
 	uploadClient := uploader.NewClient(&Options.UploaderConfig, db, log, ocpClient)
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, notificationStream, eventsHandler, hwValidator,

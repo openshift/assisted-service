@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/pkg/errors"
@@ -39,7 +40,7 @@ func (e *eventsUploader) UploadEvents(ctx context.Context, cluster *common.Clust
 	if err != nil {
 		return errors.Wrapf(err, "failed to get pull secret to upload event data for cluster %s", cluster.ID)
 	}
-	buffer, err := prepareFiles(ctx, e.db, cluster, eventsHandler, pullSecret)
+	buffer, err := prepareFiles(ctx, e.db, cluster, eventsHandler, pullSecret, e.Config)
 	if err != nil {
 		return errors.Wrapf(err, "failed to prepare files to upload for cluster %s", cluster.ID)
 	}
@@ -118,7 +119,8 @@ func (e *eventsUploader) sendRequest(req *http.Request) error {
 	return nil
 }
 
-func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eventsHandler eventsapi.Handler, pullSecret *validations.PullSecretCreds) (*bytes.Buffer, error) {
+func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eventsHandler eventsapi.Handler, pullSecret *validations.PullSecretCreds,
+	config Config) (*bytes.Buffer, error) {
 	buffer := &bytes.Buffer{}
 	gz := gzip.NewWriter(buffer)
 	tw := tar.NewWriter(gz)
@@ -148,6 +150,14 @@ func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eve
 		return nil, errors.Errorf("no event data files created for cluster %s", cluster.ID)
 	}
 
+	// Add versions file to bundle
+	if versionsJson, err := json.Marshal(versions.GetModelVersions(config.Versions)); err == nil {
+		addFile(tw, versionsJson, fmt.Sprintf("%s/versions.json", *cluster.ID)) //nolint:errcheck // errors adding this file shouldn't prevent the data from being sent
+	}
+
+	// Add metadata file to bundle
+	metadataFile(tw, cluster.ID, config)
+
 	// produce tar
 	if err := tw.Close(); err != nil {
 		return nil, errors.Wrap(err, "failed closing tar file")
@@ -157,6 +167,17 @@ func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eve
 		return nil, errors.Wrap(err, "failed closing gzip file")
 	}
 	return buffer, nil
+}
+
+func metadataFile(tw *tar.Writer, clusterID *strfmt.UUID, config Config) {
+	metadata := versions.GetModelVersions(config.Versions)
+	metadata["deployment-type"] = config.DeploymentType
+	metadata["deployment-version"] = config.DeploymentVersion
+	metadata["git-ref"] = config.AssistedServiceVersion
+
+	if metadataJson, err := json.Marshal(metadata); err == nil {
+		addFile(tw, metadataJson, fmt.Sprintf("%s/metadata.json", *clusterID)) //nolint:errcheck // errors adding this file shouldn't prevent the data from being sent
+	}
 }
 
 func eventsFile(ctx context.Context, clusterID *strfmt.UUID, eventsHandler eventsapi.Handler, tw *tar.Writer) error {
