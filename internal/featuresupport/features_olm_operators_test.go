@@ -6,6 +6,7 @@ import (
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -178,6 +179,43 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			for _, feature := range features {
 				Expect(isFeatureCompatible("4.15", featuresList[feature], lvmFeatureList)).To(BeNil())
 			}
+		})
+	})
+
+	Context("Test feature support levels for Nutanix platform", func() {
+		It("CNV should be unavailable", func() {
+			featureSupportLevels := GetFeatureSupportList(
+				"4.14",
+				swag.String(common.X86CPUArchitecture),
+				common.PlatformTypePtr(models.PlatformTypeNutanix),
+				nil,
+			)
+
+			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable))
+		})
+
+		It("MCE should be unavailable", func() {
+			featureSupportLevels := GetFeatureSupportList(
+				"4.14",
+				swag.String(common.X86CPUArchitecture),
+				common.PlatformTypePtr(models.PlatformTypeNutanix),
+				nil,
+			)
+
+			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDMCE)]).To(Equal(models.SupportLevelUnavailable))
+		})
+	})
+
+	Context("Test feature support levels for Vsphere platform", func() {
+		It("CNV should be unavailable", func() {
+			featureSupportLevels := GetFeatureSupportList(
+				"4.14",
+				swag.String(common.X86CPUArchitecture),
+				common.PlatformTypePtr(models.PlatformTypeVsphere),
+				nil,
+			)
+
+			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable))
 		})
 	})
 })
