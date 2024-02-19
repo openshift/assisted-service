@@ -113,7 +113,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		}
 	} else {
 		if role == models.HostRoleAutoAssign {
-			status := "For LVM Standard Mode, host role must be assigned to master or worker."
+			status := "For Logical Volume Manager Standard Mode, host role must be assigned to master or worker."
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
 		}
 	}

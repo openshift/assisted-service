@@ -459,7 +459,7 @@ var _ = Describe("Lvm Operator", func() {
 				name:                 "full version 4.15, Worker  HostRoleAutoAssign",
 				ocpVersion:           "4.15.0",
 				hosts:                []*models.Host{masterNode, masterNode, masterNode, workerNode, workerNode},
-				resultMessage:        []string{"For LVM Standard Mode, host role must be assigned to master or worker."},
+				resultMessage:        []string{"For Logical Volume Manager Standard Mode, host role must be assigned to master or worker."},
 				apiStatus:            api.Failure,
 				diskCount:            2,
 				hostCPU:              3,
