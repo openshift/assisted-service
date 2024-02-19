@@ -249,18 +249,18 @@ func (mr *MockAPIMockRecorder) ClusterMonitoring() *gomock.Call {
 }
 
 // CompleteInstallation mocks base method.
-func (m *MockAPI) CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error) {
+func (m *MockAPI) CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, reason string) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CompleteInstallation", ctx, db, cluster, successfullyFinished, reason)
+	ret := m.ctrl.Call(m, "CompleteInstallation", ctx, db, cluster, reason)
 	ret0, _ := ret[0].(*common.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CompleteInstallation indicates an expected call of CompleteInstallation.
-func (mr *MockAPIMockRecorder) CompleteInstallation(ctx, db, cluster, successfullyFinished, reason interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) CompleteInstallation(ctx, db, cluster, reason interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteInstallation", reflect.TypeOf((*MockAPI)(nil).CompleteInstallation), ctx, db, cluster, successfullyFinished, reason)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteInstallation", reflect.TypeOf((*MockAPI)(nil).CompleteInstallation), ctx, db, cluster, reason)
 }
 
 // DeleteClusterLogs mocks base method.

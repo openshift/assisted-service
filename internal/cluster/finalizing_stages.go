@@ -19,7 +19,6 @@ const (
 )
 
 var finalizingStagesTimeoutsDefaults = map[models.FinalizingStage]time.Duration{
-	models.FinalizingStageWaitingForFinalizing:                    longWaitTimeout,
 	models.FinalizingStageWaitingForClusterOperators:              longWaitTimeout,
 	models.FinalizingStageAddingRouterCa:                          generalWaitTimeout,
 	models.FinalizingStageApplyingOlmManifests:                    shortWaitTimeout,
@@ -29,7 +28,6 @@ var finalizingStagesTimeoutsDefaults = map[models.FinalizingStage]time.Duration{
 }
 
 var finalizingStages = []models.FinalizingStage{
-	models.FinalizingStageWaitingForFinalizing,
 	models.FinalizingStageWaitingForClusterOperators,
 	models.FinalizingStageAddingRouterCa,
 	models.FinalizingStageApplyingOlmManifests,

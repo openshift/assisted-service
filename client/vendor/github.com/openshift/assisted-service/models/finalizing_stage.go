@@ -30,9 +30,6 @@ func (m FinalizingStage) Pointer() *FinalizingStage {
 
 const (
 
-	// FinalizingStageWaitingForFinalizing captures enum value "Waiting for finalizing"
-	FinalizingStageWaitingForFinalizing FinalizingStage = "Waiting for finalizing"
-
 	// FinalizingStageWaitingForClusterOperators captures enum value "Waiting for cluster operators"
 	FinalizingStageWaitingForClusterOperators FinalizingStage = "Waiting for cluster operators"
 
@@ -57,7 +54,7 @@ var finalizingStageEnum []interface{}
 
 func init() {
 	var res []FinalizingStage
-	if err := json.Unmarshal([]byte(`["Waiting for finalizing","Waiting for cluster operators","Adding router ca","Applying olm manifests","Waiting for olm operators csv initialization","Waiting for olm operators csv","Done"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Waiting for cluster operators","Adding router ca","Applying olm manifests","Waiting for olm operators csv initialization","Waiting for olm operators csv","Done"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

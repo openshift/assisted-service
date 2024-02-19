@@ -5763,7 +5763,6 @@ var _ = Describe("cluster", func() {
 			})
 			It("complete failure", func() {
 				success := false
-				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), gomock.Any(), success, errorInfo).Return(nil, nil).Times(1)
 
 				reply := bm.V2CompleteInstallation(ctx, installer.V2CompleteInstallationParams{
 					ClusterID:        clusterID,
@@ -5771,20 +5770,8 @@ var _ = Describe("cluster", func() {
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2CompleteInstallationAccepted()))
 			})
-			It("complete failure bad request", func() {
-				success := false
-				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), gomock.Any(), success, errorInfo).Return(nil, errors.New("error")).Times(1)
-
-				reply := bm.V2CompleteInstallation(ctx, installer.V2CompleteInstallationParams{
-					ClusterID:        clusterID,
-					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
-				})
-
-				verifyApiError(reply, http.StatusInternalServerError)
-			})
 			It("complete with failing operator report", func() {
 				success := false
-				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), gomock.Any(), success, errorInfo).Return(nil, nil).Times(1)
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ClusterOperatorReportEventName),
 					eventstest.WithMessageContainsMatcher("authentication, csi-snapshot-controller"))).Times(1)
@@ -5819,9 +5806,6 @@ var _ = Describe("cluster", func() {
 					},
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2CompleteInstallationAccepted()))
-			})
-			It("complete with bad format operator report", func() {
-
 			})
 		})
 

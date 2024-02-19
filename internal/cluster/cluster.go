@@ -126,7 +126,7 @@ type API interface {
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
 	GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error
-	CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error)
+	CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, reason string) (*common.Cluster, error)
 	PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error
 	DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error
 	TransformClusterToDay2(ctx context.Context, cluster *common.Cluster, db *gorm.DB) error
@@ -1648,46 +1648,34 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 	return nil
 }
 
-func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
-	cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error) {
+func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, reason string) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, m.log)
-	destStatus := models.ClusterStatusError
-	result := models.ClusterStatusInstalled
 	var extra []interface{}
 
 	defer func() {
-		m.metricAPI.ClusterInstallationFinished(ctx, result, models.ClusterStatusFinalizing, cluster.OpenshiftVersion,
+		m.metricAPI.ClusterInstallationFinished(ctx, models.ClusterStatusInstalled, models.ClusterStatusFinalizing, cluster.OpenshiftVersion,
 			*cluster.ID, cluster.EmailDomain, cluster.InstallStartedAt)
 	}()
 
-	if successfullyFinished {
-		destStatus = models.ClusterStatusInstalled
-
-		// Update AMS subscription only if configured and installation succeeded
-		if m.ocmClient != nil {
-			if err := m.ocmClient.AccountsMgmt.UpdateSubscriptionStatusActive(ctx, cluster.AmsSubscriptionID); err != nil {
-				err = errors.Wrapf(err, "Failed to update AMS subscription for cluster %s with status 'Active'", *cluster.ID)
-				log.Error(err)
-				return nil, err
-			}
+	// Update AMS subscription only if configured and installation succeeded
+	if m.ocmClient != nil {
+		if err := m.ocmClient.AccountsMgmt.UpdateSubscriptionStatusActive(ctx, cluster.AmsSubscriptionID); err != nil {
+			err = errors.Wrapf(err, "Failed to update AMS subscription for cluster %s with status 'Active'", *cluster.ID)
+			log.Error(err)
+			return nil, err
 		}
 	}
 
 	extra = append(extra, "progress_finalizing_stage_percentage", 100, "progress_total_percentage", 100)
 	clusterAfterUpdate, err := updateClusterStatus(ctx, log, db, m.stream, *cluster.ID,
-		models.ClusterStatusFinalizing, destStatus, reason, m.eventsHandler, extra...)
+		models.ClusterStatusFinalizing, models.ClusterStatusInstalled, reason, m.eventsHandler, extra...)
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to update cluster %s completion in db", *cluster.ID)
 		log.Error(err)
 		return nil, err
 	}
 
-	if !successfullyFinished {
-		result = models.ClusterStatusError
-		eventgen.SendClusterInstallationFailedEvent(ctx, m.eventsHandler, *cluster.ID, reason)
-	} else {
-		eventgen.SendClusterInstallationCompletedEvent(ctx, m.eventsHandler, *cluster.ID)
-	}
+	eventgen.SendClusterInstallationCompletedEvent(ctx, m.eventsHandler, *cluster.ID)
 
 	return clusterAfterUpdate, nil
 }

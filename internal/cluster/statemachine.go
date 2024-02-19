@@ -310,7 +310,6 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefreshStatus,
 		SourceStates: []stateswitch.State{
-			stateswitch.State(models.ClusterStatusInstalling),
 			stateswitch.State(models.ClusterStatusFinalizing),
 		},
 		Condition: stateswitch.And(stateswitch.Not(th.SoftTimeoutsEnabled),
@@ -324,25 +323,23 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		},
 	})
 
-	for _, st := range []string{models.ClusterStatusInstalling, models.ClusterStatusFinalizing} {
-		sm.AddTransitionRule(stateswitch.TransitionRule{
-			TransitionType: TransitionTypeRefreshStatus,
-			SourceStates: []stateswitch.State{
-				stateswitch.State(st),
-			},
-			Condition: stateswitch.And(
-				stateswitch.Not(finalizingStageTimeoutTriggered),
-				stateswitch.Or(th.SoftTimeoutsEnabled,
-					isInFinalizingStages(nonFailingFinalizingStages...)),
-				th.IsFinalizingStageTimedOut),
-			DestinationState: stateswitch.State(st),
-			PostTransition:   th.PostRefreshFinalizingStageSoftTimedOut,
-			Documentation: stateswitch.TransitionRuleDoc{
-				Name:        "Finalizing stage is taking too long.  Emit an appropriate event",
-				Description: "Cluster finalization stage is taking too long, emit a warning event and continue installation",
-			},
-		})
-	}
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusFinalizing),
+		},
+		Condition: stateswitch.And(
+			stateswitch.Not(finalizingStageTimeoutTriggered),
+			stateswitch.Or(th.SoftTimeoutsEnabled,
+				isInFinalizingStages(nonFailingFinalizingStages...)),
+			th.IsFinalizingStageTimedOut),
+		DestinationState: stateswitch.State(models.ClusterStatusFinalizing),
+		PostTransition:   th.PostRefreshFinalizingStageSoftTimedOut,
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "Finalizing stage is taking too long.  Emit an appropriate event",
+			Description: "Cluster finalization stage is taking too long, emit a warning event and continue installation",
+		},
+	})
 
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefreshStatus,
