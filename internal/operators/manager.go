@@ -452,13 +452,12 @@ func EnsureLVMAndCNVDoNotClash(cluster *common.Cluster, openshiftVersion string,
 		return nil
 	}
 
-	// Openshift version greater or Equal to 4.12.0 support cnv and lvms
-	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, openshiftVersion); !isGreaterOrEqual {
-		return errors.Errorf("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator.")
-	}
-
 	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmMinMultiNodeSupportVersion, openshiftVersion); isGreaterOrEqual {
 		return nil
+	}
+	// Openshift version greater or Equal to 4.12.0 support cnv and lvms
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, openshiftVersion); !isGreaterOrEqual {
+		return errors.Errorf("Currently, you can not install Logical Volume Manager operator at the same time as Virtualization operator.")
 	}
 
 	// before 4.15 multi node LVM not supported
