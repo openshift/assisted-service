@@ -61,6 +61,12 @@ var ConfigureOptions struct {
 	HostConfigDir string `envconfig:"HOST_CONFIG_DIR" default:"/etc/assisted/hostconfig"`
 }
 
+var ImportOptions struct {
+	ClusterID            string `envconfig:"CLUSTER_ID" default:""`
+	ClusterName          string `envconfig:"CLUSTER_NAME" default:""`
+	ClusterAPIVIPDNSName string `envconfig:"CLUSTER_API_VIP_DNS_NAME" default:""`
+}
+
 func main() {
 	err := envconfig.Process("", &Options)
 	log := log.New()
@@ -102,6 +108,8 @@ func main() {
 		os.WriteFile("/etc/assisted/client_config", []byte("INFRA_ENV_ID="+infraEnvID), 0644)
 	case "configure":
 		configure(ctx, log, bmInventory)
+	case "importCluster":
+		importCluster(ctx, log, bmInventory)
 	default:
 		log.Fatalf("Unknown subcommand %s", os.Args[1])
 	}
@@ -237,6 +245,29 @@ func configure(ctx context.Context, log *log.Logger, bmInventory *client.Assiste
 		}
 	}
 	log.Info("Configured all hosts")
+}
+
+func importCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) {
+	err := envconfig.Process("", &ImportOptions)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	if ImportOptions.ClusterID == "" {
+		log.Fatal("No Cluster_ID specified")
+	}
+	if ImportOptions.ClusterName == "" {
+		log.Fatal("No Cluster_NAME specified")
+	}
+	if ImportOptions.ClusterAPIVIPDNSName == "" {
+		log.Fatal("No Cluster_API_VIP_DNS_Name specified")
+	}
+
+	clusterID := strfmt.UUID(ImportOptions.ClusterID)
+	_, err = agentbasedinstaller.ImportCluster(ctx, log, bmInventory, clusterID, ImportOptions.ClusterName, ImportOptions.ClusterAPIVIPDNSName)
+	if err != nil {
+		log.Fatal("Failed to import cluster with assisted-service: ", err)
+	}
 }
 
 func recordFailures(failures []agentbasedinstaller.Failure) error {
