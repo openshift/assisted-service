@@ -80,8 +80,8 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 	}
 
 	if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeFull {
-		if ok, _ := common.BaseVersionLessThan(o.Config.LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); ok {
-			message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above", o.Config.LvmMinMultiNodeSupportVersion)
+		if ok, _ := common.BaseVersionLessThan(LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); ok {
+			message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above", LvmMinMultiNodeSupportVersion)
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
 		}
 	}
@@ -104,19 +104,19 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 	diskCount := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
 
 	role := common.GetEffectiveRole(host)
+	areSchedulable := common.AreMastersSchedulable(cluster)
+
 	message := "Logical Volume Manager requires at least one non-installation HDD/SSD disk on the host"
-	// if (role == models.HostRoleWorker && !*cluster.SchedulableMasters) || *cluster.SchedulableMasters {
-	if role == models.HostRoleWorker || *cluster.SchedulableMasters {
+	if role == models.HostRoleWorker || areSchedulable {
 		if diskCount == 0 {
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
 		}
+	} else {
+		if role == models.HostRoleAutoAssign {
+			status := "For Logical Volume Manager Standard Mode, host role must be assigned to master or worker."
+			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
+		}
 	}
-
-	if role == models.HostRoleAutoAssign && !*cluster.SchedulableMasters {
-		status := "For LVM Standard Mode, host role must be assigned to master or worker."
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
-	}
-
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID()}, nil
 }
 
