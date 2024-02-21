@@ -173,9 +173,9 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Qualitative: []string{
-					"At least 1 non-boot disk on one or more host",
-					fmt.Sprintf("%d GiB of additional RAM", memoryRequirements),
-					fmt.Sprintf("%d additional CPUs for each non-boot disk", memoryRequirements),
+					"At least 1 non-boot disk per host",
+					fmt.Sprintf("%d MiB of additional RAM", memoryRequirements),
+					fmt.Sprintf("%d additional CPUs for each non-boot disk", o.Config.LvmCPUPerHost),
 				},
 				Quantitative: &models.ClusterHostRequirementsDetails{
 					CPUCores: o.Config.LvmCPUPerHost,
