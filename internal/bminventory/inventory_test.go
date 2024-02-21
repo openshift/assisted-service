@@ -78,7 +78,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
-	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -11645,7 +11644,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 					},
 				},
 			}
-			installConfigData, err := yaml.Marshal(installConfig)
+			installConfigData, err := json.Marshal(installConfig)
 			Expect(err).ToNot(HaveOccurred())
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -11682,7 +11681,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 					},
 				},
 			}
-			installConfigData, err := yaml.Marshal(installConfig)
+			installConfigData, err := json.Marshal(installConfig)
 			Expect(err).ToNot(HaveOccurred())
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -11717,7 +11716,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 				},
 			},
 		}
-		installConfigData, err := yaml.Marshal(installConfig)
+		installConfigData, err := json.Marshal(installConfig)
 		Expect(err).ToNot(HaveOccurred())
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
