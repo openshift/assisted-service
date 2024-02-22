@@ -29,7 +29,7 @@ type apiHandler struct {
 	authzHandler    auth.Authorizer
 	versions        Versions
 	log             logrus.FieldLogger
-	versionsHandler *handler
+	versionsHandler Handler
 	osImages        OSImages
 	releaseSources  models.ReleaseSources
 }
@@ -40,7 +40,7 @@ func NewAPIHandler(
 	log logrus.FieldLogger,
 	versions Versions,
 	authzHandler auth.Authorizer,
-	versionHandler *handler,
+	versionHandler Handler,
 	osImages OSImages,
 	releaseSources models.ReleaseSources,
 ) restapi.VersionsAPI {
@@ -156,10 +156,17 @@ func filterReleaseImagesByVersion(releaseImages models.ReleaseImages, versionPat
 	return filterdReleaseImagesInterface.([]*models.ReleaseImage) // models.ReleaseImages does not work for convertion
 }
 
-func filterIgnoredVersions(releaseImages models.ReleaseImages, ignoredVersions []string) models.ReleaseImages {
+func filterIgnoredVersions(log logrus.FieldLogger, releaseImages models.ReleaseImages, ignoredVersions []string) models.ReleaseImages {
 	return funk.Filter(releaseImages, func(releaseImage *models.ReleaseImage) bool {
 		version := strings.TrimSuffix(*releaseImage.Version, "-multi")
-		return !funk.Contains(ignoredVersions, version)
+
+		majorMinorVersion, err := common.GetMajorMinorVersion(version)
+		if err != nil {
+			log.WithError(err).Debugf("error occurred while trying to get the major.minor version of '%s', filtering this version out", version)
+			return false
+		}
+
+		return !funk.Contains(ignoredVersions, version) && !funk.Contains(ignoredVersions, *majorMinorVersion)
 	}).([]*models.ReleaseImage)
 }
 
@@ -181,17 +188,23 @@ func getReleaseImageSupportLevel(releaseImage *models.ReleaseImage) (*string, er
 }
 
 func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
+	handler, ok := h.versionsHandler.(*restAPIVersionsHandler)
+	// Should not happen
+	if !ok {
+		return common.GenerateErrorResponder(errors.New("KubeAPI version handler found in restAPI mode"))
+	}
+
 	openshiftVersions := models.OpenshiftVersions{}
 	hasMultiarchAuthorization := false
 	checkedForMultiarchAuthorization := false
 
 	var releaseImages models.ReleaseImages
-	err := h.versionsHandler.db.Find(&releaseImages).Error
+	err := handler.db.Find(&releaseImages).Error
 	if err != nil {
 		return common.GenerateErrorResponder(errors.Wrap(err, "error occurred while trying to get release images from DB"))
 	}
 
-	releaseImages = filterIgnoredVersions(releaseImages, h.versionsHandler.ignoredOpenshiftVersions)
+	releaseImages = filterIgnoredVersions(h.log, releaseImages, handler.ignoredOpenshiftVersions)
 	releaseImagesByVersionPattern := filterReleaseImagesByVersion(releaseImages, params.Version)
 	releaseImagesByOnlyLatest, err := filterReleaseImagesByOnlyLatest(releaseImages, params.OnlyLatest)
 	if err != nil {

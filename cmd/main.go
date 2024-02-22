@@ -890,6 +890,8 @@ func createVersionHandlers(
 		versionsClient,
 		ignoredOpenshiftVersions,
 		db,
+		Options.EnableKubeAPI,
+		releaseSources,
 	)
 	if err != nil {
 		return nil, nil, err

@@ -1,6 +1,7 @@
 package common
 
 import (
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -536,4 +537,11 @@ func CloseDB(db *gorm.DB) {
 		return
 	}
 	_ = sqlDB.Close()
+}
+
+func EscapePlaceHolders(message string) string {
+	message = strings.ReplaceAll(message, "\\", "\\\\")
+	message = strings.ReplaceAll(message, "_", "\\_")
+	message = strings.ReplaceAll(message, "%", "\\%")
+	return message
 }

@@ -115,44 +115,31 @@ var _ = DescribeTable("GetMajorVersion", func(
 	Entry("empty", "", nil, true),
 )
 
-var _ = Describe("Test isVersionPreRelease", func() {
-	It("With ec/rc/fc/alpha/nightly", func() {
-		isPreRelease, err := IsVersionPreRelease("4.14.0-ec.2")
+var _ = DescribeTable("IsVersionPreRelease",
+	func(version string, expectedIsPreRelease bool) {
+		isPreRelease, err := IsVersionPreRelease(version)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(*isPreRelease).To(BeTrue())
+		Expect(*isPreRelease).To(Equal(expectedIsPreRelease))
+	},
+	Entry("with ec as prerelease version", "4.14.0-ec.2", true),
+	Entry("with fc as prerelease version", "4.14.0-fc.2", true),
+	Entry("with rc as prerelease version", "4.14.0-rc.2", true),
+	Entry("with alpha as prerelease version", "4.14.0-alpha", true),
+	Entry("with nightly as prerelease version", "4.14.0-nightly", true),
+	Entry("with stable version", "4.13.17", false),
+	Entry("with another stable version", "4.14.17", false),
+	Entry("with yet another stable version", "4.12.17", false),
+	Entry("with stable version and suffix", "4.12.17-multi", false),
+)
 
-		isPreRelease, err = IsVersionPreRelease("4.14.0-fc.2")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(*isPreRelease).To(BeTrue())
-
-		isPreRelease, err = IsVersionPreRelease("4.14.0-rc.2")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(*isPreRelease).To(BeTrue())
-
-		isPreRelease, err = IsVersionPreRelease("4.14.0-alpha")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(*isPreRelease).To(BeTrue())
-
-		isPreRelease, err = IsVersionPreRelease("4.14.0-nightly")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(*isPreRelease).To(BeTrue())
-	})
-
-	It("With versions that are not prerelease", func() {
-		isPreRelease, err := IsVersionPreRelease("4.13.17")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(*isPreRelease).To(BeFalse())
-
-		isPreRelease, err = IsVersionPreRelease("4.14.17")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(*isPreRelease).To(BeFalse())
-
-		isPreRelease, err = IsVersionPreRelease("4.12.17")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(*isPreRelease).To(BeFalse())
-
-		isPreRelease, err = IsVersionPreRelease("4.12.17-multi")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(*isPreRelease).To(BeFalse())
-	})
-})
+var _ = DescribeTable("GetVersionFormat", func(input string, expectedVersionFormat VersionFormat) {
+	versionFormat := GetVersionFormat(input)
+	Expect(versionFormat).To(Equal(expectedVersionFormat))
+},
+	Entry("pre-release", "4.11.0-0.alpha", MajorMinorPatchVersion),
+	Entry("major.minor.patch", "4.12.0", MajorMinorPatchVersion),
+	Entry("major.minor release", "3.14", MajorMinorVersion),
+	Entry("major version only", "2", MajorVersion),
+	Entry("empty version", "", NoneVersion),
+	Entry("non-version string", "non-version", NoneVersion),
+)

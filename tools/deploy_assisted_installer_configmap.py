@@ -108,7 +108,7 @@ def main():
     data = data.replace('REPLACE_HW_VALIDATOR_REQUIREMENTS', '"{}"'.format(deploy_options.hw_requirements))
     data = data.replace('REPLACE_DISABLED_HOST_VALIDATIONS', '"{}"'.format(deploy_options.disabled_host_validations))
     data = data.replace('REPLACE_DISABLED_STEPS', '"{}"'.format(deploy_options.disabled_steps))
-    data = data.replace('REPLACE_RELEASE_SOURCES', '"{}"'.format(RELEASE_SOURCES))
+    data = data.replace('REPLACE_RELEASE_SOURCES', "'{}'".format(RELEASE_SOURCES))
     data = data.replace('REPLACE_OPENSHIFT_RELEASE_SYNCER_INTERVAL', '"{}"'.format(OPENSHIFT_RELEASE_SYNCER_INTERVAL))
     data = data.replace('REPLACE_IGNORED_OPENSHIFT_VERSIONS', '"{}"'.format(IGNORED_OPENSHIFT_VERSIONS))
 
