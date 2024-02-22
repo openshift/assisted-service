@@ -36,6 +36,8 @@ parameters:
   required: true
 - name: S3_USE_SSL
   value: "true"
+- name: ENABLE_SKIP_MCO_REBOOT
+  value: "true"
 - name: ENABLE_AUTO_ASSIGN
   value: "true"
   required: false
@@ -311,6 +313,8 @@ objects:
                     name: assisted-installer-s3
               - name: S3_USE_SSL
                 value: ${S3_USE_SSL}
+              - name: ENABLE_SKIP_MCO_REBOOT
+                value: ${ENABLE_SKIP_MCO_REBOOT}
               - name: DB_HOST
                 valueFrom:
                   secretKeyRef:
