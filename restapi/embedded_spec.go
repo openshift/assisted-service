@@ -5691,6 +5691,32 @@ func init() {
         }
       }
     },
+    "/v2/release-sources": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves openshift release sources configuration.",
+        "tags": [
+          "versions"
+        ],
+        "operationId": "v2ListReleaseSources",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/release-sources"
+            }
+          }
+        }
+      }
+    },
     "/v2/support-levels/architectures": {
       "get": {
         "security": [
@@ -9519,7 +9545,8 @@ func init() {
           "enum": [
             "beta",
             "production",
-            "maintenance"
+            "maintenance",
+            "end-of-life"
           ]
         }
       }
@@ -9817,6 +9844,16 @@ func init() {
         }
       }
     },
+    "release-channel": {
+      "description": "Release channel.",
+      "type": "string",
+      "enum": [
+        "candidate",
+        "fast",
+        "stable",
+        "eus"
+      ]
+    },
     "release-image": {
       "type": "object",
       "required": [
@@ -9845,6 +9882,16 @@ func init() {
           "type": "array",
           "items": {
             "type": "string"
+          },
+          "x-go-custom-tag": "gorm:\"type:text[]\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "github.com/lib/pq"
+            },
+            "type": "StringArray"
           }
         },
         "default": {
@@ -9861,12 +9908,14 @@ func init() {
           "enum": [
             "beta",
             "production",
-            "maintenance"
+            "maintenance",
+            "end-of-life"
           ]
         },
         "url": {
           "description": "The installation image of the OpenShift cluster.",
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"primarykey\""
         },
         "version": {
           "description": "OCP version from the release metadata.",
@@ -9878,6 +9927,47 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/release-image"
+      }
+    },
+    "release-source": {
+      "type": "object",
+      "required": [
+        "openshift_version",
+        "multi_cpu_architectures",
+        "upgrade_channels"
+      ],
+      "properties": {
+        "multi_cpu_architectures": {
+          "type": "array",
+          "items": {
+            "description": "Supported CPU architecture for multi-architecture releases in this OpenShift version..",
+            "type": "string",
+            "enum": [
+              "x86_64",
+              "aarch64",
+              "arm64",
+              "ppc64le",
+              "s390x"
+            ]
+          }
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string",
+          "example": "4.14"
+        },
+        "upgrade_channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/upgrade-channel"
+          }
+        }
+      }
+    },
+    "release-sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/release-source"
       }
     },
     "route": {
@@ -10160,6 +10250,33 @@ func init() {
             "openshift"
           ],
           "x-nullable": true
+        }
+      }
+    },
+    "upgrade-channel": {
+      "type": "object",
+      "required": [
+        "cpu_architecture",
+        "channels"
+      ],
+      "properties": {
+        "channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/release-channel"
+          }
+        },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image.",
+          "type": "string",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ]
         }
       }
     },
@@ -16227,6 +16344,32 @@ func init() {
         }
       }
     },
+    "/v2/release-sources": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves openshift release sources configuration.",
+        "tags": [
+          "versions"
+        ],
+        "operationId": "v2ListReleaseSources",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/release-sources"
+            }
+          }
+        }
+      }
+    },
     "/v2/support-levels/architectures": {
       "get": {
         "security": [
@@ -20131,7 +20274,8 @@ func init() {
           "enum": [
             "beta",
             "production",
-            "maintenance"
+            "maintenance",
+            "end-of-life"
           ]
         }
       }
@@ -20429,6 +20573,16 @@ func init() {
         }
       }
     },
+    "release-channel": {
+      "description": "Release channel.",
+      "type": "string",
+      "enum": [
+        "candidate",
+        "fast",
+        "stable",
+        "eus"
+      ]
+    },
     "release-image": {
       "type": "object",
       "required": [
@@ -20457,6 +20611,16 @@ func init() {
           "type": "array",
           "items": {
             "type": "string"
+          },
+          "x-go-custom-tag": "gorm:\"type:text[]\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "github.com/lib/pq"
+            },
+            "type": "StringArray"
           }
         },
         "default": {
@@ -20473,12 +20637,14 @@ func init() {
           "enum": [
             "beta",
             "production",
-            "maintenance"
+            "maintenance",
+            "end-of-life"
           ]
         },
         "url": {
           "description": "The installation image of the OpenShift cluster.",
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"primarykey\""
         },
         "version": {
           "description": "OCP version from the release metadata.",
@@ -20490,6 +20656,47 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/release-image"
+      }
+    },
+    "release-source": {
+      "type": "object",
+      "required": [
+        "openshift_version",
+        "multi_cpu_architectures",
+        "upgrade_channels"
+      ],
+      "properties": {
+        "multi_cpu_architectures": {
+          "type": "array",
+          "items": {
+            "description": "Supported CPU architecture for multi-architecture releases in this OpenShift version..",
+            "type": "string",
+            "enum": [
+              "x86_64",
+              "aarch64",
+              "arm64",
+              "ppc64le",
+              "s390x"
+            ]
+          }
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string",
+          "example": "4.14"
+        },
+        "upgrade_channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/upgrade-channel"
+          }
+        }
+      }
+    },
+    "release-sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/release-source"
       }
     },
     "route": {
@@ -20746,6 +20953,33 @@ func init() {
             "openshift"
           ],
           "x-nullable": true
+        }
+      }
+    },
+    "upgrade-channel": {
+      "type": "object",
+      "required": [
+        "cpu_architecture",
+        "channels"
+      ],
+      "properties": {
+        "channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/release-channel"
+          }
+        },
+        "cpu_architecture": {
+          "description": "The CPU architecture of the image.",
+          "type": "string",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ]
         }
       }
     },

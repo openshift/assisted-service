@@ -222,6 +222,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2ListHostsHandler: installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ListHosts has not yet been implemented")
 		}),
+		VersionsV2ListReleaseSourcesHandler: versions.V2ListReleaseSourcesHandlerFunc(func(params versions.V2ListReleaseSourcesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation versions.V2ListReleaseSources has not yet been implemented")
+		}),
 		VersionsV2ListSupportedOpenshiftVersionsHandler: versions.V2ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.V2ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation versions.V2ListSupportedOpenshiftVersions has not yet been implemented")
 		}),
@@ -481,6 +484,8 @@ type AssistedInstallAPI struct {
 	EventsV2ListEventsHandler events.V2ListEventsHandler
 	// InstallerV2ListHostsHandler sets the operation handler for the v2 list hosts operation
 	InstallerV2ListHostsHandler installer.V2ListHostsHandler
+	// VersionsV2ListReleaseSourcesHandler sets the operation handler for the v2 list release sources operation
+	VersionsV2ListReleaseSourcesHandler versions.V2ListReleaseSourcesHandler
 	// VersionsV2ListSupportedOpenshiftVersionsHandler sets the operation handler for the v2 list supported openshift versions operation
 	VersionsV2ListSupportedOpenshiftVersionsHandler versions.V2ListSupportedOpenshiftVersionsHandler
 	// InstallerV2PostStepReplyHandler sets the operation handler for the v2 post step reply operation
@@ -788,6 +793,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2ListHostsHandler == nil {
 		unregistered = append(unregistered, "installer.V2ListHostsHandler")
+	}
+	if o.VersionsV2ListReleaseSourcesHandler == nil {
+		unregistered = append(unregistered, "versions.V2ListReleaseSourcesHandler")
 	}
 	if o.VersionsV2ListSupportedOpenshiftVersionsHandler == nil {
 		unregistered = append(unregistered, "versions.V2ListSupportedOpenshiftVersionsHandler")
@@ -1191,6 +1199,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/hosts"] = installer.NewV2ListHosts(o.context, o.InstallerV2ListHostsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/release-sources"] = versions.NewV2ListReleaseSources(o.context, o.VersionsV2ListReleaseSourcesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
