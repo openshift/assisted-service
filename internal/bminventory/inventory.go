@@ -67,7 +67,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
@@ -6386,7 +6385,7 @@ func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *comm
 		return err
 	}
 	var installConfig installcfgdata.InstallerConfigBaremetal
-	err = yaml.Unmarshal(installConfigData, &installConfig)
+	err = json.Unmarshal(installConfigData, &installConfig)
 	if err != nil {
 		return err
 	}
