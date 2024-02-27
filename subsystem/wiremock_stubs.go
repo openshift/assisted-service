@@ -13,6 +13,9 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/releasesources"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/ocm"
 )
 
@@ -39,8 +42,9 @@ type Mapping struct {
 }
 
 type WireMock struct {
-	OCMHost   string
-	TestToken string
+	OCMHost        string
+	TestToken      string
+	ReleaseSources models.ReleaseSources
 }
 
 type subscription struct {
@@ -138,6 +142,10 @@ func (w *WireMock) CreateWiremockStubsForOCM() error {
 	}
 
 	if err := w.createStubsForDeletingAMSSubscription(http.StatusOK); err != nil {
+		return err
+	}
+
+	if _, err := w.createOpenshiftUpdateServiceStubs(); err != nil {
 		return err
 	}
 
@@ -754,6 +762,59 @@ func (w *WireMock) createWrongStubTokenAuth(token string) (string, error) {
 
 	tokenAuthStub := w.createStubDefinition(pullAuthPath, "POST", string(reqBody), string(resBody), 404)
 	return w.addStub(tokenAuthStub)
+}
+
+func (w *WireMock) createOpenshiftUpdateServiceStubs() (string, error) {
+	// OCP releases API needs amd64, arm64 instead of x86_64, aarch64 respectively
+	cpuArchMapToAPIArch := map[string]string{
+		common.X86CPUArchitecture:     common.AMD64CPUArchitecture,
+		common.AARCH64CPUArchitecture: common.ARM64CPUArchitecture,
+	}
+
+	for _, releaseSource := range w.ReleaseSources {
+		openshiftVersion := *releaseSource.OpenshiftVersion
+		for _, upgradeChannel := range releaseSource.UpgradeChannels {
+			cpuArchitecture := *upgradeChannel.CPUArchitecture
+			for _, channel := range upgradeChannel.Channels {
+				apiCpuArchitecture, shouldSwitch := cpuArchMapToAPIArch[cpuArchitecture]
+				if shouldSwitch {
+					cpuArchitecture = apiCpuArchitecture
+				}
+
+				u := url.URL{
+					Path: releasesources.OpenshiftUpdateServiceAPIURLPath,
+				}
+
+				q := url.Values{}
+				q.Add(releasesources.OpenshiftUpdateServiceAPIURLQueryChannel, fmt.Sprintf("%s-%s", channel, openshiftVersion))
+				q.Add(releasesources.OpenshiftUpdateServiceAPIURLQueryArch, cpuArchitecture)
+				u.RawQuery = q.Encode()
+				endpoint := "/" + u.String()
+
+				responseStruct := releasesources.ReleaseGraph{
+					Nodes: []releasesources.Node{
+						{
+							Version: fmt.Sprintf("%s.0", openshiftVersion),
+						},
+					},
+				}
+
+				var resBody []byte
+				resBody, err := json.Marshal(responseStruct)
+				if err != nil {
+					return "", err
+				}
+
+				newStub := w.createStubDefinition(endpoint, "GET", "", string(resBody), 200)
+				_, err = w.addStub(newStub)
+				if err != nil {
+					return "", err
+				}
+			}
+		}
+	}
+
+	return "", nil
 }
 
 func (w *WireMock) createStubDefinition(url, method, reqBody, resBody string, resStatus int) *StubDefinition {

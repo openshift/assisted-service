@@ -687,26 +687,26 @@ var requestResponseParams = []RequestResponseParameters{
 }
 
 //gocyclo:ignore
-func getExpectedReleasesGraphForValidParams(channel models.ReleaseChannel, openshiftVersion, cpuArchitecture string) (*releaseGraph, error) {
+func getExpectedReleasesGraphForValidParams(channel models.ReleaseChannel, openshiftVersion, cpuArchitecture string) (*ReleaseGraph, error) {
 	if channel == models.ReleaseChannelStable && openshiftVersion == "4.10" && cpuArchitecture == common.AMD64CPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.10.1"},
 			},
 		}, nil
 	}
 
 	if channel == models.ReleaseChannelStable && openshiftVersion == "4.12" && cpuArchitecture == common.AMD64CPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.12.1"},
 			},
 		}, nil
 	}
 
 	if channel == models.ReleaseChannelStable && openshiftVersion == "4.13" && cpuArchitecture == common.AMD64CPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.13.1"},
 				{Version: "4.13.17"},
 				{Version: "4.12.15"},
@@ -715,8 +715,8 @@ func getExpectedReleasesGraphForValidParams(channel models.ReleaseChannel, opens
 	}
 
 	if channel == models.ReleaseChannelStable && openshiftVersion == "4.13" && cpuArchitecture == common.S390xCPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.13.1"},
 				{Version: "4.13.19"},
 				{Version: "4.12.40"},
@@ -725,8 +725,8 @@ func getExpectedReleasesGraphForValidParams(channel models.ReleaseChannel, opens
 	}
 
 	if channel == models.ReleaseChannelStable && openshiftVersion == "4.14" && cpuArchitecture == common.AMD64CPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.14.0"},
 				{Version: "4.14.1"},
 				{Version: "4.13.40"},
@@ -735,8 +735,8 @@ func getExpectedReleasesGraphForValidParams(channel models.ReleaseChannel, opens
 	}
 
 	if channel == models.ReleaseChannelCandidate && openshiftVersion == "4.14" && cpuArchitecture == common.AMD64CPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.14.0-rc.1"},
 				{Version: "4.14.0-ec.2"},
 				{Version: "4.13.10"},
@@ -745,8 +745,8 @@ func getExpectedReleasesGraphForValidParams(channel models.ReleaseChannel, opens
 	}
 
 	if channel == models.ReleaseChannelStable && openshiftVersion == "4.14" && cpuArchitecture == common.PowerCPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.13.5"},
 				{Version: "4.13.15"},
 			},
@@ -754,8 +754,8 @@ func getExpectedReleasesGraphForValidParams(channel models.ReleaseChannel, opens
 	}
 
 	if channel == models.ReleaseChannelCandidate && openshiftVersion == "4.14" && cpuArchitecture == common.PowerCPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.14.0"},
 				{Version: "4.14.1"},
 			},
@@ -763,24 +763,24 @@ func getExpectedReleasesGraphForValidParams(channel models.ReleaseChannel, opens
 	}
 
 	if channel == models.ReleaseChannelCandidate && openshiftVersion == "4.14" && cpuArchitecture == common.AMD64CPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.14.1"},
 			},
 		}, nil
 	}
 
 	if channel == models.ReleaseChannelCandidate && openshiftVersion == "4.15" && cpuArchitecture == common.AMD64CPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.15.0-ec.2"},
 			},
 		}, nil
 	}
 
 	if channel == models.ReleaseChannelCandidate && openshiftVersion == "4.16" && cpuArchitecture == common.MultiCPUArchitecture {
-		return &releaseGraph{
-			Nodes: []node{
+		return &ReleaseGraph{
+			Nodes: []Node{
 				{Version: "4.16.0-ec.2"},
 			},
 		}, nil

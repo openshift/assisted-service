@@ -21,7 +21,7 @@ type ocpMajorVersionSet map[string]bool
 //
 //go:generate mockgen -source=clients.go -destination=mock_clients.go -package=releasesources
 type openShiftReleasesAPIClientInterface interface {
-	getReleases(channel models.ReleaseChannel, openshiftVersion, cpuArchitecture string) (*releaseGraph, error)
+	getReleases(channel models.ReleaseChannel, openshiftVersion, cpuArchitecture string) (*ReleaseGraph, error)
 }
 
 // openShiftSupportLevelAPIClientInterface is an interface for a client,
@@ -33,11 +33,11 @@ type openShiftSupportLevelAPIClientInterface interface {
 	getSupportLevels(majorVersion string) (ocpVersionSupportLevels, error)
 }
 
-type releaseGraph struct {
-	Nodes []node `json:"nodes"`
+type ReleaseGraph struct {
+	Nodes []Node `json:"nodes"`
 }
 
-type node struct {
+type Node struct {
 	Version string `json:"version"`
 }
 
@@ -55,9 +55,9 @@ type version struct {
 }
 
 const (
-	openshiftUpdateServiceAPIURLPath                    string = "api/upgrades_info/v1/graph"
-	openshiftUpdateServiceAPIURLQueryChannel            string = "channel"
-	openshiftUpdateServiceAPIURLQueryArch               string = "arch"
+	OpenshiftUpdateServiceAPIURLPath                    string = "api/upgrades_info/v1/graph"
+	OpenshiftUpdateServiceAPIURLQueryChannel            string = "channel"
+	OpenshiftUpdateServiceAPIURLQueryArch               string = "arch"
 	redHatProductLifeCycleDataAPIQueryName              string = "name"
 	redHatProductLifeCycleDataAPIQueryNameValueTemplate string = "Openshift Container Platform %s"
 	redHatProductLifeCycleDataAPIEndOfLife              string = "End of life"
@@ -102,16 +102,16 @@ func requestAndDecode(rawUrl string, decodeInto any) error {
 
 func (o openShiftReleasesAPIClient) getReleases(
 	channel models.ReleaseChannel, openshiftVersion, cpuArchitecture string,
-) (*releaseGraph, error) {
+) (*ReleaseGraph, error) {
 	url := appendURLQueryParams(
 		o.baseURL,
 		map[string]string{
-			openshiftUpdateServiceAPIURLQueryChannel: fmt.Sprintf("%s-%s", string(channel), openshiftVersion),
-			openshiftUpdateServiceAPIURLQueryArch:    cpuArchitecture,
+			OpenshiftUpdateServiceAPIURLQueryChannel: fmt.Sprintf("%s-%s", string(channel), openshiftVersion),
+			OpenshiftUpdateServiceAPIURLQueryArch:    cpuArchitecture,
 		},
 	)
 
-	var releaseGraphInstance releaseGraph
+	var releaseGraphInstance ReleaseGraph
 	err := requestAndDecode(url, &releaseGraphInstance)
 	if err != nil {
 		return nil, err

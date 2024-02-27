@@ -9,8 +9,7 @@ def main():
     deploy_options = deployment_options.load_deployment_options()
     log.info('Starting wiremock deployment')
     deploy_wiremock(deploy_options)
-    log.info('Completed to wiremock deployment')
-
+    log.info('Wiremock deployment completed')
 
 def deploy_wiremock(deploy_options):
     docs = utils.load_yaml_file_docs('deploy/wiremock/wiremock-deployment.yaml')

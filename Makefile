@@ -143,6 +143,7 @@ REPORTS ?= $(ROOT_DIR)/reports
 GO_TEST_FORMAT = pkgname
 DEFAULT_RELEASE_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_release_images.json))
 DEFAULT_OS_IMAGES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_os_images.json))
+DEFAULT_RELEASE_SOURCES = $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_release_sources.json))
 
 # Support all Release/OS images for CI
 ifeq ($(CI), true)
@@ -382,6 +383,7 @@ create-ocp-manifests:
 ci-deploy-for-subsystem: _verify_cluster generate-keys
 	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
 	export IPV6_SUPPORT="True" && export ENABLE_ORG_TENANCY="True" && export ENABLE_ORG_BASED_FEATURE_GATES="True" && \
+	export RELEASE_SOURCES='$(or ${RELEASE_SOURCES},${DEFAULT_RELEASE_SOURCES})' && \
 	$(MAKE) deploy-wiremock deploy-all
 
 patch-service: _verify_cluster update-local-image
@@ -397,6 +399,7 @@ deploy-test: _verify_cluster generate-keys update-local-image
 	export SERVICE=${LOCAL_SERVICE_IMAGE} && export TEST_FLAGS=--subsystem-test && \
 	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && \
 	export IPV6_SUPPORT="True" && ENABLE_ORG_TENANCY="True" && ENABLE_ORG_BASED_FEATURE_GATES="True" && \
+	export RELEASE_SOURCES='$(or ${RELEASE_SOURCES},${DEFAULT_RELEASE_SOURCES})' && \
 	$(MAKE) deploy-wiremock deploy-all
 
 # An alias for the deploy-test target
@@ -447,6 +450,7 @@ _run_subsystem_test:
 	TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
 	TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
 	TEST_TOKEN_EDITOR="$(shell cat $(BUILD_FOLDER)/auth-tokenClusterEditor)" \
+	RELEASE_SOURCES='$(or ${RELEASE_SOURCES},${DEFAULT_RELEASE_SOURCES})' \
 	$(MAKE) _test TEST_SCENARIO=subsystem TIMEOUT=120m TEST="$(or $(TEST),./subsystem/...)"
 
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
@@ -457,6 +461,9 @@ enable-kube-api-for-subsystem: $(BUILD_FOLDER)
 
 deploy-wiremock: deploy-namespace
 	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)"
+	timeout 5m ./hack/wait_for_wiremock.sh
+	OCM_URL=$$(kubectl get service wiremock -n $(NAMESPACE) -ojson | jq --from-file ./hack/k8s_service_host_port.jq --raw-output); \
+	export OCM_URL && go run ./hack/add_wiremock_stubs.go
 
 deploy-olm: deploy-namespace
 	python3 ./tools/deploy_olm.py --target $(TARGET)

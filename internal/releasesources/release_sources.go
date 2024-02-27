@@ -49,7 +49,7 @@ func NewReleaseSourcesHandler(
 	if err != nil {
 		return nil, errors.Wrapf(err, "error occurred while trying to parse OCM base URL: %s", config.OCMBaseURL)
 	}
-	ocmBaseURL.Path = openshiftUpdateServiceAPIURLPath
+	ocmBaseURL.Path = OpenshiftUpdateServiceAPIURLPath
 	// Currently RED_HAT_PRODUCT_LIFE_CYCLE_DATA_API_BASE_URL=https://access.redhat.com/product-life-cycles/api/v1/products,
 	// which means schema, host and path
 	redHatCustomerPortalBaseURL, err := url.Parse(config.RedHatProductLifeCycleDataAPIBaseURL)

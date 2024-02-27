@@ -1002,16 +1002,22 @@ func addReleaseImagesToDBIfNeeded(
 
 	tx := db.Begin()
 
-	log.Debug("Truncating all release_images table records")
+	var count int64
+	err := tx.Model(&models.ReleaseImage{}).Count(&count).Error
+	failOnError(err, "error occurred while trying to count the initial amount of release images in the DB")
+
+	log.Debugf("Truncating all release_images table. '%d' records", count)
 	if err := tx.Exec("TRUNCATE TABLE release_images").Error; err != nil {
 		tx.Rollback()
 		failOnError(err, "error occurred while trying to delete the release images in the DB")
 	}
 
-	log.Debug("Inserting configuration release images to the DB")
-	if err := db.Create(releaseImages).Error; err != nil {
-		tx.Rollback()
-		failOnError(err, "error occurred while trying to insert the release images to the DB")
+	if len(releaseImages) > 0 {
+		log.Debugf("Inserting configuration release images to the DB. '%d' records", len(releaseImages))
+		if err := tx.Create(releaseImages).Error; err != nil {
+			tx.Rollback()
+			failOnError(err, "error occurred while trying to insert the release images to the DB")
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
