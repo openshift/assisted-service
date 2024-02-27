@@ -3,31 +3,11 @@
 aliases:
   approvers:
     - romfreiman
-    - avishayt
-    - eranco74
+    - oourfali
     - gamli75
-    - ori-amizur
-    - tsorya
-    - nmagnezi
-    - carbonin
-    - danielerez
-    - omertuc
     - eliorerz
     - osherdp
-    - vrutkovs
-    - paul-maidment
-    - jhernand
     - rccrdpccl
     - adriengentil
-    - CrystalChun
-    - javipolo
     - danmanor
     - eifrach
-  emeritus_approvers:
-    - empovit
-    - yevgeny-shnaidman
-    - rwsu
-    - lranjbar
-    - pawanpinjarkar
-    - sagidayan
-    - ybettan
