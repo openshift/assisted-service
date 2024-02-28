@@ -4350,33 +4350,6 @@ var _ = Describe("cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated)
 					Expect(len(actual.Payload.MachineNetworks)).To(Equal(2))
 				})
-				It("Wrong order of machine network CIDRs in non dhcp for dual-stack", func() {
-					mockClusterUpdatability(1)
-					mockSuccess(1)
-
-					apiVip := "10.11.12.15"
-					ingressVip := "10.11.12.16"
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
-							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
-							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
-							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-
-					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
-							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
-							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
-				})
 				It("API VIP in wrong subnet for dual-stack", func() {
 					apiVip := "10.11.12.15"
 					ingressVip := "10.11.12.16"
@@ -17928,9 +17901,36 @@ var _ = Describe("Dual-stack cluster", func() {
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
-			It("v6-first in machine networks rejected", func() {
-				errStr := "First machine network has to be IPv4 subnet"
-				params.NewClusterParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
+		})
+
+		Context("Cluster with two networks of same stack", func() {
+			It("only v4 in cluster networks rejected", func() {
+				errStr := "Second cluster network has to be IPv6 subnet"
+				params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
+					{Cidr: "1.3.0.0/16", HostPrefix: 16},
+					{Cidr: "1.4.0.0/16", HostPrefix: 16},
+				}
+				params.NewClusterParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
+				reply := bm.V2RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+			})
+			It("only v4 in service networks rejected", func() {
+				errStr := "Second service network has to be IPv6 subnet"
+				params.NewClusterParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
+				params.NewClusterParams.ServiceNetworks = []*models.ServiceNetwork{
+					{Cidr: "1.2.5.0/24"},
+					{Cidr: "1.2.6.0/24"},
+				}
+				reply := bm.V2RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+			})
+			It("only v4 in machine networks rejected", func() {
+				errStr := "One machine network has to be IPv6 subnet"
+				params.NewClusterParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
+				params.NewClusterParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "1.2.3.0/24"},
+					{Cidr: "1.2.4.0/24"},
+				}
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
@@ -17993,11 +17993,6 @@ var _ = Describe("Dual-stack cluster", func() {
 				params.ClusterUpdateParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
 				reply := bm.V2UpdateCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, "First service network has to be IPv4 subnet")
-			})
-			It("v6-first in machine networks rejected", func() {
-				params.ClusterUpdateParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
 			})
 		})
 

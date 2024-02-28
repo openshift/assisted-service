@@ -657,19 +657,16 @@ var _ = Describe("Machine Network amount and order", func() {
 			valid:   true,
 		},
 		{
-			// Invalid because violates the "IPv4 subnet as the first one" constraint
 			element: []*models.MachineNetwork{{Cidr: "1002:db8::/119"}, {Cidr: "1.2.5.0/24"}},
-			valid:   false,
+			valid:   true,
 		},
 		{
-			// Invalid because violates the "exactly 2 networks" constraint
 			element: []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1002:db8::/119"}, {Cidr: "1.2.6.0/24"}, {Cidr: "1.2.7.0/24"}},
-			valid:   false,
+			valid:   true,
 		},
 		{
-			// Invalid because violates the "exactly 2 networks" constraint
 			element: []*models.MachineNetwork{{Cidr: "1002:db8::/119"}, {Cidr: "1.2.5.0/24"}, {Cidr: "1.2.6.0/24"}, {Cidr: "1.2.7.0/24"}},
-			valid:   false,
+			valid:   true,
 		},
 	}
 	for _, test := range tests {
