@@ -29,14 +29,14 @@ var _ = Describe("Host tests", func() {
 		cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(openshiftVersion),
+				OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
 				PullSecret:        swag.String(pullSecret),
 				VipDhcpAllocation: swag.Bool(true),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
 		clusterID = *cluster.GetPayload().ID
-		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+		infraEnvID = registerInfraEnvSpecificVersion(&clusterID, models.ImageTypeMinimalIso, cluster.Payload.OpenshiftVersion).ID
 	})
 
 	It("Should reject hostname if it is forbidden", func() {

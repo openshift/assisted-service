@@ -27,6 +27,10 @@ var registerInfraEnv = func(clusterID *strfmt.UUID, imageType models.ImageType) 
 	return internalRegisterInfraEnv(clusterID, imageType, "", openshiftVersion)
 }
 
+var registerInfraEnvSpecificVersion = func(clusterID *strfmt.UUID, imageType models.ImageType, ocpVersion string) *models.InfraEnv {
+	return internalRegisterInfraEnv(clusterID, imageType, "", ocpVersion)
+}
+
 var registerInfraEnvSpecificVersionAndArch = func(clusterID *strfmt.UUID, imageType models.ImageType, cpuArch, ocpVersion string) *models.InfraEnv {
 	return internalRegisterInfraEnv(clusterID, imageType, cpuArch, ocpVersion)
 }

@@ -94,6 +94,8 @@ var _ = Describe("Operators endpoint tests", func() {
 	})
 
 	Context("Update cluster", func() {
+		var cluster *models.Cluster
+
 		BeforeEach(func() {
 			clusterCIDR := "10.128.0.0/14"
 			serviceCIDR := "172.30.0.0/16"
@@ -103,7 +105,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String(openshiftVersion),
+					OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      sshPublicKey,
 					VipDhcpAllocation: swag.Bool(true),
@@ -111,7 +113,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			cluster := registerClusterReply.GetPayload()
+			cluster = registerClusterReply.GetPayload()
 			clusterID = *cluster.ID
 			log.Infof("Register cluster %s", cluster.ID.String())
 		})
@@ -165,7 +167,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				generateEssentialHostStepsWithInventory(context.TODO(), h, h.RequestedHostname, &hInventory)
 			}
 			By("add hosts with a minimal worker (cnv operator is not enabled)")
-			infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+			infraEnvID := registerInfraEnvSpecificVersion(&clusterID, models.ImageTypeMinimalIso, cluster.OpenshiftVersion).ID
 			hosts := registerHostsAndSetRolesDHCP(clusterID, *infraEnvID, 6, "test-cluster", "example.com")
 
 			worker := getHostV2(*infraEnvID, *hosts[5].ID)

@@ -735,7 +735,7 @@ var _ = Describe("V2ListClusters", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:     "example.com",
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(openshiftVersion),
+				OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
 				PullSecret:        swag.String(pullSecret),
 				SSHPublicKey:      sshPublicKey,
 				VipDhcpAllocation: swag.Bool(true),
@@ -868,7 +868,7 @@ var _ = Describe("cluster install - DHCP", func() {
 				ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 				ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(openshiftVersion),
+				OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
 				PullSecret:        swag.String(pullSecret),
 				SSHPublicKey:      sshPublicKey,
 				VipDhcpAllocation: swag.Bool(true),
@@ -884,7 +884,7 @@ var _ = Describe("cluster install - DHCP", func() {
 
 		BeforeEach(func() {
 			clusterID = *cluster.ID
-			infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+			infraEnvID = registerInfraEnvSpecificVersion(&clusterID, models.ImageTypeMinimalIso, cluster.OpenshiftVersion).ID
 			registerHostsAndSetRolesDHCP(clusterID, *infraEnvID, 5, "test-cluster", "example.com")
 		})
 
@@ -917,7 +917,7 @@ var _ = Describe("cluster install - DHCP", func() {
 
 	It("moves between DHCP modes", func() {
 		clusterID := *cluster.ID
-		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+		infraEnvID = registerInfraEnvSpecificVersion(&clusterID, models.ImageTypeMinimalIso, cluster.OpenshiftVersion).ID
 		registerHostsAndSetRolesDHCP(clusterID, *infraEnvID, 5, "test-cluster", "example.com")
 		reply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 			ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -4103,7 +4103,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 
 			cluster = &common.Cluster{Cluster: *reply.Payload}
 
-			infraEnvID = registerInfraEnv(cluster.ID, models.ImageTypeMinimalIso).ID
+			infraEnvID = registerInfraEnvSpecificVersion(cluster.ID, models.ImageTypeMinimalIso, cluster.OpenshiftVersion).ID
 			_, _ = register3nodes(ctx, *cluster.ID, *infraEnvID, defaultCIDRv4)
 		})
 
@@ -4689,7 +4689,7 @@ var _ = Describe("Installation progress", func() {
 					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String(openshiftVersion),
+					OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      sshPublicKey,
 					NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
@@ -4780,7 +4780,7 @@ var _ = Describe("disk encryption", func() {
 			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(openshiftVersion),
+					OpenshiftVersion: swag.String(VipAutoAllocOpenshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     sshPublicKey,
 					BaseDNSDomain:    "example.com",
@@ -4852,7 +4852,7 @@ var _ = Describe("disk encryption", func() {
 				NewClusterParams: &models.ClusterCreateParams{
 					BaseDNSDomain:     "example.com",
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String(openshiftVersion),
+					OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      sshPublicKey,
 					VipDhcpAllocation: swag.Bool(true),
@@ -4865,7 +4865,7 @@ var _ = Describe("disk encryption", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			c = registerClusterReply.GetPayload()
-			infraEnvID = registerInfraEnv(c.ID, models.ImageTypeMinimalIso).ID
+			infraEnvID = registerInfraEnvSpecificVersion(c.ID, models.ImageTypeMinimalIso, c.OpenshiftVersion).ID
 
 			// validate feature usage
 			var featureUsage map[string]models.Usage
@@ -5057,7 +5057,7 @@ var _ = Describe("Verify install-config manifest", func() {
 				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(openshiftVersion),
+				OpenshiftVersion: swag.String(SDNNetworkTypeOpenshiftVersion),
 				PullSecret:       swag.String(pullSecret),
 				SSHPublicKey:     sshPublicKey,
 				NetworkType:      swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),

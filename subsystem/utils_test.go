@@ -179,7 +179,7 @@ func registerCluster(ctx context.Context, client *client.AssistedInstall, cluste
 	var cluster, err = client.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
 			Name:              swag.String(clusterName),
-			OpenshiftVersion:  swag.String(openshiftVersion),
+			OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
 			PullSecret:        swag.String(pullSecret),
 			BaseDNSDomain:     "example.com",
 			VipDhcpAllocation: swag.Bool(true),

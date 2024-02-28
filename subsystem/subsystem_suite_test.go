@@ -34,6 +34,8 @@ var openshiftVersion string = "4.9.0-0.0"
 var snoVersion string = "4.9"
 var multiarchOpenshiftVersion string = "4.11.0-multi"
 var dualstackVipsOpenShiftVersion string = "4.12.0"
+var VipAutoAllocOpenshiftVersion string = "4.14.0"
+var SDNNetworkTypeOpenshiftVersion string = "4.14.0"
 var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
 
 var (
