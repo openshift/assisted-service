@@ -2,8 +2,21 @@ package mce
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
 )
+
+const (
+	filesystemStorage = "filesystem"
+	databaseStorage   = "database"
+	imageStorage      = "image"
+)
+
+var storageSizeGi = map[string]int64{
+	filesystemStorage: int64(10),
+	databaseStorage:   int64(10),
+	imageStorage:      int64(50),
+}
 
 // Manifests returns manifests needed to deploy MCE.
 func Manifests() (openshiftManifests map[string][]byte, customManifests []byte, err error) {
@@ -20,6 +33,7 @@ func Manifests() (openshiftManifests map[string][]byte, customManifests []byte, 
 	if err != nil {
 		return
 	}
+
 	openshiftManifests = map[string][]byte{
 		"50_openshift-mce_ns.yaml":                    namespaceManifest,
 		"50_openshift-mce_operator_group.yaml":        operatorGroupManifest,
@@ -32,6 +46,24 @@ func Manifests() (openshiftManifests map[string][]byte, customManifests []byte, 
 	}
 
 	return openshiftManifests, mceManifest, nil
+}
+
+func getStorageSize(storageName string) string {
+	if intSize, ok := storageSizeGi[storageName]; ok {
+		return fmt.Sprintf("%dGi", intSize)
+	}
+	return ""
+}
+
+func GetAgentServiceConfigWithPVCManifest(storageClassName string) ([]byte, error) {
+	vars := map[string]string{
+		"DATABASE_STORAGE_SIZE":   getStorageSize(databaseStorage),
+		"FILESYSTEM_STORAGE_SIZE": getStorageSize(filesystemStorage),
+		"IMAGE_STORAGE_SIZE":      getStorageSize(imageStorage),
+		"STORAGE_CLASS_NAME":      storageClassName,
+	}
+
+	return executeTemplate(vars, agentServiceConfigTemplate)
 }
 
 func getSubscription() ([]byte, error) {
@@ -115,4 +147,33 @@ metadata:
   name: mce
 spec:
   targetNamespace: "{{.OPERATOR_NAMESPACE}}"
+`
+
+const agentServiceConfigTemplate = `
+apiVersion: agent-install.openshift.io/v1beta1
+kind: AgentServiceConfig
+metadata:
+  name: agent
+spec:
+  databaseStorage:
+    storageClassName: {{.STORAGE_CLASS_NAME}}
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: {{.DATABASE_STORAGE_SIZE}}
+  filesystemStorage:
+    storageClassName: {{.STORAGE_CLASS_NAME}}
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: {{.FILESYSTEM_STORAGE_SIZE}}
+  imageStorage:
+    storageClassName: {{.STORAGE_CLASS_NAME}}
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: {{.IMAGE_STORAGE_SIZE}}
 `

@@ -17451,22 +17451,12 @@ var _ = Describe("GetCredentials", func() {
 		bm     *bareMetalInventory
 		db     *gorm.DB
 		dbName string
-		c      common.Cluster
+		c      *common.Cluster
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-
-		clusterID := strfmt.UUID(uuid.New().String())
-		c = common.Cluster{
-			Cluster: models.Cluster{
-				ID:            &clusterID,
-				Name:          "my-cluster",
-				BaseDNSDomain: "my-domain",
-			},
-		}
-		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -17475,7 +17465,7 @@ var _ = Describe("GetCredentials", func() {
 	})
 
 	It("Console operator available", func() {
-		mockClusterApi.EXPECT().IsOperatorMonitored(gomock.Any(), operators.OperatorConsole.Name).Return(true)
+		c = createClusterWithMonitoredOperator(db, operators.OperatorConsole)
 		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(true)
 		objectName := fmt.Sprintf("%s/%s", *c.ID, "kubeadmin-password")
 		mockS3Client.EXPECT().Download(ctx, objectName).Return(io.NopCloser(strings.NewReader("my_password")), int64(0), nil)
@@ -17485,7 +17475,7 @@ var _ = Describe("GetCredentials", func() {
 	})
 
 	It("Console operator not available", func() {
-		mockClusterApi.EXPECT().IsOperatorMonitored(gomock.Any(), operators.OperatorConsole.Name).Return(true)
+		c = createClusterWithMonitoredOperator(db, operators.OperatorConsole)
 		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(false)
 
 		reply := bm.V2GetCredentials(ctx, installer.V2GetCredentialsParams{ClusterID: *c.ID})
@@ -17493,7 +17483,7 @@ var _ = Describe("GetCredentials", func() {
 	})
 
 	It("Returns credentials and no console URL if the console capability is disabled", func() {
-		mockClusterApi.EXPECT().IsOperatorMonitored(gomock.Any(), operators.OperatorConsole.Name).Return(false)
+		c = createCluster(db, models.ClusterStatusInstalled)
 		objectName := fmt.Sprintf("%s/%s", *c.ID, "kubeadmin-password")
 		mockS3Client.EXPECT().Download(ctx, objectName).Return(io.NopCloser(strings.NewReader("my_password")), int64(0), nil)
 
@@ -17508,7 +17498,7 @@ var _ = Describe("GetCredentials", func() {
 	})
 
 	It("Returns credentials and console URL if the console capability is enabled", func() {
-		mockClusterApi.EXPECT().IsOperatorMonitored(gomock.Any(), operators.OperatorConsole.Name).Return(true)
+		c = createClusterWithMonitoredOperator(db, operators.OperatorConsole)
 		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(true)
 		objectName := fmt.Sprintf("%s/%s", *c.ID, "kubeadmin-password")
 		mockS3Client.EXPECT().Download(ctx, objectName).Return(io.NopCloser(strings.NewReader("my_password")), int64(0), nil)
@@ -18892,3 +18882,22 @@ var _ = Describe("V2UpdateHostIgnition unbound blabla", func() {
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostIgnitionCreated{}))
 	})
 })
+
+func getDummyCluster() common.Cluster {
+	clusterID := strfmt.UUID(uuid.New().String())
+	c := common.Cluster{
+		Cluster: models.Cluster{
+			ID:            &clusterID,
+			Name:          "my-cluster",
+			BaseDNSDomain: "my-domain",
+		},
+	}
+	return c
+}
+
+func createClusterWithMonitoredOperator(db *gorm.DB, operator models.MonitoredOperator) *common.Cluster {
+	c := getDummyCluster()
+	c.MonitoredOperators = append(c.MonitoredOperators, &operator)
+	Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+	return &c
+}

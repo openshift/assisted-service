@@ -7,6 +7,8 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 )
 
+const defaultDeviceName = "vg1"
+
 // Manifests returns manifests needed to deploy LVM
 func Manifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
 	lvmSubscription, err := getSubscription(cluster)
@@ -81,6 +83,7 @@ func getOperatorGroup() ([]byte, error) {
 func getLvmCluster() ([]byte, error) {
 	data := map[string]string{
 		"OPERATOR_NAMESPACE": Operator.Namespace,
+		"DEVICE_NAME":        defaultDeviceName,
 	}
 	return executeTemplate(data, "LvmCluster", LvmCluster)
 }
@@ -134,7 +137,7 @@ metadata:
 spec:
   storage:
     deviceClasses:
-    - name: vg1
+    - name: {{.DEVICE_NAME}}
       thinPoolConfig:
         name: thin-pool-1
         sizePercent: 90

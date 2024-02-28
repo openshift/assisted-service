@@ -14,7 +14,10 @@ import (
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
+	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -24,7 +27,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-const customManifestFile = "custom_manifests.json"
+const controllerManifestFile = "custom_manifests.json"
 
 // Manifest store the operator manifest used by assisted-installer to create CRs of the OLM.
 type Manifest struct {
@@ -120,10 +123,32 @@ func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context
 	return requirements, nil
 }
 
+func (mgr *Manager) getStorageOperator(cluster *models.Cluster) (api.StorageOperator, error) {
+	priorityOrder := []string{odf.Operator.Name, lvm.Operator.Name}
+	for _, operatorName := range priorityOrder {
+		for _, operator := range cluster.MonitoredOperators {
+			if operator.Name == operatorName {
+				o := mgr.olmOperators[operatorName]
+				if storageOperator, ok := o.(api.StorageOperator); ok {
+					return storageOperator, nil
+				}
+				mgr.log.Errorf("defined storage operator %s does not implement StorageOperator interface", operatorName)
+			}
+		}
+	}
+	return nil, fmt.Errorf("no storage operator found")
+}
+
+func hasMCEAndStorage(operators []*models.MonitoredOperator) bool {
+	return operatorscommon.HasOperator(operators, mce.Operator.Name) &&
+		(operatorscommon.HasOperator(operators, lvm.Operator.Name) ||
+			operatorscommon.HasOperator(operators, odf.Operator.Name))
+}
+
 // GenerateManifests generates manifests for all enabled operators.
 // Returns map assigning manifest content to its desired file name
 func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Cluster) error {
-	var customManifests []Manifest
+	var controllerManifests []Manifest
 	// Generate manifests for all the generic operators
 	for _, clusterOperator := range cluster.MonitoredOperators {
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
@@ -138,22 +163,36 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 				return err
 			}
 			for k, v := range openshiftManifests {
-				err = mgr.createManifests(ctx, cluster, k, v, models.ManifestFolderOpenshift)
+				err = mgr.createInstallManifests(ctx, cluster, k, v, models.ManifestFolderOpenshift)
 				if err != nil {
 					return err
 				}
 			}
 
-			customManifests = append(customManifests, Manifest{Name: clusterOperator.Name, Content: base64.StdEncoding.EncodeToString(manifest)})
+			controllerManifests = append(controllerManifests, Manifest{Name: clusterOperator.Name, Content: base64.StdEncoding.EncodeToString(manifest)})
 		}
 	}
 
-	if len(customManifests) > 0 {
-		content, err := json.Marshal(customManifests)
+	if hasMCEAndStorage(cluster.Cluster.MonitoredOperators) {
+		storageOperator, err := mgr.getStorageOperator(&cluster.Cluster)
 		if err != nil {
 			return err
 		}
-		if err := mgr.createCustomManifest(ctx, cluster, string(content)); err != nil {
+		agentServiceConfigYaml, err := mce.GetAgentServiceConfigWithPVCManifest(storageOperator.StorageClassName())
+		if err != nil {
+			return err
+		}
+		// Name is important: controller will wait until this operator is ready. Should set
+		// same value as the available storage
+		controllerManifests = append(controllerManifests, Manifest{Name: storageOperator.GetName(), Content: base64.StdEncoding.EncodeToString(agentServiceConfigYaml)})
+	}
+
+	if len(controllerManifests) > 0 {
+		content, err := json.Marshal(controllerManifests)
+		if err != nil {
+			return err
+		}
+		if err := mgr.createControllerManifest(ctx, cluster, string(content)); err != nil {
 			return err
 		}
 	}
@@ -161,18 +200,18 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 	return nil
 }
 
-// createCustomManifest create a file called custom_manifests.json, which is later obtained by the
+// createControllerManifest create a file called custom_manifests.json, which is later obtained by the
 // assisted-installer-controller, which apply this manifest file after the OLM is deployed,
 // so user can provide here even CRs provisioned by the OLM.
-func (mgr *Manager) createCustomManifest(ctx context.Context, cluster *common.Cluster, content string) error {
-	objectFileName := path.Join(string(*cluster.ID), customManifestFile)
+func (mgr *Manager) createControllerManifest(ctx context.Context, cluster *common.Cluster, content string) error {
+	objectFileName := path.Join(string(*cluster.ID), controllerManifestFile)
 	if err := mgr.objectHandler.Upload(ctx, []byte(content), objectFileName); err != nil {
 		return errors.Errorf("Failed to upload custom manifests for cluster %s", cluster.ID)
 	}
 	return nil
 }
 
-func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte, folder string) error {
+func (mgr *Manager) createInstallManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte, folder string) error {
 	// all relevant logs of creating manifest will be inside CreateClusterManifest
 	_, err := mgr.manifestsAPI.CreateClusterManifestInternal(ctx, operations.V2CreateClusterManifestParams{
 		ClusterID: *cluster.ID,
@@ -192,7 +231,7 @@ func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster
 // AnyOLMOperatorEnabled checks whether any OLM operator has been enabled for the given cluster
 func (mgr *Manager) AnyOLMOperatorEnabled(cluster *common.Cluster) bool {
 	for _, operator := range mgr.olmOperators {
-		if IsEnabled(cluster.MonitoredOperators, operator.GetName()) {
+		if operatorscommon.HasOperator(cluster.Cluster.MonitoredOperators, operator.GetName()) {
 			return true
 		}
 	}
@@ -202,6 +241,14 @@ func (mgr *Manager) AnyOLMOperatorEnabled(cluster *common.Cluster) bool {
 // ValidateHost validates host requirements
 func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error) {
 	results := make([]api.ValidationResult, 0, len(mgr.olmOperators))
+
+	if hasMCEAndStorage(cluster.Cluster.MonitoredOperators) {
+		storageOperator, err := mgr.getStorageOperator(&cluster.Cluster)
+		if err != nil {
+			mgr.log.Infof("Could not load storage operator while validating host (%v)", err.Error())
+		}
+		storageOperator.SetAdditionalDiskRequirements(mce.GetMinDiskSizeGB(&cluster.Cluster))
+	}
 
 	// To track operators that are disabled or not present in the cluster configuration, but have to be present
 	// in the validation results and marked as valid.
@@ -358,19 +405,6 @@ func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models
 	}
 
 	return visited, nil
-}
-
-func findOperator(operators []*models.MonitoredOperator, operatorName string) *models.MonitoredOperator {
-	for _, operator := range operators {
-		if operator.Name == operatorName {
-			return operator
-		}
-	}
-	return nil
-}
-
-func IsEnabled(operators []*models.MonitoredOperator, operatorName string) bool {
-	return findOperator(operators, operatorName) != nil
 }
 
 func (mgr *Manager) GetMonitoredOperatorsList() map[string]*models.MonitoredOperator {

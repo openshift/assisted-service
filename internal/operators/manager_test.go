@@ -3,7 +3,10 @@ package operators_test
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"regexp"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -18,6 +21,8 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/lvm"
+	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -26,6 +31,59 @@ import (
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
+
+func MatchControllerManifest(expectedName, expectedDecodedBodyRegexp string) gomock.Matcher {
+	return controllerManifestMatcher{
+		expectedName,
+		expectedDecodedBodyRegexp,
+	}
+}
+
+func decodeInterface(x interface{}) ([]map[string]string, error) {
+	data := []map[string]string{}
+	jsonContentBytes, ok := x.([]byte)
+	if !ok {
+		return data, errors.New("interface is not of expected type []byte")
+	}
+	err := json.Unmarshal(jsonContentBytes, &data)
+	return data, err
+
+}
+
+type controllerManifestMatcher struct {
+	expectedName              string
+	expectedDecodedBodyRegexp string
+}
+
+func (m controllerManifestMatcher) Matches(x interface{}) bool {
+	manifestList, err := decodeInterface(x)
+	if err != nil {
+		return false
+	}
+	for _, manifest := range manifestList {
+		if manifest["Name"] == m.expectedName {
+			decodedManifest, err := base64.StdEncoding.DecodeString(manifest["Content"])
+			if err != nil {
+				return false
+			}
+			r := regexp.MustCompile(m.expectedDecodedBodyRegexp)
+			match := r.FindString(string(decodedManifest))
+			if len(match) > 1 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (m controllerManifestMatcher) String() string {
+	return fmt.Sprintf("content for objects with name %s should match regexp %s", m.expectedName, m.expectedDecodedBodyRegexp)
+}
+
+func (m controllerManifestMatcher) Got(got interface{}) string {
+	data, err := decodeInterface(got)
+	return fmt.Sprintf("%v (%v)", data, err)
+}
 
 var (
 	ctx          = context.Background()
@@ -63,6 +121,17 @@ var _ = BeforeEach(func() {
 	manager = operators.NewManager(log, manifestsAPI, operators.Options{}, mockS3Api, nil)
 })
 
+var validYamlOrError = func(ctx context.Context, params operations.V2CreateClusterManifestParams, isCustomManifest bool) (*models.Manifest, error) {
+	manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := yaml.YAMLToJSON(manifestContent); err != nil {
+		return nil, err
+	}
+	return &models.Manifest{}, nil
+}
+
 var _ = AfterEach(func() {
 	ctrl.Finish()
 })
@@ -71,21 +140,36 @@ var _ = Describe("Operators manager", func() {
 	Context("GenerateManifests", func() {
 		It("Check YAMLs of all supported OLM operators", func() {
 			cluster.MonitoredOperators = manager.GetSupportedOperatorsByType(models.OperatorTypeOlm)
-
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).DoAndReturn(
-				func(ctx context.Context, params operations.V2CreateClusterManifestParams, isCustomManifest bool) (*models.Manifest, error) {
-					manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
-					if err != nil {
-						return nil, err
-					}
-					if _, err := yaml.YAMLToJSON(manifestContent); err != nil {
-						return nil, err
-					}
-					return &models.Manifest{}, nil
-				}).AnyTimes()
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).DoAndReturn(validYamlOrError).AnyTimes()
 			err := manager.GenerateManifests(ctx, cluster)
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should upload AgentServiceConfig as controller manifest when MCE + ODF is deployed", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&odf.Operator,
+				&mce.Operator,
+			}
+
+			m := models.Manifest{}
+
+			mockS3Api.EXPECT().Upload(gomock.Any(), MatchControllerManifest(odf.Operator.Name, "(?s).*AgentServiceConfig.*storageClassName: ocs-storagecluster-cephfs.*"), gomock.Any()).Return(nil).Times(1)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("should upload AgentServiceConfig as controller manifest when MCE + LVM is deployed", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&lvm.Operator,
+				&mce.Operator,
+			}
+
+			m := models.Manifest{}
+
+			mockS3Api.EXPECT().Upload(gomock.Any(), MatchControllerManifest(lvm.Operator.Name, "(?s).*AgentServiceConfig.*storageClassName: lvms-vg1.*"), gomock.Any()).Return(nil).Times(1)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
 		It("should create 8 manifests (ODF + LSO) using the manifest API and openshift version is 4.8.X", func() {
