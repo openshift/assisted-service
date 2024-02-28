@@ -218,7 +218,7 @@ var _ = Describe("Lvm Operator", func() {
 				result:               &successResult,
 				clusterhosts:         []*models.Host{masterNode, masterNode},
 				hostCPU:              7,
-				HighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
+				HighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
 				hostRole:             models.HostRoleMaster,
 				hostMem:              25 * conversions.GiB,
 			},
@@ -228,7 +228,7 @@ var _ = Describe("Lvm Operator", func() {
 				result:               &successResult,
 				clusterhosts:         []*models.Host{masterCompactNode, masterCompactNode},
 				hostCPU:              12,
-				HighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
+				HighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
 				hostRole:             models.HostRoleAutoAssign,
 				hostMem:              32 * conversions.GiB,
 			},
@@ -291,15 +291,16 @@ var _ = Describe("Lvm Operator", func() {
 				})
 
 				var schedulableMasters bool = false
-				if len(test.clusterhosts) <= 3 {
+				if test.HighAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeNone {
 					schedulableMasters = true
 				}
 				cluster := &common.Cluster{Cluster: models.Cluster{
-					ID:                   &clusterID,
-					MonitoredOperators:   []*models.MonitoredOperator{&Operator},
-					OpenshiftVersion:     test.ocpVersion,
-					HighAvailabilityMode: &test.HighAvailabilityMode,
-					SchedulableMasters:   &schedulableMasters,
+					ID:                           &clusterID,
+					MonitoredOperators:           []*models.MonitoredOperator{&Operator},
+					OpenshiftVersion:             test.ocpVersion,
+					HighAvailabilityMode:         &test.HighAvailabilityMode,
+					SchedulableMasters:           swag.Bool(false),
+					SchedulableMastersForcedTrue: &schedulableMasters,
 				}}
 				for i := range test.clusterhosts {
 					genrateHostID := strfmt.UUID(uuid.New().String())

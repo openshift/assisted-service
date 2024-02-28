@@ -145,7 +145,9 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 	}
 
 	role := common.GetEffectiveRole(host)
-	if role == models.HostRoleMaster && !swag.BoolValue(cluster.SchedulableMasters) {
+	areSchedulable := common.AreMastersSchedulable(cluster)
+
+	if role == models.HostRoleMaster && !areSchedulable {
 		return &models.ClusterHostRequirementsDetails{
 			CPUCores: 0,
 			RAMMib:   0,
