@@ -251,7 +251,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&Cluster{},
 		&Event{},
 		&InfraEnv{},
-		&models.ReleaseImage{},
 		&models.ClusterNetwork{},
 		&models.ServiceNetwork{},
 		&models.MachineNetwork{},
