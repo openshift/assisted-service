@@ -117,7 +117,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler := readDefaultReleaseImages(osImages)
 
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
@@ -184,7 +184,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler, err := NewHandler(logger, mockRelease, models.ReleaseImages{}, nil, "", nil)
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
@@ -208,7 +208,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
@@ -234,7 +234,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
@@ -278,7 +278,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
@@ -309,7 +309,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
@@ -365,7 +365,7 @@ var _ = Describe("Test list versions with capability restrictions", func() {
 		versionsHandler, err := NewHandler(common.GetTestLog(), nil, defaultReleaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		return NewAPIHandler(common.GetTestLog(), Versions{}, authzHandler, versionsHandler, osImages, nil)
+		return NewAPIHandler(common.GetTestLog(), Versions{}, authzHandler, versionsHandler, osImages)
 	}
 
 	hasMultiarch := func(versions models.OpenshiftVersions) bool {
@@ -419,75 +419,5 @@ var _ = Describe("Test list versions with capability restrictions", func() {
 			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 			Expect(hasMultiarch(val.Payload)).To(BeTrue())
 		})
-	})
-})
-
-var _ = Describe("V2ListReleaseSources", func() {
-
-	var (
-		db     *gorm.DB
-		dbName string
-	)
-
-	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
-	It("Test success with non-empty release sources", func() {
-		releaseSources := models.ReleaseSources{
-			{
-				OpenshiftVersion: swag.String("4.14"),
-				UpgradeChannels: []*models.UpgradeChannel{
-					{
-						CPUArchitecture: swag.String(common.X86CPUArchitecture),
-						Channels:        []models.ReleaseChannel{models.ReleaseChannelStable},
-					},
-				},
-			},
-			{
-				OpenshiftVersion: swag.String("4.15"),
-				UpgradeChannels: []*models.UpgradeChannel{
-					{
-						CPUArchitecture: swag.String(common.X86CPUArchitecture),
-						Channels:        []models.ReleaseChannel{models.ReleaseChannelStable},
-					},
-				},
-			},
-		}
-
-		apiHandler := NewAPIHandler(nil, Versions{}, nil, nil, nil, releaseSources)
-
-		middlewareResponder := apiHandler.V2ListReleaseSources(
-			context.Background(),
-			operations.V2ListReleaseSourcesParams{},
-		)
-		Expect(middlewareResponder).Should(BeAssignableToTypeOf(operations.NewV2ListReleaseSourcesOK()))
-
-		reply, ok := middlewareResponder.(*operations.V2ListReleaseSourcesOK)
-		Expect(ok).To(BeTrue())
-
-		payload := reply.Payload
-		Expect(payload).To(Equal(releaseSources))
-	})
-
-	It("Test success with empty release sources", func() {
-		releaseSources := models.ReleaseSources{}
-		apiHandler := NewAPIHandler(nil, Versions{}, nil, nil, nil, releaseSources)
-
-		middlewareResponder := apiHandler.V2ListReleaseSources(
-			context.Background(),
-			operations.V2ListReleaseSourcesParams{},
-		)
-		Expect(middlewareResponder).Should(BeAssignableToTypeOf(operations.NewV2ListReleaseSourcesOK()))
-
-		reply, ok := middlewareResponder.(*operations.V2ListReleaseSourcesOK)
-		Expect(ok).To(BeTrue())
-
-		payload := reply.Payload
-		Expect(payload).To(Equal(releaseSources))
 	})
 })

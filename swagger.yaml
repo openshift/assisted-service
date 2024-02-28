@@ -3131,20 +3131,6 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /v2/release-sources:
-    get:
-      tags:
-        - versions
-      security:
-        - userAuth: [admin, read-only-admin, user]
-      operationId: v2ListReleaseSources
-      description: Retrieves openshift release sources configuration.
-      responses:
-        "200":
-          description: Success.
-          schema:
-            $ref: '#/definitions/release-sources'
-
   /v2/clusters/{cluster_id}/manifests/files:
     get:
       tags:
@@ -4920,7 +4906,7 @@ definitions:
         type: array
         x-nullable: true
         description: JSON-formatted string of additional HTTP headers when fetching the ignition.
-        items:
+        items: 
             $ref: '#/definitions/ignition-endpoint-http-headers-params'
       node_labels:
         type: array
@@ -6950,7 +6936,7 @@ definitions:
         description: Name of the version to be presented to the user.
       support_level:
         type: string
-        enum: [beta, production, maintenance, end-of-life]
+        enum: [beta, production, maintenance]
         description: Level of support of the version.
       default:
         type: boolean
@@ -7015,17 +7001,9 @@ definitions:
         items:
           type: string
         description: List of CPU architectures provided by the image.
-        x-go-custom-tag: gorm:"type:text[]"
-        x-go-type:
-          type: StringArray
-          import:
-            package: github.com/lib/pq
-          hints:
-            noValidation: true
       url:
         type: string
         description: The installation image of the OpenShift cluster.
-        x-go-custom-tag: gorm:"primarykey"
       version:
         type: string
         description: OCP version from the release metadata.
@@ -7034,60 +7012,13 @@ definitions:
         description: Indication that the version is the recommended one.
       support_level:
         type: string
-        enum: [beta, production, maintenance, end-of-life]
+        enum: [beta, production, maintenance]
         description: Level of support of the version.
-  
+
   release-images:
     type: array
     items:
       $ref: '#/definitions/release-image'
-  
-  release-source:
-    type: object
-    required:
-      - openshift_version
-      - multi_cpu_architectures
-      - upgrade_channels
-    properties:
-      openshift_version:
-        type: string
-        description: Version of the OpenShift cluster.
-        example: "4.14"
-      multi_cpu_architectures:
-        type: array
-        items:
-          type: string
-          enum: ['x86_64', 'aarch64', 'arm64','ppc64le','s390x']
-          description: Supported CPU architecture for multi-architecture releases in this OpenShift version..
-      upgrade_channels:
-        type: array
-        items:
-          $ref: '#/definitions/upgrade-channel'
-  
-  release-sources:
-    type: array
-    items:
-      $ref: '#/definitions/release-source'
-
-  upgrade-channel:
-    type: object
-    required:
-      - cpu_architecture
-      - channels
-    properties:
-      cpu_architecture:
-        type: string
-        enum: ['x86_64', 'aarch64', 'arm64','ppc64le','s390x','multi']
-        description: The CPU architecture of the image.
-      channels:
-        type: array
-        items:
-          $ref: '#/definitions/release-channel'
-
-  release-channel:
-    type: string
-    enum: [candidate, fast, stable, eus]
-    description: Release channel.
 
   kernel_argument:
     type: object
