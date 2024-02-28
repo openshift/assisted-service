@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-openapi/swag"
 	gomock "github.com/golang/mock/gomock"
-	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -531,7 +530,7 @@ var _ = Describe("GetReleaseImageByURL", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(*releaseImage.CPUArchitecture).Should(Equal(cpuArchitecture))
-			Expect(releaseImage.CPUArchitectures).Should(Equal(pq.StringArray{cpuArchitecture}))
+			Expect(releaseImage.CPUArchitectures).Should(Equal([]string{cpuArchitecture}))
 			Expect(*releaseImage.OpenshiftVersion).Should(Equal(customOcpVersion))
 			Expect(*releaseImage.URL).Should(Equal(releaseImageUrl))
 			Expect(*releaseImage.Version).Should(Equal(customOcpVersion))
@@ -579,7 +578,7 @@ var _ = Describe("GetReleaseImageByURL", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(*releaseImage.CPUArchitecture).Should(Equal(common.MultiCPUArchitecture))
-			Expect(releaseImage.CPUArchitectures).Should(Equal(pq.StringArray{cpuArchitecture, common.ARM64CPUArchitecture}))
+			Expect(releaseImage.CPUArchitectures).Should(Equal([]string{cpuArchitecture, common.ARM64CPUArchitecture}))
 			Expect(*releaseImage.OpenshiftVersion).Should(Equal(customOcpVersion))
 			Expect(*releaseImage.URL).Should(Equal(releaseImageUrl))
 			Expect(*releaseImage.Version).Should(Equal(customOcpVersion))

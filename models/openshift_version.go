@@ -33,7 +33,7 @@ type OpenshiftVersion struct {
 
 	// Level of support of the version.
 	// Required: true
-	// Enum: [beta production maintenance end-of-life]
+	// Enum: [beta production maintenance]
 	SupportLevel *string `json:"support_level"`
 }
 
@@ -81,7 +81,7 @@ var openshiftVersionTypeSupportLevelPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["beta","production","maintenance","end-of-life"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["beta","production","maintenance"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -99,9 +99,6 @@ const (
 
 	// OpenshiftVersionSupportLevelMaintenance captures enum value "maintenance"
 	OpenshiftVersionSupportLevelMaintenance string = "maintenance"
-
-	// OpenshiftVersionSupportLevelEndOfLife captures enum value "end-of-life"
-	OpenshiftVersionSupportLevelEndOfLife string = "end-of-life"
 )
 
 // prop value enum

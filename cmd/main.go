@@ -47,7 +47,6 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/handler"
 	"github.com/openshift/assisted-service/internal/provider/registry"
-	"github.com/openshift/assisted-service/internal/releasesources"
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/internal/stream"
@@ -117,7 +116,6 @@ var Options struct {
 	InstructionConfig                    hostcommands.InstructionConfig
 	OperatorsConfig                      operators.Options
 	GCConfig                             garbagecollector.Config
-	ReleaseSourcesConfig                 releasesources.Config
 	ClusterStateMonitorInterval          time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	ClusterEventsUploaderInterval        time.Duration `envconfig:"CLUSTER_EVENTS_UPLOADER_INTERVAL" default:"15m"`
 	S3Config                             s3wrapper.Config
@@ -267,12 +265,6 @@ func main() {
 			"Failed to parse RELEASE_IMAGES json %s", Options.ReleaseImages)
 	}
 
-	var releaseSourcesArray = models.ReleaseSources{}
-	if Options.ReleaseSourcesConfig.ReleaseSources != "" {
-		failOnError(json.Unmarshal([]byte(Options.ReleaseSourcesConfig.ReleaseSources), &releaseSourcesArray),
-			"Failed to parse RELEASE_SOURCES json %s", Options.ReleaseSourcesConfig.ReleaseSources)
-	}
-
 	log.Println(fmt.Sprintf("Started service with OS images %v, Release images %v",
 		Options.OsImages, Options.ReleaseImages))
 
@@ -328,7 +320,7 @@ func main() {
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 
-	versionHandler, versionsAPIHandler, err := createVersionHandlers(log, ctrlMgr, releaseHandler, osImages, releaseImagesArray, authzHandler, releaseSourcesArray)
+	versionHandler, versionsAPIHandler, err := createVersionHandlers(log, ctrlMgr, releaseHandler, osImages, releaseImagesArray, authzHandler)
 	failOnError(err, "failed to create Versions handlers")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
@@ -433,9 +425,6 @@ func main() {
 		log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
 	hostStateMonitor.Start()
 	defer hostStateMonitor.Stop()
-
-	openshiftReleaseSyncer := runOpenshiftReleaseSyncerIfNeeded(releaseSourcesArray, releaseImagesArray, db, log, releaseHandler, lead, failOnError)
-	defer stopOpenshiftReleaseSyncerIfNeeded(openshiftReleaseSyncer)
 
 	newUrl, err := s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL)
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
@@ -849,15 +838,7 @@ func createControllerManager() (manager.Manager, error) {
 	return nil, nil
 }
 
-func createVersionHandlers(
-	log logrus.FieldLogger,
-	ctrlMgr manager.Manager,
-	releaseHandler oc.Release,
-	osImages versions.OSImages,
-	releaseImagesArray models.ReleaseImages,
-	authzHandler auth.Authorizer,
-	releaseSources models.ReleaseSources,
-) (versions.Handler, restapi.VersionsAPI, error) {
+func createVersionHandlers(log logrus.FieldLogger, ctrlMgr manager.Manager, releaseHandler oc.Release, osImages versions.OSImages, releaseImagesArray models.ReleaseImages, authzHandler auth.Authorizer) (versions.Handler, restapi.VersionsAPI, error) {
 	var versionsClient client.Client
 	if ctrlMgr != nil {
 		versionsClient = ctrlMgr.GetClient()
@@ -873,7 +854,7 @@ func createVersionHandlers(
 	if err != nil {
 		return nil, nil, err
 	}
-	versionsAPIHandler := versions.NewAPIHandler(log, Options.Versions, authzHandler, versionsHandler, osImages, releaseSources)
+	versionsAPIHandler := versions.NewAPIHandler(log, Options.Versions, authzHandler, versionsHandler, osImages)
 
 	return versionsHandler, versionsAPIHandler, nil
 }
@@ -912,42 +893,5 @@ func startPPROF(log *logrus.Logger) {
 		if err != nil {
 			log.Errorf("Failed to start pprof: %s", err)
 		}
-	}
-}
-
-func runOpenshiftReleaseSyncerIfNeeded(
-	releaseSources models.ReleaseSources,
-	releaseImages models.ReleaseImages,
-	db *gorm.DB,
-	log logrus.FieldLogger,
-	releaseHandler oc.Release,
-	lead leader.ElectorInterface,
-	failOnError func(err error, msg string, args ...interface{}),
-) *thread.Thread {
-	if !Options.EnableKubeAPI && Options.ReleaseSourcesConfig.ReleaseSources != "" {
-		releaseSourcesHandler, err := releasesources.NewReleaseSourcesHandler(
-			releaseSources, releaseImages, log, db, Options.ReleaseSourcesConfig, lead,
-		)
-		if err != nil {
-			failOnError(err, "error occurred while creating release sources handler")
-		}
-		log.WithField("pkg", "releasesources").Info("Running Openshift Releases Syncer at startup")
-		err = releaseSourcesHandler.SyncReleaseImages()
-		if err != nil {
-			failOnError(err, "error occurred while syncing release images at startup")
-		}
-
-		openShiftReleaseSyncer := thread.New(
-			log.WithField("pkg", "releasesources"), "Openshift Releases Syncer", Options.ReleaseSourcesConfig.OpenShiftReleaseSyncerInterval, releaseSourcesHandler.SyncReleaseImagesThreadFunc)
-		openShiftReleaseSyncer.Start()
-		return openShiftReleaseSyncer
-	}
-
-	return nil
-}
-
-func stopOpenshiftReleaseSyncerIfNeeded(openShiftReleaseSyncer *thread.Thread) {
-	if openShiftReleaseSyncer != nil {
-		openShiftReleaseSyncer.Stop()
 	}
 }

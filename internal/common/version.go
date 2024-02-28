@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
 )
 
@@ -70,25 +69,4 @@ func GetMajorMinorVersion(version string) (*string, error) {
 
 	versionStr := fmt.Sprintf("%s.%s", splittedVersion[0], splittedVersion[1])
 	return &versionStr, nil
-}
-
-func IsVersionPreRelease(str string) (*bool, error) {
-	str = strings.TrimSuffix(str, "-multi")
-	semVersion, err := version.NewVersion(str)
-	if err != nil {
-		return nil, err
-	}
-
-	return swag.Bool(semVersion.Prerelease() != ""), nil
-}
-
-func GetMajorVersion(version string) (*string, error) {
-	version = strings.Split(version, "-")[0]
-	majorVersion := strings.Split(version, ".")[0]
-
-	if majorVersion == "" {
-		return nil, errors.New("invalid version")
-	}
-
-	return &majorVersion, nil
 }
