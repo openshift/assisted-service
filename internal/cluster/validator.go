@@ -412,27 +412,6 @@ func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) (Vali
 	return ValidationFailure, "The base domain is undefined and must be provided."
 }
 
-func checkCidrsOverlapping(cluster *common.Cluster) error {
-	//Currently, the networks arrays can hold up to 2 subnets, one for each family
-	//in the same order. If machine networks is defined we assume it follows the
-	//same conversion
-	var machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string
-	for index := range cluster.ClusterNetworks {
-		if index < len(cluster.MachineNetworks) {
-			machineNetworkCidr = string(cluster.MachineNetworks[index].Cidr)
-		}
-		clusterNetworkCidr = string(cluster.ClusterNetworks[index].Cidr)
-		serviceNetworkCidr = string(cluster.ServiceNetworks[index].Cidr)
-
-		if err := network.VerifyClusterCIDRsNotOverlap(machineNetworkCidr,
-			clusterNetworkCidr, serviceNetworkCidr,
-			network.IsMachineNetworkRequired(cluster)); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) (ValidationStatus, string) {
 	clusterCidrDefined, _ := v.isClusterCidrDefined(c)
 	serviceCidrDefined, _ := v.isServiceCidrDefined(c)
@@ -444,13 +423,8 @@ func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) (Vali
 		}
 		return ValidationPending, "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
 	}
-	if len(c.cluster.ClusterNetworks) != len(c.cluster.ServiceNetworks) {
-		// TODO MGMT-7587: Support any number of subnets
-		// Assumes that the number of cluster networks equal to the number of service networks
-		return ValidationError, "A mismatch between the number of Cluster and Service networks"
-	}
-	if err := checkCidrsOverlapping(c.cluster); err != nil {
-		return ValidationFailure, fmt.Sprintf("CIDRS Overlapping: %s.", err.Error())
+	if err := network.VerifyNoNetworkCidrOverlaps(c.cluster.ClusterNetworks, c.cluster.MachineNetworks, c.cluster.ServiceNetworks); err != nil {
+		return ValidationFailure, err.Error()
 	}
 	return ValidationSuccess, "No CIDRS are overlapping."
 }

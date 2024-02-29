@@ -2548,25 +2548,8 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 
 	if params.ClusterUpdateParams.ClusterNetworks != nil || params.ClusterUpdateParams.ServiceNetworks != nil ||
 		params.ClusterUpdateParams.MachineNetworks != nil {
-		// TODO MGMT-7587: Support any number of subnets
-		// Assumes that the number of cluster networks equal to the number of service networks
-		for index := range cluster.ClusterNetworks {
-			machineNetworkCidr := ""
-			if len(cluster.MachineNetworks) > index {
-				machineNetworkCidr = string(cluster.MachineNetworks[index].Cidr)
-			}
-
-			serviceNetworkCidr := ""
-			if len(cluster.ServiceNetworks) > index {
-				serviceNetworkCidr = string(cluster.ServiceNetworks[index].Cidr)
-			}
-
-			if err = network.VerifyClusterCIDRsNotOverlap(machineNetworkCidr,
-				string(cluster.ClusterNetworks[index].Cidr),
-				serviceNetworkCidr,
-				userManagedNetworking); err != nil {
-				return common.NewApiError(http.StatusBadRequest, err)
-			}
+		if err := network.VerifyNoNetworkCidrOverlaps(cluster.ClusterNetworks, cluster.MachineNetworks, cluster.ServiceNetworks); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
 	if updated {

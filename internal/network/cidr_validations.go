@@ -1,6 +1,8 @@
 package network
 
 import (
+	"errors"
+	"fmt"
 	"net"
 
 	"github.com/openshift/assisted-service/models"
@@ -38,12 +40,12 @@ func NetworksOverlap(aCidrStr, bCidrStr string) (bool, error) {
 	return acidr.Contains(bcidr.IP) || bcidr.Contains(acidr.IP), nil
 }
 
-func VerifyNetworksNotOverlap(aCidrStr, bCidrStr string) error {
+func VerifyNetworksNotOverlap(aCidrStr, bCidrStr models.Subnet) error {
 	if aCidrStr == "" || bCidrStr == "" {
 		return nil
 	}
 
-	overlap, err := NetworksOverlap(aCidrStr, bCidrStr)
+	overlap, err := NetworksOverlap(string(aCidrStr), string(bCidrStr))
 	if err != nil {
 		return err
 	}
@@ -124,22 +126,48 @@ func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, num
 	return nil
 }
 
-func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string, machineNetworkRequired bool) error {
-	if machineNetworkRequired {
-		err := VerifyNetworksNotOverlap(machineNetworkCidr, serviceNetworkCidr)
-		if err != nil {
-			return errors.Wrap(err, "MachineNetworkCIDR and ServiceNetworkCIDR")
+func VerifyNoNetworkCidrOverlaps(
+	clusterNetworks []*models.ClusterNetwork,
+	machineNetworks []*models.MachineNetwork,
+	serviceNetworks []*models.ServiceNetwork) error {
+	errs := []error{}
+	for imn, mn := range machineNetworks {
+		for _, cn := range clusterNetworks {
+			if err := VerifyNetworksNotOverlap(mn.Cidr, cn.Cidr); err != nil {
+				errs = append(errs, fmt.Errorf("%w (machine network and cluster network)", err))
+			}
 		}
-		err = VerifyNetworksNotOverlap(machineNetworkCidr, clusterNetworkCidr)
-		if err != nil {
-			return errors.Wrap(err, "MachineNetworkCIDR and ClusterNetworkCidr")
+		for _, sn := range serviceNetworks {
+			if err := VerifyNetworksNotOverlap(mn.Cidr, sn.Cidr); err != nil {
+				errs = append(errs, fmt.Errorf("%w (machine network and service network)", err))
+			}
+		}
+		for _, omn := range machineNetworks[:imn] {
+			if err := VerifyNetworksNotOverlap(mn.Cidr, omn.Cidr); err != nil {
+				errs = append(errs, fmt.Errorf("invalid machine networks: %w", err))
+			}
 		}
 	}
-	err := VerifyNetworksNotOverlap(serviceNetworkCidr, clusterNetworkCidr)
-	if err != nil {
-		return errors.Wrap(err, "ServiceNetworkCidr and ClusterNetworkCidr")
+	for icn, cn := range clusterNetworks {
+		for _, sn := range serviceNetworks {
+			if err := VerifyNetworksNotOverlap(sn.Cidr, cn.Cidr); err != nil {
+				errs = append(errs, fmt.Errorf("%w (service network and cluster network)", err))
+			}
+		}
+		for _, ocn := range clusterNetworks[:icn] {
+			if err := VerifyNetworksNotOverlap(cn.Cidr, ocn.Cidr); err != nil {
+				errs = append(errs, fmt.Errorf("invalid cluster networks: %w", err))
+			}
+		}
 	}
-	return nil
+	for isn, sn := range serviceNetworks {
+		for _, osn := range serviceNetworks[:isn] {
+			if err := VerifyNetworksNotOverlap(sn.Cidr, osn.Cidr); err != nil {
+				errs = append(errs, fmt.Errorf("invalid service networks: %w", err))
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func VerifyNetworkHostPrefix(prefix int64) error {
