@@ -137,6 +137,9 @@ var _ = Describe("inventory", func() {
 		var (
 			log                logrus.FieldLogger
 			primaryMachineCidr = "1.2.4.0/23"
+			machineNetworks    = []*models.MachineNetwork{
+				{Cidr: models.Subnet(primaryMachineCidr)},
+			}
 		)
 
 		BeforeEach(func() {
@@ -151,7 +154,7 @@ var _ = Describe("inventory", func() {
 				},
 			}
 			cluster.IngressVips = []*models.IngressVip{{IP: models.IP(GetApiVipById(cluster, 0))}}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).To(HaveOccurred())
 		})
 		It("Different vips", func() {
@@ -163,7 +166,7 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("Not free", func() {
@@ -175,7 +178,7 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.9\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).To(HaveOccurred())
 		})
 		It("Empty", func() {
@@ -187,7 +190,7 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("Free", func() {
@@ -199,7 +202,7 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\",\"1.2.5.9\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("machine cidr is too small", func() {
@@ -214,7 +217,7 @@ var _ = Describe("inventory", func() {
 			}
 			cluster.Hosts = []*models.Host{h, h, h, h, h}
 			cluster.APIVips = []*models.APIVip{{IP: "1.2.5.2"}}
-			err := VerifyVips(cluster.Hosts, "1.2.5.0/29", GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, []*models.MachineNetwork{{Cidr: "1.2.5.0/29"}}, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("The machine network range is too small for the cluster"))
 		})

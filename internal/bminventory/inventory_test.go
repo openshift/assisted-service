@@ -4208,7 +4208,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
-						"ingress-vip <1.2.3.20> does not belong to machine-network-cidr <10.11.0.0/16>")
+						"ingress-vip <1.2.3.20> does not belong to any Machine Network")
 				})
 				It("Same api and ingress", func() {
 					apiVip := "10.11.12.15"
@@ -4389,7 +4389,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.12.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to machine-network-cidr <10.12.0.0/16>")
+					verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to any Machine Network")
 				})
 			})
 
@@ -14874,7 +14874,7 @@ location = "%s"
 						VipDhcpAllocation: swag.Bool(false),
 					},
 				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to machine-network-cidr <1.2.3.0/24>")
+				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to any Machine Network")
 			})
 			It("Ingress VIP not in Machine Network", func() {
 				apiVip := "1.2.3.5"
@@ -14890,7 +14890,7 @@ location = "%s"
 						VipDhcpAllocation: swag.Bool(false),
 					},
 				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <10.11.12.16> does not belong to machine-network-cidr <1.2.3.0/24>")
+				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <10.11.12.16> does not belong to any Machine Network")
 			})
 			It("API VIP and Ingress VIP with empty Machine Networks", func() {
 				apiVip := "10.11.12.15"
@@ -14906,40 +14906,6 @@ location = "%s"
 					},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "Dual-stack cluster cannot be created with empty Machine Networks")
-			})
-
-			It("API VIP from IPv6 Machine Network", func() {
-				apiVip := "1001:db8::64"
-				ingressVip := "1.2.3.6"
-
-				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
-						IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
-						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
-						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
-						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
-						VipDhcpAllocation: swag.Bool(false),
-					},
-				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <1001:db8::64> does not belong to machine-network-cidr <1.2.3.0/24>")
-			})
-
-			It("Ingress VIP from IPv6 Machine Network", func() {
-				apiVip := "1.2.3.5"
-				ingressVip := "1001:db8::65"
-
-				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
-						IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
-						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
-						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
-						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
-						VipDhcpAllocation: swag.Bool(false),
-					},
-				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <1001:db8::65> does not belong to machine-network-cidr <1.2.3.0/24>")
 			})
 		})
 

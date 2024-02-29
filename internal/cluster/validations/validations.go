@@ -501,7 +501,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 	} else {
 		if len(targetConfiguration.MachineNetworks) > 0 {
 			for i := range targetConfiguration.APIVips { // len of APIVips and IngressVips should be the same. asserted above.
-				err = network.VerifyVips(nil, string(targetConfiguration.MachineNetworks[i].Cidr),
+				err = network.VerifyVips(nil, targetConfiguration.MachineNetworks,
 					string(targetConfiguration.APIVips[i].IP), string(targetConfiguration.IngressVips[i].IP), nil)
 				if err != nil {
 					multiErr = multierror.Append(multiErr, err)

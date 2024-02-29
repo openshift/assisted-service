@@ -3455,9 +3455,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:      {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
 					AreApiVipsDefined:         {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:           {status: ValidationFailure, messagePattern: fmt.Sprintf("api-vip <10.10.10.12> does not belong to machine-network-cidr <%s>", string(common.TestIPv4Networking.MachineNetworks[0].Cidr))},
+					AreApiVipsValid:           {status: ValidationFailure, messagePattern: "api-vip <10.10.10.12> does not belong to any Machine Network"},
 					AreIngressVipsDefined:     {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:       {status: ValidationFailure, messagePattern: fmt.Sprintf("ingress-vip <10.10.10.13> does not belong to machine-network-cidr <%s>", string(common.TestIPv4Networking.MachineNetworks[0].Cidr))},
+					AreIngressVipsValid:       {status: ValidationFailure, messagePattern: "ingress-vip <10.10.10.13> does not belong to any Machine Network"},
 					AllHostsAreReadyToInstall: {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install."},
 					IsDNSDomainDefined:        {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:           {status: ValidationSuccess, messagePattern: "The pull secret is set."},
