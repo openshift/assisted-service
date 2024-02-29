@@ -1621,17 +1621,14 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
-	return featuresupport.GetFeatureSupportList(params.OpenshiftVersion, params.CPUArchitecture, (*models.PlatformType)(params.PlatformType), params.ExternalPlatformName), nil
-}
-
-func (b *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
-	supportLevelFilters := featuresupport.SupportLevelFilters{
-		OpenshiftVersion:     params.OpenshiftVersion,
-		CPUArchitecture:      params.CPUArchitecture,
-		PlatformType:         (*models.PlatformType)(params.PlatformType),
-		HighAvailabilityMode: params.HighAvailabilityMode,
-	}
-	return featuresupport.GetFeatureSupportList(supportLevelFilters), nil
+  featureFilter := featuresupport.SupportLevelFilters{
+    OpenshiftVersion: params.OpenshiftVersion,
+    CPUArchitecture: params.CPUArchitecture,
+    PlatformType: (*models.PlatformType)(params.PlatformType),
+    ExternalPlatformName: params.ExternalPlatformName,
+    HighAvailabilityMode: params.HighAvailabilityMode,
+  }
+	return featuresupport.GetFeatureSupportList(featureFilter), nil
 }
 
 func (b *bareMetalInventory) GetArchitecturesSupportLevelListInternal(_ context.Context, params installer.GetSupportedArchitecturesParams) (models.SupportLevels, error) {

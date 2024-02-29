@@ -1,6 +1,7 @@
 package featuresupport
 
 import (
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -28,6 +29,23 @@ func getArchitectureSupportList(features map[models.ArchitectureSupportLevelID]S
 		featureSupportList[string(featureID)] = feature.getSupportLevel(openshiftVersion)
 	}
 	return featureSupportList
+}
+
+// Handle cases where a CPU architecture is not supported at for a given openshift version, in that case
+// return a list of unsupported features
+func overrideInvalidRequest(features map[models.FeatureSupportLevelID]SupportLevelFeature, cpuArchitecture, openshiftVersion string) models.SupportLevels {
+	supportLevels := models.SupportLevels{}
+  supportfilter := SupportLevelFilters{
+    OpenshiftVersion: openshiftVersion,
+    CPUArchitecture: swag.String(cpuArchitecture),
+  } 
+	if !isArchitectureSupported(supportfilter) {
+		for _, feature := range features {
+			supportLevels[string(feature.getId())] = models.SupportLevelUnavailable
+		}
+		return supportLevels
+	}
+	return nil
 }
 
 func GetCpuArchitectureSupportList(openshiftVersion string) models.SupportLevels {
