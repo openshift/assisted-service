@@ -14,28 +14,26 @@ import (
 const (
 	// https://github.com/openshift/ironic-image/blob/master/scripts/configure-coreos-ipa#L14
 	ironicAgentPodmanFlags = "--tls-verify=false"
-
-	// https://github.com/openshift/ironic-image/blob/master/scripts/configure-coreos-ipa#L11
-	ironicInspectorVlanInterfaces = "all"
 )
 
 type ignitionBuilder struct {
-	nmStateData            []byte
-	registriesConf         []byte
-	ironicBaseURL          string
-	ironicInspectorBaseURL string
-	ironicAgentImage       string
-	ironicAgentPullSecret  string
-	ironicRAMDiskSSHKey    string
-	networkKeyFiles        []byte
-	ipOptions              string
-	httpProxy              string
-	httpsProxy             string
-	noProxy                string
-	hostname               string
+	nmStateData               []byte
+	registriesConf            []byte
+	ironicBaseURL             string
+	ironicInspectorBaseURL    string
+	ironicAgentImage          string
+	ironicAgentPullSecret     string
+	ironicRAMDiskSSHKey       string
+	networkKeyFiles           []byte
+	ipOptions                 string
+	httpProxy                 string
+	httpsProxy                string
+	noProxy                   string
+	hostname                  string
+	ironicAgentVlanInterfaces string
 }
 
-func New(nmStateData, registriesConf []byte, ironicBaseURL, ironicInspectorBaseURL, ironicAgentImage, ironicAgentPullSecret, ironicRAMDiskSSHKey, ipOptions string, httpProxy, httpsProxy, noProxy string, hostname string) (*ignitionBuilder, error) {
+func New(nmStateData, registriesConf []byte, ironicBaseURL, ironicInspectorBaseURL, ironicAgentImage, ironicAgentPullSecret, ironicRAMDiskSSHKey, ipOptions string, httpProxy, httpsProxy, noProxy string, hostname string, ironicAgentVlanInterfaces string) (*ignitionBuilder, error) {
 	if ironicBaseURL == "" {
 		return nil, errors.New("ironicBaseURL is required")
 	}
@@ -47,18 +45,19 @@ func New(nmStateData, registriesConf []byte, ironicBaseURL, ironicInspectorBaseU
 	}
 
 	return &ignitionBuilder{
-		nmStateData:            nmStateData,
-		registriesConf:         registriesConf,
-		ironicBaseURL:          ironicBaseURL,
-		ironicInspectorBaseURL: ironicInspectorBaseURL,
-		ironicAgentImage:       ironicAgentImage,
-		ironicAgentPullSecret:  ironicAgentPullSecret,
-		ironicRAMDiskSSHKey:    ironicRAMDiskSSHKey,
-		ipOptions:              ipOptions,
-		httpProxy:              httpProxy,
-		httpsProxy:             httpsProxy,
-		noProxy:                noProxy,
-		hostname:               hostname,
+		nmStateData:               nmStateData,
+		registriesConf:            registriesConf,
+		ironicBaseURL:             ironicBaseURL,
+		ironicInspectorBaseURL:    ironicInspectorBaseURL,
+		ironicAgentImage:          ironicAgentImage,
+		ironicAgentPullSecret:     ironicAgentPullSecret,
+		ironicRAMDiskSSHKey:       ironicRAMDiskSSHKey,
+		ipOptions:                 ipOptions,
+		httpProxy:                 httpProxy,
+		httpsProxy:                httpsProxy,
+		noProxy:                   noProxy,
+		hostname:                  hostname,
+		ironicAgentVlanInterfaces: ironicAgentVlanInterfaces,
 	}, nil
 }
 
@@ -97,8 +96,21 @@ func (b *ignitionBuilder) GenerateConfig() (config ignition_config_types_32.Conf
 		}
 	}
 
+	var ironicInspectorVlanInterfaces string
+	if strings.ToLower(b.ironicAgentVlanInterfaces) == "always" {
+		ironicInspectorVlanInterfaces = "all"
+	} else if strings.ToLower(b.ironicAgentVlanInterfaces) == "never" {
+		ironicInspectorVlanInterfaces = ""
+	} else {
+		if len(b.nmStateData) > 0 {
+			ironicInspectorVlanInterfaces = ""
+		} else {
+			ironicInspectorVlanInterfaces = "all"
+		}
+	}
+
 	config.Ignition.Version = "3.2.0"
-	config.Storage.Files = []ignition_config_types_32.File{b.IronicAgentConf()}
+	config.Storage.Files = []ignition_config_types_32.File{b.IronicAgentConf(ironicInspectorVlanInterfaces)}
 	config.Storage.Files = append(config.Storage.Files, netFiles...)
 	config.Systemd.Units = []ignition_config_types_32.Unit{b.IronicAgentService(len(netFiles) > 0)}
 
