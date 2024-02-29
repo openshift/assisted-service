@@ -242,6 +242,64 @@ Add the annotation to the AgentServiceConfig:
 oc annotate --overwrite AgentServiceConfig agent unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls=true
 ```
 
+### Custom CA for Assisted Image Service OS Image Download
+
+It is possible to specify a CA to be used when downloading OS images. This should be used when OS images are being served from HTTPS servers where the CA would not typically be known to assisted installer.
+
+Start by creating a secret with a TLS certificate as the content, the key "tls.crt" should contain the certificate(s)
+The ConfigMap should be installed in the same namespace as the infrastructure-operator (ie. `multicluster-engine` or `assisted-installer` depending on how the infrastucture operator was deployed).
+
+```
+oc -n multicluster-engine create configmap image-service-additional-ca --from-file=/root/tls.crt
+```
+
+Then in the `AgentServiceConfig`, this ConfigMap should be referenced, in `OSImageCACertRef` 
+The CA bundle defined in the ConfigMap referred to by `OSImageCACertRef` will then be used when pulling osImages.
+
+``` bash
+cat <<EOF | kubectl apply -f -
+apiVersion: agent-install.openshift.io/v1beta1
+kind: AgentServiceConfig
+metadata:
+  name: agent
+spec:
+  OSImageCACertRef:
+    name: image-service-additional-ca
+  osImages:
+    - openshiftVersion: "4.14"
+      version: "414.92.202310170514-0"
+      url: "https://some-os-image-server.io/rhcos-4.14.0-rc.0-x86_64-live.x86_64.iso"
+      cpuArchitecture: "x86_64"
+    - openshiftVersion: "4.15"
+      version: "414.92.202310170514-0"
+      url: "https://some-os-image-server.io/rhcos-4.15.0-rc.0-x86_64-live.x86_64.iso"
+      cpuArchitecture: "x86_64"
+  databaseStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  filesystemStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 20Gi
+  imageStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  mirrorRegistryRef:
+    name: mirror-registry-config-map
+EOF
+```
+
+
+
+
 ### Mirror Registry Configuration
 
 A ConfigMap can be used to configure assisted service to create installations using mirrored content. The ConfigMap contains two keys:
