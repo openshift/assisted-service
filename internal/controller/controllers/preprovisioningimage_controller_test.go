@@ -420,6 +420,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 
 			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil)
+			mockOcRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("4.12.0", nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
@@ -449,6 +450,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 
 			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"arm64"}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("ironic-image:4.12.0", nil)
+			mockOcRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("4.12.0", nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
@@ -481,6 +483,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			// These should only be called once if the cache is working
 			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil).Times(1)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil).Times(1)
+			mockOcRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("4.12.0", nil).Times(1)
 
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
@@ -508,8 +511,9 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		})
 
 		It("uses the override ironic image when supplied", func() {
-			overrideAgentImage := "ironic-agent-override:latest"
+			overrideAgentImage := "ironic-agent-override:4.13.0"
 			setAnnotation(&infraEnv.ObjectMeta, ironicAgentImageOverrideAnnotation, overrideAgentImage)
+			setAnnotation(&infraEnv.ObjectMeta, ironicAgentImageOverrideVersionAnnotation, "4.13.0")
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			backendInfraEnv.CPUArchitecture = "x86_64"
 			backendInfraEnv.PullSecret = "mypullsecret"

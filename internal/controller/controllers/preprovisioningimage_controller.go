@@ -60,6 +60,8 @@ type PreprovisioningImageControllerConfig struct {
 	BaremetalIronicAgentImage string `envconfig:"IRONIC_AGENT_IMAGE" default:"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:eca574867cb18fdd4cc3061a57865148030581ddbd6dad4db352bd27d52efca3"`
 	// The default ironic agent image for arm architecture was obtained from this link https://mirror.openshift.com/pub/openshift-v4/aarch64/clients/ocp/4.15.0/release.txt
 	BaremetalIronicAgentImageForArm string `envconfig:"IRONIC_AGENT_IMAGE_ARM" default:"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:27cf2412c22c87fa5daa5302d6b6b4e10d397571677749a4033bbda4b6c4d3ac"`
+
+	BaremetalIronicAgentDefaultVersion string `envconfig:"DEFAULT_IRONIC_AGENT_VERSION" default:"4.15.0"`
 }
 
 // PreprovisioningImage reconciles a AgentClusterInstall object
@@ -74,6 +76,7 @@ type PreprovisioningImageReconciler struct {
 	Config                  PreprovisioningImageControllerConfig
 	hubIronicAgentImage     string
 	hubReleaseArchitectures []string
+	hubReleaseVersion       string
 	BMOUtils                BMOUtils
 }
 
@@ -408,14 +411,15 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		log.WithError(err).Error("failed to get corresponding infraEnv")
 		return false, err
 	}
-	ironicAgentImage, ok := infraEnv.GetAnnotations()[ironicAgentImageOverrideAnnotation]
-	if !ok || ironicAgentImage == "" {
-		ironicAgentImage, err = r.getIronicAgentImageByRelease(ctx, log, infraEnvInternal)
+	ironicAgentImage, imageAnnotationPresent := infraEnv.GetAnnotations()[ironicAgentImageOverrideAnnotation]
+	ironicVersion, versionAnnotationPresent := infraEnv.GetAnnotations()[ironicAgentImageOverrideVersionAnnotation]
+	if !(imageAnnotationPresent && versionAnnotationPresent) || ironicAgentImage == "" {
+		ironicAgentImage, ironicVersion, err = r.getIronicAgentImageByRelease(ctx, log, infraEnvInternal)
 		if err != nil {
 			log.WithError(err).Warningf("Failed to get ironic agent image by release for infraEnv: %s", infraEnv.Name)
 		}
 	} else {
-		log.Infof("Using override ironic agent image (%s) for infraEnv %s", ironicAgentImage, infraEnv.Name)
+		log.Infof("Using override ironic agent image (%s, %s) for infraEnv %s", ironicAgentImage, ironicVersion, infraEnv.Name)
 	}
 
 	// if ironicAgentImage can't be found by version use the default
@@ -425,7 +429,8 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		} else {
 			ironicAgentImage = r.Config.BaremetalIronicAgentImage
 		}
-		log.Infof("Setting default ironic agent image (%s) for infraEnv %s", ironicAgentImage, infraEnv.Name)
+		ironicVersion = r.Config.BaremetalIronicAgentDefaultVersion
+		log.Infof("Setting default ironic agent image (%s, %s) for infraEnv %s", ironicAgentImage, ironicVersion, infraEnv.Name)
 	}
 
 	ironicServiceURL, inspectorURL, err := r.getIronicServiceURLs(ctx, infraEnvInternal)
@@ -497,33 +502,40 @@ func (r *PreprovisioningImageReconciler) getIronicServiceURLs(ctx context.Contex
 	return ironicURL, inspectorURL, nil
 }
 
-func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx context.Context, log logrus.FieldLogger, infraEnv *common.InfraEnv) (string, error) {
+func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx context.Context, log logrus.FieldLogger, infraEnv *common.InfraEnv) (string, string, error) {
 	image := r.hubIronicAgentImage
 	architectures := r.hubReleaseArchitectures
+	version := r.hubReleaseVersion
 	if image == "" {
 		cv := &configv1.ClusterVersion{}
 		if err := r.Get(ctx, types.NamespacedName{Name: "version"}, cv); err != nil {
-			return "", err
+			return "", "", err
 		}
 		var err error
 		architectures, err = r.OcRelease.GetReleaseArchitecture(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		image, err = r.OcRelease.GetIronicAgentImage(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
+		version, err = r.OcRelease.GetOpenshiftVersion(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
+		if err != nil {
+			return "", "", err
+		}
+
 		r.hubIronicAgentImage = image
 		r.hubReleaseArchitectures = architectures
-		log.Infof("Caching hub ironic agent image %s for architectures %v", image, architectures)
+		r.hubReleaseVersion = version
+		log.Infof("Caching hub ironic agent image %s for architectures %v, version %s", image, architectures, version)
 	}
 
 	if !funk.Contains(architectures, infraEnv.CPUArchitecture) {
-		return "", fmt.Errorf("release image architectures %v do not match infraEnv architecture %s", architectures, infraEnv.CPUArchitecture)
+		return "", "", fmt.Errorf("release image architectures %v do not match infraEnv architecture %s", architectures, infraEnv.CPUArchitecture)
 	}
 
-	return image, nil
+	return image, version, nil
 }
 
 func (r *PreprovisioningImageReconciler) setBMHRebootAnnotation(ctx context.Context, image *metal3_v1alpha1.PreprovisioningImage) error {

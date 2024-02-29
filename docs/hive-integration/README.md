@@ -212,8 +212,8 @@ The converged flow is enabled by default, you can disable the converged flow by 
 The ironic agent image will be determined based on the hub release image set in the ClusterVersion resource.
 If the hub cluster architecture does not match that of the InfraEnv or if the release image cannot be retrieved for some reason a default ironic agent image will be used.
 The defaults are:
-- x86_64: `quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:d3f1d4d3cd5fbcf1b9249dd71d01be4b901d337fdc5f8f66569eb71df4d9d446`
-- arm64: `quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:cb0edf19fffc17f542a7efae76939b1e9757dc75782d4727fb0aa77ed5809b43`
+- x86_64: `quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:eca574867cb18fdd4cc3061a57865148030581ddbd6dad4db352bd27d52efca3`
+- arm64: `quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:27cf2412c22c87fa5daa5302d6b6b4e10d397571677749a4033bbda4b6c4d3ac`
 
 To set a different default ironicAgent image you can override the following env vars:
 The environment var for the ironicAgent image to be used on X86_64 CPU architecture:
@@ -221,8 +221,11 @@ The environment var for the ironicAgent image to be used on X86_64 CPU architect
 The environment var for the ironicAgent image to be used on arm64 CPU architecture:
 `IRONIC_AGENT_IMAGE_ARM`
 
+When changing the default image the environment variable `DEFAULT_IRONIC_AGENT_VERSION` also must be set.
+
 The ironic agent image can also be overridden using the InfraEnv annotation `infraenv.agent-install.openshift.io/ironic-agent-image-override`
-If this field is set this image will be used instead of the hub or default image.
+The version of the referenced image must also be provided in `infraenv.agent-install.openshift.io/ironic-agent-image-override-version`
+If thess fields are set this image will be used instead of the hub or default image.
 
 **NOTE**
 Ensure the correct images are mirrored if installing in a disconnected environment.

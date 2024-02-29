@@ -58,10 +58,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const defaultRequeueAfterPerRecoverableError = 2 * bminventory.WindowBetweenRequestsInSeconds
-const InfraEnvFinalizerName = "infraenv." + aiv1beta1.Group + "/ai-deprovision"
-const EnableIronicAgentAnnotation = "infraenv." + aiv1beta1.Group + "/enable-ironic-agent"
-const ironicAgentImageOverrideAnnotation = "infraenv." + aiv1beta1.Group + "/ironic-agent-image-override"
+const (
+	defaultRequeueAfterPerRecoverableError    = 2 * bminventory.WindowBetweenRequestsInSeconds
+	InfraEnvFinalizerName                     = "infraenv." + aiv1beta1.Group + "/ai-deprovision"
+	EnableIronicAgentAnnotation               = "infraenv." + aiv1beta1.Group + "/enable-ironic-agent"
+	ironicAgentImageOverrideAnnotation        = "infraenv." + aiv1beta1.Group + "/ironic-agent-image-override"
+	ironicAgentImageOverrideVersionAnnotation = "infraenv." + aiv1beta1.Group + "/ironic-agent-image-override-version"
+)
 
 type InfraEnvConfig struct {
 	ImageType models.ImageType `envconfig:"ISO_IMAGE_TYPE" default:"minimal-iso"`
