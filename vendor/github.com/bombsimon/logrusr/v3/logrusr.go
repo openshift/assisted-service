@@ -77,7 +77,13 @@ func New(l logrus.FieldLogger, opts ...Option) logr.Logger {
 
 // Init receives optional information about the library.
 func (l *logrusr) Init(ri logr.RuntimeInfo) {
-	l.depth = ri.CallDepth
+	// By default `CallDepth` is set to 1 which means one of the frames is
+	// skipped by default. This was originally missed in this library making the
+	// default behavior and `WithCallDepth(0)` behave differently.
+	// To be backwards compatible without affecting anyone manually setting the
+	// call depth we reduce 1 from the default depth instead of not adding it.
+	// See https://github.com/bombsimon/logrusr/issues/19 for more info.
+	l.depth = ri.CallDepth - 1
 }
 
 // Enabled tests whether this Logger is enabled. It will return true if the
