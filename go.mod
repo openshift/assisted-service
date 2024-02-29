@@ -56,7 +56,7 @@ require (
 	github.com/openshift/custom-resource-status v1.1.2
 	github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f
 	github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a
-	github.com/openshift/image-customization-controller v0.0.0-20231018032321-4677f060c4bf
+	github.com/openshift/image-customization-controller v0.0.0-20240129110832-60a3867d7f9e
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pelletier/go-toml v1.9.5
