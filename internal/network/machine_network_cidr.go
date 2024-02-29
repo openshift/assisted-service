@@ -115,12 +115,25 @@ func VerifyVipFree(hosts []*models.Host, vip string, machineNetworkCidr string, 
 	return IpInFreeList(hosts, vip, machineNetworkCidr, log)
 }
 
-func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, verification *models.VipVerification, log logrus.FieldLogger) (models.VipVerification, error) {
-	if machineNetworkCidr == "" {
+func VerifyVip(hosts []*models.Host, machineNetworks []*models.MachineNetwork, vip string, vipName string, verification *models.VipVerification, log logrus.FieldLogger) (models.VipVerification, error) {
+	machineNetworkCidr := ""
+	validMachineNetwork := false
+	for _, machineNetwork := range machineNetworks {
+		if machineNetwork == nil || machineNetwork.Cidr == "" {
+			continue
+		}
+		validMachineNetwork = true
+		if ipInCidr(vip, string(machineNetwork.Cidr)) {
+			machineNetworkCidr = string(machineNetwork.Cidr)
+			break
+		}
+	}
+
+	if !validMachineNetwork {
 		return models.VipVerificationUnverified, errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty", vipName, vip)
 	}
-	if !ipInCidr(vip, machineNetworkCidr) {
-		return models.VipVerificationFailed, errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
+	if machineNetworkCidr == "" {
+		return models.VipVerificationFailed, errors.Errorf("%s <%s> does not belong to any Machine Network", vipName, vip)
 	}
 	if ipIsBroadcast(vip, machineNetworkCidr) {
 		return models.VipVerificationFailed, errors.Errorf("%s <%s> is the broadcast address of machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
@@ -193,11 +206,11 @@ func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*m
 // This function is called from places which assume it is OK for a VIP to be unverified.
 // The assumption is that VIPs are eventually verified by cluster validation
 // (i.e api-vips-valid, ingress-vips-valid)
-func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, log logrus.FieldLogger) error {
-	verification, err := VerifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", nil, log)
+func VerifyVips(hosts []*models.Host, machineNetworks []*models.MachineNetwork, apiVip string, ingressVip string, log logrus.FieldLogger) error {
+	verification, err := VerifyVip(hosts, machineNetworks, apiVip, "api-vip", nil, log)
 	// Error is ignored if the verification didn't fail
 	if verification != models.VipVerificationFailed {
-		verification, err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", nil, log)
+		verification, err = VerifyVip(hosts, machineNetworks, ingressVip, "ingress-vip", nil, log)
 	}
 	if verification != models.VipVerificationFailed {
 		return ValidateNoVIPAddressesDuplicates([]*models.APIVip{{IP: models.IP(apiVip)}}, []*models.IngressVip{{IP: models.IP(ingressVip)}})
@@ -337,18 +350,6 @@ func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log log
 		return networks[0]
 	}
 	return ""
-}
-
-func GetSecondaryMachineCidr(cluster *common.Cluster) (string, error) {
-	var secondaryMachineCidr string
-
-	if IsMachineCidrAvailable(cluster) {
-		secondaryMachineCidr = GetMachineCidrById(cluster, 1)
-	}
-	if secondaryMachineCidr != "" {
-		return secondaryMachineCidr, nil
-	}
-	return "", errors.Errorf("unable to get secondary machine network for cluster %s", cluster.ID.String())
 }
 
 // GetMachineNetworksFromBootstrapHost used to collect machine networks from the cluster's bootstrap host.
