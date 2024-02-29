@@ -16,17 +16,18 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 	Context("Test LVM/Nutanix are not supported under 4.11", func() {
 		features := []models.FeatureSupportLevelID{models.FeatureSupportLevelIDLVM, models.FeatureSupportLevelIDNUTANIXINTEGRATION}
+    avilabilityMode := swag.String(models.ClusterHighAvailabilityModeNone)
 		for _, f := range features {
 			feature := f
 			It(fmt.Sprintf("%s test", feature), func() {
 				for _, version := range unspportedLVMVersions {
-					Expect(IsFeatureAvailable(feature, version, nil)).To(BeFalse())
+					Expect(IsFeatureAvailable(feature, version, nil, avilabilityMode)).To(BeFalse())
 				}
 				for _, version := range lVMavailableVersions {
-					Expect(IsFeatureAvailable(feature, version, nil)).To(BeTrue())
+					Expect(IsFeatureAvailable(feature, version, nil, avilabilityMode)).To(BeTrue())
 				}
 				// feature test
-				Expect(IsFeatureAvailable(feature, "4.30", nil)).To(BeTrue())
+				Expect(IsFeatureAvailable(feature, "4.30", nil, avilabilityMode)).To(BeTrue())
 
 			})
 		}
@@ -35,6 +36,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	Context("Test LVM feature", func() {
 		lvmFeatureList := featuresList[models.FeatureSupportLevelIDLVM]
 		feature := models.FeatureSupportLevelIDLVM
+    avilabilityMode := swag.String(models.ClusterHighAvailabilityModeNone)
 		It("Validate LVM on CPU arch", func() {
 			supportedCpuArch := []string{
 				models.ClusterCPUArchitectureArm64,
@@ -46,10 +48,10 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				models.ClusterCPUArchitecturePpc64le,
 			}
 			for _, arch := range supportedCpuArch {
-				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch))).To(BeTrue())
+				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), avilabilityMode)).To(BeTrue())
 			}
 			for _, arch := range notSupportedCpuArch {
-				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch))).To(BeFalse())
+				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), avilabilityMode)).To(BeFalse())
 			}
 		})
 		It("Validate Feature Support for LVM", func() {
@@ -183,39 +185,30 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	})
 
 	Context("Test feature support levels for Nutanix platform", func() {
+    featureFilter := SupportLevelFilters{
+      OpenshiftVersion: "4.14",
+      CPUArchitecture: swag.String(common.X86CPUArchitecture),
+    }
+    
 		It("CNV should be unavailable", func() {
-			featureSupportLevels := GetFeatureSupportList(
-				"4.14",
-				swag.String(common.X86CPUArchitecture),
-				common.PlatformTypePtr(models.PlatformTypeNutanix),
-				nil,
-			)
+      featureFilter.PlatformType = common.PlatformTypePtr(models.PlatformTypeNutanix)
+			featureSupportLevels := GetFeatureSupportList(featureFilter)
 
 			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable))
 		})
 
 		It("MCE should be unavailable", func() {
-			featureSupportLevels := GetFeatureSupportList(
-				"4.14",
-				swag.String(common.X86CPUArchitecture),
-				common.PlatformTypePtr(models.PlatformTypeNutanix),
-				nil,
-			)
+      featureFilter.PlatformType = common.PlatformTypePtr(models.PlatformTypeNutanix)
+			featureSupportLevels := GetFeatureSupportList(featureFilter)
 
 			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDMCE)]).To(Equal(models.SupportLevelUnavailable))
 		})
-	})
 
-	Context("Test feature support levels for Vsphere platform", func() {
-		It("CNV should be unavailable", func() {
-			featureSupportLevels := GetFeatureSupportList(
-				"4.14",
-				swag.String(common.X86CPUArchitecture),
-				common.PlatformTypePtr(models.PlatformTypeVsphere),
-				nil,
-			)
+    It("CNV should be unavailable", func() {
+      featureFilter.PlatformType = common.PlatformTypePtr(models.PlatformTypeVsphere)
+			featureSupportLevels := GetFeatureSupportList(featureFilter)
 
 			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable))
-		})
+    })
 	})
 })

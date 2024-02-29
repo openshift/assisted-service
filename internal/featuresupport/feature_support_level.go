@@ -6,6 +6,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+
 	// "github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/thoas/go-funk"
 )
@@ -83,7 +84,7 @@ func removeEmptySupportLevel(supportLevels models.SupportLevels) {
 // GetFeatureSupportList Get features support level list, cpuArchitecture is optional and the default value is x86
 func GetFeatureSupportList(filters SupportLevelFilters) models.SupportLevels {
 
-	featuresSupportList := overrideInvalidRequest(featuresList, *filters.CPUArchitecture, filters.OpenshiftVersion)
+	featuresSupportList := overrideInvalidRequest(featuresList, swag.StringValue(filters.CPUArchitecture), filters.OpenshiftVersion)
 	if featuresSupportList == nil {
 		featuresSupportList = getFeatureSupportList(featuresList, filters)
 	}

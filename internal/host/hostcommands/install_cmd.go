@@ -128,7 +128,7 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 	}
 	if i.enableSkipMcoReboot {
 		request.EnableSkipMcoReboot = featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDSKIPMCOREBOOT,
-			cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))
+			cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture), swag.String(*cluster.HighAvailabilityMode))
 	}
 
 	// those flags are not used on day2 installation

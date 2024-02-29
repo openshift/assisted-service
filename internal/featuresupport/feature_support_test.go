@@ -56,69 +56,67 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	})
 
 	It("Test ARM64 is not supported under 4.10", func() {
-    feature := SupportLevelFilters{
-      CPUArchitecture: swag.String(models.ClusterCPUArchitectureArm64),
-    }
-    minimumSupportVersion := 4.10
-    for i := range [10]int{} {
-      openshiftVersion := 4.6 + float32(i)
-    
-      feature.OpenshiftVersion = fmt.Sprintf("%f",openshiftVersion)
-      if ok, _ := common.BaseVersionGreaterOrEqual(fmt.Sprintf("%f",minimumSupportVersion), feature.OpenshiftVersion); ok {
-          Expect(isArchitectureSupported(feature)).To(BeTrue())
-      } else {
+		feature := SupportLevelFilters{
+			CPUArchitecture: swag.String(models.ClusterCPUArchitectureArm64),
+		}
+		minimumSupportVersion := 4.10
+		for i := range [10]int{} {
+			openshiftVersion := 4.6 + float32(i)
 
-          Expect(isArchitectureSupported(feature)).To(BeFalse())
-      }
-    }
+			feature.OpenshiftVersion = fmt.Sprintf("%f", openshiftVersion)
+			if ok, _ := common.BaseVersionGreaterOrEqual(fmt.Sprintf("%f", minimumSupportVersion), feature.OpenshiftVersion); ok {
+				Expect(isArchitectureSupported(feature)).To(BeTrue())
+			} else {
+
+				Expect(isArchitectureSupported(feature)).To(BeFalse())
+			}
+		}
 		// Check for feature release
-    feature.OpenshiftVersion = "4.30"
+		feature.OpenshiftVersion = "4.30"
 		Expect(isArchitectureSupported(feature)).To(BeTrue())
 	})
 
 	It("Test s390x is not supported under 4.12", func() {
-    feature := SupportLevelFilters{
-      CPUArchitecture: swag.String(models.ClusterCPUArchitectureS390x),
-    }
-    minimumSupportVersion := 4.12
-    for i := range [10]int{} {
-      openshiftVersion := 4.6 + float32(i)
-    
-      feature.OpenshiftVersion = fmt.Sprintf("%f",openshiftVersion)
-      if ok, _ := common.BaseVersionGreaterOrEqual(fmt.Sprintf("%f",minimumSupportVersion), feature.OpenshiftVersion); ok {
-          Expect(isArchitectureSupported(feature)).To(BeTrue())
-      } else {
+		feature := SupportLevelFilters{
+			CPUArchitecture: swag.String(models.ClusterCPUArchitectureS390x),
+		}
+		minimumSupportVersion := 4.12
+		for i := range [10]int{} {
+			openshiftVersion := 4.6 + float32(i)
 
-          Expect(isArchitectureSupported(feature)).To(BeFalse())
-      }
-    }
+			feature.OpenshiftVersion = fmt.Sprintf("%f", openshiftVersion)
+			if ok, _ := common.BaseVersionGreaterOrEqual(fmt.Sprintf("%f", minimumSupportVersion), feature.OpenshiftVersion); ok {
+				Expect(isArchitectureSupported(feature)).To(BeTrue())
+			} else {
+
+				Expect(isArchitectureSupported(feature)).To(BeFalse())
+			}
+		}
 		// Check for feature release
-    feature.OpenshiftVersion = "4.30"
+		feature.OpenshiftVersion = "4.30"
 		Expect(isArchitectureSupported(feature)).To(BeTrue())
 
 	})
 
 	It("Test PPC64LE is not supported under 4.12", func() {
-    feature := SupportLevelFilters{
-      CPUArchitecture: swag.String(models.ClusterCPUArchitecturePpc64le),
-    }
-    minimumSupportVersion := 4.12
-    for i := range [10]int{} {
-      openshiftVersion := 4.6 + float32(i)
-    
-      feature.OpenshiftVersion = fmt.Sprintf("%f",openshiftVersion)
-      if ok, _ := common.BaseVersionGreaterOrEqual(fmt.Sprintf("%f",minimumSupportVersion), feature.OpenshiftVersion); ok {
-          Expect(isArchitectureSupported(feature)).To(BeTrue())
-      } else {
+		feature := SupportLevelFilters{
+			CPUArchitecture: swag.String(models.ClusterCPUArchitecturePpc64le),
+		}
+		minimumSupportVersion := 4.12
+		for i := range [10]int{} {
+			openshiftVersion := 4.6 + float32(i)
 
-          Expect(isArchitectureSupported(feature)).To(BeFalse())
-      }
-  }
+			feature.OpenshiftVersion = fmt.Sprintf("%f", openshiftVersion)
+			if ok, _ := common.BaseVersionGreaterOrEqual(fmt.Sprintf("%f", minimumSupportVersion), feature.OpenshiftVersion); ok {
+				Expect(isArchitectureSupported(feature)).To(BeTrue())
+			} else {
 
-  
+				Expect(isArchitectureSupported(feature)).To(BeFalse())
+			}
+		}
 
 		// Check for feature release
-    feature.OpenshiftVersion = "4.30"
+		feature.OpenshiftVersion = "4.30"
 		Expect(isArchitectureSupported(feature)).To(BeTrue())
 	})
 
@@ -291,19 +289,26 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			filters := filters
 			When("GetFeatureSupportList 4.12 with Platform", func() {
 				It(string(*filters.PlatformType)+" "+swag.StringValue(filters.ExternalPlatformName), func() {
-					list := GetFeatureSupportList("dummy", nil, filters.PlatformType, filters.ExternalPlatformName)
+					featureFilter := SupportLevelFilters{
+						CPUArchitecture:      swag.String(models.ClusterCPUArchitectureX8664),
+						OpenshiftVersion:     "4.12",
+						PlatformType:         filters.PlatformType,
+						ExternalPlatformName: filters.ExternalPlatformName,
+					}
+
+					list := GetFeatureSupportList(featureFilter)
 					Expect(len(list)).To(Equal(19))
 				})
 			})
 		}
 
 		It("GetFeatureSupportList 4.12", func() {
-			list := GetFeatureSupportList("4.12", nil, nil, nil)
+			list := GetFeatureSupportList(SupportLevelFilters{CPUArchitecture:      swag.String(models.ClusterCPUArchitectureX8664), OpenshiftVersion: "4.12"})
 			Expect(len(list)).To(Equal(24))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
-			list := GetFeatureSupportList("4.13", nil, nil, nil)
+			list := GetFeatureSupportList(SupportLevelFilters{CPUArchitecture:      swag.String(models.ClusterCPUArchitectureX8664),OpenshiftVersion: "4.13"})
 			Expect(len(list)).To(Equal(24))
 		})
 
@@ -318,92 +323,10 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 
 		It("GetFeatureSupportList 4.11 with not supported architecture", func() {
-			featuresList := GetFeatureSupportList("4.11", swag.String(models.ClusterCPUArchitecturePpc64le), nil, nil)
-
-			for _, supportLevel := range featuresList {
-				Expect(supportLevel).To(Equal(models.SupportLevelUnavailable))
-			}
-		})
-
-// =======
-// 		It("GetFeatureSupportList 4.14 with Platform", func() {
-// 			platforms := []models.PlatformType{
-// 				models.PlatformTypeNutanix,
-// 				models.PlatformTypeVsphere,
-// 				models.PlatformTypeOci,
-// 				models.PlatformTypeBaremetal,
-// 				models.PlatformTypeNone,
-// 			}
-// 			for _, platform := range platforms {
-// 				p := platform
-// 				list := GetFeatureSupportList(SupportLevelFilters{
-// 					OpenshiftVersion:     "4.14",
-// 					CPUArchitecture:      nil,
-// 					PlatformType:         &p,
-// 					HighAvailabilityMode: nil,
-// 				})
-// 				Expect(len(list)).To(Equal(16))
-// 			}
-// 		})
-// 		It("GetFeatureSupportList 4.12 with HighAvailabilityMode", func() {
-// 			list := GetFeatureSupportList(SupportLevelFilters{
-// 				OpenshiftVersion:     "4.12",
-// 				CPUArchitecture:      nil,
-// 				PlatformType:         nil,
-// 				HighAvailabilityMode: swag.String("does_not_matter_what_is_the_value"),
-// 			})
-// 			Expect(len(list)).To(Equal(19))
-// 		})
-// 		It("overrideInvalidRequest 4.12 vsphere with HighAvailabilityMode None", func() {
-// 			platform := models.PlatformTypeVsphere
-// 			list := GetFeatureSupportList(SupportLevelFilters{
-// 				OpenshiftVersion:     "4.10",
-// 				CPUArchitecture:      swag.String(models.ClusterCPUArchitectureX8664),
-// 				PlatformType:         &platform,
-// 				HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
-// 			})
-// 			for featureId, supportLevel := range list {
-// 				sl := supportLevel
-// 				By(fmt.Sprintf("Feature %s", featureId), func() {
-// 					// All features in that case should be unavailable
-// 					Expect(sl).To(Equal(models.SupportLevelUnavailable))
-// 				})
-// 			}
-// 		})
-//
-// 		It("GetFeatureSupportList 4.12", func() {
-// 			list := GetFeatureSupportList(SupportLevelFilters{
-// 				OpenshiftVersion:     "4.12",
-// 				CPUArchitecture:      nil,
-// 				PlatformType:         nil,
-// 				HighAvailabilityMode: nil,
-// 			})
-// 			Expect(len(list)).To(Equal(20))
-// 		})
-//
-// 		It("GetFeatureSupportList 4.13", func() {
-// 			list := GetFeatureSupportList(SupportLevelFilters{
-// 				OpenshiftVersion:     "4.13",
-// 				CPUArchitecture:      nil,
-// 				PlatformType:         nil,
-// 				HighAvailabilityMode: nil,
-// 			})
-// 			Expect(len(list)).To(Equal(20))
-// >>>>>>> db440e81b (MGMT-15736: Align feature support level to support HighAvailabilityMode as filterable feature)
-// 		})
-
-		It("GetCpuArchitectureSupportList 4.12", func() {
-			list := GetCpuArchitectureSupportList("4.12")
-			Expect(len(list)).To(Equal(5))
-		})
-
-		It("GetCpuArchitectureSupportList 4.13", func() {
-			list := GetCpuArchitectureSupportList("4.13")
-			Expect(len(list)).To(Equal(5))
-		})
-
-		It("GetFeatureSupportList 4.11 with not supported architecture", func() {
-			featuresList := GetFeatureSupportList("4.11", swag.String(models.ClusterCPUArchitecturePpc64le), nil, nil)
+			featuresList := GetFeatureSupportList(SupportLevelFilters{
+				OpenshiftVersion: "4.11",
+				CPUArchitecture:  swag.String(models.ClusterCPUArchitecturePpc64le),
+			})
 
 			for _, supportLevel := range featuresList {
 				Expect(supportLevel).To(Equal(models.SupportLevelUnavailable))
@@ -411,18 +334,92 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 
 		It("GetFeatureSupportList 4.13 with unsupported architecture", func() {
-			featuresList := GetFeatureSupportList("4.12", swag.String(models.ClusterCPUArchitecturePpc64le), nil, nil)
+			featureFilter := SupportLevelFilters{
+				CPUArchitecture:  swag.String(models.ClusterCPUArchitecturePpc64le),
+				OpenshiftVersion: "4.12",
+			}
+			featuresList := GetFeatureSupportList(featureFilter)
 			Expect(featuresList[string(models.FeatureSupportLevelIDSNO)]).To(Equal(models.SupportLevelUnavailable))
 
-			featuresList = GetFeatureSupportList("4.13", swag.String(models.ClusterCPUArchitecturePpc64le), nil, nil)
+			featureFilter.OpenshiftVersion = "4.13"
+			featuresList = GetFeatureSupportList(featureFilter)
 			Expect(featuresList[string(models.FeatureSupportLevelIDSNO)]).To(Equal(models.SupportLevelDevPreview))
 		})
 
 		It("GetFeatureSupportList 4.13 with unsupported architecture", func() {
-			featuresList := GetFeatureSupportList("4.13", swag.String(models.ClusterCPUArchitectureX8664), nil, nil)
+			featuresList := GetFeatureSupportList(SupportLevelFilters{
+				CPUArchitecture:  swag.String(models.ClusterCPUArchitectureX8664),
+				OpenshiftVersion: "4.13",
+			})
 			Expect(featuresList[string(models.FeatureSupportLevelIDSNO)]).To(Equal(models.SupportLevelSupported))
 		})
 	})
+	// =======
+	// 		It("GetFeatureSupportList 4.14 with Platform", func() {
+	// 			platforms := []models.PlatformType{
+	// 				models.PlatformTypeNutanix,
+	// 				models.PlatformTypeVsphere,
+	// 				models.PlatformTypeOci,
+	// 				models.PlatformTypeBaremetal,
+	// 				models.PlatformTypeNone,
+	// 			}
+	// 			for _, platform := range platforms {
+	// 				p := platform
+	// 				list := GetFeatureSupportList(SupportLevelFilters{
+	// 					OpenshiftVersion:     "4.14",
+	// 					CPUArchitecture:      nil,
+	// 					PlatformType:         &p,
+	// 					HighAvailabilityMode: nil,
+	// 				})
+	// 				Expect(len(list)).To(Equal(16))
+	// 			}
+	// 		})
+	// 		It("GetFeatureSupportList 4.12 with HighAvailabilityMode", func() {
+	// 			list := GetFeatureSupportList(SupportLevelFilters{
+	// 				OpenshiftVersion:     "4.12",
+	// 				CPUArchitecture:      nil,
+	// 				PlatformType:         nil,
+	// 				HighAvailabilityMode: swag.String("does_not_matter_what_is_the_value"),
+	// 			})
+	// 			Expect(len(list)).To(Equal(19))
+	// 		})
+	// 		It("overrideInvalidRequest 4.12 vsphere with HighAvailabilityMode None", func() {
+	// 			platform := models.PlatformTypeVsphere
+	// 			list := GetFeatureSupportList(SupportLevelFilters{
+	// 				OpenshiftVersion:     "4.10",
+	// 				CPUArchitecture:      swag.String(models.ClusterCPUArchitectureX8664),
+	// 				PlatformType:         &platform,
+	// 				HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+	// 			})
+	// 			for featureId, supportLevel := range list {
+	// 				sl := supportLevel
+	// 				By(fmt.Sprintf("Feature %s", featureId), func() {
+	// 					// All features in that case should be unavailable
+	// 					Expect(sl).To(Equal(models.SupportLevelUnavailable))
+	// 				})
+	// 			}
+	// 		})
+	//
+	// 		It("GetFeatureSupportList 4.12", func() {
+	// 			list := GetFeatureSupportList(SupportLevelFilters{
+	// 				OpenshiftVersion:     "4.12",
+	// 				CPUArchitecture:      nil,
+	// 				PlatformType:         nil,
+	// 				HighAvailabilityMode: nil,
+	// 			})
+	// 			Expect(len(list)).To(Equal(20))
+	// 		})
+	//
+	// 		It("GetFeatureSupportList 4.13", func() {
+	// 			list := GetFeatureSupportList(SupportLevelFilters{
+	// 				OpenshiftVersion:     "4.13",
+	// 				CPUArchitecture:      nil,
+	// 				PlatformType:         nil,
+	// 				HighAvailabilityMode: nil,
+	// 			})
+	// 			Expect(len(list)).To(Equal(20))
+	// >>>>>>> db440e81b (MGMT-15736: Align feature support level to support HighAvailabilityMode as filterable feature)
+	// 		})
 
 	Context("ValidateIncompatibleFeatures", func() {
 		log := logrus.New()
