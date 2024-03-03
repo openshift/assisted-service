@@ -35,10 +35,10 @@ func getArchitectureSupportList(features map[models.ArchitectureSupportLevelID]S
 // return a list of unsupported features
 func overrideInvalidRequest(features map[models.FeatureSupportLevelID]SupportLevelFeature, cpuArchitecture, openshiftVersion string) models.SupportLevels {
 	supportLevels := models.SupportLevels{}
-  supportfilter := SupportLevelFilters{
-    OpenshiftVersion: openshiftVersion,
-    CPUArchitecture: swag.String(cpuArchitecture),
-  } 
+	supportfilter := SupportLevelFilters{
+		OpenshiftVersion: openshiftVersion,
+		CPUArchitecture:  swag.String(cpuArchitecture),
+	}
 	if !isArchitectureSupported(supportfilter) {
 		for _, feature := range features {
 			supportLevels[string(feature.getId())] = models.SupportLevelUnavailable

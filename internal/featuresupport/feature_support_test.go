@@ -303,12 +303,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		}
 
 		It("GetFeatureSupportList 4.12", func() {
-			list := GetFeatureSupportList(SupportLevelFilters{CPUArchitecture:      swag.String(models.ClusterCPUArchitectureX8664), OpenshiftVersion: "4.12"})
+			list := GetFeatureSupportList(SupportLevelFilters{CPUArchitecture: swag.String(models.ClusterCPUArchitectureX8664), OpenshiftVersion: "4.12"})
 			Expect(len(list)).To(Equal(24))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
-			list := GetFeatureSupportList(SupportLevelFilters{CPUArchitecture:      swag.String(models.ClusterCPUArchitectureX8664),OpenshiftVersion: "4.13"})
+			list := GetFeatureSupportList(SupportLevelFilters{CPUArchitecture: swag.String(models.ClusterCPUArchitectureX8664), OpenshiftVersion: "4.13"})
 			Expect(len(list)).To(Equal(24))
 		})
 

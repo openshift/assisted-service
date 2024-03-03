@@ -1621,13 +1621,13 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
-  featureFilter := featuresupport.SupportLevelFilters{
-    OpenshiftVersion: params.OpenshiftVersion,
-    CPUArchitecture: params.CPUArchitecture,
-    PlatformType: (*models.PlatformType)(params.PlatformType),
-    ExternalPlatformName: params.ExternalPlatformName,
-    HighAvailabilityMode: params.HighAvailabilityMode,
-  }
+	featureFilter := featuresupport.SupportLevelFilters{
+		OpenshiftVersion:     params.OpenshiftVersion,
+		CPUArchitecture:      params.CPUArchitecture,
+		PlatformType:         (*models.PlatformType)(params.PlatformType),
+		ExternalPlatformName: params.ExternalPlatformName,
+		HighAvailabilityMode: params.HighAvailabilityMode,
+	}
 	return featuresupport.GetFeatureSupportList(featureFilter), nil
 }
 
