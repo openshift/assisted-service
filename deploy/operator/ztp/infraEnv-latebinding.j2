@@ -3,6 +3,8 @@
 apiVersion: agent-install.openshift.io/v1beta1
 kind: InfraEnv
 metadata:
+  annotations:
+    infraenv.agent-install.openshift.io/ironic-agent-image-override: '{{ ironic_image }}'
   name: '{{ infraenv_name }}'
   namespace: '{{ spoke_namespace }}'
 spec:

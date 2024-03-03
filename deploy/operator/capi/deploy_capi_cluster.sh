@@ -27,6 +27,7 @@ export CONTROL_PLANE_OPERATOR_IMAGE="${CONTROL_PLANE_OPERATOR_IMAGE:-}"
 export PROVIDER_IMAGE="${PROVIDER_IMAGE:-}"
 export EXTRA_HYPERSHIFT_INSTALL_FLAGS="${EXTRA_HYPERSHIFT_INSTALL_FLAGS:-}"
 export EXTRA_HYPERSHIFT_CREATE_COMMANDS="${EXTRA_HYPERSHIFT_CREATE_COMMANDS:-}"
+export IRONIC_IMAGE=$(oc adm release info --image-for=ironic-agent "$(oc get clusterversion version -ojsonpath='{.status.desired.image}')")
 
 if [[ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ]]; then
     export USER_MANAGED_NETWORKING="true"

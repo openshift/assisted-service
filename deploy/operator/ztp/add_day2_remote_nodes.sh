@@ -11,6 +11,7 @@ export REMOTE_BAREMETALHOSTS_FILE="${REMOTE_BAREMETALHOSTS_FILE:-/home/test/dev-
 
 export DAY2_LATE_BINDING=${DAY2_LATE_BINDING:-}
 export DAY2_MASTERS=${DAY2_MASTERS:-}
+export IRONIC_IMAGE=$(oc adm release info --image-for=ironic-agent "$(oc get clusterversion version -ojsonpath='{.status.desired.image}')")
 
 # If performing late binding then we need to generate an infraenv for this.
 # Generation is handled within "add-remote-nodes-playbook"

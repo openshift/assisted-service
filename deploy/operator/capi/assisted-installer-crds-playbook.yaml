@@ -29,6 +29,7 @@
     - assisted_upgrade_operator: "{{ lookup('env', 'ASSISTED_UPGRADE_OPERATOR') }}"
     - assisted_stop_after_agent_discovery: "{{ lookup('env', 'ASSISTED_STOP_AFTER_AGENT_DISCOVERY') }}"
     - user_managed_networking: "{{ lookup('env', 'USER_MANAGED_NETWORKING') }}"
+    - ironic_image: "{{ lookup('env', 'IRONIC_IMAGE') }}"
     - day2: "false"
 
   tasks:

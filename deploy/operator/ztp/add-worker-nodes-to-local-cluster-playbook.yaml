@@ -17,6 +17,7 @@
     - machine_config_pools: "{{ lookup('env', 'MACHINE_CONFIG_POOLS') }}"
     - node_labels: "{{ lookup('env', 'NODE_LABELS') }}"
     - infraenv_label: "{{ lookup('env', 'LOCAL_CLUSTER_INFRAENV_LABEL', default='local-cluster') }}"
+    - ironic_image: "{{ lookup('env', 'IRONIC_IMAGE') }}"
 
   tasks:
   - name: generate-crs-and-apply

@@ -9,6 +9,7 @@ source "${__dir}/../utils.sh"
 
 export REMOTE_BAREMETALHOSTS_FILE="${REMOTE_BAREMETALHOSTS_FILE:-/home/test/dev-scripts/ocp/ostest/remote_baremetalhosts.json}"
 export LOCAL_CLUSTER_NAMESPACE="${LOCAL_CLUSTER_NAMESPACE:-local-agent-cluster}"
+export IRONIC_IMAGE=$(oc adm release info --image-for=ironic-agent "$(oc get clusterversion version -ojsonpath='{.status.desired.image}')")
 
 echo "Adding day2 local cluster nodes"
 ansible-playbook "${__dir}/add-worker-nodes-to-local-cluster-playbook.yaml"
