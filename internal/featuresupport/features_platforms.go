@@ -155,7 +155,7 @@ func (feature *NutanixIntegrationFeature) getSupportLevel(filters SupportLevelFi
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
-	if filters.HighAvailabilityMode == swag.String(models.ClusterHighAvailabilityModeNone) {
+	if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
 		return models.SupportLevelUnavailable
 	}
 
@@ -220,7 +220,7 @@ func (feature *VsphereIntegrationFeature) getSupportLevel(filters SupportLevelFi
 		return models.SupportLevelUnavailable
 	}
 
-	if filters.HighAvailabilityMode == swag.String(models.ClusterHighAvailabilityModeNone) {
+	if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
 		return models.SupportLevelUnavailable
 	}
 

@@ -56,7 +56,7 @@ func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string
 
 	activatedFeatures := getActivatedFeatures(log, cluster, infraEnv, updateParams)
 	if cpuArchitecture != "" && swag.StringValue(openshiftVersion) != "" {
-		filters := SupportLevelFilters{OpenshiftVersion: *openshiftVersion, CPUArchitecture: &cpuArchitecture}
+		filters := SupportLevelFilters{OpenshiftVersion: *openshiftVersion, CPUArchitecture: &cpuArchitecture, HighAvailabilityMode: highAvailabilityMode}
 		if isSupported := isArchitectureSupported(filters); !isSupported {
 			return fmt.Errorf("cannot use %s architecture because it's not compatible on version %s of OpenShift", cpuArchitecture, cluster.OpenshiftVersion)
 		}
