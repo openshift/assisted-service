@@ -675,8 +675,9 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 		return ValidationFailure
 	}
 
-	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
-	//           entries using the same IP stack.
+	// TODO(mko) This rule must be revised to support multiple machineNetwork
+	//           entries using the same IP stack on clusters without
+	//           user-managed networking. (OCPBUGS-30730)
 	areNetworksEqual := func(ipnet1, ipnet2 *net.IPNet) bool {
 		return ipnet1.IP.Equal(ipnet2.IP) && bytes.Equal(ipnet1.Mask, ipnet2.Mask)
 	}
