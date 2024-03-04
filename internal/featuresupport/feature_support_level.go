@@ -83,6 +83,9 @@ func removeEmptySupportLevel(supportLevels models.SupportLevels) {
 
 // GetFeatureSupportList Get features support level list, cpuArchitecture is optional and the default value is x86
 func GetFeatureSupportList(filters SupportLevelFilters) models.SupportLevels {
+	if filters.CPUArchitecture == nil {
+		filters.CPUArchitecture = swag.String(common.DefaultCPUArchitecture)
+	}
 
 	featuresSupportList := overrideInvalidRequest(featuresList, swag.StringValue(filters.CPUArchitecture), filters.OpenshiftVersion)
 	if featuresSupportList == nil {
