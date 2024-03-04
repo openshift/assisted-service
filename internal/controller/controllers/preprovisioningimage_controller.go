@@ -53,7 +53,10 @@ import (
 
 type imageConditionReason string
 
-const archMismatchReason = "InfraEnvArchMismatch"
+const (
+	archMismatchReason              = "InfraEnvArchMismatch"
+	minimalVersionForIronicMultiURL = "4.16.0-ec.3"
+)
 
 type PreprovisioningImageControllerConfig struct {
 	// The default ironic agent image was obtained by running "oc adm release info --image-for=ironic-agent  quay.io/openshift-release-dev/ocp-release:4.15.0-x86_64"
@@ -433,7 +436,12 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		log.Infof("Setting default ironic agent image (%s, %s) for infraEnv %s", ironicAgentImage, ironicVersion, infraEnv.Name)
 	}
 
-	ironicServiceURL, inspectorURL, err := r.getIronicServiceURLs(ctx, infraEnvInternal)
+	multiURLAllowed, err := common.VersionGreaterOrEqual(ironicVersion, minimalVersionForIronicMultiURL)
+	if err != nil {
+		log.WithError(err).Error("failed to check if ironic version is valid for passing multiple URLs")
+	}
+
+	ironicServiceURL, inspectorURL, err := r.getIronicServiceURLs(ctx, infraEnvInternal, multiURLAllowed)
 	if err != nil {
 		log.WithError(err).Error("failed to get IronicServiceURLs")
 		return false, err
@@ -478,10 +486,22 @@ func (r *PreprovisioningImageReconciler) getIPFamilyForInfraEnv(ctx context.Cont
 	return network.GetAddressFamilies(cluster.MachineNetworks)
 }
 
-func (r *PreprovisioningImageReconciler) getIronicServiceURLs(ctx context.Context, infraEnv *common.InfraEnv) (string, string, error) {
+func (r *PreprovisioningImageReconciler) getIronicServiceURLs(ctx context.Context, infraEnv *common.InfraEnv, multiURLAllowed bool) (string, string, error) {
 	ironicIPs, inspectorIPs, err := r.BMOUtils.GetIronicIPs()
 	if err != nil {
 		return "", "", err
+	}
+
+	if multiURLAllowed {
+		ironicURLs := []string{}
+		for _, ip := range ironicIPs {
+			ironicURLs = append(ironicURLs, getUrlFromIP(ip))
+		}
+		inspectorURLs := []string{}
+		for _, ip := range inspectorIPs {
+			inspectorURLs = append(inspectorURLs, getUrlFromIP(ip))
+		}
+		return strings.Join(ironicURLs, ","), strings.Join(inspectorURLs, ","), nil
 	}
 
 	// default to the first IP returned

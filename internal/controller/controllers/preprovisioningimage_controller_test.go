@@ -229,6 +229,34 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, infraEnv)).To(BeNil())
 			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
 		})
+
+		It("adds both ironic urls to the ignition when the hub version supports it", func() {
+			Expect(c.Create(ctx, clusterVersion)).To(Succeed())
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			ironicAgentImage := "ironic-image:4.12.0"
+			backendInfraEnv.CPUArchitecture = "x86_64"
+			backendInfraEnv.PullSecret = "mypullsecret"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
+			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil)
+			// this version should be >= minimalVersionForIronicMultiURL
+			mockOcRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("4.16.0", nil)
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicServiceIPs[0])))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicInspectorIPs[0])))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicServiceIPs[1])))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicInspectorIPs[1])))
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterID, ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+		})
+
 		It("Wait for InfraEnv cool down", func() {
 			infraEnv.Status.ISODownloadURL = downloadURL
 			infraEnv.Status.CreatedTime = &metav1.Time{Time: time.Now()}

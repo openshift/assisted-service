@@ -14,11 +14,11 @@ func GenerateIronicConfig(ironicBaseURL string, ironicInspectorURL string, infra
 
 	httpProxy, httpsProxy, noProxy := common.GetProxyConfigs(infraEnv.Proxy)
 	// TODO: this should probably get the pullSecret as well
-	ib, err := iccignition.New([]byte{}, []byte{}, ironicBaseURL, ironicInspectorURL, ironicAgentImage, "", "", "", httpProxy, httpsProxy, noProxy, "")
+	ib, err := iccignition.New([]byte{}, []byte{}, ironicBaseURL, ironicInspectorURL, ironicAgentImage, "", "", "", httpProxy, httpsProxy, noProxy, "", "")
 	if err != nil {
 		return []byte{}, err
 	}
-	config.Storage.Files = []ignition_config_types_32.File{ib.IronicAgentConf()}
+	config.Storage.Files = []ignition_config_types_32.File{ib.IronicAgentConf("")}
 	// TODO: sort out the flags (authfile...) and copy network
 	config.Systemd.Units = []ignition_config_types_32.Unit{ib.IronicAgentService(false)}
 	return json.Marshal(config)
