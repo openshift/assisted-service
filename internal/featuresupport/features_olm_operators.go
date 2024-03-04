@@ -61,6 +61,13 @@ func (feature *LvmFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelUnavailable
 	}
 
+	if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeFull {
+		if isNotSupported, err := common.BaseVersionLessThan("4.15", filters.OpenshiftVersion); isNotSupported || err != nil {
+      return models.SupportLevelUnavailable
+    }
+	}
+
+
 	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeVsphere || *filters.PlatformType == models.PlatformTypeNutanix) {
 		return models.SupportLevelUnavailable
 	}
