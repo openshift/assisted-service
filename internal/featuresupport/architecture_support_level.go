@@ -58,6 +58,6 @@ func isArchitectureSupported(filters SupportLevelFilters) bool {
 	}
 
 	featureId := cpuArchitectureFeatureIdMap[*filters.CPUArchitecture]
-	supportLevel := GetSupportLevel(featureId, filters.OpenshiftVersion)
+	supportLevel := GetSupportLevel(featureId, filters)
 	return supportLevel != models.SupportLevelUnsupported && supportLevel != models.SupportLevelUnavailable
 }
