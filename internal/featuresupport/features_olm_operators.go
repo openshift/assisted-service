@@ -127,7 +127,7 @@ func (feature *OdfFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
-	if filters.HighAvailabilityMode == swag.String(models.ClusterCreateParamsHighAvailabilityModeNone) {
+	if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
 		return models.SupportLevelUnavailable
 	}
 
