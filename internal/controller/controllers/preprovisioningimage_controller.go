@@ -471,7 +471,7 @@ func (r *PreprovisioningImageReconciler) getIPFamilyForInfraEnv(ctx context.Cont
 	if err != nil {
 		return false, false, err
 	}
-	return network.GetAddressFamilies(cluster.MachineNetworks)
+	return network.GetConfiguredAddressFamilies(cluster)
 }
 
 func (r *PreprovisioningImageReconciler) getIronicServiceURLs(ctx context.Context, infraEnv *common.InfraEnv) (string, string, error) {

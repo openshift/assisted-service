@@ -205,9 +205,11 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
 		})
 		It("Adds the ironic IPv6 address to the ignition when the spoke cluster is IPv6 only", func() {
-			backendCluster.MachineNetworks = []*models.MachineNetwork{
+			backendCluster.ClusterNetworks = []*models.ClusterNetwork{
 				{Cidr: "2001:db8::/32"},
 			}
+			backendCluster.MachineNetworks = nil
+			backendCluster.ServiceNetworks = nil
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
