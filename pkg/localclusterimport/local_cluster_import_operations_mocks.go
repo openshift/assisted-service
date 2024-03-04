@@ -153,6 +153,21 @@ func (mr *MockClusterImportOperationsMockRecorder) GetClusterImageSet(name inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterImageSet", reflect.TypeOf((*MockClusterImportOperations)(nil).GetClusterImageSet), name)
 }
 
+// GetClusterProxy mocks base method.
+func (m *MockClusterImportOperations) GetClusterProxy() (*v1.Proxy, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClusterProxy")
+	ret0, _ := ret[0].(*v1.Proxy)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClusterProxy indicates an expected call of GetClusterProxy.
+func (mr *MockClusterImportOperationsMockRecorder) GetClusterProxy() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterProxy", reflect.TypeOf((*MockClusterImportOperations)(nil).GetClusterProxy))
+}
+
 // GetClusterVersion mocks base method.
 func (m *MockClusterImportOperations) GetClusterVersion(name string) (*v1.ClusterVersion, error) {
 	m.ctrl.T.Helper()

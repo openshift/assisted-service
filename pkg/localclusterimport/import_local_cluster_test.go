@@ -36,6 +36,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		agentServiceConfigUID   types.UID
 		releaseImage            string
 		localClusterNamespace   string
+		clusterProxy            *configv1.Proxy
 	)
 
 	BeforeEach(func() {
@@ -193,6 +194,26 @@ var _ = Describe("ImportLocalCluster", func() {
 			Return(dns, nil)
 	}
 
+	var mockGetClusterProxy = func(httpProxy string, httpsProxy string, noProxy string) *gomock.Call {
+		clusterProxy = &configv1.Proxy{
+			Spec: configv1.ProxySpec{
+				HTTPProxy:  httpProxy,
+				HTTPSProxy: httpsProxy,
+				NoProxy:    noProxy,
+			},
+		}
+		return clusterImportOperations.EXPECT().
+			GetClusterProxy().
+			Return(clusterProxy, nil)
+	}
+
+	var mockNilClusterProxy = func() *gomock.Call {
+		clusterProxy = nil
+		return clusterImportOperations.EXPECT().
+			GetClusterProxy().
+			Return(clusterProxy, nil)
+	}
+
 	var mockNumberOfControlPlaneNodesFound = func() *gomock.Call {
 		return clusterImportOperations.EXPECT().
 			GetNumberOfControlPlaneNodes().
@@ -271,6 +292,13 @@ var _ = Describe("ImportLocalCluster", func() {
 		}
 		agentClusterInstall.Namespace = localClusterNamespace
 		agentClusterInstall.Name = localClusterNamespace
+		if clusterProxy != nil {
+			agentClusterInstall.Spec.Proxy = &hiveext.Proxy{
+				HTTPProxy:  clusterProxy.Spec.HTTPProxy,
+				HTTPSProxy: clusterProxy.Spec.HTTPSProxy,
+				NoProxy:    clusterProxy.Spec.NoProxy,
+			}
+		}
 		return agentClusterInstall
 	}
 
@@ -434,6 +462,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockNodeKubeConfigsNotFound()
 		mockLocalClusterPullSecretFound()
 		mockClusterDNSFound()
+		mockGetClusterProxy("", "", "")
 		mockNumberOfControlPlaneNodesFound()
 		result := localClusterImport.ImportLocalCluster()
 		multiErrors := result.(*multierror.Error)
@@ -448,6 +477,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockNodeKubeConfigsFound()
 		mockLocalClusterPullSecretNotFound()
 		mockClusterDNSFound()
+		mockGetClusterProxy("", "", "")
 		mockNumberOfControlPlaneNodesFound()
 		result := localClusterImport.ImportLocalCluster()
 		multiErrors := result.(*multierror.Error)
@@ -462,6 +492,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockNodeKubeConfigsFound()
 		mockLocalClusterPullSecretFound()
 		mockClusterDNSNotFound()
+		mockGetClusterProxy("", "", "")
 		mockNumberOfControlPlaneNodesFound()
 		result := localClusterImport.ImportLocalCluster()
 		multiErrors := result.(*multierror.Error)
@@ -476,6 +507,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockNodeKubeConfigsFound()
 		mockLocalClusterPullSecretFound()
 		mockClusterDNSFound()
+		mockGetClusterProxy("", "", "")
 		mockNumberOfControlPlaneNodesFound()
 		mockFailedToCreateClusterImageSet()
 		mockCreateLocalClusterAdminKubeConfig()
@@ -496,6 +528,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockNodeKubeConfigsFound()
 		mockLocalClusterPullSecretFound()
 		mockClusterDNSFound()
+		mockGetClusterProxy("", "", "")
 		mockNumberOfControlPlaneNodesFound()
 		mockCreateClusterImageSet()
 		mockFailedToCreateLocalClusterAdminKubeConfig()
@@ -516,6 +549,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockNodeKubeConfigsFound()
 		mockLocalClusterPullSecretFound()
 		mockClusterDNSFound()
+		mockGetClusterProxy("", "", "")
 		mockNumberOfControlPlaneNodesFound()
 		mockCreateClusterImageSet()
 		mockCreateLocalClusterAdminKubeConfig()
@@ -536,6 +570,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockNodeKubeConfigsFound()
 		mockLocalClusterPullSecretFound()
 		mockClusterDNSFound()
+		mockGetClusterProxy("", "", "")
 		mockNumberOfControlPlaneNodesFound()
 		mockCreateClusterImageSet()
 		mockCreateLocalClusterAdminKubeConfig()
@@ -556,6 +591,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockNodeKubeConfigsFound()
 		mockLocalClusterPullSecretFound()
 		mockClusterDNSFound()
+		mockGetClusterProxy("", "", "")
 		mockNumberOfControlPlaneNodesFound()
 		mockCreateClusterImageSet()
 		mockCreateLocalClusterAdminKubeConfig()
@@ -570,12 +606,49 @@ var _ = Describe("ImportLocalCluster", func() {
 		Expect(apiStatus.Status().Message).To(Equal("Invalid parameters"))
 	})
 
+	It("should copy cluster proxy entries to AgentClusterInstall", func() {
+		mockClusterVersionFound()
+		mockCreateNamespace()
+		mockNodeKubeConfigsFound()
+		mockLocalClusterPullSecretFound()
+		mockClusterDNSFound()
+		mockGetClusterProxy("http://http_proxy.net", "https://https_proxy.net", "localhost")
+		mockNumberOfControlPlaneNodesFound()
+		mockCreateClusterImageSet()
+		mockCreateLocalClusterAdminKubeConfig()
+		mockCreateLocalClusterPullSecret()
+		mockCreateAgentClusterInstall()
+		mockGetAgentServiceConfig()
+		mockCreateLocalClusterDeployment()
+		result := localClusterImport.ImportLocalCluster()
+		Expect(result).To(BeNil())
+	})
+
+	It("should skip proxy creation gracefully if Cluster Proxy is nil", func() {
+		mockClusterVersionFound()
+		mockCreateNamespace()
+		mockNodeKubeConfigsFound()
+		mockLocalClusterPullSecretFound()
+		mockClusterDNSFound()
+		mockNilClusterProxy()
+		mockNumberOfControlPlaneNodesFound()
+		mockCreateClusterImageSet()
+		mockCreateLocalClusterAdminKubeConfig()
+		mockCreateLocalClusterPullSecret()
+		mockCreateAgentClusterInstall()
+		mockGetAgentServiceConfig()
+		mockCreateLocalClusterDeployment()
+		result := localClusterImport.ImportLocalCluster()
+		Expect(result).To(BeNil())
+	})
+
 	It("should have created all entities required to import local cluster", func() {
 		mockClusterVersionFound()
 		mockCreateNamespace()
 		mockNodeKubeConfigsFound()
 		mockLocalClusterPullSecretFound()
 		mockClusterDNSFound()
+		mockGetClusterProxy("", "", "")
 		mockNumberOfControlPlaneNodesFound()
 		mockCreateClusterImageSet()
 		mockCreateLocalClusterAdminKubeConfig()
@@ -592,6 +665,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockNodeKubeConfigsFound()
 		mockLocalClusterPullSecretFound()
 		mockClusterDNSFound()
+		mockGetClusterProxy("", "", "")
 		mockNumberOfControlPlaneNodesFound()
 		mockAlreadyExistsOnCreateNamespace()
 		mockAlreadyExistsOnCreateClusterImageSet()

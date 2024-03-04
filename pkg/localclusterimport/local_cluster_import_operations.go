@@ -24,6 +24,7 @@ type ClusterImportOperations interface {
 	GetNodes() (*v1.NodeList, error)
 	GetNumberOfControlPlaneNodes() (int, error)
 	GetClusterDNS() (*configv1.DNS, error)
+	GetClusterProxy() (*configv1.Proxy, error)
 	GetAgentServiceConfig() (*aiv1beta1.AgentServiceConfig, error)
 	CreateAgentClusterInstall(agentClusterInstall *hiveext.AgentClusterInstall) error
 	CreateNamespace(name string) error
@@ -202,4 +203,17 @@ func (o *LocalClusterImportOperations) GetClusterDNS() (*configv1.DNS, error) {
 		return nil, err
 	}
 	return dns, nil
+}
+
+func (o *LocalClusterImportOperations) GetClusterProxy() (*configv1.Proxy, error) {
+	proxy := &configv1.Proxy{}
+	namespacedName := types.NamespacedName{
+		Namespace: "",
+		Name:      "cluster",
+	}
+	err := o.apiReader.Get(o.context, namespacedName, proxy)
+	if err != nil {
+		return nil, err
+	}
+	return proxy, nil
 }
