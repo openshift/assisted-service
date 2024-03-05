@@ -943,6 +943,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		If(IsAPIDomainNameResolvedCorrectly),
 		If(IsAPIInternalDomainNameResolvedCorrectly),
 		If(IsAppsDomainNameResolvedCorrectly),
+		If(CompatibleWithClusterPlatform),
 		If(IsDNSWildcardNotConfigured),
 		If(IsPlatformNetworkSettingsValid),
 		If(SufficientOrUnknownInstallationDiskSpeed),
