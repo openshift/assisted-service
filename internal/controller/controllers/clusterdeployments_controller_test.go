@@ -16,6 +16,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	common_api "github.com/openshift/assisted-service/api/common"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
@@ -1223,6 +1224,31 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(result).Should(Equal(ctrl.Result{}))
 		})
+
+		DescribeTable("deleting AgentClusterInstall resource cancels the installation",
+			func(clusterStatus string) {
+				backEndCluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:     &sId,
+						Status: swag.String(models.ClusterStatusInstalling),
+					},
+				}
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+				mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
+				mockInstallerInternal.EXPECT().CancelInstallationInternal(gomock.Any(), gomock.Any()).Return(backEndCluster, nil).Times(1)
+
+				simulateACIDeletionWithFinalizer(ctx, c, aci)
+				request := newClusterDeploymentRequest(cd)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result).Should(Equal(ctrl.Result{}))
+			},
+			Entry("in installing status", models.ClusterStatusInstalling),
+			Entry("in preparing-for-installation status", models.ClusterStatusPreparingForInstallation),
+			Entry("in installing-pending-user-action status", models.ClusterStatusInstallingPendingUserAction),
+			Entry("in finalizing status", models.ClusterStatusFinalizing),
+			Entry("in error status", models.ClusterStatusError),
+		)
 
 		It("agentClusterInstall resource deleted - verify call to cancel installation", func() {
 			backEndCluster := &common.Cluster{
