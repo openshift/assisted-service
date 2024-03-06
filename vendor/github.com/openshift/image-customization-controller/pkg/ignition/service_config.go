@@ -2,21 +2,57 @@ package ignition
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
 
 	ignition_config_types_32 "github.com/coreos/ignition/v2/config/v3_2/types"
 	"k8s.io/utils/pointer"
 )
 
-func (b *ignitionBuilder) IronicAgentConf() ignition_config_types_32.File {
+const (
+	defaultIronicPort    = "6385"
+	defaultInspectorPort = "5050"
+)
+
+func processURLs(baseURL, defaultPath, defaultPort string) string {
+	urls := strings.Split(baseURL, ",")
+	var result []string
+	for _, urlString := range urls {
+		if urlString == "" {
+			continue // tolerate empty strings or trailing commas
+		}
+
+		parsed, err := url.Parse(urlString)
+		if err != nil {
+			continue // I wish we had a logger here...
+		}
+
+		if defaultPort != "" && parsed.Port() == "" {
+			parsed.Host = net.JoinHostPort(parsed.Hostname(), defaultPort)
+		}
+
+		if defaultPath != "" && !strings.HasSuffix(parsed.Path, defaultPath) {
+			parsed.Path = fmt.Sprintf("%s%s", parsed.Path, defaultPath)
+		}
+
+		result = append(result, parsed.String())
+	}
+
+	return strings.Join(result, ",")
+}
+
+func (b *ignitionBuilder) IronicAgentConf(ironicInspectorVlanInterfaces string) ignition_config_types_32.File {
 	template := `
 [DEFAULT]
-api_url = %s:6385
-inspection_callback_url = %s:5050/v1/continue
+api_url = %s
+inspection_callback_url = %s
 insecure = True
 enable_vlan_interfaces = %s
 `
-	contents := fmt.Sprintf(template, b.ironicBaseURL, b.ironicInspectorBaseURL, ironicInspectorVlanInterfaces)
+	ironicURLs := processURLs(b.ironicBaseURL, "", defaultIronicPort)
+	inspectorURLs := processURLs(b.ironicInspectorBaseURL, "/v1/continue", defaultInspectorPort)
+	contents := fmt.Sprintf(template, ironicURLs, inspectorURLs, ironicInspectorVlanInterfaces)
 	return ignitionFileEmbed("/etc/ironic-python-agent.conf", 0644, false, []byte(contents))
 }
 
