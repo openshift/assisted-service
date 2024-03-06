@@ -120,9 +120,6 @@ github.com/chai2010/gettext-go/po
 # github.com/containerd/continuity v0.3.0
 ## explicit; go 1.17
 github.com/containerd/continuity/pathdriver
-# github.com/containers/image/v5 v5.21.1
-## explicit; go 1.16
-github.com/containers/image/v5/docker/reference
 # github.com/coreos/go-json v0.0.0-20211020211907-c63f628265de
 ## explicit; go 1.15
 github.com/coreos/go-json
@@ -176,6 +173,9 @@ github.com/diskfs/go-diskfs/partition/gpt
 github.com/diskfs/go-diskfs/partition/mbr
 github.com/diskfs/go-diskfs/partition/part
 github.com/diskfs/go-diskfs/util
+# github.com/distribution/reference v0.5.0
+## explicit; go 1.20
+github.com/distribution/reference
 # github.com/docker/cli v20.10.14+incompatible
 ## explicit
 github.com/docker/cli/cli/compose/interpolation

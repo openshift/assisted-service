@@ -11,10 +11,10 @@ require (
 	github.com/bombsimon/logrusr/v3 v3.0.0
 	github.com/buger/jsonparser v1.1.1
 	github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
-	github.com/containers/image/v5 v5.21.1
 	github.com/coreos/ignition/v2 v2.14.0
 	github.com/coreos/vcontext v0.0.0-20211021162308-f1dbbca7bef4
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
+	github.com/distribution/reference v0.5.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a
 	github.com/go-gormigrate/gormigrate/v2 v2.0.1
