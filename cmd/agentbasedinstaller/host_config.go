@@ -3,6 +3,7 @@ package agentbasedinstaller
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -17,6 +18,17 @@ import (
 	errorutil "github.com/openshift/assisted-service/pkg/error"
 	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
+)
+
+// AgentWorkflowType defines the supported
+// agent workflows.
+type AgentWorkflowType string
+
+const (
+	// AgentWorkflowTypeInstall identifies the install workflow.
+	AgentWorkflowTypeInstall AgentWorkflowType = "install"
+	// AgentWorkflowTypeAddNodes identifies the add nodes workflow.
+	AgentWorkflowTypeAddNodes AgentWorkflowType = "addnodes"
 )
 
 func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, hostConfigs HostConfigs, infraEnvID strfmt.UUID) ([]Failure, error) {
@@ -153,7 +165,7 @@ func applyRole(log *log.Logger, host *models.Host, inventory *models.Inventory, 
 	return true
 }
 
-func LoadHostConfigs(hostConfigDir string) (HostConfigs, error) {
+func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (HostConfigs, error) {
 	log.Infof("Loading host configurations from disk in %s", hostConfigDir)
 
 	configs := HostConfigs{}
@@ -192,6 +204,21 @@ func LoadHostConfigs(hostConfigDir string) (HostConfigs, error) {
 			}
 		}
 
+		if workflowType == AgentWorkflowTypeAddNodes {
+			// In the addnodes workflow, the only host config we want to load is the
+			// current host's. Multiple HostConfigs could exist in hostConfigDir
+			// if multiple day-2 nodes are being added using the same day-2 ISO.
+			// Filter otu the other HostConfig entries because each day-2
+			// node is added in isolation using their own internal assisted-service
+			// instance.
+			addHostConfig, err := currentHostHasMACAddress(addresses)
+			if err != nil {
+				return nil, err
+			}
+			if !addHostConfig {
+				continue
+			}
+		}
 		configs = append(configs, &hostConfig{
 			configDir:    hostPath,
 			macAddresses: addresses,
@@ -204,6 +231,26 @@ type hostConfig struct {
 	configDir    string
 	macAddresses []string
 	hostID       strfmt.UUID
+}
+
+// currentHostHasMACAddress returns true if this host has a MAC address in addresses string array.
+func currentHostHasMACAddress(addresses []string) (bool, error) {
+	hostInterfaces, err := net.Interfaces()
+	if err != nil {
+		return false, fmt.Errorf("failed to get this host's interfaces: %w", err)
+	}
+	for _, iface := range hostInterfaces {
+		if iface.HardwareAddr == nil {
+			continue
+		}
+		for _, hostConfigMac := range addresses {
+			if iface.HardwareAddr.String() == hostConfigMac {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
 
 func (hc hostConfig) RootDeviceHints() (*bmh_v1alpha1.RootDeviceHints, error) {
