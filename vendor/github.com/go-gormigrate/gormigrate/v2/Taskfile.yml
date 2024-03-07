@@ -3,53 +3,77 @@
 version: '3'
 
 tasks:
-  go-get-all:
-    cmds:
-      - go get -t -tags 'sqlite postgresql mysql sqlserver' ./...
-
   lint:
-    desc: Runs golangci-lint
+    desc: Run golangci-lint
     cmds:
       - golangci-lint run
+      - cd integration-test && golangci-lint run --path-prefix integration-test
 
-  test-sqlite:
-    desc: Run tests for SQLite
+  test:
+    dir: ./integration-test
     cmds:
-      - task: test
-        vars: {DATABASE: sqlite}
+      - go test -v -tags {{.DATABASE}} ./...
 
-  test-pg:
-    desc: Run tests for PostgreSQL
-    cmds:
-      - task: test
-        vars: {DATABASE: postgresql}
-
-  test-mysql:
+  test:mysql:
     desc: Run tests for MySQL
     cmds:
       - task: test
         vars: {DATABASE: mysql}
 
-  test-sqlserver:
+  test:postgres:
+    desc: Run tests for PostgreSQL
+    cmds:
+      - task: test
+        vars: {DATABASE: postgres}
+
+  test:sqlite:
+    desc: Run tests for SQLite
+    cmds:
+      - task: test
+        vars: {DATABASE: sqlite}
+
+  test:sqlitego:
+    desc: Run tests for SQLite (Pure-Go implementation)
+    cmds:
+      - task: test
+        vars: {DATABASE: sqlitego}
+
+  test:sqlserver:
     desc: Run tests for Microsoft SQL Server
     cmds:
       - task: test
         vars: {DATABASE: sqlserver}
 
-  test:
-    cmds:
-      - go test -v -tags {{.DATABASE}}
+  test:all:
+    desc: Run tests for all databases
+    deps: [test:mysql, test:postgres, test:sqlite, test:sqlitego, test:sqlserver]
 
-  docker:
-    cmds:
-      - task: docker:build
-      - task: docker:test
+# Docker tasks
 
-  docker:build:
+  docker:compose:
     cmds:
-      - docker build -t gormigrate .
+      - docker compose --project-directory ./integration-test {{.CMD}}
+
+  docker:compose:down:
+    cmds:
+      - task: docker:compose
+        vars: {CMD: down --volumes --remove-orphans}
+
+  docker:compose:up:
+    desc: Start docker compose with database services
+    deps: [docker:compose:down]
+    cmds:
+      - task: docker:compose
+        vars: {CMD: up --detach --no-deps --remove-orphans --force-recreate --wait}
+
+  docker:compose:logs:
+    desc: Start streaming docker compose logs
+    cmds:
+      - task: docker:compose
+        vars: {CMD: logs --follow --tail 50}
 
   docker:test:
+    deps: [docker:compose:up]
     cmds:
-      - docker-compose down -v
-      - docker-compose run gormigrate go test -v -tags 'postgresql sqlite mysql sqlserver'
+      - defer: task docker:compose:down
+      - task: test:all
