@@ -106,7 +106,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 	It("Test PPC64LE is not supported under 4.12", func() {
 		feature := SupportLevelFilters{
-			CPUArchitecture:      swag.String(models.ClusterCPUArchitecturePpc64le),
+			CPUArchitecture: swag.String(models.ClusterCPUArchitecturePpc64le),
 			// HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 		}
 		minimumSupportVersion := "4.12"
@@ -210,10 +210,10 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
 
 			featureSupportParams := SupportLevelFilters{
-				OpenshiftVersion:     "4.9",
-				CPUArchitecture:      swag.String(arch),
+				OpenshiftVersion: "4.9",
+				CPUArchitecture:  swag.String(arch),
 				// HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull)
-      }
+			}
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
 
 			featureSupportParams.OpenshiftVersion = "4.11.20"
@@ -755,9 +755,9 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 						It(fmt.Sprintf("Feature %s Platform %s ExternalPlatformName %s", feature.GetName(), *filters.PlatformType, swag.StringValue(filters.ExternalPlatformName)), func() {
 							emptyFilters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil, ExternalPlatformName: nil, HighAvailabilityMode: swag.String("")}
 							Expect(string(feature.getSupportLevel(emptyFilters))).To(Not(Equal("")),
-                fmt.Sprintf("empty filter on feature: %v",feature ))
+								fmt.Sprintf("empty filter on feature: %v", feature))
 							Expect(string(feature.getSupportLevel(filters))).To(Equal(""),
-                fmt.Sprintf("feature: %v, with filter %v",feature, filters ))
+								fmt.Sprintf("feature: %v, with filter %v", feature, filters))
 						})
 					})
 				}

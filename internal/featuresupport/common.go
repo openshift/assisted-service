@@ -13,12 +13,12 @@ import (
 
 func GetSupportLevel[T models.FeatureSupportLevelID | models.ArchitectureSupportLevelID](featureId T, filters SupportLevelFilters) models.SupportLevel {
 	if reflect.TypeOf(featureId).Name() == "FeatureSupportLevelID" {
-    if filters.HighAvailabilityMode == nil {
-      filters.HighAvailabilityMode = swag.String("")
-    }
+		if filters.HighAvailabilityMode == nil {
+			filters.HighAvailabilityMode = swag.String("")
+		}
 		return featuresList[models.FeatureSupportLevelID(featureId)].getSupportLevel(filters)
 	}
-	return cpuFeaturesList[models.ArchitectureSupportLevelID(featureId)].getSupportLevel(*&filters.OpenshiftVersion)
+	return cpuFeaturesList[models.ArchitectureSupportLevelID(featureId)].getSupportLevel(filters.OpenshiftVersion)
 }
 
 func ValidateActiveFeatures(log logrus.FieldLogger, cluster *common.Cluster, infraEnv *models.InfraEnv, updateParams interface{}) error {
@@ -54,9 +54,9 @@ func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string
 	var highAvailabilityMode *string = swag.String("")
 	if cluster != nil {
 		openshiftVersion = &cluster.OpenshiftVersion
-    if cluster.HighAvailabilityMode != nil {
-      highAvailabilityMode = cluster.HighAvailabilityMode
-    }
+		if cluster.HighAvailabilityMode != nil {
+			highAvailabilityMode = cluster.HighAvailabilityMode
+		}
 	}
 
 	activatedFeatures := getActivatedFeatures(log, cluster, infraEnv, updateParams)
