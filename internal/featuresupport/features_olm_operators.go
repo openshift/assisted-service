@@ -271,6 +271,13 @@ func (feature *MceFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeNutanix) {
 		return models.SupportLevelUnavailable
 	}
+  if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+    if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeVsphere) {
+      return models.SupportLevelUnavailable
+    }
+  }
+
+
 
 	return models.SupportLevelSupported
 }

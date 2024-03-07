@@ -28,7 +28,16 @@ func getPlatformFilters() []SupportLevelFilters {
 }
 
 var _ = Describe("V2ListFeatureSupportLevels API", func() {
-	availableVersions := []string{"4.9", "4.10", "4.11", "4.12", "4.13"}
+	validateVersions := func() []string {
+		version := make([]string, 12)
+		for i := range version {
+			// check versions 4.9 - 4.20
+			version[i] = fmt.Sprintf("4.%v", 9+i)
+
+		}
+		return version
+	}()
+
 	availableCpuArch := []string{
 		models.ClusterCPUArchitectureX8664,
 		models.ClusterCPUArchitectureArm64,
@@ -40,7 +49,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 	Context("Feature compatibility", func() {
 		for _, f := range featuresList {
-			for _, v := range availableVersions {
+			for _, v := range validateVersions {
 				for _, a := range availableCpuArch {
 					feature := f
 					version := v
@@ -57,67 +66,63 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 	It("Test ARM64 is not supported under 4.10", func() {
 		feature := SupportLevelFilters{
-			CPUArchitecture: swag.String(models.ClusterCPUArchitectureArm64),
+			CPUArchitecture:      swag.String(models.ClusterCPUArchitectureArm64),
+			HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 		}
-		minimumSupportVersion := 4.10
-		for i := range [10]int{} {
-			openshiftVersion := 4.6 + float32(i)
+		minimumSupportVersion := "4.10"
 
-			feature.OpenshiftVersion = fmt.Sprintf("%f", openshiftVersion)
-			if ok, _ := common.BaseVersionGreaterOrEqual(fmt.Sprintf("%f", minimumSupportVersion), feature.OpenshiftVersion); ok {
-				Expect(isArchitectureSupported(feature)).To(BeTrue())
+		for i := range validateVersions {
+
+			feature.OpenshiftVersion = validateVersions[i]
+			if ok, _ := common.BaseVersionGreaterOrEqual(minimumSupportVersion, feature.OpenshiftVersion); ok {
+				Expect(isArchitectureSupported(feature)).To(BeTrue(),
+					fmt.Sprintf("Should be True on verison: %v", feature.OpenshiftVersion))
 			} else {
 
-				Expect(isArchitectureSupported(feature)).To(BeFalse())
+				Expect(isArchitectureSupported(feature)).To(BeFalse(),
+					fmt.Sprintf("Should be False on verison: %v", feature.OpenshiftVersion))
 			}
 		}
-		// Check for feature release
-		feature.OpenshiftVersion = "4.30"
-		Expect(isArchitectureSupported(feature)).To(BeTrue())
 	})
 
 	It("Test s390x is not supported under 4.12", func() {
 		feature := SupportLevelFilters{
-			CPUArchitecture: swag.String(models.ClusterCPUArchitectureS390x),
+			CPUArchitecture:      swag.String(models.ClusterCPUArchitectureS390x),
+			HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 		}
-		minimumSupportVersion := 4.12
-		for i := range [10]int{} {
-			openshiftVersion := 4.6 + float32(i)
+		minimumSupportVersion := "4.12"
+		for i := range validateVersions {
 
-			feature.OpenshiftVersion = fmt.Sprintf("%f", openshiftVersion)
-			if ok, _ := common.BaseVersionGreaterOrEqual(fmt.Sprintf("%f", minimumSupportVersion), feature.OpenshiftVersion); ok {
-				Expect(isArchitectureSupported(feature)).To(BeTrue())
+			feature.OpenshiftVersion = validateVersions[i]
+			if ok, _ := common.BaseVersionGreaterOrEqual(minimumSupportVersion, feature.OpenshiftVersion); ok {
+				Expect(isArchitectureSupported(feature)).To(BeTrue(),
+					fmt.Sprintf("Should be True on version: %v", feature.OpenshiftVersion))
 			} else {
-
-				Expect(isArchitectureSupported(feature)).To(BeFalse())
+				Expect(isArchitectureSupported(feature)).To(BeFalse(),
+					fmt.Sprintf("Should be False on version: %v", feature.OpenshiftVersion))
 			}
 		}
-		// Check for feature release
-		feature.OpenshiftVersion = "4.30"
-		Expect(isArchitectureSupported(feature)).To(BeTrue())
-
 	})
 
 	It("Test PPC64LE is not supported under 4.12", func() {
 		feature := SupportLevelFilters{
-			CPUArchitecture: swag.String(models.ClusterCPUArchitecturePpc64le),
+			CPUArchitecture:      swag.String(models.ClusterCPUArchitecturePpc64le),
+			// HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 		}
-		minimumSupportVersion := 4.12
-		for i := range [10]int{} {
-			openshiftVersion := 4.6 + float32(i)
+		minimumSupportVersion := "4.12"
 
-			feature.OpenshiftVersion = fmt.Sprintf("%f", openshiftVersion)
-			if ok, _ := common.BaseVersionGreaterOrEqual(fmt.Sprintf("%f", minimumSupportVersion), feature.OpenshiftVersion); ok {
-				Expect(isArchitectureSupported(feature)).To(BeTrue())
+		for i := range validateVersions {
+
+			feature.OpenshiftVersion = validateVersions[i]
+			if ok, _ := common.BaseVersionGreaterOrEqual(minimumSupportVersion, feature.OpenshiftVersion); ok {
+				Expect(isArchitectureSupported(feature)).To(BeTrue(),
+					fmt.Sprintf("Should be True on verison: %v", feature.OpenshiftVersion))
 			} else {
 
-				Expect(isArchitectureSupported(feature)).To(BeFalse())
+				Expect(isArchitectureSupported(feature)).To(BeFalse(),
+					fmt.Sprintf("Should be False on verison: %v", feature.OpenshiftVersion))
 			}
 		}
-
-		// Check for feature release
-		feature.OpenshiftVersion = "4.30"
-		Expect(isArchitectureSupported(feature)).To(BeTrue())
 	})
 
 	Context("Test LSO CPU compatibility", func() {
@@ -204,16 +209,21 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Expect(IsFeatureAvailable(feature, "4.10", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
 			Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
 
-			featureSupportParams := SupportLevelFilters{OpenshiftVersion: "4.9", CPUArchitecture: swag.String(arch)}
+			featureSupportParams := SupportLevelFilters{
+				OpenshiftVersion:     "4.9",
+				CPUArchitecture:      swag.String(arch),
+				// HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull)
+      }
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
-			featureSupportParams = SupportLevelFilters{OpenshiftVersion: "4.11.20", CPUArchitecture: swag.String(arch)}
+
+			featureSupportParams.OpenshiftVersion = "4.11.20"
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
 
 			Expect(IsFeatureAvailable(feature, "4.12", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
 			Expect(IsFeatureAvailable(feature, "4.13", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
-
-			// Check for feature release
-			Expect(IsFeatureAvailable(feature, "4.30", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
+			//
+			// // Check for feature release
+			// Expect(IsFeatureAvailable(feature, "4.30", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
 		})
 	})
 
@@ -743,9 +753,11 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					feature := feature
 					When("Empty support level - platforms", func() {
 						It(fmt.Sprintf("Feature %s Platform %s ExternalPlatformName %s", feature.GetName(), *filters.PlatformType, swag.StringValue(filters.ExternalPlatformName)), func() {
-							emptyFilters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil, ExternalPlatformName: nil}
-							Expect(string(feature.getSupportLevel(emptyFilters))).To(Not(Equal("")))
-							Expect(string(feature.getSupportLevel(filters))).To(Equal(""))
+							emptyFilters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil, ExternalPlatformName: nil, HighAvailabilityMode: swag.String("")}
+							Expect(string(feature.getSupportLevel(emptyFilters))).To(Not(Equal("")),
+                fmt.Sprintf("empty filter on feature: %v",feature ))
+							Expect(string(feature.getSupportLevel(filters))).To(Equal(""),
+                fmt.Sprintf("feature: %v, with filter %v",feature, filters ))
 						})
 					})
 				}

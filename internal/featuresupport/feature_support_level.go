@@ -89,6 +89,9 @@ func GetFeatureSupportList(filters SupportLevelFilters) models.SupportLevels {
 
 	featuresSupportList := overrideInvalidRequest(featuresList, swag.StringValue(filters.CPUArchitecture), filters.OpenshiftVersion)
 	if featuresSupportList == nil {
+    if filters.HighAvailabilityMode == nil {
+      filters.HighAvailabilityMode = swag.String("")
+    }
 		featuresSupportList = getFeatureSupportList(featuresList, filters)
 	}
 
