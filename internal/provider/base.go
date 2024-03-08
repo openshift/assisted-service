@@ -42,7 +42,7 @@ type Provider interface {
 	PostCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
 }
 
-func GetMachineNetworkForUserManagedNetworking(log logrus.FieldLogger, cluster *common.Cluster) []installcfg.MachineNetwork {
+func GetMachineNetworksForUserManagedNetworking(log logrus.FieldLogger, cluster *common.Cluster) []installcfg.MachineNetwork {
 	bootstrapCidr := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
 	if bootstrapCidr != "" {
 		log.Infof("Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
@@ -88,7 +88,7 @@ func replaceMachineNetworkIfNeeded(log logrus.FieldLogger, cluster *common.Clust
 }
 
 func ConfigureUserManagedNetworkingInInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, cfg *installcfg.InstallerConfigBaremetal) {
-	cfg.Networking.MachineNetwork = GetMachineNetworkForUserManagedNetworking(log, cluster)
+	cfg.Networking.MachineNetwork = GetMachineNetworksForUserManagedNetworking(log, cluster)
 	if cluster.NetworkType != nil {
 		cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
 	}

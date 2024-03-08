@@ -60,7 +60,7 @@ func (p nutanixProvider) AddPlatformToInstallConfig(
 			nPlatform.DeprecatedIngressVIP = network.GetIngressVipById(cluster, 0)
 		}
 	} else {
-		cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
+		cfg.Networking.MachineNetwork = provider.GetMachineNetworksForUserManagedNetworking(p.Log, cluster)
 		if cluster.NetworkType != nil {
 			cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
 		}
