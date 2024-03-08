@@ -46,8 +46,10 @@ func GetMachineNetworkForUserManagedNetworking(log logrus.FieldLogger, cluster *
 	bootstrapCidr := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
 	if bootstrapCidr != "" {
 		log.Infof("Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
+		if !network.IsMachineCidrAvailable(cluster) {
+			cluster.MachineNetworks = network.GetMachineNetworksFromBootstrapHost(cluster, log)
+		}
 		var machineNetwork []installcfg.MachineNetwork
-		cluster.MachineNetworks = network.GetMachineNetworksFromBootstrapHost(cluster, log)
 		for _, net := range cluster.MachineNetworks {
 			machineNetwork = append(machineNetwork, installcfg.MachineNetwork{Cidr: string(net.Cidr)})
 		}
