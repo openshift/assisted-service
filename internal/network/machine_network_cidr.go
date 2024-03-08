@@ -352,9 +352,9 @@ func GetSecondaryMachineCidr(cluster *common.Cluster) (string, error) {
 	return "", errors.Errorf("unable to get secondary machine network for cluster %s", cluster.ID.String())
 }
 
-// GetMachineNetworksFromBoostrapHost used to collect machine networks from the cluster's bootstrap host.
+// GetMachineNetworksFromBootstrapHost used to collect machine networks from the cluster's bootstrap host.
 // The function will get at most one IPv4 and one IPv6 network.
-func GetMachineNetworksFromBoostrapHost(cluster *common.Cluster, log logrus.FieldLogger) []*models.MachineNetwork {
+func GetMachineNetworksFromBootstrapHost(cluster *common.Cluster, log logrus.FieldLogger) []*models.MachineNetwork {
 	if IsMachineCidrAvailable(cluster) {
 		return cluster.MachineNetworks
 	}
