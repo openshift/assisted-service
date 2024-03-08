@@ -14,7 +14,7 @@ func (p noneProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfig
 		None: &installcfg.PlatformNone{},
 	}
 
-	cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
+	cfg.Networking.MachineNetwork = provider.GetMachineNetworksForUserManagedNetworking(p.Log, cluster)
 	if cluster.NetworkType != nil {
 		cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
 	}

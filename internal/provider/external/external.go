@@ -33,7 +33,7 @@ func (p *externalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerC
 		},
 	}
 
-	cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
+	cfg.Networking.MachineNetwork = provider.GetMachineNetworksForUserManagedNetworking(p.Log, cluster)
 	if cluster.NetworkType != nil {
 		cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
 	}
