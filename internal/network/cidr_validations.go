@@ -4,7 +4,6 @@ import (
 	"net"
 
 	"github.com/openshift/assisted-service/models"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +20,7 @@ const MinSNOMachineMaskDelta = 1
 func parseCIDR(cidr string) (ip net.IP, ipnet *net.IPNet, err error) {
 	ip, ipnet, err = net.ParseCIDR(cidr)
 	if err != nil {
-		err = errors.Wrapf(err, "Failed to parse CIDR '%s'", cidr)
+		err = fmt.Errorf("Failed to parse CIDR '%s': %w", cidr, err)
 	}
 	return
 }
@@ -50,7 +49,7 @@ func VerifyNetworksNotOverlap(aCidrStr, bCidrStr string) error {
 	}
 
 	if overlap {
-		return errors.Errorf("CIDRS %s and %s overlap", aCidrStr, bCidrStr)
+		return fmt.Errorf("CIDRS %s and %s overlap", aCidrStr, bCidrStr)
 	}
 	return nil
 }
@@ -63,13 +62,13 @@ func verifySubnetCIDR(cidrStr string, minSubnetMaskSize int) error {
 	ones, bits := cidr.Mask.Size()
 	// We would like to allow enough addresses.  Therefore, ones must be not greater than (bits-minSubnetMaskSize)
 	if ones < 1 || ones > bits-minSubnetMaskSize {
-		return errors.Errorf("Address mask size must be between 1 to %d and must include at least %d addresses", bits-minSubnetMaskSize, 1<<minSubnetMaskSize)
+		return fmt.Errorf("Address mask size must be between 1 to %d and must include at least %d addresses", bits-minSubnetMaskSize, 1<<minSubnetMaskSize)
 	}
 	if cidr.IP.IsUnspecified() {
-		return errors.Errorf("The specified CIDR %s is invalid because its resulting routing prefix matches the unspecified address", cidrStr)
+		return fmt.Errorf("The specified CIDR %s is invalid because its resulting routing prefix matches the unspecified address", cidrStr)
 	}
 	if !ip.Equal(cidr.IP) {
-		return errors.Errorf("%s is not a valid network CIDR", (&net.IPNet{IP: ip, Mask: cidr.Mask}).String())
+		return fmt.Errorf("%s is not a valid network CIDR", (&net.IPNet{IP: ip, Mask: cidr.Mask}).String())
 	}
 	return nil
 }
@@ -108,7 +107,7 @@ func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, num
 	clusterNetworkPrefix, bits := cidr.Mask.Size()
 	// We would like to allow at least 128 addresses.  Therefore, hostNetworkPrefix must be not greater than (bits-7)
 	if hostNetworkPrefix > bits-MinMaskDelta {
-		return errors.Errorf("Host prefix, now %d, must be less than or equal to %d to allow at least 128 addresses", hostNetworkPrefix, bits-MinMaskDelta)
+		return fmt.Errorf("Host prefix, now %d, must be less than or equal to %d to allow at least 128 addresses", hostNetworkPrefix, bits-MinMaskDelta)
 	}
 	var requestedNumHosts int
 	if numberOfHosts == 1 {
@@ -119,7 +118,7 @@ func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, num
 	// 63 to avoid overflow
 	possibleNumHosts := uint64(1) << min(63, max(hostNetworkPrefix-clusterNetworkPrefix, 0))
 	if uint64(requestedNumHosts) > possibleNumHosts {
-		return errors.Errorf("Cluster network CIDR prefix %d does not contain enough addresses for %d hosts each one with %d prefix (%d addresses)",
+		return fmt.Errorf("Cluster network CIDR prefix %d does not contain enough addresses for %d hosts each one with %d prefix (%d addresses)",
 			clusterNetworkPrefix, numberOfHosts, hostNetworkPrefix, uint64(1)<<min(63, bits-hostNetworkPrefix))
 	}
 	return nil
@@ -145,7 +144,7 @@ func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, servic
 
 func VerifyNetworkHostPrefix(prefix int64) error {
 	if prefix < 1 {
-		return errors.Errorf("Host prefix, now %d, must be a positive integer", prefix)
+		return fmt.Errorf("Host prefix, now %d, must be a positive integer", prefix)
 	}
 	return nil
 }
