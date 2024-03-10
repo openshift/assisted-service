@@ -22,7 +22,7 @@ type UpdateManifestParams struct {
 
 	// The file name for the manifest to modify.
 	// Required: true
-	// Pattern: ^[^/]*\.(yaml|yml|json)$
+	// Pattern: ^[^/]*\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$
 	FileName string `json:"file_name"`
 
 	// The folder for the manifest to modify.
@@ -74,7 +74,7 @@ func (m *UpdateManifestParams) validateFileName(formats strfmt.Registry) error {
 		return err
 	}
 
-	if err := validate.Pattern("file_name", "body", m.FileName, `^[^/]*\.(yaml|yml|json)$`); err != nil {
+	if err := validate.Pattern("file_name", "body", m.FileName, `^[^/]*\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$`); err != nil {
 		return err
 	}
 

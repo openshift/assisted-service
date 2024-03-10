@@ -540,7 +540,7 @@ func (m *Manifests) validateUserSuppliedManifest(ctx context.Context, clusterID 
 		if !json.Valid(manifestContent) {
 			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s has an illegal JSON format", fileName, string(clusterID)))
 		}
-	} else if strings.HasPrefix(extension, ".patch") && (strings.Contains(fileName, ".yaml.patch") || strings.Contains(fileName, ".yml.patch")) {
+	} else if strings.Contains(fileName, ".yaml.patch") || strings.Contains(fileName, ".yml.patch") {
 		if err := isValidYaml(manifestContent); err != nil {
 			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Patch content of file %s for cluster ID %s has an invalid YAML format: %s", fileName, string(clusterID), err))
 		}

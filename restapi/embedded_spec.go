@@ -7165,7 +7165,7 @@ func init() {
         "file_name": {
           "description": "The name of the manifest to customize the installed OCP cluster.",
           "type": "string",
-          "pattern": "^[^/]*\\.(yaml|yml|json)$"
+          "pattern": "^[^/]*\\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$"
         },
         "folder": {
           "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
@@ -10217,7 +10217,7 @@ func init() {
         "file_name": {
           "description": "The file name for the manifest to modify.",
           "type": "string",
-          "pattern": "^[^/]*\\.(yaml|yml|json)$",
+          "pattern": "^[^/]*\\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$",
           "x-nullable": false
         },
         "folder": {
@@ -17929,7 +17929,7 @@ func init() {
         "file_name": {
           "description": "The name of the manifest to customize the installed OCP cluster.",
           "type": "string",
-          "pattern": "^[^/]*\\.(yaml|yml|json)$"
+          "pattern": "^[^/]*\\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$"
         },
         "folder": {
           "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
@@ -20920,7 +20920,7 @@ func init() {
         "file_name": {
           "description": "The file name for the manifest to modify.",
           "type": "string",
-          "pattern": "^[^/]*\\.(yaml|yml|json)$",
+          "pattern": "^[^/]*\\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$",
           "x-nullable": false
         },
         "folder": {

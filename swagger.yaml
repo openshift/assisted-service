@@ -6892,7 +6892,7 @@ definitions:
       file_name:
         description: The name of the manifest to customize the installed OCP cluster.
         type: string
-        pattern: '^[^/]*\.(yaml|yml|json)$'
+        pattern: '^[^/]*\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$'
       content:
         description: base64 encoded manifest content.
         type: string
@@ -6912,7 +6912,7 @@ definitions:
       file_name:
         description: The file name for the manifest to modify.
         type: string
-        pattern: '^[^/]*\.(yaml|yml|json)$'
+        pattern: '^[^/]*\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$'
         x-nullable: false
       updated_folder:
         description: The new folder for the manifest. Manifests can be placed in 'manifests' or 'openshift' directories.
