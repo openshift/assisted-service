@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"k8s.io/utils/strings/slices"
 )
 
 // VipAutoAllocFeature
@@ -25,7 +26,12 @@ func (feature *VipAutoAllocFeature) GetName() string {
 }
 
 func (feature *VipAutoAllocFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal {
+	unavailablePlatform := []string{
+		string(models.PlatformTypeExternal),
+		string(models.PlatformTypeNone),
+	}
+	if filters.PlatformType != nil && slices.Contains(
+		unavailablePlatform, string(*filters.PlatformType)) {
 		return models.SupportLevelUnavailable
 	}
 
