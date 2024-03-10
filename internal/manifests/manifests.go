@@ -15,6 +15,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	yamlpatch "github.com/krishicks/yaml-patch"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -541,11 +542,11 @@ func (m *Manifests) validateUserSuppliedManifest(ctx context.Context, clusterID 
 			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s has an illegal JSON format", fileName, string(clusterID)))
 		}
 	} else if strings.Contains(fileName, ".yaml.patch") || strings.Contains(fileName, ".yml.patch") {
-		if err := isValidYaml(manifestContent); err != nil {
-			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Patch content of file %s for cluster ID %s has an invalid YAML format: %s", fileName, string(clusterID), err))
+		if _, err := yamlpatch.DecodePatch(manifestContent); err != nil {
+			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Patch content of file %s for cluster ID %s is invalid: %s", fileName, string(clusterID), err))
 		}
 	} else {
-		return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest filename of file %s for cluster ID %s is invalid. Only json, yaml and yml extensions are supported", fileName, string(clusterID)))
+		return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest filename of file %s for cluster ID %s is invalid. Only json, yaml and yml or patch extensions are supported", fileName, string(clusterID)))
 	}
 	return nil
 }

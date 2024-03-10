@@ -36,6 +36,11 @@ func TestValidator(t *testing.T) {
 	RunSpecs(t, "manifests_test")
 }
 
+const contentAsYAMLPatch = `---
+- op: replace
+  path: /status/infrastructureTopology
+  value: HighlyAvailable`
+
 const contentAsYAML = `apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
@@ -69,11 +74,12 @@ var _ = Describe("ClusterManifestTests", func() {
 		dbName            string
 		fileNameYaml      = "99-openshift-machineconfig-master-kargs.yaml"
 		fileNameYamlPatch = "99-openshift-machineconfig-master-kargs.yaml.patch.foobar"
-		fileNameYmlPatch = "99-openshift-machineconfig-master-kargs.yml.patch.foobar"
+		fileNameYmlPatch  = "99-openshift-machineconfig-master-kargs.yml.patch.foobar"
 		fileNameJson      = "99-openshift-machineconfig-master-kargs.json"
 		validFolder       = "openshift"
 		defaultFolder     = "manifests"
 		contentYaml       = encodeToBase64(contentAsYAML)
+		contentYamlPatch  = encodeToBase64(contentAsYAMLPatch)
 		contentJson       = encodeToBase64(contentAsJSON)
 		mockUsageAPI      *usage.MockAPI
 	)
@@ -433,6 +439,24 @@ spec:
 				Expect(err.Error()).To(Equal("Manifest content of file manifests/99-test.yml for cluster ID " + clusterID.String() + " has an invalid YAML format: yaml: line 1: did not find expected node content"))
 			})
 
+			It("fails for yaml patch with invalid patch format", func() {
+				clusterID := registerCluster().ID
+				fileName := "99-test.yml.patch"
+				invalidPatchContent := contentYaml
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileName)).Return(false, nil).AnyTimes()
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &invalidPatchContent,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(ContainSubstring("Patch content of file manifests/99-test.yml.patch for cluster ID " + clusterID.String() + " is invalid:"))
+			})
+
 			It("fails for manifest with unsupported extension", func() {
 				clusterID := registerCluster().ID
 				fileName := "99-test.txt"
@@ -447,7 +471,7 @@ spec:
 				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
 				err := response.(*common.ApiErrorResponse)
 				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-				Expect(err.Error()).To(ContainSubstring("Manifest filename of file manifests/99-test.txt for cluster ID " + clusterID.String() + " is invalid. Only json, yaml and yml extensions are supported"))
+				Expect(err.Error()).To(ContainSubstring("Manifest filename of file manifests/99-test.txt for cluster ID " + clusterID.String() + " is invalid. Only json, yaml and yml or patch extensions are supported"))
 			})
 
 			It("manifest creation does not fail for yaml patch files", func() {
@@ -459,7 +483,7 @@ spec:
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
-						Content:  &contentYaml,
+						Content:  &contentYamlPatch,
 						FileName: &fileName,
 					},
 				})
@@ -475,7 +499,7 @@ spec:
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
-						Content:  &contentYaml,
+						Content:  &contentYamlPatch,
 						FileName: &fileName,
 					},
 				})
@@ -995,7 +1019,7 @@ invalid YAML content: {
 			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
 				ClusterID: *clusterID,
 				UpdateManifestParams: &models.UpdateManifestParams{
-					UpdatedContent: &contentYaml,
+					UpdatedContent: &contentYamlPatch,
 					FileName:       fileNameYamlPatch,
 					Folder:         defaultFolder,
 				},
@@ -1014,7 +1038,7 @@ invalid YAML content: {
 			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
 				ClusterID: *clusterID,
 				UpdateManifestParams: &models.UpdateManifestParams{
-					UpdatedContent: &contentYaml,
+					UpdatedContent: &contentYamlPatch,
 					FileName:       fileNameYmlPatch,
 					Folder:         defaultFolder,
 				},

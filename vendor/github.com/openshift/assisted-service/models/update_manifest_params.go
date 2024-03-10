@@ -34,7 +34,7 @@ type UpdateManifestParams struct {
 	UpdatedContent *string `json:"updated_content,omitempty"`
 
 	// The new file name for the manifest.
-	// Pattern: ^[^/]*\.(yaml|yml|json)$
+	// Pattern: ^[^/]*\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$
 	UpdatedFileName *string `json:"updated_file_name,omitempty"`
 
 	// The new folder for the manifest. Manifests can be placed in 'manifests' or 'openshift' directories.
@@ -129,7 +129,7 @@ func (m *UpdateManifestParams) validateUpdatedFileName(formats strfmt.Registry) 
 		return nil
 	}
 
-	if err := validate.Pattern("updated_file_name", "body", *m.UpdatedFileName, `^[^/]*\.(yaml|yml|json)$`); err != nil {
+	if err := validate.Pattern("updated_file_name", "body", *m.UpdatedFileName, `^[^/]*\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$`); err != nil {
 		return err
 	}
 

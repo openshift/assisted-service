@@ -10238,7 +10238,7 @@ func init() {
         "updated_file_name": {
           "description": "The new file name for the manifest.",
           "type": "string",
-          "pattern": "^[^/]*\\.(yaml|yml|json)$",
+          "pattern": "^[^/]*\\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$",
           "x-nullable": true
         },
         "updated_folder": {
@@ -20941,7 +20941,7 @@ func init() {
         "updated_file_name": {
           "description": "The new file name for the manifest.",
           "type": "string",
-          "pattern": "^[^/]*\\.(yaml|yml|json)$",
+          "pattern": "^[^/]*\\.(yaml|yml|json|yaml.patch.*|yml.patch.*)$",
           "x-nullable": true
         },
         "updated_folder": {

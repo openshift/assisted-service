@@ -9,6 +9,18 @@ These will only take effect after the machine config operator is up and running 
 Formats json, yaml, and multi-document yaml are accepted as manifests.
 Multi-document yaml manifests are split with unique names to avoid any collisions with existing files when they are added to their respective folders (either "manifests" or "openshift").
 
+Yaml patches are also accepted and should be in the yaml-patch format, patches should contain `.yaml.patch.` or `.yml.patch.` as a part of their filename.
+Here is an example of the format of a Yaml patch file, for more information on the format, please see https://github.com/krishicks/yaml-patch
+
+```
+---
+- op: replace
+  path: /status/infrastructureTopology
+  value: HighlyAvailable
+```
+
+
+
 ### Create a cluster manifest
 
 Note: In environments where TLS is enabled (e.g. _api.openshift.com_), you will need to use the `https` scheme in URLs.
