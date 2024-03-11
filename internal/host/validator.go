@@ -600,7 +600,7 @@ func (v *validator) belongsToMachineCidr(c *validationContext) (ValidationStatus
 	if c.inventory == nil || !network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationPending, "Missing inventory or machine network CIDR"
 	}
-	if !network.IsHostInPrimaryMachineNetCidr(v.log, c.cluster, c.host) {
+	if !network.IsHostInMachineNetCidrs(v.log, c.cluster, c.host) {
 		return ValidationFailure, "Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks"
 	}
 	return ValidationSuccess, "Host belongs to all machine network CIDRs"
