@@ -540,23 +540,25 @@ func GetDefaultRouteNetworkByFamily(h *models.Host, networks map[AddressFamily][
 	return ret, fmt.Errorf("can not find cidr by route: no inventory for host %s", h.ID.String())
 }
 
-func IsHostInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
-	// The host should belong to all the networks specified as Machine Networks.
-
-	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
-	//           entries using the same IP stack.
-
+func IsHostInMachineNetCidrs(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
+	// The host should belong to one of the networks specified as Machine
+	// Networks in each address family.
 	if !IsMachineCidrAvailable(cluster) {
 		return false
 	}
 
-	ret := true
+	results := map[bool]bool{}
 	for _, machineNet := range cluster.MachineNetworks {
 		_, machineIpnet, err := net.ParseCIDR(string(machineNet.Cidr))
 		if err != nil {
 			return false
 		}
-		ret = ret && belongsToNetwork(log, host, machineIpnet)
+		isIPv4 := IsIPV4CIDR(string(machineNet.Cidr))
+		results[isIPv4] = results[isIPv4] || belongsToNetwork(log, host, machineIpnet)
+	}
+	ret := true
+	for _, present := range results {
+		ret = ret && present
 	}
 	return ret
 }
