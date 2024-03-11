@@ -124,7 +124,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	if mode == compactMode {
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			if diskCount == 0 {
-				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF requires at least one non-installation disk on each host in compact mode."}}, nil
+				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF requires at least one non-installation SSD or HDD disk on each host in compact mode."}}, nil
 			}
 			return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 		}
@@ -238,7 +238,7 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 				Qualitative: []string{
 					"Requirements apply only for master-only clusters",
 					"At least 3 hosts",
-					"At least 1 non-boot disk on 3 hosts",
+					"At least 1 non-boot SSD or HDD disk on 3 hosts",
 				},
 			},
 			Worker: &models.HostTypeHardwareRequirements{
@@ -251,7 +251,7 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.ODFPerDiskRAMGiB),
 					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.ODFPerDiskCPUCount),
 					"At least 3 workers",
-					"At least 1 non-boot disk on 3 workers",
+					"At least 1 non-boot SSD or HDD disk on 3 workers",
 				},
 			},
 		},
