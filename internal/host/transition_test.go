@@ -76,7 +76,7 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 			EnableUpgradeAgent: true,
 		},
 		VersionedRequirements: hardware.VersionedRequirementsDecoder{
-			"default": {
+			"default": models.VersionedHostRequirements{
 				Version:                "default",
 				MasterRequirements:     &defaultMasterRequirements,
 				WorkerRequirements:     &defaultWorkerRequirements,
@@ -3204,7 +3204,7 @@ var _ = Describe("Refresh Host", func() {
 				imageStatuses:    map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 				role:             models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks",
+					"Host does not belong to machine network CIDRs. Verify that the host belongs to a listed machine network CIDR for each IP stack in use",
 					"Host couldn't synchronize with any NTP server",
 					"Failed to fetch container images needed for installation from image. This may be due to a network hiccup. Retry to install again. If this problem persists, "+
 						"check your network settings to make sure you’re not blocked.")),
@@ -3218,7 +3218,7 @@ var _ = Describe("Refresh Host", func() {
 					HasCPUCoresForRole:             {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
 					HasMemoryForRole:               {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:               {status: ValidationSuccess, messagePattern: "Hostname worker-1 is unique in cluster"},
-					BelongsToMachineCidr:           {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks"},
+					BelongsToMachineCidr:           {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs. Verify that the host belongs to a listed machine network CIDR for each IP stack in use"},
 					IsPlatformNetworkSettingsValid: {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					CompatibleWithClusterPlatform:  {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
@@ -3239,7 +3239,7 @@ var _ = Describe("Refresh Host", func() {
 				imageStatuses:    map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 				role:             models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks",
+					"Host does not belong to machine network CIDRs. Verify that the host belongs to a listed machine network CIDR for each IP stack in use",
 					"Require at least 4 CPU cores for master role, found only 2",
 					"Require at least 16.00 GiB RAM for role master, found only 8.00 GiB",
 					"Host couldn't synchronize with any NTP server",
@@ -3255,7 +3255,7 @@ var _ = Describe("Refresh Host", func() {
 					HasCPUCoresForRole:             {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for master role, found only 2"},
 					HasMemoryForRole:               {status: ValidationFailure, messagePattern: "Require at least 16.00 GiB RAM for role master, found only 8.00 GiB"},
 					IsHostnameUnique:               {status: ValidationSuccess, messagePattern: "Hostname worker-1 is unique in cluster"},
-					BelongsToMachineCidr:           {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks"},
+					BelongsToMachineCidr:           {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs. Verify that the host belongs to a listed machine network CIDR for each IP stack in use"},
 					IsPlatformNetworkSettingsValid: {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					CompatibleWithClusterPlatform:  {status: ValidationSuccess, messagePattern: "Host is compatible with cluster platform baremetal"},
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
@@ -3369,7 +3369,7 @@ var _ = Describe("Refresh Host", func() {
 				imageStatuses:    map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 				role:             models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks",
+					"Host does not belong to machine network CIDRs. Verify that the host belongs to a listed machine network CIDR for each IP stack in use",
 					"Host couldn't synchronize with any NTP server",
 					"Failed to fetch container images needed for installation from image. This may be due to a network hiccup. Retry to install again. If this problem persists, "+
 						"check your network settings to make sure you’re not blocked.")),
@@ -3402,7 +3402,7 @@ var _ = Describe("Refresh Host", func() {
 				imageStatuses:    map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 				role:             models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks",
+					"Host does not belong to machine network CIDRs. Verify that the host belongs to a listed machine network CIDR for each IP stack in use",
 					"Host couldn't synchronize with any NTP server",
 					"Failed to fetch container images needed for installation from image. This may be due to a network hiccup. Retry to install again. If this problem persists, "+
 						"check your network settings to make sure you’re not blocked.")),
@@ -4234,7 +4234,7 @@ var _ = Describe("Refresh Host", func() {
 				ntpSources:       defaultNTPSources,
 				role:             models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks")),
+					"Host does not belong to machine network CIDRs. Verify that the host belongs to a listed machine network CIDR for each IP stack in use")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -4245,7 +4245,7 @@ var _ = Describe("Refresh Host", func() {
 					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
 					HasMemoryForRole:       {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
-					BelongsToMachineCidr:   {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks"},
+					BelongsToMachineCidr:   {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs. Verify that the host belongs to a listed machine network CIDR for each IP stack in use"},
 					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
 					BelongsToMajorityGroup: {status: ValidationSuccess, messagePattern: "Host has connectivity to the majority of hosts in the cluster"},
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},

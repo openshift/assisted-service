@@ -497,7 +497,7 @@ var _ = Describe("inventory", func() {
 
 	})
 
-	Context("IsHostInPrimaryMachineNetCidr", func() {
+	Context("IsHostInMachineNetCidrs", func() {
 
 		var log logrus.FieldLogger
 
@@ -506,22 +506,23 @@ var _ = Describe("inventory", func() {
 		})
 
 		DescribeTable(
-			"IsHostInPrimaryMachineNetCidr",
+			"IsHostInMachineNetCidrs",
 			func(nics []*models.Interface, machineNetworks []*models.MachineNetwork, expectedResult bool) {
 				cluster := createCluster("", "", createInventory(nics...))
 				cluster.MachineNetworks = machineNetworks
-				res := IsHostInPrimaryMachineNetCidr(log, cluster, cluster.Hosts[0])
+				res := IsHostInMachineNetCidrs(log, cluster, cluster.Hosts[0])
 				Expect(res).To(Equal(expectedResult))
 			},
 			Entry("MachineNetworks is empty", []*models.Interface{createInterface("1.2.3.4/24")}, []*models.MachineNetwork{}, false),
 			Entry("MachineNetworks is malformed", []*models.Interface{createInterface("1.2.3.4/24")}, []*models.MachineNetwork{{Cidr: "a.b.c.d"}}, false),
 			Entry("Interfaces is empty", []*models.Interface{}, []*models.MachineNetwork{{Cidr: "a.b.c.d"}}, false),
 			Entry("Interface IP is malformed", []*models.Interface{createInterface("a.b.c.d/24")}, []*models.MachineNetwork{{Cidr: "1.2.3.4/24"}}, false),
-			Entry("Host belongs to all machine network CIDRs", []*models.Interface{createInterface("1.2.3.4/24"), addIPv6Addresses(createInterface(), "2001:db8::1/48")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "2001:db8::/48"}}, true),
-			Entry("Host doesn't belong to all machine network CIDRs", []*models.Interface{createInterface("1.2.3.4/24")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "2001:db8::a1/120"}}, false),
+			Entry("Host belongs to dual machine network CIDRs", []*models.Interface{createInterface("1.2.3.4/24"), addIPv6Addresses(createInterface(), "2001:db8::1/48")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "2001:db8::/48"}}, true),
+			Entry("Host doesn't belong to dual machine network CIDRs", []*models.Interface{createInterface("1.2.3.4/24")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "2001:db8::a1/120"}}, false),
+			Entry("Host belongs to one of dual machine network CIDRs", []*models.Interface{createInterface("1.2.3.4/24"), addIPv6Addresses(createInterface(), "2001:db8::1/48")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "2001:db8::/48"}, {Cidr: "1.2.4.0/24"}, {Cidr: "2001:db81::/48"}}, true),
 		)
 	})
-	Context("IsInterfaceInPrimaryMachineNetCidr", func() {
+	Context("IsInterfaceInMachineNetCidr", func() {
 
 		var log logrus.FieldLogger
 
@@ -530,11 +531,11 @@ var _ = Describe("inventory", func() {
 		})
 
 		DescribeTable(
-			"IsInterfaceInPrimaryMachineNetCidr",
+			"IsInterfaceInMachineNetCidr",
 			func(nic *models.Interface, machineNetworks []*models.MachineNetwork, expectedResult bool) {
 				cluster := createCluster("", "", createInventory(nic))
 				cluster.MachineNetworks = machineNetworks
-				res := IsInterfaceInPrimaryMachineNetCidr(log, cluster, nic)
+				res := IsInterfaceInMachineNetCidr(log, cluster, nic)
 				Expect(res).To(Equal(expectedResult))
 			},
 			Entry("MachineNetworks is empty", createInterface("1.2.3.4/24"), []*models.MachineNetwork{}, false),
