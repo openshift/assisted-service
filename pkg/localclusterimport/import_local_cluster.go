@@ -85,7 +85,7 @@ func (i *LocalClusterImport) createLocalClusterPullSecret(sourceSecret *v1.Secre
 	return nil
 }
 
-func (i *LocalClusterImport) createAgentClusterInstall(numberOfControlPlaneNodes int) error {
+func (i *LocalClusterImport) createAgentClusterInstall(numberOfControlPlaneNodes int, proxy *configv1.Proxy) error {
 	//Create an AgentClusterInstall in the local cluster namespace
 	userManagedNetworkingActive := true
 	agentClusterInstall := &hiveext.AgentClusterInstall{
@@ -106,6 +106,14 @@ func (i *LocalClusterImport) createAgentClusterInstall(numberOfControlPlaneNodes
 	}
 	agentClusterInstall.Namespace = i.localClusterNamespace
 	agentClusterInstall.Name = i.localClusterNamespace
+	if proxy != nil {
+		agentClusterInstall.Spec.Proxy = &hiveext.Proxy{
+			HTTPProxy:  proxy.Spec.HTTPProxy,
+			HTTPSProxy: proxy.Spec.HTTPSProxy,
+			NoProxy:    proxy.Spec.NoProxy,
+		}
+	}
+
 	err := i.clusterImportOperations.CreateAgentClusterInstall(agentClusterInstall)
 	if err != nil {
 		i.log.Errorf("could not create AgentClusterInstall due to error %s", err.Error())
@@ -222,6 +230,12 @@ func (i *LocalClusterImport) ImportLocalCluster() error {
 		errorList = multierror.Append(errorList, err)
 	}
 
+	proxy, err := i.clusterImportOperations.GetClusterProxy()
+	if err != nil {
+		i.log.Errorf("could not fetch proxy due to error %s", err.Error())
+		errorList = multierror.Append(errorList, err)
+	}
+
 	numberOfControlPlaneNodes, err := i.clusterImportOperations.GetNumberOfControlPlaneNodes()
 	if err != nil {
 		i.log.Errorf("unable to determine the number of control plane nodes due to error %s", err.Error())
@@ -266,7 +280,7 @@ func (i *LocalClusterImport) ImportLocalCluster() error {
 	}
 
 	if numberOfControlPlaneNodes > 0 {
-		err := i.createAgentClusterInstall(numberOfControlPlaneNodes)
+		err := i.createAgentClusterInstall(numberOfControlPlaneNodes, proxy)
 		if err != nil && !k8serrors.IsAlreadyExists(err) {
 			errorList = multierror.Append(errorList, err)
 		}
