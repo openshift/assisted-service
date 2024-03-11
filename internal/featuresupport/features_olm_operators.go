@@ -61,10 +61,12 @@ func (feature *LvmFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelUnavailable
 	}
 
-	if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeFull {
-		if isNotSupported, err := common.BaseVersionLessThan("4.15", filters.OpenshiftVersion); isNotSupported || err != nil {
-			return models.SupportLevelUnavailable
-		}
+	if filters.HighAvailabilityMode != nil {
+    if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeFull {
+		  if isNotSupported, err := common.BaseVersionLessThan("4.15", filters.OpenshiftVersion); isNotSupported || err != nil {
+			  return models.SupportLevelUnavailable
+		  }
+    }
 	}
 
 	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeVsphere || *filters.PlatformType == models.PlatformTypeNutanix) {
@@ -126,9 +128,11 @@ func (feature *OdfFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
-	if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
-		return models.SupportLevelUnavailable
-	}
+  if filters.HighAvailabilityMode != nil {
+    if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+      return models.SupportLevelUnavailable
+    }
+  }
 
 	return models.SupportLevelSupported
 }
@@ -270,11 +274,13 @@ func (feature *MceFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeNutanix) {
 		return models.SupportLevelUnavailable
 	}
-	if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
-		if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeVsphere) {
-			return models.SupportLevelUnavailable
-		}
-	}
+  if filters.HighAvailabilityMode != nil {
+    if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+      if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeVsphere) {
+        return models.SupportLevelUnavailable
+      }
+    }
+  }
 
 	return models.SupportLevelSupported
 }

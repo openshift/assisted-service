@@ -16,16 +16,15 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 	Context("Test LVM/Nutanix are not supported under 4.11", func() {
 		features := []models.FeatureSupportLevelID{models.FeatureSupportLevelIDLVM, models.FeatureSupportLevelIDNUTANIXINTEGRATION}
-		avilabilityMode := swag.String("")
 		for _, f := range features {
 			feature := f
 			It(fmt.Sprintf("%s test", feature), func() {
 				for _, version := range unspportedLVMVersions {
-					Expect(IsFeatureAvailable(feature, version, nil, avilabilityMode)).To(BeFalse(),
+					Expect(IsFeatureAvailable(feature, version, nil, nil)).To(BeFalse(),
 						fmt.Sprintf("feature %v, should be False on version %v", feature, version))
 				}
 				for _, version := range lVMavailableVersions {
-					Expect(IsFeatureAvailable(feature, version, nil, avilabilityMode)).To(BeTrue(),
+					Expect(IsFeatureAvailable(feature, version, nil, nil)).To(BeTrue(),
 						fmt.Sprintf("feature %v, should be True on version %v", feature, version))
 				}
 			})
@@ -35,7 +34,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	Context("Test LVM feature", func() {
 		lvmFeatureList := featuresList[models.FeatureSupportLevelIDLVM]
 		feature := models.FeatureSupportLevelIDLVM
-		avilabilityMode := swag.String("None")
 		It("Validate LVM on CPU arch", func() {
 			supportedCpuArch := []string{
 				models.ClusterCPUArchitectureArm64,
@@ -47,10 +45,10 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				models.ClusterCPUArchitecturePpc64le,
 			}
 			for _, arch := range supportedCpuArch {
-				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), avilabilityMode)).To(BeTrue())
+				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), nil)).To(BeTrue())
 			}
 			for _, arch := range notSupportedCpuArch {
-				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), avilabilityMode)).To(BeFalse())
+				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), nil)).To(BeFalse())
 			}
 		})
 		It("Validate Feature Support for LVM", func() {
@@ -196,13 +194,11 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 		It("CNV should be unavailable", func() {
 			featureFilter.PlatformType = common.PlatformTypePtr(models.PlatformTypeNutanix)
-			// featureFilter.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 			featureSupportLevels := GetFeatureSupportList(featureFilter)
 
 			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable),
 				fmt.Sprintf("CNV unavailable on Nutanix in %v", featureFilter.HighAvailabilityMode))
 
-			// featureFilter.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
 			featureSupportLevels = GetFeatureSupportList(featureFilter)
 
 			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable),

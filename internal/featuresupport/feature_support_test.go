@@ -67,7 +67,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	It("Test ARM64 is not supported under 4.10", func() {
 		feature := SupportLevelFilters{
 			CPUArchitecture:      swag.String(models.ClusterCPUArchitectureArm64),
-			HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 		}
 		minimumSupportVersion := "4.10"
 
@@ -88,7 +87,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	It("Test s390x is not supported under 4.12", func() {
 		feature := SupportLevelFilters{
 			CPUArchitecture:      swag.String(models.ClusterCPUArchitectureS390x),
-			HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 		}
 		minimumSupportVersion := "4.12"
 		for i := range validateVersions {
@@ -107,7 +105,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	It("Test PPC64LE is not supported under 4.12", func() {
 		feature := SupportLevelFilters{
 			CPUArchitecture: swag.String(models.ClusterCPUArchitecturePpc64le),
-			// HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 		}
 		minimumSupportVersion := "4.12"
 
@@ -128,10 +125,10 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	Context("Test LSO CPU compatibility", func() {
 		feature := models.FeatureSupportLevelIDLSO
 		It("LSO IsFeatureAvailable", func() {
-			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitecturePpc64le), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
-			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitectureX8664), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
-			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitectureS390x), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
-			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitectureArm64), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeFalse())
+			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitecturePpc64le), nil)).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitectureX8664), nil)).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitectureS390x), nil)).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitectureArm64), nil)).To(BeFalse())
 		})
 		It("LSO GetSupportLevel on architecture", func() {
 			featureSupportParams := SupportLevelFilters{OpenshiftVersion: "Any", CPUArchitecture: swag.String(models.ClusterCPUArchitectureX8664)}
@@ -151,10 +148,10 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	Context("Test skip MCO reboot", func() {
 		feature := models.FeatureSupportLevelIDSKIPMCOREBOOT
 		It("IsFeatureAvailable", func() {
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitecturePpc64le), swag.String(models.ClusterHighAvailabilityModeFull))).To(Equal(true))
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureX8664), swag.String(models.ClusterHighAvailabilityModeFull))).To(Equal(true))
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureS390x), swag.String(models.ClusterHighAvailabilityModeFull))).To(Equal(false))
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureArm64), swag.String(models.ClusterHighAvailabilityModeFull))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitecturePpc64le), nil)).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureX8664), nil)).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureS390x), nil)).To(Equal(false))
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureArm64), nil)).To(Equal(true))
 		})
 		It("GetSupportLevel on architecture", func() {
 			featureSupportParams := SupportLevelFilters{OpenshiftVersion: "4.15", CPUArchitecture: swag.String(models.ClusterCPUArchitectureX8664)}
@@ -205,25 +202,21 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		feature := models.FeatureSupportLevelIDMCE
 		It(fmt.Sprintf("%s test", feature), func() {
 			arch := "DoesNotMatter"
-			Expect(IsFeatureAvailable(feature, "4.9", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeFalse())
-			Expect(IsFeatureAvailable(feature, "4.10", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
-			Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, "4.9",  swag.String(arch), nil)).To(BeFalse())
+			Expect(IsFeatureAvailable(feature, "4.10", swag.String(arch), nil)).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), nil)).To(BeTrue())
 
 			featureSupportParams := SupportLevelFilters{
 				OpenshiftVersion: "4.9",
 				CPUArchitecture:  swag.String(arch),
-				// HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull)
 			}
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
 
 			featureSupportParams.OpenshiftVersion = "4.11.20"
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
 
-			Expect(IsFeatureAvailable(feature, "4.12", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
-			Expect(IsFeatureAvailable(feature, "4.13", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
-			//
-			// // Check for feature release
-			// Expect(IsFeatureAvailable(feature, "4.30", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, "4.12", swag.String(arch), nil)).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, "4.13", swag.String(arch), nil)).To(BeTrue())
 		})
 	})
 
@@ -231,19 +224,19 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		It("Test SDN not supported over 4.15", func() {
 			feature := models.FeatureSupportLevelIDSDNNETWORKTYPE
 			arch := "DoesNotMatter"
-			Expect(IsFeatureAvailable(feature, "4.14", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeFalse())
-			Expect(IsFeatureAvailable(feature, "4.16", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeFalse())
+			Expect(IsFeatureAvailable(feature, "4.14", swag.String(arch), nil)).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(arch), nil)).To(BeFalse())
+			Expect(IsFeatureAvailable(feature, "4.16", swag.String(arch), nil)).To(BeFalse())
 		})
 
 		It("Test OVN is supported over 4.15", func() {
 			feature := models.FeatureSupportLevelIDOVNNETWORKTYPE
 			arch := "DoesNotMatter"
-			Expect(IsFeatureAvailable(feature, "4.12", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(Equal(true))
-			Expect(IsFeatureAvailable(feature, "4.13", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.12", swag.String(arch), nil)).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.13", swag.String(arch), nil)).To(Equal(true))
 
 			// Check for feature release
-			Expect(IsFeatureAvailable(feature, "4.30", swag.String(arch), swag.String(models.ClusterHighAvailabilityModeFull))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.30", swag.String(arch), nil)).To(Equal(true))
 		})
 	})
 
@@ -753,7 +746,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					feature := feature
 					When("Empty support level - platforms", func() {
 						It(fmt.Sprintf("Feature %s Platform %s ExternalPlatformName %s", feature.GetName(), *filters.PlatformType, swag.StringValue(filters.ExternalPlatformName)), func() {
-							emptyFilters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil, ExternalPlatformName: nil, HighAvailabilityMode: swag.String("")}
+							emptyFilters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil, ExternalPlatformName: nil, HighAvailabilityMode: nil}
 							Expect(string(feature.getSupportLevel(emptyFilters))).To(Not(Equal("")),
 								fmt.Sprintf("empty filter on feature: %v", feature))
 							Expect(string(feature.getSupportLevel(filters))).To(Equal(""),
@@ -883,11 +876,11 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			})
 		})
 
-		Context("Test validate active features", func() {
+	  Context("Test validate active features", func() {
 			DescribeTable(
 				"Valid VipDhcpAllocation and OpenShift version",
 				func(openshiftVersion string) {
-					Expect(IsFeatureAvailable(models.FeatureSupportLevelIDVIPAUTOALLOC, openshiftVersion, swag.String("anyarch"), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeFalse())
+					Expect(IsFeatureAvailable(models.FeatureSupportLevelIDVIPAUTOALLOC, openshiftVersion, swag.String("anyarch"), nil)).To(BeFalse())
 				},
 				Entry("VipAutoAllocation disabled for 4.15", "4.15.3"),
 				Entry("VipAutoAllocation disabled for 4.16", "4.16.2"),
@@ -896,7 +889,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			DescribeTable(
 				"Valid VipDhcpAllocation and OpenShift version",
 				func(openshiftVersion string) {
-					Expect(IsFeatureAvailable(models.FeatureSupportLevelIDVIPAUTOALLOC, openshiftVersion, swag.String("anyarch"), swag.String(models.ClusterHighAvailabilityModeFull))).To(BeTrue())
+					Expect(IsFeatureAvailable(models.FeatureSupportLevelIDVIPAUTOALLOC, openshiftVersion, swag.String("anyarch"), nil)).To(BeTrue())
 				},
 				Entry("VipAutoAllocation enabled for 4.14", "4.14.3"),
 				Entry("VipAutoAllocation enabled for 4.12", "4.12.24"),

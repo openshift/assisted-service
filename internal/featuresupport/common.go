@@ -13,9 +13,6 @@ import (
 
 func GetSupportLevel[T models.FeatureSupportLevelID | models.ArchitectureSupportLevelID](featureId T, filters SupportLevelFilters) models.SupportLevel {
 	if reflect.TypeOf(featureId).Name() == "FeatureSupportLevelID" {
-		if filters.HighAvailabilityMode == nil {
-			filters.HighAvailabilityMode = swag.String("")
-		}
 		return featuresList[models.FeatureSupportLevelID(featureId)].getSupportLevel(filters)
 	}
 	return cpuFeaturesList[models.ArchitectureSupportLevelID(featureId)].getSupportLevel(filters.OpenshiftVersion)
