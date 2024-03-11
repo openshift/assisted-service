@@ -34,11 +34,11 @@ func (feature *VipAutoAllocFeature) getSupportLevel(filters SupportLevelFilters)
 		unavailablePlatform, string(*filters.PlatformType)) {
 		return models.SupportLevelUnavailable
 	}
-  if filters.HighAvailabilityMode != nil {
-    if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
-      return models.SupportLevelUnavailable
-    }
-  }
+	if filters.HighAvailabilityMode != nil {
+		if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+			return models.SupportLevelUnavailable
+		}
+	}
 
 	if openshiftVersionLessThan("4.15", filters.OpenshiftVersion) {
 		return models.SupportLevelDevPreview

@@ -102,6 +102,9 @@ func GetFeatureSupportList(filters SupportLevelFilters) models.SupportLevels {
 // IsFeatureAvailable Get the support level of a given feature, cpuArchitecture is optional
 // with default value of x86_64
 func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion string, cpuArchitecture *string, highAvailabilityMode *string) bool {
+	if highAvailabilityMode == nil {
+		highAvailabilityMode = swag.String("")
+	}
 	filters := SupportLevelFilters{
 		OpenshiftVersion:     openshiftVersion,
 		CPUArchitecture:      cpuArchitecture,

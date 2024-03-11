@@ -66,7 +66,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 	It("Test ARM64 is not supported under 4.10", func() {
 		feature := SupportLevelFilters{
-			CPUArchitecture:      swag.String(models.ClusterCPUArchitectureArm64),
+			CPUArchitecture: swag.String(models.ClusterCPUArchitectureArm64),
 		}
 		minimumSupportVersion := "4.10"
 
@@ -86,7 +86,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 	It("Test s390x is not supported under 4.12", func() {
 		feature := SupportLevelFilters{
-			CPUArchitecture:      swag.String(models.ClusterCPUArchitectureS390x),
+			CPUArchitecture: swag.String(models.ClusterCPUArchitectureS390x),
 		}
 		minimumSupportVersion := "4.12"
 		for i := range validateVersions {
@@ -202,7 +202,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		feature := models.FeatureSupportLevelIDMCE
 		It(fmt.Sprintf("%s test", feature), func() {
 			arch := "DoesNotMatter"
-			Expect(IsFeatureAvailable(feature, "4.9",  swag.String(arch), nil)).To(BeFalse())
+			Expect(IsFeatureAvailable(feature, "4.9", swag.String(arch), nil)).To(BeFalse())
 			Expect(IsFeatureAvailable(feature, "4.10", swag.String(arch), nil)).To(BeTrue())
 			Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), nil)).To(BeTrue())
 
@@ -876,7 +876,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			})
 		})
 
-	  Context("Test validate active features", func() {
+		Context("Test validate active features", func() {
 			DescribeTable(
 				"Valid VipDhcpAllocation and OpenShift version",
 				func(openshiftVersion string) {
