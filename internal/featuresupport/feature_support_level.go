@@ -6,7 +6,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	// "github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/thoas/go-funk"
 )
 
