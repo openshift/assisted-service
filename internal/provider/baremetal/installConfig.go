@@ -53,22 +53,24 @@ func (p *baremetalProvider) AddPlatformToInstallConfig(
 			return err
 		}
 
+	InterfaceSearch:
 		for _, iface := range inventory.Interfaces {
 			// We are looking for the NIC that matches the first Machine Network configured
 			// for the cluster. This is to ensure that BootMACAddress belongs to the NIC that
 			// is really used and not to any fake interface even if this interface has IPs.
 			ipAddressses := append(iface.IPV4Addresses, iface.IPV6Addresses...)
 			for _, ip := range ipAddressses {
-				overlap, _ := network.NetworksOverlap(ip, string(cluster.MachineNetworks[0].Cidr))
-				if overlap {
-					hosts[yamlHostIdx].BootMACAddress = iface.MacAddress
-					break
+				for _, machineNetwork := range cluster.MachineNetworks {
+					overlap, _ := network.NetworksOverlap(ip, string(machineNetwork.Cidr))
+					if overlap {
+						hosts[yamlHostIdx].BootMACAddress = iface.MacAddress
+						break InterfaceSearch
+					}
 				}
 			}
 		}
 		if hosts[yamlHostIdx].BootMACAddress == "" {
-			err = errors.Errorf("Failed to find a network interface matching machine network (%s) for host %s",
-				cluster.MachineNetworks[0].Cidr,
+			err = errors.Errorf("Failed to find a network interface matching machine networks for host %s",
 				hostutil.GetHostnameForMsg(host),
 			)
 			p.Log.Error(err)
