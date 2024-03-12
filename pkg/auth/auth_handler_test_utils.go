@@ -34,7 +34,7 @@ func GetTokenAndCert(withLateIat bool) (string, []byte) {
 		"email":          "jdoe123@example.com",
 		"username":       "jdoe123@example.com",
 		"is_org_admin":   false,
-		"clientId":       "1234",
+		"client_id":      "1234",
 	}
 	if withLateIat {
 		mapClaims["iat"] = time.Now().Add(5 * time.Minute).Unix()
