@@ -261,6 +261,14 @@ rules:
 - apiGroups:
   - cluster.open-cluster-management.io
   resources:
+  - managedclusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cluster.open-cluster-management.io
+  resources:
   - managedclustersets/join
   verbs:
   - create
@@ -286,6 +294,8 @@ rules:
   - dnses
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - config.openshift.io
   resources:
@@ -300,6 +310,8 @@ rules:
   - proxies
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - coordination.k8s.io
   resources:
