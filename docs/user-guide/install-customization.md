@@ -156,7 +156,7 @@ Since [OpenShift 4.12](https://github.com/openshift/enhancements/blob/master/enh
 
 The features (`baremetal-operator`, `marketplace`, `Console`, `Insights`, `Storage`, `CSISnapshot` and `openshift-samples-content`) can be disabled by setting the `baselineCapabilitySet` and `addittionalEnabledCapabilities` parameters in the `install-config.yaml`.
 
-To perform the customization, spec for capabilities must be adjusted, for example:
+Here is an example of disabling all capabilities except openshift-samples:
 
 ```yaml
 capabilities:
@@ -165,7 +165,10 @@ capabilities:
     - openshift-samples
 ```
 
-The `CVO`, will then calculate the effective status, that means, based on the [axioms](https://github.com/openshift/enhancements/blob/master/enhancements/installer/component-selection.md#axioms), CVO will allow to have them disabled at install time or still install them based on requirements, etc. Note that axioms will help in day-2 behaviors, for an installation, it will install the components not excluded or the required ones for dependencies.
+See https://docs.openshift.com/container-platform/latest/installing/cluster-capabilities.html for more information.
+
+> [!IMPORTANT]  
+Note that disabling capabilities could cause problems in some situations, e.g. disabling the baremetal-operator on a baremetal platform cluster will cause installation to fail.
 
 #### Patching the install config
 
