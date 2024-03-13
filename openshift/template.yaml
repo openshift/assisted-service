@@ -44,6 +44,8 @@ parameters:
   value: "true"
 - name: ENABLE_SKIP_MCO_REBOOT
   value: "true"
+- name: ENABLE_SOFT_TIMEOUTS
+  value: "false"
 - name: ENABLE_AUTO_ASSIGN
   value: "true"
   required: false
@@ -321,6 +323,8 @@ objects:
                 value: ${S3_USE_SSL}
               - name: ENABLE_SKIP_MCO_REBOOT
                 value: ${ENABLE_SKIP_MCO_REBOOT}
+              - name: ENABLE_SOFT_TIMEOUTS
+                value: ${ENABLE_SOFT_TIMEOUTS}
               - name: DB_HOST
                 valueFrom:
                   secretKeyRef:
