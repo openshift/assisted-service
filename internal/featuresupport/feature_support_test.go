@@ -122,6 +122,90 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		}
 	})
 
+	Context("Test HighAvailabilityMode", func() {
+		var (
+			filters = SupportLevelFilters{
+				OpenshiftVersion:     "4.14",
+				HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+			}
+		)
+		supportedHighAvilabilityModeNone := []models.FeatureSupportLevelID{
+			models.FeatureSupportLevelIDBAREMETALPLATFORM,
+			models.FeatureSupportLevelIDCNV,
+			models.FeatureSupportLevelIDCUSTOMMANIFEST,
+			models.FeatureSupportLevelIDDUALSTACK,
+			models.FeatureSupportLevelIDDUALSTACKVIPS,
+			models.FeatureSupportLevelIDEXTERNALPLATFORM,
+			models.FeatureSupportLevelIDFULLISO,
+			models.FeatureSupportLevelIDLSO,
+			models.FeatureSupportLevelIDLVM,
+			models.FeatureSupportLevelIDMCE,
+			models.FeatureSupportLevelIDMINIMALISO,
+			models.FeatureSupportLevelIDNONEPLATFORM,
+			models.FeatureSupportLevelIDOVNNETWORKTYPE,
+			models.FeatureSupportLevelIDSDNNETWORKTYPE,
+			models.FeatureSupportLevelIDSINGLENODEEXPANSION,
+			models.FeatureSupportLevelIDSNO,
+			models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
+		}
+		for i := range supportedHighAvilabilityModeNone {
+			feature := supportedHighAvilabilityModeNone[i]
+			It(fmt.Sprintf("feature %v, should be supported in HighAvailabilityMode None", feature), func() {
+				Expect(GetSupportLevel(feature, filters)).To(Equal(models.SupportLevelSupported))
+			})
+		}
+		unSupportedHighAvilabilityModeNone := []models.FeatureSupportLevelID{
+			models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
+			models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+			models.FeatureSupportLevelIDODF,
+			models.FeatureSupportLevelIDSKIPMCOREBOOT,
+			models.FeatureSupportLevelIDVIPAUTOALLOC,
+			models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+		}
+		for i := range unSupportedHighAvilabilityModeNone {
+			feature := unSupportedHighAvilabilityModeNone[i]
+			It(fmt.Sprintf("feature %v, should be unavailable in HighAvailabilityMode None", feature), func() {
+				Expect(GetSupportLevel(feature, filters)).To(Equal(models.SupportLevelUnavailable))
+			})
+		}
+
+		supportedHighAvilabilityModeFull := []models.FeatureSupportLevelID{
+			models.FeatureSupportLevelIDBAREMETALPLATFORM,
+			models.FeatureSupportLevelIDCNV,
+			models.FeatureSupportLevelIDCUSTOMMANIFEST,
+			models.FeatureSupportLevelIDDUALSTACK,
+			models.FeatureSupportLevelIDDUALSTACKVIPS,
+			models.FeatureSupportLevelIDEXTERNALPLATFORM,
+			models.FeatureSupportLevelIDFULLISO,
+			models.FeatureSupportLevelIDLSO,
+			models.FeatureSupportLevelIDMCE,
+			models.FeatureSupportLevelIDMINIMALISO,
+			models.FeatureSupportLevelIDNONEPLATFORM,
+			models.FeatureSupportLevelIDOVNNETWORKTYPE,
+			models.FeatureSupportLevelIDSDNNETWORKTYPE,
+			models.FeatureSupportLevelIDSINGLENODEEXPANSION,
+			models.FeatureSupportLevelIDSNO,
+			models.FeatureSupportLevelIDODF,
+			models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
+			models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
+			models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+			models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+		}
+		for i := range supportedHighAvilabilityModeFull {
+			feature := supportedHighAvilabilityModeFull[i]
+			It(fmt.Sprintf("feature %v, should be supported in HighAvailabilityMode Full", feature), func() {
+				filters.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+				Expect(GetSupportLevel(feature, filters)).To(Equal(models.SupportLevelSupported))
+			})
+		}
+
+		feature := models.FeatureSupportLevelIDSKIPMCOREBOOT
+		It(fmt.Sprintf("feature %v, should be unavailable in HighAvailabilityMode Full", feature), func() {
+			filters.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			Expect(GetSupportLevel(feature, filters)).To(Equal(models.SupportLevelUnavailable))
+		})
+	})
+
 	Context("Test LSO CPU compatibility", func() {
 		feature := models.FeatureSupportLevelIDLSO
 		It("LSO IsFeatureAvailable", func() {
@@ -357,21 +441,21 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 	})
 	Context("GetFeatureSupportList 4.14 with Platform", func() {
-		platforms := []models.PlatformType{
-			models.PlatformTypeNutanix,
-			models.PlatformTypeVsphere,
-			models.PlatformTypeExternal,
-			models.PlatformTypeBaremetal,
-			models.PlatformTypeNone,
+		platforms := []*models.PlatformType{
+			models.PlatformTypeNutanix.Pointer(),
+			models.PlatformTypeVsphere.Pointer(),
+			models.PlatformTypeExternal.Pointer(),
+			models.PlatformTypeBaremetal.Pointer(),
+			models.PlatformTypeNone.Pointer(),
 		}
 		for _, platform := range platforms {
 			list := GetFeatureSupportList(SupportLevelFilters{
 				OpenshiftVersion:     "4.14",
 				CPUArchitecture:      nil,
-				PlatformType:         &platform,
+				PlatformType:         platform,
 				HighAvailabilityMode: nil,
 			})
-			It(fmt.Sprintf("feature %v SupportList should be 19", platform), func() {
+			It(fmt.Sprintf("feature %v SupportList should be 19", *platform), func() {
 				Expect(len(list)).To(Equal(19))
 			})
 		}
@@ -385,25 +469,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 		Expect(len(list)).To(Equal(24))
 	})
-	// This Test is not correct
-	// FContext("overrideInvalidRequest 4.12 vsphere with HighAvailabilityMode None", func() {
-	// 	platform := models.PlatformTypeVsphere
-	// 	list := GetFeatureSupportList(SupportLevelFilters{
-	// 		OpenshiftVersion:     "4.12",
-	// 		CPUArchitecture:      swag.String(models.ClusterCPUArchitectureX8664),
-	// 		PlatformType:         &platform,
-	// 		// HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
-	// 	})
-	// 	for featureId, supportLevel := range list {
-	// 		sl := supportLevel
-	// 		It(fmt.Sprintf("Feature %s", featureId), func() {
-	// 			// All features in that case should be unavailable
-	// 			Expect(sl).To(Equal(models.SupportLevelUnavailable))
-	// 		})
-	// 	}
-	// })
-
-  It("GetFeatureSupportList 4.14", func() {
+	It("GetFeatureSupportList 4.14", func() {
 		list := GetFeatureSupportList(SupportLevelFilters{
 			OpenshiftVersion:     "4.14",
 			CPUArchitecture:      nil,
