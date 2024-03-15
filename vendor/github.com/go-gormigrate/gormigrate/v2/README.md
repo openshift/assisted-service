@@ -1,10 +1,13 @@
 # Gormigrate
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/go-gormigrate/gormigrate/v2?tab=doc)](https://pkg.go.dev/github.com/go-gormigrate/gormigrate/v2?tab=doc)
-[![Build status](https://ci.appveyor.com/api/projects/status/89e414sklbwefyyp?svg=true)](https://ci.appveyor.com/project/andreynering/gormigrate)
+[![Latest Release](https://img.shields.io/github/release/go-gormigrate/gormigrate.svg)](https://github.com/go-gormigrate/gormigrate/releases)
+[![Go Reference](https://pkg.go.dev/badge/github.com/go-gormigrate/gormigrate/v2.svg)](https://pkg.go.dev/github.com/go-gormigrate/gormigrate/v2)
+[![Go Report Card](https://goreportcard.com/badge/github.com/go-gormigrate/gormigrate/v2)](https://goreportcard.com/report/github.com/go-gormigrate/gormigrate/v2)
+[![CI | Lint](https://github.com/go-gormigrate/gormigrate/actions/workflows/lint.yml/badge.svg)](https://github.com/go-gormigrate/gormigrate/actions)
+[![CI | Test](https://github.com/go-gormigrate/gormigrate/actions/workflows/integration-test.yml/badge.svg)](https://github.com/go-gormigrate/gormigrate/actions)
 
-Gormigrate is a minimalistic migration helper for [Gorm][gorm].
-Gorm already has useful [migrate functions][gormmigrate], just misses
+Gormigrate is a minimalistic migration helper for [Gorm](http://gorm.io).
+Gorm already has useful [migrate functions](https://gorm.io/docs/migration.html), just misses
 proper schema versioning and migration rollback support.
 
 > IMPORTANT: If you need support to Gorm v1 (which uses
@@ -17,12 +20,14 @@ proper schema versioning and migration rollback support.
 
 ## Supported databases
 
-It supports any of the [databases Gorm supports][gormdatabases]:
+It supports any of the [databases Gorm supports](https://gorm.io/docs/connecting_to_the_database.html):
 
-- PostgreSQL
 - MySQL
+- PostgreSQL
 - SQLite
 - Microsoft SQL Server
+- TiDB
+- Clickhouse
 
 ## Usage
 
@@ -33,74 +38,87 @@ import (
 	"log"
 
 	"github.com/go-gormigrate/gormigrate/v2"
+	"github.com/google/uuid"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"gorm.io/gorm/logger"
 )
 
 func main() {
-	db, err := gorm.Open("sqlite3", "mydb.sqlite3")
+	db, err := gorm.Open(sqlite.Open("./data.db"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	db.LogMode(true)
-
-	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
-		// create persons table
-		{
-			ID: "201608301400",
-			Migrate: func(tx *gorm.DB) error {
-				// it's a good pratice to copy the struct inside the function,
-				// so side effects are prevented if the original struct changes during the time
-				type Person struct {
-					gorm.Model
-					Name string
-				}
-				return tx.AutoMigrate(&Person{})
-			},
-			Rollback: func(tx *gorm.DB) error {
-				return tx.Migrator().DropTable("people")
-			},
+	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{{
+		// create `users` table
+		ID: "201608301400",
+		Migrate: func(tx *gorm.DB) error {
+			// it's a good pratice to copy the struct inside the function,
+			// so side effects are prevented if the original struct changes during the time
+			type user struct {
+				ID   uuid.UUID `gorm:"type:uuid;primaryKey;uniqueIndex"`
+				Name string
+			}
+			return tx.Migrator().CreateTable(&user{})
 		},
-		// add age column to persons
-		{
-			ID: "201608301415",
-			Migrate: func(tx *gorm.DB) error {
-				// when table already exists, it just adds fields as columns
-				type Person struct {
-					Age int
-				}
-				return tx.AutoMigrate(&Person{})
-			},
-			Rollback: func(tx *gorm.DB) error {
-				return tx.Migrator().DropColumn("people", "age")
-			},
+		Rollback: func(tx *gorm.DB) error {
+			return tx.Migrator().DropTable("users")
 		},
-		// add pets table
-		{
-			ID: "201608301430",
-			Migrate: func(tx *gorm.DB) error {
-				type Pet struct {
-					gorm.Model
-					Name     string
-					PersonID int
-				}
-				return tx.AutoMigrate(&Pet{})
-			},
-			Rollback: func(tx *gorm.DB) error {
-				return tx.Migrator().DropTable("pets")
-			},
+	}, {
+		// add `age` column to `users` table
+		ID: "201608301415",
+		Migrate: func(tx *gorm.DB) error {
+			// when table already exists, define only columns that are about to change
+			type user struct {
+				Age int
+			}
+			return tx.Migrator().AddColumn(&user{}, "Age")
 		},
-	})
+		Rollback: func(tx *gorm.DB) error {
+			type user struct {
+				Age int
+			}
+			return db.Migrator().DropColumn(&user{}, "Age")
+		},
+	}, {
+		// create `organizations` table where users belong to
+		ID: "201608301430",
+		Migrate: func(tx *gorm.DB) error {
+			type organization struct {
+				ID      uuid.UUID `gorm:"type:uuid;primaryKey;uniqueIndex"`
+				Name    string
+				Address string
+			}
+			if err := tx.Migrator().CreateTable(&organization{}); err != nil {
+				return err
+			}
+			type user struct {
+				OrganizationID uuid.UUID `gorm:"type:uuid"`
+			}
+			return tx.Migrator().AddColumn(&user{}, "OrganizationID")
+		},
+		Rollback: func(tx *gorm.DB) error {
+			type user struct {
+				OrganizationID uuid.UUID `gorm:"type:uuid"`
+			}
+			if err := db.Migrator().DropColumn(&user{}, "OrganizationID"); err != nil {
+				return err
+			}
+			return tx.Migrator().DropTable("organizations")
+		},
+	}})
 
 	if err = m.Migrate(); err != nil {
-		log.Fatalf("Could not migrate: %v", err)
+		log.Fatalf("Migration failed: %v", err)
 	}
-	log.Printf("Migration did run successfully")
+	log.Println("Migration did run successfully")
 }
 ```
 
-## Having a separated function for initializing the schema
+## Having a separate function for initializing the schema
 
 If you have a lot of migrations, it can be a pain to run all them, as example,
 when you are deploying a new instance of the app, in a clean database.
@@ -109,36 +127,37 @@ before (in a new clean database). Remember to create everything here, all tables
 foreign keys and what more you need in your app.
 
 ```go
-type Person struct {
+type Organization struct {
+	gorm.Model
+	Name    string
+	Address string
+}
+
+type User struct {
 	gorm.Model
 	Name string
 	Age int
-}
-
-type Pet struct {
-	gorm.Model
-	Name     string
-	PersonID int
+	OrganizationID uint
 }
 
 m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
-    // you migrations here
+    // your migrations here
 })
 
 m.InitSchema(func(tx *gorm.DB) error {
 	err := tx.AutoMigrate(
-		&Person{},
-		&Pet{},
+		&Organization{},
+		&User{},
 		// all other tables of you app
 	)
 	if err != nil {
 		return err
 	}
 
-	if err := tx.Exec("ALTER TABLE pets ADD CONSTRAINT fk_pets_people FOREIGN KEY (person_id) REFERENCES people (id)").Error; err != nil {
+	if err := tx.Exec("ALTER TABLE users ADD CONSTRAINT fk_users_organizations FOREIGN KEY (organization_id) REFERENCES organizations (id)").Error; err != nil {
 		return err
 	}
-	// all other foreign keys...
+	// all other constraints, indexes, etc...
 	return nil
 })
 ```
@@ -167,7 +186,7 @@ type Options struct {
 ## Who is Gormigrate for?
 
 Gormigrate was born to be a simple and minimalistic migration tool for small
-projects that uses [Gorm][gorm]. You may want to take a look at more advanced
+projects that uses [Gorm](http://gorm.io). You may want to take a look at more advanced
 solutions like [golang-migrate/migrate](https://github.com/golang-migrate/migrate)
 if you plan to scale.
 
@@ -179,35 +198,31 @@ prevent race conditions while running migrations.
 
 ## Contributing
 
-To run tests, first copy `.sample.env` as `sample.env` and edit the connection
-string of the database you want to run tests against. Then, run tests like
-below:
+To run integration tests, some preparations are needed. Please ensure you
+have [task](https://taskfile.dev/installation) and [docker](https://docs.docker.com/engine/install) installed.
+Then:
+
+1. Ensure target or all databases are available and ready to accept connections.
+   You can start databases locally with `task docker:compose:up`
+2. Copy `integration-test/.example.env` as `integration-test/.env` and
+   adjust the database connection ports and credentials when needed.
+3. Run integration test for single database or for all
 
 ```bash
-# running tests for PostgreSQL
-go test -tags postgresql
+# run test for MySQL
+task test:mysql
 
-# running test for MySQL
-go test -tags mysql
+# run test for PostgreSQL
+task test:postgres
 
-# running tests for SQLite
-go test -tags sqlite
+# run test for SQLite
+task test:sqlite
 
-# running tests for SQL Server
-go test -tags sqlserver
+# run test for Microsoft SQL Server
+task test:sqlserver
 
-# running test for multiple databases at once
-go test -tags 'sqlite postgresql mysql'
+# run test for all databases
+task test:all
 ```
 
-Or altenatively, you could use Docker to easily run tests on all databases
-at once. To do that, make sure Docker is installed and running in your machine
-and then run:
-
-```bash
-task docker
-```
-
-[gorm]: http://gorm.io/
-[gormmigrate]: https://gorm.io/docs/migration.html
-[gormdatabases]: https://gorm.io/docs/connecting_to_the_database.html
+Alternatively, you can run everything in one step: `task docker:test`
