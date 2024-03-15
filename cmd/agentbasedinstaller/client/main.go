@@ -57,8 +57,9 @@ var RegisterOptions struct {
 }
 
 var ConfigureOptions struct {
-	InfraEnvID    string `envconfig:"INFRA_ENV_ID" default:""`
-	HostConfigDir string `envconfig:"HOST_CONFIG_DIR" default:"/etc/assisted/hostconfig"`
+	InfraEnvID    string                                `envconfig:"INFRA_ENV_ID" default:""`
+	HostConfigDir string                                `envconfig:"HOST_CONFIG_DIR" default:"/etc/assisted/hostconfig"`
+	WorkflowType  agentbasedinstaller.AgentWorkflowType `envconfig:"WORKFLOW_TYPE" default:"install"`
 }
 
 var ImportOptions struct {
@@ -219,7 +220,7 @@ func configure(ctx context.Context, log *log.Logger, bmInventory *client.Assiste
 		log.Fatal("No INFRA_ENV_ID specified")
 	}
 
-	hostConfigs, err := agentbasedinstaller.LoadHostConfigs(ConfigureOptions.HostConfigDir)
+	hostConfigs, err := agentbasedinstaller.LoadHostConfigs(ConfigureOptions.HostConfigDir, ConfigureOptions.WorkflowType)
 	if err != nil {
 		log.Fatal("Failed to load host configuration: ", err)
 	}
