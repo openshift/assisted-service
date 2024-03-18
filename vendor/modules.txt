@@ -750,7 +750,7 @@ github.com/openshift/hive/apis/hive/v1/openstack
 github.com/openshift/hive/apis/hive/v1/ovirt
 github.com/openshift/hive/apis/hive/v1/vsphere
 github.com/openshift/hive/apis/scheme
-# github.com/openshift/image-customization-controller v0.0.0-20231018032321-4677f060c4bf
+# github.com/openshift/image-customization-controller v0.0.0-20240129110832-60a3867d7f9e
 ## explicit; go 1.19
 github.com/openshift/image-customization-controller/pkg/ignition
 # github.com/openshift/library-go v0.0.0-20231110170715-08d73a9c798b

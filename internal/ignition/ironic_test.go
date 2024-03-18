@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/vincent-petithory/dataurl"
 )
 
 var _ = Describe("GenerateIronicConfig", func() {
@@ -44,6 +45,17 @@ var _ = Describe("GenerateIronicConfig", func() {
 	It("GenerateIronicConfig missing ironic agent image", func() {
 		_, err := GenerateIronicConfig(ironicBaseURL, inspectorURL, infraEnv, "")
 		Expect(err).To(HaveOccurred())
+	})
+	It("set the ironic inspector config to not tag interfaces when static networking is configured", func() {
+		infraEnv.StaticNetworkConfig = "some network config here"
+		conf, err := GenerateIronicConfig(ironicBaseURL, inspectorURL, infraEnv, "ironicAgentImage:custom")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(conf).Should(ContainSubstring(dataurl.Escape([]byte("enable_vlan_interfaces = \n"))))
+	})
+	It("sets the ironic inspector config to tag all interfaces when static networking is not configured", func() {
+		conf, err := GenerateIronicConfig(ironicBaseURL, inspectorURL, infraEnv, "ironicAgentImage:custom")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(conf).Should(ContainSubstring(dataurl.Escape([]byte("enable_vlan_interfaces = all\n"))))
 	})
 })
 
