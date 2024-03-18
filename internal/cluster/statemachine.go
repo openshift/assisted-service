@@ -295,6 +295,21 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefreshStatus,
 		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusInstalling),
+			stateswitch.State(models.ClusterStatusFinalizing),
+		},
+		Condition:        stateswitch.And(th.IsInstallationTimedOut, th.SoftTimeoutsEnabled),
+		DestinationState: stateswitch.State(models.ClusterStatusError),
+		PostTransition:   th.PostRefreshCluster(statusInfoInstallationTimeout, th.InstallationTimeoutMinutes),
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "Timed out while installing",
+			Description: "Cluster installation is taking too long, give up and display appropriate error",
+		},
+	})
+
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
 			stateswitch.State(models.ClusterStatusFinalizing),
 		},
 		Condition: stateswitch.And(th.IsFinalizingTimedOut,
