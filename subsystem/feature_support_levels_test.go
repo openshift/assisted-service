@@ -262,11 +262,7 @@ var _ = Describe("Feature support levels API", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 
 					for featureID, supportLevel := range response.Payload.Features {
-						filters := featuresupport.SupportLevelFilters{
-              OpenshiftVersion: version, 
-              CPUArchitecture: swag.String(arch),
-              HighAvailabilityMode: swag.String(""),
-            }
+						filters := featuresupport.SupportLevelFilters{OpenshiftVersion: version, CPUArchitecture: swag.String(arch)}
 						featureSupportLevel := featuresupport.GetSupportLevel(models.FeatureSupportLevelID(featureID), filters)
 						Expect(featureSupportLevel).To(BeEquivalentTo(supportLevel))
 					}
