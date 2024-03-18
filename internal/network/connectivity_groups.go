@@ -436,7 +436,7 @@ func (l *l3Query) next() strfmt.UUID {
 				foundAddresses[l3.RemoteIPAddress] = true
 			}
 		}
-		if len(addresses) == len(foundAddresses) {
+		if len(foundAddresses) > 0 && len(addresses) == len(foundAddresses) {
 			return rh.HostID
 		}
 	}
@@ -458,7 +458,7 @@ func (l *l3QueryFactory) create(h *models.Host) (hostQuery, error) {
 	return &ret, nil
 }
 
-func newL3QueryFactory(hosts []*models.Host, family AddressFamily) (hostQueryFactory, error) {
+func newL3QueryFactory(hosts []*models.Host, family AddressFamily, machineNetworkCidrs []string) (hostQueryFactory, error) {
 	nodesAddresses := make(map[strfmt.UUID]map[string]bool)
 	for _, h := range hosts {
 		if h.Inventory == "" {
@@ -482,7 +482,10 @@ func newL3QueryFactory(hosts []*models.Host, family AddressFamily) (hostQueryFac
 				if err != nil {
 					return nil, err
 				}
-				value[ip.String()] = true
+
+				if ipInCidr := IpInCidrs(ip.String(), machineNetworkCidrs); len(machineNetworkCidrs) == 0 || ipInCidr {
+					value[ip.String()] = true
+				}
 			}
 		}
 		nodesAddresses[*h.ID] = value
@@ -552,7 +555,7 @@ func calculateMajorityGroup(hosts []*models.Host, factory hostQueryFactory) ([]s
 }
 
 /*
- * Crate majority for a cidr.  A majority group is a the largest group of hosts in a cluster that all of them have full mesh
+ * Create majority for a cidr.  A majority group is a the largest group of hosts in a cluster that all of them have full mesh
  * to the other group members.
  * It is done by taking a sorted connectivity group list according to the group size, and from this group take the
  * largest one
@@ -566,16 +569,16 @@ func CreateL2MajorityGroup(cidr string, hosts []*models.Host) ([]strfmt.UUID, er
 }
 
 /*
- * Crate majority for address family.  A majority group is a the largest group of hosts in a cluster that all of them have full mesh
+ * Create majority for address family.  A majority group is the largest group of hosts in a cluster that all of them have full mesh
  * to the other group members.
  * It is done by taking a sorted connectivity group list according to the group size, and from this group take the
  * largest one
  */
-func CreateL3MajorityGroup(hosts []*models.Host, family AddressFamily) ([]strfmt.UUID, error) {
+func CreateL3MajorityGroup(hosts []*models.Host, family AddressFamily, machineCidrs []string) ([]strfmt.UUID, error) {
 	if !funk.Contains([]AddressFamily{IPv4, IPv6}, family) {
 		return nil, errors.Errorf("Unexpected address family %+v", family)
 	}
-	factory, err := newL3QueryFactory(hosts, family)
+	factory, err := newL3QueryFactory(hosts, family, machineCidrs)
 	if err != nil {
 		return nil, err
 	}

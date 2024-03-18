@@ -281,6 +281,15 @@ func IpInCidr(ipAddr, cidr string) (bool, error) {
 	return ipNet.Contains(ip), nil
 }
 
+func IpInCidrs(ipAddr string, cidrs []string) bool {
+	for _, cidr := range cidrs {
+		if isInCidr, _ := IpInCidr(ipAddr, cidr); isInCidr {
+			return true
+		}
+	}
+	return false
+}
+
 func belongsToNetwork(log logrus.FieldLogger, h *models.Host, machineIpnet *net.IPNet) bool {
 	var inventory models.Inventory
 	err := json.Unmarshal([]byte(h.Inventory), &inventory)
