@@ -5852,7 +5852,7 @@ func init() {
               "None"
             ],
             "type": "string",
-            "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.",
+            "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a cluster over one node.",
             "name": "high_availability_mode",
             "in": "query"
           }
@@ -16515,7 +16515,7 @@ func init() {
               "None"
             ],
             "type": "string",
-            "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.",
+            "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a cluster over one node.",
             "name": "high_availability_mode",
             "in": "query"
           }
