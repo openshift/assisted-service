@@ -283,14 +283,20 @@ func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.
 			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 				return &ctrl.Result{Requeue: true}, err
 			}
-			if err == nil {
-				if swag.StringValue(cluster.Status) == models.ClusterStatusInstalling || swag.StringValue(cluster.Status) == models.ClusterStatusPreparingForInstallation {
-					log.Infof("ClusterInstall is being deleted, cancel installation for cluster %s", *cluster.ID)
-					if _, err = r.Installer.CancelInstallationInternal(ctx, installer.V2CancelInstallationParams{
-						ClusterID: *cluster.ID,
-					}); err != nil {
-						return &ctrl.Result{Requeue: true}, err
-					}
+			// these should match the valid source states for the cancel installation transition
+			cancelStates := []string{
+				models.ClusterStatusInstalling,
+				models.ClusterStatusPreparingForInstallation,
+				models.ClusterStatusInstallingPendingUserAction,
+				models.ClusterStatusFinalizing,
+				models.ClusterStatusError,
+			}
+			if err == nil && funk.Contains(cancelStates, swag.StringValue(cluster.Status)) {
+				log.Infof("ClusterInstall is being deleted, cancel installation for cluster %s", *cluster.ID)
+				if _, err = r.Installer.CancelInstallationInternal(ctx, installer.V2CancelInstallationParams{
+					ClusterID: *cluster.ID,
+				}); err != nil {
+					return &ctrl.Result{Requeue: true}, err
 				}
 			}
 			//Unbind agents
