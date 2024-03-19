@@ -7,7 +7,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
-	"k8s.io/utils/strings/slices"
+	"github.com/thoas/go-funk"
 )
 
 // VipAutoAllocFeature
@@ -30,7 +30,7 @@ func (feature *VipAutoAllocFeature) getSupportLevel(filters SupportLevelFilters)
 		string(models.PlatformTypeExternal),
 		string(models.PlatformTypeNone),
 	}
-	if filters.PlatformType != nil && slices.Contains(
+	if filters.PlatformType != nil && funk.Contains(
 		unavailablePlatform, string(*filters.PlatformType)) {
 		return models.SupportLevelUnavailable
 	}

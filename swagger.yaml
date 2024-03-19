@@ -3724,7 +3724,7 @@ paths:
           name: high_availability_mode
           type: string
           enum: [ 'Full', 'None' ]
-          description: Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.
+          description: Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a cluster over one node.
       responses:
         "200":
           description: Success.

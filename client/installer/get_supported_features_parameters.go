@@ -77,7 +77,7 @@ type GetSupportedFeaturesParams struct {
 
 	/* HighAvailabilityMode.
 
-	   Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.
+	   Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a cluster over one node.
 	*/
 	HighAvailabilityMode *string
 

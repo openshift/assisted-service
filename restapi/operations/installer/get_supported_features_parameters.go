@@ -48,7 +48,7 @@ type GetSupportedFeaturesParams struct {
 	  In: query
 	*/
 	ExternalPlatformName *string
-	/*Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.
+	/*Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a cluster over one node.
 	  In: query
 	*/
 	HighAvailabilityMode *string
