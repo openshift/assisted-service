@@ -756,7 +756,7 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 
 func (b *bareMetalInventory) generateShortImageDownloadURL(infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
 	switch b.authHandler.AuthType() {
-	case auth.TypeLocal:
+	case auth.TypeLocal, auth.TypeAgentLocal:
 		return b.generateShortImageDownloadURLByAPIKey(infraEnvID, imageType, version, arch)
 	case auth.TypeRHSSO:
 		return b.generateShortImageDownloadURLByToken(infraEnvID, imageType, version, arch, imageTokenKey)
@@ -769,7 +769,6 @@ func (b *bareMetalInventory) generateShortImageDownloadURL(infraEnvID, imageType
 
 func (b *bareMetalInventory) generateShortImageDownloadURLByAPIKey(infraEnvID, imageType, version, arch string) (string, *strfmt.DateTime, error) {
 	var expiresAt strfmt.DateTime
-
 	token, err := gencrypto.LocalJWT(infraEnvID, gencrypto.InfraEnvKey)
 	if err != nil {
 		return "", nil, errors.Wrapf(err, "failed to generate token for infraEnv %s", infraEnvID)

@@ -59,6 +59,7 @@ func (c *downloadBootArtifactsCmd) GetSteps(ctx context.Context, host *models.Ho
 		return nil, fmt.Errorf("failed to generate urls for DownloadBootArtifactsRequest: %w", err)
 	}
 	// Reclaiming a host is only used in the operator scenario (not SaaS) so other auth types don't need to be considered
+	// might need to add agent-install-local
 	if c.authType == auth.TypeLocal {
 		bootArtifactURLs.InitrdURL, err = gencrypto.SignURL(bootArtifactURLs.InitrdURL, infraEnv.ID.String(), gencrypto.InfraEnvKey)
 		if err != nil {

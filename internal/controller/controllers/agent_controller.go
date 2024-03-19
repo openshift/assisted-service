@@ -896,6 +896,7 @@ func generateControllerLogsDownloadURL(baseURL string, clusterID string, authTyp
 	}
 
 	downloadURL := fmt.Sprintf("%s%s", baseURL, u.RequestURI())
+	// might need to also check fot agent-installer-local
 	if authType != auth.TypeLocal {
 		return downloadURL, nil
 	}

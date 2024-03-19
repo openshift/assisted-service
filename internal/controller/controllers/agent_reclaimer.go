@@ -141,6 +141,7 @@ func spokeReclaimSecretName(infraEnvID string) string {
 
 func (r *agentReclaimer) ensureSpokeAgentSecret(ctx context.Context, c client.Client, log logrus.FieldLogger, infraEnvID string) error {
 	authToken := ""
+	// might need to add agent-install-local
 	if r.AuthType == auth.TypeLocal {
 		var err error
 		authToken, err = gencrypto.LocalJWT(infraEnvID, gencrypto.InfraEnvKey)

@@ -2275,6 +2275,7 @@ func (r *ClusterDeploymentsReconciler) generateControllerLogsDownloadURL(cluster
 	downloadURL := fmt.Sprintf("%s%s/v2/clusters/%s/logs",
 		r.ServiceBaseURL, restclient.DefaultBasePath, cluster.ID.String())
 
+	// might need to add agent-install-local
 	if r.AuthType != auth.TypeLocal {
 		return downloadURL, nil
 	}

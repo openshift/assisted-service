@@ -670,6 +670,7 @@ func generateStaticNetworkConfigDownloadURL(baseURL string, infraEnvId string, a
 	}
 
 	downloadURL := fmt.Sprintf("%s%s", baseURL, u.RequestURI())
+	// might need to add agent-install-local
 	if authType != auth.TypeLocal {
 		return downloadURL, nil
 	}

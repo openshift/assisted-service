@@ -48,5 +48,19 @@ var _ = Describe("NewAuthenticator", func() {
 		Expect(err).ToNot(HaveOccurred())
 		_, ok = a.(*LocalAuthenticator)
 		Expect(ok).To(BeTrue())
+
+		// AgentLocalAuthenticator
+		pubKey, _, err = gencrypto.ECDSAKeyPairPEM()
+		Expect(err).ToNot(HaveOccurred())
+		config = &Config{
+			AuthType:       TypeAgentLocal,
+			ECPublicKeyPEM: pubKey,
+		}
+
+		a, err = NewAuthenticator(config, nil, logrus.New(), nil)
+		Expect(err).ToNot(HaveOccurred())
+		_, ok = a.(*AgentLocalAuthenticator)
+		Expect(ok).To(BeTrue())
+
 	})
 })

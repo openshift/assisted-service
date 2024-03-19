@@ -30,7 +30,7 @@ func AgentToken(resource interface{}, authType auth.AuthType) (token string, err
 	switch authType {
 	case auth.TypeRHSSO:
 		token, err = cloudPullSecretToken(pullSecret)
-	case auth.TypeLocal:
+	case auth.TypeLocal, auth.TypeAgentLocal:
 		token, err = gencrypto.LocalJWT(resId, gencrypto.InfraEnvKey)
 	case auth.TypeNone:
 		token = ""

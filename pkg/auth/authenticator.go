@@ -13,10 +13,11 @@ import (
 type AuthType string
 
 const (
-	TypeEmpty AuthType = ""
-	TypeNone  AuthType = "none"
-	TypeRHSSO AuthType = "rhsso"
-	TypeLocal AuthType = "local"
+	TypeEmpty      AuthType = ""
+	TypeNone       AuthType = "none"
+	TypeRHSSO      AuthType = "rhsso"
+	TypeLocal      AuthType = "local"
+	TypeAgentLocal AuthType = "agent-installer-local"
 )
 
 type Authenticator interface {
@@ -40,6 +41,7 @@ type Config struct {
 	AdminUsers                 []string `envconfig:"ADMIN_USERS" default:""`
 	EnableOrgTenancy           bool     `envconfig:"ENABLE_ORG_TENANCY" default:"false"`
 	EnableOrgBasedFeatureGates bool     `envconfig:"ENABLE_ORG_BASED_FEATURE_GATES" default:"false"`
+	ECPrivateKeyPEM            string   `envconfig:"EC_PRIVATE_KEY_PEM"`
 }
 
 func NewAuthenticator(cfg *Config, ocmClient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) (a Authenticator, err error) {
@@ -50,6 +52,8 @@ func NewAuthenticator(cfg *Config, ocmClient *ocm.Client, log logrus.FieldLogger
 		a = NewNoneAuthenticator(log)
 	case TypeLocal:
 		a, err = NewLocalAuthenticator(cfg, log, db)
+	case TypeAgentLocal:
+		a, err = NewAgentLocalAuthenticator(cfg, log, db)
 	default:
 		err = fmt.Errorf("invalid authenticator type %v", cfg.AuthType)
 	}
