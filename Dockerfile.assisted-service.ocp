@@ -1,8 +1,5 @@
-# URGENT! ART metadata configuration has a different number of FROMs
-# than this Dockerfile. ART will be unable to build your component or
-# reconcile this Dockerfile until that disparity is addressed.
 # Build binaries
-FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.20-openshift-4.15 AS builder
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.21-openshift-4.16 AS builder
 WORKDIR /src
 COPY . .
 
@@ -13,16 +10,15 @@ RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o
 RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
 
 
-FROM registry.ci.openshift.org/ocp/4.15:cli AS oc-image
 # Create final image
-FROM registry.ci.openshift.org/ocp/4.15:base
+FROM registry.ci.openshift.org/ocp/4.16:base-rhel9
 
 LABEL io.openshift.release.operator=true
 
 # multiarch images need skopeo until WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
 # ToDo: Replace postgres with SQLite DB
 # https://issues.redhat.com/browse/AGENT-223
-RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo && dnf clean all
+RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo openshift-clients && dnf clean all
 
 RUN dnf update libksba libxml2 -y && dnf clean all
 
@@ -34,8 +30,6 @@ RUN su - postgres -c "/usr/bin/initdb -D /tmp/postgres/data"
 ARG WORK_DIR=/data
 
 RUN mkdir $WORK_DIR && chmod 775 $WORK_DIR
-
-COPY --from=oc-image /usr/bin/oc /usr/local/bin/
 
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /build/assisted-service-operator /assisted-service-operator
