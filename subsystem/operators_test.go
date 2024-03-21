@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
+	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
@@ -62,7 +63,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			c := &common.Cluster{Cluster: *cluster}
 
 			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
-				Expect(operators.IsEnabled(c.MonitoredOperators, builtinOperator.Name)).Should(BeTrue())
+				Expect(operatorscommon.HasOperator(c.MonitoredOperators, builtinOperator.Name)).Should(BeTrue())
 			}
 		})
 
@@ -89,7 +90,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 			cluster = getClusterReply.GetPayload()
 			c := &common.Cluster{Cluster: *cluster}
-			Expect(operators.IsEnabled(c.MonitoredOperators, newOperator)).Should(BeTrue())
+			Expect(operatorscommon.HasOperator(c.MonitoredOperators, newOperator)).Should(BeTrue())
 		})
 	})
 
@@ -134,8 +135,8 @@ var _ = Describe("Operators endpoint tests", func() {
 				Expect(err2).ToNot(HaveOccurred())
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
-				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
-				Expect(operators.IsEnabled(c.MonitoredOperators, odf.Operator.Name)).Should(BeTrue())
+				Expect(operatorscommon.HasOperator(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
+				Expect(operatorscommon.HasOperator(c.MonitoredOperators, odf.Operator.Name)).Should(BeTrue())
 				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)}, models.Usage{Name: strings.ToUpper(odf.Operator.Name)})
 			})
 
@@ -153,8 +154,8 @@ var _ = Describe("Operators endpoint tests", func() {
 				Expect(err).ToNot(HaveOccurred())
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
-				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
-				Expect(operators.IsEnabled(c.MonitoredOperators, odf.Operator.Name)).Should(BeFalse())
+				Expect(operatorscommon.HasOperator(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
+				Expect(operatorscommon.HasOperator(c.MonitoredOperators, odf.Operator.Name)).Should(BeFalse())
 				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)})
 			})
 		})

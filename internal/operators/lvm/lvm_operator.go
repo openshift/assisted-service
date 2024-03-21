@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/sirupsen/logrus"
@@ -16,10 +17,13 @@ import (
 
 // operator is an ODF LVM OLM operator plugin; it implements api.Operator
 type operator struct {
-	log       logrus.FieldLogger
-	Config    *Config
-	extracter oc.Extracter
+	log                         logrus.FieldLogger
+	Config                      *Config
+	extracter                   oc.Extracter
+	additionalDiskRequirementGB int64
 }
+
+const defaultStorageClassName = "lvms-" + defaultDeviceName
 
 var Operator = models.MonitoredOperator{
 	Name:             "lvm",
@@ -57,6 +61,14 @@ func (o *operator) GetFullName() string {
 	return "Logical Volume Management"
 }
 
+func (o *operator) StorageClassName() string {
+	return defaultStorageClassName
+}
+
+func (o *operator) SetAdditionalDiskRequirements(additionalSizeGB int64) {
+	o.additionalDiskRequirementGB = additionalSizeGB
+}
+
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return make([]string, 0), nil
@@ -74,8 +86,8 @@ func (o *operator) GetHostValidationID() string {
 
 // ValidateCluster always return "valid" result
 func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
-	if ok, _ := common.BaseVersionLessThan(o.Config.LvmMinOpenshiftVersion, cluster.OpenshiftVersion); ok {
-		message := fmt.Sprintf("Logical Volume Manager is only supported for openshift versions %s and above", o.Config.LvmMinOpenshiftVersion)
+	if ok, _ := common.BaseVersionLessThan(LvmoMinOpenshiftVersion, cluster.OpenshiftVersion); ok {
+		message := fmt.Sprintf("Logical Volume Manager is only supported for openshift versions %s and above", LvmoMinOpenshiftVersion)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 
@@ -101,12 +113,16 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, err
 	}
 
-	diskCount := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+	diskCount, _ := operatorscommon.NonInstallationDiskCount(inventory.Disks, host.InstallationDiskID, o.additionalDiskRequirementGB)
 
 	role := common.GetEffectiveRole(host)
 	areSchedulable := common.AreMastersSchedulable(cluster)
+	minSizeMessage := ""
+	if o.additionalDiskRequirementGB > 0 {
+		minSizeMessage = fmt.Sprintf(" of %dGB minimum", o.additionalDiskRequirementGB)
+	}
+	message := fmt.Sprintf("Logical Volume Manager requires at least one non-installation HDD/SSD disk%s on the host", minSizeMessage)
 
-	message := "Logical Volume Manager requires at least one non-installation HDD/SSD disk on the host"
 	if role == models.HostRoleWorker || areSchedulable {
 		if diskCount == 0 {
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil

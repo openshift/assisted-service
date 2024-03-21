@@ -56,3 +56,10 @@ type Operator interface {
 	// GetFeatureSupportID returns the operator unique feature-support ID
 	GetFeatureSupportID() models.FeatureSupportLevelID
 }
+
+// Storage Operator provide a generic API for storage operators
+type StorageOperator interface {
+	Operator
+	StorageClassName() string
+	SetAdditionalDiskRequirements(additionalSizeGB int64)
+}

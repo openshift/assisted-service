@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -2906,7 +2907,7 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 			continue
 		}
 
-		if !operators.IsEnabled(updateOLMOperators, clusterOperator.Name) {
+		if !operatorscommon.HasOperator(updateOLMOperators, clusterOperator.Name) {
 			removedOLMOperators = append(removedOLMOperators, clusterOperator)
 			if err = db.Where("name = ? and cluster_id = ?", clusterOperator.Name, params.ClusterID).Delete(&models.MonitoredOperator{}).Error; err != nil {
 				err = errors.Wrapf(err, "failed to delete operator %s of cluster %s", clusterOperator.Name, params.ClusterID)
@@ -3859,7 +3860,7 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 		return nil, err
 	}
 	var consoleURL string
-	if b.clusterApi.IsOperatorMonitored(&cluster, operators.OperatorConsole.Name) {
+	if operatorscommon.HasOperator(cluster.Cluster.MonitoredOperators, operators.OperatorConsole.Name) {
 		if !b.clusterApi.IsOperatorAvailable(&cluster, operators.OperatorConsole.Name) {
 			err := errors.New("console-url isn't available yet, it will be once console operator is ready as part of cluster finalizing stage")
 			log.WithError(err)

@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -206,4 +207,11 @@ func (o *operator) GetSupportedArchitectures() []string {
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDMCE
+}
+
+func GetMinDiskSizeGB(cluster *models.Cluster) int64 {
+	if common.IsSingleNodeCluster(&common.Cluster{Cluster: *cluster}) {
+		return lo.Sum(lo.Values(storageSizeGi))
+	}
+	return lo.Max(lo.Values(storageSizeGi))
 }

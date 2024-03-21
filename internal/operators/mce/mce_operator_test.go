@@ -93,3 +93,22 @@ var _ = Describe("MCE Operator", func() {
 		)
 	})
 })
+
+var _ = Describe("GetMinDiskSizeGB", func() {
+	var (
+		fullHaMode = models.ClusterHighAvailabilityModeFull
+		snoMode    = models.ClusterHighAvailabilityModeNone
+	)
+	It("should return the sum of all required PVCs when cluster is SNO", func() {
+		cluster := &models.Cluster{HighAvailabilityMode: &snoMode}
+		minDiskSize := GetMinDiskSizeGB(cluster)
+		expectedMinDiskSize := int64(70)
+		Expect(expectedMinDiskSize).To(Equal(minDiskSize))
+	})
+	It("should return the maximum value of any required PVCs when cluster is HA", func() {
+		cluster := &models.Cluster{HighAvailabilityMode: &fullHaMode}
+		minDiskSize := GetMinDiskSizeGB(cluster)
+		expectedMinDiskSize := int64(50)
+		Expect(expectedMinDiskSize).To(Equal(minDiskSize))
+	})
+})

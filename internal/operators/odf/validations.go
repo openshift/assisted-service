@@ -8,7 +8,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/pkg/conversions"
 )
 
 type Config struct {
@@ -64,6 +63,16 @@ func (o *operator) validateRequirements(cluster *models.Cluster) (api.Validation
 	return api.Failure, status
 }
 
+func isHostRoleDefined(host *models.Host, isCompactMode bool) bool {
+	role := common.GetEffectiveRole(host)
+	return role != models.HostRoleAutoAssign || isCompactMode
+}
+
+func canHostRunODF(host *models.Host, isCompactMode bool) bool {
+	role := common.GetEffectiveRole(host)
+	return role == models.HostRoleWorker || isCompactMode
+}
+
 func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, odfClusterResources *odfClusterResourcesInfo) (string, error) {
 	var status string
 	var err error
@@ -77,21 +86,13 @@ func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, odfClusterR
 		We ignore the role check for a cluster of 3 nodes as they will all be master nodes. ODF validations will proceed as for a compact deployment.
 		*/
 
-		role := common.GetEffectiveRole(host)
-		if !isCompactMode {
-			if role == models.HostRoleAutoAssign {
-				status = "For ODF Standard Mode, all host roles must be assigned to master or worker."
-				err = errors.New("Role is set to auto-assign for host ")
-				return status, err
-			}
-			if role == models.HostRoleWorker {
-				status, err = o.computeNodeResourceUtil(host, odfClusterResources, standardMode)
-				if err != nil {
-					return status, err
-				}
-			}
-		} else {
-			status, err = o.computeNodeResourceUtil(host, odfClusterResources, compactMode)
+		if !isHostRoleDefined(host, isCompactMode) {
+			status = "For ODF Standard Mode, all host roles must be assigned to master or worker."
+			err = errors.New("Role is set to auto-assign for host ")
+			return status, err
+		}
+		if canHostRunODF(host, isCompactMode) {
+			status, err = o.computeNodeResourceUtil(cluster, host, odfClusterResources)
 			if err != nil {
 				return status, err
 			}
@@ -101,7 +102,7 @@ func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, odfClusterR
 	return status, nil
 }
 
-func (o *operator) computeNodeResourceUtil(host *models.Host, odfClusterResources *odfClusterResourcesInfo, mode odfDeploymentMode) (string, error) {
+func (o *operator) computeNodeResourceUtil(cluster *models.Cluster, host *models.Host, odfClusterResources *odfClusterResourcesInfo) (string, error) {
 	var status string
 
 	// if inventory is empty, return an error
@@ -115,7 +116,7 @@ func (o *operator) computeNodeResourceUtil(host *models.Host, odfClusterResource
 		return status, err
 	}
 
-	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, mode)
+	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, cluster)
 	if err != nil {
 		return err.Error(), err
 	}
@@ -163,24 +164,4 @@ func (o *operator) setStatusInsufficientResources(odfClusterResources *odfCluste
 	}
 
 	return status
-}
-
-// count all disks of drive type ssd or hdd
-func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID string, mode odfDeploymentMode) (int64, error) {
-	var countEligibleDisks int64
-	var countRegularDisks int64
-
-	for _, disk := range disks {
-		if (disk.DriveType == models.DriveTypeSSD || disk.DriveType == models.DriveTypeHDD) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
-			if disk.SizeBytes >= conversions.GbToBytes(o.config.ODFMinDiskSizeGB) {
-				countEligibleDisks++
-			} else {
-				countRegularDisks++
-			}
-		}
-	}
-	if countEligibleDisks == 0 && countRegularDisks > 0 {
-		return countEligibleDisks, fmt.Errorf("Insufficient resources to deploy ODF in %s mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of %d GB minimum and an installation disk.", strings.ToLower(string(mode)), o.config.ODFMinDiskSizeGB)
-	}
-	return countEligibleDisks, nil
 }

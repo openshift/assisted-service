@@ -3,16 +3,20 @@ package odf
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 )
+
+const defaultStorageClassName = "ocs-storagecluster-cephfs"
 
 var OcsOperator = models.MonitoredOperator{
 	Name:             "ocs",
@@ -31,9 +35,10 @@ func NewOcsOperator(log logrus.FieldLogger) *operator {
 
 // operator is an ODF OLM operator plugin; it implements api.Operator
 type operator struct {
-	log       logrus.FieldLogger
-	config    *Config
-	extracter oc.Extracter
+	log                         logrus.FieldLogger
+	config                      *Config
+	extracter                   oc.Extracter
+	additionalDiskRequirementGB int64
 }
 
 var Operator = models.MonitoredOperator{
@@ -101,6 +106,31 @@ func getODFDeploymentMode(numOfHosts int) odfDeploymentMode {
 	return standardMode
 }
 
+func (o *operator) StorageClassName() string {
+	return defaultStorageClassName
+}
+
+func (o *operator) SetAdditionalDiskRequirements(additionalSizeGB int64) {
+	o.additionalDiskRequirementGB = additionalSizeGB
+}
+
+func (o *operator) getMinDiskSizeGB() int64 {
+	return o.config.ODFMinDiskSizeGB + o.additionalDiskRequirementGB
+}
+
+// Get valid disk count, and return error if no disk available
+func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID string, cluster *models.Cluster) (int64, error) {
+	numOfHosts := len(cluster.Hosts)
+	mode := getODFDeploymentMode(numOfHosts)
+
+	eligibleDisks, availableDisks := operatorscommon.NonInstallationDiskCount(disks, installationDiskID, o.getMinDiskSizeGB())
+	var err error
+	if eligibleDisks == 0 && availableDisks > 0 {
+		err = fmt.Errorf("Insufficient resources to deploy ODF in %s mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of %d GB minimum and an installation disk.", strings.ToLower(string(mode)), o.getMinDiskSizeGB())
+	}
+	return eligibleDisks, err
+}
+
 // ValidateHost verifies whether this operator is valid for given host
 func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
 	numOfHosts := len(cluster.Hosts)
@@ -115,8 +145,8 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 
 	mode := getODFDeploymentMode(numOfHosts)
 
-	// GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size
-	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, mode)
+	// getValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size
+	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, &cluster.Cluster)
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
@@ -167,8 +197,8 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 // GetHostRequirements provides operator's requirements towards the host
 func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	numOfHosts := len(cluster.Hosts)
-
 	mode := getODFDeploymentMode(numOfHosts)
+
 	var diskCount int64 = 0
 	if host.Inventory != "" {
 		inventory, err := common.UnmarshalInventory(host.Inventory)
@@ -176,12 +206,13 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 			return nil, err
 		}
 
-		/* GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size,
+		/* getValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size,
 		we ignore the error as its treated as 500 in the UI */
-		diskCount, _ = o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, mode)
+		diskCount, _ = o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, &cluster.Cluster)
 	}
 
 	role := common.GetEffectiveRole(host)
+
 	if mode == compactMode {
 		var reqDisks int64 = 1
 		if diskCount > 0 {
