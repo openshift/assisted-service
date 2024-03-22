@@ -72,6 +72,7 @@ type TransitionHandler interface {
 	PostRefreshFinalizingStageSoftTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	SoftTimeoutsEnabled(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
 	FinalizingStageTimeoutMinutes(sCluster *stateCluster) interface{}
+	InstallationTimeoutMinutes(_ *stateCluster) interface{}
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -652,6 +653,10 @@ func (th *transitionHandler) finalizingStageTimeoutMinutes(sCluster *stateCluste
 
 func (th *transitionHandler) FinalizingStageTimeoutMinutes(sCluster *stateCluster) interface{} {
 	return th.finalizingStageTimeoutMinutes(sCluster)
+}
+
+func (th *transitionHandler) InstallationTimeoutMinutes(_ *stateCluster) interface{} {
+	return int64(th.installationTimeout.Minutes())
 }
 
 func (th *transitionHandler) PostRefreshFinalizingStageSoftTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {

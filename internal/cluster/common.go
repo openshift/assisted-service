@@ -39,6 +39,7 @@ const (
 	statusInfoPendingForInput                 = "User input required"
 	statusInfoError                           = "cluster has hosts in error"
 	statusInfoTimeout                         = "cluster installation timed out while pending user action (a manual booting from installation disk)"
+	statusInfoInstallationTimeout             = "cluster installation timeout (%d minutes) has expired"
 	statusInfoAddingHosts                     = "cluster is adding hosts to existing OCP cluster"
 	statusInfoInstallingPendingUserAction     = "Cluster has hosts pending user action"
 	statusInfoUnpreparingHostExists           = "At least one host has stopped preparing for installation"
