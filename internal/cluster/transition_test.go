@@ -13,6 +13,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -4693,6 +4694,87 @@ var _ = Describe("ValidationResult sort", func() {
 	})
 })
 
+var _ = Describe("installation timeout", func() {
+	var (
+		db               *gorm.DB
+		clusterId        strfmt.UUID
+		clusterApi       *Manager
+		mockEvents       *eventsapi.MockHandler
+		mockHostAPI      *host.MockAPI
+		mockMetric       *metrics.MockAPI
+		ctrl             *gomock.Controller
+		dbName           string
+		operatorsManager *operators.Manager
+		mockS3Api        *s3wrapper.MockAPI
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		mockS3Api = s3wrapper.NewMockAPI(ctrl)
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		clusterId = strfmt.UUID(uuid.New().String())
+		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, true)
+	})
+	createCluster := func(status, statusInfo string, installStartedAt time.Time) *common.Cluster {
+		id := strfmt.UUID(uuid.NewString())
+		infraenvId := strfmt.UUID(uuid.NewString())
+		cls := &common.Cluster{
+			Cluster: models.Cluster{
+				ID:                     &clusterId,
+				Status:                 swag.String(status),
+				StatusInfo:             swag.String(statusInfo),
+				InstallStartedAt:       strfmt.DateTime(installStartedAt),
+				OpenshiftVersion:       "4.15",
+				EmailDomain:            "redhat.com",
+				OrgSoftTimeoutsEnabled: true,
+				HighAvailabilityMode:   swag.String(models.ClusterHighAvailabilityModeNone),
+				Hosts: []*models.Host{
+					{
+						ID:         &id,
+						InfraEnvID: infraenvId,
+						ClusterID:  &clusterId,
+						Status:     swag.String(models.HostStatusInstallingInProgress),
+						Role:       models.HostRoleMaster,
+					},
+				},
+			},
+		}
+		Expect(db.Create(cls).Error).ToNot(HaveOccurred())
+		return cls
+	}
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+	DescribeTable("installation timeout cases",
+		func(status, statusInfo string, installStartedAt time.Time, timeoutExpected bool) {
+			cls := createCluster(status, statusInfo, installStartedAt)
+			if timeoutExpected {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)
+				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(),
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			}
+			returnedCluster, err := clusterApi.RefreshStatus(context.Background(), cls, db)
+			Expect(err).ToNot(HaveOccurred())
+			if timeoutExpected {
+				Expect(swag.StringValue(returnedCluster.Status)).To(Equal(models.ClusterStatusError))
+				Expect(swag.StringValue(returnedCluster.StatusInfo)).To(Equal(fmt.Sprintf(statusInfoInstallationTimeout, int64((24 * time.Hour).Minutes()))))
+			} else {
+				Expect(swag.StringValue(returnedCluster.Status)).To(Equal(status))
+			}
+		},
+		Entry("timeout expired for installing status", models.ClusterStatusInstalling, statusInfoInstalling, time.Now().Add(-24*time.Hour), true),
+		Entry("timeout not expired for installing status", models.ClusterStatusInstalling, statusInfoInstalling, time.Now().Add(-23*time.Hour), false),
+		Entry("timeout expired for finalizing status", models.ClusterStatusFinalizing, statusInfoFinalizing, time.Now().Add(-24*time.Hour), true),
+		Entry("timeout not expired for finalizing status", models.ClusterStatusFinalizing, statusInfoFinalizing, time.Now().Add(-23*time.Hour), false),
+	)
+})
+
 var _ = Describe("finalizing timeouts", func() {
 	var (
 		ctx              = context.Background()
@@ -4737,6 +4819,7 @@ var _ = Describe("finalizing timeouts", func() {
 					FinalizingStageStartedAt: strfmt.DateTime(stageTimestamp),
 				},
 				OrgSoftTimeoutsEnabled: true,
+				InstallStartedAt:       strfmt.DateTime(time.Now()),
 			},
 		}
 		Expect(db.Create(cls).Error).ToNot(HaveOccurred())

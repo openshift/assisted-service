@@ -62,6 +62,20 @@ func (mr *MockTransitionHandlerMockRecorder) InstallCluster(sw, args interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallCluster", reflect.TypeOf((*MockTransitionHandler)(nil).InstallCluster), sw, args)
 }
 
+// InstallationTimeoutMinutes mocks base method.
+func (m *MockTransitionHandler) InstallationTimeoutMinutes(arg0 *stateCluster) interface{} {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InstallationTimeoutMinutes", arg0)
+	ret0, _ := ret[0].(interface{})
+	return ret0
+}
+
+// InstallationTimeoutMinutes indicates an expected call of InstallationTimeoutMinutes.
+func (mr *MockTransitionHandlerMockRecorder) InstallationTimeoutMinutes(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallationTimeoutMinutes", reflect.TypeOf((*MockTransitionHandler)(nil).InstallationTimeoutMinutes), arg0)
+}
+
 // IsFinalizing mocks base method.
 func (m *MockTransitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	m.ctrl.T.Helper()
