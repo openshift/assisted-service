@@ -116,14 +116,14 @@ func ConnectConfig(ctx context.Context, connConfig *ConnConfig) (*Conn, error) {
 // ParseConfig creates a ConnConfig from a connection string. ParseConfig handles all options that pgconn.ParseConfig
 // does. In addition, it accepts the following options:
 //
-// 	statement_cache_capacity
-// 		The maximum size of the automatic statement cache. Set to 0 to disable automatic statement caching. Default: 512.
+//	statement_cache_capacity
+//		The maximum size of the automatic statement cache. Set to 0 to disable automatic statement caching. Default: 512.
 //
-// 	statement_cache_mode
-// 		Possible values: "prepare" and "describe". "prepare" will create prepared statements on the PostgreSQL server.
-// 		"describe" will use the anonymous prepared statement to describe a statement without creating a statement on the
-// 		server. "describe" is primarily useful when the environment does not allow prepared statements such as when
-// 		running a connection pooler like PgBouncer. Default: "prepare"
+//	statement_cache_mode
+//		Possible values: "prepare" and "describe". "prepare" will create prepared statements on the PostgreSQL server.
+//		"describe" will use the anonymous prepared statement to describe a statement without creating a statement on the
+//		server. "describe" is primarily useful when the environment does not allow prepared statements such as when
+//		running a connection pooler like PgBouncer. Default: "prepare"
 //
 //	prefer_simple_protocol
 //		Possible values: "true" and "false". Use the simple protocol instead of extended protocol. Default: false
@@ -535,9 +535,13 @@ type QueryResultFormats []int16
 // QueryResultFormatsByOID controls the result format (text=0, binary=1) of a query by the result column OID.
 type QueryResultFormatsByOID map[uint32]int16
 
-// Query executes sql with args. It is safe to attempt to read from the returned Rows even if an error is returned. The
-// error will be the available in rows.Err() after rows are closed. So it is allowed to ignore the error returned from
-// Query and handle it in Rows.
+// Query sends a query to the server and returns a Rows to read the results. Only errors encountered sending the query
+// and initializing Rows will be returned. Err() on the returned Rows must be checked after the Rows is closed to
+// determine if the query executed successfully.
+//
+// The returned Rows must be closed before the connection can be used again. It is safe to attempt to read from the
+// returned Rows even if an error is returned. The error will be the available in rows.Err() after rows are closed. It
+// is allowed to ignore the error returned from Query and handle it in Rows.
 //
 // Err() on the returned Rows must be checked after the Rows is closed to determine if the query executed successfully
 // as some errors can only be detected by reading the entire response. e.g. A divide by zero error on the last row.
@@ -645,7 +649,7 @@ optionLoop:
 		resultFormats = c.eqb.resultFormats
 	}
 
-	if c.stmtcache != nil && c.stmtcache.Mode() == stmtcache.ModeDescribe {
+	if c.stmtcache != nil && c.stmtcache.Mode() == stmtcache.ModeDescribe && !ok {
 		rows.resultReader = c.pgConn.ExecParams(ctx, sql, c.eqb.paramValues, sd.ParamOIDs, c.eqb.paramFormats, resultFormats)
 	} else {
 		rows.resultReader = c.pgConn.ExecPrepared(ctx, sd.Name, c.eqb.paramValues, c.eqb.paramFormats, resultFormats)
@@ -710,6 +714,8 @@ func (c *Conn) QueryFunc(ctx context.Context, sql string, args []interface{}, sc
 // explicit transaction control statements are executed. The returned BatchResults must be closed before the connection
 // is used again.
 func (c *Conn) SendBatch(ctx context.Context, b *Batch) BatchResults {
+	startTime := time.Now()
+
 	simpleProtocol := c.config.PreferSimpleProtocol
 	var sb strings.Builder
 	if simpleProtocol {
@@ -768,23 +774,23 @@ func (c *Conn) SendBatch(ctx context.Context, b *Batch) BatchResults {
 			var err error
 			sd, err = stmtCache.Get(ctx, bi.query)
 			if err != nil {
-				return &batchResults{ctx: ctx, conn: c, err: err}
+				return c.logBatchResults(ctx, startTime, &batchResults{ctx: ctx, conn: c, err: err})
 			}
 		}
 
 		if len(sd.ParamOIDs) != len(bi.arguments) {
-			return &batchResults{ctx: ctx, conn: c, err: fmt.Errorf("mismatched param and argument count")}
+			return c.logBatchResults(ctx, startTime, &batchResults{ctx: ctx, conn: c, err: fmt.Errorf("mismatched param and argument count")})
 		}
 
 		args, err := convertDriverValuers(bi.arguments)
 		if err != nil {
-			return &batchResults{ctx: ctx, conn: c, err: err}
+			return c.logBatchResults(ctx, startTime, &batchResults{ctx: ctx, conn: c, err: err})
 		}
 
 		for i := range args {
 			err = c.eqb.AppendParam(c.connInfo, sd.ParamOIDs[i], args[i])
 			if err != nil {
-				return &batchResults{ctx: ctx, conn: c, err: err}
+				return c.logBatchResults(ctx, startTime, &batchResults{ctx: ctx, conn: c, err: err})
 			}
 		}
 
@@ -803,13 +809,30 @@ func (c *Conn) SendBatch(ctx context.Context, b *Batch) BatchResults {
 
 	mrr := c.pgConn.ExecBatch(ctx, batch)
 
-	return &batchResults{
+	return c.logBatchResults(ctx, startTime, &batchResults{
 		ctx:  ctx,
 		conn: c,
 		mrr:  mrr,
 		b:    b,
 		ix:   0,
+	})
+}
+
+func (c *Conn) logBatchResults(ctx context.Context, startTime time.Time, results *batchResults) BatchResults {
+	if results.err != nil {
+		if c.shouldLog(LogLevelError) {
+			endTime := time.Now()
+			c.log(ctx, LogLevelError, "SendBatch", map[string]interface{}{"err": results.err, "time": endTime.Sub(startTime)})
+		}
+		return results
 	}
+
+	if c.shouldLog(LogLevelInfo) {
+		endTime := time.Now()
+		c.log(ctx, LogLevelInfo, "SendBatch", map[string]interface{}{"batchLen": results.b.Len(), "time": endTime.Sub(startTime)})
+	}
+
+	return results
 }
 
 func (c *Conn) sanitizeForSimpleQuery(sql string, args ...interface{}) (string, error) {
