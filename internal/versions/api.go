@@ -12,7 +12,9 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type Versions struct {
@@ -27,7 +29,7 @@ type apiHandler struct {
 	authzHandler    auth.Authorizer
 	versions        Versions
 	log             logrus.FieldLogger
-	versionsHandler *handler
+	versionsHandler Handler
 	osImages        OSImages
 	releaseSources  models.ReleaseSources
 }
@@ -38,7 +40,7 @@ func NewAPIHandler(
 	log logrus.FieldLogger,
 	versions Versions,
 	authzHandler auth.Authorizer,
-	versionsHandler *handler,
+	versionHandler Handler,
 	osImages OSImages,
 	releaseSources models.ReleaseSources,
 ) restapi.VersionsAPI {
@@ -46,7 +48,7 @@ func NewAPIHandler(
 		authzHandler:    authzHandler,
 		versions:        versions,
 		log:             log,
-		versionsHandler: versionsHandler,
+		versionsHandler: versionHandler,
 		osImages:        osImages,
 		releaseSources:  releaseSources,
 	}
@@ -73,25 +75,149 @@ func GetModelVersions(v Versions) models.Versions {
 	}
 }
 
+// getLatestReleaseImageForMajorMinor returns the latest release image matching a given major.minor version,
+// or error if none of the release images match. The latest release image is considered the latest none beta release image,
+// or if all matching release images are beta then just the latest.
+func getLatestReleaseImageForMajorMinor(releaseImages models.ReleaseImages, majorMinorVersion string) (*models.ReleaseImage, error) {
+	var latestReleaseImage *models.ReleaseImage
+	for _, releaseImage := range releaseImages {
+		// Typically, releaseImage.OpenshiftVersion follow the major.minor format, though exceptions exist with static release images.
+		currentMajorMinorVersion, err := common.GetMajorMinorVersion(*releaseImage.OpenshiftVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		if *currentMajorMinorVersion != majorMinorVersion {
+			continue
+		}
+
+		if latestReleaseImage == nil {
+			latestReleaseImage = releaseImage
+		}
+
+		isNewest, err := common.BaseVersionLessThan(*releaseImage.Version, *latestReleaseImage.Version)
+		if err != nil {
+			return nil, err
+		}
+
+		// none-beta > beta, later-beta > beta
+		if latestReleaseImage.SupportLevel == models.OpenshiftVersionSupportLevelBeta {
+			if isNewest || releaseImage.SupportLevel != models.OpenshiftVersionSupportLevelBeta {
+				latestReleaseImage = releaseImage
+			}
+		} else { // non-beta-later > non-beta
+			if isNewest && releaseImage.SupportLevel != models.OpenshiftVersionSupportLevelBeta {
+				latestReleaseImage = releaseImage
+			}
+		}
+	}
+
+	return latestReleaseImage, nil
+}
+
+func filterReleaseImagesByOnlyLatest(releaseImages models.ReleaseImages, onlyLatest *bool) (models.ReleaseImages, error) {
+	if !swag.BoolValue(onlyLatest) {
+		return releaseImages, nil
+	}
+
+	// Get all relevant major.minor openshift versions
+	releaseImagesMajorMinorVersionsSet := map[string]bool{}
+	for _, releaseImage := range releaseImages {
+		// Typically, releaseImage.OpenshiftVersion follow the major.minor format, though exceptions exist with static release images.
+		majorMinorVersion, err := common.GetMajorMinorVersion(*releaseImage.OpenshiftVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		releaseImagesMajorMinorVersionsSet[*majorMinorVersion] = true
+	}
+
+	filteredReleaseImages := models.ReleaseImages{}
+	for majorMinorVersion := range releaseImagesMajorMinorVersionsSet {
+		latestReleaseImageForMajorMinor, err := getLatestReleaseImageForMajorMinor(releaseImages, majorMinorVersion)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error occurred while trying to get the latest release image for version: %s", majorMinorVersion)
+		}
+		filteredReleaseImages = append(filteredReleaseImages, latestReleaseImageForMajorMinor)
+	}
+
+	return filteredReleaseImages, nil
+}
+
+func filterReleaseImagesByVersion(releaseImages models.ReleaseImages, versionPattern *string) models.ReleaseImages {
+	if versionPattern == nil {
+		return releaseImages
+	}
+
+	filterdReleaseImagesInterface := funk.Filter(releaseImages, func(releaseImage *models.ReleaseImage) bool {
+		return strings.Contains(*releaseImage.Version, *versionPattern)
+	})
+
+	return filterdReleaseImagesInterface.([]*models.ReleaseImage) // models.ReleaseImages does not work for convertion
+}
+
+func filterIgnoredVersions(log logrus.FieldLogger, releaseImages models.ReleaseImages, ignoredVersions []string) models.ReleaseImages {
+	return funk.Filter(releaseImages, func(releaseImage *models.ReleaseImage) bool {
+		version := strings.TrimSuffix(*releaseImage.Version, "-multi")
+
+		majorMinorVersion, err := common.GetMajorMinorVersion(version)
+		if err != nil {
+			log.WithError(err).Debugf("error occurred while trying to get the major.minor version of '%s', filtering this version out", version)
+			return false
+		}
+
+		return !funk.Contains(ignoredVersions, version) && !funk.Contains(ignoredVersions, *majorMinorVersion)
+	}).([]*models.ReleaseImage)
+}
+
+func getReleaseImageSupportLevel(releaseImage *models.ReleaseImage) (*string, error) {
+	if releaseImage.SupportLevel != "" {
+		return &releaseImage.SupportLevel, nil
+	}
+
+	isPreRelease, err := common.IsVersionPreRelease(*releaseImage.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	if *isPreRelease {
+		return swag.String(models.ReleaseImageSupportLevelBeta), nil
+	}
+
+	return swag.String(models.ReleaseImageSupportLevelProduction), nil
+}
+
 func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
+	handler, ok := h.versionsHandler.(*restAPIVersionsHandler)
+	// Should not happen
+	if !ok {
+		return common.GenerateErrorResponder(errors.New("KubeAPI version handler found in restAPI mode"))
+	}
+
 	openshiftVersions := models.OpenshiftVersions{}
 	hasMultiarchAuthorization := false
 	checkedForMultiarchAuthorization := false
 
-	for _, releaseImage := range h.versionsHandler.releaseImages {
-		supportedArchs := releaseImage.CPUArchitectures
-		// We need to have backwards-compatibility for release images that provide supported
-		// architecture only as string and not []string. This code should be unreachable as
-		// at this moment we should have already propagated []string in the init handler for
-		// Versions, but for safety an additional check is added here.
-		if len(supportedArchs) == 0 {
-			supportedArchs = []string{*releaseImage.CPUArchitecture}
-		}
+	var releaseImages models.ReleaseImages
+	err := handler.db.Find(&releaseImages).Error
+	if err != nil {
+		return common.GenerateErrorResponder(errors.Wrap(err, "error occurred while trying to get release images from DB"))
+	}
 
+	releaseImages = filterIgnoredVersions(h.log, releaseImages, handler.ignoredOpenshiftVersions)
+	releaseImagesByVersionPattern := filterReleaseImagesByVersion(releaseImages, params.Version)
+	releaseImagesByOnlyLatest, err := filterReleaseImagesByOnlyLatest(releaseImages, params.OnlyLatest)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	// We don't want the order of filtering to have an impact
+	releaseImages = funk.Join(releaseImagesByVersionPattern, releaseImagesByOnlyLatest, funk.InnerJoin).([]*models.ReleaseImage)
+
+	for _, releaseImage := range releaseImages {
 		// (MGMT-11859) We are filtering out multiarch release images so that they are available
 		//              only for customers allowed to use them. This is in order to be able to
 		//              expose them in OCP pre-4.13 without making them generally available.
-		if len(supportedArchs) > 1 {
+		if len(releaseImage.CPUArchitectures) > 1 {
 			if !checkedForMultiarchAuthorization {
 				var err error
 				hasMultiarchAuthorization, err = h.authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
@@ -107,8 +233,14 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 			}
 		}
 
-		for _, arch := range supportedArchs {
-			key := *releaseImage.OpenshiftVersion
+		supportLevel, err := getReleaseImageSupportLevel(releaseImage)
+		if err != nil {
+			h.log.Debug("error occurred while trying to get the support level of release image version '%s'", *releaseImage.Version)
+			continue
+		}
+
+		for _, arch := range releaseImage.CPUArchitectures {
+			displayName := *releaseImage.Version
 			if arch == "" {
 				// Empty implies default architecture
 				arch = common.DefaultCPUArchitecture
@@ -116,8 +248,8 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 
 			// In order to mark a specific version and architecture as supported we do not
 			// only need to have an available release image, but we need RHCOS image as well.
-			if _, err := h.osImages.GetOsImage(key, arch); err != nil {
-				h.log.Debugf("Marking architecture %s for version %s as not available because no matching OS image found", arch, key)
+			if _, err := h.osImages.GetOsImage(displayName, arch); err != nil {
+				h.log.Debugf("Marking architecture %s for version %s as not available because no matching OS image found", arch, displayName)
 				continue
 			}
 
@@ -125,37 +257,28 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 			// their DisplayName to contain an appropriate suffix. If the suffix comes from the
 			// JSON definition we do nothing, but in case it's missing there (because CVO is not
 			// reporting it), we add it ourselves.
-			displayName := *releaseImage.Version
-			if len(supportedArchs) > 1 && !strings.HasSuffix(displayName, "-multi") {
+			if len(releaseImage.CPUArchitectures) > 1 && !strings.HasSuffix(displayName, "-multi") {
 				displayName = displayName + "-multi"
 			}
 
-			openshiftVersion, exists := openshiftVersions[key]
+			openshiftVersion, exists := openshiftVersions[displayName]
 			if !exists {
 				openshiftVersion = models.OpenshiftVersion{
 					CPUArchitectures: []string{arch},
 					Default:          releaseImage.Default,
 					DisplayName:      swag.String(displayName),
-					SupportLevel:     getSupportLevel(*releaseImage),
+					SupportLevel:     supportLevel,
 				}
-				openshiftVersions[key] = openshiftVersion
+				openshiftVersions[displayName] = openshiftVersion
 			} else {
 				// For backwards compatibility we handle a scenario when single-arch image exists
 				// next to the multi-arch one containing the same architecture. We want to avoid
 				// duplicated entry in such a case.
-				exists := func(slice []string, x string) bool {
-					for _, elem := range slice {
-						if x == elem {
-							return true
-						}
-					}
-					return false
-				}
-				if !exists(openshiftVersion.CPUArchitectures, arch) {
+				if !funk.Contains(openshiftVersion.CPUArchitectures, arch) {
 					openshiftVersion.CPUArchitectures = append(openshiftVersion.CPUArchitectures, arch)
 				}
 				openshiftVersion.Default = releaseImage.Default || openshiftVersion.Default
-				openshiftVersions[key] = openshiftVersion
+				openshiftVersions[displayName] = openshiftVersion
 			}
 		}
 	}
@@ -164,18 +287,4 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 
 func (r *apiHandler) V2ListReleaseSources(ctx context.Context, params operations.V2ListReleaseSourcesParams) middleware.Responder {
 	return operations.NewV2ListReleaseSourcesOK().WithPayload(r.releaseSources)
-}
-
-func getSupportLevel(releaseImage models.ReleaseImage) *string {
-	if releaseImage.SupportLevel != "" {
-		return &releaseImage.SupportLevel
-	}
-
-	preReleases := []string{"-fc", "-rc", "nightly"}
-	for _, preRelease := range preReleases {
-		if strings.Contains(*releaseImage.Version, preRelease) {
-			return swag.String(models.OpenshiftVersionSupportLevelBeta)
-		}
-	}
-	return swag.String(models.OpenshiftVersionSupportLevelProduction)
 }

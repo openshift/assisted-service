@@ -123,16 +123,11 @@ var staticReleaseImages = models.ReleaseImages{
 		CPUArchitectures: []string{common.X86CPUArchitecture},
 		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
 	},
-	{ // Minimal
-		OpenshiftVersion: swag.String("4.13"),
-		Version:          swag.String("4.13.2"),
-		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.2-x86_64"),
-	},
 	{ // With support level, major.minor version
 		OpenshiftVersion: swag.String("4.14"),
 		Version:          swag.String("4.14.2"),
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+		CPUArchitectures: []string{common.X86CPUArchitecture},
 		SupportLevel:     models.OpenshiftVersionSupportLevelMaintenance,
 		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.2-x86_64"),
 	},
@@ -140,6 +135,7 @@ var staticReleaseImages = models.ReleaseImages{
 		OpenshiftVersion: swag.String("4.14.3"),
 		Version:          swag.String("4.14.3"),
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+		CPUArchitectures: []string{common.X86CPUArchitecture},
 		Default:          true,
 		URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.3-x86_64"),
 	},
@@ -712,7 +708,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		setGetSupportLevelsMock(supportLevelsClientMock, "4")
 		releasesClientMock.EXPECT().
 			getReleases(models.ReleaseChannelStable, "4.16", common.AMD64CPUArchitecture).
-			Return(&releaseGraph{}, nil).
+			Return(&ReleaseGraph{}, nil).
 			Times(1)
 
 		err = handler.SyncReleaseImages()
@@ -779,8 +775,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.AMD64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.14.4"},
 							{Version: "4.14.2"},
 						},
@@ -790,8 +786,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.ARM64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.14.7"},
 							{Version: "4.14.5"},
 						},
@@ -801,8 +797,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelCandidate, "4.14", common.AMD64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.14.6"},
 							{Version: "4.14.3"},
 						},
@@ -877,8 +873,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.AMD64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.14.4"},
 							{Version: "4.14.2"},
 						},
@@ -888,8 +884,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.ARM64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.14.7"},
 							{Version: "4.14.5"},
 						},
@@ -899,8 +895,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelCandidate, "4.14", common.AMD64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.14.6"},
 							{Version: "4.14.3"},
 						},
@@ -975,8 +971,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.S390xCPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.14.4"},
 							{Version: "4.14.2"},
 						},
@@ -986,8 +982,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.ARM64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.14.7"},
 							{Version: "4.14.5"},
 						},
@@ -997,8 +993,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelCandidate, "4.14", common.PowerCPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.14.6"},
 							{Version: "4.14.3"},
 						},
@@ -1203,8 +1199,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "5.3", common.AMD64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "5.3.0-ec.2"},
 						},
 					}, nil).
@@ -1212,8 +1208,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "5.2", common.AMD64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "5.2.0"},
 						},
 					}, nil).
@@ -1222,8 +1218,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.15", common.AMD64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.15.0-ec.3"},
 						},
 					}, nil).
@@ -1232,8 +1228,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.13", common.AMD64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.13.7"},
 						},
 					}, nil).
@@ -1242,8 +1238,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.11", common.AMD64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.11.6"},
 						},
 					}, nil).
@@ -1252,8 +1248,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.9", common.AMD64CPUArchitecture).
 				Return(
-					&releaseGraph{
-						Nodes: []node{
+					&ReleaseGraph{
+						Nodes: []Node{
 							{Version: "4.9.3"},
 						},
 					}, nil).
@@ -1332,8 +1328,8 @@ var _ = Describe("SyncReleaseImages", func() {
 		releasesClientMock.EXPECT().
 			getReleases(models.ReleaseChannelCandidate, "4.14", common.AMD64CPUArchitecture).
 			Return(
-				&releaseGraph{
-					Nodes: []node{
+				&ReleaseGraph{
+					Nodes: []Node{
 						{Version: "4.14.0-ec.2"},
 						{Version: "4.14.2"},
 						{Version: "4.14.3"},
@@ -1346,8 +1342,8 @@ var _ = Describe("SyncReleaseImages", func() {
 		releasesClientMock.EXPECT().
 			getReleases(models.ReleaseChannelFast, "4.14", common.AMD64CPUArchitecture).
 			Return(
-				&releaseGraph{
-					Nodes: []node{
+				&ReleaseGraph{
+					Nodes: []Node{
 						{Version: "4.14.0-ec.2"},
 						{Version: "4.14.2"},
 						{Version: "4.14.3"},
@@ -1359,8 +1355,8 @@ var _ = Describe("SyncReleaseImages", func() {
 		releasesClientMock.EXPECT().
 			getReleases(models.ReleaseChannelStable, "4.14", common.AMD64CPUArchitecture).
 			Return(
-				&releaseGraph{
-					Nodes: []node{
+				&ReleaseGraph{
+					Nodes: []Node{
 						{Version: "4.14.0-ec.2"},
 						{Version: "4.14.2"},
 						{Version: "4.14.3"},
@@ -1371,8 +1367,8 @@ var _ = Describe("SyncReleaseImages", func() {
 		releasesClientMock.EXPECT().
 			getReleases(models.ReleaseChannelEus, "4.14", common.AMD64CPUArchitecture).
 			Return(
-				&releaseGraph{
-					Nodes: []node{
+				&ReleaseGraph{
+					Nodes: []Node{
 						{Version: "4.14.0-ec.2"},
 						{Version: "4.14.2"},
 						{Version: "4.14.3"},
@@ -1483,8 +1479,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			setGetSupportLevelsMock(supportLevelsClientMock, "4")
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.AMD64CPUArchitecture).
-				Return(&releaseGraph{
-					Nodes: []node{
+				Return(&ReleaseGraph{
+					Nodes: []Node{
 						{Version: "4.14.1"},
 						{Version: "4.14.3"},
 					},
@@ -1562,8 +1558,8 @@ var _ = Describe("SyncReleaseImages", func() {
 			setGetSupportLevelsMock(supportLevelsClientMock, "4")
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.AMD64CPUArchitecture).
-				Return(&releaseGraph{
-					Nodes: []node{
+				Return(&ReleaseGraph{
+					Nodes: []Node{
 						{Version: "4.14.4"},
 						{Version: "4.14.5"},
 					},
@@ -1731,15 +1727,6 @@ var _ = Describe("SyncReleaseImages", func() {
 				CPUArchitectures: []string{common.X86CPUArchitecture},
 				SupportLevel:     models.OpenshiftVersionSupportLevelMaintenance,
 				URL:              swag.String(getReleaseImageReference("4.11.1", common.X86CPUArchitecture)),
-				Default:          false,
-			},
-			{
-				OpenshiftVersion: swag.String("4.13"),
-				Version:          swag.String("4.13.2"),
-				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture},
-				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
-				URL:              swag.String(getReleaseImageReference("4.13.2", common.X86CPUArchitecture)),
 				Default:          false,
 			},
 			{

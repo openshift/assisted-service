@@ -2,8 +2,10 @@ package subsystem
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/versions"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/sirupsen/logrus"
@@ -30,8 +33,8 @@ var db *gorm.DB
 var log *logrus.Logger
 var wiremock *WireMock
 var kubeClient k8sclient.Client
-var openshiftVersion string = "4.9.0-0.0"
-var snoVersion string = "4.9"
+var openshiftVersion string = "4.11"
+var snoVersion string = "4.11"
 var multiarchOpenshiftVersion string = "4.11.0-multi"
 var dualstackVipsOpenShiftVersion string = "4.12.0"
 var VipAutoAllocOpenshiftVersion string = "4.14.0"
@@ -72,6 +75,7 @@ var Options struct {
 	Namespace               string        `envconfig:"NAMESPACE" default:"assisted-installer"`
 	EnableKubeAPI           bool          `envconfig:"ENABLE_KUBE_API" default:"false"`
 	DeregisterInactiveAfter time.Duration `envconfig:"DELETED_INACTIVE_AFTER" default:"480h"` // 20d
+	ReleaseSources          string        `envconfig:"RELEASE_SOURCES" default:""`
 }
 
 func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {
@@ -146,11 +150,19 @@ func init() {
 	}
 
 	if Options.AuthType == auth.TypeRHSSO {
-		wiremock = &WireMock{
-			OCMHost:   Options.OCMHost,
-			TestToken: Options.TestToken,
+		releaseSourcesString := os.Getenv("RELEASE_SOURCES")
+		var releaseSources = models.ReleaseSources{}
+		if err := json.Unmarshal([]byte(releaseSourcesString), &releaseSources); err != nil {
+			logrus.Fatal("Fail to parse release sources, ", err)
 		}
-		err = wiremock.DeleteAllWiremockStubs()
+
+		wiremock = &WireMock{
+			OCMHost:        Options.OCMHost,
+			TestToken:      Options.TestToken,
+			ReleaseSources: releaseSources,
+		}
+
+		err := wiremock.DeleteAllWiremockStubs()
 		if err != nil {
 			logrus.Fatal("Fail to delete all wiremock stubs, ", err)
 		}

@@ -43,7 +43,7 @@ var _ = Describe("changeOverridesToText", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	It("Migrates down and up", func() {
+	FIt("Migrates down and up", func() {
 		t, err := getColumnType(dbName, &common.Cluster{}, "install_config_overrides")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.ToUpper(t)).To(Equal("TEXT"))

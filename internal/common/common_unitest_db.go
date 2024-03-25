@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	. "github.com/onsi/gomega"
-	"github.com/ory/dockertest/v3"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -53,12 +52,6 @@ type K8SDBContext struct {
 	client *k8s.Clientset
 }
 
-// DockerDBContext runs postgresql as a docker container
-type DockerDBContext struct {
-	resource *dockertest.Resource
-	pool     *dockertest.Pool
-}
-
 // NoDBContext
 type NoDBContext struct{}
 
@@ -74,47 +67,8 @@ func (c *NoDBContext) GetHostPort() (string, string) {
 	return "127.0.0.1", dbDefaultPort
 }
 
-func getDockerClient() (*DockerDBContext, error) {
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return nil, err
-	}
-	return &DockerDBContext{pool: pool}, nil
-}
-
-func (c *DockerDBContext) Create() error {
-	//cleanup any old instances of the DB
-	if oldResource, isFound := c.pool.ContainerByName(dbDockerName); isFound {
-		oldResource.Close()
-	}
-	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: "quay.io/centos7/postgresql-12-centos7",
-		Tag:        "latest",
-		Env:        []string{"POSTGRESQL_ADMIN_PASSWORD=admin"},
-		Name:       dbDockerName,
-	})
-	if err != nil {
-		return err
-	}
-
-	c.resource = resource
-	return nil
-}
-
-func (c *DockerDBContext) Teardown() {
-	Expect(c.pool).ShouldNot(BeNil())
-	err := c.pool.Purge(c.resource)
-	Expect(err).ShouldNot(HaveOccurred())
-	c.pool = nil
-}
-
-func (c *DockerDBContext) GetHostPort() (string, string) {
-	host := "127.0.0.1"
-	port := dbDefaultPort
-	if c.resource != nil {
-		port = c.resource.GetPort(fmt.Sprintf("%s/tcp", dbDefaultPort))
-	}
-	return host, port
+func getTestContainersClient() *TestContainersDBContext {
+	return &TestContainersDBContext{}
 }
 
 func getK8sClient() (*K8SDBContext, error) {
@@ -320,12 +274,12 @@ func getDBContext() DBContext {
 			return k8sContext
 		}
 	}
-	dockerContext, err := getDockerClient()
+
+	testContainersContext := getTestContainersClient()
+	err = testContainersContext.Create()
 	Expect(err).ShouldNot(HaveOccurred())
-	err = dockerContext.Create()
-	Expect(err).ShouldNot(HaveOccurred())
-	gDbCtx = dockerContext
-	return dockerContext
+	gDbCtx = testContainersContext
+	return testContainersContext
 }
 
 func InitializeDBTest() {

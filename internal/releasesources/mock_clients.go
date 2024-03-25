@@ -35,10 +35,10 @@ func (m *MockopenShiftReleasesAPIClientInterface) EXPECT() *MockopenShiftRelease
 }
 
 // getReleases mocks base method.
-func (m *MockopenShiftReleasesAPIClientInterface) getReleases(channel models.ReleaseChannel, openshiftVersion, cpuArchitecture string) (*releaseGraph, error) {
+func (m *MockopenShiftReleasesAPIClientInterface) getReleases(channel models.ReleaseChannel, openshiftVersion, cpuArchitecture string) (*ReleaseGraph, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "getReleases", channel, openshiftVersion, cpuArchitecture)
-	ret0, _ := ret[0].(*releaseGraph)
+	ret0, _ := ret[0].(*ReleaseGraph)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

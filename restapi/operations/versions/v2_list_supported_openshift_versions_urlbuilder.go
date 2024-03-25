@@ -9,11 +9,18 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
+
+	"github.com/go-openapi/swag"
 )
 
 // V2ListSupportedOpenshiftVersionsURL generates an URL for the v2 list supported openshift versions operation
 type V2ListSupportedOpenshiftVersionsURL struct {
+	OnlyLatest *bool
+	Version    *string
+
 	_basePath string
+	// avoid unkeyed usage
+	_ struct{}
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
@@ -42,6 +49,26 @@ func (o *V2ListSupportedOpenshiftVersionsURL) Build() (*url.URL, error) {
 		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var onlyLatestQ string
+	if o.OnlyLatest != nil {
+		onlyLatestQ = swag.FormatBool(*o.OnlyLatest)
+	}
+	if onlyLatestQ != "" {
+		qs.Set("only_latest", onlyLatestQ)
+	}
+
+	var versionQ string
+	if o.Version != nil {
+		versionQ = *o.Version
+	}
+	if versionQ != "" {
+		qs.Set("version", versionQ)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }

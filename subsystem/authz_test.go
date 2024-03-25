@@ -56,16 +56,24 @@ var _ = Describe("test authorization", func() {
 		capabilityReviewAdminStubID, err = wiremock.createStubBareMetalCapabilityReview(fakePayloadAdmin, true)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewMultiarchNotallowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(fakePayloadUsername, OrgId1, false)
+		capabilityReviewMultiarchNotallowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(
+			fakePayloadUsername, OrgId1, false,
+		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewMultiarchAllowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(fakePayloadUsername2, OrgId2, true)
+		capabilityReviewMultiarchAllowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(
+			fakePayloadUsername2, OrgId2, true,
+		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewIgnoreValidationsNotallowedUserStubID, err = wiremock.createStubIgnoreValidationsCapabilityReview(fakePayloadUsername, OrgId1, false)
+		capabilityReviewIgnoreValidationsNotallowedUserStubID, err = wiremock.createStubIgnoreValidationsCapabilityReview(
+			fakePayloadUsername, OrgId1, false,
+		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewIgnoreValidationsAllowedUserStubID, err = wiremock.createStubIgnoreValidationsCapabilityReview(fakePayloadUsername2, OrgId2, true)
+		capabilityReviewIgnoreValidationsAllowedUserStubID, err = wiremock.createStubIgnoreValidationsCapabilityReview(
+			fakePayloadUsername2, OrgId2, true,
+		)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
