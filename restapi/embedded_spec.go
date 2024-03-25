@@ -5663,6 +5663,20 @@ func init() {
           "versions"
         ],
         "operationId": "v2ListSupportedOpenshiftVersions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Retrieves only the versions that contain the specified substring in their display name.",
+            "name": "version",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "If true, returns only the latest version for each minor.",
+            "name": "only_latest",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
@@ -16316,6 +16330,20 @@ func init() {
           "versions"
         ],
         "operationId": "v2ListSupportedOpenshiftVersions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Retrieves only the versions that contain the specified substring in their display name.",
+            "name": "version",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "If true, returns only the latest version for each minor.",
+            "name": "only_latest",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",

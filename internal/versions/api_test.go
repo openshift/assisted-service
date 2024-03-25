@@ -23,7 +23,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var _ = Describe("ListComponentVersions", func() {
+var _ = Describe("V2ListComponentVersions", func() {
 	var (
 		h *apiHandler
 	)
@@ -41,7 +41,7 @@ var _ = Describe("ListComponentVersions", func() {
 			log:             common.GetTestLog(),
 			versions:        versions,
 			authzHandler:    nil,
-			versionsHandler: &handler{},
+			versionsHandler: &restAPIVersionsHandler{},
 		}
 	})
 
@@ -58,17 +58,16 @@ var _ = Describe("ListComponentVersions", func() {
 	})
 })
 
-var _ = Describe("ListSupportedOpenshiftVersions", func() {
+var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 	var (
-		db           *gorm.DB
-		dbName       string
-		ctrl         *gomock.Controller
-		mockRelease  *oc.MockRelease
-		versions     Versions
-		authzHandler auth.Authorizer
-
-		logger          = common.GetTestLog()
-		cpuArchitecture = common.TestDefaultConfig.CPUArchitecture
+		db            *gorm.DB
+		dbName        string
+		ctrl          *gomock.Controller
+		mockRelease   *oc.MockRelease
+		versions      Versions
+		authzHandler  auth.Authorizer
+		logger        = common.GetTestLog()
+		enableKubeAPI = false
 	)
 
 	BeforeEach(func() {
@@ -86,7 +85,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	readDefaultOsImages := func() OSImages {
+	It("Should read defaults from data directory successfully", func() {
 		bytes, err := os.ReadFile("../../data/default_os_images.json")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -94,292 +93,870 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		err = json.Unmarshal(bytes, &osImages)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		osi, err := NewOSImages(osImages)
+		// validate fields
+		_, err = NewOSImages(osImages)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		return osi
-	}
-
-	readDefaultReleaseImages := func(osImages OSImages) *handler {
-		bytes, err := os.ReadFile("../../data/default_release_images.json")
+		bytes, err = os.ReadFile("../../data/default_release_images.json")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		releaseImages := &models.ReleaseImages{}
 		err = json.Unmarshal(bytes, releaseImages)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		versionsHandler, err := NewHandler(logger, mockRelease, *releaseImages, nil, "", nil)
+		// validate fields
+		_, err = NewHandler(logger, mockRelease, *releaseImages, nil, "", nil, nil, nil, enableKubeAPI, nil)
 		Expect(err).ShouldNot(HaveOccurred())
-		return versionsHandler
-	}
-
-	It("get_defaults from data directory", func() {
-		osImages := readDefaultOsImages()
-		versionsHandler := readDefaultReleaseImages(osImages)
-
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
-		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
-		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
-		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
-		defaultExists := false
-
-		for _, releaseImage := range versionsHandler.releaseImages {
-			key := *releaseImage.OpenshiftVersion
-			version := val.Payload[key]
-			architecture := *releaseImage.CPUArchitecture
-			architectures := releaseImage.CPUArchitectures
-			defaultExists = defaultExists || releaseImage.Default
-			if len(architectures) < 2 {
-				// For single-arch release we require in the test that there is a matching
-				// OS image for the provided release image. Otherwise the whole release image
-				// is not usable and indicates a mistake.
-				if architecture == "" {
-					architecture = common.CPUArchitecture
-				}
-				if architecture == common.CPUArchitecture {
-					Expect(version.Default).Should(Equal(releaseImage.Default))
-				}
-				Expect(version.CPUArchitectures).Should(ContainElement(architecture))
-				Expect(version.DisplayName).Should(Equal(releaseImage.Version))
-				Expect(version.SupportLevel).Should(Equal(getSupportLevel(*releaseImage)))
-			} else {
-				// For multi-arch release we don't require a strict matching for every
-				// architecture supported by this image. As long as we have at least one OS
-				// image that matches, we are okay. This is to allow setups where release
-				// image supports more architectures than we have available RHCOS images.
-				Expect(len(version.CPUArchitectures)).ShouldNot(Equal(0))
-				Expect(*version.DisplayName).Should(ContainSubstring(*releaseImage.Version))
-				Expect(version.SupportLevel).Should(Equal(getSupportLevel(*releaseImage)))
-			}
-		}
-
-		// We want to make sure after parsing the default file, there is always a release
-		// image marked as default. It is not desired to have a service without anything
-		// to default to.
-		Expect(defaultExists).Should(Equal(true))
 	})
 
-	It("getSupportLevel", func() {
-		releaseImage := models.ReleaseImage{
-			CPUArchitecture:  &cpuArchitecture,
-			OpenshiftVersion: &common.TestDefaultConfig.OpenShiftVersion,
-			URL:              &common.TestDefaultConfig.ReleaseImageUrl,
-			Version:          &common.TestDefaultConfig.ReleaseVersion,
-		}
+	It("Should not cause an error with no release images in the DB", func() {
+		handler, err := NewHandler(logger, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+		Expect(err).ShouldNot(HaveOccurred())
 
-		// Production release version
-		releaseImage.Version = swag.String("4.9.0")
-		Expect(*getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
+		apiHandler := NewAPIHandler(logger, versions, authzHandler, handler, nil, nil)
 
-		// Beta release version
-		releaseImage.Version = swag.String("4.9.0-rc.4")
-		Expect(*getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelBeta))
-
-		// Support level specified in release image
-		releaseImage.SupportLevel = models.OpenshiftVersionSupportLevelProduction
-		Expect(*getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
-	})
-
-	It("missing release images", func() {
-		osImages := readDefaultOsImages()
-		versionsHandler, err := NewHandler(logger, mockRelease, models.ReleaseImages{}, nil, "", nil)
-		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
-		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
+		reply := apiHandler.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 		Expect(val.Payload).Should(BeEmpty())
 	})
 
-	It("release image without cpu_architectures field", func() {
+	It("Should retrieve only release images with matching OS image", func() {
 		releaseImages := models.ReleaseImages{
-			// This image uses a syntax with missing "cpu_architectures". It is crafted
-			// in order to make sure the change in MGMT-11494 is backwards-compatible.
-			&models.ReleaseImage{
+			{
+
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-				CPUArchitectures: []string{},
-				OpenshiftVersion: swag.String("4.11.1"),
-				URL:              swag.String("release_4.11.1"),
-				Default:          true,
-				Version:          swag.String("4.11.1-chocobomb-for-test"),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.14"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.11-x86_64"),
+				Version:          swag.String("4.14.11"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				CPUArchitectures: []string{common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.14"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.11-aarch64"),
+				Version:          swag.String("4.14.11"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+		}
+		err := db.Create(&releaseImages).Error
+		Expect(err).ToNot(HaveOccurred())
+
+		osImages := osImageList{
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.14/4.14.0/rhcos-4.14.0-x86_64-live.x86_64.iso"),
+				Version:          swag.String("414.92.202310170514-0"),
 			},
 		}
 
-		osImages := readDefaultOsImages()
-		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
+		expectedPayload := models.OpenshiftVersions{
+			"4.14.11": {
+				DisplayName:      swag.String("4.14.11"),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+				Default:          false,
+			},
+		}
+
+		handler, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
+		h := NewAPIHandler(logger, versions, authzHandler, handler, osImages, nil)
 
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
-
-		version := val.Payload["4.11.1"]
-		Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
-		Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test")))
-		Expect(version.Default).Should(Equal(true))
+		Expect(val.Payload).To(Equal(expectedPayload))
 	})
 
-	It("release image without matching OS image", func() {
-		releaseImages := models.ReleaseImages{
-			&models.ReleaseImage{
-				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture, "risc-v"},
-				OpenshiftVersion: swag.String("4.11.1"),
-				URL:              swag.String("release_4.11.1"),
-				Default:          true,
-				Version:          swag.String("4.11.1-chocobomb-for-test-multi"),
-			},
-		}
-		osImages := readDefaultOsImages()
-		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
-		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
-
-		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
-		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
-		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
-
-		version := val.Payload["4.11.1"]
-		Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
-		Expect(version.CPUArchitectures).ShouldNot(ContainElement("risc-v"))
-		Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test-multi")))
-		Expect(version.Default).Should(Equal(true))
-	})
-
-	It("single-arch and multi-arch for the same version", func() {
+	It("Should have two different keys for single-arch and multi-arch of the same version", func() {
 		releaseImages := models.ReleaseImages{
 			// Those images provide the same architecture using single-arch as well as multi-arch
 			// release images. This is to test if in this scenario we don't return duplicated
 			// entries in the supported architectures list.
-			&models.ReleaseImage{
-				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
-				CPUArchitectures: []string{common.ARM64CPUArchitecture},
-				OpenshiftVersion: swag.String("4.11.1"),
-				URL:              swag.String("release_4.11.1"),
-				Version:          swag.String("4.11.1-chocobomb-for-test"),
-			},
-			&models.ReleaseImage{
+			{
+
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture},
-				OpenshiftVersion: swag.String("4.11.1"),
-				URL:              swag.String("release_4.11.1"),
-				Version:          swag.String("4.11.1-chocobomb-for-test"),
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
+				Version:          swag.String("4.11.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
 			},
-			&models.ReleaseImage{
+			{
+
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				CPUArchitectures: []string{common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-aarch64"),
+				Version:          swag.String("4.11.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
 				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-				OpenshiftVersion: swag.String("4.11.1"),
-				URL:              swag.String("release_4.11.1"),
-				Default:          true,
-				Version:          swag.String("4.11.1-chocobomb-for-test"),
+				OpenshiftVersion: swag.String("4.11-multi"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-multi"),
+				Version:          swag.String("4.11.1-multi"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
 			},
 		}
-		osImages := readDefaultOsImages()
-		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
+		err := db.Create(&releaseImages).Error
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
+
+		osImages := osImageList{
+			{
+				OpenshiftVersion: swag.String("4.11"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.48/rhcos-4.11.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("411.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.11"),
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.11/4.11.48/rhcos-4.11.48-aarch64-live.aarch64.iso"),
+				Version:          swag.String("411.86.202308081056-0"),
+			},
+		}
+		expectedPayload := models.OpenshiftVersions{
+			"4.11.1": {
+				DisplayName:      swag.String("4.11.1"),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+				Default:          false,
+			},
+			"4.11.1-multi": {
+				DisplayName:      swag.String("4.11.1-multi"),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+				Default:          false,
+			},
+		}
+
+		handler, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+		Expect(err).ToNot(HaveOccurred())
+		h := NewAPIHandler(logger, versions, authzHandler, handler, osImages, nil)
 
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+		Expect(val.Payload).To(Equal(expectedPayload))
 
-		version := val.Payload["4.11.1"]
-		Expect(version.CPUArchitectures).Should(ContainElement(common.ARM64CPUArchitecture))
-		Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
-		Expect(len(version.CPUArchitectures)).Should(Equal(2))
-		Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test")))
-		Expect(version.Default).Should(Equal(true))
 	})
 
-	It("append multi suffix for multi-arch image automatically", func() {
+	It("Should append multi suffix for multi-arch image automatically", func() {
 		releaseImages := models.ReleaseImages{
-			// This image definition does not contain "-multi" suffix anywhere because CVO for it
-			// does not return it. Nevertheless in the UI we want to display it, so we test for
-			// autoappend.
-			&models.ReleaseImage{
+			{
+				// This image definition does not contain "-multi" suffix anywhere because CVO for it
+				// does not return it. Nevertheless in the UI we want to display it, so we test for
+				// autoappend.
 				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-				OpenshiftVersion: swag.String("4.12.1"),
-				URL:              swag.String("release_4.12.1"),
-				Default:          true,
-				Version:          swag.String("4.12.1-chocobomb-for-test"),
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-multi"),
+				Version:          swag.String("4.11.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
 			},
 		}
-		osImages := readDefaultOsImages()
-		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
+		err := db.Create(&releaseImages).Error
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages, nil)
 
+		osImages := osImageList{
+			{
+				OpenshiftVersion: swag.String("4.11"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.48/rhcos-4.11.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("411.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.11"),
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.11/4.11.48/rhcos-4.11.48-aarch64-live.aarch64.iso"),
+				Version:          swag.String("411.86.202308081056-0"),
+			},
+		}
+		expectedPayload := models.OpenshiftVersions{
+			"4.11.1-multi": {
+				DisplayName:      swag.String("4.11.1-multi"),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+				Default:          false,
+			},
+		}
+
+		handler, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+		Expect(err).ToNot(HaveOccurred())
+		h := NewAPIHandler(logger, versions, authzHandler, handler, osImages, nil)
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
-
-		version := val.Payload["4.12.1"]
-		Expect(version.CPUArchitectures).Should(ContainElement(common.ARM64CPUArchitecture))
-		Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
-		Expect(len(version.CPUArchitectures)).Should(Equal(2))
-		Expect(version.DisplayName).Should(Equal(swag.String("4.12.1-chocobomb-for-test-multi")))
-		Expect(version.Default).Should(Equal(true))
+		Expect(val.Payload).To(Equal(expectedPayload))
 	})
-})
 
-var _ = Describe("Test list versions with capability restrictions", func() {
-	var (
-		db            *gorm.DB
-		dbName        string
-		ctrl          *gomock.Controller
-		mockOcmAuthz  *ocm.MockOCMAuthorization
-		mockOcmClient *ocm.Client
-		authCtx       context.Context
-		orgID1        = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
-		userName1     = "test_user_1"
-	)
-
-	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		ctrl = gomock.NewController(GinkgoT())
-		mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
-
-		payload := &ocm.AuthPayload{
-			Username:     userName1,
-			Organization: orgID1,
-			Role:         ocm.UserRole,
+	Context("Test filter by version_pattern query parameter", func() {
+		releaseImages := models.ReleaseImages{
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
+				Version:          swag.String("4.11.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.2-x86_64"),
+				Version:          swag.String("4.11.2"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.2-x86_64"),
+				Version:          swag.String("4.12.2"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.111"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11121-x86_64"),
+				Version:          swag.String("4.111.2"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
 		}
-		authCtx = context.WithValue(context.Background(), restapi.AuthKey, payload)
-		mockOcmClient = &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
-	})
 
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
+		osImages := osImageList{
+			{
+				OpenshiftVersion: swag.String("4.11"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.48/rhcos-4.11.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("411.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.12"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.12/4.12.48/rhcos-4.12.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("412.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.111"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.111/4.111.48/rhcos-4.111.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("4111.86.202308081056-0"),
+			},
+		}
 
-	handlerWithAuthConfig := func(enableOrgBasedFeatureGates bool) restapi.VersionsAPI {
-		cfg := auth.GetConfigRHSSO()
-		cfg.EnableOrgBasedFeatureGates = enableOrgBasedFeatureGates
-		authzHandler := auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog(), db)
+		var handler restapi.VersionsAPI
 
-		osImages, err := NewOSImages(defaultOsImages)
-		Expect(err).ShouldNot(HaveOccurred())
-		versionsHandler, err := NewHandler(common.GetTestLog(), nil, defaultReleaseImages, nil, "", nil)
-		Expect(err).ShouldNot(HaveOccurred())
+		BeforeEach(func() {
+			err := db.Create(&releaseImages).Error
+			Expect(err).ToNot(HaveOccurred())
+			h, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+			Expect(err).ToNot(HaveOccurred())
+			handler = NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
+		})
 
-		return NewAPIHandler(common.GetTestLog(), Versions{}, authzHandler, versionsHandler, osImages, nil)
-	}
+		It("Should return no results when nothing matches", func() {
+			expectedPayload := models.OpenshiftVersions{}
 
-	hasMultiarch := func(versions models.OpenshiftVersions) bool {
-		hasMultiarch := false
-		for _, version := range versions {
-			if strings.HasSuffix(*version.DisplayName, "-multi") {
-				hasMultiarch = true
-				break
+			reply := handler.V2ListSupportedOpenshiftVersions(
+				context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{Version: swag.String("4.10")},
+			)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+
+		It("Should return all results when everything matches", func() {
+			expectedPayload := models.OpenshiftVersions{
+				"4.11.1": {
+					DisplayName:      swag.String("4.11.1"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.11.2": {
+					DisplayName:      swag.String("4.11.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.12.2": {
+					DisplayName:      swag.String("4.12.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.111.2": {
+					DisplayName:      swag.String("4.111.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
 			}
-		}
-		return hasMultiarch
-	}
 
-	Context("V2ListSupportedOpenshiftVersions", func() {
+			reply := handler.V2ListSupportedOpenshiftVersions(
+				context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{Version: swag.String("4.")},
+			)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+
+		It("Should be ignored when is nil", func() {
+			expectedPayload := models.OpenshiftVersions{
+				"4.11.1": {
+					DisplayName:      swag.String("4.11.1"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.11.2": {
+					DisplayName:      swag.String("4.11.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.12.2": {
+					DisplayName:      swag.String("4.12.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.111.2": {
+					DisplayName:      swag.String("4.111.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+			}
+
+			reply := handler.V2ListSupportedOpenshiftVersions(
+				context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{},
+			)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+
+		It("Should filter out non-matching release images", func() {
+			expectedPayload := models.OpenshiftVersions{
+				"4.11.1": {
+					DisplayName:      swag.String("4.11.1"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.11.2": {
+					DisplayName:      swag.String("4.11.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+			}
+
+			reply := handler.V2ListSupportedOpenshiftVersions(
+				context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{Version: swag.String("4.11.")},
+			)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+	})
+
+	Context("Filter by only_latest query parameter", func() {
+		releaseImages := models.ReleaseImages{
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
+				Version:          swag.String("4.11.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.2-x86_64"),
+				Version:          swag.String("4.11.2"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.1-x86_64"),
+				Version:          swag.String("4.12.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.2-x86_64"),
+				Version:          swag.String("4.12.2"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.13"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.1-x86_64"),
+				Version:          swag.String("4.13.1"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.13"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.2-x86_64"),
+				Version:          swag.String("4.13.2"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+			},
+		}
+
+		osImages := osImageList{
+			{
+				OpenshiftVersion: swag.String("4.11"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.48/rhcos-4.11.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("411.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.12"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.12/4.12.48/rhcos-4.12.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("412.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.13"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.13/4.13.48/rhcos-4.13.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("413.86.202308081056-0"),
+			},
+		}
+
+		var handler restapi.VersionsAPI
+
+		BeforeEach(func() {
+			err := db.Create(&releaseImages).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			h, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+			Expect(err).ToNot(HaveOccurred())
+			handler = NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
+		})
+
+		It("Should be ignored when is nil", func() {
+			expectedPayload := models.OpenshiftVersions{
+				"4.11.1": {
+					DisplayName:      swag.String("4.11.1"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.11.2": {
+					DisplayName:      swag.String("4.11.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.12.1": {
+					DisplayName:      swag.String("4.12.1"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.12.2": {
+					DisplayName:      swag.String("4.12.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.OpenshiftVersionSupportLevelBeta),
+					Default:          false,
+				},
+				"4.13.1": {
+					DisplayName:      swag.String("4.13.1"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.OpenshiftVersionSupportLevelBeta),
+					Default:          false,
+				},
+				"4.13.2": {
+					DisplayName:      swag.String("4.13.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.OpenshiftVersionSupportLevelBeta),
+					Default:          false,
+				},
+			}
+
+			reply := handler.V2ListSupportedOpenshiftVersions(
+				context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{},
+			)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+
+		It("Should return only the latest (stable) for each minor when set to true", func() {
+			expectedPayload := models.OpenshiftVersions{
+				"4.11.2": {
+					DisplayName:      swag.String("4.11.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.12.1": {
+					DisplayName:      swag.String("4.12.1"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.13.2": {
+					DisplayName:      swag.String("4.13.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.OpenshiftVersionSupportLevelBeta),
+					Default:          false,
+				},
+			}
+
+			reply := handler.V2ListSupportedOpenshiftVersions(
+				context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{OnlyLatest: swag.Bool(true)},
+			)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+	})
+
+	Context("Filter by both version_pattern and only_latest parameters", func() {
+		releaseImages := models.ReleaseImages{
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
+				Version:          swag.String("4.11.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.2-x86_64"),
+				Version:          swag.String("4.11.2"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.1-x86_64"),
+				Version:          swag.String("4.12.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.2-x86_64"),
+				Version:          swag.String("4.12.2"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.13"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.1-x86_64"),
+				Version:          swag.String("4.13.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+		}
+
+		osImages := osImageList{
+			{
+				OpenshiftVersion: swag.String("4.11"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.48/rhcos-4.11.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("411.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.12"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.12/4.12.48/rhcos-4.12.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("412.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.13"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.13/4.13.48/rhcos-4.13.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("413.86.202308081056-0"),
+			},
+		}
+
+		var handler restapi.VersionsAPI
+
+		BeforeEach(func() {
+			err := db.Create(&releaseImages).Error
+			Expect(err).ToNot(HaveOccurred())
+			h, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+			Expect(err).ToNot(HaveOccurred())
+			handler = NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
+		})
+
+		It("Should get the latest 4.12 versions successfully", func() {
+			expectedPayload := models.OpenshiftVersions{
+				"4.12.2": {
+					DisplayName:      swag.String("4.12.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+			}
+
+			reply := handler.V2ListSupportedOpenshiftVersions(
+				context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{
+					Version: swag.String("4.12"), OnlyLatest: swag.Bool(true),
+				},
+			)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+
+		It("Should get the latest 4 versions successfully", func() {
+			expectedPayload := models.OpenshiftVersions{
+				"4.11.2": {
+					DisplayName:      swag.String("4.11.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.12.2": {
+					DisplayName:      swag.String("4.12.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.13.1": {
+					DisplayName:      swag.String("4.13.1"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+			}
+
+			reply := handler.V2ListSupportedOpenshiftVersions(
+				context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{
+					Version: swag.String("4"), OnlyLatest: swag.Bool(true),
+				},
+			)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+
+		It("Should get the latest 4.14 versions successfully", func() {
+			expectedPayload := models.OpenshiftVersions{}
+
+			reply := handler.V2ListSupportedOpenshiftVersions(
+				context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{
+					Version: swag.String("4.14"), OnlyLatest: swag.Bool(true),
+				},
+			)
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+	})
+
+	Context("Test ignoring versions", func() {
+		releaseImages := models.ReleaseImages{
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
+				Version:          swag.String("4.11.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.2-x86_64"),
+				Version:          swag.String("4.11.2"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.1-x86_64"),
+				Version:          swag.String("4.12.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+		}
+
+		osImages := osImageList{
+			{
+				OpenshiftVersion: swag.String("4.11"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.48/rhcos-4.11.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("411.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.12"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.12/4.12.48/rhcos-4.12.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("412.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.13"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.13/4.13.48/rhcos-4.13.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("413.86.202308081056-0"),
+			},
+		}
+
+		BeforeEach(func() {
+			err := db.Create(&releaseImages).Error
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("Ignore all versions should be successful", func() {
+			ignoredVersions := []string{"4.11.1", "4.11.2", "4.12.1"}
+			expectedPayload := models.OpenshiftVersions{}
+
+			h, err := NewHandler(nil, nil, nil, nil, "", nil, ignoredVersions, db, enableKubeAPI, nil)
+			Expect(err).ToNot(HaveOccurred())
+			handler := NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
+
+			reply := handler.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+
+		It("Ignore some off the versions should be successful", func() {
+			ignoredVersions := []string{"4.11.1", "4.12.1"}
+			expectedPayload := models.OpenshiftVersions{
+				"4.11.2": {
+					DisplayName:      swag.String("4.11.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+			}
+
+			h, err := NewHandler(nil, nil, nil, nil, "", nil, ignoredVersions, db, enableKubeAPI, nil)
+			Expect(err).ToNot(HaveOccurred())
+			handler := NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
+
+			reply := handler.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+
+		It("Ignore none of the versions should be successful", func() {
+			ignoredVersions := []string{"4.13.1", "4.13.2"}
+			expectedPayload := models.OpenshiftVersions{
+				"4.11.1": {
+					DisplayName:      swag.String("4.11.1"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.11.2": {
+					DisplayName:      swag.String("4.11.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+				"4.12.1": {
+					DisplayName:      swag.String("4.12.1"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+					Default:          false,
+				},
+			}
+
+			h, err := NewHandler(nil, nil, nil, nil, "", nil, ignoredVersions, db, enableKubeAPI, nil)
+			Expect(err).ToNot(HaveOccurred())
+			handler := NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
+
+			reply := handler.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		})
+	})
+
+	Context("Test list versions with capability restrictions", func() {
+		var (
+			mockOcmAuthz  *ocm.MockOCMAuthorization
+			mockOcmClient *ocm.Client
+			authCtx       context.Context
+			orgID1        = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
+			userName1     = "test_user_1"
+		)
+
+		BeforeEach(func() {
+			mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+			payload := &ocm.AuthPayload{
+				Username:     userName1,
+				Organization: orgID1,
+				Role:         ocm.UserRole,
+			}
+			authCtx = context.WithValue(context.Background(), restapi.AuthKey, payload)
+			mockOcmClient = &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+		})
+
+		handlerWithAuthConfig := func(enableOrgBasedFeatureGates bool) restapi.VersionsAPI {
+			cfg := auth.GetConfigRHSSO()
+			cfg.EnableOrgBasedFeatureGates = enableOrgBasedFeatureGates
+			authzHandler := auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog(), db)
+
+			osImages, err := NewOSImages(defaultOsImages)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			dbReleaseImages := models.ReleaseImages{
+				{
+					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+					OpenshiftVersion: swag.String("4.11"),
+					URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-multi"),
+					Version:          swag.String("4.11.1"),
+					SupportLevel:     models.ReleaseImageSupportLevelProduction,
+				},
+			}
+			err = db.Create(&dbReleaseImages).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			h, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			return NewAPIHandler(common.GetTestLog(), Versions{}, authzHandler, h, osImages, nil)
+		}
+
+		hasMultiarch := func(versions models.OpenshiftVersions) bool {
+			hasMultiarch := false
+			for _, version := range versions {
+				if strings.HasSuffix(*version.DisplayName, "-multi") {
+					hasMultiarch = true
+					break
+				}
+			}
+			return hasMultiarch
+		}
+
 		It("returns multiarch with multiarch capability", func() {
 			h := handlerWithAuthConfig(true)
 			mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
@@ -403,7 +980,7 @@ var _ = Describe("Test list versions with capability restrictions", func() {
 		It("does not return multiarch when capability query fails", func() {
 			h := handlerWithAuthConfig(true)
 
-			mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(false, errors.New("failed to query capability")).Times(2)
+			mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(false, errors.New("failed to query capability")).Times(1)
 			reply := h.V2ListSupportedOpenshiftVersions(authCtx, operations.V2ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 

@@ -179,11 +179,11 @@ var _ = Describe("Cluster with Platform", func() {
 	ctx := context.Background()
 
 	Context("vSphere", func() {
-		It("vSphere  cluster on OCP 4.12 - Success", func() {
+		It("vSphere cluster on OCP 4.12 - Success", func() {
 			cluster, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                 swag.String("test-cluster"),
-					OpenshiftVersion:     swag.String("4.12.0-0.0"),
+					OpenshiftVersion:     swag.String("4.12"),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					PullSecret:           swag.String(pullSecret),
 					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
@@ -193,11 +193,11 @@ var _ = Describe("Cluster with Platform", func() {
 			Expect(*cluster.GetPayload().Platform.Type).Should(Equal(models.PlatformTypeVsphere))
 		})
 
-		It("vSphere  cluster on OCP 4.12 with dual stack - Failure", func() {
+		It("vSphere cluster on OCP 4.12 with dual stack - Failure", func() {
 			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                 swag.String("test-cluster"),
-					OpenshiftVersion:     swag.String("4.12.0-0.0"),
+					OpenshiftVersion:     swag.String("4.12"),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					PullSecret:           swag.String(pullSecret),
 					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
@@ -221,7 +221,7 @@ var _ = Describe("Cluster with Platform", func() {
 			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                 swag.String("test-cluster"),
-					OpenshiftVersion:     swag.String("4.13.0-0.0"),
+					OpenshiftVersion:     swag.String("4.13"),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					PullSecret:           swag.String(pullSecret),
 					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
@@ -2891,7 +2891,7 @@ spec:
 					ClusterNetworks:      []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:      []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:                 swag.String("sno-cluster"),
-					OpenshiftVersion:     swag.String("4.9.0"),
+					OpenshiftVersion:     &openshiftVersion,
 					NoProxy:              swag.String("*"),
 					PullSecret:           swag.String(pullSecret),
 					SSHPublicKey:         sshPublicKey,

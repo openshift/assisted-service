@@ -9,7 +9,10 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewV2ListSupportedOpenshiftVersionsParams creates a new V2ListSupportedOpenshiftVersionsParams object
@@ -28,6 +31,15 @@ type V2ListSupportedOpenshiftVersionsParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
+
+	/*If true, returns only the latest version for each minor.
+	  In: query
+	*/
+	OnlyLatest *bool
+	/*Retrieves only the versions that contain the specified substring in their display name.
+	  In: query
+	*/
+	Version *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -39,8 +51,60 @@ func (o *V2ListSupportedOpenshiftVersionsParams) BindRequest(r *http.Request, ro
 
 	o.HTTPRequest = r
 
+	qs := runtime.Values(r.URL.Query())
+
+	qOnlyLatest, qhkOnlyLatest, _ := qs.GetOK("only_latest")
+	if err := o.bindOnlyLatest(qOnlyLatest, qhkOnlyLatest, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qVersion, qhkVersion, _ := qs.GetOK("version")
+	if err := o.bindVersion(qVersion, qhkVersion, route.Formats); err != nil {
+		res = append(res, err)
+	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindOnlyLatest binds and validates parameter OnlyLatest from query.
+func (o *V2ListSupportedOpenshiftVersionsParams) bindOnlyLatest(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("only_latest", "query", "bool", raw)
+	}
+	o.OnlyLatest = &value
+
+	return nil
+}
+
+// bindVersion binds and validates parameter Version from query.
+func (o *V2ListSupportedOpenshiftVersionsParams) bindVersion(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.Version = &raw
+
 	return nil
 }

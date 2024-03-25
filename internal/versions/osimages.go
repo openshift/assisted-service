@@ -90,7 +90,7 @@ func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture string) (
 		return swag.StringValue(osImage.OpenshiftVersion) == openshiftVersion
 	})
 
-	versionKey, err := toMajorMinor(openshiftVersion)
+	versionKey, err := common.GetMajorMinorVersion(openshiftVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -98,18 +98,18 @@ func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture string) (
 	if osImage == nil {
 		// Fallback to x.y version
 		osImage = funk.Find(archImages, func(osImage *models.OsImage) bool {
-			return *osImage.OpenshiftVersion == versionKey
+			return *osImage.OpenshiftVersion == *versionKey
 		})
 	}
 
 	if osImage == nil {
 		// Find latest available patch version by x.y version
 		osImages := funk.Filter(archImages, func(osImage *models.OsImage) bool {
-			imageVersionKey, err := toMajorMinor(*osImage.OpenshiftVersion)
+			imageVersionKey, err := common.GetMajorMinorVersion(*osImage.OpenshiftVersion)
 			if err != nil {
 				return false
 			}
-			return imageVersionKey == versionKey
+			return *imageVersionKey == *versionKey
 		}).([]*models.OsImage)
 		sort.Slice(osImages, func(i, j int) bool {
 			v1, _ := version.NewVersion(*osImages[i].OpenshiftVersion)
@@ -176,12 +176,12 @@ func (images osImageList) GetOsImageOrLatest(version string, cpuArch string) (*m
 // according to the OS images list.
 func (images osImageList) GetCPUArchitectures(openshiftVersion string) []string {
 	cpuArchitectures := []string{}
-	versionKey, err := toMajorMinor(openshiftVersion)
+	versionKey, err := common.GetMajorMinorVersion(openshiftVersion)
 	if err != nil {
 		return cpuArchitectures
 	}
 	for _, osImage := range images {
-		if *osImage.OpenshiftVersion == openshiftVersion || *osImage.OpenshiftVersion == versionKey {
+		if *osImage.OpenshiftVersion == openshiftVersion || *osImage.OpenshiftVersion == *versionKey {
 			if swag.StringValue(osImage.CPUArchitecture) == "" {
 				// Empty or missing property implies default CPU architecture
 				defaultArch := common.DefaultCPUArchitecture

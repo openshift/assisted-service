@@ -467,10 +467,7 @@ func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, para
 		return nil, errors.Wrapf(err, "Openshift version %s for CPU architecture %s is not supported",
 			swag.StringValue(params.OpenshiftVersion), arch)
 	}
-	if models.OpenshiftVersionSupportLevelMaintenance == releaseImage.SupportLevel {
-		return nil, errors.Errorf("Openshift version %s support level is: %s, and can't be used for creating a new cluster",
-			swag.StringValue(params.OpenshiftVersion), releaseImage.SupportLevel)
-	}
+
 	// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
 	// what is going to be the architecture of InfraEnv and Agent.
 	if len(releaseImage.CPUArchitectures) == 1 {

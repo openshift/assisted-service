@@ -9,6 +9,15 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
+type VersionFormat int
+
+const (
+	NoneVersion VersionFormat = iota
+	MajorVersion
+	MajorMinorVersion
+	MajorMinorPatchVersion
+)
+
 func createTwoVersions(version1, version2 string) (*version.Version, *version.Version, error) {
 	v1, err := version.NewVersion(version1)
 	if err != nil {
@@ -91,4 +100,25 @@ func GetMajorVersion(version string) (*string, error) {
 	}
 
 	return &majorVersion, nil
+}
+
+// GetVersionFormat retruns whether the given version is major / major.minor / major.minor.patch / none
+func GetVersionFormat(v string) VersionFormat {
+	// validate version
+	_, err := version.NewVersion(v)
+	if err != nil {
+		return NoneVersion
+	}
+
+	baseVersion := strings.Split(v, "-")[0]
+	switch len(strings.Split(baseVersion, ".")) {
+	case 1:
+		return MajorVersion
+	case 2:
+		return MajorMinorVersion
+	case 3:
+		return MajorMinorPatchVersion
+	default:
+		return NoneVersion
+	}
 }

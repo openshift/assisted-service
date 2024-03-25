@@ -76,6 +76,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -118,6 +119,7 @@ var Options struct {
 	OperatorsConfig                      operators.Options
 	GCConfig                             garbagecollector.Config
 	ReleaseSourcesConfig                 releasesources.Config
+	IgnoredOpenshiftVersions             string        `envconfig:"IGNORED_OPENSHIFT_VERSIONS" default:""`
 	ClusterStateMonitorInterval          time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	ClusterEventsUploaderInterval        time.Duration `envconfig:"CLUSTER_EVENTS_UPLOADER_INTERVAL" default:"15m"`
 	S3Config                             s3wrapper.Config
@@ -258,14 +260,8 @@ func main() {
 	osImages, err := versions.NewOSImages(osImagesArray)
 	failOnError(err, "Failed to initialize OSImages")
 
-	var releaseImagesArray models.ReleaseImages
-	if Options.ReleaseImages == "" {
-		// ReleaseImages is optional (not used by the operator)
-		releaseImagesArray = models.ReleaseImages{}
-	} else {
-		failOnError(json.Unmarshal([]byte(Options.ReleaseImages), &releaseImagesArray),
-			"Failed to parse RELEASE_IMAGES json %s", Options.ReleaseImages)
-	}
+	var releaseImagesArray = models.ReleaseImages{}
+	parseReleaseImages(&releaseImagesArray, failOnError)
 
 	var releaseSourcesArray = models.ReleaseSources{}
 	if Options.ReleaseSourcesConfig.ReleaseSources != "" {
@@ -273,8 +269,11 @@ func main() {
 			"Failed to parse RELEASE_SOURCES json %s", Options.ReleaseSourcesConfig.ReleaseSources)
 	}
 
-	log.Println(fmt.Sprintf("Started service with OS images %v, Release images %v",
-		Options.OsImages, Options.ReleaseImages))
+	var ignoredOpenshiftVersions = []string{}
+	parseIgnoredOpenshiftVersions(&ignoredOpenshiftVersions, failOnError)
+
+	log.Println(fmt.Sprintf("Started service with OS Images %v, Release Images %v, Release Sources %v, Ignored OpenShift Versions %v",
+		Options.OsImages, Options.ReleaseImages, Options.ReleaseSourcesConfig.ReleaseSources, Options.IgnoredOpenshiftVersions))
 
 	failOnError(os.MkdirAll(Options.BMConfig.ISOCacheDir, 0700), "Failed to create ISO cache directory %s", Options.BMConfig.ISOCacheDir)
 
@@ -328,7 +327,17 @@ func main() {
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 
-	versionHandler, versionsAPIHandler, err := createVersionHandlers(log, ctrlMgr, releaseHandler, osImages, releaseImagesArray, authzHandler, releaseSourcesArray)
+	versionHandler, versionsAPIHandler, err := createVersionHandlers(
+		log,
+		ctrlMgr,
+		releaseHandler,
+		osImages,
+		releaseImagesArray,
+		authzHandler,
+		releaseSourcesArray,
+		ignoredOpenshiftVersions,
+		db,
+	)
 	failOnError(err, "failed to create Versions handlers")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
@@ -434,6 +443,7 @@ func main() {
 	hostStateMonitor.Start()
 	defer hostStateMonitor.Stop()
 
+	addReleaseImagesToDBIfNeeded(db, releaseImagesArray, lead, log, failOnError)
 	openshiftReleaseSyncer := runOpenshiftReleaseSyncerIfNeeded(releaseSourcesArray, releaseImagesArray, db, log, releaseHandler, lead, failOnError)
 	defer stopOpenshiftReleaseSyncerIfNeeded(openshiftReleaseSyncer)
 
@@ -857,6 +867,8 @@ func createVersionHandlers(
 	releaseImagesArray models.ReleaseImages,
 	authzHandler auth.Authorizer,
 	releaseSources models.ReleaseSources,
+	ignoredOpenshiftVersions []string,
+	db *gorm.DB,
 ) (versions.Handler, restapi.VersionsAPI, error) {
 	var versionsClient client.Client
 	if ctrlMgr != nil {
@@ -868,12 +880,31 @@ func createVersionHandlers(
 			return nil, nil, errors.Wrapf(err, "Failed to parse feature must-gather images JSON %s", Options.MustGatherImages)
 		}
 	}
-	versionsHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
-		releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror, versionsClient)
+
+	versionsHandler, err := versions.NewHandler(
+		log.WithField("pkg", "versions"),
+		releaseHandler,
+		releaseImagesArray,
+		mustGatherVersionsMap,
+		Options.ReleaseImageMirror,
+		versionsClient,
+		ignoredOpenshiftVersions,
+		db,
+		Options.EnableKubeAPI,
+		releaseSources,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
-	versionsAPIHandler := versions.NewAPIHandler(log, Options.Versions, authzHandler, versionsHandler, osImages, releaseSources)
+
+	versionsAPIHandler := versions.NewAPIHandler(
+		log,
+		Options.Versions,
+		authzHandler,
+		versionsHandler,
+		osImages,
+		releaseSources,
+	)
 
 	return versionsHandler, versionsAPIHandler, nil
 }
@@ -950,4 +981,71 @@ func stopOpenshiftReleaseSyncerIfNeeded(openShiftReleaseSyncer *thread.Thread) {
 	if openShiftReleaseSyncer != nil {
 		openShiftReleaseSyncer.Stop()
 	}
+}
+
+func addReleaseImagesToDBIfNeeded(
+	db *gorm.DB,
+	releaseImages models.ReleaseImages,
+	lead leader.ElectorInterface,
+	log logrus.FieldLogger,
+	failOnError func(err error, msg string, args ...interface{})) {
+	// If it is kubeAPI mode or release sources was specified (therefore OpenShift Release Syncer will run),
+	// we should not add the release images to the DB.
+	if Options.EnableKubeAPI || Options.ReleaseSourcesConfig.ReleaseSources != "" {
+		return
+	}
+
+	if !lead.IsLeader() {
+		log.Debug("Not a leader, skip adding configuration release images to the DB")
+		return
+	}
+
+	tx := db.Begin()
+
+	var count int64
+	err := tx.Model(&models.ReleaseImage{}).Count(&count).Error
+	failOnError(err, "error occurred while trying to count the initial amount of release images in the DB")
+
+	log.Debugf("Truncating all release_images table. '%d' records", count)
+	if err := tx.Exec("TRUNCATE TABLE release_images").Error; err != nil {
+		tx.Rollback()
+		failOnError(err, "error occurred while trying to delete the release images in the DB")
+	}
+
+	if len(releaseImages) > 0 {
+		log.Debugf("Inserting configuration release images to the DB. '%d' records", len(releaseImages))
+		if err := tx.Create(releaseImages).Error; err != nil {
+			tx.Rollback()
+			failOnError(err, "error occurred while trying to insert the release images to the DB")
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		failOnError(err, "error occurred while commiting changes to the DB")
+	}
+}
+
+func parseIgnoredOpenshiftVersions(ignoredOpenshiftVersions *[]string, failOnError func(err error, msg string, args ...interface{})) {
+	if Options.IgnoredOpenshiftVersions != "" {
+		failOnError(json.Unmarshal([]byte(Options.IgnoredOpenshiftVersions), ignoredOpenshiftVersions),
+			"Failed to parse IGNORED_OPENSHIFT_VERSIONS json %s", Options.IgnoredOpenshiftVersions)
+	}
+}
+
+func parseReleaseImages(releaseImages *models.ReleaseImages, failOnError func(err error, msg string, args ...interface{})) {
+	if Options.ReleaseImages == "" {
+		// ReleaseImages is optional (not used by the operator)
+		return
+	} else {
+		failOnError(json.Unmarshal([]byte(Options.ReleaseImages), releaseImages),
+			"Failed to parse RELEASE_IMAGES json %s", Options.ReleaseImages)
+	}
+
+	// For backward compatibility with release images that lack the CPUArchitectures field.
+	funk.ForEach(*releaseImages, func(releaseImage *models.ReleaseImage) {
+		if releaseImage.CPUArchitectures == nil {
+			releaseImage.CPUArchitectures = []string{*releaseImage.CPUArchitecture}
+		}
+	})
 }

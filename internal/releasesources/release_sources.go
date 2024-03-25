@@ -49,7 +49,7 @@ func NewReleaseSourcesHandler(
 	if err != nil {
 		return nil, errors.Wrapf(err, "error occurred while trying to parse OCM base URL: %s", config.OCMBaseURL)
 	}
-	ocmBaseURL.Path = openshiftUpdateServiceAPIURLPath
+	ocmBaseURL.Path = OpenshiftUpdateServiceAPIURLPath
 	// Currently RED_HAT_PRODUCT_LIFE_CYCLE_DATA_API_BASE_URL=https://access.redhat.com/product-life-cycles/api/v1/products,
 	// which means schema, host and path
 	redHatCustomerPortalBaseURL, err := url.Parse(config.RedHatProductLifeCycleDataAPIBaseURL)
@@ -69,12 +69,7 @@ func NewReleaseSourcesHandler(
 
 	enrichedReleaseImages := []*enrichedReleaseImage{}
 	for _, releaseImage := range releaseImages {
-		enrichedReleaseImageInstance := enrichedReleaseImage{ReleaseImage: *releaseImage}
-		// For backward compatibility with release images that lack the CPUArchitectures field.
-		if enrichedReleaseImageInstance.CPUArchitectures == nil {
-			enrichedReleaseImageInstance.CPUArchitectures = []string{*enrichedReleaseImageInstance.CPUArchitecture}
-		}
-		enrichedReleaseImages = append(enrichedReleaseImages, &enrichedReleaseImageInstance)
+		enrichedReleaseImages = append(enrichedReleaseImages, &enrichedReleaseImage{ReleaseImage: *releaseImage})
 	}
 
 	return &releaseSourcesHandler{
@@ -271,7 +266,7 @@ func (h *releaseSourcesHandler) mergeEnrichedReleaseImages(staticReleaseImages, 
 // This design is due to SyncReleaseImagesThreadFunc being restricted to thread package functionality and not directly handling errors.
 func (h *releaseSourcesHandler) SyncReleaseImages() error {
 	if !h.lead.IsLeader() {
-		h.log.Debugf("Not a leader, exiting SyncReleaseImagesThreadFunc")
+		h.log.Debug("Not a leader, exiting SyncReleaseImagesThreadFunc")
 		return nil
 	}
 
@@ -385,7 +380,7 @@ func (h *releaseSourcesHandler) setSupportLevels(releases []*enrichedReleaseImag
 			return err
 		}
 
-		if release.channel != "" && release.channel == models.ReleaseChannelCandidate || *isPreRelease {
+		if release.channel == models.ReleaseChannelCandidate || *isPreRelease {
 			release.SupportLevel = models.OpenshiftVersionSupportLevelBeta
 			continue
 		}
