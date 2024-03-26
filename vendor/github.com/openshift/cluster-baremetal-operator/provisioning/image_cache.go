@@ -93,6 +93,7 @@ func createContainerImageCache(images *Images) corev1.Container {
 		Image:           images.Ironic,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: &corev1.SecurityContext{
+			// Needed for hostPath image volume mount
 			Privileged: pointer.BoolPtr(true),
 		},
 		Command:      []string{"/bin/runhttpd"},

@@ -41,7 +41,9 @@ func createContainerIronicProxy(ironicIP string, images *Images) corev1.Containe
 		Image:           images.Ironic,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: &corev1.SecurityContext{
-			Privileged: pointer.BoolPtr(true),
+			Capabilities: &corev1.Capabilities{
+				Add: []corev1.Capability{"FOWNER"},
+			},
 		},
 		Command: []string{"/bin/runironic-proxy"},
 		VolumeMounts: []corev1.VolumeMount{
@@ -107,13 +109,14 @@ func createContainerIronicProxy(ironicIP string, images *Images) corev1.Containe
 }
 
 func newIronicProxyPodTemplateSpec(info *ProvisioningInfo) (*corev1.PodTemplateSpec, error) {
-	ironicIP, err := getPodHostIP(info.Client.CoreV1(), info.Namespace)
+	ironicIPs, err := getPodIPs(info.Client.CoreV1(), info.Namespace)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot figure out the upstream IP for ironic proxy")
 	}
 
 	containers := []corev1.Container{
-		createContainerIronicProxy(ironicIP, info.Images),
+		// Even in a dual-stack environment, we don't really care which IP address to use since both are accessible internally.
+		createContainerIronicProxy(ironicIPs[0], info.Images),
 	}
 
 	tolerations := []corev1.Toleration{
