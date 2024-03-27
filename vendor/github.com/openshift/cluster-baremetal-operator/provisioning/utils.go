@@ -2,6 +2,7 @@ package provisioning
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 
@@ -55,14 +56,27 @@ func getPod(podClient coreclientv1.PodsGetter, targetNamespace string) (corev1.P
 	return pods[0], nil
 }
 
-func getPodHostIP(podClient coreclientv1.PodsGetter, targetNamespace string) (string, error) {
+// getPodIPs returns pod IPs for the Metal3 pod (and thus Ironic and its httpd).
+func getPodIPs(podClient coreclientv1.PodsGetter, targetNamespace string) (ips []string, err error) {
 	pod, err := getPod(podClient, targetNamespace)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return pod.Status.HostIP, nil
+	// NOTE(dtantsur): we can use PodIPs here because with host networking they're identical to HostIP
+	for _, ip := range pod.Status.PodIPs {
+		if ip.IP != "" {
+			ips = append(ips, ip.IP)
+		}
+	}
+	if len(ips) == 0 {
+		// This is basically a safeguard to be able to assume that the returned slice is not empty later on
+		err = errors.New("the metal3 pod does not have any podIP's yet")
+	}
+	return
 }
 
+// getServerInternalIPs returns virtual IPs on which Kubernetes is accessible.
+// These are the IPs on which the proxied services (currently Ironic and Inspector) should be accessed by external consumers.
 func getServerInternalIPs(osclient osclientset.Interface) ([]string, error) {
 	infra, err := osclient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
@@ -99,20 +113,26 @@ func getServerInternalIPs(osclient osclientset.Interface) ([]string, error) {
 	}
 }
 
-func GetIronicIPs(info ProvisioningInfo) (ironicIPs []string, inspectorIPs []string, err error) {
-	var podIP string
+// GetRealIronicIPs returns the actual IPs on which Ironic is accessible without a proxy.
+// The provisioning IP is used when present and not disallowed for virtual media via configuration.
+func GetRealIronicIPs(info *ProvisioningInfo) ([]string, error) {
 	config := info.ProvConfig.Spec
-
 	if config.ProvisioningNetwork != metal3iov1alpha1.ProvisioningNetworkDisabled && !config.VirtualMediaViaExternalNetwork {
-		podIP = config.ProvisioningIP
-	} else {
-		podIP, err = getPodHostIP(info.Client.CoreV1(), info.Namespace)
-		if err != nil {
-			return
-		}
+		return []string{config.ProvisioningIP}, nil
 	}
 
-	if UseIronicProxy(&config) {
+	return getPodIPs(info.Client.CoreV1(), info.Namespace)
+}
+
+// GetIronicIPs returns Ironic IPs for external consumption, potentially behind an HA proxy.
+// Without a proxy, the provisioning IP is used when present and not disallowed for virtual media via configuration.
+func GetIronicIPs(info *ProvisioningInfo) (ironicIPs []string, inspectorIPs []string, err error) {
+	podIPs, err := GetRealIronicIPs(info)
+	if err != nil {
+		return
+	}
+
+	if UseIronicProxy(&info.ProvConfig.Spec) {
 		ironicIPs, err = getServerInternalIPs(info.OSClient)
 		if err != nil {
 			err = fmt.Errorf("error fetching internalIPs: %w", err)
@@ -120,36 +140,14 @@ func GetIronicIPs(info ProvisioningInfo) (ironicIPs []string, inspectorIPs []str
 		}
 
 		if ironicIPs == nil {
-			ironicIPs = []string{podIP}
+			ironicIPs = podIPs
 		}
 	} else {
-		ironicIPs = []string{podIP}
+		ironicIPs = podIPs
 	}
 
 	inspectorIPs = ironicIPs // keep returning separate variables for future enhancements
 	return ironicIPs, inspectorIPs, err
-}
-
-func GetPodIP(podClient coreclientv1.PodsGetter, targetNamespace string, networkType NetworkStackType) (string, error) {
-	pod, err := getPod(podClient, targetNamespace)
-	if err != nil {
-		return "", err
-	}
-
-	for _, podIP := range pod.Status.PodIPs {
-		if networkType == NetworkStackDual {
-			return podIP.IP, nil
-		}
-		ip := net.ParseIP(podIP.IP)
-		if networkType == NetworkStackV6 && ip.To4() == nil {
-			return podIP.IP, nil
-		}
-		if networkType == NetworkStackV4 && ip.To4() != nil {
-			return podIP.IP, nil
-		}
-	}
-
-	return "", fmt.Errorf("Pod doesn't have an IP address of the requested type")
 }
 
 func IpOptionForProvisioning(config *metal3iov1alpha1.ProvisioningSpec, networkStack NetworkStackType) string {
