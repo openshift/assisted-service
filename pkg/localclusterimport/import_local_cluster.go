@@ -20,11 +20,21 @@ import (
 type LocalClusterImport struct {
 	clusterImportOperations ClusterImportOperations
 	localClusterNamespace   string
-	log                     *logrus.Logger
+	localManagedClusterName string
+	log                     logrus.FieldLogger
 }
 
-func NewLocalClusterImport(localClusterImportOperations ClusterImportOperations, localClusterNamespace string, log *logrus.Logger) LocalClusterImport {
-	return LocalClusterImport{clusterImportOperations: localClusterImportOperations, log: log, localClusterNamespace: localClusterNamespace}
+func NewLocalClusterImport(localClusterImportOperations ClusterImportOperations, localClusterNamespace string, localManagedClusterName string, log logrus.FieldLogger) LocalClusterImport {
+	return LocalClusterImport{clusterImportOperations: localClusterImportOperations, log: log, localClusterNamespace: localClusterNamespace, localManagedClusterName: localManagedClusterName}
+}
+
+func (i *LocalClusterImport) HasLocalManagedCluster() (bool, error) {
+	mc, err := i.clusterImportOperations.GetManagedCluster(i.localManagedClusterName)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		i.log.Errorf("unable to fetch ManagedCluster for local-cluster due to error: %s", err.Error())
+		return false, err
+	}
+	return mc != nil, nil
 }
 
 func (i *LocalClusterImport) createClusterImageSet(release_image string) error {
@@ -189,6 +199,20 @@ func (i *LocalClusterImport) createNamespace(name string) error {
 	err := i.clusterImportOperations.CreateNamespace(name)
 	if err != nil {
 		i.log.Errorf("could not create Namespace due to error %s", err.Error())
+		return err
+	}
+	return nil
+}
+
+func (i *LocalClusterImport) DeleteLocalClusterImportCRs() error {
+	err := i.clusterImportOperations.DeleteClusterDeployment(i.localClusterNamespace, i.localManagedClusterName)
+	if err != nil {
+		i.log.Errorf("could not delete local ClusterDeployment due to error %s", err.Error())
+		return err
+	}
+	err = i.clusterImportOperations.DeleteAgentClusterInstall(i.localClusterNamespace, i.localManagedClusterName)
+	if err != nil {
+		i.log.Errorf("could not delete local AgentClusterInstall due to error %s", err.Error())
 		return err
 	}
 	return nil

@@ -37,6 +37,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		releaseImage            string
 		localClusterNamespace   string
 		clusterProxy            *configv1.Proxy
+		localClusterName        string
 	)
 
 	BeforeEach(func() {
@@ -44,7 +45,8 @@ var _ = Describe("ImportLocalCluster", func() {
 		clusterImportOperations = NewMockClusterImportOperations(ctrl)
 		logger = logrus.New()
 		localClusterNamespace = "some-cluster-namespace"
-		localClusterImport = NewLocalClusterImport(clusterImportOperations, localClusterNamespace, logger)
+		localClusterName = "local-cluster"
+		localClusterImport = NewLocalClusterImport(clusterImportOperations, localClusterNamespace, localClusterName, logger)
 		nodeConfigsKubeConfig = "someKubeConfig"
 		// The openshift-kube-apiserver pull-secret is double base64 encoded
 		// The first layer of encoding is transparent to us when using the client

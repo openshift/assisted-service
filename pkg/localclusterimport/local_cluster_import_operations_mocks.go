@@ -13,6 +13,7 @@ import (
 	v1beta10 "github.com/openshift/assisted-service/api/v1beta1"
 	v10 "github.com/openshift/hive/apis/hive/v1"
 	v11 "k8s.io/api/core/v1"
+	v12 "open-cluster-management.io/api/cluster/v1"
 )
 
 // MockClusterImportOperations is a mock of ClusterImportOperations interface.
@@ -108,6 +109,49 @@ func (mr *MockClusterImportOperationsMockRecorder) CreateSecret(namespace, secre
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecret", reflect.TypeOf((*MockClusterImportOperations)(nil).CreateSecret), namespace, secret)
 }
 
+// DeleteAgentClusterInstall mocks base method.
+func (m *MockClusterImportOperations) DeleteAgentClusterInstall(namespace, name string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAgentClusterInstall", namespace, name)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAgentClusterInstall indicates an expected call of DeleteAgentClusterInstall.
+func (mr *MockClusterImportOperationsMockRecorder) DeleteAgentClusterInstall(namespace, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAgentClusterInstall", reflect.TypeOf((*MockClusterImportOperations)(nil).DeleteAgentClusterInstall), namespace, name)
+}
+
+// DeleteClusterDeployment mocks base method.
+func (m *MockClusterImportOperations) DeleteClusterDeployment(namespace, name string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteClusterDeployment", namespace, name)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteClusterDeployment indicates an expected call of DeleteClusterDeployment.
+func (mr *MockClusterImportOperationsMockRecorder) DeleteClusterDeployment(namespace, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterDeployment", reflect.TypeOf((*MockClusterImportOperations)(nil).DeleteClusterDeployment), namespace, name)
+}
+
+// GetAgentClusterInstall mocks base method.
+func (m *MockClusterImportOperations) GetAgentClusterInstall(namespace, name string) (*v1beta1.AgentClusterInstall, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAgentClusterInstall", namespace, name)
+	ret0, _ := ret[0].(*v1beta1.AgentClusterInstall)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAgentClusterInstall indicates an expected call of GetAgentClusterInstall.
+func (mr *MockClusterImportOperationsMockRecorder) GetAgentClusterInstall(namespace, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentClusterInstall", reflect.TypeOf((*MockClusterImportOperations)(nil).GetAgentClusterInstall), namespace, name)
+}
+
 // GetAgentServiceConfig mocks base method.
 func (m *MockClusterImportOperations) GetAgentServiceConfig() (*v1beta10.AgentServiceConfig, error) {
 	m.ctrl.T.Helper()
@@ -136,6 +180,21 @@ func (m *MockClusterImportOperations) GetClusterDNS() (*v1.DNS, error) {
 func (mr *MockClusterImportOperationsMockRecorder) GetClusterDNS() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterDNS", reflect.TypeOf((*MockClusterImportOperations)(nil).GetClusterDNS))
+}
+
+// GetClusterDeployment mocks base method.
+func (m *MockClusterImportOperations) GetClusterDeployment(namespace, name string) (*v10.ClusterDeployment, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClusterDeployment", namespace, name)
+	ret0, _ := ret[0].(*v10.ClusterDeployment)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClusterDeployment indicates an expected call of GetClusterDeployment.
+func (mr *MockClusterImportOperationsMockRecorder) GetClusterDeployment(namespace, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterDeployment", reflect.TypeOf((*MockClusterImportOperations)(nil).GetClusterDeployment), namespace, name)
 }
 
 // GetClusterImageSet mocks base method.
@@ -181,6 +240,21 @@ func (m *MockClusterImportOperations) GetClusterVersion(name string) (*v1.Cluste
 func (mr *MockClusterImportOperationsMockRecorder) GetClusterVersion(name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterVersion", reflect.TypeOf((*MockClusterImportOperations)(nil).GetClusterVersion), name)
+}
+
+// GetManagedCluster mocks base method.
+func (m *MockClusterImportOperations) GetManagedCluster(name string) (*v12.ManagedCluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetManagedCluster", name)
+	ret0, _ := ret[0].(*v12.ManagedCluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetManagedCluster indicates an expected call of GetManagedCluster.
+func (mr *MockClusterImportOperationsMockRecorder) GetManagedCluster(name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetManagedCluster", reflect.TypeOf((*MockClusterImportOperations)(nil).GetManagedCluster), name)
 }
 
 // GetNamespace mocks base method.

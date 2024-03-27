@@ -6,12 +6,12 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
-	"github.com/openshift/assisted-service/internal/controller/controllers"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -31,26 +31,43 @@ type ClusterImportOperations interface {
 	CreateSecret(namespace string, secret *v1.Secret) error
 	CreateClusterImageSet(clusterImageSet *hivev1.ClusterImageSet) error
 	CreateClusterDeployment(clusterDeployment *hivev1.ClusterDeployment) error
+	GetManagedCluster(name string) (*clusterv1.ManagedCluster, error)
+	DeleteClusterDeployment(namespace string, name string) error
+	DeleteAgentClusterInstall(namespace string, name string) error
+	GetClusterDeployment(namespace string, name string) (*hivev1.ClusterDeployment, error)
+	GetAgentClusterInstall(namespace string, name string) (*hiveext.AgentClusterInstall, error)
 }
 
 type LocalClusterImportOperations struct {
-	context         context.Context
-	apiReader       client.Reader
-	cachedApiClient client.Writer
-	log             *logrus.Logger
+	context                context.Context
+	client                 client.Client
+	agentServiceConfigName string
 }
 
-func NewLocalClusterImportOperations(apiReader client.Reader, cachedApiClient client.Writer, log *logrus.Logger) LocalClusterImportOperations {
-	return LocalClusterImportOperations{context: context.TODO(), apiReader: apiReader, cachedApiClient: cachedApiClient, log: log}
+func NewLocalClusterImportOperations(client client.Client, agentServiceConfigName string) LocalClusterImportOperations {
+	return LocalClusterImportOperations{context: context.TODO(), client: client, agentServiceConfigName: agentServiceConfigName}
+}
+
+func (o *LocalClusterImportOperations) GetManagedCluster(name string) (*clusterv1.ManagedCluster, error) {
+	managedCluster := &clusterv1.ManagedCluster{}
+	namespacedName := types.NamespacedName{
+		Namespace: "",
+		Name:      name,
+	}
+	err := o.client.Get(o.context, namespacedName, managedCluster)
+	if err != nil {
+		return nil, err
+	}
+	return managedCluster, nil
 }
 
 func (o *LocalClusterImportOperations) GetAgentServiceConfig() (*aiv1beta1.AgentServiceConfig, error) {
 	agentServiceConfig := &aiv1beta1.AgentServiceConfig{}
 	namespacedName := types.NamespacedName{
 		Namespace: "",
-		Name:      controllers.AgentServiceConfigName,
+		Name:      o.agentServiceConfigName,
 	}
-	err := o.apiReader.Get(o.context, namespacedName, agentServiceConfig)
+	err := o.client.Get(o.context, namespacedName, agentServiceConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +80,24 @@ func (o *LocalClusterImportOperations) GetClusterDeployment(namespace string, na
 		Namespace: namespace,
 		Name:      name,
 	}
-	err := o.apiReader.Get(o.context, namespacedName, clusterDeployment)
+	err := o.client.Get(o.context, namespacedName, clusterDeployment)
 	if err != nil {
 		return nil, err
 	}
 	return clusterDeployment, nil
+}
+
+func (o *LocalClusterImportOperations) GetAgentClusterInstall(namespace string, name string) (*hiveext.AgentClusterInstall, error) {
+	agentClusterInstall := &hiveext.AgentClusterInstall{}
+	namespacedName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	err := o.client.Get(o.context, namespacedName, agentClusterInstall)
+	if err != nil {
+		return nil, err
+	}
+	return agentClusterInstall, nil
 }
 
 func (o *LocalClusterImportOperations) GetNamespace(name string) (*v1.Namespace, error) {
@@ -76,7 +106,7 @@ func (o *LocalClusterImportOperations) GetNamespace(name string) (*v1.Namespace,
 		Namespace: "",
 		Name:      name,
 	}
-	err := o.apiReader.Get(o.context, namespacedName, ns)
+	err := o.client.Get(o.context, namespacedName, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +116,7 @@ func (o *LocalClusterImportOperations) GetNamespace(name string) (*v1.Namespace,
 func (o *LocalClusterImportOperations) CreateNamespace(name string) error {
 	ns := &v1.Namespace{}
 	ns.Name = name
-	err := o.cachedApiClient.Create(o.context, ns)
+	err := o.client.Create(o.context, ns)
 	if err != nil {
 		return err
 	}
@@ -99,7 +129,7 @@ func (o *LocalClusterImportOperations) GetSecret(namespace string, name string) 
 		Namespace: namespace,
 		Name:      name,
 	}
-	err := o.apiReader.Get(o.context, namespacedName, secret)
+	err := o.client.Get(o.context, namespacedName, secret)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to fetch secret %s from namespace %s", name, namespace)
 	}
@@ -112,7 +142,7 @@ func (o *LocalClusterImportOperations) GetClusterVersion(name string) (*configv1
 		Namespace: "",
 		Name:      name,
 	}
-	err := o.apiReader.Get(o.context, namespacedName, clusterVersion)
+	err := o.client.Get(o.context, namespacedName, clusterVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +155,7 @@ func (o *LocalClusterImportOperations) GetClusterImageSet(name string) (*hivev1.
 		Namespace: "",
 		Name:      name,
 	}
-	err := o.apiReader.Get(o.context, namespacedName, clusterImageSet)
+	err := o.client.Get(o.context, namespacedName, clusterImageSet)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to fetch cluster image set %s", name)
 	}
@@ -133,15 +163,15 @@ func (o *LocalClusterImportOperations) GetClusterImageSet(name string) (*hivev1.
 }
 
 func (o *LocalClusterImportOperations) CreateAgentClusterInstall(agentClusterInstall *hiveext.AgentClusterInstall) error {
-	err := o.cachedApiClient.Create(o.context, agentClusterInstall)
-	if err != nil {
+	err := o.client.Create(o.context, agentClusterInstall)
+	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
 	return nil
 }
 
 func (o *LocalClusterImportOperations) CreateSecret(namespace string, secret *v1.Secret) error {
-	err := o.cachedApiClient.Create(o.context, secret)
+	err := o.client.Create(o.context, secret)
 	if err != nil {
 		return err
 	}
@@ -149,7 +179,7 @@ func (o *LocalClusterImportOperations) CreateSecret(namespace string, secret *v1
 }
 
 func (o *LocalClusterImportOperations) CreateClusterImageSet(clusterImageSet *hivev1.ClusterImageSet) error {
-	err := o.cachedApiClient.Create(o.context, clusterImageSet)
+	err := o.client.Create(o.context, clusterImageSet)
 	if err != nil {
 		return err
 	}
@@ -157,8 +187,8 @@ func (o *LocalClusterImportOperations) CreateClusterImageSet(clusterImageSet *hi
 }
 
 func (o *LocalClusterImportOperations) CreateClusterDeployment(clusterDeployment *hivev1.ClusterDeployment) error {
-	err := o.cachedApiClient.Create(o.context, clusterDeployment)
-	if err != nil {
+	err := o.client.Create(o.context, clusterDeployment)
+	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
 	return nil
@@ -166,7 +196,7 @@ func (o *LocalClusterImportOperations) CreateClusterDeployment(clusterDeployment
 
 func (o *LocalClusterImportOperations) GetNodes() (*v1.NodeList, error) {
 	nodeList := &v1.NodeList{}
-	err := o.apiReader.List(o.context, nodeList)
+	err := o.client.List(o.context, nodeList)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +208,6 @@ func (o *LocalClusterImportOperations) GetNumberOfControlPlaneNodes() (int, erro
 	// Control plane nodes have a specific label that we can look for.,
 	numberOfControlPlaneNodes := 0
 	nodeList, err := o.GetNodes()
-	o.log.Infof("Number of nodes in nodeList %d", len(nodeList.Items))
 	if err != nil {
 		return 0, err
 	}
@@ -198,7 +227,7 @@ func (o *LocalClusterImportOperations) GetClusterDNS() (*configv1.DNS, error) {
 		Namespace: "",
 		Name:      "cluster",
 	}
-	err := o.apiReader.Get(o.context, namespacedName, dns)
+	err := o.client.Get(o.context, namespacedName, dns)
 	if err != nil {
 		return nil, err
 	}
@@ -211,9 +240,33 @@ func (o *LocalClusterImportOperations) GetClusterProxy() (*configv1.Proxy, error
 		Namespace: "",
 		Name:      "cluster",
 	}
-	err := o.apiReader.Get(o.context, namespacedName, proxy)
+	err := o.client.Get(o.context, namespacedName, proxy)
 	if err != nil {
 		return nil, err
 	}
 	return proxy, nil
+}
+
+func (o *LocalClusterImportOperations) DeleteClusterDeployment(namespace string, name string) error {
+	clusterDeployment, err := o.GetClusterDeployment(namespace, name)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "error fetching ClusterDeployment %s in namespace %s for delete", name, namespace)
+	}
+	err = o.client.Delete(o.context, clusterDeployment)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "error deleting ClusterDeployment %s in namespace %s", name, namespace)
+	}
+	return nil
+}
+
+func (o *LocalClusterImportOperations) DeleteAgentClusterInstall(namespace string, name string) error {
+	agentClusterInstall, err := o.GetAgentClusterInstall(namespace, name)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "error fetching AgentClusterInstall %s in namespace %s for delete", name, namespace)
+	}
+	err = o.client.Delete(o.context, agentClusterInstall)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "error deleting AgentClusterInstall %s in namespace %s", name, namespace)
+	}
+	return nil
 }
