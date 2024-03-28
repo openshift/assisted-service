@@ -18,6 +18,7 @@ package provisioning
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -70,21 +71,21 @@ func imageRegistriesVolume() corev1.Volume {
 	}
 }
 
-func getUrlFromIP(ipAddr string) string {
-	if strings.Contains(ipAddr, ":") {
-		// This is an IPv6 addr
-		return "https://" + fmt.Sprintf("[%s]", ipAddr)
+func getUrlFromIP(ipAddrs []string, port int) string {
+	portString := fmt.Sprint(port)
+	var result []string
+	for _, ipAddr := range ipAddrs {
+		if ipAddr != "" {
+			result = append(result,
+				"https://"+net.JoinHostPort(ipAddr, portString))
+		}
 	}
-	if ipAddr != "" {
-		// This is an IPv4 addr
-		return "https://" + ipAddr
-	} else {
-		return ""
-	}
+	return strings.Join(result, ",")
 }
 
 func createImageCustomizationContainer(images *Images, info *ProvisioningInfo, ironicIPs []string, inspectorIPs []string) corev1.Container {
-	envVars := envWithProxy(info.Proxy, []corev1.EnvVar{}, ironicIPs[0]+","+inspectorIPs[0])
+	noProxy := append(ironicIPs, inspectorIPs...)
+	envVars := envWithProxy(info.Proxy, []corev1.EnvVar{}, noProxy)
 
 	container := corev1.Container{
 		Name:  "machine-image-customization-controller",
@@ -98,6 +99,7 @@ func createImageCustomizationContainer(images *Images, info *ProvisioningInfo, i
 		// TODO: This container does not have to run in privileged mode when the i-c-c has
 		// its own volume and does not have to use the imageCacheSharedVolume
 		SecurityContext: &corev1.SecurityContext{
+			// Needed for hostPath image volume mount
 			Privileged: pointer.BoolPtr(true),
 		},
 		VolumeMounts: []corev1.VolumeMount{
@@ -115,11 +117,12 @@ func createImageCustomizationContainer(images *Images, info *ProvisioningInfo, i
 			},
 			corev1.EnvVar{
 				Name:  ironicBaseUrl,
-				Value: getUrlFromIP(ironicIPs[0]),
+				Value: getUrlFromIP(ironicIPs, baremetalIronicPort),
 			},
 			corev1.EnvVar{
-				Name:  ironicInspectorBaseUrl,
-				Value: getUrlFromIP(inspectorIPs[0]),
+				Name: ironicInspectorBaseUrl,
+				// TODO(dtantsur): when inspector is gone, we may be able to stop passing this URL
+				Value: getUrlFromIP(inspectorIPs, baremetalIronicInspectorPort),
 			},
 			corev1.EnvVar{
 				Name:  ironicAgentImage,
@@ -240,7 +243,7 @@ func newImageCustomizationDeployment(info *ProvisioningInfo, ironicIPs []string,
 }
 
 func EnsureImageCustomizationDeployment(info *ProvisioningInfo) (updated bool, err error) {
-	ironicIPs, inspectorIPs, err := GetIronicIPs(*info)
+	ironicIPs, inspectorIPs, err := GetIronicIPs(info)
 	if err != nil {
 		return false, fmt.Errorf("unable to determine Ironic's IP to pass to the machine-image-customization-controller: %w", err)
 	}
