@@ -8,7 +8,7 @@ spec:
   containers:
   - args:
     - run-postgresql
-    image: quay.io/centos7/postgresql-12-centos7:latest
+    image: quay.io/sclorg/postgresql-12-c8s:latest
     name: db
     envFrom:
     - configMapRef:
