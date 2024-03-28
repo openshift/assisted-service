@@ -2,7 +2,7 @@
 # than this Dockerfile. ART will be unable to build your component or
 # reconcile this Dockerfile until that disparity is addressed.
 # Build binaries
-FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.20-openshift-4.15 AS builder
+FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.20-openshift-4.16 AS builder
 WORKDIR /src
 COPY . .
 
@@ -13,9 +13,9 @@ RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o
 RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
 
 
-FROM registry.ci.openshift.org/ocp/4.15:cli AS oc-image
+FROM registry.ci.openshift.org/ocp/4.16:cli AS oc-image
 # Create final image
-FROM registry.ci.openshift.org/ocp/4.15:base
+FROM registry.ci.openshift.org/ocp/4.16:base
 
 LABEL io.openshift.release.operator=true
 
