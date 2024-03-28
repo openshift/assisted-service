@@ -149,6 +149,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 
 	It("create_configuration_with_mirror_registries", func() {
 		var result installcfg.InstallerConfigBaremetal
+		cluster.OpenshiftVersion = "4.14.0-0.0"
 		regData := []mirrorregistries.RegistriesConf{{Location: "location1", Mirror: []string{"mirror1"}}, {Location: "location2", Mirror: []string{"mirror2"}}}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(2)
 		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
@@ -158,6 +159,37 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
+		Expect(result.ImageDigestSources).To(Equal([]installcfg.ImageDigestSource{
+			installcfg.ImageDigestSource{Source: "location1",
+				Mirrors: []string{"mirror1"},
+			},
+			installcfg.ImageDigestSource{Source: "location2",
+				Mirrors: []string{"mirror2"},
+			},
+		}))
+		Expect(result.DeprecatedImageContentSources).To(BeEmpty())
+	})
+
+	It("create_configuration_with_mirror_registries_idms_not_supported", func() {
+		var result installcfg.InstallerConfigBaremetal
+		cluster.OpenshiftVersion = "4.12.0-0.0"
+		regData := []mirrorregistries.RegistriesConf{{Location: "location1", Mirror: []string{"mirror1"}}, {Location: "location2", Mirror: []string{"mirror2"}}}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(2)
+		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("some sa data"), nil).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.ImageDigestSources).To(BeEmpty())
+		Expect(result.DeprecatedImageContentSources).To(Equal([]installcfg.ImageContentSource{
+			installcfg.ImageContentSource{Source: "location1",
+				Mirrors: []string{"mirror1"},
+			},
+			installcfg.ImageContentSource{Source: "location2",
+				Mirrors: []string{"mirror2"},
+			},
+		}))
 	})
 
 	It("create_configuration_with_proxy", func() {
