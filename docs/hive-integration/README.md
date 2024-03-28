@@ -171,6 +171,8 @@ In case that the Bare Metal Operator is installed, the Baremetal Agent Controlle
       - `bmac.agent-install.openshift.io/installer-args`
     - IgnitionConfigOverrides (optional for user to set)
       - `bmac.agent-install.openshift.io/ignition-config-overrides`
+    - AgentLabels (optional for user to set)
+      -  `bmac.agent-install.openshift.io.agent-label.` (prefix)
 - Reconcile the BareMetalHost hardware details by copying the Agent's inventory data to the BMH's `hardwaredetails` annotation.
 - Disable ironic inspection
 
@@ -335,6 +337,28 @@ kind: BareMetalHost
 metadata:
   annotations:
     bmac.agent-install.openshift.io/ignition-config-overrides: '{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}'
+  creationTimestamp: "2021-04-14T10:46:57Z"
+  generation: 1
+  name: openshift-worker-0
+  namespace: mynamespace
+spec:
+```
+### Creating agent labels from BMH
+
+There is an option to add agent labels from BMH.  In order to add agent label, a BMH annotation is added.  The annotation key
+has a prefix __bmac.agent-install.openshift.io.agent-label.__. The suffix of the annotation is regarded as the agent label key.
+The annotation value is the agent label value.
+
+Note: Agent labels are just added from BMH annotations. They are not removed if there is no corresponding BMH annotation.
+
+Here is an example of such BMH annotation representing an agent label:
+
+```yaml
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  annotations:
+    bmac.agent-install.openshift.io.agent-label.agent-label: 'label-value'
   creationTimestamp: "2021-04-14T10:46:57Z"
   generation: 1
   name: openshift-worker-0

@@ -185,3 +185,11 @@ func AddLabel(labels map[string]string, labelKey, labelValue string) map[string]
 	labels[labelKey] = labelValue
 	return labels
 }
+
+func getLabel(labels map[string]string, labelKey string) (value string, exists bool) {
+	if labels == nil {
+		return "", false
+	}
+	value, exists = labels[labelKey]
+	return
+}
