@@ -4,7 +4,7 @@ The assisted-installer tests are divided into 3 categories:
 
 * **Unit tests** - Focused on a module/function level while other modules are mocked.
 Unit tests are located in the package, where the code they are testing resides, using the pattern `<module_name>_test.go`.
-Unit tests needs a postgresql db container. The image for db container `quay.io/centos7/postgresql-12-centos7:latest` is built from `https://github.com/sclorg/postgresql-container`
+Unit tests needs a postgresql db container. The image for db container `quay.io/sclorg/postgresql-12-c8s:latest` is built from `https://github.com/sclorg/postgresql-container`
 
 * **Subsystem tests** - Focused on the component while mocking other component.
 For example, assisted-service subsystem tests mock the agent responses.
