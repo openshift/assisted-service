@@ -15,6 +15,8 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+const minimalOpenShiftVersionForImageDigestSupport = "4.14.0-0.0"
+
 //go:generate mockgen -source=builder.go -package=builder -destination=mock_installcfg.go
 type InstallConfigBuilder interface {
 	GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) ([]byte, error)
@@ -131,9 +133,21 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 	}
 
 	if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
-		err := i.setImageDigestMirrorSet(cfg)
+		isOpenShiftVersionRecentEnough, err := common.BaseVersionGreaterOrEqual(minimalOpenShiftVersionForImageDigestSupport, cluster.OpenshiftVersion)
 		if err != nil {
 			return nil, err
+		}
+		if isOpenShiftVersionRecentEnough {
+			err := i.setImageDigestMirrorSet(cfg)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// If version does not support ImageDigestSources, set ImageContent
+			err := i.setImageContentSources(cfg)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -151,6 +165,20 @@ func (i *installConfigBuilder) setImageDigestMirrorSet(cfg *installcfg.Installer
 		imageDigestSourceList[i] = installcfg.ImageDigestSource{Source: mirrorRegistriesConfig.Location, Mirrors: mirrorRegistriesConfig.Mirror}
 	}
 	cfg.ImageDigestSources = imageDigestSourceList
+	return nil
+}
+
+func (i *installConfigBuilder) setImageContentSources(cfg *installcfg.InstallerConfigBaremetal) error {
+	mirrorRegistriesConfigs, err := i.mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries()
+	if err != nil {
+		i.log.WithError(err).Errorf("Failed to get the mirror registries conf need for ImageContentSources")
+		return err
+	}
+	imageContentSourceList := make([]installcfg.ImageContentSource, len(mirrorRegistriesConfigs))
+	for i, mirrorRegistriesConfig := range mirrorRegistriesConfigs {
+		imageContentSourceList[i] = installcfg.ImageContentSource{Source: mirrorRegistriesConfig.Location, Mirrors: mirrorRegistriesConfig.Mirror}
+	}
+	cfg.DeprecatedImageContentSources = imageContentSourceList
 	return nil
 }
 
