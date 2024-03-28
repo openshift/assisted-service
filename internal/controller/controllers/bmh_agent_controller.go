@@ -95,6 +95,7 @@ const (
 	OPENSHIFT_MACHINE_API_NAMESPACE     = "openshift-machine-api"
 	ASSISTED_DEPLOY_METHOD              = "start_assisted_install"
 	NODE_LABEL_PREFIX                   = "bmac.agent-install.openshift.io.node-label."
+	AGENT_LABEL_PREFIX                  = "bmac.agent-install.openshift.io.agent-label."
 
 	BMH_NODE_DRAIN_START_ANNOTATION   = "bmac.agent-install.openshift.io/drain-started-at"
 	BMH_NODE_DRAIN_TIMEOUT_ANNOTATION = "bmac.agent-install.openshift.io/drain-timeout" // in time.Duration format
@@ -490,6 +491,15 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 		dirty = true
 	}
 
+	setDirty, err = r.reconcileAgentLabels(bmh, agent)
+	if err != nil {
+		log.WithError(err).Errorf("failed to reconcile bmh agent labels %s/%s", bmh.Namespace, bmh.Name)
+		return reconcileError{err: err}
+	}
+	if setDirty {
+		dirty = true
+	}
+
 	log.Debugf("Agent spec reconcile finished:  %v", agent)
 
 	return reconcileComplete{dirty: dirty}
@@ -511,6 +521,48 @@ func (r *BMACReconciler) reconcileNodeLabels(bmh *bmh_v1alpha1.BareMetalHost, ag
 		return true
 	}
 	return false
+}
+
+func (r *BMACReconciler) reconcileAgentLabels(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) (bool, error) {
+	agentLabels := make(map[string]string)
+
+	funk.ForEach(bmh.ObjectMeta.GetAnnotations(), func(key, value string) {
+		if strings.HasPrefix(key, AGENT_LABEL_PREFIX) {
+			agentLabels[key[len(AGENT_LABEL_PREFIX):]] = value
+		}
+	})
+	type agentLabelValue struct {
+		Operation string
+		Value     string
+	}
+	var ret bool
+	labels := agent.GetLabels()
+	for key, value := range agentLabels {
+		var labelValue agentLabelValue
+		if err := json.Unmarshal([]byte(value), &labelValue); err != nil {
+			return false, errors.Wrapf(err, "failed to unmarshal %s", value)
+		}
+
+		switch labelValue.Operation {
+		case "add":
+			existingValue, exists := GetLabel(labels, key)
+			if !exists || existingValue != labelValue.Value {
+				labels = AddLabel(labels, key, labelValue.Value)
+				ret = true
+			}
+		case "delete":
+			if _, exists := GetLabel(labels, key); exists {
+				delete(labels, key)
+				ret = true
+			}
+		default:
+			return false, errors.Errorf("unexpected operation '%s' for agent label '%s'", labelValue.Operation, key)
+		}
+	}
+	if ret {
+		agent.SetLabels(labels)
+	}
+	return ret, nil
 }
 
 func (r *BMACReconciler) reconcileClusterReference(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) (bool, error) {
