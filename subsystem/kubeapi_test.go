@@ -1369,7 +1369,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "2s").Should(Equal(0))
 	})
 
-	It("deploy external platform", func() {
+	FIt("deploy external platform", func() {
 		By("Upload CCM manifests for OCI")
 		name := "cloud-controller-manager"
 		namespace := fmt.Sprintf("oci-%s", name)

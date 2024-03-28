@@ -402,7 +402,7 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration := common.Cluster{}
 
 	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) &&
-		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, swag.StringValue(params.OpenshiftVersion), swag.String(params.CPUArchitecture)) {
+		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, swag.StringValue(params.OpenshiftVersion), swag.String(params.CPUArchitecture), params.HighAvailabilityMode) {
 
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s %s", "dual-stack VIPs are not supported in OpenShift", *params.OpenshiftVersion))
 	}
@@ -467,7 +467,7 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	ingressVips = params.IngressVips
 
 	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) &&
-		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
+		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture), cluster.HighAvailabilityMode) {
 
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s %s", "dual-stack VIPs are not supported in OpenShift", cluster.OpenshiftVersion))
 	}
