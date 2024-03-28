@@ -265,11 +265,6 @@ func (h *releaseSourcesHandler) mergeEnrichedReleaseImages(staticReleaseImages, 
 // SyncReleaseImages is an internal function intended to perform synchronization of release images and return any errors encountered.
 // This design is due to SyncReleaseImagesThreadFunc being restricted to thread package functionality and not directly handling errors.
 func (h *releaseSourcesHandler) SyncReleaseImages() error {
-	if !h.lead.IsLeader() {
-		h.log.Debug("Not a leader, exiting SyncReleaseImagesThreadFunc")
-		return nil
-	}
-
 	enrichedDynamicReleaseImages, err := h.getDynamicReleaseImages()
 	if err != nil {
 		return err
@@ -446,6 +441,11 @@ func (h *releaseSourcesHandler) deleteAllReleases(tx *gorm.DB) error {
 }
 
 func (h *releaseSourcesHandler) SyncReleaseImagesThreadFunc() {
+	if !h.lead.IsLeader() {
+		h.log.Debug("Not a leader, exiting SyncReleaseImagesThreadFunc")
+		return
+	}
+
 	err := h.SyncReleaseImages()
 	if err != nil {
 		h.log.WithError(err).Warn("Failed to sync OpenShift ReleaseImages")

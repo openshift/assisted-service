@@ -319,7 +319,7 @@ func main() {
 		maxDuration(Options.InstructionConfig.DiskCheckTimeout, Options.InstructionConfig.ImageAvailabilityTimeout)+1*time.Minute)
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
-	var autoMigrationLeader leader.ElectorInterface
+	var startupLeader leader.ElectorInterface
 
 	mirrorRegistriesBuilder := mirrorregistries.New()
 	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
@@ -382,7 +382,7 @@ func main() {
 		failOnError(cerr, "Failed to create kubernetes cluster config")
 		k8sClient = kubernetes.NewForConfigOrDie(cfg)
 
-		autoMigrationLeader = leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
+		startupLeader = leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
 			RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
 			"assisted-service-migration-helper",
 			log.WithField("pkg", "migrationLeader"))
@@ -398,7 +398,7 @@ func main() {
 	case deployment_type_onprem, deployment_type_ocp:
 
 		lead = &leader.DummyElector{}
-		autoMigrationLeader = lead
+		startupLeader = lead
 
 		if Options.DeployTarget == deployment_type_ocp {
 			ocpClient, err = k8sclient.NewK8SClient("", log)
@@ -409,7 +409,7 @@ func main() {
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
 
-	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
+	failOnError(autoMigrationWithLeader(startupLeader, db, log), "Failed auto migration process")
 
 	Options.UploaderConfig.AssistedServiceVersion = versions.GetRevision()
 	Options.UploaderConfig.Versions = Options.Versions
@@ -443,8 +443,8 @@ func main() {
 	hostStateMonitor.Start()
 	defer hostStateMonitor.Stop()
 
-	addReleaseImagesToDBIfNeeded(db, releaseImagesArray, lead, log, failOnError)
-	openshiftReleaseSyncer := runOpenshiftReleaseSyncerIfNeeded(releaseSourcesArray, releaseImagesArray, db, log, releaseHandler, lead, failOnError)
+	failOnError(addReleaseImagesToDBIfNeeded(db, releaseImagesArray, startupLeader, log), "error occured while adding configuration release images to the DB if needed")
+	openshiftReleaseSyncer := runOpenshiftReleaseSyncerIfNeeded(releaseSourcesArray, releaseImagesArray, db, log, releaseHandler, lead, startupLeader, failOnError)
 	defer stopOpenshiftReleaseSyncerIfNeeded(openshiftReleaseSyncer)
 
 	newUrl, err := s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL)
@@ -952,21 +952,22 @@ func runOpenshiftReleaseSyncerIfNeeded(
 	db *gorm.DB,
 	log logrus.FieldLogger,
 	releaseHandler oc.Release,
-	lead leader.ElectorInterface,
+	leader,
+	startupLeader leader.ElectorInterface,
 	failOnError func(err error, msg string, args ...interface{}),
 ) *thread.Thread {
 	if !Options.EnableKubeAPI && Options.ReleaseSourcesConfig.ReleaseSources != "" {
 		releaseSourcesHandler, err := releasesources.NewReleaseSourcesHandler(
-			releaseSources, releaseImages, log, db, Options.ReleaseSourcesConfig, lead,
+			releaseSources, releaseImages, log, db, Options.ReleaseSourcesConfig, leader,
 		)
 		if err != nil {
 			failOnError(err, "error occurred while creating release sources handler")
 		}
-		log.WithField("pkg", "releasesources").Info("Running Openshift Releases Syncer at startup")
-		err = releaseSourcesHandler.SyncReleaseImages()
-		if err != nil {
-			failOnError(err, "error occurred while syncing release images at startup")
-		}
+
+		failOnError(startupLeader.RunWithLeader(context.Background(), func() error {
+			log.WithField("pkg", "releasesources").Info("Running Openshift Releases Syncer at startup")
+			return releaseSourcesHandler.SyncReleaseImages()
+		}), "error occurred while running Openshift Releases Syncer at startup")
 
 		openShiftReleaseSyncer := thread.New(
 			log.WithField("pkg", "releasesources"), "Openshift Releases Syncer", Options.ReleaseSourcesConfig.OpenShiftReleaseSyncerInterval, releaseSourcesHandler.SyncReleaseImagesThreadFunc)
@@ -988,42 +989,42 @@ func addReleaseImagesToDBIfNeeded(
 	releaseImages models.ReleaseImages,
 	lead leader.ElectorInterface,
 	log logrus.FieldLogger,
-	failOnError func(err error, msg string, args ...interface{})) {
+) error {
 	// If it is kubeAPI mode or release sources was specified (therefore OpenShift Release Syncer will run),
 	// we should not add the release images to the DB.
 	if Options.EnableKubeAPI || Options.ReleaseSourcesConfig.ReleaseSources != "" {
-		return
+		return nil
 	}
 
-	if !lead.IsLeader() {
-		log.Debug("Not a leader, skip adding configuration release images to the DB")
-		return
-	}
+	return lead.RunWithLeader(context.Background(), func() error {
+		tx := db.Begin()
 
-	tx := db.Begin()
-
-	var count int64
-	err := tx.Model(&models.ReleaseImage{}).Count(&count).Error
-	failOnError(err, "error occurred while trying to count the initial amount of release images in the DB")
-
-	log.Debugf("Truncating all release_images table. '%d' records", count)
-	if err := tx.Exec("TRUNCATE TABLE release_images").Error; err != nil {
-		tx.Rollback()
-		failOnError(err, "error occurred while trying to delete the release images in the DB")
-	}
-
-	if len(releaseImages) > 0 {
-		log.Debugf("Inserting configuration release images to the DB. '%d' records", len(releaseImages))
-		if err := tx.Create(releaseImages).Error; err != nil {
-			tx.Rollback()
-			failOnError(err, "error occurred while trying to insert the release images to the DB")
+		var count int64
+		if err := tx.Model(&models.ReleaseImage{}).Count(&count).Error; err != nil {
+			return errors.Wrapf(err, "error occurred while trying to count the initial amount of release images in the DB")
 		}
-	}
 
-	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
-		failOnError(err, "error occurred while commiting changes to the DB")
-	}
+		log.Debugf("Truncating all release_images table. '%d' records", count)
+		if err := tx.Exec("TRUNCATE TABLE release_images").Error; err != nil {
+			tx.Rollback()
+			return errors.Wrapf(err, "error occurred while trying to delete the release images in the DB")
+		}
+
+		if len(releaseImages) > 0 {
+			log.Debugf("Inserting configuration release images to the DB. '%d' records", len(releaseImages))
+			if err := tx.Create(releaseImages).Error; err != nil {
+				tx.Rollback()
+				return errors.Wrapf(err, "error occurred while trying to insert the release images to the DB")
+			}
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			tx.Rollback()
+			return errors.Wrapf(err, "error occurred while commiting changes to the DB")
+		}
+
+		return nil
+	})
 }
 
 func parseIgnoredOpenshiftVersions(ignoredOpenshiftVersions *[]string, failOnError func(err error, msg string, args ...interface{})) {
