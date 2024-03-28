@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: quay.io/centos7/postgresql-12-centos7
+          image: quay.io/sclorg/postgresql-12-c8s
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 5432
