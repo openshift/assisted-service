@@ -158,7 +158,7 @@ spec:
     name: controller
   - image: quay.io/edge-infrastructure/assisted-image-service:ocm-2.10
     name: image-service
-  - image: quay.io/centos7/postgresql-12-centos7:latest
+  - image: quay.io/sclorg/postgresql-12-c8s:latest
     name: postgresql
   - image: quay.io/edge-infrastructure/assisted-installer:ocm-2.10
     name: installer
