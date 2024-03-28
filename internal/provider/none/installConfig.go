@@ -1,7 +1,6 @@
 package none
 
 import (
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
@@ -14,10 +13,7 @@ func (p noneProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfig
 		None: &installcfg.PlatformNone{},
 	}
 
-	cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
-	if cluster.NetworkType != nil {
-		cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
-	}
+	cfg.Networking.MachineNetwork = provider.GetMachineNetworksForUserManagedNetworking(p.Log, cluster)
 
 	if common.IsSingleNodeCluster(cluster) {
 

@@ -2143,48 +2143,36 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	if interactivity == Interactive && (params.ClusterUpdateParams.APIVips != nil || params.ClusterUpdateParams.IngressVips != nil) {
-		var primaryMachineNetworkCidr string
-		var secondaryMachineNetworkCidr string
-
 		matchRequired := network.GetApiVipById(&targetConfiguration, 0) != "" || network.GetIngressVipById(&targetConfiguration, 0) != ""
 
 		// We want to calculate Machine Network based on the API/Ingress VIPs only in case of the
 		// single-stack cluster. Auto calculation is not supported for dual-stack in which we
 		// require that user explicitly provides all the Machine Networks.
 		if reqDualStack {
-			if params.ClusterUpdateParams.MachineNetworks != nil {
-				primaryMachineNetworkCidr = string(params.ClusterUpdateParams.MachineNetworks[0].Cidr)
-			} else {
-				primaryMachineNetworkCidr = network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
-			}
-
 			err = network.VerifyMachineNetworksDualStack(targetConfiguration.MachineNetworks, reqDualStack)
 			if err != nil {
 				log.WithError(err).Warnf("Verify dual-stack machine networks")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
-			secondaryMachineNetworkCidr, err = network.GetSecondaryMachineCidr(&targetConfiguration)
-			if err != nil {
-				return common.NewApiError(http.StatusBadRequest, err)
-			}
 
-			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
+			if err = network.VerifyVips(cluster.Hosts, targetConfiguration.MachineNetworks, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
 				log.WithError(err).Warnf("Verify VIPs")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 
 			if len(targetConfiguration.IngressVips) == 2 && len(targetConfiguration.APIVips) == 2 { // in case there's a second set of VIPs
-				if err = network.VerifyVips(cluster.Hosts, secondaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), log); err != nil {
+				if err = network.VerifyVips(cluster.Hosts, targetConfiguration.MachineNetworks, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), log); err != nil {
 					log.WithError(err).Warnf("Verify VIPs")
 					return common.NewApiError(http.StatusBadRequest, err)
 				}
 			}
 
 		} else {
-			primaryMachineNetworkCidr, err = network.CalculateMachineNetworkCIDR(network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), cluster.Hosts, matchRequired)
+			primaryMachineNetworkCidr, err := network.CalculateMachineNetworkCIDR(network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), cluster.Hosts, matchRequired)
 			if err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Calculate machine network CIDR"))
 			}
+			calculatedMachineNetworks := []*models.MachineNetwork{}
 			if primaryMachineNetworkCidr != "" {
 				// We set the machine networks in the ClusterUpdateParams, so they will be viewed as part of the request
 				// to update the cluster
@@ -2193,8 +2181,9 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 				// returned with an error.  Therefore, params.ClusterUpdateParams.MachineNetworks is empty here before
 				// the assignment below.
 				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
+				calculatedMachineNetworks = params.ClusterUpdateParams.MachineNetworks
 			}
-			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
+			if err = network.VerifyVips(cluster.Hosts, calculatedMachineNetworks, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
 				log.WithError(err).Warnf("Verify VIPs")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
@@ -2448,25 +2437,8 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 
 	if params.ClusterUpdateParams.ClusterNetworks != nil || params.ClusterUpdateParams.ServiceNetworks != nil ||
 		params.ClusterUpdateParams.MachineNetworks != nil {
-		// TODO MGMT-7587: Support any number of subnets
-		// Assumes that the number of cluster networks equal to the number of service networks
-		for index := range cluster.ClusterNetworks {
-			machineNetworkCidr := ""
-			if len(cluster.MachineNetworks) > index {
-				machineNetworkCidr = string(cluster.MachineNetworks[index].Cidr)
-			}
-
-			serviceNetworkCidr := ""
-			if len(cluster.ServiceNetworks) > index {
-				serviceNetworkCidr = string(cluster.ServiceNetworks[index].Cidr)
-			}
-
-			if err = network.VerifyClusterCIDRsNotOverlap(machineNetworkCidr,
-				string(cluster.ClusterNetworks[index].Cidr),
-				serviceNetworkCidr,
-				userManagedNetworking); err != nil {
-				return common.NewApiError(http.StatusBadRequest, err)
-			}
+		if err := network.VerifyNoNetworkCidrOverlaps(cluster.ClusterNetworks, cluster.MachineNetworks, cluster.ServiceNetworks); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
 	if updated {
