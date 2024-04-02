@@ -959,23 +959,20 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 
 // Reconcile the `BareMetalHost` resource on the spoke cluster
 //
-// Baremetal-operator in the hub cluster creates a host using the live-iso feature. To add this host as a worker node
+// Baremetal-operator in the hub cluster creates a host using the live-iso feature. To add this host as a node
 // to an existing spoke cluster, the following things need to be done:
-// - Check agent to see if day2 flow needs to be triggered.
+// - Check cluster deployment to see if day2 flow needs to be triggered.
 // - Get the kubeconfig client from secret data
 // - Creates a new Machine
 // - Create BMH with externallyProvisioned set to true and set the newly created machine as ConsumerRef
 // BMH_HARDWARE_DETAILS_ANNOTATION is needed for auto approval of the CSR.
 func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-
-	if !r.validateWorkerForDay2(log, agent) {
-		return reconcileComplete{}
-	}
 	cd, installed, err := r.getClusterDeploymentAndCheckIfInstalled(ctx, log, agent)
 	if err != nil {
 		return reconcileError{err: err}
 	}
 	if !installed {
+		log.Infof("Skipping spoke BareMetalHost reconcile for agent %s/%s since it's not day2.", agent.Name, agent.Namespace)
 		return reconcileComplete{}
 	}
 
@@ -1039,7 +1036,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileError{err: err}
 	}
 
-	_, err = r.ensureSpokeMachine(ctx, log, spokeClient, bmh, cd, machineNSName, checksum, url)
+	_, err = r.ensureSpokeMachine(ctx, log, spokeClient, bmh, cd, machineNSName, checksum, url, string(agent.Status.Role))
 	if err != nil {
 		log.WithError(err).Errorf("failed to create or update spoke Machine")
 		return reconcileError{err: err}
@@ -1258,8 +1255,8 @@ func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, spokeClient clie
 	return checksum, url, err, false
 }
 
-func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum string, URL string) (*machinev1beta1.Machine, error) {
-	machineSpoke, mutateFn := r.newSpokeMachine(bmh, clusterDeployment, machineName, checksum, URL)
+func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum, URL, role string) (*machinev1beta1.Machine, error) {
+	machineSpoke, mutateFn := r.newSpokeMachine(bmh, clusterDeployment, machineName, checksum, URL, role)
 	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, machineSpoke, mutateFn); err != nil {
 		return nil, err
 	} else if result != controllerutil.OperationResultNone {
@@ -1269,19 +1266,17 @@ func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.Fiel
 }
 
 // Get MCS cert from the spoke cluster, encode it and add it to BMH
-// To increase the capacity of the spoke cluster on day2, while adding remote worker nodes to the spoke cluster,
+// To increase the capacity of the spoke cluster on day2, while adding day2 nodes to the spoke cluster,
 // we need to pull the MCS certificate from the spoke cluster and inject it as part of the ignition config
 // before the node boots so that there is no failure due to Certificate signed by Unknown Authority
 // Ref: https://access.redhat.com/solutions/4799921
 func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-	if !r.validateWorkerForDay2(log, agent) {
-		return reconcileComplete{}
-	}
 	cd, installed, err := r.getClusterDeploymentAndCheckIfInstalled(ctx, log, agent)
 	if err != nil {
 		return reconcileError{err: err}
 	}
 	if !installed {
+		log.Infof("Skipping spoke MCS cert for agent %s/%s since it's not day2.", agent.Name, agent.Namespace)
 		return reconcileComplete{}
 	}
 
@@ -1416,7 +1411,7 @@ func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.B
 	return bmhSpoke, mutateFn
 }
 
-func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum string, URL string) (*machinev1beta1.Machine, controllerutil.MutateFn) {
+func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum, URL, role string) (*machinev1beta1.Machine, controllerutil.MutateFn) {
 	machine := &machinev1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName.Name,
@@ -1458,8 +1453,8 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 
 		// Setting the same labels as the rest of the machines in the spoke cluster
 		machine.Labels = AddLabel(machine.Labels, machinev1beta1.MachineClusterIDLabel, clusterDeployment.Name)
-		machine.Labels = AddLabel(machine.Labels, MACHINE_ROLE, string(models.HostRoleWorker))
-		machine.Labels = AddLabel(machine.Labels, MACHINE_TYPE, string(models.HostRoleWorker))
+		machine.Labels = AddLabel(machine.Labels, MACHINE_ROLE, role)
+		machine.Labels = AddLabel(machine.Labels, MACHINE_TYPE, role)
 		return nil
 	}
 
@@ -1596,15 +1591,6 @@ func (r *BMACReconciler) formatMCSCertificateIgnition(mcsCert string) (string, e
 		return "", err
 	}
 	return buf.String(), nil
-}
-
-func (r *BMACReconciler) validateWorkerForDay2(log logrus.FieldLogger, agent *aiv1beta1.Agent) bool {
-	// Only worker role is supported for day2 operation
-	if agent.Status.Role != models.HostRoleWorker || agent.Spec.ClusterDeploymentName == nil {
-		log.Debugf("Skipping spoke BareMetalHost reconcile for agent, role %s and clusterDeployment %s.", agent.Status.Role, agent.Spec.ClusterDeploymentName)
-		return false
-	}
-	return true
 }
 
 func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) (*hivev1.ClusterDeployment, bool, error) {
