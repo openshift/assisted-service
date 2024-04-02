@@ -1197,6 +1197,244 @@ var _ = Describe("bmac reconcile", func() {
 			Expect(c.Delete(ctx, infraEnv)).ShouldNot(HaveOccurred())
 		})
 
+		Context("Day 2 host", func() {
+			var host_day2 *bmh_v1alpha1.BareMetalHost
+			var agent_day2 *v1beta1.Agent
+			var infraEnv_day2 *v1beta1.InfraEnv
+			BeforeEach(func() {
+				macStr := "12-34-56-78-9A-AA"
+				isoImageURL := "http://buzz.lightyear.io/discovery-image.iso"
+				image := &bmh_v1alpha1.Image{URL: isoImageURL}
+				infraEnv_day2 = newInfraEnvImage("testInfraEnv-day2", testNamespace, v1beta1.InfraEnvSpec{})
+				infraEnv_day2.Status = v1beta1.InfraEnvStatus{ISODownloadURL: isoImageURL}
+				Expect(c.Create(ctx, infraEnv_day2)).To(BeNil())
+				bmhName = "bmh-reconcile-day2"
+				host_day2 = newBMH(bmhName, &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr, BMC: bmh_v1alpha1.BMCDetails{CredentialsName: fmt.Sprintf(adminKubeConfigStringTemplate, cluster.Name)}})
+				annotations := make(map[string]string)
+				annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = `{"ignition":{"version":"3.1.0", "security": {"tls":{"certificateAuthorities":[{"source":"data:text/plain;charset=utf-8;base64,c29tZSBjZXJ0aWZpY2F0ZQ=="}]}}}}`
+
+				host_day2.ObjectMeta.SetAnnotations(annotations)
+				labels := make(map[string]string)
+				labels[BMH_INFRA_ENV_LABEL] = infraEnv.Name
+				host_day2.ObjectMeta.Labels = labels
+
+				Expect(c.Create(ctx, host_day2)).To(BeNil())
+
+				agent_day2 = newAgent("bmac-agent-day2", testNamespace, v1beta1.AgentSpec{Approved: true})
+				agent_day2.Status.Inventory = v1beta1.HostInventory{
+					Memory: v1beta1.HostMemory{
+						PhysicalBytes: 2,
+					},
+					Interfaces: []v1beta1.HostInterface{
+						{
+							Name: "eth0",
+							IPV4Addresses: []string{
+								"1.2.3.4",
+							},
+							IPV6Addresses: []string{
+								"1001:db8::10/120",
+							},
+							MacAddress: macStr,
+						},
+					},
+					Disks: []v1beta1.HostDisk{
+						{Path: "/dev/sda", Bootable: true},
+						{Path: "/dev/sdb", Bootable: false},
+					},
+				}
+				agent_day2.Status.Role = models.HostRoleWorker
+				agent_day2.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{Name: cluster.Name, Namespace: testNamespace}
+				Expect(c.Create(ctx, agent_day2)).To(BeNil())
+
+			})
+			It("should create spoke BMH for day 2 host with worker role when it's installing - happy flow", func() {
+				agent_day2.Status.DebugInfo.State = models.HostStatusInstalling
+				Expect(c.Update(ctx, agent_day2)).To(BeNil())
+
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "root-ca",
+						Namespace: "kube-system",
+					},
+					Data: map[string]string{
+						"ca.crt": BASIC_CERT,
+					},
+				}
+				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
+				Expect(c.Update(context.Background(), agent_day2)).ShouldNot(HaveOccurred())
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host_day2))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
+
+				By("Checking if the BMH has the correct annotations")
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+
+				By("Checking the spoke BMH exists and is correct")
+				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
+				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
+				spokeClient := bmhr.spokeClient
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
+				Expect(err).To(BeNil())
+				Expect(spokeBMH.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+				Expect(spokeBMH.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]).To(Equal(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]))
+				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(spokeBMH.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
+				Expect(spokeBMH.Spec.Image).To(Equal(updatedHost.Spec.Image))
+				Expect(spokeBMH.Spec.ConsumerRef.Kind).To(Equal("Machine"))
+				Expect(spokeBMH.Spec.ConsumerRef.Name).To(Equal(machineName))
+				Expect(spokeBMH.Spec.ConsumerRef.Namespace).To(Equal(OPENSHIFT_MACHINE_API_NAMESPACE))
+				Expect(spokeBMH.Spec.ConsumerRef.APIVersion).To(Equal(machinev1beta1.SchemeGroupVersion.String()))
+
+				By("Checking the spoke Machine exists and is correct")
+				spokeMachine := &machinev1beta1.Machine{}
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)
+				Expect(err).To(BeNil())
+				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(machinev1beta1.MachineClusterIDLabel))
+				Expect(spokeMachine.ObjectMeta.Annotations).To(HaveKey("metal3.io/BareMetalHost"))
+				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_ROLE))
+				Expect(spokeMachine.ObjectMeta.Labels[MACHINE_ROLE]).To(Equal(string(models.HostRoleWorker)))
+				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_TYPE))
+				Expect(spokeMachine.ObjectMeta.Labels[MACHINE_TYPE]).To(Equal(string(models.HostRoleWorker)))
+				Expect(string(spokeMachine.Spec.ProviderSpec.Value.Raw)).To(ContainSubstring(imageURL))
+			})
+			It("should create spoke BMH & Machine for day 2 host with master role when it's installing - happy flow", func() {
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "root-ca",
+						Namespace: "kube-system",
+					},
+					Data: map[string]string{
+						"ca.crt": BASIC_CERT,
+					},
+				}
+				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
+
+				By("Setting the role to master")
+				annotations := make(map[string]string)
+				annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = `{"ignition":{"version":"3.1.0", "security": {"tls":{"certificateAuthorities":[{"source":"data:text/plain;charset=utf-8;base64,c29tZSBjZXJ0aWZpY2F0ZQ=="}]}}}}`
+				annotations[BMH_AGENT_ROLE] = "master"
+				host_day2.ObjectMeta.SetAnnotations(annotations)
+				Expect(c.Update(ctx, host_day2)).To(BeNil())
+				agent_day2.Status.Role = "master"
+
+				By("Updating the agent to installing")
+				agent_day2.Status.DebugInfo.State = models.HostStatusInstalling
+				Expect(c.Update(context.Background(), agent_day2)).ShouldNot(HaveOccurred())
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host_day2))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
+
+				By("Checking if the BMH has the correct annotations")
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+
+				By("Checking the spoke BMH exists and is correct")
+				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
+				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
+				spokeClient := bmhr.spokeClient
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
+				Expect(err).To(BeNil())
+				Expect(spokeBMH.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+				Expect(spokeBMH.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]).To(Equal(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]))
+				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(spokeBMH.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
+				Expect(spokeBMH.Spec.Image).To(Equal(updatedHost.Spec.Image))
+				Expect(spokeBMH.Spec.ConsumerRef.Kind).To(Equal("Machine"))
+				Expect(spokeBMH.Spec.ConsumerRef.Name).To(Equal(machineName))
+				Expect(spokeBMH.Spec.ConsumerRef.Namespace).To(Equal(OPENSHIFT_MACHINE_API_NAMESPACE))
+				Expect(spokeBMH.Spec.ConsumerRef.APIVersion).To(Equal(machinev1beta1.SchemeGroupVersion.String()))
+
+				By("Checking the spoke Machine exists and is correct")
+				spokeMachine := &machinev1beta1.Machine{}
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)
+				Expect(err).To(BeNil())
+				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(machinev1beta1.MachineClusterIDLabel))
+				Expect(spokeMachine.ObjectMeta.Annotations).To(HaveKey("metal3.io/BareMetalHost"))
+				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_ROLE))
+				Expect(spokeMachine.ObjectMeta.Labels[MACHINE_ROLE]).To(Equal(string(models.HostRoleMaster)))
+				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_TYPE))
+				Expect(spokeMachine.ObjectMeta.Labels[MACHINE_TYPE]).To(Equal(string(models.HostRoleMaster)))
+				Expect(string(spokeMachine.Spec.ProviderSpec.Value.Raw)).To(ContainSubstring(imageURL))
+
+			})
+			It("should not create spoke BMH for day 2 host if cluster does not exist", func() {
+				agent_day2.Spec.ClusterDeploymentName = nil
+				Expect(c.Update(ctx, agent_day2)).To(BeNil())
+
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host_day2))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
+				By("Checking if the BMH does not have the detached annotation")
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+
+				By("Checking the spoke BMH does not exist")
+				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
+				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
+				spokeClient := bmhr.spokeClient
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
+				Expect(err).To(HaveOccurred())
+
+				By("Checking the spoke Machine does not exist")
+				spokeMachine := &machinev1beta1.Machine{}
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)
+				Expect(err).To(HaveOccurred())
+			})
+			It("should not create spoke BMH for day 2 if cluster is not day 2", func() {
+				pullSecretName := "pull-secret"
+				clusterName := "fake-day2-test-cluster"
+				defaultClusterSpec := getDefaultClusterDeploymentSpec(clusterName, "test-cluster-aci-day2", pullSecretName)
+				fake_day2_cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				fake_day2_cluster.Spec.Installed = false
+				Expect(c.Create(ctx, fake_day2_cluster)).ShouldNot(HaveOccurred())
+				clusterInstall = newAgentClusterInstall(fake_day2_cluster.Spec.ClusterInstallRef.Name, testNamespace, hiveext.AgentClusterInstallSpec{}, fake_day2_cluster)
+				Expect(c.Create(ctx, clusterInstall)).ShouldNot(HaveOccurred())
+				agent_day2.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{Name: clusterName, Namespace: testNamespace}
+				Expect(c.Update(ctx, agent_day2)).To(BeNil())
+
+				By("Checking if the BMH does not have the detached annotation")
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+
+				By("Checking the spoke BMH does not exist")
+				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
+				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
+				spokeClient := bmhr.spokeClient
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
+				Expect(err).To(HaveOccurred())
+
+				By("Checking the spoke Machine does not exist")
+				spokeMachine := &machinev1beta1.Machine{}
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
 		Context("when agent role worker and cluster deployment is set", func() {
 			It("should not create spoke BMH when agent is not installing", func() {
 				configMap := &corev1.ConfigMap{
