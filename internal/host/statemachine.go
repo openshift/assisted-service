@@ -288,7 +288,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeInstallHost,
 		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusKnown),
+			stateswitch.State(models.HostStatusPreparingSuccessful),
 		},
 		Condition:        th.IsDay2Host,
 		DestinationState: stateswitch.State(models.HostStatusInstalling),
@@ -452,7 +452,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 	// Prepare for installation
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
-		Condition:      stateswitch.And(If(ValidRoleForInstallation), If(IsConnected), If(IsMediaConnected), If(ClusterPreparingForInstallation)),
+		Condition:      stateswitch.And(If(ValidRoleForInstallation), If(IsConnected), If(IsMediaConnected), stateswitch.Or(If(ClusterPreparingForInstallation), th.IsDay2Host)),
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusKnown),
 		},
@@ -504,6 +504,34 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		},
 	})
 
+	// Day 2
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+		},
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), If(SuccessfulContainerImageAvailability), th.IsDay2Host),
+		DestinationState: stateswitch.State(models.HostStatusPreparingSuccessful),
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "Preparing to install is successful for day 2 host",
+			Description: "TODO: Document this transition rule",
+		},
+	})
+
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+		},
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), th.IsPreparingTimedOut, imagesAvailabilityUnknown, th.IsDay2Host),
+		DestinationState: stateswitch.State(models.HostStatusPreparingFailed),
+		PostTransition:   th.PostHostPreparationTimeout(),
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "Preparing to install failed for day 2 host",
+			Description: "TODO: Document this transition rule",
+		},
+	})
+
 	// Install host
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
@@ -524,7 +552,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 		},
-		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), allConditionsSuccessfulOrUnknown, stateswitch.Not(If(ClusterPreparingForInstallation))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), allConditionsSuccessfulOrUnknown, stateswitch.Not(If(ClusterPreparingForInstallation)), stateswitch.Not(th.IsDay2Host)),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 		PostTransition:   th.PostRefreshHost(statusInfoKnown),
 		Documentation: stateswitch.TransitionRuleDoc{
@@ -609,7 +637,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingSuccessful),
 		},
-		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(stateswitch.Or(If(ClusterPreparingForInstallation), If(ClusterInstalling)))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(th.IsDay2Host), stateswitch.Not(stateswitch.Or(If(ClusterPreparingForInstallation), If(ClusterInstalling)))),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 		PostTransition:   th.PostRefreshHost(statusInfoKnown),
 		Documentation: stateswitch.TransitionRuleDoc{

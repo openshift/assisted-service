@@ -35,6 +35,10 @@ func NewImageAvailabilityCmd(log logrus.FieldLogger, db *gorm.DB, ocRelease oc.R
 
 func (cmd *imageAvailabilityCmd) getImages(ctx context.Context, cluster *common.Cluster) ([]string, error) {
 	images := make([]string, 0)
+	// Only check installer image for day 2 host
+	if *cluster.Status == models.ClusterStatusAddingHosts {
+		return images, nil
+	}
 	releaseImage, err := cmd.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
 	if err != nil {
 		return images, err
