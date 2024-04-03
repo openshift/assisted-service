@@ -363,3 +363,37 @@ spec:
 [Mirror registries](#mirror-registry-configuration) will automatically be added to the ignore list and does need not to be added under `spec.unauthenticatedRegistries`.
 
 Specifying the `PUBLIC_CONTAINER_REGISTRIES` environment variable in the [ConfigMap override](#specifying-environmental-variables-via-configmap) is still supported and will completely overwrite the list to whatever is in the override.
+
+### Use HTTP for iPXE routes
+
+All iPXE artifacts can be hosted using HTTP or HTTPS.
+
+The field `.spec.iPXEHTTPRoute` in the `AgentServiceConfig` CR allows toggling the TLS of the iPXE artifact routes. By default, this field is set to `disabled`, which means the iPXE artifacts are hosted via HTTPS.
+
+To use plain HTTP for the iPXE artifacts, set `iPXEHTTPRoute` to `enabled` like so:
+
+``` bash
+cat <<EOF | kubectl create -f -
+apiVersion: agent-install.openshift.io/v1beta1
+kind: AgentServiceConfig
+metadata:
+  name: agent
+spec:
+  databaseStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  filesystemStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 20Gi
+  iPXEHTTPRoute: enabled
+```
+
+The following endpoints would be exposed via HTTP:
+* `api/assisted-installer/v2/infra-envs/<id>/downloads/files?file_name=ipxe-script` in assisted-service
+* `boot-artifacts/` and `images/<infra-enf id>/pxe-initrd` in assisted-image-service
