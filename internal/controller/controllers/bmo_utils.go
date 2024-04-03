@@ -73,7 +73,7 @@ func (r *bmoUtils) GetIronicIPs() ([]string, []string, error) {
 		r.log.WithError(err).Error("unable to get provisioning CR")
 		return nil, nil, err
 	}
-	ironicIPs, inspectorIPs, err := provisioning.GetIronicIPs(*provisioningInfo)
+	ironicIPs, inspectorIPs, err := provisioning.GetIronicIPs(provisioningInfo)
 	if err != nil {
 		r.log.WithError(err).Error("unable to determine Ironic's IP")
 		return nil, nil, err

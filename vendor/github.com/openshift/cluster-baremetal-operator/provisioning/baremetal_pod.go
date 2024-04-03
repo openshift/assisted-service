@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -68,6 +69,7 @@ const (
 	cboLabelName                     = "baremetal.openshift.io/cluster-baremetal-operator"
 	externalTrustBundleConfigMapName = "cbo-trusted-ca"
 	pullSecretEnvVar                 = "IRONIC_AGENT_PULL_SECRET" // #nosec
+	forceInspectorEnvVar             = "USE_IRONIC_INSPECTOR"
 )
 
 var podTemplateAnnotations = map[string]string{
@@ -268,8 +270,7 @@ func setIronicExternalIp(name string, config *metal3iov1alpha1.ProvisioningSpec)
 }
 
 func setIronicExternalUrl(info *ProvisioningInfo) (corev1.EnvVar, error) {
-	ironicIPs, err := getServerInternalIPs(info.OSClient)
-
+	ironicIPs, err := GetRealIronicIPs(info)
 	if err != nil {
 		return corev1.EnvVar{}, fmt.Errorf("Failed to get Ironic IP when setting external url: %w", err)
 	}
@@ -355,6 +356,7 @@ func createInitContainerMachineOsDownloader(info *ProvisioningInfo, imageURLs st
 		Command:         []string{command},
 		ImagePullPolicy: "IfNotPresent",
 		SecurityContext: &corev1.SecurityContext{
+			// Needed for hostPath image volume mount
 			Privileged: pointer.BoolPtr(true),
 		},
 		VolumeMounts: []corev1.VolumeMount{imageVolumeMount},
@@ -376,7 +378,9 @@ func createInitContainerStaticIpSet(images *Images, config *metal3iov1alpha1.Pro
 		Command:         []string{"/set-static-ip"},
 		ImagePullPolicy: "IfNotPresent",
 		SecurityContext: &corev1.SecurityContext{
-			Privileged: pointer.BoolPtr(true),
+			Capabilities: &corev1.Capabilities{
+				Add: []corev1.Capability{"NET_ADMIN"},
+			},
 		},
 		Env: []corev1.EnvVar{
 			buildEnvVar(provisioningIP, config),
@@ -456,6 +460,7 @@ func createContainerMetal3Dnsmasq(images *Images, config *metal3iov1alpha1.Provi
 		Image:           images.Ironic,
 		ImagePullPolicy: "IfNotPresent",
 		SecurityContext: &corev1.SecurityContext{
+			// Needed for hostPath image volume mount
 			Privileged: pointer.BoolPtr(true),
 		},
 		Command: []string{"/bin/rundnsmasq"},
@@ -529,6 +534,7 @@ func createContainerMetal3Httpd(images *Images, config *metal3iov1alpha1.Provisi
 		Image:           images.Ironic,
 		ImagePullPolicy: "IfNotPresent",
 		SecurityContext: &corev1.SecurityContext{
+			// Needed for hostPath image volume mount
 			Privileged: pointer.BoolPtr(true),
 		},
 		Command:      []string{"/bin/runhttpd"},
@@ -566,6 +572,11 @@ func createContainerMetal3Httpd(images *Images, config *metal3iov1alpha1.Provisi
 				Name:  inspectorListenPortEnvVar,
 				Value: fmt.Sprint(inspectorPort),
 			},
+			// TODO(dtantsur): remove when removing inspector
+			{
+				Name:  forceInspectorEnvVar,
+				Value: "true",
+			},
 		},
 		Ports: ports,
 		Resources: corev1.ResourceRequirements{
@@ -596,6 +607,7 @@ func createContainerMetal3Ironic(images *Images, info *ProvisioningInfo, config 
 		Image:           images.Ironic,
 		ImagePullPolicy: "IfNotPresent",
 		SecurityContext: &corev1.SecurityContext{
+			// Needed for hostPath image volume mount
 			Privileged: pointer.BoolPtr(true),
 		},
 		Command:      []string{"/bin/runironic"},
@@ -628,6 +640,11 @@ func createContainerMetal3Ironic(images *Images, info *ProvisioningInfo, config 
 			setIronicExternalIp(externalIpEnvVar, config),
 			buildEnvVar(provisioningMacAddresses, config),
 			buildEnvVar(vmediaHttpsPort, config),
+			// TODO(dtantsur): remove when removing inspector
+			{
+				Name:  forceInspectorEnvVar,
+				Value: "true",
+			},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -645,11 +662,8 @@ func createContainerMetal3RamdiskLogs(images *Images) corev1.Container {
 		Name:            "metal3-ramdisk-logs",
 		Image:           images.Ironic,
 		ImagePullPolicy: "IfNotPresent",
-		SecurityContext: &corev1.SecurityContext{
-			Privileged: pointer.BoolPtr(true),
-		},
-		Command:      []string{"/bin/runlogwatch.sh"},
-		VolumeMounts: []corev1.VolumeMount{sharedVolumeMount},
+		Command:         []string{"/bin/runlogwatch.sh"},
+		VolumeMounts:    []corev1.VolumeMount{sharedVolumeMount},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("10m"),
@@ -665,10 +679,7 @@ func createContainerMetal3IronicInspector(images *Images, info *ProvisioningInfo
 		Name:            "metal3-ironic-inspector",
 		Image:           images.Ironic,
 		ImagePullPolicy: "IfNotPresent",
-		SecurityContext: &corev1.SecurityContext{
-			Privileged: pointer.BoolPtr(true),
-		},
-		Command: []string{"/bin/runironic-inspector"},
+		Command:         []string{"/bin/runironic-inspector"},
 		VolumeMounts: []corev1.VolumeMount{
 			sharedVolumeMount,
 			ironicCredentialsMount,
@@ -695,6 +706,10 @@ func createContainerMetal3IronicInspector(images *Images, info *ProvisioningInfo
 			buildEnvVar(provisioningIP, config),
 			buildEnvVar(provisioningInterface, config),
 			buildEnvVar(provisioningMacAddresses, config),
+			{
+				Name:  forceInspectorEnvVar,
+				Value: "true",
+			},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -714,6 +729,7 @@ func createContainerMetal3StaticIpManager(images *Images, config *metal3iov1alph
 		Command:         []string{"/refresh-static-ip"},
 		ImagePullPolicy: "IfNotPresent",
 		SecurityContext: &corev1.SecurityContext{
+			// Needed for mounting /proc to set the addr_gen_mode
 			Privileged: pointer.BoolPtr(true),
 		},
 		Env: []corev1.EnvVar{
@@ -795,7 +811,7 @@ func injectProxyAndCA(containers []corev1.Container, proxy *configv1.Proxy) []co
 	var injectedContainers []corev1.Container
 
 	for _, container := range containers {
-		container.Env = envWithProxy(proxy, container.Env, "")
+		container.Env = envWithProxy(proxy, container.Env, nil)
 		container.VolumeMounts = mountsWithTrustedCA(container.VolumeMounts)
 		injectedContainers = append(injectedContainers, container)
 	}
@@ -803,7 +819,7 @@ func injectProxyAndCA(containers []corev1.Container, proxy *configv1.Proxy) []co
 	return injectedContainers
 }
 
-func envWithProxy(proxy *configv1.Proxy, envVars []corev1.EnvVar, noproxy string) []corev1.EnvVar {
+func envWithProxy(proxy *configv1.Proxy, envVars []corev1.EnvVar, noproxy []string) []corev1.EnvVar {
 	if proxy == nil {
 		return envVars
 	}
@@ -820,10 +836,10 @@ func envWithProxy(proxy *configv1.Proxy, envVars []corev1.EnvVar, noproxy string
 			Value: proxy.Status.HTTPSProxy,
 		})
 	}
-	if proxy.Status.NoProxy != "" || noproxy != "" {
+	if proxy.Status.NoProxy != "" || noproxy != nil {
 		envVars = append(envVars, corev1.EnvVar{
 			Name:  "NO_PROXY",
-			Value: proxy.Status.NoProxy + "," + noproxy,
+			Value: proxy.Status.NoProxy + "," + strings.Join(noproxy, ","),
 		})
 	}
 
