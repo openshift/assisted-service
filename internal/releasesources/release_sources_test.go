@@ -183,7 +183,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	// Testing ReleaseSources with standard ReleaseImages
 
 	It("Should not cause an error with empty release sources", func() {
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			models.ReleaseSources{},
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -217,7 +217,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -242,7 +242,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -267,7 +267,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -292,7 +292,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -317,7 +317,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -346,7 +346,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -378,7 +378,7 @@ var _ = Describe("SyncReleaseImages", func() {
 				},
 			},
 		}
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -402,7 +402,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -421,7 +421,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -444,7 +444,7 @@ var _ = Describe("SyncReleaseImages", func() {
 				},
 			},
 		}
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -468,7 +468,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
@@ -482,7 +482,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	// Testing ReleaseImages with standard ReleaseSources
 
 	It("Should not cause an error with empty ReleaseImages", func() {
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			defaultReleaseSources,
 			models.ReleaseImages{},
 			common.GetTestLog(),
@@ -503,7 +503,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	})
 
 	It("Should not cause an error with nil ReleaseImages", func() {
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			defaultReleaseSources,
 			nil,
 			common.GetTestLog(),
@@ -533,7 +533,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			defaultReleaseSources,
 			releaseImages,
 			common.GetTestLog(),
@@ -561,7 +561,7 @@ var _ = Describe("SyncReleaseImages", func() {
 				URL:             swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
 			},
 		}
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			defaultReleaseSources,
 			releaseImages,
 			common.GetTestLog(),
@@ -579,7 +579,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			defaultReleaseSources,
 			releaseImages,
 			common.GetTestLog(),
@@ -597,7 +597,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			defaultReleaseSources,
 			releaseImages,
 			common.GetTestLog(),
@@ -615,7 +615,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			defaultReleaseSources,
 			releaseImages,
 			common.GetTestLog(),
@@ -636,7 +636,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			defaultReleaseSources,
 			releaseImages,
 			common.GetTestLog(),
@@ -666,7 +666,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			defaultReleaseSources,
 			releaseImages,
 			common.GetTestLog(),
@@ -692,7 +692,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			releaseImages,
 			common.GetTestLog(),
@@ -758,7 +758,7 @@ var _ = Describe("SyncReleaseImages", func() {
 				},
 			}
 
-			handler, err = NewReleaseSourcesHandler(
+			handler, err = newReleaseSourcesHandler(
 				releaseSources,
 				releaseImages,
 				common.GetTestLog(),
@@ -856,7 +856,7 @@ var _ = Describe("SyncReleaseImages", func() {
 				},
 			}
 
-			handler, err = NewReleaseSourcesHandler(
+			handler, err = newReleaseSourcesHandler(
 				releaseSources,
 				releaseImages,
 				common.GetTestLog(),
@@ -954,7 +954,7 @@ var _ = Describe("SyncReleaseImages", func() {
 				},
 			}
 
-			handler, err = NewReleaseSourcesHandler(
+			handler, err = newReleaseSourcesHandler(
 				releaseSources,
 				releaseImages,
 				common.GetTestLog(),
@@ -1064,7 +1064,7 @@ var _ = Describe("SyncReleaseImages", func() {
 				},
 			}
 
-			handler, err = NewReleaseSourcesHandler(
+			handler, err = newReleaseSourcesHandler(
 				models.ReleaseSources{},
 				releaseImages,
 				common.GetTestLog(),
@@ -1181,7 +1181,7 @@ var _ = Describe("SyncReleaseImages", func() {
 				},
 			}
 
-			handler, err = NewReleaseSourcesHandler(
+			handler, err = newReleaseSourcesHandler(
 				releaseSources,
 				models.ReleaseImages{},
 				common.GetTestLog(),
@@ -1311,7 +1311,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			},
 		}
 
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			releaseSources,
 			models.ReleaseImages{},
 			common.GetTestLog(),
@@ -1463,7 +1463,7 @@ var _ = Describe("SyncReleaseImages", func() {
 				},
 			}
 
-			handler, err = NewReleaseSourcesHandler(
+			handler, err = newReleaseSourcesHandler(
 				releaseSources,
 				releaseImages,
 				common.GetTestLog(),
@@ -1542,7 +1542,7 @@ var _ = Describe("SyncReleaseImages", func() {
 				},
 			}
 
-			handler, err = NewReleaseSourcesHandler(
+			handler, err = newReleaseSourcesHandler(
 				releaseSources,
 				releaseImages,
 				common.GetTestLog(),
@@ -1577,7 +1577,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	})
 
 	It("Should be successfull with valid static and dynamic release images extended scenario", func() {
-		handler, err = NewReleaseSourcesHandler(
+		handler, err = newReleaseSourcesHandler(
 			defaultReleaseSources,
 			staticReleaseImages,
 			common.GetTestLog(),
