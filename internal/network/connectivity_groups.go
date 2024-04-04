@@ -376,6 +376,11 @@ type l2Query struct {
 	connectivityReport models.ConnectivityReport
 }
 
+func (l *l2Query) isIPv6() bool {
+	_, bits := l.parsedCidr.Mask.Size()
+	return bits == net.IPv6len*8
+}
+
 func (l *l2Query) next() strfmt.UUID {
 	for l.current != len(l.connectivityReport.RemoteHosts) {
 		rh := l.connectivityReport.RemoteHosts[l.current]
@@ -384,6 +389,17 @@ func (l *l2Query) next() strfmt.UUID {
 			ip := net.ParseIP(l2.RemoteIPAddress)
 			if ip != nil && l.parsedCidr.Contains(ip) && l2.Successful {
 				return rh.HostID
+			}
+		}
+		if l.isIPv6() {
+			// nmap uses NDP (Network Discovery Protocol) for IPv6 L2 discovery.  There are cases that NDP responses do not
+			// arrive and parsed by nmap, but still there is connectivity between the hosts.  In this case we fallback to L3
+			// check and verify that the remote address is in the required subnet.
+			for _, l3 := range rh.L3Connectivity {
+				ip := net.ParseIP(l3.RemoteIPAddress)
+				if ip != nil && l.parsedCidr.Contains(ip) && l3.Successful {
+					return rh.HostID
+				}
 			}
 		}
 	}
