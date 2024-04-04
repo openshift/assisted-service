@@ -16,7 +16,7 @@ spec:
         app: object-store
     spec:
       containers:
-        - image: quay.io/cloudservices/minio:latest
+        - image: quay.io/minio/minio:latest
           name: s3server
           args:
             - server
