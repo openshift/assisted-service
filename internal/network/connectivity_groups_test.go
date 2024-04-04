@@ -515,6 +515,55 @@ func GenerateL2ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 	})
 }
 
+var _ = Describe("L2 Ipv6 with L3 fallback", func() {
+	var (
+		nodes    []*node
+		net1CIDR string
+		hosts    []*models.Host
+	)
+
+	BeforeEach(func() {
+		net1CIDR = "2001:db8::/120"
+		nodes = generateIPv6Nodes(7, "2001:db8::/120", "fe80:5054::/120")
+		hosts = []*models.Host{
+			{
+				ID: nodes[0].id,
+				Connectivity: createConnectivityReport(
+					createL2Remote(nodes[1], l2LinkNet1),
+					createL2Remote(nodes[2], l2LinkNet1)),
+			},
+			{
+				ID: nodes[1].id,
+				Connectivity: createConnectivityReport(
+					createL2Remote(nodes[0], l2LinkNet1),
+					createL2Remote(nodes[2], l2LinkNet1)),
+			},
+			{
+				ID: nodes[2].id,
+				Connectivity: createConnectivityReport(
+					createL2Remote(nodes[0], l2LinkNet1)),
+			},
+		}
+	})
+	It("Missing L2 connectivity", func() {
+		ret, err := CreateL2MajorityGroup(net1CIDR, hosts)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ret).To(HaveLen(0))
+	})
+
+	It("Missing L2 connectivity. Add L3 connectivity", func() {
+		hosts[2].Connectivity = createConnectivityReport(
+			createL2Remote(nodes[0], l2LinkNet1),
+			createL3Remote(nodes[1], l3LinkNet1))
+		ret, err := CreateL2MajorityGroup(net1CIDR, hosts)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ret).To(HaveLen(3))
+		Expect(ret).To(ContainElement(*nodes[0].id))
+		Expect(ret).To(ContainElement(*nodes[1].id))
+		Expect(ret).To(ContainElement(*nodes[2].id))
+	})
+})
+
 var _ = Describe("L3 connectivity groups all", func() {
 	GenerateL3ConnectivityGroupTests(true, "1.2.3.0/24", "2.2.3.0/24")
 	GenerateL3ConnectivityGroupTests(false, "2001:db8::/120", "fe80:5054::/120")
