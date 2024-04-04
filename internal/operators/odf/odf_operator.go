@@ -35,10 +35,9 @@ func NewOcsOperator(log logrus.FieldLogger) *operator {
 
 // operator is an ODF OLM operator plugin; it implements api.Operator
 type operator struct {
-	log                         logrus.FieldLogger
-	config                      *Config
-	extracter                   oc.Extracter
-	additionalDiskRequirementGB int64
+	log       logrus.FieldLogger
+	config    *Config
+	extracter oc.Extracter
 }
 
 var Operator = models.MonitoredOperator{
@@ -110,29 +109,29 @@ func (o *operator) StorageClassName() string {
 	return defaultStorageClassName
 }
 
-func (o *operator) SetAdditionalDiskRequirements(additionalSizeGB int64) {
-	o.additionalDiskRequirementGB = additionalSizeGB
-}
-
-func (o *operator) getMinDiskSizeGB() int64 {
-	return o.config.ODFMinDiskSizeGB + o.additionalDiskRequirementGB
+func (o *operator) getMinDiskSizeGB(additionalDiskRequirementsGb int64) int64 {
+	return o.config.ODFMinDiskSizeGB + additionalDiskRequirementsGb
 }
 
 // Get valid disk count, and return error if no disk available
-func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID string, cluster *models.Cluster) (int64, error) {
+func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID string, cluster *models.Cluster, additionalOperatorRequirements *models.ClusterHostRequirementsDetails) (int64, error) {
 	numOfHosts := len(cluster.Hosts)
 	mode := getODFDeploymentMode(numOfHosts)
 
-	eligibleDisks, availableDisks := operatorscommon.NonInstallationDiskCount(disks, installationDiskID, o.getMinDiskSizeGB())
+	minDiskSizeGb := int64(0)
+	if additionalOperatorRequirements != nil {
+		minDiskSizeGb = additionalOperatorRequirements.DiskSizeGb
+	}
+	eligibleDisks, availableDisks := operatorscommon.NonInstallationDiskCount(disks, installationDiskID, o.getMinDiskSizeGB(minDiskSizeGb))
 	var err error
 	if eligibleDisks == 0 && availableDisks > 0 {
-		err = fmt.Errorf("Insufficient resources to deploy ODF in %s mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of %d GB minimum and an installation disk.", strings.ToLower(string(mode)), o.getMinDiskSizeGB())
+		err = fmt.Errorf("Insufficient resources to deploy ODF in %s mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of %d GB minimum and an installation disk.", strings.ToLower(string(mode)), o.getMinDiskSizeGB(minDiskSizeGb))
 	}
 	return eligibleDisks, err
 }
 
 // ValidateHost verifies whether this operator is valid for given host
-func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
+func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host, additionalOperatorRequirements *models.ClusterHostRequirementsDetails) (api.ValidationResult, error) {
 	numOfHosts := len(cluster.Hosts)
 	if host.Inventory == "" {
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in the host."}}, nil
@@ -146,7 +145,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	mode := getODFDeploymentMode(numOfHosts)
 
 	// getValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size
-	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, &cluster.Cluster)
+	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, &cluster.Cluster, additionalOperatorRequirements)
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
@@ -208,7 +207,7 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 
 		/* getValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size,
 		we ignore the error as its treated as 500 in the UI */
-		diskCount, _ = o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, &cluster.Cluster)
+		diskCount, _ = o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, &cluster.Cluster, nil)
 	}
 
 	role := common.GetEffectiveRole(host)

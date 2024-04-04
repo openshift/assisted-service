@@ -211,16 +211,16 @@ func (mr *MockOperatorMockRecorder) ValidateCluster(arg0, arg1 interface{}) *gom
 }
 
 // ValidateHost mocks base method.
-func (m *MockOperator) ValidateHost(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) (ValidationResult, error) {
+func (m *MockOperator) ValidateHost(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host, arg3 *models.ClusterHostRequirementsDetails) (ValidationResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateHost", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "ValidateHost", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(ValidationResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ValidateHost indicates an expected call of ValidateHost.
-func (mr *MockOperatorMockRecorder) ValidateHost(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockOperatorMockRecorder) ValidateHost(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateHost", reflect.TypeOf((*MockOperator)(nil).ValidateHost), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateHost", reflect.TypeOf((*MockOperator)(nil).ValidateHost), arg0, arg1, arg2, arg3)
 }
