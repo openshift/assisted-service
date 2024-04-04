@@ -280,7 +280,7 @@ var _ = Describe("CNV operator", func() {
 				{SizeBytes: 20 * conversions.GiB, DriveType: models.DriveTypeSSD, ID: "disk3"},
 			})}
 		table.DescribeTable("validateHost when ", func(cluster *common.Cluster, host *models.Host, expectedResult api.ValidationResult) {
-			res, _ := cnvOperator.ValidateHost(context.TODO(), cluster, host)
+			res, _ := cnvOperator.ValidateHost(context.TODO(), cluster, host, nil)
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("No virt capabilities",

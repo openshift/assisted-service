@@ -55,7 +55,7 @@ func (l *lsOperator) ValidateCluster(_ context.Context, _ *common.Cluster) (api.
 }
 
 // ValidateHost always return "valid" result
-func (l *lsOperator) ValidateHost(_ context.Context, _ *common.Cluster, _ *models.Host) (api.ValidationResult, error) {
+func (l *lsOperator) ValidateHost(_ context.Context, _ *common.Cluster, _ *models.Host, _ *models.ClusterHostRequirementsDetails) (api.ValidationResult, error) {
 	return api.ValidationResult{Status: api.Success, ValidationId: l.GetHostValidationID(), Reasons: []string{}}, nil
 }
 

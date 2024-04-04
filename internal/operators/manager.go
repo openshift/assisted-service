@@ -29,6 +29,8 @@ import (
 
 const controllerManifestFile = "custom_manifests.json"
 
+var storageOperatorsPriority = []string{odf.Operator.Name, lvm.Operator.Name}
+
 // Manifest store the operator manifest used by assisted-installer to create CRs of the OLM.
 type Manifest struct {
 	// Name of the operator the CR manifest we want create
@@ -124,8 +126,7 @@ func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context
 }
 
 func (mgr *Manager) getStorageOperator(cluster *models.Cluster) (api.StorageOperator, error) {
-	priorityOrder := []string{odf.Operator.Name, lvm.Operator.Name}
-	for _, operatorName := range priorityOrder {
+	for _, operatorName := range storageOperatorsPriority {
 		for _, operator := range cluster.MonitoredOperators {
 			if operator.Name == operatorName {
 				o := mgr.olmOperators[operatorName]
@@ -241,13 +242,10 @@ func (mgr *Manager) AnyOLMOperatorEnabled(cluster *common.Cluster) bool {
 // ValidateHost validates host requirements
 func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error) {
 	results := make([]api.ValidationResult, 0, len(mgr.olmOperators))
+	additionalOperatorRequirements := &models.ClusterHostRequirementsDetails{}
 
 	if hasMCEAndStorage(cluster.Cluster.MonitoredOperators) {
-		storageOperator, err := mgr.getStorageOperator(&cluster.Cluster)
-		if err != nil {
-			mgr.log.Infof("Could not load storage operator while validating host (%v)", err.Error())
-		}
-		storageOperator.SetAdditionalDiskRequirements(mce.GetMinDiskSizeGB(&cluster.Cluster))
+		additionalOperatorRequirements.DiskSizeGb = mce.GetMinDiskSizeGB(&cluster.Cluster)
 	}
 
 	// To track operators that are disabled or not present in the cluster configuration, but have to be present
@@ -264,7 +262,7 @@ func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, h
 
 		operator := mgr.olmOperators[clusterOperator.Name]
 		if operator != nil {
-			result, err := operator.ValidateHost(ctx, cluster, host)
+			result, err := operator.ValidateHost(ctx, cluster, host, additionalOperatorRequirements)
 			if err != nil {
 				return nil, err
 			}
