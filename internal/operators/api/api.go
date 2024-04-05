@@ -38,7 +38,7 @@ type Operator interface {
 	// ValidateCluster verifies whether this operator is valid for given cluster
 	ValidateCluster(ctx context.Context, cluster *common.Cluster) (ValidationResult, error)
 	// ValidateHost verifies whether this operator is valid for given host
-	ValidateHost(ctx context.Context, cluster *common.Cluster, hosts *models.Host) (ValidationResult, error)
+	ValidateHost(ctx context.Context, cluster *common.Cluster, hosts *models.Host, additionalOperatorRequirements *models.ClusterHostRequirementsDetails) (ValidationResult, error)
 	// GenerateManifests generates manifests for the operator
 	GenerateManifests(*common.Cluster) (map[string][]byte, []byte, error)
 	// GetHostRequirements provides operator's requirements towards the host
@@ -61,5 +61,4 @@ type Operator interface {
 type StorageOperator interface {
 	Operator
 	StorageClassName() string
-	SetAdditionalDiskRequirements(additionalSizeGB int64)
 }

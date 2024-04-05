@@ -106,14 +106,7 @@ var _ = BeforeEach(func() {
 		},
 	}
 	cluster.ImageInfo = &models.ImageInfo{}
-	b, err := common.MarshalInventory(&models.Inventory{
-		CPU:    &models.CPU{Count: 8},
-		Memory: &models.Memory{UsableBytes: 64 * conversions.GiB},
-		Disks: []*models.Disk{
-			{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: common.TestDiskId},
-			{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD}}})
-	Expect(err).To(Not(HaveOccurred()))
-	clusterHost = &models.Host{Inventory: b, Role: models.HostRoleMaster, InstallationDiskID: common.TestDiskId}
+	clusterHost = getMockHostWithDisks(int64(20), int64(40))
 
 	ctrl = gomock.NewController(GinkgoT())
 	manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
@@ -489,6 +482,83 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
 			))
 		})
+
+		It("should be not valid if not enough disk space available for mce and odf", func() {
+			clusterHost = getMockHostWithDisks(int64(20), int64(20))
+
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&odf.Operator,
+				&mce.Operator,
+			}
+
+			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).To(ContainElements(
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{"Insufficient resources to deploy ODF in compact mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of 75 GB minimum and an installation disk."}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: nil},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
+			))
+		})
+
+		It("should be valid if enough disk space available for mce and odf", func() {
+			clusterHost = getMockHostWithDisks(int64(20), int64(80))
+
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&odf.Operator,
+				&mce.Operator,
+			}
+
+			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).To(ContainElements(
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: nil},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
+			))
+		})
+
+		It("should be valid if enough disk space available for mce and odf and then only odf", func() {
+			clusterHost = getMockHostWithDisks(int64(20), int64(80))
+
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&odf.Operator,
+				&mce.Operator,
+			}
+
+			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).To(ContainElements(
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: nil},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
+			))
+
+			clusterHost = getMockHostWithDisks(int64(20), int64(30))
+
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&odf.Operator,
+			}
+
+			results, err = manager.ValidateHost(context.TODO(), cluster, clusterHost)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).To(ContainElements(
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
+			))
+		})
 	})
 
 	Context("ResolveDependencies", func() {
@@ -640,4 +710,15 @@ func mockOperatorBase(operatorName string) *api.MockOperator {
 	operator1.EXPECT().GetMonitoredOperator().Return(monitoredOperator1)
 
 	return operator1
+}
+
+func getMockHostWithDisks(sizeDiskA, sizeDiskB int64) *models.Host {
+	b, err := common.MarshalInventory(&models.Inventory{
+		CPU:    &models.CPU{Count: 8},
+		Memory: &models.Memory{UsableBytes: 64 * conversions.GiB},
+		Disks: []*models.Disk{
+			{SizeBytes: sizeDiskA * conversions.GB, DriveType: models.DriveTypeHDD, ID: common.TestDiskId},
+			{SizeBytes: sizeDiskB * conversions.GB, DriveType: models.DriveTypeSSD}}})
+	Expect(err).To(Not(HaveOccurred()))
+	return &models.Host{Inventory: b, Role: models.HostRoleMaster, InstallationDiskID: common.TestDiskId}
 }

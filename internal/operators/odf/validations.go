@@ -116,7 +116,7 @@ func (o *operator) computeNodeResourceUtil(cluster *models.Cluster, host *models
 		return status, err
 	}
 
-	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, cluster)
+	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, cluster, nil)
 	if err != nil {
 		return err.Error(), err
 	}

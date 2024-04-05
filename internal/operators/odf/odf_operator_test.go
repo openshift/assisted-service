@@ -221,7 +221,7 @@ var _ = Describe("Odf Operator", func() {
 
 	Context("ValidateHost", func() {
 		table.DescribeTable("compact mode scenario: validateHost when ", func(cluster *common.Cluster, host *models.Host, expectedResult api.ValidationResult) {
-			res, _ := operator.ValidateHost(ctx, cluster, host)
+			res, _ := operator.ValidateHost(ctx, cluster, host, nil)
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("Single master",
@@ -297,7 +297,7 @@ var _ = Describe("Odf Operator", func() {
 		)
 
 		table.DescribeTable("standard mode scenario: validateHosts when ", func(cluster *common.Cluster, host *models.Host, expectedResult api.ValidationResult) {
-			res, _ := operator.ValidateHost(ctx, cluster, host)
+			res, _ := operator.ValidateHost(ctx, cluster, host, nil)
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("there are 4 hosts, role of one as auto-assign",

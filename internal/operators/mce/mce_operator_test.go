@@ -56,7 +56,7 @@ var _ = Describe("MCE Operator", func() {
 
 	Context("ValidateHost", func() {
 		table.DescribeTable("validate host when ", func(cluster *common.Cluster, host *models.Host, expectedResult api.ValidationResult) {
-			res, _ := operator.ValidateHost(ctx, cluster, host)
+			res, _ := operator.ValidateHost(ctx, cluster, host, nil)
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("host with no inventory",
