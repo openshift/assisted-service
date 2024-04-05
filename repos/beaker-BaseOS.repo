@@ -1,0 +1,6 @@
+[beaker-BaseOS]
+name=beaker-BaseOS
+baseurl=http://download.eng.rdu.redhat.com/released/rhel-6-7-8/rhel-8/RHEL-8/8.9.0/BaseOS/$basearch/os
+enabled=1
+gpgcheck=0
+skip_if_unavailable=1

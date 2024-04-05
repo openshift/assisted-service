@@ -1,0 +1,48 @@
+# URGENT! ART metadata configuration has a different number of FROMs
+# than this Dockerfile. ART will be unable to build your component or
+# reconcile this Dockerfile until that disparity is addressed.
+# Build binaries
+FROM registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:rhel_8_golang_1.20 AS builder
+COPY repos/* /etc/yum.repos.d/
+WORKDIR /src
+COPY . .
+
+RUN dnf install -y gcc nmstate-devel nmstate-libs git && dnf clean all
+RUN cd cmd && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service
+RUN cd ./cmd/operator && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator
+RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission
+RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
+
+
+FROM registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-cli:v4.15 AS oc-image
+# Create final image
+FROM registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-base:v4.15
+COPY repos/* /etc/yum.repos.d/
+LABEL io.openshift.release.operator=true
+
+# multiarch images need skopeo until WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
+# ToDo: Replace postgres with SQLite DB
+# https://issues.redhat.com/browse/AGENT-223
+RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo && dnf clean all
+
+RUN dnf update libksba libxml2 -y && dnf clean all
+
+COPY hack/agent_installer/start_db.sh start_db.sh
+
+RUN su - postgres -c "mkdir -p /tmp/postgres/data"
+RUN su - postgres -c "/usr/bin/initdb -D /tmp/postgres/data"
+
+ARG WORK_DIR=/data
+
+RUN mkdir $WORK_DIR && chmod 775 $WORK_DIR
+
+COPY --from=oc-image /usr/bin/oc /usr/local/bin/
+
+COPY --from=builder /build/assisted-service /assisted-service
+COPY --from=builder /build/assisted-service-operator /assisted-service-operator
+COPY --from=builder /build/assisted-service-admission /assisted-service-admission
+COPY --from=builder /build/agent-installer-client /usr/local/bin/agent-installer-client
+RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-cluster-and-infraenv
+ENV GODEBUG=madvdontneed=1
+ENV GOGC=50
+CMD ["/assisted-service"]

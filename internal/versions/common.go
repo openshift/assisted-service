@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	models "github.com/openshift/assisted-service/models"
@@ -147,7 +148,8 @@ func validateReleaseImageForRHCOS(
 		}
 
 		for _, arch := range releaseImage.CPUArchitectures {
-			if arch == cpuArchitecture && *minorVersion == *rhcosVersionPtr {
+			// Normalize and Compare CPUArchitecures
+			if common.NormalizeCPUArchitecture(arch) == common.NormalizeCPUArchitecture(cpuArchitecture) && *minorVersion == *rhcosVersionPtr {
 				if *minorVersion == *rhcosVersionPtr {
 					log.Debugf("Validator for the architecture %s found the following OCP version: %s", cpuArchitecture, *releaseImage.Version)
 					return nil
@@ -230,6 +232,11 @@ func ParseReleaseImages(
 
 	// For backward compatibility with release images that lack the CPUArchitectures field.
 	funk.ForEach(*releaseImages, func(releaseImage *models.ReleaseImage) {
+		// Normalize osImage.CPUArchitecture
+		if swag.StringValue(releaseImage.CPUArchitecture) == common.AARCH64CPUArchitecture {
+			*releaseImage.CPUArchitecture = common.ARM64CPUArchitecture
+		}
+
 		if releaseImage.CPUArchitectures == nil {
 			releaseImage.CPUArchitectures = []string{*releaseImage.CPUArchitecture}
 		}

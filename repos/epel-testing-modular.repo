@@ -1,0 +1,33 @@
+[epel-testing-modular]
+# This repo has been RETIRED, see https://pagure.io/epel/issue/198 for more details.
+name=Extra Packages for Enterprise Linux Modular 8 - Testing - $basearch - RETIRED
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place its address here.
+#baseurl=https://download.example/pub/epel/testing/8/Modular/$basearch
+metalink=https://mirrors.fedoraproject.org/metalink?repo=testing-modular-epel8&arch=$basearch&infra=$infra&content=$contentdir
+enabled=0
+gpgcheck=1
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
+
+[epel-testing-modular-debuginfo]
+# This repo has been RETIRED, see https://pagure.io/epel/issue/198 for more details.
+name=Extra Packages for Enterprise Linux Modular 8 - Testing - $basearch - Debug - RETIRED
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place its address here.
+#baseurl=https://download.example/pub/epel/testing/8/Modular/$basearch/debug
+metalink=https://mirrors.fedoraproject.org/metalink?repo=testing-modular-debug-epel8&arch=$basearch&infra=$infra&content=$contentdir
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
+gpgcheck=1
+
+[epel-testing-modular-source]
+# This repo has been RETIRED, see https://pagure.io/epel/issue/198 for more details.
+name=Extra Packages for Enterprise Linux Modular 8 - Testing - $basearch - Source - RETIRED
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place it's address here.
+#baseurl=https://download.example/pub/epel/testing/8/Modular/source/tree/
+metalink=https://mirrors.fedoraproject.org/metalink?repo=testing-modular-source-epel8&arch=$basearch&infra=$infra&content=$contentdir
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
+gpgcheck=1

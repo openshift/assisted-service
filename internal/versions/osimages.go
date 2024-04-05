@@ -79,7 +79,8 @@ func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture string) (
 		if swag.StringValue(osImage.CPUArchitecture) == "" {
 			return cpuArchitecture == common.DefaultCPUArchitecture
 		}
-		return swag.StringValue(osImage.CPUArchitecture) == cpuArchitecture
+		// Normalize and compare CPUArchs (ABI will send rpmArch aarch64)
+		return common.NormalizeCPUArchitecture(swag.StringValue(osImage.CPUArchitecture)) == common.NormalizeCPUArchitecture(cpuArchitecture)
 	})
 	if funk.IsEmpty(archImages) {
 		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in OS images list", cpuArchitecture)

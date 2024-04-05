@@ -55,7 +55,7 @@ func (h *restAPIVersionsHandler) GetReleaseImage(_ context.Context, openshiftVer
 	if versionFormat == common.MajorMinorPatchVersion {
 		editedVersion := openshiftVersion
 		// add multi suffix if missing
-		if cpuArchitecture == common.MultiCPUArchitecture && !strings.HasSuffix(openshiftVersion, "-multi") {
+		if cpuArchitecture == common.MultiCPUArchitecture && !strings.Contains(openshiftVersion, "multi") {
 			editedVersion = editedVersion + "-multi"
 		}
 		query = query.Where("version = ?", editedVersion)

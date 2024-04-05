@@ -1,0 +1,30 @@
+[epel]
+name=Extra Packages for Enterprise Linux 8 - $basearch
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place its address here.
+#baseurl=https://download.example/pub/epel/8/Everything/$basearch
+metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-8&arch=$basearch&infra=$infra&content=$contentdir
+enabled=1
+gpgcheck=1
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
+
+[epel-debuginfo]
+name=Extra Packages for Enterprise Linux 8 - $basearch - Debug
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place its address here.
+#baseurl=https://download.example/pub/epel/8/Everything/$basearch/debug
+metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-debug-8&arch=$basearch&infra=$infra&content=$contentdir
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
+gpgcheck=1
+
+[epel-source]
+name=Extra Packages for Enterprise Linux 8 - $basearch - Source
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place it's address here.
+#baseurl=https://download.example/pub/epel/8/Everything/source/tree/
+metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-source-8&arch=$basearch&infra=$infra&content=$contentdir
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
+gpgcheck=1

@@ -1,0 +1,5 @@
+[beaker-harness]
+name=beaker-harness
+baseurl=http://beaker.engineering.redhat.com/harness/RedHatEnterpriseLinux8/
+enabled=1
+gpgcheck=0
