@@ -210,6 +210,9 @@ func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username
 
 	for registry := range *v.registriesWithAuth {
 
+		fmt.Println("AAAAA")
+		fmt.Println(registry)
+
 		// Both "docker.io" and "https://index.docker.io/v1/" are acceptable for DockerHub login
 		if registry == dockerHubRegistry {
 			if _, ok := creds[dockerHubLegacyAuth]; ok {
