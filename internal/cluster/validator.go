@@ -25,10 +25,12 @@ import (
 type ValidationStatus string
 
 const (
-	ValidationSuccess ValidationStatus = "success"
-	ValidationFailure ValidationStatus = "failure"
-	ValidationPending ValidationStatus = "pending"
-	ValidationError   ValidationStatus = "error"
+	ValidationSuccess     ValidationStatus = "success"
+	ValidationFailure     ValidationStatus = "failure"
+	ValidationPending     ValidationStatus = "pending"
+	ValidationError       ValidationStatus = "error"
+	DefaultIPV4HostPrefix                  = 25
+	DefaultIPV6HostPrefix                  = 64
 )
 
 func (v ValidationStatus) String() string {
@@ -531,17 +533,12 @@ func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) (Vali
 		return ValidationPending, "The Cluster Network CIDR is undefined."
 	}
 
-	skipHostPrefix := v.skipNetworkHostPrefixCheck(c)
+	skipHostPrefixCheck := v.skipNetworkHostPrefixCheck(c)
 
 	validClusterNetworks := funk.Filter(c.cluster.ClusterNetworks, func(clusterNetwork *models.ClusterNetwork) bool {
-		var hostPrefixForCidrValidation int
-		if !skipHostPrefix {
-			hostPrefixForCidrValidation = int(clusterNetwork.HostPrefix)
-		} else {
-			hostPrefixForCidrValidation = 25 // default to 128 addresses
-		}
+		hostPrefixForCidrValidation := getHostPrefixForCidrValidation(skipHostPrefixCheck, clusterNetwork)
 		return clusterNetwork != nil &&
-			(skipHostPrefix || network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix) == nil) &&
+			(skipHostPrefixCheck || network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix) == nil) &&
 			network.VerifyClusterCidrSize(hostPrefixForCidrValidation, string(clusterNetwork.Cidr), len(c.cluster.Hosts)) == nil
 	}).([]*models.ClusterNetwork)
 
@@ -551,10 +548,14 @@ func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) (Vali
 
 	var err error
 	for _, clusterNetwork := range c.cluster.ClusterNetworks {
-		if err = network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix); err != nil {
-			return ValidationFailure, fmt.Sprintf("Invalid Cluster Network prefix: %s.", err.Error())
+		if !skipHostPrefixCheck {
+			if err = network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix); err != nil {
+				return ValidationFailure, fmt.Sprintf("Invalid Cluster Network prefix: %s.", err.Error())
+			}
 		}
-		if err = network.VerifyClusterCidrSize(int(clusterNetwork.HostPrefix), string(clusterNetwork.Cidr), len(c.cluster.Hosts)); err != nil {
+
+		hostPrefixForCidrValidation := getHostPrefixForCidrValidation(skipHostPrefixCheck, clusterNetwork)
+		if err = network.VerifyClusterCidrSize(hostPrefixForCidrValidation, string(clusterNetwork.Cidr), len(c.cluster.Hosts)); err != nil {
 			return ValidationFailure, err.Error()
 		}
 	}
@@ -573,7 +574,7 @@ func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) (V
 		"please configure an NTP server via DHCP or set clocks manually.", common.MaximumAllowedTimeDiffMinutes)
 }
 
-// Ignore hostPrefix for non-OVN/SDN plugins.
+// skipNetworkHostPrefixCheck returns true if the hostPrefix should be ignored for non-OVN/SDN plugins.
 func (v *clusterValidator) skipNetworkHostPrefixCheck(c *clusterPreprocessContext) bool {
 	// list of known plugins that require hostPrefix to be set
 	var pluginsUsingHostPrefix = []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN}
@@ -599,4 +600,17 @@ func (v *clusterValidator) skipNetworkHostPrefixCheck(c *clusterPreprocessContex
 		return true
 	}
 	return false
+}
+
+// getHostPrefixForCidrValidation returns the prefix to use when validating CIDR.
+func getHostPrefixForCidrValidation(skipHostPrefix bool, clusterNetwork *models.ClusterNetwork) int {
+	hostPrefix := int(clusterNetwork.HostPrefix)
+	if skipHostPrefix {
+		if network.IsIPv6CIDR(string(clusterNetwork.Cidr)) {
+			hostPrefix = DefaultIPV6HostPrefix
+		} else {
+			hostPrefix = DefaultIPV4HostPrefix
+		}
+	}
+	return hostPrefix
 }
