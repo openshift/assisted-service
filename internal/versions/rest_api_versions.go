@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	models "github.com/openshift/assisted-service/models"
@@ -49,17 +50,16 @@ func (h *restAPIVersionsHandler) GetReleaseImage(_ context.Context, openshiftVer
 	if cpuArchitecture == common.MultiCPUArchitecture {
 		query = query.Where("cardinality(cpu_architectures) > 1")
 	} else {
-		query = query.Where(h.db.Session(&gorm.Session{}).Where("? = ANY(cpu_architectures)", cpuArchitecture).Or("cpu_architecture = ?", cpuArchitecture))
+		query = query.Where(h.db.Session(&gorm.Session{}).
+			Where("cpu_architectures @> ? AND ? @> cpu_architectures", pq.StringArray{cpuArchitecture}, pq.StringArray{cpuArchitecture}).
+			Or("cpu_architecture = ?", cpuArchitecture))
 	}
 
 	// Find the exact version
 	if versionFormat == common.MajorMinorPatchVersion {
-		editedVersion := openshiftVersion
-		// add multi suffix if missing
-		if cpuArchitecture == common.MultiCPUArchitecture && !strings.HasSuffix(openshiftVersion, "-multi") {
-			editedVersion = editedVersion + "-multi"
-		}
-		query = query.Where("version = ?", editedVersion)
+		query = query.Where(h.db.Session(&gorm.Session{}).
+			Where("version = ?", openshiftVersion).
+			Or("version = ?", openshiftVersion+"-multi"))
 		var releaseImage models.ReleaseImage
 		err := query.Take(&releaseImage).Error
 		if err != nil {
