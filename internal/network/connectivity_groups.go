@@ -452,7 +452,7 @@ func (l *l3Query) next() strfmt.UUID {
 				foundAddresses[l3.RemoteIPAddress] = true
 			}
 		}
-		if len(addresses) == len(foundAddresses) {
+		if len(foundAddresses) > 0 && len(addresses) == len(foundAddresses) {
 			return rh.HostID
 		}
 	}
@@ -568,7 +568,7 @@ func calculateMajorityGroup(hosts []*models.Host, factory hostQueryFactory) ([]s
 }
 
 /*
- * Crate majority for a cidr.  A majority group is a the largest group of hosts in a cluster that all of them have full mesh
+ * Create majority for a cidr.  A majority group is a the largest group of hosts in a cluster that all of them have full mesh
  * to the other group members.
  * It is done by taking a sorted connectivity group list according to the group size, and from this group take the
  * largest one
@@ -582,7 +582,7 @@ func CreateL2MajorityGroup(cidr string, hosts []*models.Host) ([]strfmt.UUID, er
 }
 
 /*
- * Crate majority for address family.  A majority group is a the largest group of hosts in a cluster that all of them have full mesh
+ * Create majority for address family.  A majority group is a the largest group of hosts in a cluster that all of them have full mesh
  * to the other group members.
  * It is done by taking a sorted connectivity group list according to the group size, and from this group take the
  * largest one
