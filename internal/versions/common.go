@@ -2,14 +2,17 @@ package versions
 
 import (
 	context "context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	models "github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"golang.org/x/sync/semaphore"
 	"gorm.io/gorm"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -154,4 +157,81 @@ func validateReleaseImageForRHCOS(
 	}
 
 	return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image", *rhcosVersionPtr, cpuArchitecture)
+}
+
+func AddReleaseImagesToDBIfNeeded(
+	db *gorm.DB,
+	releaseImages models.ReleaseImages,
+	lead leader.ElectorInterface,
+	log logrus.FieldLogger,
+	enableKubeAPI bool,
+	releaseSourcesLiteral string,
+) error {
+	// If it is kubeAPI mode or release sources was specified (therefore OpenShift Release Syncer will run),
+	// we should not add the release images to the DB.
+	if enableKubeAPI || releaseSourcesLiteral != "" {
+		return nil
+	}
+
+	return lead.RunWithLeader(context.Background(), func() error {
+		tx := db.Begin()
+
+		var count int64
+		if err := tx.Model(&models.ReleaseImage{}).Count(&count).Error; err != nil {
+			return errors.Wrapf(err, "error occurred while trying to count the initial amount of release images in the DB")
+		}
+
+		log.Debugf("Truncating all release_images table. '%d' records", count)
+		if err := tx.Exec("TRUNCATE TABLE release_images").Error; err != nil {
+			tx.Rollback()
+			return errors.Wrapf(err, "error occurred while trying to delete the release images in the DB")
+		}
+
+		if len(releaseImages) > 0 {
+			log.Debugf("Inserting configuration release images to the DB. '%d' records", len(releaseImages))
+			if err := tx.Create(releaseImages).Error; err != nil {
+				tx.Rollback()
+				return errors.Wrapf(err, "error occurred while trying to insert the release images to the DB")
+			}
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			tx.Rollback()
+			return errors.Wrapf(err, "error occurred while commiting changes to the DB")
+		}
+
+		return nil
+	})
+}
+
+func ParseIgnoredOpenshiftVersions(
+	ignoredOpenshiftVersions *[]string,
+	ignoredOpenshiftVersionsLiteral string,
+	failOnError func(err error, msg string, args ...interface{}),
+) {
+	if ignoredOpenshiftVersionsLiteral != "" {
+		failOnError(json.Unmarshal([]byte(ignoredOpenshiftVersionsLiteral), ignoredOpenshiftVersions),
+			"Failed to parse IGNORED_OPENSHIFT_VERSIONS json %s", ignoredOpenshiftVersionsLiteral)
+	}
+}
+
+func ParseReleaseImages(
+	releaseImages *models.ReleaseImages,
+	releaseImagesLiteral string,
+	failOnError func(err error, msg string, args ...interface{}),
+) {
+	if releaseImagesLiteral == "" {
+		// ReleaseImages is optional (not used by the operator)
+		return
+	} else {
+		failOnError(json.Unmarshal([]byte(releaseImagesLiteral), releaseImages),
+			"Failed to parse RELEASE_IMAGES json %s", releaseImagesLiteral)
+	}
+
+	// For backward compatibility with release images that lack the CPUArchitectures field.
+	funk.ForEach(*releaseImages, func(releaseImage *models.ReleaseImage) {
+		if releaseImage.CPUArchitectures == nil {
+			releaseImage.CPUArchitectures = []string{*releaseImage.CPUArchitecture}
+		}
+	})
 }
