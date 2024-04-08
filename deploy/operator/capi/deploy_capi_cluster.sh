@@ -27,6 +27,7 @@ export CONTROL_PLANE_OPERATOR_IMAGE="${CONTROL_PLANE_OPERATOR_IMAGE:-}"
 export PROVIDER_IMAGE="${PROVIDER_IMAGE:-}"
 export EXTRA_HYPERSHIFT_INSTALL_FLAGS="${EXTRA_HYPERSHIFT_INSTALL_FLAGS:-}"
 export EXTRA_HYPERSHIFT_CREATE_COMMANDS="${EXTRA_HYPERSHIFT_CREATE_COMMANDS:-}"
+export EXTRA_HYPERSHIFT_CLI_MOUNTS="${EXTRA_HYPERSHIFT_CLI_MOUNTS:-}"
 
 if [[ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ]]; then
     export USER_MANAGED_NETWORKING="true"
@@ -75,10 +76,10 @@ if [ "${DISCONNECTED}" = "true" ]; then
     export HYPERSHIFT_IMAGE="${HYPERSHIFT_LOCAL_IMAGE}"
     export CONTROL_PLANE_OPERATOR_IMAGE=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for hypershift)
     # 3. the hypershift cli must be available on the local environment
-    id=$(podman create $HYPERSHIFT_LOCAL_IMAGE)
-    mkdir -p ./hypershift-cli
-    podman cp $id:/usr/bin/hypershift ./hypershift-cli
-    export PATH="$PATH":"$PWD"/hypershift-cli
+    #id=$(podman create $HYPERSHIFT_LOCAL_IMAGE)
+    #mkdir -p ./hypershift-cli
+    #podman cp $id:/usr/bin/hypershift ./hypershift-cli
+    #export PATH="$PATH":"$PWD"/hypershift-cli
     # 4. mirrored capi agent image to local registry
     if [ ! -z "$PROVIDER_IMAGE" ]
     then
@@ -104,7 +105,7 @@ spec:
 EOM
     oc apply -f icsp.yaml
     # 6. Image content source for hosted cluster to be passed in through the hypershift create command
-  cat << EOM >> icsp-hc.yaml
+  cat << EOM >> /tmp/icsp-hc.yaml
 - mirrors:
   - ${OCP_MIRROR_REGISTRY}
   source: quay.io/openshift-release-dev/ocp-release
@@ -112,14 +113,16 @@ EOM
   - ${OCP_MIRROR_REGISTRY}
   source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
-    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources $(pwd)/icsp-hc.yaml"
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources /tmp/icsp-hc.yaml"
+    export EXTRA_HYPERSHIFT_CLI_MOUNTS="$EXTRA_HYPERSHIFT_CLI_MOUNTS -v /tmp/icsp-hc.yaml:/tmp/icsp-hc.yaml"
     # 7. Machine config operator image must be added to hypershift operator's pod's arguments
     export MCO_IMAGE=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for machine-config-operator)
     export LOCAL_MCO_IMAGE="${OCP_MIRROR_REGISTRY}@$(oc image info $MCO_IMAGE -ojson | jq -r '.digest')"
     # the disconnected openshift release image will also be used as release-image flag for hypershift create cluster command
     export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
     # disconnected requires the additional trust bundle containing the local registry certificate
-    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --additional-trust-bundle ${REGISTRY_DIR}/certs/${REGISTRY_CRT}"
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --additional-trust-bundle /etc/pki/ca-trust/source/anchors/${REGISTRY_CRT}"
+    export EXTRA_HYPERSHIFT_CLI_MOUNTS="$EXTRA_HYPERSHIFT_CLI_MOUNTS -v ${REGISTRY_DIR}/certs/${REGISTRY_CRT}:/etc/pki/ca-trust/source/anchors/${REGISTRY_CRT}"
 fi
 
 # TODO: make SSH public key configurable
@@ -166,16 +169,12 @@ oc patch storageclass assisted-service -p '{"metadata": {"annotations":{"storage
 
 ### Hypershift CLI needs access to the kubeconfig, pull-secret and public SSH key
 function hypershift_cli() {
-  if command -v hypershift &> /dev/null
-  then
-    hypershift "$@"
-  else
-    podman run -it --net host --rm --entrypoint /usr/bin/hypershift -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:$ASSISTED_PULLSECRET_JSON -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_IMAGE "$@"
-  fi
+  full_cmd="update-ca-trust;$@"
+  podman run -it --net host --rm --entrypoint /bin/bash -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:$ASSISTED_PULLSECRET_JSON -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $EXTRA_HYPERSHIFT_CLI_MOUNTS $HYPERSHIFT_IMAGE -c "$full_cmd"
 }
 
 echo "Installing HyperShift using upstream image"
-hypershift_cli install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift $EXTRA_HYPERSHIFT_INSTALL_FLAGS
+hypershift_cli hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift $EXTRA_HYPERSHIFT_INSTALL_FLAGS
 if [ "${DISCONNECTED}" = "true" ]; then
   # disconnected hypershift requires patching the operator deployment with the local image mirror of the capi agent and the machine config operator image (registry override flag)
   oc patch deploy/operator -n hypershift --type=strategic \
@@ -204,7 +203,7 @@ else
 fi
 
 echo "Creating HostedCluster"
-hypershift_cli create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret $ASSISTED_PULLSECRET_JSON \
+hypershift_cli hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret $ASSISTED_PULLSECRET_JSON \
  --ssh-key /root/.ssh/id_rsa.pub --agent-namespace $SPOKE_NAMESPACE --namespace $SPOKE_NAMESPACE \
  --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}} \
   $CONTROL_PLANE_OPERATOR_FLAG_FOR_CREATE_COMMAND \
