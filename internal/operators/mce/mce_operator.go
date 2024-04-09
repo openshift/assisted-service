@@ -97,7 +97,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and cpu
-func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) (result api.ValidationResult, err error) {
+func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host, _ *models.ClusterHostRequirementsDetails) (result api.ValidationResult, err error) {
 	if host.Inventory == "" {
 		message := "Missing Inventory in the host"
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil

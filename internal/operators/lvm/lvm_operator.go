@@ -17,10 +17,9 @@ import (
 
 // operator is an ODF LVM OLM operator plugin; it implements api.Operator
 type operator struct {
-	log                         logrus.FieldLogger
-	Config                      *Config
-	extracter                   oc.Extracter
-	additionalDiskRequirementGB int64
+	log       logrus.FieldLogger
+	Config    *Config
+	extracter oc.Extracter
 }
 
 const defaultStorageClassName = "lvms-" + defaultDeviceName
@@ -65,10 +64,6 @@ func (o *operator) StorageClassName() string {
 	return defaultStorageClassName
 }
 
-func (o *operator) SetAdditionalDiskRequirements(additionalSizeGB int64) {
-	o.additionalDiskRequirementGB = additionalSizeGB
-}
-
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return make([]string, 0), nil
@@ -101,7 +96,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 }
 
 // ValidateHost always return "valid" result
-func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
+func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host, additionalOperatorRequirements *models.ClusterHostRequirementsDetails) (api.ValidationResult, error) {
 	if host.Inventory == "" {
 		message := "Missing Inventory in the host"
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
@@ -113,13 +108,17 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, err
 	}
 
-	diskCount, _ := operatorscommon.NonInstallationDiskCount(inventory.Disks, host.InstallationDiskID, o.additionalDiskRequirementGB)
+	minDiskSizeGb := int64(0)
+	if additionalOperatorRequirements != nil {
+		minDiskSizeGb = additionalOperatorRequirements.DiskSizeGb
+	}
+	diskCount, _ := operatorscommon.NonInstallationDiskCount(inventory.Disks, host.InstallationDiskID, minDiskSizeGb)
 
 	role := common.GetEffectiveRole(host)
 	areSchedulable := common.AreMastersSchedulable(cluster)
 	minSizeMessage := ""
-	if o.additionalDiskRequirementGB > 0 {
-		minSizeMessage = fmt.Sprintf(" of %dGB minimum", o.additionalDiskRequirementGB)
+	if minDiskSizeGb > 0 {
+		minSizeMessage = fmt.Sprintf(" of %dGB minimum", minDiskSizeGb)
 	}
 	message := fmt.Sprintf("Logical Volume Manager requires at least one non-installation HDD/SSD disk%s on the host", minSizeMessage)
 
