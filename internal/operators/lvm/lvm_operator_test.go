@@ -176,6 +176,10 @@ var _ = Describe("Lvm Operator", func() {
 			CPUCores: operator.Config.LvmCPUPerHost,
 			RAMMib:   operator.Config.LvmMemoryPerHostMiBBefore4_13,
 		}
+		successResultAfter4_16 := models.ClusterHostRequirementsDetails{
+			CPUCores: operator.Config.LvmCPUPerHost,
+			RAMMib:   operator.Config.LvmMemoryPerHostMiBFrom4_16,
+		}
 		successResultMasterfull := models.ClusterHostRequirementsDetails{
 			CPUCores: 0,
 			RAMMib:   0,
@@ -266,6 +270,16 @@ var _ = Describe("Lvm Operator", func() {
 				name:                 "SNO 4.11.0, not supported",
 				ocpVersion:           "4.10.0",
 				result:               &successResultBefore4_13,
+				clusterhosts:         []*models.Host{},
+				hostCPU:              12,
+				HighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
+				hostRole:             models.HostRoleMaster,
+				hostMem:              32 * conversions.GiB,
+			},
+			{
+				name:                 "SNO 4.16.0",
+				ocpVersion:           "4.16.0",
+				result:               &successResultAfter4_16,
 				clusterhosts:         []*models.Host{},
 				hostCPU:              12,
 				HighAvailabilityMode: models.ClusterHighAvailabilityModeNone,

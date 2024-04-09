@@ -184,6 +184,10 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 		memoryRequirements = o.Config.LvmMemoryPerHostMiBBefore4_13
 	}
 
+	if ok, _ := common.BaseVersionGreaterOrEqual(LvmNewResourcesOpenshiftVersion4_16, cluster.OpenshiftVersion); ok {
+		memoryRequirements = o.Config.LvmMemoryPerHostMiBFrom4_16
+	}
+
 	return &models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
 		Dependencies: dependecies,
