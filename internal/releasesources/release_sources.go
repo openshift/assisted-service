@@ -1,6 +1,8 @@
 package releasesources
 
 import (
+	"context"
+	errorspackage "errors"
 	"fmt"
 	"net/url"
 
@@ -8,8 +10,10 @@ import (
 	"github.com/go-openapi/swag"
 	goversion "github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
+	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -35,7 +39,7 @@ type enrichedReleaseImage struct {
 	channel models.ReleaseChannel
 }
 
-func NewReleaseSourcesHandler(
+func newReleaseSourcesHandler(
 	releaseSources models.ReleaseSources,
 	releaseImages models.ReleaseImages,
 	logger logrus.FieldLogger,
@@ -199,8 +203,7 @@ func (h *releaseSourcesHandler) getDynamicReleaseImages() ([]*enrichedReleaseIma
 
 				graph, err := h.releasesClient.getReleases(channel, openshiftVersion, cpuArchitecture)
 				if err != nil {
-					h.log.WithError(err).Warnf("failed to get releases from api with: %s-%s, %s", channel, openshiftVersion, cpuArchitecture)
-					continue
+					return nil, errors.Wrapf(err, "failed to get releases from api with: %s-%s, %s", channel, openshiftVersion, cpuArchitecture)
 				}
 
 				if shouldSwitch {
@@ -502,4 +505,62 @@ func getReleaseImageReference(version, cpuArchitecture string) string {
 		cpuArchitecture = common.AARCH64CPUArchitecture
 	}
 	return fmt.Sprintf(releaseImageReferenceTemplateSaaS, version, cpuArchitecture)
+}
+
+func RunOpenshiftReleaseSyncerIfNeeded(
+	releaseSources models.ReleaseSources,
+	releaseImages models.ReleaseImages,
+	db *gorm.DB,
+	log logrus.FieldLogger,
+	releaseHandler oc.Release,
+	leader,
+	startupLeader leader.ElectorInterface,
+	enableKubeAPI bool,
+	releaseSourcesConfig Config,
+) (*thread.Thread, error) {
+	if !enableKubeAPI && releaseSourcesConfig.ReleaseSources != "" {
+		releaseSourcesHandler, err := newReleaseSourcesHandler(
+			releaseSources, releaseImages, log, db, releaseSourcesConfig, leader,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "error occurred while creating release sources handler")
+		}
+
+		err = startupLeader.RunWithLeader(context.Background(), func() error {
+			log.WithField("pkg", "releasesources").Info("Running Openshift Releases Syncer at startup")
+			if syncErr := releaseSourcesHandler.SyncReleaseImages(); syncErr != nil {
+				// if it failed at startup but the table contains data, we want to contine with stale data
+				var count int64
+				if dbErr := db.Model(&models.ReleaseImage{}).Count(&count).Error; err != nil {
+					return errorspackage.Join(err, dbErr)
+				}
+
+				// empty table
+				if count == 0 {
+					return syncErr
+				}
+
+				log.WithError(err).Warn("Error occurred while running OpenShift Release Syncer at startup, proceeding with stale data")
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return nil, errors.Wrap(err, "error occurred while running Openshift Releases Syncer at startup")
+		}
+
+		openShiftReleaseSyncer := thread.New(
+			log.WithField("pkg", "releasesources"), "Openshift Releases Syncer", releaseSourcesConfig.OpenShiftReleaseSyncerInterval, releaseSourcesHandler.SyncReleaseImagesThreadFunc)
+		openShiftReleaseSyncer.Start()
+		return openShiftReleaseSyncer, nil
+	}
+
+	return nil, nil
+}
+
+func StopOpenshiftReleaseSyncerIfNeeded(openShiftReleaseSyncer *thread.Thread) {
+	if openShiftReleaseSyncer != nil {
+		openShiftReleaseSyncer.Stop()
+	}
 }
