@@ -46,7 +46,7 @@ The Image-Based installation brings the following advantages:
 A new flag will be added to the cluster object [TBD], along with
 extra-parameters specific to IBI [TBD].
 
-`supported-versions` API with be amended to return only the version of OCP
+`supported-versions` API will be amended to return only the version of OCP
 available for installation with IBI.
 
 #### Feature support
