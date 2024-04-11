@@ -86,7 +86,7 @@ drop the configuration in `/opt/openshift`:
   succeeded, and provide a way to get installation logs?
 - generate cryptographic materials in order to provide a kubeconfig file to the
   user
-- SSH keys
+- Authorized SSH keys
 - Eventual extra manifests
    - OLM operator manifests
    - Custom manifests
