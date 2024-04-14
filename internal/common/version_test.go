@@ -143,3 +143,16 @@ var _ = DescribeTable("GetVersionFormat", func(input string, expectedVersionForm
 	Entry("empty version", "", NoneVersion),
 	Entry("non-version string", "non-version", NoneVersion),
 )
+
+var _ = DescribeTable("MajorMinorPatchEqual", func(firstVersion string, secondVersion string, ExpectedResult *bool) {
+	isEqual, _ := MajorMinorPatchEqual(firstVersion, secondVersion)
+	Expect(isEqual).To(Equal(ExpectedResult))
+},
+	Entry("two equal x.y.z versions", "4.11.0", "4.11.0", swag.Bool(true)),
+	Entry("two not unequal x.y.z versions", "4.11.0", "4.11.1", swag.Bool(false)),
+	Entry("one x.y.z version and one x.y.z-something version, equal", "4.11.0", "4.11.0-alpha", swag.Bool(true)),
+	Entry("one x.y.z version and one x.y.z-something version, unequal", "4.11.0", "4.12.0-alpha", swag.Bool(false)),
+	Entry("majorMinorVersions", "4.11", "4.11", nil),
+	Entry("majorVersions", "4", "4", nil),
+	Entry("malformed versions", "foobar", "foobar", nil),
+)

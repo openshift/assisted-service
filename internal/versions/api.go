@@ -14,7 +14,6 @@ import (
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
@@ -77,62 +76,73 @@ func GetModelVersions(v Versions) models.Versions {
 	}
 }
 
-// getLatestReleaseImageForMajorMinor returns the latest release image matching a given major.minor version,
+// getLatestReleaseImagesForMajorMinor returns the latest release images (all the CPU architectures) matching a given major.minor version,
 // or error if none of the release images match. The latest release image is considered the latest none beta release image,
 // or if all matching release images are beta then just the latest.
-func getLatestReleaseImageForMajorMinor(releaseImages models.ReleaseImages, majorMinorVersion string, log logrus.FieldLogger) (*models.ReleaseImage, error) {
-	var latestReleaseImage *models.ReleaseImage
+func getLatestReleaseImagesForMajorMinor(releaseImages models.ReleaseImages, majorMinorVersion string, log logrus.FieldLogger) (models.ReleaseImages, error) {
+	var latestReleaseImages models.ReleaseImages
 	for _, releaseImage := range releaseImages {
 		// Typically, releaseImage.OpenshiftVersion follow the major.minor format, though exceptions exist with static release images.
-		currentMajorMinorVersion, err := common.GetMajorMinorVersion(*releaseImage.OpenshiftVersion)
+		// We want to consider only release images matching the given major.minor version.
+		isMajorMinorEqual, err := common.BaseVersionEqual(*releaseImage.Version, majorMinorVersion)
 		if err != nil {
 			return nil, err
 		}
 
-		if *currentMajorMinorVersion != majorMinorVersion {
+		if !isMajorMinorEqual {
 			continue
 		}
 
-		if latestReleaseImage == nil {
-			latestReleaseImage = releaseImage
+		if latestReleaseImages == nil {
+			latestReleaseImages = models.ReleaseImages{releaseImage}
 		}
 
-		isNewest, err := common.BaseVersionLessThan(*releaseImage.Version, *latestReleaseImage.Version)
+		// If it is the same version but different CPU architecture, add the atchitecture to the list.
+		isEqual, err := common.MajorMinorPatchEqual(*releaseImage.Version, *latestReleaseImages[0].Version)
+		if err != nil {
+			return nil, err
+		}
+		if *isEqual && !funk.Contains(latestReleaseImages, releaseImage) {
+			latestReleaseImages = append(latestReleaseImages, releaseImage)
+			continue
+		}
+
+		isNewest, err := common.BaseVersionLessThan(*releaseImage.Version, *latestReleaseImages[0].Version)
 		if err != nil {
 			return nil, err
 		}
 
 		// none-beta > beta, later-beta > beta
-		if latestReleaseImage.SupportLevel == models.OpenshiftVersionSupportLevelBeta {
+		if latestReleaseImages[0].SupportLevel == models.OpenshiftVersionSupportLevelBeta {
 			if isNewest || releaseImage.SupportLevel != models.OpenshiftVersionSupportLevelBeta {
-				latestReleaseImage = releaseImage
+				latestReleaseImages = models.ReleaseImages{releaseImage}
 			}
 		} else { // non-beta-later > non-beta
 			if isNewest && releaseImage.SupportLevel != models.OpenshiftVersionSupportLevelBeta {
-				latestReleaseImage = releaseImage
+				latestReleaseImages = models.ReleaseImages{releaseImage}
 			}
 		}
+
 	}
 
-	log.Debugf("Found latest release image version '%s' for majorMinorVersion '%s'", *latestReleaseImage.Version, majorMinorVersion)
-
-	return latestReleaseImage, nil
-}
-
-// getMultiArchReleaseImage retrieves multi arch release image matching a given x.y.z version.
-func getMultiArchReleaseImage(releaseImages models.ReleaseImages, version string, log logrus.FieldLogger) *models.ReleaseImage {
-	if !strings.HasSuffix(version, "-multi") {
-		version = fmt.Sprintf("%s-multi", version)
+	if len(latestReleaseImages) == 0 {
+		return nil, errors.Errorf("No release image found for version '%s'", majorMinorVersion)
 	}
 
-	if releaseImage, ok := lo.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
-		return swag.StringValue(releaseImage.Version) == version
-	}); ok {
-		log.Debugf("Found multi-arch release image for version '%s'", version)
-		return releaseImage
-	}
+	cpuArchitecturesLiteral := funk.Reduce(latestReleaseImages, func(agg string, releaseImage *models.ReleaseImage) string {
+		if agg == "" {
+			return *releaseImage.CPUArchitecture
+		}
+		return fmt.Sprintf("%s, %s", agg, *releaseImage.CPUArchitecture)
+	}, "").(string)
+	log.Debugf(
+		"Found latest release images version '%s' and CPU architectures '%s' for majorMinorVersion '%s'",
+		*latestReleaseImages[0].Version,
+		cpuArchitecturesLiteral,
+		majorMinorVersion,
+	)
 
-	return nil
+	return latestReleaseImages, nil
 }
 
 func filterReleaseImagesByOnlyLatest(releaseImages models.ReleaseImages, onlyLatest *bool, log logrus.FieldLogger) (models.ReleaseImages, error) {
@@ -154,16 +164,11 @@ func filterReleaseImagesByOnlyLatest(releaseImages models.ReleaseImages, onlyLat
 
 	filteredReleaseImages := models.ReleaseImages{}
 	for majorMinorVersion := range releaseImagesMajorMinorVersionsSet {
-		latestReleaseImageForMajorMinor, err := getLatestReleaseImageForMajorMinor(releaseImages, majorMinorVersion, log)
+		latestReleaseImagesForMajorMinor, err := getLatestReleaseImagesForMajorMinor(releaseImages, majorMinorVersion, log)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error occurred while trying to get the latest release image for version: %s", majorMinorVersion)
+			return nil, errors.Wrapf(err, "error occurred while trying to get the latest release images for version: %s", majorMinorVersion)
 		}
-		filteredReleaseImages = append(filteredReleaseImages, latestReleaseImageForMajorMinor)
-		// Add the matching multi-arch release image if exists as well
-		matchingMultiArchReleaseImage := getMultiArchReleaseImage(releaseImages, *latestReleaseImageForMajorMinor.Version, log)
-		if matchingMultiArchReleaseImage != nil {
-			filteredReleaseImages = append(filteredReleaseImages, matchingMultiArchReleaseImage)
-		}
+		filteredReleaseImages = append(filteredReleaseImages, latestReleaseImagesForMajorMinor...)
 	}
 
 	return filteredReleaseImages, nil
