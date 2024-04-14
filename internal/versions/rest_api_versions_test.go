@@ -88,19 +88,38 @@ var _ = Describe("GetReleaseImage", func() {
 			{
 				OpenshiftVersion: swag.String("4.14"),
 				Version:          swag.String("4.14.3"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.3-x86_64"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+				Default:          false,
+			},
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				Version:          swag.String("4.14.3"),
 				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
 				CPUArchitectures: []string{common.ARM64CPUArchitecture},
 				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.3-aarch64"),
 				SupportLevel:     models.ReleaseImageSupportLevelProduction,
 				Default:          false,
 			},
+
 			{
 				OpenshiftVersion: swag.String("4.15"),
 				Version:          swag.String("4.15.1"),
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture},
 				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.15.1-x86_64"),
-				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+				Default:          false,
+			},
+			{
+				OpenshiftVersion: swag.String("4.15"),
+				Version:          swag.String("4.15.2"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.15.2-x86_64"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
 				Default:          false,
 			},
 		}
@@ -111,6 +130,10 @@ var _ = Describe("GetReleaseImage", func() {
 		releaseImage, err := handler.GetReleaseImage(ctx, "4.14", common.X86CPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*releaseImage.Version).Should(Equal("4.14.2"))
+
+		releaseImage, err = handler.GetReleaseImage(ctx, "4.15", common.X86CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.Version).Should(Equal("4.15.2"))
 	})
 
 	It("gets the exact matching release image with major.minor.patch / prerelease openshiftVersion", func() {
