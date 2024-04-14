@@ -12,12 +12,28 @@ RUN cd ./cmd/operator && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /bu
 RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission
 RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
 
+# Build a specific version of libxml2 to mitigate CVE-2024-25062
+# Nothing is yet available in Stream9 and looks unlikely to be mitigated soon.
+FROM quay.io/centos/centos@sha256:2fa98912f5964b54df6d3cec50874bf56abc98f13077f710b8ea9dc1b41bfeb5 as librarybuilder
+RUN dnf groupinstall -y 'Development Tools'
+RUN curl -X GET https://ftp.gnu.org/gnu/automake/automake-1.16.3.tar.gz --output ./automake-1.12.5.tar.gz && tar xf automake-1.12.5.tar.gz
+RUN cd automake-1.16.3 && ./configure --prefix=/usr/local && make && make install
+RUN dnf install -y libtool python3-devel pkg-config -y
+RUN curl -X GET https://gitlab.gnome.org/GNOME/libxml2/-/archive/v2.12.6/libxml2-v2.12.6.tar.gz --output ./libxml2-v2.12.6.tar.gz && tar -xvf libxml2-v2.12.6.tar.gz 
+RUN export ACLOCAL_PATH=/usr/share/aclocal && cd libxml2-v2.12.6 && ./autogen.sh --prefix=/usr --libdir=/usr/lib64 && make && make install
 
 FROM registry.ci.openshift.org/ocp/4.15:cli AS oc-image
 # Create final image
 FROM registry.ci.openshift.org/ocp/4.15:base
 
 LABEL io.openshift.release.operator=true
+
+# Update libxml to compiled version
+RUN rm /usr/lib64/libxml2* -rf
+COPY --from=librarybuilder /usr/lib64/libxml2.la /usr/lib64/libxml2.la
+COPY --from=librarybuilder /usr/lib64/libxml2.so.2.12.6 /usr/lib64/libxml2.so.2.12.6
+RUN ln -s /usr/lib64/libxml2.so.2.12.6 /usr/lib64/libxml2.so
+RUN ln -s /usr/lib64/libxml2.so.2.12.6 /usr/lib64/libxml2.so.2
 
 # multiarch images need skopeo until WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
 # ToDo: Replace postgres with SQLite DB
@@ -42,6 +58,7 @@ COPY --from=builder /build/assisted-service-operator /assisted-service-operator
 COPY --from=builder /build/assisted-service-admission /assisted-service-admission
 COPY --from=builder /build/agent-installer-client /usr/local/bin/agent-installer-client
 RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-cluster-and-infraenv
+
 ENV GODEBUG=madvdontneed=1
 ENV GOGC=50
 CMD ["/assisted-service"]

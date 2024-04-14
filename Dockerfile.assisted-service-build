@@ -1,6 +1,16 @@
 FROM registry.ci.openshift.org/openshift/release:golang-1.20 AS golang
 RUN chmod g+xw -R /usr/local/go
 
+# Build a specific version of libxml2 to mitigate CVE-2024-25062
+# Nothing is yet available in Stream9 and looks unlikely to be mitigated soon.
+FROM quay.io/centos/centos@sha256:2fa98912f5964b54df6d3cec50874bf56abc98f13077f710b8ea9dc1b41bfeb5 as librarybuilder
+RUN dnf groupinstall -y 'Development Tools'
+RUN curl -X GET https://ftp.gnu.org/gnu/automake/automake-1.16.3.tar.gz --output ./automake-1.12.5.tar.gz && tar xf automake-1.12.5.tar.gz
+RUN cd automake-1.16.3 && ./configure --prefix=/usr/local && make && make install
+RUN dnf install -y libtool python3-devel pkg-config -y
+RUN curl -X GET https://gitlab.gnome.org/GNOME/libxml2/-/archive/v2.12.6/libxml2-v2.12.6.tar.gz --output ./libxml2-v2.12.6.tar.gz && tar -xvf libxml2-v2.12.6.tar.gz 
+RUN export ACLOCAL_PATH=/usr/share/aclocal && cd libxml2-v2.12.6 && ./autogen.sh --prefix=/usr --libdir=/usr/lib64 && make && make install
+
 FROM quay.io/centos/centos:stream9
 
 ENV GOPATH=/go
@@ -9,6 +19,13 @@ ENV VIRTUAL_ENV=/opt/venv
 # A directory in the path with write permission even for non-root users
 ENV TOOLS=/tools/
 ENV PATH="$VIRTUAL_ENV/bin:$GOROOT/bin:$GOPATH/bin:$TOOLS:$PATH"
+
+# Update libxml to compiled version
+RUN rm /usr/lib64/libxml2* -rf
+COPY --from=librarybuilder /usr/lib64/libxml2.la /usr/lib64/libxml2.la
+COPY --from=librarybuilder /usr/lib64/libxml2.so.2.12.6 /usr/lib64/libxml2.so.2.12.6
+RUN ln -s /usr/lib64/libxml2.so.2.12.6 /usr/lib64/libxml2.so
+RUN ln -s /usr/lib64/libxml2.so.2.12.6 /usr/lib64/libxml2.so.2
 
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/bin v1.53.2
 # TODO: Replace with version 0.30.4 once it is released.
