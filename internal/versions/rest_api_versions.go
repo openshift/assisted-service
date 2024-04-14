@@ -163,6 +163,9 @@ func validateCPUArchitecture(cpuArchitecture string) error {
 	return releaseImage.Validate(strfmt.Default)
 }
 
+// getLatestReleaseImage returns the latest release image among a list of release images not included in ignore list,
+// or error if none of the release images match. The latest release image is considered the latest none beta release image,
+// or if all matching release images are beta then just the latest.
 func getLatestReleaseImage(releaseImages models.ReleaseImages, ignoredOpenshiftVersions []string) (*models.ReleaseImage, error) {
 	var latestReleaseImage *models.ReleaseImage
 
@@ -176,13 +179,20 @@ func getLatestReleaseImage(releaseImages models.ReleaseImages, ignoredOpenshiftV
 			continue
 		}
 
-		lessThan, err := common.BaseVersionLessThan(*releaseImage.Version, *latestReleaseImage.Version)
+		isLatest, err := common.BaseVersionLessThan(*releaseImage.Version, *latestReleaseImage.Version)
 		if err != nil {
 			return nil, err
 		}
 
-		if lessThan {
-			latestReleaseImage = releaseImage
+		// none-beta > beta, later-beta > beta
+		if latestReleaseImage.SupportLevel == models.OpenshiftVersionSupportLevelBeta {
+			if isLatest || releaseImage.SupportLevel != models.OpenshiftVersionSupportLevelBeta {
+				latestReleaseImage = releaseImage
+			}
+		} else { // non-beta-later > non-beta
+			if isLatest && releaseImage.SupportLevel != models.OpenshiftVersionSupportLevelBeta {
+				latestReleaseImage = releaseImage
+			}
 		}
 	}
 
