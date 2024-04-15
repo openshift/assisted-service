@@ -10,7 +10,7 @@ ENV VIRTUAL_ENV=/opt/venv
 ENV TOOLS=/tools/
 ENV PATH="$VIRTUAL_ENV/bin:$GOROOT/bin:$GOPATH/bin:$TOOLS:$PATH"
 
-COPY --from=quay.io/app-sre/golangci-lint:v1.37.1 /usr/bin/golangci-lint /usr/bin/golangci-lint
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/bin v1.37.1
 COPY --from=quay.io/goswagger/swagger:v0.28.0 /usr/bin/swagger /usr/bin/goswagger
 COPY --from=quay.io/edge-infrastructure/swagger-codegen-cli:2.4.18 /opt/swagger-codegen-cli /opt/swagger-codegen-cli
 COPY --from=golang /usr/bin/gotestsum /usr/bin/make /usr/bin/
