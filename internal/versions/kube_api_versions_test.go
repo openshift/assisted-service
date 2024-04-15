@@ -267,6 +267,12 @@ var _ = Describe("GetReleaseImage", func() {
 		Expect(*releaseImage.Version).Should(Equal("4.12.999-rc.4"))
 	})
 
+	It("gets successfuly single-arch image with normaliznig CPU architecture", func() {
+		releaseImage, err := h.GetReleaseImage(ctx, "4.9-candidate_arm64", common.AARCH64CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.9"))
+	})
+
 	It("returns the matching CPU architecture over multi-arch if it is present", func() {
 		h.releaseImages = models.ReleaseImages{
 			&models.ReleaseImage{
