@@ -124,9 +124,3 @@ spec:
     cpu_architecture: "s390x"
     url: "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/4.15/4.15.0/rhcos-4.15.0-s390x-live.s390x.iso"
     version: "415.92.202402201450-0"
-
-
-
-
-
-
