@@ -31,6 +31,7 @@ type restAPIVersionsHandler struct {
 // For OpenShift versions specified as major.minor, it fetches the latest matching release image.
 // The function returns an error Returns an error for other formats of OpenShift version or if no matching image can be found.
 func (h *restAPIVersionsHandler) GetReleaseImage(_ context.Context, openshiftVersion, cpuArchitecture, _ string) (*models.ReleaseImage, error) {
+	cpuArchitecture = common.NormalizeCPUArchitecture(cpuArchitecture)
 	// validations
 	if err := validateCPUArchitecture(cpuArchitecture); err != nil {
 		return nil, err
