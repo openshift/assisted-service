@@ -614,8 +614,8 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.11
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.1.2
-## explicit; go 1.16
+# github.com/opencontainers/runc v1.1.2 => github.com/opencontainers/runc v1.1.12
+## explicit; go 1.17
 github.com/opencontainers/runc/libcontainer/user
 # github.com/openshift-online/ocm-sdk-go v0.1.205
 ## explicit; go 1.14
@@ -2140,6 +2140,7 @@ sigs.k8s.io/yaml
 # github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20230331001040-c7cddc04b0f9
 # github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis v0.0.0-20230331001040-c7cddc04b0f9
 # github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20230331001040-c7cddc04b0f9
+# github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.12
 # github.com/openshift/assisted-service/api => ./api
 # github.com/openshift/assisted-service/client => ./client
 # github.com/openshift/assisted-service/cmd/agentbasedinstaller => ./cmd/agentbasedinstaller
