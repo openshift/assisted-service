@@ -3,7 +3,6 @@ module github.com/openshift/assisted-service
 go 1.18
 
 require (
-    github.com/hashicorp/go-multierror v1.1.1
 	github.com/IBM/netaddr v1.5.0
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
@@ -278,6 +277,7 @@ replace (
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20230331001040-c7cddc04b0f9
 	github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis v0.0.0-20230331001040-c7cddc04b0f9
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20230331001040-c7cddc04b0f9
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.12
 	github.com/openshift/assisted-service/api => ./api
 	github.com/openshift/assisted-service/client => ./client
 	github.com/openshift/assisted-service/cmd/agentbasedinstaller => ./cmd/agentbasedinstaller
