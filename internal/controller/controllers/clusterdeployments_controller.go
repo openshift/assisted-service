@@ -120,7 +120,6 @@ const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
 // +kubebuilder:rbac:groups=extensions.hive.openshift.io,resources=agentclusterinstalls,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=extensions.hive.openshift.io,resources=agentclusterinstalls/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=extensions.hive.openshift.io,resources=agentclusterinstalls/finalizers,verbs=update
-// +kubebuilder:rbac:groups=config.openshift.io,resources=dnses,verbs=get
 // +kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclustersets/join,verbs=create
 
 func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {

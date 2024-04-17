@@ -127,11 +127,19 @@ type AgentServiceConfigSpec struct {
 // ConditionType related to our reconcile loop in addition to all the reasons
 // why ConditionStatus could be true or false.
 const (
+	// ConditionReconcileCompleted reports on whether or not the local cluster is managed.
+	ConditionLocalClusterManaged conditionsv1.ConditionType = "LocalClusterManaged"
 	// ConditionReconcileCompleted reports whether reconcile completed without error.
 	ConditionReconcileCompleted conditionsv1.ConditionType = "ReconcileCompleted"
 	// ConditionDeploymentsHealthy reports whether deployments are healthy.
 	ConditionDeploymentsHealthy conditionsv1.ConditionType = "DeploymentsHealthy"
 
+	// ReasonLocalClusterEntitiesCreated when the local cluster is managed.
+	ReasonLocalClusterManaged string = "Local cluster is managed."
+	// ReasonLocalClusterEntitiesRemoved when the local cluster is not managed.
+	ReasonLocalClusterNotManaged string = "Local cluster is not managed."
+	// ReasonUnableToDetermineLocalClusterManagedStatus when unable to determine the status of local cluster entities.
+	ReasonUnableToDetermineLocalClusterManagedStatus string = "Unable to determine local cluster managed status."
 	// ReasonReconcileSucceeded when the reconcile completes all operations without error.
 	ReasonReconcileSucceeded string = "ReconcileSucceeded"
 	// ReasonDeploymentSucceeded when configuring/deploying the assisted-service deployment completed without errors.
