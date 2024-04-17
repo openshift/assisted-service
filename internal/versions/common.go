@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	models "github.com/openshift/assisted-service/models"
@@ -41,6 +43,14 @@ func NewHandler(
 	enableKubeAPI bool,
 	releaseSources models.ReleaseSources,
 ) (Handler, error) {
+	for _, releaseImage := range releaseImages {
+		if err := validateReleaseImage(releaseImage); err != nil {
+			return nil, errors.Wrap(err, "error occurred while validating release images")
+		}
+
+		normalizeReleaseImageCPUArchitecture(releaseImage)
+	}
+
 	if enableKubeAPI {
 		h := &kubeAPIVersionsHandler{
 			mustGatherVersions: mustGatherVersions,
@@ -50,10 +60,6 @@ func NewHandler(
 			log:                log,
 			kubeClient:         kubeClient,
 			sem:                semaphore.NewWeighted(30),
-		}
-
-		if err := h.validateVersions(); err != nil {
-			return nil, err
 		}
 
 		return h, nil
@@ -234,4 +240,38 @@ func ParseReleaseImages(
 			releaseImage.CPUArchitectures = []string{*releaseImage.CPUArchitecture}
 		}
 	})
+}
+
+func normalizeReleaseImageCPUArchitecture(releaseImage *models.ReleaseImage) {
+	// Normalize release.CPUArchitecture and release.CPUArchitectures
+	// TODO: remove this block when AI starts using aarch64 instead of arm64
+	if swag.StringValue(releaseImage.CPUArchitecture) == common.MultiCPUArchitecture || swag.StringValue(releaseImage.CPUArchitecture) == common.AARCH64CPUArchitecture {
+		*releaseImage.CPUArchitecture = common.NormalizeCPUArchitecture(*releaseImage.CPUArchitecture)
+		for i := 0; i < len(releaseImage.CPUArchitectures); i++ {
+			releaseImage.CPUArchitectures[i] = common.NormalizeCPUArchitecture(releaseImage.CPUArchitectures[i])
+		}
+	}
+}
+
+// validateReleaseImage ensures no missing values in Release image.
+func validateReleaseImage(releaseImage *models.ReleaseImage) error {
+	// Release images are not mandatory (dynamically added in kube-api flow),
+	// validating fields for those specified in list.
+	missingValueTemplate := "Missing value in ReleaseImage for '%s' field"
+	if swag.StringValue(releaseImage.CPUArchitecture) == "" {
+		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "cpu_architecture"))
+	}
+
+	if swag.StringValue(releaseImage.OpenshiftVersion) == "" {
+		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "openshift_version"))
+	}
+	if swag.StringValue(releaseImage.URL) == "" {
+		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url"))
+	}
+	if swag.StringValue(releaseImage.Version) == "" {
+		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version"))
+	}
+
+	// To validate CPU architecture enum
+	return releaseImage.Validate(strfmt.Default)
 }

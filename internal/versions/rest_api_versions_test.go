@@ -381,6 +381,27 @@ var _ = Describe("GetReleaseImage", func() {
 		Expect(releaseImage).To(BeNil())
 	})
 
+	It("gets successfully with normalizing CPU architecture", func() {
+		releaseImages := models.ReleaseImages{
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				Version:          swag.String("4.14.1"),
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				CPUArchitectures: []string{common.ARM64CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.1-aarch64"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+				Default:          false,
+			},
+		}
+
+		err := db.Create(releaseImages).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		releaseImage, err := handler.GetReleaseImage(ctx, "4.14.1", common.AARCH64CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.Version).To(Equal("4.14.1"))
+	})
+
 	It("filters ignored release images successfully with major.minor ignored versions", func() {
 		releaseImages := models.ReleaseImages{
 			{
