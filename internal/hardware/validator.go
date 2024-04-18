@@ -16,7 +16,6 @@ import (
 	"github.com/openshift/assisted-service/internal/feature"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
-	"github.com/openshift/assisted-service/internal/provider/external"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -39,7 +38,7 @@ type Validator interface {
 	GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, hostArchitecture string, allDisks []*models.Disk) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
-	IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string, openshiftVersion string, ociPlatformType bool) bool
+	IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string, openshiftVersion string) bool
 	GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error)
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
 	// Returned information describe requirements coming from OCP and OLM operators.
@@ -133,13 +132,9 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
-	ociPlatformType, err := external.IsOciHost(host)
-	if err != nil {
-		return nil, err
-	}
-	if !v.IsValidStorageDeviceType(disk, hostArchitecture, clusterVersion, ociPlatformType) {
+	if !v.IsValidStorageDeviceType(disk, hostArchitecture, clusterVersion) {
 		notEligibleReasons = append(notEligibleReasons,
-			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(v.getValidDeviceStorageTypes(hostArchitecture, clusterVersion, ociPlatformType), ", ")))
+			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(v.getValidDeviceStorageTypes(hostArchitecture, clusterVersion), ", ")))
 	}
 
 	// We only allow multipath if all paths are FC
@@ -158,8 +153,8 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	return notEligibleReasons, nil
 }
 
-func (v *validator) IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string, openshiftVersion string, ociPlatformType bool) bool {
-	return funk.ContainsString(v.getValidDeviceStorageTypes(hostArchitecture, openshiftVersion, ociPlatformType), string(disk.DriveType))
+func (v *validator) IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string, openshiftVersion string) bool {
+	return funk.ContainsString(v.getValidDeviceStorageTypes(hostArchitecture, openshiftVersion), string(disk.DriveType))
 }
 
 func (v *validator) purgeServiceReasons(reasons []string) []string {
@@ -435,14 +430,12 @@ func (v *validator) getOCPRequirementsForVersion(openshiftVersion string) (*mode
 	return v.VersionedRequirements.GetVersionedHostRequirements(openshiftVersion)
 }
 
-func (v *validator) getValidDeviceStorageTypes(hostArchitecture string, openshiftVersion string, ociPlatformType bool) []string {
+func (v *validator) getValidDeviceStorageTypes(hostArchitecture string, openshiftVersion string) []string {
 	validTypes := []string{string(models.DriveTypeHDD), string(models.DriveTypeSSD), string(models.DriveTypeMultipath)}
 
-	if ociPlatformType {
-		isGreater, err := common.BaseVersionGreaterOrEqual("4.15.0", openshiftVersion)
-		if err == nil && isGreater {
-			validTypes = append(validTypes, string(models.DriveTypeISCSI))
-		}
+	isGreater, err := common.BaseVersionGreaterOrEqual("4.15.0", openshiftVersion)
+	if err == nil && isGreater {
+		validTypes = append(validTypes, string(models.DriveTypeISCSI))
 	}
 
 	if hostArchitecture == models.ClusterCPUArchitectureS390x {

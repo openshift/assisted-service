@@ -160,11 +160,10 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(eligible).To(BeEmpty())
 	})
 
-	It("Check if iSCSI is eligible only on newer OCI clusters", func() {
+	It("Check if iSCSI is eligible", func() {
 		testDisk.DriveType = models.DriveTypeISCSI
 		cluster.OpenshiftVersion = "4.15.0"
 		hostInventory, _ := common.UnmarshalInventory(host.Inventory)
-		hostInventory.SystemVendor.Manufacturer = "OracleCloud.com"
 		hw, _ := json.Marshal(&hostInventory)
 		host.Inventory = string(hw)
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
