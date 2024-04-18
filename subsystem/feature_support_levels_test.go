@@ -101,10 +101,10 @@ var _ = Describe("Feature support levels API", func() {
 		})
 
 		Context("Update cluster", func() {
-			It("Update umn true won't fail on 4.13 with s390x without infra-env", func() {
-				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+			It("Update umn true won't fail on 4.13 with multi release without infra-env", func() {
+				cluster, err := registerNewCluster("4.13", common.MultiCPUArchitecture, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 
 				_, err = user2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -117,9 +117,9 @@ var _ = Describe("Feature support levels API", func() {
 
 			It("Update umn true fail on 4.13 with s390x with infra-env", func() {
 				expectedError := "cannot use Cluster Managed Networking because it's not compatible with the s390x architecture on version 4.13"
-				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+				cluster, err := registerNewCluster("4.13", common.MultiCPUArchitecture, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 
 				infraEnv, err := registerNewInfraEnv(cluster.Payload.ID, "4.13", "s390x")
 				Expect(err).NotTo(HaveOccurred())
@@ -138,9 +138,9 @@ var _ = Describe("Feature support levels API", func() {
 
 			It("Create infra-env after updating OLM operators on s390x architecture ", func() {
 				expectedError := "cannot use OpenShift Virtualization because it's not compatible with the s390x architecture on version 4.13"
-				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+				cluster, err := registerNewCluster("4.13", common.MultiCPUArchitecture, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 
 				_, err = user2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -212,13 +212,13 @@ var _ = Describe("Feature support levels API", func() {
 			It("Register cluster won't fail on 4.13 with s390x", func() {
 				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.S390xCPUArchitecture))
 			})
 
 			It("Register cluster won't fail on 4.13 with s390x without UMN", func() {
 				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, nil)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.S390xCPUArchitecture))
 			})
 
 			It("SNO with s390x 4.10 fails on architecture- failure", func() {
@@ -231,7 +231,7 @@ var _ = Describe("Feature support levels API", func() {
 			It("SNO with s390x fails on SNO isn't compatible with architecture success on 4.13", func() {
 				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeNone, nil)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.S390xCPUArchitecture))
 				Expect(swag.StringValue(cluster.Payload.HighAvailabilityMode)).To(Equal(models.ClusterHighAvailabilityModeNone))
 
 			})
