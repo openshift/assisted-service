@@ -483,6 +483,14 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 				SupportLevel:     models.ReleaseImageSupportLevelProduction,
 			},
 			{
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				CPUArchitectures: []string{common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.11"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-aarch64"),
+				Version:          swag.String("4.11.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture},
 				OpenshiftVersion: swag.String("4.11"),
@@ -507,6 +515,14 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 				SupportLevel:     models.ReleaseImageSupportLevelProduction,
 			},
 			{
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				CPUArchitectures: []string{common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12.1-aarch64"),
+				Version:          swag.String("4.12.1"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+			{
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture},
 				OpenshiftVersion: swag.String("4.12"),
@@ -523,10 +539,26 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
 			},
 			{
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				CPUArchitectures: []string{common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.13"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.1-aarch64"),
+				Version:          swag.String("4.13.1"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+			},
+			{
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture},
 				OpenshiftVersion: swag.String("4.13"),
 				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.2-x86_64"),
+				Version:          swag.String("4.13.2"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+			},
+			{
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				CPUArchitectures: []string{common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.13"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13.2-aarch64"),
 				Version:          swag.String("4.13.2"),
 				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
 			},
@@ -560,6 +592,12 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 				Version:          swag.String("412.86.202308081056-0"),
 			},
 			{
+				OpenshiftVersion: swag.String("4.12"),
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.12/4.12.48/rhcos-4.12.48-aarch64-live.aarch64.iso"),
+				Version:          swag.String("412.86.202308081056-0"),
+			},
+			{
 				OpenshiftVersion: swag.String("4.13"),
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.13/4.13.48/rhcos-4.13.48-x86_64-live.x86_64.iso"),
@@ -588,7 +626,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 			expectedPayload := models.OpenshiftVersions{
 				"4.11.1": {
 					DisplayName:      swag.String("4.11.1"),
-					CPUArchitectures: []string{common.X86CPUArchitecture},
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
 					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
 					Default:          false,
 				},
@@ -606,7 +644,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 				},
 				"4.12.1": {
 					DisplayName:      swag.String("4.12.1"),
-					CPUArchitectures: []string{common.X86CPUArchitecture},
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
 					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
 					Default:          false,
 				},
@@ -618,13 +656,13 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 				},
 				"4.13.1": {
 					DisplayName:      swag.String("4.13.1"),
-					CPUArchitectures: []string{common.X86CPUArchitecture},
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
 					SupportLevel:     swag.String(models.OpenshiftVersionSupportLevelBeta),
 					Default:          false,
 				},
 				"4.13.2": {
 					DisplayName:      swag.String("4.13.2"),
-					CPUArchitectures: []string{common.X86CPUArchitecture},
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
 					SupportLevel:     swag.String(models.OpenshiftVersionSupportLevelBeta),
 					Default:          false,
 				},
@@ -660,13 +698,13 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 				},
 				"4.12.1": {
 					DisplayName:      swag.String("4.12.1"),
-					CPUArchitectures: []string{common.X86CPUArchitecture},
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
 					SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
 					Default:          false,
 				},
 				"4.13.2": {
 					DisplayName:      swag.String("4.13.2"),
-					CPUArchitectures: []string{common.X86CPUArchitecture},
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
 					SupportLevel:     swag.String(models.OpenshiftVersionSupportLevelBeta),
 					Default:          false,
 				},
