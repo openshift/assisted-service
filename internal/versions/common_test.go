@@ -95,6 +95,42 @@ var _ = Describe("NewHandler", func() {
 		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("version"))
 	})
+
+	It("Normalizes CPU architecture", func() {
+		releaseImages := models.ReleaseImages{
+			&models.ReleaseImage{
+				OpenshiftVersion: swag.String("4.14"),
+				Version:          swag.String("4.14.1"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("release_4.14"),
+			},
+			&models.ReleaseImage{
+				OpenshiftVersion: swag.String("4.14"),
+				Version:          swag.String("4.14.1"),
+				CPUArchitecture:  swag.String(common.AARCH64CPUArchitecture),
+				URL:              swag.String("release_4.14"),
+			},
+		}
+
+		_, err := NewHandler(common.GetTestLog(), nil, releaseImages, nil, "", nil, nil, nil, false, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*releaseImages[0].CPUArchitecture).To(Equal(common.X86CPUArchitecture))
+		Expect(*releaseImages[1].CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
+	})
+
+	It("Validates CPU architecture", func() {
+		releaseImages := models.ReleaseImages{
+			&models.ReleaseImage{
+				OpenshiftVersion: swag.String("4.14"),
+				Version:          swag.String("4.14.1"),
+				CPUArchitecture:  swag.String(common.AMD64CPUArchitecture),
+				URL:              swag.String("release_4.14"),
+			},
+		}
+
+		_, err := NewHandler(common.GetTestLog(), nil, releaseImages, nil, "", nil, nil, nil, false, nil)
+		Expect(err).To(HaveOccurred())
+	})
 })
 
 var _ = Describe("validateReleaseImageForRHCOS", func() {

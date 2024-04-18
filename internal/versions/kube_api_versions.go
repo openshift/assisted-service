@@ -2,7 +2,6 @@ package versions
 
 import (
 	context "context"
-	"fmt"
 	"regexp"
 	"runtime/debug"
 	"strings"
@@ -53,6 +52,7 @@ func (h *kubeAPIVersionsHandler) GetMustGatherImages(openshiftVersion, cpuArchit
 // It first tries to find the image in the local cache. If the image is not found in the cache and a Kubernetes client is available (KubeAPI mode),
 // it then fetches all cluster image sets, updates the cache with these image sets, and attempts the cache lookup again.
 func (h *kubeAPIVersionsHandler) GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error) {
+	cpuArchitecture = common.NormalizeCPUArchitecture(cpuArchitecture)
 	image, err := h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
 	if err == nil || h.kubeClient == nil {
 		return image, err
@@ -246,38 +246,6 @@ func (h *kubeAPIVersionsHandler) addReleaseImage(releaseImageUrl, pullSecret str
 	}
 
 	return releaseImage.(*models.ReleaseImage), nil
-}
-
-// Ensure no missing values in Release images.
-func (h *kubeAPIVersionsHandler) validateVersions() error {
-	// Release images are not mandatory (dynamically added in kube-api flow),
-	// validating fields for those specified in list.
-	missingValueTemplate := "Missing value in ReleaseImage for '%s' field"
-	for _, release := range h.releaseImages {
-		if swag.StringValue(release.CPUArchitecture) == "" {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "cpu_architecture"))
-		}
-		if swag.StringValue(release.OpenshiftVersion) == "" {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "openshift_version"))
-		}
-		if swag.StringValue(release.URL) == "" {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url"))
-		}
-		if swag.StringValue(release.Version) == "" {
-			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version"))
-		}
-		// Normalize release.CPUArchitecture and release.CPUArchitectures
-		// TODO: remove this block when AI starts using aarch64 instead of arm64
-		if swag.StringValue(release.CPUArchitecture) == common.MultiCPUArchitecture || swag.StringValue(release.CPUArchitecture) == common.AARCH64CPUArchitecture {
-			*release.CPUArchitecture = common.NormalizeCPUArchitecture(*release.CPUArchitecture)
-			for i := 0; i < len(release.CPUArchitectures); i++ {
-				release.CPUArchitectures[i] = common.NormalizeCPUArchitecture(release.CPUArchitectures[i])
-			}
-
-		}
-	}
-
-	return nil
 }
 
 // GetRevision returns the overall codebase version. It's for detecting

@@ -8,6 +8,74 @@ import (
 	models "github.com/openshift/assisted-service/models"
 )
 
+var _ = Describe("NewOSImages", func() {
+	It("should fail when missing OpenshiftVersion", func() {
+		osImages := models.OsImages{
+			{
+				Version:         swag.String("4.14.213113"),
+				CPUArchitecture: swag.String(common.X86CPUArchitecture),
+				URL:             swag.String("foobar-4.14"),
+			},
+		}
+
+		_, err := NewOSImages(osImages)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("should fail when missing Version", func() {
+		osImages := models.OsImages{
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("foobar-4.14"),
+			},
+		}
+
+		_, err := NewOSImages(osImages)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("should not fail when missing CPU architecture, should set to default", func() {
+		osImages := models.OsImages{
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				Version:          swag.String("4.14.213113"),
+				URL:              swag.String("foobar-4.14"),
+			},
+		}
+
+		_, err := NewOSImages(osImages)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*osImages[0].CPUArchitecture).To(Equal(common.X86CPUArchitecture))
+	})
+
+	It("should fail when missing URL", func() {
+		osImages := models.OsImages{
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				Version:          swag.String("4.14.213113"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+			},
+		}
+
+		_, err := NewOSImages(osImages)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("should fail when CPU architecture is not valid", func() {
+		osImages := models.OsImages{
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				Version:          swag.String("4.14.213113"),
+				CPUArchitecture:  swag.String(common.AMD64CPUArchitecture),
+			},
+		}
+
+		_, err := NewOSImages(osImages)
+		Expect(err).Should(HaveOccurred())
+	})
+})
+
 var _ = Describe("GetOsImage", func() {
 	var (
 		images OSImages
@@ -50,6 +118,13 @@ var _ = Describe("GetOsImage", func() {
 			image, err := images.GetOsImage("4.9", common.DefaultCPUArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(image.OpenshiftVersion).To(HaveValue(Equal("4.9")))
+		})
+
+		It("With normalizing the CPU architecture", func() {
+			image, err := images.GetOsImage("4.9", common.AARCH64CPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(image.Version).To(HaveValue(Equal("version-49.123-0_arm64")))
+			Expect(*image.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
 		})
 
 		It("parses the image list correctly", func() {
