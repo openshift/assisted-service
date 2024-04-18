@@ -69,18 +69,6 @@ func BaseVersionEqual(version1, versionMayEqual string) (bool, error) {
 	return *majorMinorVersion1 == *majorMinorVersionMayEqual, nil
 }
 
-func MajorMinorPatchEqual(firstVersion, secondVersion string) (*bool, error) {
-	if GetVersionFormat(firstVersion) != MajorMinorPatchVersion {
-		return nil, fmt.Errorf("version '%s' is not in the form of major.minor.patch or major.minor.patch-<prerelease>", firstVersion)
-	}
-
-	if GetVersionFormat(secondVersion) != MajorMinorPatchVersion {
-		return nil, fmt.Errorf("version '%s' is not in the form of major.minor.patch or major.minor.patch-<prerelease>", secondVersion)
-	}
-
-	return swag.Bool(strings.Split(firstVersion, "-")[0] == strings.Split(secondVersion, "-")[0]), nil
-}
-
 func GetMajorMinorVersion(version string) (*string, error) {
 	version = strings.Split(version, "-")[0]
 	splittedVersion := strings.Split(version, ".")

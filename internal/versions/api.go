@@ -98,16 +98,17 @@ func getLatestReleaseImagesForMajorMinor(releaseImages models.ReleaseImages, maj
 		}
 
 		// If it is the same version but different CPU architecture, add the atchitecture to the list.
-		isEqual, err := common.MajorMinorPatchEqual(*releaseImage.Version, *latestReleaseImages[0].Version)
-		if err != nil {
-			return nil, err
-		}
-		if *isEqual && !funk.Contains(latestReleaseImages, releaseImage) {
+		// We omit the "-multi" suffix if it exists so multi will be considered the same version.
+		if strings.TrimSuffix(*releaseImage.Version, "-multi") == strings.TrimSuffix(*latestReleaseImages[0].Version, "-multi") &&
+			!funk.Contains(latestReleaseImages, releaseImage) {
 			latestReleaseImages = append(latestReleaseImages, releaseImage)
 			continue
 		}
 
-		isNewest, err := common.BaseVersionLessThan(*releaseImage.Version, *latestReleaseImages[0].Version)
+		isNewest, err := common.VersionGreaterOrEqual(
+			strings.TrimSuffix(*releaseImage.Version, "-multi"),
+			strings.TrimSuffix(*latestReleaseImages[0].Version, "-multi"),
+		)
 		if err != nil {
 			return nil, err
 		}
