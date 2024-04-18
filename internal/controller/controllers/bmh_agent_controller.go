@@ -95,6 +95,7 @@ const (
 	OPENSHIFT_MACHINE_API_NAMESPACE     = "openshift-machine-api"
 	ASSISTED_DEPLOY_METHOD              = "start_assisted_install"
 	NODE_LABEL_PREFIX                   = "bmac.agent-install.openshift.io.node-label."
+	AGENT_LABEL_PREFIX                  = "bmac.agent-install.openshift.io.agent-label."
 
 	BMH_NODE_DRAIN_START_ANNOTATION   = "bmac.agent-install.openshift.io/drain-started-at"
 	BMH_NODE_DRAIN_TIMEOUT_ANNOTATION = "bmac.agent-install.openshift.io/drain-timeout" // in time.Duration format
@@ -490,6 +491,15 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 		dirty = true
 	}
 
+	setDirty, err = r.reconcileAgentLabels(bmh, agent)
+	if err != nil {
+		log.WithError(err).Errorf("failed to reconcile bmh agent labels %s/%s", bmh.Namespace, bmh.Name)
+		return reconcileError{err: err}
+	}
+	if setDirty {
+		dirty = true
+	}
+
 	log.Debugf("Agent spec reconcile finished:  %v", agent)
 
 	return reconcileComplete{dirty: dirty}
@@ -511,6 +521,29 @@ func (r *BMACReconciler) reconcileNodeLabels(bmh *bmh_v1alpha1.BareMetalHost, ag
 		return true
 	}
 	return false
+}
+
+func (r *BMACReconciler) reconcileAgentLabels(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) (bool, error) {
+	agentLabels := make(map[string]string)
+
+	for key, value := range bmh.ObjectMeta.GetAnnotations() {
+		if strings.HasPrefix(key, AGENT_LABEL_PREFIX) {
+			agentLabels[key[len(AGENT_LABEL_PREFIX):]] = value
+		}
+	}
+	var ret bool
+	labels := agent.GetLabels()
+	for key, value := range agentLabels {
+		existingValue, exists := getLabel(labels, key)
+		if !exists || existingValue != value {
+			labels = AddLabel(labels, key, value)
+			ret = true
+		}
+	}
+	if ret {
+		agent.SetLabels(labels)
+	}
+	return ret, nil
 }
 
 func (r *BMACReconciler) reconcileClusterReference(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) (bool, error) {

@@ -658,6 +658,67 @@ var _ = Describe("bmac reconcile", func() {
 					Expect(updatedAgent.Spec.NodeLabels).To(BeEmpty())
 				})
 			})
+			Context("should set the agent labels based on the corresponding BMH annotations", func() {
+				addAnnotation := func(bmh *bmh_v1alpha1.BareMetalHost, key, value string) {
+					if bmh.Annotations == nil {
+						bmh.Annotations = make(map[string]string)
+					}
+					bmh.Annotations[key] = value
+					Expect(c.Update(ctx, bmh)).ToNot(HaveOccurred())
+				}
+				addLabel := func(bmh *bmh_v1alpha1.BareMetalHost, key, value string) {
+					addAnnotation(bmh, AGENT_LABEL_PREFIX+key, value)
+				}
+				expectToContainKeyValue := func(agent *v1beta1.Agent, key, value string) {
+					v, exists := getLabel(agent.Labels, key)
+					Expect(exists).To(BeTrue())
+					Expect(v).To(Equal(value))
+				}
+				expectToNotContainKey := func(agent *v1beta1.Agent, key string) {
+					_, exists := getLabel(agent.Labels, key)
+					Expect(exists).To(BeFalse())
+				}
+				BeforeEach(func() {
+					addLabel(host, "initial-key", "initial-value")
+				})
+				It("set initial agent labels", func() {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					expectToContainKeyValue(updatedAgent, "initial-key", "initial-value")
+				})
+				It("modify agent labels", func() {
+					h2 := &bmh_v1alpha1.BareMetalHost{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: host.Namespace}, h2)).ToNot(HaveOccurred())
+					addLabel(h2, "third-label", "blah")
+					addLabel(h2, "forth-label", "forth")
+					Expect(c.Update(ctx, h2)).ToNot(HaveOccurred())
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)).ToNot(HaveOccurred())
+					expectToContainKeyValue(updatedAgent, "third-label", "blah")
+					expectToContainKeyValue(updatedAgent, "forth-label", "forth")
+					expectToContainKeyValue(updatedAgent, "initial-key", "initial-value")
+					expectToNotContainKey(updatedAgent, "initial-key1")
+
+					Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: host.Namespace}, h2)).ToNot(HaveOccurred())
+					addLabel(h2, "forth-label", "forth-label-value")
+					Expect(c.Update(ctx, updatedAgent)).ToNot(HaveOccurred())
+					result, err = bmhr.Reconcile(ctx, newBMHRequest(h2))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					expectToContainKeyValue(updatedAgent, "forth-label", "forth-label-value")
+				})
+			})
 			Context("reconcile cluster reference", func() {
 				const (
 					clusterName              = "cluster-name"
