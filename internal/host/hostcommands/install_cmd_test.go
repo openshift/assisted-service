@@ -701,15 +701,8 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(BeEmpty())
 	})
-	It("iSCSI installation disk on OCI", func() {
+	It("iSCSI installation disk", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
-		cluster.Platform = &models.Platform{
-			Type: common.PlatformTypePtr(models.PlatformTypeExternal),
-			External: &models.PlatformExternal{
-				PlatformName:           swag.String(common.ExternalPlatformNameOci),
-				CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
-			},
-		}
 		host.Inventory = fmt.Sprintf(`{
 			"disks":[
 				{
@@ -731,7 +724,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=ibft"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1"]`))
 	})
 	It("ip=<nic>:dhcp6 added when machine CIDR is IPv6", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/64"}}
