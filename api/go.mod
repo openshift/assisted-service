@@ -41,8 +41,8 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/openshift/api v0.0.0-20210216211028-bb81baaf35cd // indirect
 	go.mongodb.org/mongo-driver v1.7.5 // indirect
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/gorm v1.23.1 // indirect
@@ -52,4 +52,7 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 )
 
-replace github.com/openshift/assisted-service/models => ../models
+replace (
+	github.com/openshift/assisted-service/models => ../models
+	golang.org/x/net => golang.org/x/net v0.24.0
+)
