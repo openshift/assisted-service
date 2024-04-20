@@ -540,11 +540,11 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 			clusterReq, err := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                  swag.String("test-cluster"),
-					OpenshiftVersion:      swag.String("4.12"),
+					OpenshiftVersion:      swag.String("4.12-multi"),
 					PullSecret:            swag.String(fmt.Sprintf(psTemplate, FakePS2)),
 					BaseDNSDomain:         "example.com",
 					UserManagedNetworking: swag.Bool(true),
-					CPUArchitecture:       common.MultiCPUArchitecture,
+					CPUArchitecture:       common.S390xCPUArchitecture,
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
