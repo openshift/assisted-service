@@ -102,7 +102,7 @@ var _ = Describe("Feature support levels API", func() {
 
 		Context("Update cluster", func() {
 			It("Update umn true won't fail on 4.13 with multi release without infra-env", func() {
-				cluster, err := registerNewCluster("4.13", common.MultiCPUArchitecture, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+				cluster, err := registerNewCluster("4.13-multi", common.MultiCPUArchitecture, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 
@@ -117,7 +117,7 @@ var _ = Describe("Feature support levels API", func() {
 
 			It("Update umn true fail on 4.13 with s390x with infra-env", func() {
 				expectedError := "cannot use Cluster Managed Networking because it's not compatible with the s390x architecture on version 4.13"
-				cluster, err := registerNewCluster("4.13", common.MultiCPUArchitecture, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+				cluster, err := registerNewCluster("4.13-multi", common.S390xCPUArchitecture, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 
@@ -138,7 +138,7 @@ var _ = Describe("Feature support levels API", func() {
 
 			It("Create infra-env after updating OLM operators on s390x architecture ", func() {
 				expectedError := "cannot use OpenShift Virtualization because it's not compatible with the s390x architecture on version 4.13"
-				cluster, err := registerNewCluster("4.13", common.MultiCPUArchitecture, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+				cluster, err := registerNewCluster("4.13-multi", common.S390xCPUArchitecture, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 

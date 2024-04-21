@@ -317,7 +317,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				swag.String(models.ClusterCPUArchitectureArm64),
 				nil,
 			)
-			Expect(cluster.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureArm64))
+			Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 			Expect(len(cluster.Payload.MonitoredOperators)).To(Equal(1))
 
 			infraEnvParams := installer.RegisterInfraEnvParams{

@@ -2,13 +2,11 @@ package versions
 
 import (
 	context "context"
-	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	models "github.com/openshift/assisted-service/models"
@@ -47,19 +45,14 @@ func (h *restAPIVersionsHandler) GetReleaseImage(_ context.Context, openshiftVer
 	}
 
 	query := h.db.Session(&gorm.Session{}).Where(&models.ReleaseImage{})
-	if cpuArchitecture == common.MultiCPUArchitecture {
-		query = query.Where("cardinality(cpu_architectures) > 1")
-	} else {
-		query = query.Where(h.db.Session(&gorm.Session{}).
-			Where("cpu_architectures @> ? AND ? @> cpu_architectures", pq.StringArray{cpuArchitecture}, pq.StringArray{cpuArchitecture}).
-			Or("cpu_architecture = ?", cpuArchitecture))
-	}
+	query = query.Where(h.db.Session(&gorm.Session{}).
+		Where("? = Any(cpu_architectures)", cpuArchitecture).
+		Or("cpu_architecture = ?", cpuArchitecture),
+	)
 
 	// Find the exact version
 	if versionFormat == common.MajorMinorPatchVersion {
-		query = query.Where(h.db.Session(&gorm.Session{}).
-			Where("version = ?", openshiftVersion).
-			Or("version = ?", openshiftVersion+"-multi"))
+		query = query.Where("version = ?", openshiftVersion)
 		var releaseImage models.ReleaseImage
 		err := query.Take(&releaseImage).Error
 		if err != nil {
@@ -79,18 +72,12 @@ func (h *restAPIVersionsHandler) GetReleaseImage(_ context.Context, openshiftVer
 
 	// openshiftVersion must be major.minor, find the latest version matching
 
-	// In case openshiftVersion is in the format of major.minor-multi
-	editedVersion := strings.TrimSuffix(openshiftVersion, "-multi")
-
+	query = query.Where("openshift_version = ?", openshiftVersion)
 	var releaseImages models.ReleaseImages
 	err := query.Find(&releaseImages).Error
 	if err != nil {
 		return nil, err
 	}
-
-	releaseImages = funk.Filter(releaseImages, func(releaseImage *models.ReleaseImage) bool {
-		return strings.HasPrefix(*releaseImage.Version, fmt.Sprintf("%s.", editedVersion))
-	}).([]*models.ReleaseImage)
 
 	if len(releaseImages) == 0 {
 		return nil, errors.Errorf("no release image found for openshiftVersion: '%s' and CPU architecture '%s'", openshiftVersion, cpuArchitecture)
