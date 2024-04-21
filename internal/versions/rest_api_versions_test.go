@@ -65,7 +65,7 @@ var _ = Describe("GetReleaseImage", func() {
 		Expect(releaseImage).Should(BeNil())
 	})
 
-	It("gets the latest matching release image with major.minor openshiftVersion", func() {
+	It("gets the latest matching release image with major.minor openshiftVersion - production support level, multi appears after", func() {
 		releaseImages := models.ReleaseImages{
 			{
 				OpenshiftVersion: swag.String("4.14"),
@@ -86,65 +86,29 @@ var _ = Describe("GetReleaseImage", func() {
 				Default:          false,
 			},
 			{
+				OpenshiftVersion: swag.String("4.14-multi"),
+				Version:          swag.String("4.14.2-multi"),
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.2-multi"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+				Default:          false,
+			},
+			{
 				OpenshiftVersion: swag.String("4.14"),
 				Version:          swag.String("4.14.3"),
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture},
 				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.3-x86_64"),
-				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
 				Default:          false,
 			},
 			{
 				OpenshiftVersion: swag.String("4.14"),
-				Version:          swag.String("4.14.3"),
+				Version:          swag.String("4.14.4"),
 				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
 				CPUArchitectures: []string{common.ARM64CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.3-aarch64"),
-				SupportLevel:     models.ReleaseImageSupportLevelProduction,
-				Default:          false,
-			},
-			{
-				OpenshiftVersion: swag.String("4.14-multi"),
-				Version:          swag.String("4.14.3-multi"),
-				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.3-multi"),
-				SupportLevel:     models.ReleaseImageSupportLevelProduction,
-				Default:          false,
-			},
-			{
-				OpenshiftVersion: swag.String("4.15"),
-				Version:          swag.String("4.15.1"),
-				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.15.1-x86_64"),
-				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
-				Default:          false,
-			},
-			{
-				OpenshiftVersion: swag.String("4.15"),
-				Version:          swag.String("4.15.2"),
-				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.15.2-x86_64"),
-				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
-				Default:          false,
-			},
-			{
-				OpenshiftVersion: swag.String("4.16-multi"),
-				Version:          swag.String("4.16.1-multi"),
-				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.1-multi"),
-				SupportLevel:     models.ReleaseImageSupportLevelProduction,
-				Default:          false,
-			},
-			{
-				OpenshiftVersion: swag.String("4.16"),
-				Version:          swag.String("4.16.1"),
-				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.1-x86_64"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.4-aarch64"),
 				SupportLevel:     models.ReleaseImageSupportLevelProduction,
 				Default:          false,
 			},
@@ -155,15 +119,126 @@ var _ = Describe("GetReleaseImage", func() {
 
 		releaseImage, err := handler.GetReleaseImage(ctx, "4.14", common.X86CPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.Version).Should(Equal("4.14.2"))
+		Expect(*releaseImage.Version).Should(Equal("4.14.3")) // latest with matching CPU arch
 
-		releaseImage, err = handler.GetReleaseImage(ctx, "4.15", common.X86CPUArchitecture, pullSecret)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.Version).Should(Equal("4.15.2"))
+		releaseImage, err = handler.GetReleaseImage(ctx, "4.14", common.MultiCPUArchitecture, pullSecret)
+		Expect(err).Should(HaveOccurred()) // The version doesn't match
+		Expect(releaseImage).To(BeNil())
 
-		releaseImage, err = handler.GetReleaseImage(ctx, "4.16", common.X86CPUArchitecture, pullSecret)
+		releaseImage, err = handler.GetReleaseImage(ctx, "4.14-multi", common.X86CPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.Version).Should(Equal("4.16.1"))
+		Expect(*releaseImage.Version).Should(Equal("4.14.2-multi")) // latest multi release image, single arch requested
+
+		releaseImage, err = handler.GetReleaseImage(ctx, "4.14-multi", common.S390xCPUArchitecture, pullSecret)
+		Expect(err).Should(HaveOccurred()) // No CPU architecture match
+		Expect(releaseImage).To(BeNil())
+
+		releaseImage, err = handler.GetReleaseImage(ctx, "4.14-multi", common.MultiCPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.Version).Should(Equal("4.14.2-multi")) // latest multi release image, multi arch requested
+	})
+
+	It("gets the latest matching release image with major.minor openshiftVersion - some production and some beta support level, multi appears before", func() {
+		releaseImages := models.ReleaseImages{
+			{
+				OpenshiftVersion: swag.String("4.15"),
+				Version:          swag.String("4.15.1"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.15.1-x86_64"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+				Default:          false,
+			},
+			{
+				OpenshiftVersion: swag.String("4.15-multi"),
+				Version:          swag.String("4.15.1-multi"),
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.15.1-multi"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+				Default:          false,
+			},
+			{
+				OpenshiftVersion: swag.String("4.15"),
+				Version:          swag.String("4.15.2"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.15.2-x86_64"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+				Default:          false,
+			},
+			{
+				OpenshiftVersion: swag.String("4.15"),
+				Version:          swag.String("4.15.3"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.15.3-x86_64"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+				Default:          false,
+			},
+		}
+
+		err := db.Create(releaseImages).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		releaseImage, err := handler.GetReleaseImage(ctx, "4.15", common.X86CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.Version).Should(Equal("4.15.2")) // latest non-beta matching CPU architecture
+
+		releaseImage, err = handler.GetReleaseImage(ctx, "4.15-multi", common.X86CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.Version).Should(Equal("4.15.1-multi")) // latest matching multi when multi appears before
+
+		releaseImage, err = handler.GetReleaseImage(ctx, "4.15-multi", common.MultiCPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.Version).Should(Equal("4.15.1-multi"))
+	})
+
+	It("gets the latest matching release image with major.minor openshiftVersion - all beta support level", func() {
+		releaseImages := models.ReleaseImages{
+			{
+				OpenshiftVersion: swag.String("4.16-multi"),
+				Version:          swag.String("4.16.1-multi"),
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.1-multi"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+				Default:          false,
+			},
+			{
+				OpenshiftVersion: swag.String("4.16"),
+				Version:          swag.String("4.16.1"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.1-x86_64"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+				Default:          false,
+			},
+			{
+				OpenshiftVersion: swag.String("4.16"),
+				Version:          swag.String("4.16.2"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.2-x86_64"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+				Default:          false,
+			},
+		}
+
+		err := db.Create(releaseImages).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		releaseImage, err := handler.GetReleaseImage(ctx, "4.16", common.X86CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.Version).Should(Equal("4.16.2"))
+
+		releaseImage, err = handler.GetReleaseImage(ctx, "4.16-multi", common.X86CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.Version).Should(Equal("4.16.1-multi"))
+
+		releaseImage, err = handler.GetReleaseImage(ctx, "4.16-multi", common.MultiCPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.Version).Should(Equal("4.16.1-multi"))
 	})
 
 	It("gets the exact matching release image with major.minor.patch / prerelease openshiftVersion", func() {
@@ -348,8 +423,17 @@ var _ = Describe("GetReleaseImage", func() {
 		Expect(*releaseImage.Version).Should(Equal("4.14.1-multi"))
 	})
 
-	It("gets successfully image using major.minor.patch openshiftVersion in multiarch query - without multi suffix", func() {
+	It("gets successfully image using major.minor.patch openshiftVersion in single arch query - with multi suffix", func() {
 		releaseImages := models.ReleaseImages{
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				Version:          swag.String("4.14.1"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.1-x86_64"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+				Default:          false,
+			},
 			{
 				OpenshiftVersion: swag.String("4.14-multi"),
 				Version:          swag.String("4.14.1-multi"),
@@ -373,69 +457,9 @@ var _ = Describe("GetReleaseImage", func() {
 		err := db.Create(releaseImages).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
-		releaseImage, err := handler.GetReleaseImage(ctx, "4.14.1", common.MultiCPUArchitecture, pullSecret)
+		releaseImage, err := handler.GetReleaseImage(ctx, "4.14.1-multi", common.X86CPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*releaseImage.Version).Should(Equal("4.14.1-multi"))
-	})
-
-	It("gets successfully image using major.minor openshiftVersion in multiarch query - with multi suffix", func() {
-		releaseImages := models.ReleaseImages{
-			{
-				OpenshiftVersion: swag.String("4.14-multi"),
-				Version:          swag.String("4.14.1-multi"),
-				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.1-multi"),
-				SupportLevel:     models.ReleaseImageSupportLevelProduction,
-				Default:          false,
-			},
-			{
-				OpenshiftVersion: swag.String("4.14-multi"),
-				Version:          swag.String("4.14.2-multi"),
-				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.2-multi"),
-				SupportLevel:     models.ReleaseImageSupportLevelProduction,
-				Default:          false,
-			},
-		}
-
-		err := db.Create(releaseImages).Error
-		Expect(err).ShouldNot(HaveOccurred())
-
-		releaseImage, err := handler.GetReleaseImage(ctx, "4.14-multi", common.MultiCPUArchitecture, pullSecret)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.Version).Should(Equal("4.14.2-multi"))
-	})
-
-	It("gets successfully image using major.minor openshiftVersion in multiarch query - without multi suffix", func() {
-		releaseImages := models.ReleaseImages{
-			{
-				OpenshiftVersion: swag.String("4.14-multi"),
-				Version:          swag.String("4.14.1-multi"),
-				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.1-multi"),
-				SupportLevel:     models.ReleaseImageSupportLevelProduction,
-				Default:          false,
-			},
-			{
-				OpenshiftVersion: swag.String("4.14-multi"),
-				Version:          swag.String("4.14.2-multi"),
-				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.2-multi"),
-				SupportLevel:     models.ReleaseImageSupportLevelProduction,
-				Default:          false,
-			},
-		}
-
-		err := db.Create(releaseImages).Error
-		Expect(err).ShouldNot(HaveOccurred())
-
-		releaseImage, err := handler.GetReleaseImage(ctx, "4.14", common.MultiCPUArchitecture, pullSecret)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.Version).Should(Equal("4.14.2-multi"))
 	})
 
 	It("gets successfully image using major.minor.patch openshiftVersion in multiarch query with different version format", func() {
