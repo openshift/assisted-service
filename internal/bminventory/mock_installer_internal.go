@@ -548,15 +548,15 @@ func (mr *MockInstallerInternalsMockRecorder) V2UpdateHostInternal(arg0, arg1, a
 }
 
 // ValidatePullSecret mocks base method.
-func (m *MockInstallerInternals) ValidatePullSecret(arg0, arg1 string) error {
+func (m *MockInstallerInternals) ValidatePullSecret(arg0, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidatePullSecret", arg0, arg1)
+	ret := m.ctrl.Call(m, "ValidatePullSecret", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ValidatePullSecret indicates an expected call of ValidatePullSecret.
-func (mr *MockInstallerInternalsMockRecorder) ValidatePullSecret(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockInstallerInternalsMockRecorder) ValidatePullSecret(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidatePullSecret", reflect.TypeOf((*MockInstallerInternals)(nil).ValidatePullSecret), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidatePullSecret", reflect.TypeOf((*MockInstallerInternals)(nil).ValidatePullSecret), arg0, arg1, arg2)
 }

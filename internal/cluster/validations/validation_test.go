@@ -19,17 +19,18 @@ import (
 
 // #nosec
 const (
-	validSecretFormat        = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
-	invalidAuthFormat        = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
-	invalidSecretFormat      = "{\"auths\":{\"cloud.openshift.com\":{\"key\":\"abcdef=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"adasfsdf=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"tatastata==\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
-	invalidStrSecretFormat   = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":null,\"email\":null},\"quay.io\":{\"auth\":\"adasfsdf=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"tatastata==\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
-	validSSHPublicKey        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD14Gv4V1111yr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUA111mn/HalJTHB73LyjilKiPvJ+x2bG7Aeiq111wtQSpt02FCdQGptmsSqqWF/b9botOO38e111PNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= xxxxxx@localhost.localdomain"
-	validSSHPublicKeys       = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD14Gv4V1111yr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUA111mn/HalJTHB73LyjilKiPvJ+x2bG7Aeiq111wtQSpt02FCdQGptmsSqqWF/b9botOO38e111PNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= xxxxxx@localhost.localdomain\nssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD14Gv4V1111yr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUA111mn/HalJTHB73LyjilKiPvJ+x2bG7Aeiq111wtQSpt02FCdQGptmsSqqWF/b9botOO38e111PNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= xxxxxx@localhost.localdomain"
-	invalidSSHPublicKeyA     = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDI2PBP9RuAHCJ1JvxS0gkK7cm1sMHtdqCYuHzK7fmoMSPeAu+GEPVlBmes825gabO7vUK/pVmcsP9mQLXB0KZ8m/QEBXSO9vmF8dEt5OqtpRLcRzxmcnU1iUs50VSQyEeSxdSV4KA9JuWa+q0f3o3VO+CF6s4kQvQ4lumyCyNSFIBnFCX16+O8syah/UpHUWVqJeHaXCV8qzYKyRvy6nMI5lqCgxe+ENqHkgfkQkgEKHZ8gEnzHtJgewZ3E6fbjQ59eEEvF0zb7WKKWA0YzWOMVGGybj4cFMPQ4Jt7iJ0OZKPBQZMHBcPNrej5lasgcKR7nH5XS0UjHhX5vZJ7e7zONHK4XZj6OjEOXilg3/4rxSn0+QQtT1v0RDXRQhHS6sCyRFV12MqEP8XjPIdBMbE26lRwk3tBwWx7plj3UCVamQid3nY5kslD4X7+cqE8n3bNF922rhCy5STycfEFN3XTs73yKvVPjpro4aQw4BVi4P7B7m7F1d/DqRBuYwWuQ6cLLLLLLLLLLL= root@xxxxxx.xx.xxx.xxx.redhat.com"
-	invalidSSHPublicKeyB     = "test!!! ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56uar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvHMAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqngqbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3fAC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAqIfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
-	userName                 = "jdoe123@example.com"
-	validSecretFormatUpdated = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.stage.redhat.io\":{\"auth\":\"c29tZW9uZUBleGFtcGxlLmNvbTp0aGlzaXNhc2VjcmV0\"}}}"
-	regCred                  = "someone@example.com:thisisasecret"
+	validPullSecretWithCIToken = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}, \"registry.ci\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
+	validSecretFormat          = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
+	invalidAuthFormat          = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
+	invalidSecretFormat        = "{\"auths\":{\"cloud.openshift.com\":{\"key\":\"abcdef=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"adasfsdf=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"tatastata==\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
+	invalidStrSecretFormat     = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":null,\"email\":null},\"quay.io\":{\"auth\":\"adasfsdf=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"tatastata==\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
+	validSSHPublicKey          = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD14Gv4V1111yr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUA111mn/HalJTHB73LyjilKiPvJ+x2bG7Aeiq111wtQSpt02FCdQGptmsSqqWF/b9botOO38e111PNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= xxxxxx@localhost.localdomain"
+	validSSHPublicKeys         = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD14Gv4V1111yr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUA111mn/HalJTHB73LyjilKiPvJ+x2bG7Aeiq111wtQSpt02FCdQGptmsSqqWF/b9botOO38e111PNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= xxxxxx@localhost.localdomain\nssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQD14Gv4V1111yr7O6/44laYx52VYLe8yrEA3fOieWDmojRs3scqLnfeLHJWsfYA4QMjTuraLKhT8dhETSYiSR88RMM56+isLbcLshE6GkNkz3MBZE2hcdakqMDm6vucP3dJD6snuh5Hfpq7OWDaTcC0zCAzNECJv8F7LcWVa8TLpyRgpek4U022T5otE1ZVbNFqN9OrGHgyzVQLtC4xN1yT83ezo3r+OEdlSVDRQfsq73Zg26d4dyagb6lmrryUUA111mn/HalJTHB73LyjilKiPvJ+x2bG7Aeiq111wtQSpt02FCdQGptmsSqqWF/b9botOO38e111PNppMn7LT5wzDZdDlfwTCBWkpqijPcdo/LTD9dJlNHjwXZtHETtiid6N3ZZWpA0/VKjqUeQdSnHqLEzTidswsnOjCIoIhmJFqczeP5kOty/MWdq1II/FX/EpYCJxoSWkT/hVwD6VOamGwJbLVw9LkEb0VVWFRJB5suT/T8DtPdPl+A0qUGiN4KM= xxxxxx@localhost.localdomain"
+	invalidSSHPublicKeyA       = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDI2PBP9RuAHCJ1JvxS0gkK7cm1sMHtdqCYuHzK7fmoMSPeAu+GEPVlBmes825gabO7vUK/pVmcsP9mQLXB0KZ8m/QEBXSO9vmF8dEt5OqtpRLcRzxmcnU1iUs50VSQyEeSxdSV4KA9JuWa+q0f3o3VO+CF6s4kQvQ4lumyCyNSFIBnFCX16+O8syah/UpHUWVqJeHaXCV8qzYKyRvy6nMI5lqCgxe+ENqHkgfkQkgEKHZ8gEnzHtJgewZ3E6fbjQ59eEEvF0zb7WKKWA0YzWOMVGGybj4cFMPQ4Jt7iJ0OZKPBQZMHBcPNrej5lasgcKR7nH5XS0UjHhX5vZJ7e7zONHK4XZj6OjEOXilg3/4rxSn0+QQtT1v0RDXRQhHS6sCyRFV12MqEP8XjPIdBMbE26lRwk3tBwWx7plj3UCVamQid3nY5kslD4X7+cqE8n3bNF922rhCy5STycfEFN3XTs73yKvVPjpro4aQw4BVi4P7B7m7F1d/DqRBuYwWuQ6cLLLLLLLLLLL= root@xxxxxx.xx.xxx.xxx.redhat.com"
+	invalidSSHPublicKeyB       = "test!!! ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56uar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvHMAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqngqbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3fAC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAqIfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
+	userName                   = "jdoe123@example.com"
+	validSecretFormatUpdated   = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.stage.redhat.io\":{\"auth\":\"c29tZW9uZUBleGFtcGxlLmNvbTp0aGlzaXNhc2VjcmV0\"}}}"
+	regCred                    = "someone@example.com:thisisasecret"
 )
 
 var _ = Describe("Pull secret validation", func() {
@@ -53,40 +54,40 @@ var _ = Describe("Pull secret validation", func() {
 	Context("test secret format", func() {
 
 		BeforeEach(func() {
-			secretValidator, _ = NewPullSecretValidator(Config{}, authHandler)
-			secretValiatorWithNoAuth, _ = NewPullSecretValidator(Config{}, authHandlerDisabled)
+			secretValidator, _ = NewPullSecretValidator(map[string]bool{}, authHandler)
+			secretValiatorWithNoAuth, _ = NewPullSecretValidator(map[string]bool{}, authHandlerDisabled)
 		})
 
 		It("valid format", func() {
-			err := secretValiatorWithNoAuth.ValidatePullSecret(validSecretFormat, "")
+			err := secretValiatorWithNoAuth.ValidatePullSecret(validSecretFormat, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("empty secret", func() {
-			err := secretValiatorWithNoAuth.ValidatePullSecret("", "")
+			err := secretValiatorWithNoAuth.ValidatePullSecret("", "", "")
 			Expect(err).Should(HaveOccurred())
 		})
 		It("invalid format for the auth", func() {
-			err := secretValiatorWithNoAuth.ValidatePullSecret(invalidAuthFormat, "")
+			err := secretValiatorWithNoAuth.ValidatePullSecret(invalidAuthFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("invalid format", func() {
-			err := secretValiatorWithNoAuth.ValidatePullSecret(invalidSecretFormat, "")
+			err := secretValiatorWithNoAuth.ValidatePullSecret(invalidSecretFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("invalid format - non-string", func() {
-			err := secretValiatorWithNoAuth.ValidatePullSecret(invalidStrSecretFormat, "")
+			err := secretValiatorWithNoAuth.ValidatePullSecret(invalidStrSecretFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("valid format - Invalid user", func() {
-			err := secretValidator.ValidatePullSecret(validSecretFormat, "NotSameUser@example.com")
+			err := secretValidator.ValidatePullSecret(validSecretFormat, "NotSameUser@example.com", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("valid format - Valid user", func() {
-			err := secretValidator.ValidatePullSecret(validSecretFormat, userName)
+			err := secretValidator.ValidatePullSecret(validSecretFormat, userName, "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("Add RH Reg PullSecret ", func() {
@@ -106,61 +107,78 @@ var _ = Describe("Pull secret validation", func() {
 		const pullSecLegacyDocker = "{\"auths\":{\"https://index.docker.io/v1/\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
 
 		It("pull secret accepted when it contains all required registries", func() {
-			validator, err := NewPullSecretValidator(Config{}, authHandlerDisabled, "quay.io/testing:latest", "registry.redhat.io/image:v1")
+			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "quay.io/testing:latest", "registry.redhat.io/image:v1")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(validSecretFormat, "")
+			err = validator.ValidatePullSecret(validSecretFormat, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("pull secret accepted even if it does not contain registry.stage.redhat.io", func() {
-			validator, err := NewPullSecretValidator(Config{}, authHandlerDisabled, "quay.io/testing:latest", "registry.stage.redhat.io/special:v1")
+			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "quay.io/testing:latest", "registry.stage.redhat.io/special:v1")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(validSecretFormat, "")
+			err = validator.ValidatePullSecret(validSecretFormat, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("pull secret accepted when it doesn't contain auths for ignored registries", func() {
-			config := Config{
-				PublicRegistries: "ignore.com,something.com",
+			publicRegistries := map[string]bool{
+				"ignore.com":    true,
+				"something.com": true,
 			}
-			validator, err := NewPullSecretValidator(config, authHandlerDisabled, "quay.io/testing:latest", "ignore.com/image:v1", "something.com/container:X")
+			validator, err := NewPullSecretValidator(publicRegistries, authHandlerDisabled, "quay.io/testing:latest", "ignore.com/image:v1", "something.com/container:X")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(validSecretFormat, "")
+			err = validator.ValidatePullSecret(validSecretFormat, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("docker.io auth is accepted when there is an image from docker.io", func() {
-			validator, err := NewPullSecretValidator(Config{}, authHandlerDisabled, "docker.io/testing:latest")
+		It("pull secret accepted when release image is specified and its registry credentials exists", func() {
+			publicRegistries := map[string]bool{}
+			validator, err := NewPullSecretValidator(publicRegistries, authHandlerDisabled, "quay.io/testing:latest")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(pullSecDocker, "")
+			err = validator.ValidatePullSecret(validPullSecretWithCIToken, "", "registry.ci/test:latest")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("pull secret is not accepted when release image is specified bit its registry credentials missing", func() {
+			publicRegistries := map[string]bool{}
+			validator, err := NewPullSecretValidator(publicRegistries, authHandlerDisabled, "quay.io/testing:latest")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(validSecretFormat, "", "registry.ci/test:latest")
+			Expect(err).Should(HaveOccurred())
+		})
+
+		It("docker.io auth is accepted when there is an image from docker.io", func() {
+			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "docker.io/testing:latest")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(pullSecDocker, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("legacy DockerHub auth is accepted when there is an image from docker.io", func() {
-			validator, err := NewPullSecretValidator(Config{}, authHandlerDisabled, "docker.io/testing:latest")
+			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "docker.io/testing:latest")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(pullSecLegacyDocker, "")
+			err = validator.ValidatePullSecret(pullSecLegacyDocker, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("docker.io auth is accepted when there is an image with default registry", func() {
-			validator, err := NewPullSecretValidator(Config{}, authHandlerDisabled, "local:v1")
+			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "local:v1")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(pullSecDocker, "")
+			err = validator.ValidatePullSecret(pullSecDocker, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("legacy DockerHub auth is accepted when there is an image with default registry", func() {
-			validator, err := NewPullSecretValidator(Config{}, authHandlerDisabled, "local:v2")
+			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "local:v2")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(pullSecLegacyDocker, "")
+			err = validator.ValidatePullSecret(pullSecLegacyDocker, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("error when pull secret does not contain required registry", func() {
-			validator, err := NewPullSecretValidator(Config{}, authHandlerDisabled, "quay.io/testing:latest", "required.com/image:v1")
+			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "quay.io/testing:latest", "required.com/image:v1")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(validSecretFormat, "")
+			err = validator.ValidatePullSecret(validSecretFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
@@ -347,11 +365,32 @@ var _ = Describe("URL validations", func() {
 	})
 })
 
-var _ = Describe("Get registry from container image name", func() {
+var _ = Describe("Get registirey", func() {
+	getRegistriesWithAuth := func(ignorableImages map[string]bool, images ...string) (*map[string]bool, error) {
+		registriesWithAuth := map[string]bool{}
+		for _, image := range images {
+			registry, err := getRegistryAuthStatus(ignorableImages, image)
+			if err != nil {
+				return nil, err
+			}
+
+			if registry != nil {
+				registriesWithAuth[*registry] = true
+			}
+		}
+
+		return &registriesWithAuth, nil
+	}
+
+	var ignorableImages map[string]bool
+
+	BeforeEach(func() {
+		ignorableImages = map[string]bool{}
+	})
 
 	It("all registries present when ignore list empty", func() {
 		images := []string{"registry.redhat.io/fedora:32", "quay.io/example/assisted-service:latest"}
-		registries, err := getRegistriesWithAuth("", ",", images...)
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(2))
 		Expect(*registries).Should(HaveKey("registry.redhat.io"))
@@ -360,7 +399,7 @@ var _ = Describe("Get registry from container image name", func() {
 
 	It("multiple images with same registry result in one auth entry", func() {
 		images := []string{"quay.io/example/assisted-service:4.6", "quay.io/example/assisted-service:latest"}
-		registries, err := getRegistriesWithAuth("", ",", images...)
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(1))
 		Expect(*registries).Should(HaveKey("quay.io"))
@@ -368,7 +407,7 @@ var _ = Describe("Get registry from container image name", func() {
 
 	It("port preserved in image registry", func() {
 		images := []string{"localhost:5000/private/service:v1"}
-		registries, err := getRegistriesWithAuth("", ",", images...)
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(1))
 		Expect(*registries).Should(HaveKey("localhost:5000"))
@@ -376,7 +415,7 @@ var _ = Describe("Get registry from container image name", func() {
 
 	It("empty registry is replaced with official docker registry", func() {
 		images := []string{"private/service:v1"}
-		registries, err := getRegistriesWithAuth("", ",", images...)
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(1))
 		Expect(*registries).Should(HaveKey(dockerHubRegistry))
@@ -384,15 +423,11 @@ var _ = Describe("Get registry from container image name", func() {
 
 	It("registries omitted when in ignore list with comma (,) separator", func() {
 		images := []string{"quay.io/private/service:latest", "localhost:5050/private/service:v1", "registry.redhat.io/fedora:32"}
-		registries, err := getRegistriesWithAuth("quay.io,localhost:5050", ",", images...)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*registries).Should(HaveLen(1))
-		Expect(*registries).Should(HaveKey("registry.redhat.io"))
-	})
-
-	It("registries omitted when in ignore list with semicolon (;) separator", func() {
-		images := []string{"quay.io/private/service:latest", "localhost:5050/private/service:v1", "registry.redhat.io/fedora:32"}
-		registries, err := getRegistriesWithAuth("quay.io;localhost:5050", ";", images...)
+		ignorableImages = map[string]bool{
+			"quay.io":        true,
+			"localhost:5050": true,
+		}
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(1))
 		Expect(*registries).Should(HaveKey("registry.redhat.io"))
@@ -400,59 +435,64 @@ var _ = Describe("Get registry from container image name", func() {
 
 	It("all multiple entries from the same registries omitted when in ingore list", func() {
 		images := []string{"quay.io/private/service:v1", "quay.io/example/assisted-service:latest"}
-		registries, err := getRegistriesWithAuth("quay.io", ",", images...)
+		ignorableImages = map[string]bool{
+			"quay.io": true,
+		}
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(0))
 	})
 
 	It("docker official registry is ignored when in ignore list", func() {
 		images := []string{dockerHubRegistry + "/private/service:v1"}
-		registries, err := getRegistriesWithAuth(dockerHubRegistry, ",", images...)
+		ignorableImages = map[string]bool{
+			dockerHubRegistry: true,
+		}
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(0))
 	})
 
 	It("docker official registry is ignored when docker legacy URL in ignore list", func() {
 		images := []string{dockerHubRegistry + "/private/service:v1"}
-		registries, err := getRegistriesWithAuth(dockerHubLegacyAuth, ",", images...)
+		ignorableImages = map[string]bool{
+			dockerHubLegacyAuth: true,
+		}
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(0))
 	})
 
 	It("default registry is ignored when docker official registry in ignore list", func() {
 		images := []string{"private/service:v1"}
-		registries, err := getRegistriesWithAuth(dockerHubRegistry, ",", images...)
+		ignorableImages = map[string]bool{
+			dockerHubRegistry: true,
+		}
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(0))
 	})
 
 	It("default registry is ignored when docker registry URL in ignore list", func() {
 		images := []string{"private/service:v1"}
-		registries, err := getRegistriesWithAuth(dockerHubLegacyAuth, ",", images...)
+		ignorableImages = map[string]bool{
+			dockerHubLegacyAuth: true,
+		}
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(0))
 	})
 
 	It("registries list empty when images empty", func() {
 		images := []string{}
-		registries, err := getRegistriesWithAuth("", ",", images...)
+		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(0))
 	})
 
-	It("nothing ignored when ignore list uses wrong separator", func() {
-		images := []string{"quay.io/private/service:latest", "localhost:5050/private/service:v1", "registry.redhat.io/fedora:32"}
-		registries, err := getRegistriesWithAuth("quay.io,localhost:5050", ";", images...)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*registries).Should(HaveLen(3))
-		Expect(*registries).Should(HaveKey("registry.redhat.io"))
-		Expect(*registries).Should(HaveKey("quay.io"))
-		Expect(*registries).Should(HaveKey("localhost:5050"))
-	})
-
 	It("error occurs when image list contains malformed image name", func() {
 		images := []string{"quay.io:X/private/service:latest"}
-		_, err := getRegistriesWithAuth("", ";", images...)
+		_, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).Should(HaveOccurred())
 	})
 })

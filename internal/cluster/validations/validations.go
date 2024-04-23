@@ -36,6 +36,16 @@ type Config struct {
 	PublicRegistries string `envconfig:"PUBLIC_CONTAINER_REGISTRIES" default:""`
 }
 
+func ParsePublicRegistries(publicRegistries map[string]bool, publicRegistriesLiteral string) {
+	if publicRegistriesLiteral == "" {
+		return
+	}
+
+	for _, registry := range strings.Split(publicRegistriesLiteral, ",") {
+		publicRegistries[registry] = true
+	}
+}
+
 const (
 	clusterNameRegex                = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
 	clusterNameRegexForNonePlatform = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)*$"
@@ -44,7 +54,6 @@ const (
 	dockerHubRegistry               = "docker.io"
 	dockerHubLegacyAuth             = "https://index.docker.io/v1/"
 	stageRegistry                   = "registry.stage.redhat.io"
-	ignoreListSeparator             = ","
 
 	// Size of the file used to embed an ignition config archive within an RHCOS ISO: 256 KiB
 	// See: https://github.com/coreos/coreos-assembler/blob/d2c968a1f3c75713a4e1449e3da657c5d5a5d7e7/src/cmd-buildextend-live#L113-L114
@@ -62,11 +71,12 @@ func init() {
 //
 //go:generate mockgen -source=validations.go -package=validations -destination=mock_validations.go
 type PullSecretValidator interface {
-	ValidatePullSecret(secret string, username string) error
+	ValidatePullSecret(secret string, username string, releaseImageURL string) error
 }
 
 type registryPullSecretValidator struct {
-	registriesWithAuth *map[string]bool
+	publicRegistries   map[string]bool
+	registriesWithAuth map[string]bool
 	authHandler        auth.Authenticator
 }
 
@@ -169,22 +179,48 @@ func AddRHRegPullSecret(secret, rhCred string) (string, error) {
 	return string(ps), nil
 }
 
-// NewPullSecretValidator receives all images whose registries must have an entry in a user pull secret (auth)
-func NewPullSecretValidator(config Config, authHandler auth.Authenticator, images ...string) (PullSecretValidator, error) {
+func NewPullSecretValidator(publicRegistries map[string]bool, authHandler auth.Authenticator, images ...string) (PullSecretValidator, error) {
+	registriesWithAuth := map[string]bool{}
+	for _, image := range images {
+		registryWithAuth, err := getRegistryAuthStatus(publicRegistries, image)
+		if err != nil {
+			return nil, err
+		}
 
-	authRegList, err := getRegistriesWithAuth(config.PublicRegistries, ignoreListSeparator, images...)
-	if err != nil {
-		return nil, err
+		if registryWithAuth != nil {
+			registriesWithAuth[*registryWithAuth] = true
+		}
 	}
 
 	return &registryPullSecretValidator{
-		registriesWithAuth: authRegList,
+		publicRegistries:   publicRegistries,
+		registriesWithAuth: registriesWithAuth,
 		authHandler:        authHandler,
 	}, nil
 }
 
+func validateRegistryWithAuth(registry string, credentials map[string]PullSecretCreds) error {
+	// Both "docker.io" and "https://index.docker.io/v1/" are acceptable for DockerHub login
+	if registry == dockerHubRegistry {
+		if _, ok := credentials[dockerHubLegacyAuth]; ok {
+			return nil
+		}
+	}
+
+	// We add auth for stage registry automatically
+	if registry == stageRegistry {
+		return nil
+	}
+
+	if _, ok := credentials[registry]; !ok {
+		return &PullSecretError{Msg: fmt.Sprintf("pull secret must contain auth for %q", registry)}
+	}
+
+	return nil
+}
+
 // ValidatePullSecret validates that a pull secret is well formed and contains all required data
-func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string) error {
+func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string, releaseImageURL string) error {
 	creds, err := ParsePullSecret(secret)
 	if err != nil {
 		return err
@@ -192,13 +228,13 @@ func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username
 
 	// only check for cloud creds if we're authenticating against Red Hat SSO
 	if v.authHandler.AuthType() == auth.TypeRHSSO {
-
 		r, ok := creds["cloud.openshift.com"]
 		if !ok {
 			return &PullSecretError{Msg: "pull secret must contain auth for \"cloud.openshift.com\""}
 		}
 
-		user, err := v.authHandler.AuthAgentAuth(r.AuthRaw)
+		var user interface{}
+		user, err = v.authHandler.AuthAgentAuth(r.AuthRaw)
 		if err != nil {
 			return &PullSecretError{Msg: "failed to authenticate the pull secret token"}
 		}
@@ -208,22 +244,20 @@ func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username
 		}
 	}
 
-	for registry := range *v.registriesWithAuth {
-
-		// Both "docker.io" and "https://index.docker.io/v1/" are acceptable for DockerHub login
-		if registry == dockerHubRegistry {
-			if _, ok := creds[dockerHubLegacyAuth]; ok {
-				continue
-			}
+	for registry := range v.registriesWithAuth {
+		if err = validateRegistryWithAuth(registry, creds); err != nil {
+			return err
 		}
+	}
 
-		// We add auth for stage registry automatically
-		if registry == stageRegistry {
-			continue
-		}
+	registryWithAuth, err := getRegistryAuthStatus(v.publicRegistries, releaseImageURL)
+	if err != nil {
+		return err
+	}
 
-		if _, ok := creds[registry]; !ok {
-			return &PullSecretError{Msg: fmt.Sprintf("pull secret must contain auth for %q", registry)}
+	if registryWithAuth != nil {
+		if err := validateRegistryWithAuth(*registryWithAuth, creds); err != nil {
+			return err
 		}
 	}
 
@@ -318,40 +352,23 @@ func ParseRegistry(image string) (string, error) {
 	return reference.Domain(parsed), nil
 }
 
-// getRegistriesWithAuth returns container registries that may require authentication based
-// on a list of used images and an ignore list. The ingore list comes as a string and a separator
-// to make it easier to read from a configuration variable
-func getRegistriesWithAuth(ignoreList string, ignoreSeparator string, images ...string) (*map[string]bool, error) {
-
-	ignored := make(map[string]bool)
-	for _, i := range strings.Split(ignoreList, ignoreSeparator) {
-		ignored[i] = true
+// getRegistryAuthStatus takes a release image reference and a set of ignorarble registries,
+// and returns the image's registry if it requires authentication and it is not ignorable
+func getRegistryAuthStatus(ignorableImages map[string]bool, image string) (*string, error) {
+	if image == "" {
+		return nil, nil
 	}
 
-	_, docLegacyIgnored := ignored[dockerHubLegacyAuth]
-
-	registries := make(map[string]bool)
-	for _, img := range images {
-		if img == "" {
-			continue
-		}
-		r, err := ParseRegistry(img)
-		if err != nil {
-			return &registries, err
-		}
-
-		if r == dockerHubRegistry && docLegacyIgnored {
-			continue
-		}
-
-		if _, ok := ignored[r]; ok {
-			continue
-		}
-
-		registries[r] = true
+	registry, err := ParseRegistry(image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error occurred while trying to parse the registry out of '%s'", image)
 	}
 
-	return &registries, nil
+	if (registry == dockerHubRegistry && ignorableImages[dockerHubLegacyAuth]) || ignorableImages[registry] {
+		return nil, nil
+	}
+
+	return &registry, nil
 }
 
 // ValidateVipDHCPAllocationWithIPv6 returns an error in case of VIP DHCP allocation
