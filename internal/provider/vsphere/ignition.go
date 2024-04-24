@@ -35,6 +35,15 @@ func (p vsphereProvider) PostCreateManifestsHook(_ *common.Cluster, _ *[]string,
 		return fmt.Errorf("error deleting machineset: %w", err)
 	}
 
+	// Delete machine-api control plane machine set manifest
+	p.Log.Info("Deleting machine-api control plane machine set manifest")
+	files, _ = filepath.Glob(path.Join(workDir, "openshift", "*_openshift-machine-api_master-control-plane-machine-set.yaml"))
+	err = p.deleteAllFiles(files)
+
+	if err != nil {
+		return fmt.Errorf("error deleting control plane machine set: %w", err)
+	}
+
 	return nil
 }
 
