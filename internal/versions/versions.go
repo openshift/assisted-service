@@ -166,50 +166,80 @@ func (h *handler) GetReleaseImageByURL(ctx context.Context, url, pullSecret stri
 	return h.addReleaseImage(url, pullSecret)
 }
 
+// Finds a release image from the cache that matches the specified version and architecture in the following
+// priority:
+// 1. Exact CPU Architecture & OpenShift x.y.z version match
+// 2. Exact CPU Architecture & OpenShift Major Minor (x.y) version match
+// 3. Multi-arch CPU with specified CPU Architecture & OpenShift x.y.z version match
+// 4. Multi-arch CPU with specified CPU Architecture & OpenShift Major Minor (x.y) version match
 func (h *handler) getReleaseImageFromCache(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
 	if cpuArchitecture == "" {
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture
 	}
+
 	// Filter Release images by specified CPU architecture.
-	releaseImages := funk.Filter(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
-		for _, arch := range releaseImage.CPUArchitectures {
-			if arch == cpuArchitecture {
-				return true
-			}
-		}
+	exactCPUArchReleaseImages := funk.Filter(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
 		return swag.StringValue(releaseImage.CPUArchitecture) == cpuArchitecture
 	})
-	if funk.IsEmpty(releaseImages) {
-		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in release images list", cpuArchitecture)
-	}
-	// Search for specified x.y.z openshift version
-	releaseImage := funk.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
-		return *releaseImage.OpenshiftVersion == openshiftVersion
+
+	// Filter Release images by multi-arch images containing the specified CPU architecture
+	multiArchReleaseImages := funk.Filter(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
+		if *releaseImage.CPUArchitecture == common.MultiCPUArchitecture {
+			for _, arch := range releaseImage.CPUArchitectures {
+				if arch == cpuArchitecture {
+					return true
+				}
+			}
+		}
+		return false
 	})
 
+	if funk.IsEmpty(exactCPUArchReleaseImages) && funk.IsEmpty(multiArchReleaseImages) {
+		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in release images list", cpuArchitecture)
+	}
+
+	releaseImage := getReleaseImageByVersion(openshiftVersion, exactCPUArchReleaseImages.([]*models.ReleaseImage))
 	if releaseImage == nil {
-		// Fallback to x.y version
-		versionKey, err := toMajorMinor(openshiftVersion)
-		if err != nil {
-			return nil, err
-		}
-		releaseImage = funk.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
-			// Starting from OCP 4.12 multi-arch release images do not have "-multi" suffix
-			// reported by the CVO, but we still offer the sufix internally to allow for explicit
-			// selection or single- or multi-arch payload.
-			version := strings.TrimSuffix(*releaseImage.OpenshiftVersion, "-multi")
-			return version == versionKey
-		})
+		// Find release image from multi-arch list if one doesn't exist in the exact CPU Arch list
+		releaseImage = getReleaseImageByVersion(openshiftVersion, multiArchReleaseImages.([]*models.ReleaseImage))
 	}
 
 	if releaseImage != nil {
-		return releaseImage.(*models.ReleaseImage), nil
+		return releaseImage, nil
 	}
 
 	return nil, errors.Errorf(
 		"The requested release image for version (%s) and CPU architecture (%s) isn't specified in release images list",
 		openshiftVersion, cpuArchitecture)
+}
+
+func getReleaseImageByVersion(desiredOpenshiftVersion string, releaseImages []*models.ReleaseImage) *models.ReleaseImage {
+	// Search for specified x.y.z openshift version
+	releaseImage := funk.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
+		return *releaseImage.OpenshiftVersion == desiredOpenshiftVersion
+	})
+
+	if releaseImage == nil {
+		// Fallback to x.y version
+		majorMinorVersion, err := toMajorMinor(desiredOpenshiftVersion)
+		if err != nil {
+			return nil
+		}
+
+		releaseImage = funk.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
+			// Starting from OCP 4.12 multi-arch release images do not have "-multi" suffix
+			// reported by the CVO, but we still offer the sufix internally to allow for explicit
+			// selection or single- or multi-arch payload.
+			version := strings.TrimSuffix(*releaseImage.OpenshiftVersion, "-multi")
+			return version == majorMinorVersion
+		})
+	}
+
+	if releaseImage != nil {
+		return releaseImage.(*models.ReleaseImage)
+	}
+	return nil
 }
 
 // ValidateReleaseImageForRHCOS validates whether for a specified RHCOS version we have an OCP
