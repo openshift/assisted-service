@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/x509"
-	"encoding/base64"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"net"
@@ -41,11 +39,6 @@ const (
 	clusterNameRegexForNonePlatform = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)*$"
 	CloudOpenShiftCom               = "cloud.openshift.com"
 	sshPublicKeyRegex               = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
-	dockerHubRegistry               = "docker.io"
-	dockerHubLegacyAuth             = "https://index.docker.io/v1/"
-	stageRegistry                   = "registry.stage.redhat.io"
-	ignoreListSeparator             = ","
-
 	// Size of the file used to embed an ignition config archive within an RHCOS ISO: 256 KiB
 	// See: https://github.com/coreos/coreos-assembler/blob/d2c968a1f3c75713a4e1449e3da657c5d5a5d7e7/src/cmd-buildextend-live#L113-L114
 	IgnitionImageSizePadding = 256 * 1024
@@ -55,179 +48,6 @@ var regexpSshPublicKey *regexp.Regexp
 
 func init() {
 	regexpSshPublicKey, _ = regexp.Compile(sshPublicKeyRegex)
-}
-
-// PullSecretValidator is used run validations on a provided pull secret
-// it verifies the format of the pull secrete and access to required image registries
-//
-//go:generate mockgen -source=validations.go -package=validations -destination=mock_validations.go
-type PullSecretValidator interface {
-	ValidatePullSecret(secret string, username string) error
-}
-
-type registryPullSecretValidator struct {
-	registriesWithAuth *map[string]bool
-	authHandler        auth.Authenticator
-}
-
-type imagePullSecret struct {
-	Auths map[string]map[string]interface{} `json:"auths"`
-}
-
-type PullSecretCreds struct {
-	Username string
-	Password string
-	Registry string
-	AuthRaw  string
-	Email    string
-}
-
-// PullSecretError distinguishes secret validation errors produced by this package from other types of errors
-type PullSecretError struct {
-	Msg   string
-	Cause error
-}
-
-func (e *PullSecretError) Error() string {
-	return e.Msg
-}
-
-func (e *PullSecretError) Unwrap() error {
-	return e.Cause
-}
-
-// ParsePullSecret validates the format of a pull secret and converts the secret string into individual credentail entries
-func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
-	result := make(map[string]PullSecretCreds)
-	var s imagePullSecret
-
-	err := json.Unmarshal([]byte(strings.TrimSpace(secret)), &s)
-	if err != nil {
-		return nil, &PullSecretError{Msg: "pull secret must be a well-formed JSON", Cause: err}
-	}
-
-	if len(s.Auths) == 0 {
-		return nil, &PullSecretError{Msg: "pull secret must contain 'auths' JSON-object field"}
-	}
-
-	for d, a := range s.Auths {
-
-		_, authPresent := a["auth"]
-		_, credsStorePresent := a["credsStore"]
-		if !authPresent && !credsStorePresent {
-			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: %q JSON-object requires either 'auth' or 'credsStore' field", d)}
-		}
-
-		var authRaw string
-		if auth, ok := a["auth"].(string); authPresent && !ok {
-			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' field of %q is %v but should be a string", d, a["auth"])}
-		} else {
-			authRaw = auth
-		}
-		data, err := base64.StdEncoding.DecodeString(authRaw)
-		if err != nil {
-			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' field of %q is not base64-encoded", d)}
-		}
-
-		res := bytes.Split(data, []byte(":"))
-		if len(res) != 2 {
-			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' for %s is not in 'user:password' format", d)}
-		}
-
-		var email string
-		if emailString, ok := a["email"].(string); ok {
-			email = emailString
-		}
-
-		result[d] = PullSecretCreds{
-			Password: string(res[1]),
-			Username: string(res[0]),
-			AuthRaw:  authRaw,
-			Registry: d,
-			Email:    email,
-		}
-
-	}
-	return result, nil
-}
-
-func AddRHRegPullSecret(secret, rhCred string) (string, error) {
-	if rhCred == "" {
-		return "", errors.Errorf("invalid pull secret")
-	}
-	var s imagePullSecret
-	err := json.Unmarshal([]byte(strings.TrimSpace(secret)), &s)
-	if err != nil {
-		return secret, errors.Errorf("invalid pull secret: %v", err)
-	}
-	s.Auths[stageRegistry] = make(map[string]interface{})
-	s.Auths[stageRegistry]["auth"] = base64.StdEncoding.EncodeToString([]byte(rhCred))
-	ps, err := json.Marshal(s)
-	if err != nil {
-		return secret, err
-	}
-	return string(ps), nil
-}
-
-// NewPullSecretValidator receives all images whose registries must have an entry in a user pull secret (auth)
-func NewPullSecretValidator(config Config, authHandler auth.Authenticator, images ...string) (PullSecretValidator, error) {
-
-	authRegList, err := getRegistriesWithAuth(config.PublicRegistries, ignoreListSeparator, images...)
-	if err != nil {
-		return nil, err
-	}
-
-	return &registryPullSecretValidator{
-		registriesWithAuth: authRegList,
-		authHandler:        authHandler,
-	}, nil
-}
-
-// ValidatePullSecret validates that a pull secret is well formed and contains all required data
-func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string) error {
-	creds, err := ParsePullSecret(secret)
-	if err != nil {
-		return err
-	}
-
-	// only check for cloud creds if we're authenticating against Red Hat SSO
-	if v.authHandler.AuthType() == auth.TypeRHSSO {
-
-		r, ok := creds["cloud.openshift.com"]
-		if !ok {
-			return &PullSecretError{Msg: "pull secret must contain auth for \"cloud.openshift.com\""}
-		}
-
-		user, err := v.authHandler.AuthAgentAuth(r.AuthRaw)
-		if err != nil {
-			return &PullSecretError{Msg: "failed to authenticate the pull secret token"}
-		}
-
-		if (user.(*ocm.AuthPayload)).Username != username {
-			return &PullSecretError{Msg: "pull secret token does not match current user"}
-		}
-	}
-
-	for registry := range *v.registriesWithAuth {
-
-		// Both "docker.io" and "https://index.docker.io/v1/" are acceptable for DockerHub login
-		if registry == dockerHubRegistry {
-			if _, ok := creds[dockerHubLegacyAuth]; ok {
-				continue
-			}
-		}
-
-		// We add auth for stage registry automatically
-		if registry == stageRegistry {
-			continue
-		}
-
-		if _, ok := creds[registry]; !ok {
-			return &PullSecretError{Msg: fmt.Sprintf("pull secret must contain auth for %q", registry)}
-		}
-	}
-
-	return nil
 }
 
 // ValidateClusterNameFormat validates specified cluster name format
@@ -316,42 +136,6 @@ func ParseRegistry(image string) (string, error) {
 		return "", err
 	}
 	return reference.Domain(parsed), nil
-}
-
-// getRegistriesWithAuth returns container registries that may require authentication based
-// on a list of used images and an ignore list. The ingore list comes as a string and a separator
-// to make it easier to read from a configuration variable
-func getRegistriesWithAuth(ignoreList string, ignoreSeparator string, images ...string) (*map[string]bool, error) {
-
-	ignored := make(map[string]bool)
-	for _, i := range strings.Split(ignoreList, ignoreSeparator) {
-		ignored[i] = true
-	}
-
-	_, docLegacyIgnored := ignored[dockerHubLegacyAuth]
-
-	registries := make(map[string]bool)
-	for _, img := range images {
-		if img == "" {
-			continue
-		}
-		r, err := ParseRegistry(img)
-		if err != nil {
-			return &registries, err
-		}
-
-		if r == dockerHubRegistry && docLegacyIgnored {
-			continue
-		}
-
-		if _, ok := ignored[r]; ok {
-			continue
-		}
-
-		registries[r] = true
-	}
-
-	return &registries, nil
 }
 
 // ValidateVipDHCPAllocationWithIPv6 returns an error in case of VIP DHCP allocation

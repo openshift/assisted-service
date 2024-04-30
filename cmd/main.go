@@ -336,19 +336,17 @@ func main() {
 	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
 		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler, osImages, Options.EnableKubeAPI)
 
-	images := []string{
+	publicRegistries := map[string]bool{}
+	validations.ParsePublicRegistries(publicRegistries, Options.ValidationsConfig.PublicRegistries)
+	pullSecretValidator, err := validations.NewPullSecretValidator(
+		publicRegistries,
+		authHandler,
 		Options.ReleaseImageMirror,
 		Options.BMConfig.AgentDockerImg,
 		Options.InstructionConfig.InstallerImage,
 		Options.InstructionConfig.ControllerImage,
 		Options.InstructionConfig.AgentImage,
-	}
-
-	for _, releaseImage := range releaseImagesArray {
-		images = append(images, *releaseImage.URL)
-	}
-
-	pullSecretValidator, err := validations.NewPullSecretValidator(Options.ValidationsConfig, authHandler, images...)
+	)
 	failOnError(err, "failed to create pull secret validator")
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
