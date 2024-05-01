@@ -238,5 +238,5 @@ if [ $(oc get baremetalhost -n ${SPOKE_NAMESPACE} -o json | jq -c '.items[].meta
 fi
 
 echo "Destroy the hosted cluster"
-hypershift_cli destroy cluster agent --name $ASSISTED_CLUSTER_NAME --namespace $SPOKE_NAMESPACE --cluster-grace-period 60m
+hypershift_cli hypershift destroy cluster agent --name $ASSISTED_CLUSTER_NAME --namespace $SPOKE_NAMESPACE --cluster-grace-period 60m
 echo "Successfully destroyed the hosted cluster"
