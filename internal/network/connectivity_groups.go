@@ -21,6 +21,11 @@ const (
 	IPv6 AddressFamily = unix.AF_INET6
 )
 
+type Connectivity struct {
+	MajorityGroups       map[string][]strfmt.UUID `json:"majority_groups"`
+	L3ConnectedAddresses map[strfmt.UUID][]string `json:"l3_connected_addresses"`
+}
+
 func (a AddressFamily) String() string {
 	switch a {
 	case IPv4:
@@ -596,4 +601,50 @@ func CreateL3MajorityGroup(hosts []*models.Host, family AddressFamily) ([]strfmt
 		return nil, err
 	}
 	return calculateMajorityGroup(hosts, factory)
+}
+
+func GatherL3ConnectedAddresses(hosts []*models.Host) (map[strfmt.UUID][]string, error) {
+	counts := make(map[strfmt.UUID]map[string]int)
+	for _, host := range hosts {
+		if host.Connectivity == "" {
+			continue
+		}
+		var report models.ConnectivityReport
+		if err := json.Unmarshal([]byte(host.Connectivity), &report); err != nil {
+			return nil, err
+		}
+		for _, rh := range report.RemoteHosts {
+			if rh.HostID == *host.ID {
+				continue
+			}
+			// There are cases (especially in previous versions of connectivity check) that remote IP address appears
+			// more than once in connectivity results. The map is needed in order to verify that a remote ip address
+			// is not counted more than once for host-pair.
+			hostResults := make(map[string]bool)
+			for _, cn := range rh.L3Connectivity {
+				if cn.Successful {
+					hostResults[cn.RemoteIPAddress] = true
+				}
+			}
+			if len(hostResults) > 0 {
+				m, ok := counts[rh.HostID]
+				if !ok {
+					m = make(map[string]int)
+					counts[rh.HostID] = m
+				}
+				for remoteIpAddress := range hostResults {
+					m[remoteIpAddress] = m[remoteIpAddress] + 1
+				}
+			}
+		}
+	}
+	ret := make(map[strfmt.UUID][]string)
+	for hid, hcounts := range counts {
+		for addr, count := range hcounts {
+			if count == len(hosts)-1 {
+				ret[hid] = append(ret[hid], addr)
+			}
+		}
+	}
+	return ret, nil
 }
