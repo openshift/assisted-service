@@ -20,11 +20,34 @@ LABEL io.openshift.release.operator=true
 # https://issues.redhat.com/browse/AGENT-223
 
 RUN if grep -q '^ID="centos"' /etc/os-release; then \
-      ls -la /etc/yum.repos.d/ && \
-      sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Stream-* && \
-      sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://mirror.stream.centos.org|g' /etc/yum.repos.d/CentOS-Stream-* && \
-      dnf install -y 'dnf-command(copr)' && \
-      dnf copr enable nmstate/nmstate-git; \
+    # Synchronize repositories and set up local mirror
+    ls -la /etc/yum.repos.d/ && \
+    dnf -y install yum-utils && \
+    mkdir -p /var/www/repos/centos-stream/9/x86_64/os && \
+    chmod -R 755 /var/www/repos && \
+    reposync -p /var/www/repos/centos-stream/9/x86_64/os/ --repo=baseos --download-metadata && \
+    reposync -p /var/www/repos/centos-stream/9/x86_64/os/ --repo=appstream --download-metadata && \
+    reposync -p /var/www/repos/centos-stream/9/x86_64/os/ --repo=extras-common --download-metadata && \
+    # Update repository configuration to use local mirror
+    echo '[local-baseos]' > /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'name=Local CentOS Stream - BaseOS' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'baseurl=file:///var/www/repos/centos-stream/9/x86_64/os/baseos' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'enabled=1' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'gpgcheck=0' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo '[local-appstream]' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'name=Local CentOS Stream - AppStream' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'baseurl=file:///var/www/repos/centos-stream/9/x86_64/os/appstream' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'enabled=1' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'gpgcheck=0' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo '[local-extras-common]' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'name=Local CentOS Stream - Extras Common' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'baseurl=file:///var/www/repos/centos-stream/9/x86_64/os/extras-common' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'enabled=1' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'gpgcheck=0' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    # Disable remote repositories
+    sed -i 's/enabled=1/enabled=0/g' /etc/yum.repos.d/CentOS-Stream-* && \
+    dnf install -y 'dnf-command(copr)' && \
+    dnf copr enable nmstate/nmstate-git; \
     fi
 
 RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo openshift-clients && dnf clean all
