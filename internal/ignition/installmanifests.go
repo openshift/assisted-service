@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"github.com/vincent-petithory/dataurl"
@@ -92,6 +93,7 @@ type installerGenerator struct {
 	installerReleaseImageOverride string
 	clusterTLSCertOverrideDir     string
 	installerCache                *installercache.Installers
+	nodeIpAllocations             map[strfmt.UUID]*network.NodeIpAllocation
 }
 
 var fileNames = [...]string{
@@ -130,6 +132,17 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 // S3-compatible storage
 func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
+}
+
+func (g *installerGenerator) allocateNodeIpsIfNeeded(log logrus.FieldLogger) {
+	if common.IsMultiNodeNonePlatformCluster(g.cluster) {
+		nodeIpAllocations, err := network.GenerateNonePlatformAddressAllocation(g.cluster, log)
+		if err != nil {
+			log.WithError(err).Warnf("failed to generate ip address allocation for cluster %s", *g.cluster.ID)
+		} else {
+			g.nodeIpAllocations = nodeIpAllocations
+		}
+	}
 }
 
 // Generate generates ignition files and applies modifications.
@@ -179,6 +192,8 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		log.WithError(wrapped).Errorf("GenerateInstallConfig")
 		return wrapped
 	}
+
+	g.allocateNodeIpsIfNeeded(log)
 
 	envVars := append(os.Environ(),
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+g.releaseImage,
@@ -313,16 +328,27 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 
 func (g *installerGenerator) addBootstrapKubeletIpIfRequired(log logrus.FieldLogger, envVars []string) ([]string, error) {
 	// setting bootstrap kubelet node ip
-	// We don't want to set bootstrap ip in None platform as user can't set machine cidr
-	//and we can choose the wrong one
 	log.Debugf("Adding bootstrap ip to env vars")
-	if !swag.BoolValue(g.cluster.UserManagedNetworking) || common.IsSingleNodeCluster(g.cluster) {
+	if !common.IsMultiNodeNonePlatformCluster(g.cluster) {
 		bootstrapIp, err := network.GetPrimaryMachineCIDRIP(common.GetBootstrapHost(g.cluster), g.cluster)
 		if err != nil {
 			log.WithError(err).Warn("Failed to get bootstrap primary ip for kubelet service update.")
 			return envVars, err
 		}
 		envVars = append(envVars, "OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP="+bootstrapIp)
+	} else if g.nodeIpAllocations != nil {
+		bootstrapHost := common.GetBootstrapHost(g.cluster)
+		if bootstrapHost != nil {
+			allocation, ok := g.nodeIpAllocations[lo.FromPtr(bootstrapHost.ID)]
+			if ok {
+				envVars = append(envVars, "OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP="+allocation.NodeIp)
+				g.log.Infof("Set OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP=%s for host %s", allocation.NodeIp, lo.FromPtr(bootstrapHost.ID))
+
+			}
+		}
+	} else {
+		log.Errorf("Unable to set OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP for multinode none platform cluster %s - missing node ip allocations",
+			lo.FromPtr(g.cluster.ID))
 	}
 	return envVars, nil
 }
@@ -1047,6 +1073,12 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 			return errors.Wrapf(errP, "Failed to parse machine cidr for node ip hint content")
 		}
 		setFileInIgnition(config, nodeIpHintFile, fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", ip), false, 420, true)
+	} else if g.nodeIpAllocations != nil && common.IsMultiNodeNonePlatformCluster(g.cluster) {
+		allocation, ok := g.nodeIpAllocations[lo.FromPtr(host.ID)]
+		if ok {
+			setFileInIgnition(config, nodeIpHintFile, fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", allocation.HintIp), false, 420, true)
+			g.log.Infof("Set KUBELET_NODEIP_HINT=%s for host %s", allocation.HintIp, lo.FromPtr(host.ID))
+		}
 	}
 
 	configBytes, err := json.Marshal(config)
