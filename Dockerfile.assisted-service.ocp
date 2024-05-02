@@ -20,11 +20,11 @@ LABEL io.openshift.release.operator=true
 # https://issues.redhat.com/browse/AGENT-223
 
 RUN if grep -q '^ID="centos"' /etc/os-release; then \
-    ls -la /etc/yum.repos.d/ && \
-    sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Stream-* && \
-    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Stream-* && \
-    dnf install -y 'dnf-command(copr)' && \
-    dnf copr enable nmstate/nmstate-git; \
+      ls -la /etc/yum.repos.d/ && \
+      sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Stream-* && \
+      sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://mirror.stream.centos.org|g' /etc/yum.repos.d/CentOS-Stream-* && \
+      dnf install -y 'dnf-command(copr)' && \
+      dnf copr enable nmstate/nmstate-git; \
     fi
 
 RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo openshift-clients && dnf clean all
