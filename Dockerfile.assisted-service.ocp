@@ -20,8 +20,9 @@ LABEL io.openshift.release.operator=true
 # https://issues.redhat.com/browse/AGENT-223
 
 RUN if grep -q '^ID="centos"' /etc/os-release; then \
+    ls -la /etc/yum.repos.d/ && \
     sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-* && \
-    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-*; \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-* && \
     dnf copr enable nmstate/nmstate-git; \
     fi
 
