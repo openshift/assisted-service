@@ -2260,11 +2260,11 @@ var _ = Describe("Majority groups", func() {
 	}
 	expect := func(networks ...string) {
 		c := getClusterFromDB(*cluster.ID, db)
-		majorityGroups := make(map[string][]strfmt.UUID)
-		Expect(json.Unmarshal([]byte(c.ConnectivityMajorityGroups), &majorityGroups)).ToNot(HaveOccurred())
-		Expect(majorityGroups).ToNot(BeEmpty())
+		var connectivity network.Connectivity
+		Expect(json.Unmarshal([]byte(c.ConnectivityMajorityGroups), &connectivity)).ToNot(HaveOccurred())
+		Expect(connectivity.MajorityGroups).ToNot(BeEmpty())
 		for _, n := range []string{"1.2.3.0/24", "10.0.0.0/24"} {
-			group := majorityGroups[n]
+			group := connectivity.MajorityGroups[n]
 			if funk.ContainsString(networks, n) {
 				for _, h := range cluster.Hosts {
 					Expect(group).To(ContainElement(*h.ID))

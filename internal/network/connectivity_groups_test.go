@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
+	"github.com/thoas/go-funk"
 )
 
 type node struct {
@@ -189,7 +190,7 @@ func GenerateL2ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 	Describe(fmt.Sprintf("connectivity groups %s", ipVersion), func() {
 
 		Context("connectivity groups", func() {
-			It("Empty", func() {
+			It("empty connectivity reports - no groups expected", func() {
 				hosts := []*models.Host{
 					{
 						ID:           nodes[0].id,
@@ -208,7 +209,7 @@ func GenerateL2ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(ret).To(Equal([]strfmt.UUID{}))
 			})
-			It("Empty 2", func() {
+			It("missing connectivity reports - no groups expected", func() {
 				hosts := []*models.Host{
 					{
 						ID: nodes[0].id,
@@ -225,7 +226,7 @@ func GenerateL2ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 				Expect(ret).To(Equal([]strfmt.UUID{}))
 			})
 		})
-		It("One with data", func() {
+		It("one host with full connectivity report - no groups expected", func() {
 			hosts := []*models.Host{
 				{
 					ID: nodes[0].id,
@@ -246,7 +247,7 @@ func GenerateL2ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ret).To(Equal([]strfmt.UUID{}))
 		})
-		It("3 with data", func() {
+		It("3 hosts with full connectivity reports - expect full group", func() {
 			hosts := []*models.Host{
 				{
 					ID: nodes[0].id,
@@ -274,7 +275,7 @@ func GenerateL2ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 			Expect(ret).To(ContainElement(*nodes[1].id))
 			Expect(ret).To(ContainElement(*nodes[2].id))
 		})
-		It("Different network", func() {
+		It("no full connectivity for single network - no groups expected", func() {
 			hosts := []*models.Host{
 				{
 					ID: nodes[0].id,
@@ -299,7 +300,7 @@ func GenerateL2ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ret).To(Equal([]strfmt.UUID{}))
 		})
-		It("3 with data, additional network", func() {
+		It("3 hosts with full connectivity report and additional network - expect 2 groups", func() {
 			hosts := []*models.Host{
 				{
 					ID: nodes[0].id,
@@ -343,7 +344,7 @@ func GenerateL2ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 			Expect(ret).To(ContainElement(*nodes[1].id))
 			Expect(ret).To(ContainElement(*nodes[3].id))
 		})
-		It("7 - 2 groups", func() {
+		It("7 hosts with 2 networks - expect 2 groups", func() {
 			hosts := []*models.Host{
 				{
 					ID: nodes[0].id,
@@ -401,7 +402,7 @@ func GenerateL2ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 			Expect(ret).To(ContainElement(*nodes[5].id))
 			Expect(ret).To(ContainElement(*nodes[6].id))
 		})
-		It("7 - 1 direction missing", func() {
+		It("7 hosts with 2 networks, one direction missing - expect one group from choice of 2", func() {
 			hosts := []*models.Host{
 				{
 					ID: nodes[0].id,
@@ -458,7 +459,7 @@ func GenerateL2ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 			Expect(ret).To(ContainElement(*nodes[1].id))
 			Expect(ret).To(ContainElement(*nodes[2].id))
 		})
-		It("7 - 2 directions missing", func() {
+		It("7 hosts with 2 networks, 2 directions missing - expect partial group", func() {
 			hosts := []*models.Host{
 				{
 					ID: nodes[0].id,
@@ -591,7 +592,7 @@ func GenerateL3ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 		})
 
 		Context("connectivity groups", func() {
-			It("Empty", func() {
+			It("3 hosts with empty connectivity reports - expect no group", func() {
 				hosts := []*models.Host{
 					{
 						ID:           nodes[0].id,
@@ -613,7 +614,7 @@ func GenerateL3ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(ret).To(Equal([]strfmt.UUID{}))
 			})
-			It("Empty 2", func() {
+			It("3 hosts without connectivity reports - expect no group", func() {
 				hosts := []*models.Host{
 					{
 						ID:        nodes[0].id,
@@ -632,244 +633,546 @@ func GenerateL3ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(ret).To(Equal([]strfmt.UUID{}))
 			})
+			It("one host with full report - no group expected", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1),
+							createL3Remote(nodes[2], l3LinkNet1)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID:           nodes[1].id,
+						Connectivity: createConnectivityReport(),
+						Inventory:    makeInventory(nodes[1]),
+					},
+					{
+						ID:           nodes[2].id,
+						Connectivity: createConnectivityReport(),
+						Inventory:    makeInventory(nodes[2]),
+					},
+				}
+				ret, err := CreateL3MajorityGroup(hosts, family)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ret).To(Equal([]strfmt.UUID{}))
+			})
+			It("3 hosts with connectivity reports - expect group", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1),
+							createL3Remote(nodes[2], l3LinkNet1)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1),
+							createL3Remote(nodes[2], l3LinkNet1)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1),
+							createL3Remote(nodes[1], l3LinkNet1)),
+						Inventory: makeInventory(nodes[2]),
+					},
+				}
+				ret, err := CreateL3MajorityGroup(hosts, family)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ret).To(HaveLen(0))
+			})
+			It("3 hosts with connectivity reports with two networks - group expected", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[2]),
+					},
+				}
+				ret, err := CreateL3MajorityGroup(hosts, family)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ret).To(HaveLen(3))
+				Expect(ret).To(ContainElement(*nodes[0].id))
+				Expect(ret).To(ContainElement(*nodes[1].id))
+				Expect(ret).To(ContainElement(*nodes[2].id))
+			})
+			It("3 hosts with reports with two networks, one connection is missing - no group expected", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1)),
+						Inventory: makeInventory(nodes[2]),
+					},
+				}
+				ret, err := CreateL3MajorityGroup(hosts, family)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ret).To(HaveLen(0))
+			})
+			It("4 with data - two networks", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[2]),
+					},
+					{
+						ID: nodes[3].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[3]),
+					},
+				}
+				ret, err := CreateL3MajorityGroup(hosts, family)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ret).To(HaveLen(4))
+				Expect(ret).To(ContainElement(*nodes[0].id))
+				Expect(ret).To(ContainElement(*nodes[1].id))
+				Expect(ret).To(ContainElement(*nodes[2].id))
+				Expect(ret).To(ContainElement(*nodes[3].id))
+			})
+			It("4 hosts with connectivity reports with two networks, - one host single network - group expected", func() {
+				nodes[3].addressNet2 = ""
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1)),
+						Inventory: makeInventory(nodes[2]),
+					},
+					{
+						ID: nodes[3].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[3]),
+					},
+				}
+				ret, err := CreateL3MajorityGroup(hosts, family)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ret).To(HaveLen(4))
+				Expect(ret).To(ContainElement(*nodes[0].id))
+				Expect(ret).To(ContainElement(*nodes[1].id))
+				Expect(ret).To(ContainElement(*nodes[2].id))
+				Expect(ret).To(ContainElement(*nodes[3].id))
+			})
+			It("4 hosts with connectivity report, two networks, 1 disconnected - no group expected", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[2]),
+					},
+					{
+						ID: nodes[3].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[3]),
+					},
+				}
+				ret, err := CreateL3MajorityGroup(hosts, family)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ret).To(HaveLen(3))
+				Expect(ret).To(ContainElement(*nodes[0].id))
+				Expect(ret).To(ContainElement(*nodes[1].id))
+				Expect(ret).To(ContainElement(*nodes[2].id))
+			})
 		})
-		It("One with data", func() {
-			hosts := []*models.Host{
-				{
-					ID: nodes[0].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[1], l3LinkNet1),
-						createL3Remote(nodes[2], l3LinkNet1)),
-					Inventory: makeInventory(nodes[0]),
-				},
-				{
-					ID:           nodes[1].id,
-					Connectivity: createConnectivityReport(),
-					Inventory:    makeInventory(nodes[1]),
-				},
-				{
-					ID:           nodes[2].id,
-					Connectivity: createConnectivityReport(),
-					Inventory:    makeInventory(nodes[2]),
-				},
+		Context("L3 connected addresses", func() {
+			expectEquivalentMaps := func(actual, expected map[strfmt.UUID][]string) {
+				Expect(actual).To(HaveLen(len(expected)))
+				for key, actualValue := range actual {
+					expectedValue, ok := expected[key]
+					Expect(ok).To(BeTrue())
+					Expect(actualValue).To(HaveLen(len(expectedValue)))
+					Expect(expectedValue).To(ConsistOf(funk.Map(actualValue, func(s string) interface{} { return s }).([]interface{})...))
+				}
 			}
-			ret, err := CreateL3MajorityGroup(hosts, family)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(ret).To(Equal([]strfmt.UUID{}))
-		})
-		It("3 with data", func() {
-			hosts := []*models.Host{
-				{
-					ID: nodes[0].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[1], l3LinkNet1),
-						createL3Remote(nodes[2], l3LinkNet1)),
-					Inventory: makeInventory(nodes[0]),
-				},
-				{
-					ID: nodes[1].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1),
-						createL3Remote(nodes[2], l3LinkNet1)),
-					Inventory: makeInventory(nodes[1]),
-				},
-				{
-					ID: nodes[2].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1),
-						createL3Remote(nodes[1], l3LinkNet1)),
-					Inventory: makeInventory(nodes[2]),
-				},
-			}
-			ret, err := CreateL3MajorityGroup(hosts, family)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(ret).To(HaveLen(0))
-		})
-		It("3 with data - two networks", func() {
-			hosts := []*models.Host{
-				{
-					ID: nodes[0].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[0]),
-				},
-				{
-					ID: nodes[1].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[1]),
-				},
-				{
-					ID: nodes[2].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[2]),
-				},
-			}
-			ret, err := CreateL3MajorityGroup(hosts, family)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(ret).To(HaveLen(3))
-			Expect(ret).To(ContainElement(*nodes[0].id))
-			Expect(ret).To(ContainElement(*nodes[1].id))
-			Expect(ret).To(ContainElement(*nodes[2].id))
-		})
-		It("3 with data - two networks, one ip missing", func() {
-			hosts := []*models.Host{
-				{
-					ID: nodes[0].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[0]),
-				},
-				{
-					ID: nodes[1].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[1]),
-				},
-				{
-					ID: nodes[2].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[1], l3LinkNet1)),
-					Inventory: makeInventory(nodes[2]),
-				},
-			}
-			ret, err := CreateL3MajorityGroup(hosts, family)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(ret).To(HaveLen(0))
-		})
-		It("4 with data - two networks", func() {
-			hosts := []*models.Host{
-				{
-					ID: nodes[0].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[0]),
-				},
-				{
-					ID: nodes[1].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[1]),
-				},
-				{
-					ID: nodes[2].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[2]),
-				},
-				{
-					ID: nodes[3].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[3]),
-				},
-			}
-			ret, err := CreateL3MajorityGroup(hosts, family)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(ret).To(HaveLen(4))
-			Expect(ret).To(ContainElement(*nodes[0].id))
-			Expect(ret).To(ContainElement(*nodes[1].id))
-			Expect(ret).To(ContainElement(*nodes[2].id))
-			Expect(ret).To(ContainElement(*nodes[3].id))
-		})
-		It("4 with data - two networks - one with single network", func() {
-			nodes[3].addressNet2 = ""
-			hosts := []*models.Host{
-				{
-					ID: nodes[0].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[3], l3LinkNet1)),
-					Inventory: makeInventory(nodes[0]),
-				},
-				{
-					ID: nodes[1].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[3], l3LinkNet1)),
-					Inventory: makeInventory(nodes[1]),
-				},
-				{
-					ID: nodes[2].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[3], l3LinkNet1)),
-					Inventory: makeInventory(nodes[2]),
-				},
-				{
-					ID: nodes[3].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[3]),
-				},
-			}
-			ret, err := CreateL3MajorityGroup(hosts, family)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(ret).To(HaveLen(4))
-			Expect(ret).To(ContainElement(*nodes[0].id))
-			Expect(ret).To(ContainElement(*nodes[1].id))
-			Expect(ret).To(ContainElement(*nodes[2].id))
-			Expect(ret).To(ContainElement(*nodes[3].id))
-		})
-		It("4 with data - two networks, 1 disconnected", func() {
-			hosts := []*models.Host{
-				{
-					ID: nodes[0].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[0]),
-				},
-				{
-					ID: nodes[1].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[1]),
-				},
-				{
-					ID: nodes[2].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
-						createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[2]),
-				},
-				{
-					ID: nodes[3].id,
-					Connectivity: createConnectivityReport(
-						createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
-					Inventory: makeInventory(nodes[3]),
-				},
-			}
-			ret, err := CreateL3MajorityGroup(hosts, family)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(ret).To(HaveLen(3))
-			Expect(ret).To(ContainElement(*nodes[0].id))
-			Expect(ret).To(ContainElement(*nodes[1].id))
-			Expect(ret).To(ContainElement(*nodes[2].id))
+			It("3 hosts with empty connectivity reports - no results expected", func() {
+				hosts := []*models.Host{
+					{
+						ID:           nodes[0].id,
+						Connectivity: createConnectivityReport(),
+						Inventory:    makeInventory(nodes[0]),
+					},
+					{
+						ID:           nodes[1].id,
+						Connectivity: createConnectivityReport(),
+						Inventory:    makeInventory(nodes[1]),
+					},
+					{
+						ID:           nodes[2].id,
+						Connectivity: createConnectivityReport(),
+						Inventory:    makeInventory(nodes[2]),
+					},
+				}
+				ret, err := GatherL3ConnectedAddresses(hosts)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ret).To(BeEmpty())
+			})
+			It("3 hosts with missing connectivity reports - no host connected address expected", func() {
+				hosts := []*models.Host{
+					{
+						ID:        nodes[0].id,
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID:        nodes[1].id,
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID:        nodes[2].id,
+						Inventory: makeInventory(nodes[2]),
+					},
+				}
+				ret, err := GatherL3ConnectedAddresses(hosts)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ret).To(BeEmpty())
+			})
+			It("one host with connectivity report - no host with connected address expected ", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1),
+							createL3Remote(nodes[2], l3LinkNet1)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID:           nodes[1].id,
+						Connectivity: createConnectivityReport(),
+						Inventory:    makeInventory(nodes[1]),
+					},
+					{
+						ID:           nodes[2].id,
+						Connectivity: createConnectivityReport(),
+						Inventory:    makeInventory(nodes[2]),
+					},
+				}
+				ret, err := GatherL3ConnectedAddresses(hosts)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ret).To(BeEmpty())
+			})
+			It("3 hosts with connectivity reports - all host with connected addresses expected", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1),
+							createL3Remote(nodes[2], l3LinkNet1)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1),
+							createL3Remote(nodes[2], l3LinkNet1)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1),
+							createL3Remote(nodes[1], l3LinkNet1)),
+						Inventory: makeInventory(nodes[2]),
+					},
+				}
+				ret, err := GatherL3ConnectedAddresses(hosts)
+				Expect(err).ToNot(HaveOccurred())
+				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+					*nodes[0].id: {nodes[0].addressNet1},
+					*nodes[1].id: {nodes[1].addressNet1},
+					*nodes[2].id: {nodes[2].addressNet1},
+				})
+			})
+			It("3 hosts with connectivity reports with 2 networks - all host with connected addresses from both networks expected", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[2]),
+					},
+				}
+				ret, err := GatherL3ConnectedAddresses(hosts)
+				Expect(err).ToNot(HaveOccurred())
+				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+					*nodes[0].id: {nodes[0].addressNet1, nodes[0].addressNet2},
+					*nodes[1].id: {nodes[1].addressNet1, nodes[1].addressNet2},
+					*nodes[2].id: {nodes[2].addressNet1, nodes[2].addressNet2},
+				})
+			})
+			It("3 hosts with connectivity reports with 2 networks, one direction missing - all hosts with connected addresses from both networks without all addresses expected", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1)),
+						Inventory: makeInventory(nodes[2]),
+					},
+				}
+				ret, err := GatherL3ConnectedAddresses(hosts)
+				Expect(err).ToNot(HaveOccurred())
+				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+					*nodes[0].id: {nodes[0].addressNet1, nodes[0].addressNet2},
+					*nodes[1].id: {nodes[1].addressNet1},
+					*nodes[2].id: {nodes[2].addressNet1, nodes[2].addressNet2},
+				})
+			})
+			It("4 hosts with connectivity reports with 2 networks - all host with connected addresses from both networks expected", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[2]),
+					},
+					{
+						ID: nodes[3].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[3]),
+					},
+				}
+				ret, err := GatherL3ConnectedAddresses(hosts)
+				Expect(err).ToNot(HaveOccurred())
+				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+					*nodes[0].id: {nodes[0].addressNet1, nodes[0].addressNet2},
+					*nodes[1].id: {nodes[1].addressNet1, nodes[1].addressNet2},
+					*nodes[2].id: {nodes[2].addressNet1, nodes[2].addressNet2},
+					*nodes[3].id: {nodes[3].addressNet1, nodes[3].addressNet2},
+				})
+			})
+			It("4 hosts with connectivity reports with 2 networks, one host with single network - hosts with connected addresses from both networks expected", func() {
+				nodes[3].addressNet2 = ""
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1)),
+						Inventory: makeInventory(nodes[2]),
+					},
+					{
+						ID: nodes[3].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[3]),
+					},
+				}
+				ret, err := GatherL3ConnectedAddresses(hosts)
+				Expect(err).ToNot(HaveOccurred())
+				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+					*nodes[0].id: {nodes[0].addressNet1, nodes[0].addressNet2},
+					*nodes[1].id: {nodes[1].addressNet1, nodes[1].addressNet2},
+					*nodes[2].id: {nodes[2].addressNet1, nodes[2].addressNet2},
+					*nodes[3].id: {nodes[3].addressNet1},
+				})
+			})
+			It("4 hosts with connectivity reports with 2 networks, no connectivity to 2 hosts  - expect connected addresses only to the connected hosts", func() {
+				hosts := []*models.Host{
+					{
+						ID: nodes[0].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[0]),
+					},
+					{
+						ID: nodes[1].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[1]),
+					},
+					{
+						ID: nodes[2].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[0], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[1], l3LinkNet1, l3LinkNet2),
+							createL3Remote(nodes[3], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[2]),
+					},
+					{
+						ID: nodes[3].id,
+						Connectivity: createConnectivityReport(
+							createL3Remote(nodes[2], l3LinkNet1, l3LinkNet2)),
+						Inventory: makeInventory(nodes[3]),
+					},
+				}
+				ret, err := GatherL3ConnectedAddresses(hosts)
+				Expect(err).ToNot(HaveOccurred())
+				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+					*nodes[2].id: {nodes[2].addressNet1, nodes[2].addressNet2},
+					*nodes[3].id: {nodes[3].addressNet1, nodes[3].addressNet2},
+				})
+			})
+
 		})
 	})
 }

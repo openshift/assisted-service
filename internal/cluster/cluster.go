@@ -1379,14 +1379,16 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 	sort.Slice(hosts, func(i, j int) bool {
 		return hosts[i].ID.String() < hosts[j].ID.String()
 	})
-	majorityGroups := make(map[string][]strfmt.UUID)
+	connectivity := network.Connectivity{
+		MajorityGroups: make(map[string][]strfmt.UUID),
+	}
 	for _, cidr := range network.GetInventoryNetworks(hosts, m.log) {
 		majorityGroup, err := network.CreateL2MajorityGroup(cidr, hosts)
 		if err != nil {
 			m.log.WithError(err).Warnf("Create majority group for %s", cidr)
 			continue
 		}
-		majorityGroups[cidr] = majorityGroup
+		connectivity.MajorityGroups[cidr] = majorityGroup
 	}
 
 	for _, family := range []network.AddressFamily{network.IPv4, network.IPv6} {
@@ -1394,10 +1396,15 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 		if err != nil {
 			m.log.WithError(err).Warnf("Create L3 majority group for cluster %s failed", cluster.ID.String())
 		} else {
-			majorityGroups[family.String()] = majorityGroup
+			connectivity.MajorityGroups[family.String()] = majorityGroup
 		}
 	}
-	b, err := json.Marshal(&majorityGroups)
+	connectedAddresses, err := network.GatherL3ConnectedAddresses(hosts)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	connectivity.L3ConnectedAddresses = connectedAddresses
+	b, err := json.Marshal(&connectivity)
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}

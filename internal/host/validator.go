@@ -666,6 +666,9 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 	if !network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationPending
 	}
+	if majorityGroups == nil {
+		return ValidationFailure
+	}
 
 	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
 	//           entries using the same IP stack.
@@ -702,23 +705,28 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 	return ValidationSuccess
 }
 
-func (v *validator) belongsToL3MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
+func (v *validator) belongsToL3MajorityGroup(c *validationContext, connectivity network.Connectivity) ValidationStatus {
+	var ipv4Connectivity, ipv6Connectivity bool
 	ipv4, ipv6, err := network.GetConfiguredAddressFamilies(c.cluster)
 	if err != nil {
 		v.log.WithError(err).Warn("Get configured address families")
 		return ValidationError
 	}
-	if !(ipv4 || ipv6) {
+	if !(ipv4 || ipv6) || connectivity.L3ConnectedAddresses == nil {
 		return ValidationFailure
 	}
-	ret := true
-	if ipv4 {
-		ret = ret && funk.Contains(majorityGroups[network.IPv4.String()], *c.host.ID)
+	hostConnectedAddresses, ok := connectivity.L3ConnectedAddresses[*c.host.ID]
+	if !ok {
+		return ValidationFailure
 	}
-	if ipv6 {
-		ret = ret && funk.Contains(majorityGroups[network.IPv6.String()], *c.host.ID)
+	for _, addr := range hostConnectedAddresses {
+		if network.IsIPv4Addr(addr) {
+			ipv4Connectivity = true
+		} else {
+			ipv6Connectivity = true
+		}
 	}
-	return boolValue(ret)
+	return boolValue((!ipv4 || ipv4Connectivity) && (!ipv6 || ipv6Connectivity))
 }
 
 func (v *validator) belongsToMajorityGroup(c *validationContext) (ValidationStatus, string) {
@@ -735,8 +743,8 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) (ValidationStat
 	if c.cluster.ConnectivityMajorityGroups == "" {
 		return ValidationPending, "Machine Network CIDR or Connectivity Majority Groups missing"
 	}
-	var majorityGroups map[string][]strfmt.UUID
-	err := json.Unmarshal([]byte(c.cluster.ConnectivityMajorityGroups), &majorityGroups)
+	var connectivity network.Connectivity
+	err := json.Unmarshal([]byte(c.cluster.ConnectivityMajorityGroups), &connectivity)
 	if err != nil {
 		v.log.WithError(err).Warn("Parse majority group")
 		return ValidationError, "Parse error for connectivity majority group"
@@ -744,9 +752,9 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) (ValidationStat
 
 	var status ValidationStatus
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		status = v.belongsToL3MajorityGroup(c, majorityGroups)
+		status = v.belongsToL3MajorityGroup(c, connectivity)
 	} else {
-		status = v.belongsToL2MajorityGroup(c, majorityGroups)
+		status = v.belongsToL2MajorityGroup(c, connectivity.MajorityGroups)
 	}
 	if status == ValidationFailure && len(c.cluster.Hosts) < 3 {
 		return ValidationPending, "Not enough hosts in cluster to calculate connectivity groups"

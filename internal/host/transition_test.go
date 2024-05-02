@@ -3670,7 +3670,7 @@ var _ = Describe("Refresh Host", func() {
 				domainResolutions:     common.TestDomainNameResolutionsSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
-				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
+				connectivity:          "{}",
 			},
 			{
 				name:              "discovering to insufficient user managed networking - 3 hosts",
@@ -3701,7 +3701,7 @@ var _ = Describe("Refresh Host", func() {
 				domainResolutions:     common.TestDomainNameResolutionsSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
-				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
+				connectivity:          "{}",
 				numAdditionalHosts:    2,
 			},
 			{
@@ -3732,7 +3732,7 @@ var _ = Describe("Refresh Host", func() {
 				domainResolutions:     common.TestDomainNameResolutionsSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
-				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
+				connectivity:          "{}",
 				numAdditionalHosts:    2,
 			},
 			{
@@ -3763,7 +3763,7 @@ var _ = Describe("Refresh Host", func() {
 				domainResolutions:     common.TestDomainNameResolutionsSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
-				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
+				connectivity:          "{}",
 				numAdditionalHosts:    2,
 			},
 			{
@@ -4102,7 +4102,7 @@ var _ = Describe("Refresh Host", func() {
 				inventory:         hostutil.GenerateMasterInventoryV6(),
 				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
-				connectivity:      fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
+				connectivity:      "{}",
 			},
 			{
 				name:              "known to known",
@@ -4161,7 +4161,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
-				connectivity:      fmt.Sprintf("{\"%s\":[]}", common.TestIPv4Networking.MachineNetworks[0].Cidr),
+				connectivity:      "{}",
 				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
@@ -4191,7 +4191,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:          hostutil.GenerateMasterInventory(),
-				connectivity:       fmt.Sprintf("{\"%s\":[]}", common.TestIPv4Networking.MachineNetworks[0].Cidr),
+				connectivity:       "{}",
 				domainResolutions:  common.TestDomainNameResolutionsSuccess,
 				errorExpected:      false,
 				numAdditionalHosts: 2,
@@ -4672,7 +4672,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 				if t.connectivity == "" {
 					if t.userManagedNetworking {
-						cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", network.IPv4.String(), hostId.String())
+						cluster.ConnectivityMajorityGroups = generateL3Counts(true, false, hostId)
 					} else {
 						machineNetworks := t.machineNetworks
 						if t.machineNetworksForGroups != nil {
@@ -5629,22 +5629,14 @@ var _ = Describe("Refresh Host", func() {
 				cluster.UserManagedNetworking = swag.Bool(true)
 				cluster.Name = common.TestDefaultConfig.ClusterName
 				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
-				connectivityGroups := make(map[string][]strfmt.UUID)
 				domainNameResolutions := common.TestDomainNameResolutionsSuccess
 				for _, h := range hosts {
-
-					if network.IsIPV4CIDR(string(t.machineNetworks[0].Cidr)) {
-						connectivityGroups[network.IPv4.String()] = append(connectivityGroups[network.IPv4.String()], *h.ID)
-					} else {
-						connectivityGroups[network.IPv6.String()] = append(connectivityGroups[network.IPv6.String()], *h.ID)
-					}
 					b, err := json.Marshal(domainNameResolutions)
 					Expect(err).ShouldNot(HaveOccurred())
 					h.DomainNameResolutions = string(b)
 				}
-				b, err := json.Marshal(&connectivityGroups)
-				Expect(err).ToNot(HaveOccurred())
-				cluster.ConnectivityMajorityGroups = string(b)
+				isIpv4 := network.IsIPV4CIDR(string(t.machineNetworks[0].Cidr))
+				cluster.ConnectivityMajorityGroups = generateL3Counts(isIpv4, !isIpv4, funk.Map(hosts, func(h *models.Host) strfmt.UUID { return *h.ID }).([]strfmt.UUID)...)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				for n, h := range hosts {
 					tmpHosts := []*models.Host{}
@@ -5710,7 +5702,7 @@ var _ = Describe("Refresh Host", func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			cluster = hostutil.GenerateTestCluster(clusterId)
 			cluster.UserManagedNetworking = swag.Bool(true)
-			cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", network.IPv4.String(), hostId.String())
+			cluster.ConnectivityMajorityGroups = generateL3Counts(true, false, hostId)
 			cluster.Name = common.TestDefaultConfig.ClusterName
 			cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -6447,24 +6439,47 @@ func formatStatusInfoFailedValidation(statusInfo string, validationMessages ...s
 }
 
 func generateMajorityGroup(machineNetworks []*models.MachineNetwork, hostId strfmt.UUID) string {
-	majorityGroups := map[string][]string{}
-	for _, net := range machineNetworks {
-		majorityGroups[string(net.Cidr)] = append(majorityGroups[string(net.Cidr)], hostId.String())
+	connectivity := &network.Connectivity{
+		MajorityGroups: make(map[string][]strfmt.UUID),
 	}
-	tmp, err := json.Marshal(majorityGroups)
+	for _, mnet := range machineNetworks {
+		connectivity.MajorityGroups[string(mnet.Cidr)] = append(connectivity.MajorityGroups[string(mnet.Cidr)], hostId)
+	}
+	tmp, err := json.Marshal(connectivity)
 	if err != nil {
 		return ""
 	}
 	return string(tmp)
 }
 
-func addL3Connectivity(majorityGroupsStr string, hostId strfmt.UUID) string {
-	majorityGroups := make(map[string][]string)
-	if majorityGroupsStr != "" {
-		Expect(json.Unmarshal([]byte(majorityGroupsStr), &majorityGroups)).ToNot(HaveOccurred())
+func generateL3Counts(isIpv4, isIpv6 bool, hostIds ...strfmt.UUID) string {
+	connectivity := &network.Connectivity{
+		L3ConnectedAddresses: make(map[strfmt.UUID][]string),
 	}
-	majorityGroups[network.IPv4.String()] = []string{hostId.String()}
-	tmp, err := json.Marshal(majorityGroups)
+	for i, hostId := range hostIds {
+		var addresses []string
+		if isIpv4 {
+			addresses = append(addresses, fmt.Sprintf("1.2.3.%d", i+4))
+		}
+		if isIpv6 {
+			addresses = append(addresses, fmt.Sprintf("1:2:3::%d", i+4))
+		}
+		connectivity.L3ConnectedAddresses[hostId] = addresses
+	}
+	tmp, err := json.Marshal(connectivity)
+	Expect(err).ToNot(HaveOccurred())
+	return string(tmp)
+}
+
+func addL3Connectivity(connectivityStr string, hostId strfmt.UUID) string {
+	connectivity := &network.Connectivity{
+		MajorityGroups: make(map[string][]strfmt.UUID),
+	}
+	if connectivityStr != "" {
+		Expect(json.Unmarshal([]byte(connectivityStr), &connectivity)).ToNot(HaveOccurred())
+	}
+	connectivity.MajorityGroups[network.IPv4.String()] = []strfmt.UUID{hostId}
+	tmp, err := json.Marshal(connectivity)
 	Expect(err).ToNot(HaveOccurred())
 	return string(tmp)
 }
