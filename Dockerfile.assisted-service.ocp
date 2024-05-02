@@ -22,6 +22,7 @@ LABEL io.openshift.release.operator=true
 RUN if grep -q '^ID="centos"' /etc/os-release; then \
     sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-* && \
     sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-*; \
+    dnf copr enable nmstate/nmstate-git; \
     fi
 
 RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo openshift-clients && dnf clean all
