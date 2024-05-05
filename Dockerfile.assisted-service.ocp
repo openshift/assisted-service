@@ -22,7 +22,7 @@ LABEL io.openshift.release.operator=true
 RUN if grep -q '^ID="centos"' /etc/os-release; then \
     # Synchronize repositories and set up local mirror
     ls -la /etc/yum.repos.d/ && \
-    dnf -y install yum-utils && \
+    dnf -y install yum-utils skopeo && \
     mkdir -p /var/www/repos/centos-stream/9/x86_64/os && \
     chmod -R 755 /var/www/repos && \
     reposync -p /var/www/repos/centos-stream/9/x86_64/os/ --repo=baseos --download-metadata && \
