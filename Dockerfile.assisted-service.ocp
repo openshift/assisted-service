@@ -55,7 +55,7 @@ RUN if grep -q '^ID="centos"' /etc/os-release; then \
     ls -la /tmp/usr/bin && \
     cp /tmp/usr/bin/oc /usr/local/bin/ && \
     rm -rf /tmp/origin-cli.tar /tmp/usr && \
-    dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo && dnf clean all && \
+    dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo && dnf clean all; \
     else \
     dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo openshift-clients && dnf clean all; \
     fi
