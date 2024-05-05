@@ -51,8 +51,8 @@ func validateOSImage(osImage *models.OsImage) error {
 	if swag.StringValue(osImage.Version) == "" {
 		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version", *osImage.OpenshiftVersion))
 	}
-	if swag.StringValue(osImage.CPUArchitecture) == "" {
-		osImage.CPUArchitecture = swag.String(common.DefaultCPUArchitecture)
+	if osImage.CPUArchitecture == nil {
+		return errors.Errorf("osImage version '%s' CPU architecture is missing", *osImage.OpenshiftVersion)
 	}
 	if err := osImage.Validate(strfmt.Default); err != nil {
 		return errors.Wrapf(err, "osImage version '%s' CPU architecture is not valid", *osImage.OpenshiftVersion)

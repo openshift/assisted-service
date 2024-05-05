@@ -35,7 +35,7 @@ var _ = Describe("NewOSImages", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 
-	It("should not fail when missing CPU architecture, should set to default", func() {
+	It("should fail when missing CPU architecture", func() {
 		osImages := models.OsImages{
 			{
 				OpenshiftVersion: swag.String("4.14"),
@@ -45,8 +45,7 @@ var _ = Describe("NewOSImages", func() {
 		}
 
 		_, err := NewOSImages(osImages)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*osImages[0].CPUArchitecture).To(Equal(common.X86CPUArchitecture))
+		Expect(err).Should(HaveOccurred())
 	})
 
 	It("should fail when missing URL", func() {
@@ -261,7 +260,7 @@ var _ = Describe("GetCPUArchitectures", func() {
 		images OSImages
 	)
 
-	Context("with default imges", func() {
+	Context("with default images", func() {
 		BeforeEach(func() {
 			var err error
 			images, err = NewOSImages(defaultOsImages)
@@ -281,27 +280,6 @@ var _ = Describe("GetCPUArchitectures", func() {
 			expected := []string{common.TestDefaultConfig.CPUArchitecture, common.ARM64CPUArchitecture}
 			Expect(images.GetCPUArchitectures("4.9.1")).Should(Equal(expected))
 		})
-	})
-
-	It("returns the default architecture", func() {
-		osImages := models.OsImages{
-			&models.OsImage{
-				CPUArchitecture:  swag.String(""),
-				OpenshiftVersion: swag.String("4.9"),
-				URL:              swag.String("rhcos_4.9"),
-				Version:          swag.String("version-49.123-0"),
-			},
-			&models.OsImage{
-				CPUArchitecture:  nil,
-				OpenshiftVersion: swag.String("4.9"),
-				URL:              swag.String("rhcos_4.9"),
-				Version:          swag.String("version-49.123-0"),
-			},
-		}
-		images, err := NewOSImages(osImages)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		Expect(images.GetCPUArchitectures("4.9")).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture}))
 	})
 })
 
@@ -360,5 +338,29 @@ var _ = Describe("NewOSImages", func() {
 			},
 		}
 		Expect(validateImages(osImages)).NotTo(Succeed())
+	})
+
+	It("CPU architecture is not valid", func() {
+		osImages := models.OsImages{
+			&models.OsImage{
+				CPUArchitecture:  swag.String(""),
+				OpenshiftVersion: swag.String("4.9"),
+				URL:              swag.String("rhcos_4.9"),
+				Version:          swag.String("version-49.123-0"),
+			},
+		}
+		_, err := NewOSImages(osImages)
+		Expect(err).Should(HaveOccurred())
+
+		osImages = models.OsImages{
+			&models.OsImage{
+				CPUArchitecture:  nil,
+				OpenshiftVersion: swag.String("4.9"),
+				URL:              swag.String("rhcos_4.9"),
+				Version:          swag.String("version-49.123-0"),
+			},
+		}
+		_, err = NewOSImages(osImages)
+		Expect(err).Should(HaveOccurred())
 	})
 })
