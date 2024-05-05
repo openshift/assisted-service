@@ -50,6 +50,7 @@ RUN if grep -q '^ID="centos"' /etc/os-release; then \
     echo y | dnf copr enable nmstate/nmstate-git && \
     skopeo copy docker://quay.io/openshift/origin-cli:4.12 docker-archive:/tmp/origin-cli.tar && \
     tar -xf /tmp/origin-cli.tar -C /tmp && \
+    tar -xf /tmp/e026412ff296a8ef1b9d1af62e266fc42528ef89e69aee533ab76d76629a1c69.tar -C /tmp && \
     cp /tmp/usr/bin/oc /usr/local/bin/ && \
     rm -rf /tmp/origin-cli.tar /tmp/usr; \
     fi
