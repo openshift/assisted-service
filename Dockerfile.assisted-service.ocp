@@ -60,6 +60,7 @@ RUN if grep -q '^ID="centos"' /etc/os-release; then \
     dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo openshift-clients && dnf clean all; \
     fi
 
+RUN dnf install -y glibc-langpack-en
 ENV LANG en_US.utf8
 ENV LC_ALL en_US.utf8
 
