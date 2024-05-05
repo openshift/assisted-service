@@ -54,10 +54,11 @@ RUN if grep -q '^ID="centos"' /etc/os-release; then \
     ls -la && \
     ls -la /tmp/usr/bin && \
     cp /tmp/usr/bin/oc /usr/local/bin/ && \
-    rm -rf /tmp/origin-cli.tar /tmp/usr; \
+    rm -rf /tmp/origin-cli.tar /tmp/usr && \
+    dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo && dnf clean all && \
+    else \
+    dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo openshift-clients && dnf clean all; \
     fi
-
-RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo openshift-clients && dnf clean all
 
 RUN dnf update libksba libxml2 -y && dnf clean all
 
@@ -78,3 +79,4 @@ RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-
 ENV GODEBUG=madvdontneed=1
 ENV GOGC=50
 CMD ["/assisted-service"]
+
