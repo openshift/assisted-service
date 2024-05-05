@@ -50,9 +50,11 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	imageReference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -104,9 +106,10 @@ type ClusterDeploymentsReconciler struct {
 	Manifests        manifestsapi.ClusterManifestsInternals
 	ServiceBaseURL   string
 	PullSecretHandler
-	AuthType              auth.AuthType
-	VersionsHandler       versions.Handler
-	SpokeK8sClientFactory spoke_k8s_client.SpokeK8sClientFactory
+	AuthType                      auth.AuthType
+	VersionsHandler               versions.Handler
+	SpokeK8sClientFactory         spoke_k8s_client.SpokeK8sClientFactory
+	MirrorRegistriesConfigBuilder mirrorregistries.MirrorRegistriesConfigBuilder
 }
 
 const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
@@ -199,7 +202,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	}
 
 	cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
-	if err1 := r.validateClusterDeployment(clusterDeployment, clusterInstall); err1 != nil {
+	if err1 := r.validateClusterDeployment(ctx, clusterDeployment, clusterInstall); err1 != nil {
 		log.Error(err1)
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err1)
 	}
@@ -253,7 +256,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) validateClusterDeployment(clusterDeployment *hivev1.ClusterDeployment,
+func (r *ClusterDeploymentsReconciler) validateClusterDeployment(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall) error {
 
 	// Make sure that the ImageSetRef is set for clusters not already installed
@@ -261,6 +264,22 @@ func (r *ClusterDeploymentsReconciler) validateClusterDeployment(clusterDeployme
 		return newInputError("missing ImageSetRef for cluster that is not installed")
 	}
 
+	// If mirror registries are enabled then we need to make sure that the release image is not tag based.
+	// A tagged release image will be rejected by oc when mirror registry configuration is present.
+	// Mirrored images are typically used in disconnected environments which can have trouble with tag based images.
+	if clusterInstall.Spec.ImageSetRef != nil && r.MirrorRegistriesConfigBuilder.IsMirrorRegistriesConfigured() {
+		releaseImageURL, err := r.getReleaseImageURL(ctx, clusterInstall.Spec)
+		if err != nil {
+			return errors.Wrapf(err, "unable to fetch release image url")
+		}
+		ref, err := imageReference.Parse(releaseImageURL)
+		if err != nil {
+			return newInputError(fmt.Sprintf("unable to parse release image : %s due to error %s, cannot check for mirror registry compliance", releaseImageURL, err.Error()))
+		}
+		if len(ref.Tag) > 0 {
+			return newInputError(fmt.Sprintf("the supplied release image %s cannot be used with a mirror registry configuration, the image is tag based and should instead be based on a digest", releaseImageURL))
+		}
+	}
 	return nil
 }
 
@@ -1436,6 +1455,21 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, c, err)
 }
 
+func (r *ClusterDeploymentsReconciler) getReleaseImageURL(
+	ctx context.Context,
+	spec hiveext.AgentClusterInstallSpec) (string, error) {
+
+	clusterImageSet := &hivev1.ClusterImageSet{}
+	key := types.NamespacedName{
+		Namespace: "",
+		Name:      spec.ImageSetRef.Name,
+	}
+	if err := r.Client.Get(ctx, key, clusterImageSet); err != nil {
+		return "", errors.Wrapf(err, "failed to get cluster image set %s", key.Name)
+	}
+	return clusterImageSet.Spec.ReleaseImage, nil
+}
+
 func (r *ClusterDeploymentsReconciler) getReleaseImage(
 	ctx context.Context,
 	log logrus.FieldLogger,
@@ -1451,11 +1485,16 @@ func (r *ClusterDeploymentsReconciler) getReleaseImage(
 		return nil, errors.Wrapf(err, "failed to get cluster image set %s", key.Name)
 	}
 
-	releaseImage, err := r.VersionsHandler.GetReleaseImageByURL(ctx, clusterImageSet.Spec.ReleaseImage, pullSecret)
+	releaseImageUrl, err := r.getReleaseImageURL(ctx, spec)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to fetch release image url")
+	}
+
+	releaseImage, err := r.VersionsHandler.GetReleaseImageByURL(ctx, releaseImageUrl, pullSecret)
 	if err != nil {
 		log.Error(err)
 		errMsg := "failed to get release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (error: %s)."
-		return nil, errors.New(fmt.Sprintf(errMsg, clusterImageSet.Spec.ReleaseImage, spec.ImageSetRef.Name, err.Error()))
+		return nil, errors.New(fmt.Sprintf(errMsg, releaseImageUrl, spec.ImageSetRef.Name, err.Error()))
 	}
 
 	return releaseImage, nil
