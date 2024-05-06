@@ -210,6 +210,13 @@ var _ = Describe("GetReleaseImage", func() {
 		Expect(*releaseImage.Version).Should(Equal("4.9-candidate"))
 	})
 
+	It("fetch release image by major.minor if given X.Y.Z version", func() {
+		releaseImage, err := h.GetReleaseImage(ctx, "4.9.2", common.DefaultCPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.9"))
+		Expect(*releaseImage.Version).Should(Equal("4.9-candidate"))
+	})
+
 	It("get from ReleaseImages", func() {
 		for _, key := range osImages.GetOpenshiftVersions() {
 			for _, architecture := range osImages.GetCPUArchitectures(key) {
@@ -268,6 +275,56 @@ var _ = Describe("GetReleaseImage", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.12"))
 		Expect(*releaseImage.Version).Should(Equal("4.12.999-rc.4"))
+	})
+
+	It("returns the matching CPU architecture over multi-arch if it is present", func() {
+		h.releaseImages = models.ReleaseImages{
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
+				OpenshiftVersion: swag.String("4.12-multi"),
+				URL:              swag.String("release_4.12.999-multi"),
+				Version:          swag.String("4.12.999"),
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12"),
+				URL:              swag.String("release_4.12.999-x86_64"),
+				Version:          swag.String("4.12.999"),
+			},
+		}
+
+		releaseImage, err := h.GetReleaseImage(ctx, "4.12.999", common.X86CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.12"))
+		Expect(*releaseImage.Version).Should(Equal("4.12.999"))
+		Expect(*releaseImage.CPUArchitecture).Should(Equal(common.X86CPUArchitecture))
+	})
+
+	It("returns the multi-arch image if matching CPU architecture is not present", func() {
+		h.releaseImages = models.ReleaseImages{
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
+				OpenshiftVersion: swag.String("4.12-multi"),
+				URL:              swag.String("release_4.12.999-multi"),
+				Version:          swag.String("4.12.999"),
+			},
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				OpenshiftVersion: swag.String("4.13"),
+				URL:              swag.String("release_4.13.999-x86_64"),
+				Version:          swag.String("4.13.999"),
+			},
+		}
+
+		releaseImage, err := h.GetReleaseImage(ctx, "4.12.999", common.X86CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.12-multi"))
+		Expect(*releaseImage.Version).Should(Equal("4.12.999"))
+		Expect(*releaseImage.CPUArchitecture).Should(Equal(common.MultiCPUArchitecture))
 	})
 
 	Context("with a kube client", func() {
