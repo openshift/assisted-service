@@ -58,7 +58,6 @@ require (
 	github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f
 	github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a
 	github.com/openshift/image-customization-controller v0.0.0-20240129110832-60a3867d7f9e
-	github.com/openshift/library-go v0.0.0-20231110170715-08d73a9c798b
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pkg/errors v0.9.1
@@ -127,6 +126,7 @@ require (
 	github.com/moby/sys/user v0.1.0 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
+	github.com/openshift/library-go v0.0.0-20231110170715-08d73a9c798b // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
