@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/gencrypto"
 	"github.com/openshift/assisted-service/pkg/transaction"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"

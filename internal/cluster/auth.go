@@ -6,8 +6,8 @@ import (
 
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/gencrypto"
 	"github.com/pkg/errors"
 )
 

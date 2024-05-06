@@ -3,7 +3,7 @@ package auth
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/pkg/gencrypto"
 	"github.com/sirupsen/logrus"
 )
 

@@ -10,7 +10,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/pkg/gencrypto"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
