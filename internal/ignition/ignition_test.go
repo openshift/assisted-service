@@ -85,6 +85,17 @@ var _ = AfterEach(func() {
 	ctrl.Finish()
 })
 
+var _ = Describe("GetServiceIPHostnames", func() {
+	content := GetServiceIPHostnames("")
+	Expect(content).To(Equal(""))
+
+	content = GetServiceIPHostnames("10.10.10.10")
+	Expect(content).To(Equal("10.10.10.10 assisted-api.local.openshift.io\n"))
+
+	content = GetServiceIPHostnames("10.10.10.1,10.10.10.2")
+	Expect(content).To(Equal("10.10.10.1 assisted-api.local.openshift.io\n10.10.10.2 assisted-api.local.openshift.io\n"))
+})
+
 var _ = Describe("Bootstrap Ignition Update", func() {
 	const bootstrap1 = `{
 		"ignition": {
@@ -374,16 +385,6 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			workerConfig, _, err := config_32.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(workerConfig.Storage.Files).To(HaveLen(0))
-		})
-		It("get service ip hostnames", func() {
-			content := GetServiceIPHostnames("")
-			Expect(content).To(Equal(""))
-
-			content = GetServiceIPHostnames("10.10.10.10")
-			Expect(content).To(Equal("10.10.10.10 assisted-api.local.openshift.io\n"))
-
-			content = GetServiceIPHostnames("10.10.10.1,10.10.10.2")
-			Expect(content).To(Equal("10.10.10.1 assisted-api.local.openshift.io\n10.10.10.2 assisted-api.local.openshift.io\n"))
 		})
 		Context("DHCP generation", func() {
 			It("Definitions only", func() {
