@@ -50,9 +50,11 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	imageReference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -104,9 +106,10 @@ type ClusterDeploymentsReconciler struct {
 	Manifests        manifestsapi.ClusterManifestsInternals
 	ServiceBaseURL   string
 	PullSecretHandler
-	AuthType              auth.AuthType
-	VersionsHandler       versions.Handler
-	SpokeK8sClientFactory spoke_k8s_client.SpokeK8sClientFactory
+	AuthType                      auth.AuthType
+	VersionsHandler               versions.Handler
+	SpokeK8sClientFactory         spoke_k8s_client.SpokeK8sClientFactory
+	MirrorRegistriesConfigBuilder mirrorregistries.MirrorRegistriesConfigBuilder
 }
 
 const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
@@ -260,7 +263,6 @@ func (r *ClusterDeploymentsReconciler) validateClusterDeployment(clusterDeployme
 	if clusterInstall.Spec.ImageSetRef == nil && !clusterDeployment.Spec.Installed {
 		return newInputError("missing ImageSetRef for cluster that is not installed")
 	}
-
 	return nil
 }
 
@@ -1453,9 +1455,18 @@ func (r *ClusterDeploymentsReconciler) getReleaseImage(
 
 	releaseImage, err := r.VersionsHandler.GetReleaseImageByURL(ctx, clusterImageSet.Spec.ReleaseImage, pullSecret)
 	if err != nil {
+		errMsgSuffix := ""
+		if r.MirrorRegistriesConfigBuilder.IsMirrorRegistriesConfigured() {
+			// There is a special error case where we should check to see if the supplied image is tag based
+			// if so then we need to provide the user with a hint as to what might be happening.
+			ref, err2 := imageReference.Parse(clusterImageSet.Spec.ReleaseImage)
+			if err2 == nil && len(ref.Tag) > 0 {
+				errMsgSuffix = fmt.Sprintf("Release image %q uses a tag (%q), this is usually unsupported in combination with mirror registries, try providing a digest-based image instead", clusterImageSet.Spec.ReleaseImage, ref.Tag)
+			}
+		}
 		log.Error(err)
-		errMsg := "failed to get release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (error: %s)."
-		return nil, errors.New(fmt.Sprintf(errMsg, clusterImageSet.Spec.ReleaseImage, spec.ImageSetRef.Name, err.Error()))
+		errMsg := "failed to get release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid, %s (error: %s)."
+		return nil, errors.New(fmt.Sprintf(errMsg, clusterImageSet.Spec.ReleaseImage, spec.ImageSetRef.Name, errMsgSuffix, err.Error()))
 	}
 
 	return releaseImage, nil
