@@ -7,7 +7,6 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
-	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -39,20 +38,18 @@ type installGenerator struct {
 	authHandler               auth.Authenticator
 	log                       logrus.FieldLogger
 	s3Client                  s3wrapper.API
-	operatorsApi              operators.API
 	workDir                   string
 	providerRegistry          registry.ProviderRegistry
 	clusterTLSCertOverrideDir string
 }
 
-func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string, operatorsApi operators.API,
+func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string,
 	providerRegistry registry.ProviderRegistry, clusterTLSCertOverrideDir string, auth auth.Authenticator) *installGenerator {
 	return &installGenerator{
 		Config:                    cfg,
 		authHandler:               auth,
 		log:                       log,
 		s3Client:                  s3Client,
-		operatorsApi:              operatorsApi,
 		workDir:                   filepath.Join(workDir, "install-config-generate"),
 		providerRegistry:          providerRegistry,
 		clusterTLSCertOverrideDir: clusterTLSCertOverrideDir,
@@ -100,7 +97,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewDummyGenerator(k.ServiceBaseURL, clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
 		generator = ignition.NewGenerator(k.ServiceBaseURL, clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir, k.InstallerCacheCapacity)
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir, k.InstallerCacheCapacity)
 	}
 	err = generator.Generate(ctx, cfg, k.authHandler.AuthType())
 	if err != nil {
