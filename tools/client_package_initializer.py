@@ -141,9 +141,15 @@ class SetupInitializer:
         self._setup_data.pop(Setup.VCVERSIONER_KEY)
         Setup.FORMAT = Setup.FORMAT.replace("vcversioner={vcversioner},", 'version="{version}",')
 
-        with open(os.path.join(self._project_path, self.DEFAULT_VERSION_PATH)) as f:
-            self._setup_data[Setup.VERSION_KEY] = f.read()
+        with open(os.path.join(self._project_path, self.DEFAULT_VERSION_PATH), "r+") as f:
+            version, commit_number = f.read().removeprefix("v").split("-")[:-1]
+            adjusted_version = f"{version}.post{commit_number}"
+            f.seek(0)
+            f.write(adjusted_version)
+            f.truncate()
 
+        self._setup_data[Setup.VERSION_KEY] = adjusted_version
+    
         with open(self._setup_path, "w") as f:
             f.write(Setup.FORMAT.format(**self._setup_data))
 
