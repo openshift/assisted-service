@@ -2,6 +2,7 @@
 
 aliases:
   approvers:
+    - openshift-edge-bot
     - romfreiman
     - oourfali
     - gamli75
