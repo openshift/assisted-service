@@ -167,7 +167,10 @@ func getLatestReleaseImage(releaseImages models.ReleaseImages, ignoredOpenshiftV
 			continue
 		}
 
-		isLatest, err := common.BaseVersionLessThan(*releaseImage.Version, *latestReleaseImage.Version)
+		isLatest, err := common.VersionGreaterOrEqual(
+			strings.TrimSuffix(*releaseImage.Version, "-multi"),
+			strings.TrimSuffix(*latestReleaseImage.Version, "-multi"),
+		)
 		if err != nil {
 			return nil, err
 		}

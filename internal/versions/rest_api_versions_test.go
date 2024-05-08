@@ -197,29 +197,47 @@ var _ = Describe("GetReleaseImage", func() {
 	It("gets the latest matching release image with major.minor openshiftVersion - all beta support level", func() {
 		releaseImages := models.ReleaseImages{
 			{
+				OpenshiftVersion: swag.String("4.16"),
+				Version:          swag.String("4.16.0-ec.2"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-ec.2-x86_64"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+				Default:          false,
+			},
+			{
+				OpenshiftVersion: swag.String("4.16"),
+				Version:          swag.String("4.16.0-ec.3"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-ec.3-x86_64"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+				Default:          false,
+			},
+			{
 				OpenshiftVersion: swag.String("4.16-multi"),
-				Version:          swag.String("4.16.1-multi"),
+				Version:          swag.String("4.16.0-ec.3-multi"),
 				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.1-multi"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-ec.3-multi"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
+				Default:          false,
+			},
+			{
+				OpenshiftVersion: swag.String("4.16-multi"),
+				Version:          swag.String("4.16.0-ec.1-multi"),
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-ec.1-multi"),
 				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
 				Default:          false,
 			},
 			{
 				OpenshiftVersion: swag.String("4.16"),
-				Version:          swag.String("4.16.1"),
+				Version:          swag.String("4.16.0-ec.1"),
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.1-x86_64"),
-				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
-				Default:          false,
-			},
-			{
-				OpenshiftVersion: swag.String("4.16"),
-				Version:          swag.String("4.16.2"),
-				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture},
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.2-x86_64"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-ec.1-x86_64"),
 				SupportLevel:     models.OpenshiftVersionSupportLevelBeta,
 				Default:          false,
 			},
@@ -230,15 +248,15 @@ var _ = Describe("GetReleaseImage", func() {
 
 		releaseImage, err := handler.GetReleaseImage(ctx, "4.16", common.X86CPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.Version).Should(Equal("4.16.2"))
+		Expect(*releaseImage.Version).Should(Equal("4.16.0-ec.3"))
 
 		releaseImage, err = handler.GetReleaseImage(ctx, "4.16-multi", common.X86CPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.Version).Should(Equal("4.16.1-multi"))
+		Expect(*releaseImage.Version).Should(Equal("4.16.0-ec.3-multi"))
 
 		releaseImage, err = handler.GetReleaseImage(ctx, "4.16-multi", common.MultiCPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*releaseImage.Version).Should(Equal("4.16.1-multi"))
+		Expect(*releaseImage.Version).Should(Equal("4.16.0-ec.3-multi"))
 	})
 
 	It("gets the exact matching release image with major.minor.patch / prerelease openshiftVersion", func() {
