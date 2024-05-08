@@ -9,7 +9,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
-	"github.com/openshift/assisted-service/pkg/validations"
 )
 
 // DomainResolutionRequestDomain is a struct to hold the domain resolution request domain
@@ -37,7 +36,7 @@ func (m *DomainResolutionRequestDomain) validateDomainName(formats strfmt.Regist
 		return err
 	}
 
-	if _, err := validations.ValidateDomainNameFormat(*m.DomainName); err != nil {
+	if _, err := ValidateDomainNameFormat(*m.DomainName); err != nil {
 		return err
 	}
 
