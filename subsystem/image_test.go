@@ -62,7 +62,7 @@ var _ = Describe("system-test image tests", func() {
 					},
 				}
 
-				config := common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.0.2.155", "192.0.2.156", "192.0.2.1", macInterfaceMap)
+				config := common.FormatStaticConfigHostYAML("eth0", "eth1", "192.0.2.155", "192.0.2.156", "192.0.2.1", macInterfaceMap)
 				getResp, err := userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
 					InfraenvCreateParams: &models.InfraEnvCreateParams{
 						Name:                swag.String("iso-test-infra-env"),

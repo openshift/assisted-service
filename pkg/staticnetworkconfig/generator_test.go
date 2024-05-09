@@ -2,6 +2,7 @@ package staticnetworkconfig
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -48,6 +49,235 @@ var _ = Describe("generateConfiguration", func() {
 		config, err := staticNetworkGenerator.generateConfiguration(hostYaml)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(config).To(ContainSubstring("address0=192.0.2.1/24"))
+	})
+})
+
+var _ = Describe("validate mac interface mapping", func() {
+	var (
+		staticNetworkGenerator = StaticNetworkConfigGenerator{log: logrus.New(), nmstate: nmstate.New()}
+		ethTemplate            = `[connection]
+autoconnect=true
+autoconnect-slaves=-1
+id=%s
+interface-name=%s
+type=802-3-ethernet
+uuid=dfd202f5-562f-5f07-8f2a-a7717756fb70
+
+[ipv4]
+address0=192.168.122.250/24
+method=manual
+
+[ipv6]
+addr-gen-mode=0
+address0=2001:db8::1:1/64
+method=manual
+`
+		eth0Ini = fmt.Sprintf(ethTemplate, "eth0", "eth0")
+		eth1Ini = fmt.Sprintf(ethTemplate, "eth1", "eth1")
+	)
+	It("one interface without mac-interface mapping", func() {
+		err := staticNetworkGenerator.validateInterfaceNamesExistence(nil, []StaticNetworkConfigData{
+			{
+				FileContents: eth0Ini,
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
+	})
+	It("one interface with mac-interface mapping", func() {
+		err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+			{
+				LogicalNicName: "eth0",
+				MacAddress:     "f8:75:a4:a4:00:fe",
+			},
+		}, []StaticNetworkConfigData{
+			{
+				FileContents: eth0Ini,
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+	})
+	It("two interfaces. only one mac-interface mapping", func() {
+		err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+			{
+				LogicalNicName: "eth0",
+				MacAddress:     "f8:75:a4:a4:00:fe",
+			},
+		}, []StaticNetworkConfigData{
+			{
+				FileContents: eth0Ini,
+			},
+			{
+				FileContents: eth1Ini,
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
+	})
+	It("two interfaces. with mac-interface mapping", func() {
+		err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+			{
+				LogicalNicName: "eth0",
+				MacAddress:     "f8:75:a4:a4:00:fe",
+			},
+			{
+				LogicalNicName: "eth1",
+				MacAddress:     "f8:75:a4:a4:00:ff",
+			},
+		}, []StaticNetworkConfigData{
+			{
+				FileContents: eth0Ini,
+			},
+			{
+				FileContents: eth1Ini,
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+	})
+	Context("bond with 2 ports", func() {
+		bondConnection := `[connection]
+autoconnect=true
+autoconnect-slaves=1
+id=bond99
+interface-name=bond99
+type=bond
+uuid=4a920503-4862-5505-80fd-4738d07f44c6
+
+[bond]
+miimon=140
+mode=balance-rr
+
+[ipv4]
+address0=192.0.2.0/24
+method=manual
+
+[ipv6]
+method=disabled
+`
+		eth2Connection := `[connection]
+autoconnect=true
+autoconnect-slaves=-1
+id=eth2
+interface-name=eth2
+master=4a920503-4862-5505-80fd-4738d07f44c6
+slave-type=bond
+type=802-3-ethernet
+uuid=21373057-f376-5091-afb6-64de925c23ed
+`
+		eth3Connection := `[connection]
+autoconnect=true
+autoconnect-slaves=-1
+id=eth3
+interface-name=eth3
+master=4a920503-4862-5505-80fd-4738d07f44c6
+slave-type=bond
+type=802-3-ethernet
+uuid=7e211aea-3d14-59cf-a4fa-be91dac5dbba
+`
+		It("wrong interface names mapping", func() {
+			err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+				{
+					LogicalNicName: "eth0",
+					MacAddress:     "f8:75:a4:a4:00:fe",
+				},
+				{
+					LogicalNicName: "eth1",
+					MacAddress:     "f8:75:a4:a4:00:ff",
+				},
+			}, []StaticNetworkConfigData{
+				{
+					FileContents: bondConnection,
+				},
+				{
+					FileContents: eth2Connection,
+				},
+				{
+					FileContents: eth3Connection,
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
+		})
+		It("correct interface names mapping", func() {
+			err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+				{
+					LogicalNicName: "eth2",
+					MacAddress:     "f8:75:a4:a4:00:fe",
+				},
+				{
+					LogicalNicName: "eth3",
+					MacAddress:     "f8:75:a4:a4:00:ff",
+				},
+			}, []StaticNetworkConfigData{
+				{
+					FileContents: bondConnection,
+				},
+				{
+					FileContents: eth2Connection,
+				},
+				{
+					FileContents: eth3Connection,
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+	Context("vlan", func() {
+		vlanConnection := `[connection]
+autoconnect=true
+autoconnect-slaves=-1
+id=eth1.101
+interface-name=eth1.101
+type=vlan
+uuid=6d0f1528-fd9c-52a9-9aa5-b825aa883bc3
+
+[ipv4]
+method=disabled
+
+[ipv6]
+method=disabled
+
+[vlan]
+id=101
+parent=eth1
+`
+		It("vlan only - no underlying interface", func() {
+			err := staticNetworkGenerator.validateInterfaceNamesExistence(nil, []StaticNetworkConfigData{
+				{
+					FileContents: vlanConnection,
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("no mac address mapping can be associated with the available network interfaces"))
+		})
+		It("vlan with underlying interface - no mapping", func() {
+			err := staticNetworkGenerator.validateInterfaceNamesExistence(nil, []StaticNetworkConfigData{
+				{
+					FileContents: vlanConnection,
+				},
+				{
+					FileContents: eth1Ini,
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
+		})
+		It("vlan with underlying interface - with mapping", func() {
+			err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+				{
+					LogicalNicName: "eth1",
+					MacAddress:     "f8:75:a4:a4:00:fe",
+				},
+			}, []StaticNetworkConfigData{
+				{
+					FileContents: vlanConnection,
+				},
+				{
+					FileContents: eth1Ini,
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 })
 
