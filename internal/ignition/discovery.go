@@ -154,7 +154,7 @@ const tempNMConnectionsDir = "/etc/assisted/network"
 
 // IgnitionBuilder defines the ignition formatting methods for the various images
 //
-//go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
+//go:generate mockgen -source=discovery.go -package=ignition -destination=mock_ignition_builder.go
 type IgnitionBuilder interface {
 	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string) (string, error)
 	FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken, ignitionEndpointHTTPHeaders string, host *models.Host) ([]byte, error)
