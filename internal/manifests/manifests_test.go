@@ -73,8 +73,8 @@ var _ = Describe("ClusterManifestTests", func() {
 		mockS3Client      *s3wrapper.MockAPI
 		dbName            string
 		fileNameYaml      = "99-openshift-machineconfig-master-kargs.yaml"
-		fileNameYamlPatch = "99-openshift-machineconfig-master-kargs.yaml.patch.foobar"
-		fileNameYmlPatch  = "99-openshift-machineconfig-master-kargs.yml.patch.foobar"
+		fileNameYamlPatch = "99-openshift-machineconfig-master-kargs.yaml.patch_foobar"
+		fileNameYmlPatch  = "99-openshift-machineconfig-master-kargs.yml.patch_foobar"
 		fileNameJson      = "99-openshift-machineconfig-master-kargs.json"
 		validFolder       = "openshift"
 		defaultFolder     = "manifests"
@@ -504,6 +504,49 @@ spec:
 					},
 				})
 				Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+			})
+
+			It("manifest creation will succeed for patch files if filename is valid", func() {
+				clusterID := registerCluster().ID
+				validFileNames := []string{
+					"something.patch",
+					"something.patch_something_else",
+					"something.patch.patch_something",
+				}
+				for i, fileName := range validFileNames {
+					mockUpload(1)
+					expectUsageCalls()
+					mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileName)).Return(false, nil).AnyTimes()
+					response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+						ClusterID: *clusterID,
+						CreateManifestParams: &models.CreateManifestParams{
+							Content:  &contentYamlPatch,
+							FileName: &validFileNames[i],
+						},
+					})
+					Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+				}
+			})
+
+			It("manifest creation will fail for patch files if filename is invalid", func() {
+				clusterID := registerCluster().ID
+				invalidFileNames := []string{
+					"something.patch.something",
+					"something.patch.something.else",
+				}
+				for i, fileName := range invalidFileNames {
+					response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+						ClusterID: *clusterID,
+						CreateManifestParams: &models.CreateManifestParams{
+							Content:  &contentYaml,
+							FileName: &invalidFileNames[i],
+						},
+					})
+					Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+					err := response.(*common.ApiErrorResponse)
+					Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					Expect(err.Error()).To(ContainSubstring("Manifest filename of file manifests/%s for cluster ID %s is invalid. Only json, yaml and yml or patch extensions are supported", fileName, clusterID.String()))
+				}
 			})
 
 			It("fails for filename that contains folder in the name", func() {
