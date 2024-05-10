@@ -178,7 +178,8 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 				foundNMConfig = true
 			}
 		}
-		bmh, _ = fileToBMH(file)
+		bmh = &bmh_v1alpha1.BareMetalHost{}
+		Expect(deserializeToObject(file, bmh)).To(Succeed())
 		Expect(foundNMConfig).To(BeTrue(), "file /etc/NetworkManager/conf.d/99-kni.conf not present in bootstrap.ign")
 	})
 
@@ -202,8 +203,8 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			Expect(err).ToNot(HaveOccurred())
 			for i := range config.Storage.Files {
 				if isBMHFile(&config.Storage.Files[i]) {
-					bmhFile, err2 := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
-					Expect(err2).ToNot(HaveOccurred())
+					bmhFile := &bmh_v1alpha1.BareMetalHost{}
+					Expect(deserializeToObject(&config.Storage.Files[i], bmhFile)).To(Succeed())
 					Expect(bmhIsMaster(bmhFile, masterHostnames, workerHostnames)).To(Equal(masterExpected))
 					return
 				}
@@ -2494,8 +2495,8 @@ var _ = Describe("Bare metal host generation", func() {
 			outputFile := &config_32_types.File{}
 			err = generator.modifyBMHFile(outputFile, inputObject, host)
 			Expect(err).ToNot(HaveOccurred())
-			outputObject, err := fileToBMH(outputFile)
-			Expect(err).ToNot(HaveOccurred())
+			outputObject := &bmh_v1alpha1.BareMetalHost{}
+			Expect(deserializeToObject(outputFile, outputObject)).To(Succeed())
 
 			// Extract the content of the status annotation:
 			Expect(outputObject.Annotations).To(HaveKey(bmh_v1alpha1.StatusAnnotation))

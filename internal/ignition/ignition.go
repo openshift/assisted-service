@@ -54,6 +54,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/kubernetes/scheme"
 )
@@ -896,8 +897,8 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 			g.fixMOTDFile(&config.Storage.Files[i])
 		case isBMHFile(&config.Storage.Files[i]):
 			// extract bmh
-			bmh, err2 := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
-			if err2 != nil {
+			bmh := &bmh_v1alpha1.BareMetalHost{}
+			if err2 := deserializeToObject(&config.Storage.Files[i], bmh); err2 != nil {
 				log.Errorf("error parsing File contents to BareMetalHost: %v", err2)
 				return err2
 			}
@@ -970,6 +971,22 @@ func isBaremetalProvisioningConfig(file *config_latest_types.File) bool {
 }
 
 func removeProvisioningPausedAnnotation(file *config_latest_types.File) error {
+	provisioning := &metal3iov1alpha1.Provisioning{}
+	if err := deserializeToObject(file, provisioning); err != nil {
+		return err
+	}
+	delete(provisioning.Annotations, "provisioning.metal3.io/paused")
+
+	source, err := encodedYAMLFileSource(provisioning)
+	if err != nil {
+		return fmt.Errorf("failed to create file source for provisioning resource: %w", err)
+	}
+	file.Contents.Source = &source
+
+	return nil
+}
+
+func deserializeToObject(file *config_latest_types.File, o runtime.Object) error {
 	parts := strings.Split(*file.Contents.Source, "base64,")
 	if len(parts) != 2 {
 		return fmt.Errorf("could not parse source for file %s", file.Node.Path)
@@ -978,13 +995,14 @@ func removeProvisioningPausedAnnotation(file *config_latest_types.File) error {
 	if err != nil {
 		return fmt.Errorf("failed to decode file: %w", err)
 	}
-	provisioning := &metal3iov1alpha1.Provisioning{}
-	_, _, err = scheme.Codecs.UniversalDeserializer().Decode(decoded, nil, provisioning)
+	_, _, err = scheme.Codecs.UniversalDeserializer().Decode(decoded, nil, o)
 	if err != nil {
 		return fmt.Errorf("failed to deserialize object: %w", err)
 	}
-	delete(provisioning.Annotations, "provisioning.metal3.io/paused")
+	return nil
+}
 
+func encodedYAMLFileSource(o runtime.Object) (string, error) {
 	serializer := k8sjson.NewSerializerWithOptions(
 		k8sjson.DefaultMetaFactory, nil, nil,
 		k8sjson.SerializerOptions{
@@ -994,36 +1012,13 @@ func removeProvisioningPausedAnnotation(file *config_latest_types.File) error {
 		},
 	)
 	buf := bytes.Buffer{}
-	err = serializer.Encode(provisioning, &buf)
-	if err != nil {
-		return err
+	if err := serializer.Encode(o, &buf); err != nil {
+		return "", err
 	}
 
 	// remove status if exists
 	res := bytes.Split(buf.Bytes(), []byte("status:\n"))
-	source := "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString(res[0])
-	file.Contents.Source = &source
-
-	return nil
-}
-
-func fileToBMH(file *config_latest_types.File) (*bmh_v1alpha1.BareMetalHost, error) {
-	parts := strings.Split(*file.Contents.Source, "base64,")
-	if len(parts) != 2 {
-		return nil, errors.Errorf("could not parse source for file %s", file.Node.Path)
-	}
-	decoded, err := base64.StdEncoding.DecodeString(parts[1])
-	if err != nil {
-		return nil, err
-	}
-
-	bmh := &bmh_v1alpha1.BareMetalHost{}
-	_, _, err = scheme.Codecs.UniversalDeserializer().Decode(decoded, nil, bmh)
-	if err != nil {
-		return nil, err
-	}
-
-	return bmh, nil
+	return "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString(res[0]), nil
 }
 
 // fixMOTDFile is a workaround for a bug in machine-config-operator, where it
@@ -1120,24 +1115,10 @@ func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *
 		bmh.Spec.ExternallyProvisioned = true
 	}
 
-	serializer := k8sjson.NewSerializerWithOptions(
-		k8sjson.DefaultMetaFactory, nil, nil,
-		k8sjson.SerializerOptions{
-			Yaml:   true,
-			Pretty: true,
-			Strict: true,
-		},
-	)
-	buf := bytes.Buffer{}
-	err = serializer.Encode(bmh, &buf)
+	source, err := encodedYAMLFileSource(bmh)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create file source for BMH resource: %w", err)
 	}
-
-	// remove status if exists
-	res := bytes.Split(buf.Bytes(), []byte("status:\n"))
-	encodedBMH := base64.StdEncoding.EncodeToString(res[0])
-	source := "data:text/plain;charset=utf-8;base64," + encodedBMH
 	file.Contents.Source = &source
 
 	return nil
