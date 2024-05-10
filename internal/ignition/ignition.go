@@ -46,6 +46,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
+	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -885,6 +886,11 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 				// drop this from the list of Files because we don't want to run BMO
 				continue
 			}
+			if provErr := removeProvisioningPausedAnnotation(&config.Storage.Files[i]); err != nil {
+				provErr = fmt.Errorf("failed to remove provisioning paused annotation: %w", provErr)
+				log.Error(provErr.Error())
+				return provErr
+			}
 		case isMOTD(&config.Storage.Files[i]):
 			// workaround for https://github.com/openshift/machine-config-operator/issues/2086
 			g.fixMOTDFile(&config.Storage.Files[i])
@@ -961,6 +967,44 @@ func isMOTD(file *config_latest_types.File) bool {
 
 func isBaremetalProvisioningConfig(file *config_latest_types.File) bool {
 	return strings.Contains(file.Node.Path, "baremetal-provisioning-config")
+}
+
+func removeProvisioningPausedAnnotation(file *config_latest_types.File) error {
+	parts := strings.Split(*file.Contents.Source, "base64,")
+	if len(parts) != 2 {
+		return fmt.Errorf("could not parse source for file %s", file.Node.Path)
+	}
+	decoded, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return fmt.Errorf("failed to decode file: %w", err)
+	}
+	provisioning := &metal3iov1alpha1.Provisioning{}
+	_, _, err = scheme.Codecs.UniversalDeserializer().Decode(decoded, nil, provisioning)
+	if err != nil {
+		return fmt.Errorf("failed to deserialize object: %w", err)
+	}
+	delete(provisioning.Annotations, "provisioning.metal3.io/paused")
+
+	serializer := k8sjson.NewSerializerWithOptions(
+		k8sjson.DefaultMetaFactory, nil, nil,
+		k8sjson.SerializerOptions{
+			Yaml:   true,
+			Pretty: true,
+			Strict: true,
+		},
+	)
+	buf := bytes.Buffer{}
+	err = serializer.Encode(provisioning, &buf)
+	if err != nil {
+		return err
+	}
+
+	// remove status if exists
+	res := bytes.Split(buf.Bytes(), []byte("status:\n"))
+	source := "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString(res[0])
+	file.Contents.Source = &source
+
+	return nil
 }
 
 func fileToBMH(file *config_latest_types.File) (*bmh_v1alpha1.BareMetalHost, error) {

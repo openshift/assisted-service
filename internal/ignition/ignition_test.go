@@ -36,10 +36,12 @@ import (
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
+	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 var (
@@ -108,7 +110,19 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 				"verification": {}
 			  },
 			  "mode": 420
-			}
+			},
+			{
+                          "overwrite": true,
+                          "path": "/opt/openshift/openshift/99_baremetal-provisioning-config.yaml",
+                          "user": {
+                            "name": "root"
+                          },
+                          "contents": {
+			    "source": "data:text/plain;charset=utf-8;base64,YXBpVmVyc2lvbjogbWV0YWwzLmlvL3YxYWxwaGExCmtpbmQ6IFByb3Zpc2lvbmluZwptZXRhZGF0YToKICBuYW1lOiBwcm92aXNpb25pbmctY29uZmlndXJhdGlvbgogIGFubm90YXRpb25zOgogICAgIyBXZSB3YW50IHRvIHBhdXNlIHRoZSBtZXRhbDMgcHJvdmlzaW9uaW5nIHNlcnZpY2VzIHVudGlsIHdlIGNhbiBiZSBzdXJlCiAgICAjIHRoYXQgYWxsIGNvbnRyb2wgcGxhbmUgbm9kZXMgYXJlIHJlYWR5LgogICAgcHJvdmlzaW9uaW5nLm1ldGFsMy5pby9wYXVzZWQ6ICJ0cnVlIgpzcGVjOgogIHByb3Zpc2lvbmluZ0ludGVyZmFjZTogIiIKICBwcm92aXNpb25pbmdJUDogIiIKICBwcm92aXNpb25pbmdOZXR3b3JrQ0lEUjogIiIKICBwcm92aXNpb25pbmdOZXR3b3JrOiAiRGlzYWJsZWQiCiAgcHJvdmlzaW9uaW5nREhDUFJhbmdlOiAiIgogIHByb3Zpc2lvbmluZ09TRG93bmxvYWRVUkw6ICIiCiAgd2F0Y2hBbGxOYW1lc3BhY2VzOiBmYWxzZQo=",
+                            "verification": {}
+                          },
+                          "mode": 420
+                        }
 		  ]
 		}
 	  }`
@@ -208,23 +222,38 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 	})
 
 	Describe("update bootstrap.ign", func() {
-		Context("with 1 master", func() {
-			It("got a tmp workDir", func() {
-				Expect(workDir).NotTo(Equal(""))
-			})
-			It("adds annotation", func() {
-				Expect(err).NotTo(HaveOccurred())
-				Expect(bmh.Annotations).To(HaveKey(bmh_v1alpha1.StatusAnnotation))
-			})
-			It("adds the marker file", func() {
-				var found bool
-				for _, f := range config.Storage.Files {
-					if f.Path == "/opt/openshift/assisted-install-bootstrap" {
-						found = true
-					}
+		It("got a tmp workDir", func() {
+			Expect(workDir).NotTo(Equal(""))
+		})
+		It("adds annotation", func() {
+			Expect(err).NotTo(HaveOccurred())
+			Expect(bmh.Annotations).To(HaveKey(bmh_v1alpha1.StatusAnnotation))
+		})
+		It("adds the marker file", func() {
+			var found bool
+			for _, f := range config.Storage.Files {
+				if f.Path == "/opt/openshift/assisted-install-bootstrap" {
+					found = true
 				}
-				Expect(found).To(BeTrue())
-			})
+			}
+			Expect(found).To(BeTrue())
+		})
+		It("removes the provisioning CR paused annotation", func() {
+			var provisioning *metal3iov1alpha1.Provisioning
+			for _, f := range config.Storage.Files {
+				if strings.Contains(f.Node.Path, "baremetal-provisioning-config") {
+					parts := strings.Split(*f.Contents.Source, "base64,")
+					Expect(len(parts)).To(Equal(2))
+					decoded, err := base64.StdEncoding.DecodeString(parts[1])
+					Expect(err).NotTo(HaveOccurred())
+					provisioning = &metal3iov1alpha1.Provisioning{}
+					_, _, err = scheme.Codecs.UniversalDeserializer().Decode(decoded, nil, provisioning)
+					Expect(err).NotTo(HaveOccurred())
+					break
+				}
+			}
+			Expect(provisioning).NotTo(BeNil())
+			Expect(provisioning.Annotations).ToNot(HaveKey("provisioning.metal3.io/paused"))
 		})
 	})
 })
