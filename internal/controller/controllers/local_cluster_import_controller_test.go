@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -14,6 +15,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +29,7 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func newLocalClusterImportTestReconciler(scheme *runtime.Scheme, initObjs ...client.Object) *LocalClusterImportReconciler {
+func newLocalClusterImportTestReconciler(localClusterName string, agentServiceConfigName string, scheme *runtime.Scheme, initObjs ...client.Object) *LocalClusterImportReconciler {
 
 	rtoList := []runtime.Object{}
 	for i := range initObjs {
@@ -39,10 +41,13 @@ func newLocalClusterImportTestReconciler(scheme *runtime.Scheme, initObjs ...cli
 	return &LocalClusterImportReconciler{
 		log:                    logrus.New(),
 		client:                 c,
-		localClusterName:       "local-cluster",
-		agentServiceConfigName: "agent",
+		localClusterName:       localClusterName,
+		agentServiceConfigName: agentServiceConfigName,
 	}
 }
+
+var localClusterName = "local-cluster"
+var agentServiceConfigName = "agent"
 
 var _ = Describe("Reconcile", func() {
 
@@ -129,7 +134,7 @@ var _ = Describe("Reconcile", func() {
 		key = clnt.ObjectKeyFromObject(agentServiceConfig)
 		managedCluster = &clusterv1.ManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "local-cluster",
+				Name: localClusterName,
 			},
 			Spec: clusterv1.ManagedClusterSpec{
 				HubAcceptsClient:     true,
@@ -219,7 +224,13 @@ var _ = Describe("Reconcile", func() {
 				},
 			},
 		}
-		reconciler = newLocalClusterImportTestReconciler(scheme, managedCluster, agentServiceConfig, node1, node2, node3, proxy, dns, kubeConfigSecret, clusterVersion, machineApiPullSecret)
+		// The local-cluster namesapce is created and managed by ACM and is expected to already exist.
+		localClusterNamespace := &v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: localClusterName,
+			},
+		}
+		reconciler = newLocalClusterImportTestReconciler(localClusterName, agentServiceConfigName, scheme, managedCluster, agentServiceConfig, node1, node2, node3, proxy, dns, kubeConfigSecret, clusterVersion, machineApiPullSecret, localClusterNamespace)
 		client = reconciler.client
 	})
 
@@ -229,8 +240,8 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		namespacedName := types.NamespacedName{
-			Namespace: "local-cluster",
-			Name:      "local-cluster",
+			Namespace: localClusterName,
+			Name:      localClusterName,
 		}
 		err = client.Get(ctx, namespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
@@ -242,8 +253,8 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		namespacedname := types.NamespacedName{
-			Namespace: "local-cluster",
-			Name:      "local-cluster",
+			Namespace: localClusterName,
+			Name:      localClusterName,
 		}
 		err := client.Delete(ctx, agentServiceConfig)
 		Expect(err).ToNot(HaveOccurred())
@@ -259,8 +270,8 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		namespacedname := types.NamespacedName{
-			Namespace: "local-cluster",
-			Name:      "local-cluster",
+			Namespace: localClusterName,
+			Name:      localClusterName,
 		}
 		err := client.Delete(ctx, managedCluster)
 		Expect(err).ToNot(HaveOccurred())
@@ -275,8 +286,8 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		namespacedname := types.NamespacedName{
-			Namespace: "local-cluster",
-			Name:      "local-cluster",
+			Namespace: localClusterName,
+			Name:      localClusterName,
 		}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
 		err := client.Get(ctx, namespacedname, clusterDeployment)
@@ -297,8 +308,8 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		namespacedname := types.NamespacedName{
-			Namespace: "local-cluster",
-			Name:      "local-cluster",
+			Namespace: localClusterName,
+			Name:      localClusterName,
 		}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
 		err := client.Get(ctx, namespacedname, clusterDeployment)
@@ -318,8 +329,8 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		namespacedname := types.NamespacedName{
-			Namespace: "local-cluster",
-			Name:      "local-cluster",
+			Namespace: localClusterName,
+			Name:      localClusterName,
 		}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
 		err := client.Get(ctx, namespacedname, clusterDeployment)
@@ -350,8 +361,8 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		namespacedname := types.NamespacedName{
-			Namespace: "local-cluster",
-			Name:      "local-cluster",
+			Namespace: localClusterName,
+			Name:      localClusterName,
 		}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
 		err := client.Get(ctx, namespacedname, clusterDeployment)
@@ -379,8 +390,8 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		namespacedname := types.NamespacedName{
-			Namespace: "local-cluster",
-			Name:      "local-cluster",
+			Namespace: localClusterName,
+			Name:      localClusterName,
 		}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
 		err := client.Get(ctx, namespacedname, clusterDeployment)
@@ -429,8 +440,8 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		namespacedname := types.NamespacedName{
-			Namespace: "local-cluster",
-			Name:      "local-cluster",
+			Namespace: localClusterName,
+			Name:      localClusterName,
 		}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
 		err := client.Get(ctx, namespacedname, clusterDeployment)
@@ -451,7 +462,7 @@ var _ = Describe("Reconcile", func() {
 		localClusterPullSecret := corev1.Secret{}
 		err = client.Get(ctx, types.NamespacedName{
 			Name:      "pull-secret",
-			Namespace: "local-cluster",
+			Namespace: localClusterName,
 		}, &localClusterPullSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(localClusterPullSecret.Data[".dockerconfigjson"]).To(Equal(pullSecret.Data[".dockerconfigjson"]))
@@ -468,7 +479,7 @@ var _ = Describe("Reconcile", func() {
 		// Check local cluster pull secret after reconcile.
 		err = client.Get(ctx, types.NamespacedName{
 			Name:      "pull-secret",
-			Namespace: "local-cluster",
+			Namespace: localClusterName,
 		}, &localClusterPullSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(err).ToNot(HaveOccurred())
@@ -479,8 +490,8 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		namespacedname := types.NamespacedName{
-			Namespace: "local-cluster",
-			Name:      "local-cluster",
+			Namespace: localClusterName,
+			Name:      localClusterName,
 		}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
 		err := client.Get(ctx, namespacedname, clusterDeployment)
@@ -497,8 +508,8 @@ var _ = Describe("Reconcile", func() {
 		Expect(err).ToNot(HaveOccurred())
 		localClusterAdminKubeConfigSecret := corev1.Secret{}
 		err = client.Get(ctx, types.NamespacedName{
-			Name:      "local-cluster-admin-kubeconfig",
-			Namespace: "local-cluster",
+			Name:      fmt.Sprintf("%s-admin-kubeconfig", localClusterName),
+			Namespace: localClusterName,
 		}, &localClusterAdminKubeConfigSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(localClusterAdminKubeConfigSecret.Data["kubeconfig"]).To(Equal(nodeKubeConfigsSecret.Data["lb-ext.kubeconfig"]))
@@ -509,8 +520,8 @@ var _ = Describe("Reconcile", func() {
 		Expect(err).ToNot(HaveOccurred())
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
 		err = client.Get(ctx, types.NamespacedName{
-			Name:      "local-cluster-admin-kubeconfig",
-			Namespace: "local-cluster",
+			Name:      fmt.Sprintf("%s-admin-kubeconfig", localClusterName),
+			Namespace: localClusterName,
 		}, &localClusterAdminKubeConfigSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(localClusterAdminKubeConfigSecret.Data["kubeconfig"]).To(Equal(nodeKubeConfigsSecret.Data["lb-ext.kubeconfig"]))

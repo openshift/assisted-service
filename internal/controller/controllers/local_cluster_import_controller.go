@@ -270,6 +270,9 @@ func (r *LocalClusterImportReconciler) createOrUpdateClusterImageSet(ctx context
 		ObjectMeta: metav1.ObjectMeta{
 			Name: localClusterImageSetName,
 		},
+		Spec: hivev1.ClusterImageSetSpec{
+			ReleaseImage: release_image,
+		},
 	}
 	mutateFn := func() error {
 		if err := controllerutil.SetControllerReference(instance, &clusterImageSet, r.client.Scheme()); err != nil {
@@ -284,28 +287,6 @@ func (r *LocalClusterImportReconciler) createOrUpdateClusterImageSet(ctx context
 	}
 	if createOrUpdateResult != controllerutil.OperationResultNone {
 		r.log.Infof("ClusterImageSet %s has been %s", clusterImageSet.Name, createOrUpdateResult)
-	}
-	return nil
-}
-
-func (r *LocalClusterImportReconciler) createOrUpdateNamespace(ctx context.Context, name string, instance *aiv1beta1.AgentServiceConfig) error {
-	namespace := hivev1.ClusterImageSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, &namespace, r.client.Scheme()); err != nil {
-			return err
-		}
-		return nil
-	}
-	createOrUpdateResult, err := controllerutil.CreateOrUpdate(ctx, r.client, &namespace, mutateFn)
-	if err != nil {
-		return errors.Wrap(err, "could not create or update namespace")
-	}
-	if createOrUpdateResult != controllerutil.OperationResultNone {
-		r.log.Infof("Namespace %s has been %s", namespace.Name, createOrUpdateResult)
 	}
 	return nil
 }
@@ -335,26 +316,24 @@ func (r *LocalClusterImportReconciler) createOrUpdateSecret(ctx context.Context,
 }
 
 func (r *LocalClusterImportReconciler) createOrUpdateAgentClusterInstall(ctx context.Context, numberOfControlPlaneNodes int, proxy *configv1.Proxy, instance *aiv1beta1.AgentServiceConfig) error {
+	userManagedNetworkingActive := true
 	agentClusterInstall := hiveext.AgentClusterInstall{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      r.localClusterName,
 			Namespace: r.localClusterName,
+		},
+		Spec: hiveext.AgentClusterInstallSpec{
+			ClusterDeploymentRef:  v1.LocalObjectReference{Name: r.localClusterName},
+			Networking:            hiveext.Networking{UserManagedNetworking: &userManagedNetworkingActive},
+			ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: numberOfControlPlaneNodes},
 		},
 	}
 	mutateFn := func() error {
 		if err := controllerutil.SetControllerReference(instance, &agentClusterInstall, r.client.Scheme()); err != nil {
 			return err
 		}
-		userManagedNetworkingActive := true
-		agentClusterInstall.Spec.Networking.UserManagedNetworking = &userManagedNetworkingActive
-		agentClusterInstall.Spec.ClusterDeploymentRef = v1.LocalObjectReference{
-			Name: r.localClusterName,
-		}
 		agentClusterInstall.Spec.ImageSetRef = &hivev1.ClusterImageSetReference{
 			Name: localClusterImageSetName,
-		}
-		agentClusterInstall.Spec.ProvisionRequirements = hiveext.ProvisionRequirements{
-			ControlPlaneAgents: numberOfControlPlaneNodes,
 		}
 		if proxy != nil {
 			agentClusterInstall.Spec.Proxy = &hiveext.Proxy{
@@ -393,6 +372,17 @@ func (r *LocalClusterImportReconciler) createOrUpdateClusterDeployment(ctx conte
 			Name:      r.localClusterName,
 			Namespace: r.localClusterName,
 		},
+		Spec: hivev1.ClusterDeploymentSpec{
+			ClusterName: r.localClusterName,
+			BaseDomain:  dns.Spec.BaseDomain,
+			Platform: hivev1.Platform{
+				AgentBareMetal: &agent.BareMetalPlatform{
+					AgentSelector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"infraenv": "local-cluster"},
+					},
+				},
+			},
+		},
 	}
 	mutateFn := func() error {
 		if err := controllerutil.SetControllerReference(instance, &clusterDeployment, r.client.Scheme()); err != nil {
@@ -410,17 +400,9 @@ func (r *LocalClusterImportReconciler) createOrUpdateClusterDeployment(ctx conte
 			Kind:    "AgentClusterInstall",
 			Version: hiveext.Version,
 		}
-		clusterDeployment.Spec.Platform = hivev1.Platform{
-			AgentBareMetal: &agent.BareMetalPlatform{
-				AgentSelector: metav1.LabelSelector{
-					MatchLabels: map[string]string{"infraenv": "local-cluster"},
-				},
-			},
-		}
 		clusterDeployment.Spec.PullSecretRef = &v1.LocalObjectReference{
 			Name: pullSecret.Name,
 		}
-		clusterDeployment.Spec.ClusterName = r.localClusterName
 		clusterDeployment.Spec.BaseDomain = dns.Spec.BaseDomain
 		return nil
 	}
@@ -492,11 +474,6 @@ func (r *LocalClusterImportReconciler) importLocalCluster(ctx context.Context, i
 	}
 
 	err = r.createOrUpdateClusterImageSet(ctx, clusterVersion.Status.Desired.Image, instance)
-	if err != nil {
-		return err
-	}
-
-	err = r.createOrUpdateNamespace(ctx, r.localClusterName, instance)
 	if err != nil {
 		return err
 	}
