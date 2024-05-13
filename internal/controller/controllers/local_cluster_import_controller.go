@@ -52,10 +52,15 @@ func NewLocalClusterImportReconciler(client client.Client, localClusterName stri
 	}
 }
 
-func (r *LocalClusterImportReconciler) setReconciliationStatus(ctx context.Context, agentServiceConfig *aiv1beta1.AgentServiceConfig, completed bool, reason string, message string) error {
+func (r *LocalClusterImportReconciler) setReconciliationStatus(ctx context.Context, completed bool, reason string, message string) error {
 	status := v1.ConditionFalse
 	if completed {
 		status = v1.ConditionTrue
+	}
+	agentServiceConfig := &aiv1beta1.AgentServiceConfig{}
+	err := r.client.Get(ctx, types.NamespacedName{Name: "agent"}, agentServiceConfig)
+	if err != nil {
+		return errors.Wrapf(err, "Unable to fetch AgentServiceConfig while setting reconciliation status.")
 	}
 	conditionsv1.SetStatusConditionNoHeartbeat(&agentServiceConfig.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConditionLocalClusterManaged,
@@ -63,9 +68,9 @@ func (r *LocalClusterImportReconciler) setReconciliationStatus(ctx context.Conte
 		Reason:  reason,
 		Message: message,
 	})
-	err := r.client.Status().Update(ctx, agentServiceConfig)
+	err = r.client.Status().Update(ctx, agentServiceConfig)
 	if err != nil {
-		r.log.Errorf("Unable to update status of ASC while attempting to set condition %s", aiv1beta1.ConditionReconcileCompleted)
+		r.log.Errorf("Unable to update status of AgentServiceConfig while attempting to set condition %s", aiv1beta1.ConditionReconcileCompleted)
 		return err
 	}
 	return nil
@@ -122,7 +127,7 @@ func (r *LocalClusterImportReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	hasManagedCluster, err := r.hasLocalManagedCluster(ctx)
 	if err != nil {
-		err = r.setReconciliationStatus(ctx, instance, false, aiv1beta1.ReasonUnableToDetermineLocalClusterManagedStatus, err.Error())
+		err = r.setReconciliationStatus(ctx, false, aiv1beta1.ReasonUnableToDetermineLocalClusterManagedStatus, err.Error())
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Unable to set reconciliation status of LocalClusterImport on AgentServiceConfig")
 		}
@@ -132,7 +137,7 @@ func (r *LocalClusterImportReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err = r.importLocalCluster(ctx, instance); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to create managed cluster CRs")
 		}
-		err = r.setReconciliationStatus(ctx, instance, true, aiv1beta1.ReasonLocalClusterManaged, "")
+		err = r.setReconciliationStatus(ctx, true, aiv1beta1.ReasonLocalClusterManaged, "")
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Unable to set reconciliation status of LocalClusterImport on AgentServiceConfig")
 		}
@@ -141,7 +146,7 @@ func (r *LocalClusterImportReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to clean up local cluster CRs")
 		}
-		err = r.setReconciliationStatus(ctx, instance, false, aiv1beta1.ReasonLocalClusterNotManaged, "")
+		err = r.setReconciliationStatus(ctx, false, aiv1beta1.ReasonLocalClusterNotManaged, "")
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Unable to set reconciliation status of LocalClusterImport on AgentServiceConfig")
 		}
@@ -284,28 +289,6 @@ func (r *LocalClusterImportReconciler) createOrUpdateClusterImageSet(ctx context
 	}
 	if createOrUpdateResult != controllerutil.OperationResultNone {
 		r.log.Infof("ClusterImageSet %s has been %s", clusterImageSet.Name, createOrUpdateResult)
-	}
-	return nil
-}
-
-func (r *LocalClusterImportReconciler) createOrUpdateNamespace(ctx context.Context, name string, instance *aiv1beta1.AgentServiceConfig) error {
-	namespace := hivev1.ClusterImageSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, &namespace, r.client.Scheme()); err != nil {
-			return err
-		}
-		return nil
-	}
-	createOrUpdateResult, err := controllerutil.CreateOrUpdate(ctx, r.client, &namespace, mutateFn)
-	if err != nil {
-		return errors.Wrap(err, "could not create or update namespace")
-	}
-	if createOrUpdateResult != controllerutil.OperationResultNone {
-		r.log.Infof("Namespace %s has been %s", namespace.Name, createOrUpdateResult)
 	}
 	return nil
 }
@@ -492,11 +475,6 @@ func (r *LocalClusterImportReconciler) importLocalCluster(ctx context.Context, i
 	}
 
 	err = r.createOrUpdateClusterImageSet(ctx, clusterVersion.Status.Desired.Image, instance)
-	if err != nil {
-		return err
-	}
-
-	err = r.createOrUpdateNamespace(ctx, r.localClusterName, instance)
 	if err != nil {
 		return err
 	}
