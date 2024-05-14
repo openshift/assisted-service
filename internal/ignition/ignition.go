@@ -204,7 +204,7 @@ var fileNames = [...]string{
 
 // Generator can generate ignition files and upload them to an S3-like service
 type Generator interface {
-	Generate(ctx context.Context, installConfig []byte, authType auth.AuthType) error
+	Generate(ctx context.Context, installConfig []byte) error
 	UploadToS3(ctx context.Context) error
 }
 
@@ -306,7 +306,7 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 }
 
 // Generate generates ignition files and applies modifications.
-func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, authType auth.AuthType) error {
+func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
 	var err error
 	log := logutil.FromContext(ctx, g.log)
 

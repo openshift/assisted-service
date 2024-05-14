@@ -7,7 +7,6 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
 )
@@ -30,7 +29,7 @@ func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapp
 }
 
 // Generate creates the expected ignition and related files but with nonsense content
-func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte, authType auth.AuthType) error {
+func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte) error {
 	toUpload := fileNames[:]
 	for _, host := range g.cluster.Hosts {
 		toUpload = append(toUpload, hostutil.IgnitionFileName(host))

@@ -38,31 +38,17 @@ func (m *MockGenerator) EXPECT() *MockGeneratorMockRecorder {
 }
 
 // Generate mocks base method.
-func (m *MockGenerator) Generate(ctx context.Context, installConfig []byte, authType auth.AuthType) error {
+func (m *MockGenerator) Generate(ctx context.Context, installConfig []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Generate", ctx, installConfig, authType)
+	ret := m.ctrl.Call(m, "Generate", ctx, installConfig)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Generate indicates an expected call of Generate.
-func (mr *MockGeneratorMockRecorder) Generate(ctx, installConfig, authType interface{}) *gomock.Call {
+func (mr *MockGeneratorMockRecorder) Generate(ctx, installConfig interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockGenerator)(nil).Generate), ctx, installConfig, authType)
-}
-
-// UpdateEtcHosts mocks base method.
-func (m *MockGenerator) UpdateEtcHosts(arg0 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateEtcHosts", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateEtcHosts indicates an expected call of UpdateEtcHosts.
-func (mr *MockGeneratorMockRecorder) UpdateEtcHosts(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEtcHosts", reflect.TypeOf((*MockGenerator)(nil).UpdateEtcHosts), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockGenerator)(nil).Generate), ctx, installConfig)
 }
 
 // UploadToS3 mocks base method.

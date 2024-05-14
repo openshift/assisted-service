@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
-	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -37,7 +36,6 @@ type Config struct {
 
 type installGenerator struct {
 	Config
-	authHandler      auth.Authenticator
 	log              logrus.FieldLogger
 	s3Client         s3wrapper.API
 	operatorsApi     operators.API
@@ -46,10 +44,9 @@ type installGenerator struct {
 }
 
 func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string, operatorsApi operators.API,
-	providerRegistry registry.ProviderRegistry, auth auth.Authenticator) *installGenerator {
+	providerRegistry registry.ProviderRegistry) *installGenerator {
 	return &installGenerator{
 		Config:           cfg,
-		authHandler:      auth,
 		log:              log,
 		s3Client:         s3Client,
 		operatorsApi:     operatorsApi,
@@ -101,7 +98,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
 			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.Config.ClusterTLSCertOverrideDir, k.InstallerCacheCapacity)
 	}
-	err = generator.Generate(ctx, cfg, k.authHandler.AuthType())
+	err = generator.Generate(ctx, cfg)
 	if err != nil {
 		return err
 	}
