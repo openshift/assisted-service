@@ -13,13 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//go:generate mockgen --build_flags=--mod=mod -package generator -destination mock_install_config.go . InstallConfigGenerator
 type InstallConfigGenerator interface {
 	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string) error
-}
-
-//go:generate mockgen --build_flags=--mod=mod -package generator -destination mock_install_config.go . ISOInstallConfigGenerator
-type ISOInstallConfigGenerator interface {
-	InstallConfigGenerator
 }
 
 type Config struct {
