@@ -219,7 +219,6 @@ type IgnitionBuilder interface {
 
 type installerGenerator struct {
 	log                           logrus.FieldLogger
-	serviceBaseURL                string
 	workDir                       string
 	cluster                       *common.Cluster
 	releaseImage                  string
@@ -280,13 +279,12 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 }
 
 // NewGenerator returns a generator that can generate ignition files
-func NewGenerator(serviceBaseURL string, workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
+func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
 	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string, storageCapacityLimit int64) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
-		serviceBaseURL:                serviceBaseURL,
 		releaseImage:                  releaseImage,
 		releaseImageMirror:            releaseImageMirror,
 		workDir:                       workDir,

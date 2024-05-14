@@ -138,7 +138,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			},
 		}
 		db, dbName = common.PrepareTestDB()
-		g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
 			mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 		err = g.updateBootstrap(context.Background(), examplePath)
@@ -292,7 +292,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 	Describe("update ignitions", func() {
 		It("with ca cert file", func() {
-			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", caCertPath, "", nil, log,
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", caCertPath, "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 			err := g.updateIgnitions()
@@ -315,7 +315,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 		})
 		It("with no ca cert file", func() {
-			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 			err := g.updateIgnitions()
@@ -334,7 +334,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(workerConfig.Storage.Files).To(HaveLen(0))
 		})
 		It("with service ips", func() {
-			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 			err := g.UpdateEtcHosts("10.10.10.1,10.10.10.2")
@@ -357,7 +357,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal("/etc/hosts"))
 		})
 		It("with no service ips", func() {
-			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 			err := g.UpdateEtcHosts("")
@@ -387,7 +387,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		Context("DHCP generation", func() {
 			It("Definitions only", func() {
-				g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 					mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 				g.encodedDhcpFileContents = "data:,abc"
@@ -406,7 +406,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			})
 		})
 		It("Definitions+leases", func() {
-			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 			g.encodedDhcpFileContents = "data:,abc"
@@ -544,7 +544,7 @@ var _ = Describe("createHostIgnitions", func() {
 				host.ID = &id
 			}
 
-			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 			err := g.createHostIgnitions()
@@ -599,7 +599,7 @@ var _ = Describe("createHostIgnitions", func() {
 				host.ID = &id
 			}
 
-			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 			err := g.createHostIgnitions()
@@ -644,7 +644,7 @@ var _ = Describe("createHostIgnitions", func() {
 				host.ID = &id
 			}
 
-			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 			err := g.createHostIgnitions()
@@ -678,7 +678,7 @@ var _ = Describe("createHostIgnitions", func() {
 			IgnitionConfigOverrides: `{"ignition": {"version": "3.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
 		}}
 
-		g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 			mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 
 		err := g.createHostIgnitions()
@@ -750,7 +750,7 @@ spec:
 				MachineConfigPoolName: "infra",
 			}}
 
-			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
@@ -777,7 +777,7 @@ spec:
 				MachineConfigPoolName: "infra",
 			}}
 
-			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
 				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
@@ -1886,7 +1886,7 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 	})
 
 	It("copies the tls cert files", func() {
-		g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 			mockOperatorManager, mockProviderRegistry, "", certDir, 5).(*installerGenerator)
 
 		err := g.importClusterTLSCerts(context.Background())
@@ -2422,7 +2422,6 @@ var _ = Describe("Bare metal host generation", func() {
 		func(firstAddress, secondAddress string) {
 			// Create the generator:
 			generator := NewGenerator(
-				"",
 				workDir,
 				installerCacheDir,
 				cluster,

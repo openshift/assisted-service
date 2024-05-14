@@ -13,21 +13,19 @@ import (
 )
 
 type dummyGenerator struct {
-	log            logrus.FieldLogger
-	serviceBaseURL string
-	workDir        string
-	cluster        *common.Cluster
-	s3Client       s3wrapper.API
+	log      logrus.FieldLogger
+	workDir  string
+	cluster  *common.Cluster
+	s3Client s3wrapper.API
 }
 
 // NewDummyGenerator returns a Generator that creates the expected files but with nonsense content
-func NewDummyGenerator(serviceBaseURL string, workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
+func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
 	return &dummyGenerator{
-		workDir:        workDir,
-		log:            log,
-		serviceBaseURL: serviceBaseURL,
-		cluster:        cluster,
-		s3Client:       s3Client,
+		workDir:  workDir,
+		log:      log,
+		cluster:  cluster,
+		s3Client: s3Client,
 	}
 }
 
