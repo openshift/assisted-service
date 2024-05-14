@@ -206,7 +206,6 @@ var fileNames = [...]string{
 type Generator interface {
 	Generate(ctx context.Context, installConfig []byte, authType auth.AuthType) error
 	UploadToS3(ctx context.Context) error
-	UpdateEtcHosts(string) error
 }
 
 // IgnitionBuilder defines the ignition formatting methods for the various images
@@ -243,7 +242,6 @@ type IgnitionConfig struct {
 	InstallRHCa          bool          `envconfig:"INSTALL_RH_CA" default:"false"`
 	ServiceBaseURL       string        `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath    string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	ServiceIPs           string        `envconfig:"SERVICE_IPS" default:""`
 	SkipCertVerification bool          `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 	EnableOKDSupport     bool          `envconfig:"ENABLE_OKD_SUPPORT" default:"true"`
 	OKDRPMsImage         string        `envconfig:"OKD_RPMS_IMAGE" default:""`
@@ -1186,26 +1184,6 @@ func (g *installerGenerator) updateIgnitions() error {
 	return nil
 }
 
-func (g *installerGenerator) UpdateEtcHosts(serviceIPs string) error {
-	masterPath := filepath.Join(g.workDir, masterIgn)
-
-	if serviceIPs != "" {
-		err := setEtcHostsInIgnition(models.HostRoleMaster, masterPath, g.workDir, GetServiceIPHostnames(serviceIPs))
-		if err != nil {
-			return errors.Wrapf(err, "error adding Etc Hosts to ignition %s", masterPath)
-		}
-	}
-
-	workerPath := filepath.Join(g.workDir, workerIgn)
-	if serviceIPs != "" {
-		err := setEtcHostsInIgnition(models.HostRoleWorker, workerPath, g.workDir, GetServiceIPHostnames(serviceIPs))
-		if err != nil {
-			return errors.Wrapf(err, "error adding Etc Hosts to ignition %s", workerPath)
-		}
-	}
-	return nil
-}
-
 // sortHosts sorts hosts into masters and workers, excluding disabled hosts
 func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 	masters := []*models.Host{}
@@ -1633,22 +1611,6 @@ func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
 	return string(res), nil
 }
 
-func setEtcHostsInIgnition(role models.HostRole, path string, workDir string, content string) error {
-	config, err := parseIgnitionFile(path)
-	if err != nil {
-		return err
-	}
-
-	setFileInIgnition(config, "/etc/hosts", dataurl.EncodeBytes([]byte(content)), true, 420, false)
-
-	fileName := fmt.Sprintf("%s.ign", role)
-	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func GetProfileProxyEntries(http_proxy string, https_proxy string, no_proxy string) string {
 	entries := []string{}
 	if len(http_proxy) > 0 {
@@ -1661,17 +1623,6 @@ func GetProfileProxyEntries(http_proxy string, https_proxy string, no_proxy stri
 		entries = append(entries, fmt.Sprintf("export NO_PROXY=%[1]s\nexport no_proxy=%[1]s", no_proxy))
 	}
 	return strings.Join(entries, "\n") + "\n"
-}
-
-func GetServiceIPHostnames(serviceIPs string) string {
-	ips := strings.Split(strings.TrimSpace(serviceIPs), ",")
-	content := ""
-	for _, ip := range ips {
-		if ip != "" {
-			content = content + fmt.Sprintf(ip+" assisted-api.local.openshift.io\n")
-		}
-	}
-	return content
 }
 
 func firstN(s string, n int) string {
@@ -1824,9 +1775,6 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 	if infraEnv.AdditionalTrustBundle != "" {
 		ignitionParams["AdditionalTrustBundle"] = dataurl.EncodeBytes([]byte(infraEnv.AdditionalTrustBundle))
 		ignitionParams["AdditionalTrustBundlePath"] = common.AdditionalTrustBundlePath
-	}
-	if cfg.ServiceIPs != "" {
-		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(GetServiceIPHostnames(cfg.ServiceIPs)))
 	}
 
 	isoType := overrideDiscoveryISOType

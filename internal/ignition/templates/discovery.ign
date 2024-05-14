@@ -126,14 +126,6 @@
         "name": "root"
       },
       "contents": { "source": "{{.AdditionalTrustBundle}}" }
-    }{{end}}{{if .ServiceIPs}},
-    {
-      "path": "/etc/hosts",
-      "mode": 420,
-      "user": {
-        "name": "root"
-      },
-      "append": [{ "source": "{{.ServiceIPs}}" }]
     }{{end}}{{if .MirrorRegistriesConfig}},
     {
       "path": "/etc/containers/registries.conf",

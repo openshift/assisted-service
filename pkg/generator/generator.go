@@ -26,7 +26,6 @@ type ISOInstallConfigGenerator interface {
 
 type Config struct {
 	ServiceCACertPath      string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	ServiceIPs             string `envconfig:"SERVICE_IPS" default:""`
 	ReleaseImageMirror     string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	DummyIgnition          bool   `envconfig:"DUMMY_IGNITION"`
 	InstallInvoker         string `envconfig:"INSTALL_INVOKER" default:"assisted-installer"`
@@ -104,13 +103,6 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	err = generator.Generate(ctx, cfg, k.authHandler.AuthType())
 	if err != nil {
 		return err
-	}
-
-	if k.Config.ServiceIPs != "" {
-		err = generator.UpdateEtcHosts(k.Config.ServiceIPs)
-		if err != nil {
-			return err
-		}
 	}
 
 	// upload files to S3
