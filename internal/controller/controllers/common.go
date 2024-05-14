@@ -368,7 +368,6 @@ func IngressVipsEntriesToArray(entries []string) []*models.IngressVip {
 }
 
 func signURL(urlString string, authType auth.AuthType, id string, keyType gencrypto.LocalJWTKeyType) (string, error) {
-	// might need to add agent-install-local
 	if authType != auth.TypeLocal {
 		return urlString, nil
 	}

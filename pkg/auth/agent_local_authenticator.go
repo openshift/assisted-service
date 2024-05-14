@@ -2,8 +2,9 @@ package auth
 
 import (
 	"crypto"
+	"encoding/base64"
 	"net/http"
-	"time"
+	"os"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
@@ -11,31 +12,46 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/pkg/ocm"
-	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type AgentLocalAuthenticator struct {
-	cache     *cache.Cache
-	db        *gorm.DB
 	log       logrus.FieldLogger
 	publicKey crypto.PublicKey
 }
 
-func NewAgentLocalAuthenticator(cfg *Config, log logrus.FieldLogger, db *gorm.DB) (*AgentLocalAuthenticator, error) {
+func NewAgentLocalAuthenticator(cfg *Config, log logrus.FieldLogger) (*AgentLocalAuthenticator, error) {
 	if cfg.ECPublicKeyPEM == "" {
 		return nil, errors.Errorf("agent installer local authentication requires an ecdsa Public Key")
 	}
+
+	// When generating an agent ISO, the Agent installer creates ECDSA public/private keys.
+	// However, the systemd services of the Agent installer fail to parse multiline keys accurately.
+	// To address this, the keys are encoded in base64 format to condense them into a single line
+	// before being transmitted to the assisted service.
+	// Upon reception, the assisted service decodes these keys back to their original multiline format
+	// for subsequent processing.
+
+	decodedECPublicKeyPEM, err := base64.StdEncoding.DecodeString(cfg.ECPublicKeyPEM)
+	if err != nil {
+		log.WithError(err).Fatal("Error decoding public key:")
+	}
+	cfg.ECPublicKeyPEM = string(decodedECPublicKeyPEM)
+
+	decodedECPrivateKeyPEM, err := base64.StdEncoding.DecodeString(cfg.ECPrivateKeyPEM)
+	if err != nil {
+		log.WithError(err).Fatal("Error decoding private key:")
+	}
+	cfg.ECPrivateKeyPEM = string(decodedECPrivateKeyPEM)
+	os.Setenv("EC_PRIVATE_KEY_PEM", string(decodedECPrivateKeyPEM))
+
 	key, err := jwt.ParseECPublicKeyFromPEM([]byte(cfg.ECPublicKeyPEM))
 	if err != nil {
 		return nil, err
 	}
 
 	a := &AgentLocalAuthenticator{
-		cache:     cache.New(10*time.Minute, 30*time.Minute),
-		db:        db,
 		log:       log,
 		publicKey: key,
 	}
@@ -76,15 +92,7 @@ func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, erro
 		a.log.Error(err)
 		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
-	if infraEnvOk {
-		_, exists := a.cache.Get(infraEnvID)
-		if !exists {
-			if infraEnvExists(a.db, infraEnvID) {
-				a.cache.Set(infraEnvID, "", cache.DefaultExpiration)
-			}
-		}
-		a.log.Infof("Authenticating infraEnv %s JWT", infraEnvID)
-	}
+	a.log.Infof("Authenticating infraEnv %s JWT", infraEnvID)
 
 	return ocm.AdminPayload(), nil
 }

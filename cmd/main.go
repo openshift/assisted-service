@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -267,18 +266,6 @@ func main() {
 
 	usageManager := usage.NewManager(log, notificationStream)
 	ocmClient := getOCMClient(log)
-
-	var decodedECPublicKeyPEM, decodedECPrivateKeyPEM []byte
-	if Options.Auth.AuthType == auth.TypeAgentLocal {
-		decodedECPublicKeyPEM, err = base64.StdEncoding.DecodeString(Options.Auth.ECPublicKeyPEM)
-		Options.Auth.ECPublicKeyPEM = string(decodedECPublicKeyPEM)
-		failOnError(err, "Error decoding public key:")
-
-		decodedECPrivateKeyPEM, err = base64.StdEncoding.DecodeString(Options.Auth.ECPrivateKeyPEM)
-		Options.Auth.ECPrivateKeyPEM = string(decodedECPrivateKeyPEM)
-		os.Setenv("EC_PRIVATE_KEY_PEM", string(decodedECPrivateKeyPEM))
-		failOnError(err, "Error decoding private key:")
-	}
 
 	authHandler, err := auth.NewAuthenticator(&Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
 	failOnError(err, "failed to create authenticator")
