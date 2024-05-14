@@ -288,7 +288,6 @@ func main() {
 	Options.InstructionConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 	Options.InstructionConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.OperatorsConfig.CheckClusterVersion = Options.CheckClusterVersion
-	Options.GeneratorConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 	//Initialize Provider API
 	providerRegistry := registry.InitProviderRegistry(log.WithField("pkg", "provider"))
 	// Make sure that prepare for installation timeout is more than the timeouts of all underlying tools + 2m extra
