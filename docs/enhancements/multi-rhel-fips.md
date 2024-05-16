@@ -212,3 +212,7 @@ This could be achieved by any of the following methods:
 3. Use multi-layer container builds to copy the libraries from an el8 image to a
    directory on the el9 image and use `LD_PRELOAD` or manipulate `LD_LIBRARY_PATH`
    to point the el8 installer binaries to the correct libraries.
+
+The approach using chroot worked, but FIPS SMEs said that the container base
+image *must* match the installer for the resulting cluster to be considered
+FIPS-compliant so none of these multi-library options are valid.
