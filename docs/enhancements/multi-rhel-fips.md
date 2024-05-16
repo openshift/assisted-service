@@ -3,7 +3,7 @@ title: fips-with-multiple-rhel-versions
 authors:
   - "@carbonin"
 creation-date: 2024-05-07
-last-updated: 2024-05-08
+last-updated: 2024-05-15
 ---
 
 # Support FIPS for installers built for different RHEL releases
@@ -57,12 +57,6 @@ required for a particular install. These manifests will then be uploaded to
 whatever storage is in use for this deployment (local for on-prem, or s3 for
 SaaS) and assisted-service will take over as usual from there.
 
-The installer cache directory will be shared (as it's currently on the PV), but
-the installers used by the two runners will never overlap.
-
-The installer runners will be built with the required packages to run the
-installer in FIPS compliance mode.
-
 ### User Stories
 
 #### Story 1
@@ -100,6 +94,30 @@ The runner container will respond with any error that occurred while generating
 the manifests or with success in which case assisted-service will assume the
 manifests were created and uploaded successfully.
 
+### API
+
+The new services would effectively wrap the existing `InstallConfigGenerator`
+interface.
+
+API call input:
+- common.Cluster json
+- install config
+- release image
+
+API call output:
+- Appropriate HTTP response
+- Error message if the call was not successful
+
+### Installer Cache
+
+The installer cache directory will be shared (as it's currently on the PV), but
+the installers used by the two runners will never overlap.
+
+### Packages
+
+The installer runners will be built with the required packages to run the
+installer in FIPS compliance mode.
+
 ### Open Questions
 
 1. What does the API look like for the runner containers? What data should be
@@ -119,28 +137,55 @@ addition to testing 4.16 with and without FIPS should be sufficient.
 
 ## Drawbacks
 
-This is a complicated change in architecture something simpler might be more
-desirable.
+- This is a complicated change in architecture something simpler might be more
+  desirable.
 
-Creating two additional containers in a pod makes the assisted service more
-expensive to scale.
+- Creating two additional containers in a pod makes the assisted service more
+  expensive to scale.
 
-Creating, maintaining, and releasing additional images is a non-trivial amount
-of additional work.
+- Creating, maintaining, and releasing additional images is a non-trivial amount
+  of additional work.
 
 ## Alternatives
 
+### Use Jobs
+
 Hive is investigating using the container image from the release payload to run
-the installer. This seems possible, but doesn't make much sense if we want to
-run a persistent service rather than a job per cluster. Running a job per
-cluster wouldn't scale particularly well and would also be an even larger
-architectural change. This would also be impossible for the podman deployment to
-adopt.
+the installer as a Job.
+
+- This wouldn't work for the podman deployment which isn't directly productized
+  or supported, but is still a way we encourage people to try out the service.
+  This could be overcome by retaining a way to run the installer on the
+  service container, but then both methods need to be tested and maintained.
+
+- This wouldn't work for Agent Based Installer as ABI runs the services using
+  podman. This could also be overcome by retaining a way to run the installer
+  local to the service as the image version run by ABI will always match the
+  target cluster, but again both methods of running the installer would need to
+  be maintained indefinitely.
+
+- It's unclear how many jobs we would end up running concurrently. It would be
+  difficult to find out from the SaaS how many installer processes are being run
+  concurrently (maybe we should create a metric for this), but the telco scale
+  team regularly runs several hundred concurrently maxing out at over three
+  thousand in a few hours. Unless we're cleaning up the jobs rather aggressively
+  I don't think it would be good to create this many.
+
+- Multiple jobs would need to be run on a single assets directory. This seems
+  prohibitively complex compared to the proposed solution. During a single
+  install the following installer commands are used:
+  - `openshift-baremetal-install create manifests`
+  - `openshift-baremetal-install create single-node-ignition-config` or
+    `openshift-baremetal-install create ignition-configs` (depending on HA mode)
+
+### Run the matching installer on the assisted-service container
 
 Clusters that have installers that already match the assisted service container's
 architecture could be handled by the assisted-service container as we do today.
 This would require one less image and container per pod, but having the same
 process for every cluster install would be easier to understand and maintain.
+
+### Use RPC over HTTP
 
 [Go's RPC](https://pkg.go.dev/net/rpc@go1.22.3) could be used instead of a direct
 HTTP server (RPC can be hosted over HTTP, but that's not what is being addressed
@@ -148,3 +193,22 @@ here). RPC would make this a simpler change as the code for generating the
 manifests is already contained in a single package, but RPC would be a strange
 choice if we were to move the handling into a truly separate service in the
 future.
+
+### Install multiple libraries on the same image
+
+It may be possible to install both versions of the shared libraries required by
+the installers (libcrypto and libssl?) for FIPS compliance on a single image.
+This would require much less change and should be significantly quicker to
+implement, but it's not clear if these would be possible or supportable.
+This could be achieved by any of the following methods:
+
+1. Create a separate userspace for el8 libraries and chroot when those libraries
+   are required.
+  - This seems a bit complicated and it will likely make our image quite a bit
+    larger than it already is (~1.3G).
+2. Install both versions of the required packages simultaneously.
+  - Not sure if this is possible given that the packages share a name and are
+    only different in version.
+3. Use multi-layer container builds to copy the libraries from an el8 image to a
+   directory on the el9 image and use `LD_PRELOAD` or manipulate `LD_LIBRARY_PATH`
+   to point the el8 installer binaries to the correct libraries.
