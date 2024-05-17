@@ -199,7 +199,7 @@ type bareMetalInventory struct {
 	metricApi            metrics.API
 	usageApi             usage.API
 	operatorManagerApi   operators.API
-	generator            generator.ISOInstallConfigGenerator
+	generator            generator.InstallConfigGenerator
 	authHandler          auth.Authenticator
 	authzHandler         auth.Authorizer
 	k8sClient            k8sclient.K8SClient
@@ -226,7 +226,7 @@ func NewBareMetalInventory(
 	clusterApi clusterPkg.API,
 	infraEnvApi infraenv.API,
 	cfg Config,
-	generator generator.ISOInstallConfigGenerator,
+	generator generator.InstallConfigGenerator,
 	eventsHandler eventsapi.Handler,
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,

@@ -155,7 +155,7 @@ var (
 	mockEvents                        *eventsapi.MockHandler
 	mockS3Client                      *s3wrapper.MockAPI
 	mockSecretValidator               *validations.MockPullSecretValidator
-	mockGenerator                     *generator.MockISOInstallConfigGenerator
+	mockGenerator                     *generator.MockInstallConfigGenerator
 	mockVersions                      *versions.MockHandler
 	mockOSImages                      *versions.MockOSImages
 	mockMetric                        *metrics.MockAPI
@@ -343,7 +343,7 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 	}
 }
 
-func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator, mockVersions *versions.MockHandler) {
+func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockInstallConfigGenerator, mockVersions *versions.MockHandler) {
 	if mockGenerator != nil {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -17073,7 +17073,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockClusterApi = cluster.NewMockAPI(ctrl)
 	mockHostApi = host.NewMockAPI(ctrl)
 	mockInfraEnvApi = infraenv.NewMockAPI(ctrl)
-	mockGenerator = generator.NewMockISOInstallConfigGenerator(ctrl)
+	mockGenerator = generator.NewMockInstallConfigGenerator(ctrl)
 	mockEvents = eventsapi.NewMockHandler(ctrl)
 	mockS3Client = s3wrapper.NewMockAPI(ctrl)
 	mockMetric = metrics.NewMockAPI(ctrl)
