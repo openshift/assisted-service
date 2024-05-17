@@ -60,7 +60,6 @@ type InstructionConfig struct {
 	AuthType                 auth.AuthType     `envconfig:"AUTH_TYPE" default:""`
 	ServiceBaseURL           string            `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath        string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
 	ImageServiceBaseURL      string            `envconfig:"IMAGE_SERVICE_BASE_URL"`
 	ImageExpirationTime      time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
 	InstallerImage           string            `envconfig:"INSTALLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer:latest"`

@@ -75,7 +75,6 @@ type clusterVersion struct {
 type Generator interface {
 	Generate(ctx context.Context, installConfig []byte, authType auth.AuthType) error
 	UploadToS3(ctx context.Context) error
-	UpdateEtcHosts(string) error
 }
 
 type installerGenerator struct {
@@ -904,26 +903,6 @@ func (g *installerGenerator) updateIgnitions() error {
 	return nil
 }
 
-func (g *installerGenerator) UpdateEtcHosts(serviceIPs string) error {
-	masterPath := filepath.Join(g.workDir, masterIgn)
-
-	if serviceIPs != "" {
-		err := setEtcHostsInIgnition(models.HostRoleMaster, masterPath, g.workDir, GetServiceIPHostnames(serviceIPs))
-		if err != nil {
-			return errors.Wrapf(err, "error adding Etc Hosts to ignition %s", masterPath)
-		}
-	}
-
-	workerPath := filepath.Join(g.workDir, workerIgn)
-	if serviceIPs != "" {
-		err := setEtcHostsInIgnition(models.HostRoleWorker, workerPath, g.workDir, GetServiceIPHostnames(serviceIPs))
-		if err != nil {
-			return errors.Wrapf(err, "error adding Etc Hosts to ignition %s", workerPath)
-		}
-	}
-	return nil
-}
-
 func (g *installerGenerator) selectInterfaceIPInsideMachineCIDR(interfaceCIDRs []string) string {
 	machineCIDRs := make([]string, len(g.cluster.MachineNetworks))
 	for i, machineNetwork := range g.cluster.MachineNetworks {
@@ -1368,22 +1347,6 @@ func machineConfilePoolExists(manifestFname, content, poolName string) (bool, er
 		return false, err
 	}
 	return manifest.Kind == "MachineConfigPool" && manifest.Metadata != nil && manifest.Metadata.Name == poolName, nil
-}
-
-func setEtcHostsInIgnition(role models.HostRole, path string, workDir string, content string) error {
-	config, err := parseIgnitionFile(path)
-	if err != nil {
-		return err
-	}
-
-	setFileInIgnition(config, "/etc/hosts", dataurl.EncodeBytes([]byte(content)), true, 420, false)
-
-	fileName := fmt.Sprintf("%s.ign", role)
-	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func firstN(s string, n int) string {

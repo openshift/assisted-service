@@ -9,17 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("GetServiceIPHostnames", func() {
-	content := GetServiceIPHostnames("")
-	Expect(content).To(Equal(""))
-
-	content = GetServiceIPHostnames("10.10.10.10")
-	Expect(content).To(Equal("10.10.10.10 assisted-api.local.openshift.io\n"))
-
-	content = GetServiceIPHostnames("10.10.10.1,10.10.10.2")
-	Expect(content).To(Equal("10.10.10.1 assisted-api.local.openshift.io\n10.10.10.2 assisted-api.local.openshift.io\n"))
-})
-
 var _ = Context("with test ignitions", func() {
 	const v30ignition = `{"ignition": {"version": "3.0.0"},"storage": {"files": []}}`
 	const v31ignition = `{"ignition": {"version": "3.1.0"},"storage": {"files": [{"path": "/tmp/chocobomb", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
