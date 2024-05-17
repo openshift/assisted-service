@@ -52,6 +52,7 @@ import (
 	"github.com/vincent-petithory/dataurl"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
+	"gorm.io/gorm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -61,6 +62,7 @@ const (
 	masterIgn      = "master.ign"
 	workerIgn      = "worker.ign"
 	nodeIpHintFile = "/etc/default/nodeip-configuration"
+	chronyConfig   = "/etc/chrony.conf"
 )
 
 // Names of some relevant templates:
@@ -219,6 +221,7 @@ type IgnitionBuilder interface {
 
 type installerGenerator struct {
 	log                           logrus.FieldLogger
+	db                            *gorm.DB
 	serviceBaseURL                string
 	workDir                       string
 	cluster                       *common.Cluster
@@ -282,7 +285,9 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(serviceBaseURL string, workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
-	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string, storageCapacityLimit int64) Generator {
+	providerRegistry registry.ProviderRegistry,
+	installerReleaseImageOverride, clusterTLSCertOverrideDir string,
+	storageCapacityLimit int64, db *gorm.DB) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
@@ -300,6 +305,7 @@ func NewGenerator(serviceBaseURL string, workDir string, installerDir string, cl
 		installerReleaseImageOverride: installerReleaseImageOverride,
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
 		installerCache:                installercache.New(installerDir, storageCapacityLimit, log),
+		db:                            db,
 	}
 }
 
@@ -1511,6 +1517,55 @@ func (g *installerGenerator) modifyPointerIgnitionMCP(poolName string, ignitionS
 	return "", errors.Errorf("machine config pool %s was not found", poolName)
 }
 
+const defaultChronyConf = `
+pool 0.rhel.pool.ntp.org iburst
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+logdir /var/log/chrony`
+
+func (g *installerGenerator) writeChronycConfigurationFile(host *models.Host, config *config_latest_types.Config) error {
+	sources := make([]string, 0)
+
+	if host.NtpSources != "" {
+		var ntpSources []*models.NtpSource
+		if err := json.Unmarshal([]byte(host.NtpSources), &ntpSources); err != nil {
+			return errors.Wrapf(err, "Failed to unmarshal %s", host.NtpSources)
+		}
+
+		for _, source := range ntpSources {
+			if !funk.Contains(sources, source.SourceName) {
+				sources = append(sources, source.SourceName)
+			}
+		}
+	}
+
+	// Avoiding a ZTP race that installation may start before getting ntp reply from the agent
+	rawSources, err := common.GetHostNTPSources(g.db, host)
+	if err != nil {
+		return err
+	}
+	additionalNTPSources := strings.Split(rawSources, ",")
+	for _, source := range additionalNTPSources {
+		if source == "" {
+			continue
+		}
+		if !funk.Contains(sources, source) {
+			sources = append(sources, source)
+		}
+	}
+
+	content := defaultChronyConf[:]
+	for _, source := range sources {
+		content += fmt.Sprintf("\nserver %s iburst", source)
+	}
+
+	setFileInIgnition(config, chronyConfig,
+		base64.StdEncoding.EncodeToString([]byte(content)), false, 420, true)
+
+	return nil
+}
+
 func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile string, workDir string) error {
 	config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
 	if err != nil {
@@ -1530,6 +1585,10 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 			return errors.Wrapf(errP, "Failed to parse machine cidr for node ip hint content")
 		}
 		setFileInIgnition(config, nodeIpHintFile, fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", ip), false, 420, true)
+	}
+
+	if err = g.writeChronycConfigurationFile(host, config); err != nil {
+		return errors.Wrapf(err, "failed to write chrony configuration for host %s", host.ID)
 	}
 
 	configBytes, err := json.Marshal(config)

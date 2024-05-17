@@ -13,10 +13,11 @@ import (
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type InstallConfigGenerator interface {
-	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string) error
+	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string, db *gorm.DB) error
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package generator -destination mock_install_config.go . ISOInstallConfigGenerator
@@ -60,7 +61,8 @@ func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir str
 }
 
 // GenerateInstallConfig creates install config and ignition files
-func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string) error {
+func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte,
+	releaseImage, installerReleaseImageOverride string, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, k.log)
 	err := os.MkdirAll(k.workDir, 0o755)
 	if err != nil {
@@ -100,7 +102,8 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewDummyGenerator(k.ServiceBaseURL, clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
 		generator = ignition.NewGenerator(k.ServiceBaseURL, clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir, k.InstallerCacheCapacity)
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry,
+			installerReleaseImageOverride, k.clusterTLSCertOverrideDir, k.InstallerCacheCapacity, db)
 	}
 	err = generator.Generate(ctx, cfg, k.authHandler.AuthType())
 	if err != nil {

@@ -346,12 +346,12 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator, mockVersions *versions.MockHandler) {
 	if mockGenerator != nil {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
-		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 }
 
 func mockGetInstallConfigSuccess(mockInstallConfigBuilder *installcfg_builder.MockInstallConfigBuilder) {
-	mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("{}"), nil).AnyTimes()
+	mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("{}"), nil, gomock.Any()).AnyTimes()
 }
 
 func addVMToCluster(cluster *common.Cluster, db *gorm.DB) {
@@ -5443,7 +5443,7 @@ var _ = Describe("cluster", func() {
 			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), common.ARM64CPUArchitecture, gomock.Any()).Return(armRelease, nil).Times(1)
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), common.DefaultCPUArchitecture, gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
-			mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), *armRelease.URL, *common.TestDefaultConfig.ReleaseImage.URL).Return(nil).Times(1)
+			mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), *armRelease.URL, *common.TestDefaultConfig.ReleaseImage.URL, gomock.Any()).Return(nil).Times(1)
 
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			mockHostPrepareForRefresh(mockHostApi)

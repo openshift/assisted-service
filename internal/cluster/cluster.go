@@ -1615,9 +1615,6 @@ func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster
 
 func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, m.log)
-	if err := m.manifestsGeneratorAPI.AddChronyManifest(ctx, log, cluster); err != nil {
-		return errors.Wrap(err, "failed to add chrony manifest")
-	}
 
 	if common.IsSingleNodeCluster(cluster) && m.manifestsGeneratorAPI.IsSNODNSMasqEnabled() {
 		if err := m.manifestsGeneratorAPI.AddDnsmasqForSingleNode(ctx, log, cluster); err != nil {

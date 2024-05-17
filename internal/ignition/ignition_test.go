@@ -139,7 +139,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		}
 		db, dbName = common.PrepareTestDB()
 		g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
-			mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+			mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 		err = g.updateBootstrap(context.Background(), examplePath)
 
@@ -293,7 +293,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 	Describe("update ignitions", func() {
 		It("with ca cert file", func() {
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", caCertPath, "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -316,7 +316,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("with no ca cert file", func() {
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -335,7 +335,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("with service ips", func() {
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 			err := g.UpdateEtcHosts("10.10.10.1,10.10.10.2")
 			Expect(err).NotTo(HaveOccurred())
@@ -358,7 +358,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("with no service ips", func() {
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 			err := g.UpdateEtcHosts("")
 			Expect(err).NotTo(HaveOccurred())
@@ -388,7 +388,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		Context("DHCP generation", func() {
 			It("Definitions only", func() {
 				g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-					mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+					mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 				g.encodedDhcpFileContents = "data:,abc"
 				err := g.updateIgnitions()
@@ -407,7 +407,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("Definitions+leases", func() {
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 			g.encodedDhcpFileContents = "data:,abc"
 			cluster.ApiVipLease = "api"
@@ -435,6 +435,30 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 	})
 })
+
+func validateChrony(cluster *common.Cluster, workDir string, expectedContent string) {
+	for _, host := range cluster.Hosts {
+		ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", host.Role, host.ID)))
+		Expect(err).NotTo(HaveOccurred())
+		config, _, err := config_32.Parse(ignBytes)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Validating chrony was added")
+		var f *config_32_types.File
+		for fileidx, file := range config.Storage.Files {
+			fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+			if file.Node.Path == chronyConfig {
+				f = &config.Storage.Files[fileidx]
+				break
+			}
+		}
+		Expect(*f.FileEmbedded1.Contents.Source).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(expectedContent))))
+		Expect(f).NotTo(BeNil())
+		Expect(*f.Node.User.Name).To(Equal("root"))
+		Expect(*f.FileEmbedded1.Mode).To(Equal(420))
+		Expect(*f.Node.Overwrite).To(Equal(true))
+	}
+}
 
 // TODO(deprecate-ignition-3.1.0)
 var _ = Describe("createHostIgnitions", func() {
@@ -545,7 +569,7 @@ var _ = Describe("createHostIgnitions", func() {
 			}
 
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -582,7 +606,88 @@ var _ = Describe("createHostIgnitions", func() {
 		})
 	})
 
+	Context("1", func() {
+		It("no_ntp_sources", func() {
+			cluster.Hosts = append(cluster.Hosts, &models.Host{})
+			// create an ID for each host
+			for _, host := range cluster.Hosts {
+				id := strfmt.UUID(uuid.New().String())
+				host.ID = &id
+			}
+
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				mockOperatorManager, mockProviderRegistry, "", "", 5, db).(*installerGenerator)
+
+			err := g.createHostIgnitions()
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedContent := defaultChronyConf
+			validateChrony(cluster, workDir, expectedContent)
+
+		})
+
+		It("same_ntp_source", func() {
+			toMarshal := []*models.NtpSource{
+				common.TestNTPSourceSynced,
+				common.TestNTPSourceUnsynced,
+			}
+			cluster.Hosts = append(cluster.Hosts, &models.Host{})
+			// create an ID for each host
+			for _, host := range cluster.Hosts {
+				id := strfmt.UUID(uuid.New().String())
+				host.ID = &id
+				ntpSources, _ := json.Marshal(toMarshal)
+				host.NtpSources = string(ntpSources)
+			}
+
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				mockOperatorManager, mockProviderRegistry, "", "", 5, db).(*installerGenerator)
+
+			err := g.createHostIgnitions()
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedContent := defaultChronyConf
+			expectedContent += fmt.Sprintf("\nserver %s iburst111", common.TestNTPSourceSynced.SourceName)
+			validateChrony(cluster, workDir, expectedContent)
+		})
+
+		It("multiple_ntp_source", func() {
+			sources := []*models.NtpSource{
+				{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced},
+				{SourceName: "0.rhel.pool.ntp.org", SourceState: models.SourceStateCombined},
+				{SourceName: "1.rhel.pool.ntp.org", SourceState: models.SourceStateNotCombined},
+				{SourceName: "2.rhel.pool.ntp.org", SourceState: models.SourceStateError},
+				{SourceName: "3.rhel.pool.ntp.org", SourceState: models.SourceStateVariable},
+				{SourceName: "4.rhel.pool.ntp.org", SourceState: models.SourceStateUnreachable},
+			}
+
+			cluster.Hosts = append(cluster.Hosts, &models.Host{})
+			// create an ID for each host
+			for _, host := range cluster.Hosts {
+				id := strfmt.UUID(uuid.New().String())
+				host.ID = &id
+				ntpSources, _ := json.Marshal(sources)
+				host.NtpSources = string(ntpSources)
+			}
+
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				mockOperatorManager, mockProviderRegistry, "", "", 5, db).(*installerGenerator)
+
+			err := g.createHostIgnitions()
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedContent := defaultChronyConf
+			expectedContent += fmt.Sprintf("\nserver %s iburst", common.TestNTPSourceSynced.SourceName)
+			expectedContent += fmt.Sprintf("\nserver %s iburst", common.TestNTPSourceUnsynced.SourceName)
+			for _, s := range sources {
+				expectedContent += fmt.Sprintf("\nserver %s iburst", s.SourceName)
+			}
+			validateChrony(cluster, workDir, expectedContent)
+		})
+	})
+
 	Context("node ip hint", func() {
+
 		It("SNO: adds nodeip hint file", func() {
 			cluster.Hosts = []*models.Host{
 				{
@@ -600,7 +705,7 @@ var _ = Describe("createHostIgnitions", func() {
 			}
 
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -645,7 +750,7 @@ var _ = Describe("createHostIgnitions", func() {
 			}
 
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -679,7 +784,7 @@ var _ = Describe("createHostIgnitions", func() {
 		}}
 
 		g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-			mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+			mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 
 		err := g.createHostIgnitions()
 		Expect(err).NotTo(HaveOccurred())
@@ -751,7 +856,7 @@ spec:
 			}}
 
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
-				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(io.NopCloser(strings.NewReader(mcp)), int64(0), nil)
@@ -778,7 +883,7 @@ spec:
 			}}
 
 			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
-				mockOperatorManager, mockProviderRegistry, "", "", 5).(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", 5, nil).(*installerGenerator)
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
 			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(io.NopCloser(strings.NewReader(mc)), int64(0), nil)
@@ -1887,7 +1992,7 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 
 	It("copies the tls cert files", func() {
 		g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-			mockOperatorManager, mockProviderRegistry, "", certDir, 5).(*installerGenerator)
+			mockOperatorManager, mockProviderRegistry, "", certDir, 5, nil).(*installerGenerator)
 
 		err := g.importClusterTLSCerts(context.Background())
 		Expect(err).NotTo(HaveOccurred())
@@ -2437,6 +2542,7 @@ var _ = Describe("Bare metal host generation", func() {
 				"",
 				"",
 				5,
+				nil,
 			).(*installerGenerator)
 
 			// The default host inventory used by these tests has two NICs, each with

@@ -49,7 +49,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		inventoryCache = make(InventoryCache)
 		mockHardwareValidator = hardware.NewMockValidator(ctrl)
-		mockHardwareValidator.EXPECT().GetClusterHostRequirements(ctx, gomock.Any(), gomock.Any())
+		mockHardwareValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any())
 		mockHardwareValidator.EXPECT().GetPreflightHardwareRequirements(gomock.Any(), gomock.Any()).AnyTimes().Return(&models.PreflightHardwareRequirements{
 			Ocp: &models.HostTypeHardwareRequirementsWrapper{
 				Worker: &models.HostTypeHardwareRequirements{

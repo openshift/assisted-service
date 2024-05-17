@@ -25,7 +25,6 @@ import (
 //go:generate mockgen -source=manifests_generator.go -package=network -destination=mock_manifests_generator.go
 
 type ManifestsGeneratorAPI interface {
-	AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error

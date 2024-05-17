@@ -10,6 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	gorm "gorm.io/gorm"
 )
 
 // MockISOInstallConfigGenerator is a mock of ISOInstallConfigGenerator interface.
@@ -36,15 +37,15 @@ func (m *MockISOInstallConfigGenerator) EXPECT() *MockISOInstallConfigGeneratorM
 }
 
 // GenerateInstallConfig mocks base method.
-func (m *MockISOInstallConfigGenerator) GenerateInstallConfig(arg0 context.Context, arg1 common.Cluster, arg2 []byte, arg3, arg4 string) error {
+func (m *MockISOInstallConfigGenerator) GenerateInstallConfig(arg0 context.Context, arg1 common.Cluster, arg2 []byte, arg3, arg4 string, arg5 *gorm.DB) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateInstallConfig", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "GenerateInstallConfig", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // GenerateInstallConfig indicates an expected call of GenerateInstallConfig.
-func (mr *MockISOInstallConfigGeneratorMockRecorder) GenerateInstallConfig(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockISOInstallConfigGeneratorMockRecorder) GenerateInstallConfig(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockISOInstallConfigGenerator)(nil).GenerateInstallConfig), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInstallConfig", reflect.TypeOf((*MockISOInstallConfigGenerator)(nil).GenerateInstallConfig), arg0, arg1, arg2, arg3, arg4, arg5)
 }

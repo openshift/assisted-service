@@ -36,20 +36,6 @@ func (m *MockManifestsGeneratorAPI) EXPECT() *MockManifestsGeneratorAPIMockRecor
 	return m.recorder
 }
 
-// AddChronyManifest mocks base method.
-func (m *MockManifestsGeneratorAPI) AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddChronyManifest", ctx, log, c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddChronyManifest indicates an expected call of AddChronyManifest.
-func (mr *MockManifestsGeneratorAPIMockRecorder) AddChronyManifest(ctx, log, c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddChronyManifest", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddChronyManifest), ctx, log, c)
-}
-
 // AddDiskEncryptionManifest mocks base method.
 func (m *MockManifestsGeneratorAPI) AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 	m.ctrl.T.Helper()
