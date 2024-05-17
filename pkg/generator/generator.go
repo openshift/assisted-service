@@ -26,7 +26,7 @@ type ISOInstallConfigGenerator interface {
 type Config struct {
 	ServiceCACertPath      string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	ServiceIPs             string `envconfig:"SERVICE_IPS" default:""`
-	ReleaseImageMirror     string
+	ReleaseImageMirror     string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	DummyIgnition          bool   `envconfig:"DUMMY_IGNITION"`
 	InstallInvoker         string `envconfig:"INSTALL_INVOKER" default:"assisted-installer"`
 	ServiceBaseURL         string `envconfig:"SERVICE_BASE_URL"`
