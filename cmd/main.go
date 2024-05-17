@@ -164,9 +164,6 @@ var Options struct {
 	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
 	BMACConfig                           controllers.BMACConfig
 
-	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
-	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
-
 	// EnableSoftTimeouts is a boolean flag to enable Soft timeouts by assisted installer
 	EnableSoftTimeouts bool `envconfig:"ENABLE_SOFT_TIMEOUTS" default:"false"`
 }
@@ -439,7 +436,7 @@ func main() {
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, providerRegistry, Options.ClusterTLSCertOverrideDir, authHandler)
+	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, providerRegistry, authHandler)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient(), hostApi)

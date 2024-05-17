@@ -29,28 +29,29 @@ type Config struct {
 	DummyIgnition          bool   `envconfig:"DUMMY_IGNITION"`
 	InstallInvoker         string `envconfig:"INSTALL_INVOKER" default:"assisted-installer"`
 	InstallerCacheCapacity int64  `envconfig:"INSTALLER_CACHE_CAPACITY"`
+
+	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
+	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
 }
 
 type installGenerator struct {
 	Config
-	authHandler               auth.Authenticator
-	log                       logrus.FieldLogger
-	s3Client                  s3wrapper.API
-	workDir                   string
-	providerRegistry          registry.ProviderRegistry
-	clusterTLSCertOverrideDir string
+	authHandler      auth.Authenticator
+	log              logrus.FieldLogger
+	s3Client         s3wrapper.API
+	workDir          string
+	providerRegistry registry.ProviderRegistry
 }
 
 func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string,
-	providerRegistry registry.ProviderRegistry, clusterTLSCertOverrideDir string, auth auth.Authenticator) *installGenerator {
+	providerRegistry registry.ProviderRegistry, auth auth.Authenticator) *installGenerator {
 	return &installGenerator{
-		Config:                    cfg,
-		authHandler:               auth,
-		log:                       log,
-		s3Client:                  s3Client,
-		workDir:                   filepath.Join(workDir, "install-config-generate"),
-		providerRegistry:          providerRegistry,
-		clusterTLSCertOverrideDir: clusterTLSCertOverrideDir,
+		Config:           cfg,
+		authHandler:      auth,
+		log:              log,
+		s3Client:         s3Client,
+		workDir:          filepath.Join(workDir, "install-config-generate"),
+		providerRegistry: providerRegistry,
 	}
 }
 
@@ -95,7 +96,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
 		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir, k.InstallerCacheCapacity)
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.Config.ClusterTLSCertOverrideDir, k.InstallerCacheCapacity)
 	}
 	err = generator.Generate(ctx, cfg, k.authHandler.AuthType())
 	if err != nil {
