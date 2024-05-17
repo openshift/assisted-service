@@ -29,7 +29,6 @@ type Config struct {
 	ReleaseImageMirror     string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	DummyIgnition          bool   `envconfig:"DUMMY_IGNITION"`
 	InstallInvoker         string `envconfig:"INSTALL_INVOKER" default:"assisted-installer"`
-	ServiceBaseURL         string `envconfig:"SERVICE_BASE_URL"`
 	InstallerCacheCapacity int64  `envconfig:"INSTALLER_CACHE_CAPACITY"`
 }
 
@@ -94,9 +93,9 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	// runs openshift-install to generate ignition files, then modifies them as necessary
 	var generator ignition.Generator
 	if k.Config.DummyIgnition {
-		generator = ignition.NewDummyGenerator(k.ServiceBaseURL, clusterWorkDir, &cluster, k.s3Client, log)
+		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(k.ServiceBaseURL, clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
+		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
 			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir, k.InstallerCacheCapacity)
 	}
 	err = generator.Generate(ctx, cfg, k.authHandler.AuthType())
