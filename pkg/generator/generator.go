@@ -59,29 +59,13 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	if err != nil {
 		return err
 	}
-	installerCacheDir := filepath.Join(k.workDir, "installercache")
 	defer func() {
-		// keep results in case of failure so a human can debug
-		if err != nil {
-			debugPath := filepath.Join(k.workDir, cluster.ID.String()+"-failed")
-			// remove any prior failed results
-			err2 := os.RemoveAll(debugPath)
-			if err2 != nil && !os.IsNotExist(err2) {
-				log.WithError(err).Errorf("Could not remove previous directory with failed config results: %s", debugPath)
-				return
-			}
-			err2 = os.Rename(clusterWorkDir, debugPath)
-			if err2 != nil {
-				log.WithError(err).Errorf("Could not rename %s to %s", clusterWorkDir, debugPath)
-				return
-			}
-			return
-		}
-		err2 := os.RemoveAll(clusterWorkDir)
-		if err2 != nil {
-			log.WithError(err).Error("Failed to clean up generated ignition directory")
+		if removeError := os.RemoveAll(clusterWorkDir); removeError != nil {
+			log.WithError(removeError).Error("Failed to clean up generated ignition directory")
 		}
 	}()
+
+	installerCacheDir := filepath.Join(k.workDir, "installercache")
 
 	// runs openshift-install to generate ignition files, then modifies them as necessary
 	var generator ignition.Generator
