@@ -71,7 +71,7 @@ var _ = Describe("installcmd", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
-		installCmd = NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, true)
+		installCmd = NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true)
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeFull)
 		clusterId = *cluster.ID
 		infraEnv = createInfraEnvInDb(db, clusterId)
@@ -109,7 +109,7 @@ var _ = Describe("installcmd", func() {
 	})
 	DescribeTable("enable MCO reboot values",
 		func(enableMcoReboot bool, version string, architecture string, expected bool) {
-			installCommand := NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, enableMcoReboot)
+			installCommand := NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, enableMcoReboot, true)
 			mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
 			mockGetReleaseImage(1)
 			mockImages(1)
@@ -118,7 +118,7 @@ var _ = Describe("installcmd", func() {
 				"cpu_architecture":  architecture,
 			}).Error).ToNot(HaveOccurred())
 			installCmdSteps, stepErr = installCommand.GetSteps(ctx, &host)
-			validateInstallCommand(installCommand, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, expected, version)
+			validateInstallCommand(installCommand, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, expected, version, true)
 		},
 		Entry("Enbale MCO reboot is false", false, "4.15.0", models.ClusterCPUArchitectureX8664, false),
 		Entry("Enbale MCO reboot is true. Lower version", true, "4.14.0", models.ClusterCPUArchitectureX8664, false),
@@ -131,13 +131,30 @@ var _ = Describe("installcmd", func() {
 		Entry("Enbale MCO reboot is true. Higher version - s390x", true, "4.16.0", models.ClusterCPUArchitectureS390x, false),
 	)
 
+	DescribeTable("notify num reboots",
+		func(notifyNumReboots bool) {
+			installCommand := NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, true, notifyNumReboots)
+			mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
+			mockGetReleaseImage(1)
+			mockImages(1)
+			Expect(db.Model(&common.Cluster{}).Where("id = ?", *host.ClusterID).Updates(map[string]interface{}{
+				"openshift_version": "4.15",
+				"cpu_architecture":  "x86_64",
+			}).Error).ToNot(HaveOccurred())
+			installCmdSteps, stepErr = installCommand.GetSteps(ctx, &host)
+			validateInstallCommand(installCommand, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, true, "4.15", notifyNumReboots)
+		},
+		Entry("notify num reboots is false", false),
+		Entry("notify num reboots is true", true),
+	)
+
 	It("get_step_one_master_success", func() {
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
 		mockGetReleaseImage(1)
 		mockImages(1)
 		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion, true)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
@@ -150,13 +167,13 @@ var _ = Describe("installcmd", func() {
 		mockImages(3)
 		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion, true)
 		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host2)
 		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host2.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host2.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion, true)
 		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host3)
 		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleBootstrap)
-		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleBootstrap, infraEnvId, clusterId, *host3.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleBootstrap, infraEnvId, clusterId, *host3.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion, true)
 	})
 	It("invalid_inventory", func() {
 		host.Inventory = "blah"
@@ -242,7 +259,7 @@ var _ = Describe("installcmd", func() {
 			prepareGetStep(sdb)
 			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
 			postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
-			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion)
+			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion, true)
 			hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 			Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 			verifyDiskFormatCommand(installCmdSteps[0], sda.ID, true)
@@ -263,7 +280,7 @@ var _ = Describe("installcmd", func() {
 			prepareGetStep(sddd)
 			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
 			postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
-			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sddd.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion)
+			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sddd.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion, true)
 			hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 			Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 			verifyDiskFormatCommand(installCmdSteps[0], sda.ID, true)
@@ -285,7 +302,7 @@ var _ = Describe("installcmd", func() {
 			prepareGetStep(sddd)
 			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
 			postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
-			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sddd.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion)
+			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sddd.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion, true)
 			hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 			Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 			verifyDiskFormatCommand(installCmdSteps[0], sda.ID, true)
@@ -331,7 +348,7 @@ var _ = Describe("installcmd", func() {
 			prepareGetStep(sdb)
 			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
 			postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
-			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, []string{sda.ID, sdc.ID}, models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion)
+			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, []string{sda.ID, sdc.ID}, models.ClusterHighAvailabilityModeFull, false, common.TestDefaultConfig.OpenShiftVersion, true)
 			hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 			Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 			verifyDiskFormatCommand(installCmdSteps[0], sda.ID, true)
@@ -398,7 +415,7 @@ var _ = Describe("installcmd arguments", func() {
 	Context("configuration_params", func() {
 		It("check_cluster_version_is_false_by_default", func() {
 			config := &InstructionConfig{}
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -410,7 +427,7 @@ var _ = Describe("installcmd arguments", func() {
 			config := &InstructionConfig{
 				CheckClusterVersion: false,
 			}
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -422,7 +439,7 @@ var _ = Describe("installcmd arguments", func() {
 			config := &InstructionConfig{
 				CheckClusterVersion: true,
 			}
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -431,7 +448,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 
 		It("verify high-availability-mode is None", func() {
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -444,7 +461,7 @@ var _ = Describe("installcmd arguments", func() {
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -454,7 +471,7 @@ var _ = Describe("installcmd arguments", func() {
 
 		It("no must-gather , mco and openshift version in day2 installation", func() {
 			db.Model(&cluster).Update("kind", models.ClusterKindAddHostsCluster)
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -473,7 +490,7 @@ var _ = Describe("installcmd arguments", func() {
 
 		BeforeEach(func() {
 			instructionConfig = DefaultInstructionConfig
-			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true)
+			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true)
 		})
 
 		It("valid installer args", func() {
@@ -553,7 +570,7 @@ var _ = Describe("installcmd arguments", func() {
 
 		BeforeEach(func() {
 			instructionConfig = DefaultInstructionConfig
-			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true)
+			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true)
 		})
 
 		It("single argument with ocp image only", func() {
@@ -585,7 +602,7 @@ var _ = Describe("installcmd arguments", func() {
 
 		BeforeEach(func() {
 			instructionConfig = DefaultInstructionConfig
-			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true)
+			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true)
 		})
 		It("no-proxy without httpProxy", func() {
 			args := installCmd.getProxyArguments("t-cluster", "proxy.org", "", "", "domain.com,192.168.1.0/24")
@@ -1337,7 +1354,7 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 }
 
 func validateInstallCommand(installCmd *installCmd, reply *models.Step, role models.HostRole, infraEnvId, clusterId, hostId strfmt.UUID,
-	bootDevice string, bootableDisks []string, haMode string, enableSkipMcoReboot bool, version string) {
+	bootDevice string, bootableDisks []string, haMode string, enableSkipMcoReboot bool, version string, notifyNumReboots bool) {
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
 	mustGatherImage, _ := installCmd.getMustGatherArgument(defaultMustGatherVersion)
 	request := models.InstallCmdRequest{}
@@ -1354,4 +1371,5 @@ func validateInstallCommand(installCmd *installCmd, reply *models.Step, role mod
 	Expect(swag.StringValue(request.ControllerImage)).To(Equal(installCmd.instructionConfig.ControllerImage))
 	Expect(request.MustGatherImage).To(Equal(mustGatherImage))
 	Expect(request.EnableSkipMcoReboot).To(Equal(enableSkipMcoReboot))
+	Expect(request.NotifyNumReboots).To(Equal(notifyNumReboots))
 }
