@@ -8902,6 +8902,10 @@ func init() {
           "description": "Must-gather images to use",
           "type": "string"
         },
+        "notify_num_reboots": {
+          "description": "If true, notify number of reboots by assisted controller",
+          "type": "boolean"
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
@@ -19524,6 +19528,10 @@ func init() {
         "must_gather_image": {
           "description": "Must-gather images to use",
           "type": "string"
+        },
+        "notify_num_reboots": {
+          "description": "If true, notify number of reboots by assisted controller",
+          "type": "boolean"
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
