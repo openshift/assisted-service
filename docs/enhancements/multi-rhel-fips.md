@@ -3,7 +3,7 @@ title: fips-with-multiple-rhel-versions
 authors:
   - "@carbonin"
 creation-date: 2024-05-07
-last-updated: 2024-05-15
+last-updated: 2024-05-20
 ---
 
 # Support FIPS for installers built for different RHEL releases
@@ -216,3 +216,29 @@ This could be achieved by any of the following methods:
 The approach using chroot worked, but FIPS SMEs said that the container base
 image *must* match the installer for the resulting cluster to be considered
 FIPS-compliant so none of these multi-library options are valid.
+
+### Publish multiple assisted-service images
+
+It's likely that a user installing in FIPS mode will only be interested in
+installing a single OCP version at a time. This means that a given version of
+assisted will need to still support both el8 and el9 FIPS installs, but a single
+deployment of assisted would not.
+
+To handle this the assisted-service image would be built twice; once based on
+el8 and again based on el9. Both images would be released and the operator would
+choose which to deploy based on configuration (likely an annotation since a more
+robust solution would be preferred in the future).
+
+For example, in the case that a user knew they wanted to deploy OCP 4.14 from a
+FIPS-enabled hub cluster they would need to indicate to the operator that the
+el8-based assisted-installer should be deployed. Assisted service could also
+check that the OCP version, current base OS, and FIPS-mode were all aligned
+before attempting to run the installer.
+
+To avoid issues when installing in a non-FIPS environment the assisted-service
+could also move to default to the statically linked installer binary for OCP
+4.16 and above, but this doesn't change anything for earlier releases.
+
+This would be something that could be implemented more quickly with less risk
+while also leaving open the possibility of a more complex solution to the general
+problem in a future release.
