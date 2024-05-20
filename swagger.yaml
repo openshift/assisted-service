@@ -6300,6 +6300,11 @@ definitions:
               items:
                 type: string
                 format: ipv6
+            cnames:
+              type: array
+              description: The cnames that were resolved for the domain, empty if none
+              items:
+                type: string
 
   disk_speed:
     type: object

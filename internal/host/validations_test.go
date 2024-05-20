@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"github.com/samber/lo"
 	"github.com/vincent-petithory/dataurl"
 	"gorm.io/gorm"
 )
@@ -436,8 +437,9 @@ var _ = Describe("Validations test", func() {
 		Describe("Wildcard connectivity check is performed", func() {
 			successMessage := "DNS wildcard check was successful"
 			successMessageDay2 := "DNS wildcard check is not required for day2"
-			failureMessage := "DNS wildcard configuration was detected for domain *.test-cluster.example.com - the installation will not be able to complete while this record exists. Please remove it to proceed. The domain resolves to addresses 7.8.9.10/24, 1003:db8::40/120"
-			subDomainFailureMessage := "Unexpected domain name resolution was detected for the relative domain name with the sub-domain *.test-cluster.example.com despite the fact that no resolution exists for a Fully Qualified Domain Name (FQDN) with same sub-domain. This is usually a sign of DHCP-provided domain-search configuration. The installation will not be able to complete with this configuration in place. Please remove it to proceed. The relative domain name resolves to addresses 7.8.9.10/24, 1003:db8::40/120"
+			failureMessage := "DNS wildcard configuration was detected for domain *.test-cluster.example.com - the installation will not be able to complete while this record exists. Please remove it to proceed. The domain resolves to 7.8.9.10/24, 1003:db8::40/120"
+			failureMessageWithCname := "DNS wildcard configuration was detected for domain *.test-cluster.example.com - the installation will not be able to complete while this record exists. Please remove it to proceed. The domain resolves to a.test.com"
+			subDomainFailureMessage := "Unexpected domain name resolution was detected for the relative domain name with the sub-domain *.test-cluster.example.com despite the fact that no resolution exists for a Fully Qualified Domain Name (FQDN) with same sub-domain. This is usually a sign of DHCP-provided domain-search configuration. The installation will not be able to complete with this configuration in place. Please remove it to proceed. The relative domain name resolves to 7.8.9.10/24, 1003:db8::40/120"
 			errorMessage := "Error while parsing DNS resolution response"
 			pendingMessage := "DNS wildcard check cannot be performed yet because the host has not yet performed DNS resolution"
 
@@ -447,6 +449,7 @@ var _ = Describe("Validations test", func() {
 			var DNSResponseStateCorruptResponse DNSResponseState = "corrupt-response"
 			var DNSResponseStateDidntResolveIllegalWildcard DNSResponseState = "didnt-resolve-illegal-wildcard"
 			var DNSResponseStateResolvedIllegalWildcard DNSResponseState = "resolved-illegal-wildcard"
+			var DNSResponseStateResolvedIllegalWildcardWithCname DNSResponseState = "resolved-illegal-wildcard-with-cname"
 			var DNSSubDomainResponseStateResolvedIllegalWildcard DNSResponseState = "sub-domain-resolved-illegal-wildcard"
 
 			for _, dnsWildcardTestCase := range []struct {
@@ -476,6 +479,15 @@ var _ = Describe("Validations test", func() {
 
 					expectedValidationStatus: ValidationFailure,
 					expectedMessage:          failureMessage,
+				},
+				{
+					testCaseName: "day 1 cluster - wildcard resolved with cname",
+					isDay2:       false,
+
+					dnsResponse: DNSResponseStateResolvedIllegalWildcardWithCname,
+
+					expectedValidationStatus: ValidationFailure,
+					expectedMessage:          failureMessageWithCname,
 				},
 				{
 					testCaseName:             "day 1 cluster - sub domain resolved wildcard",
@@ -566,6 +578,8 @@ var _ = Describe("Validations test", func() {
 						setHostDomainResolutions(testHost, common.TestDomainNameResolutionsSuccess)
 					case DNSResponseStateResolvedIllegalWildcard:
 						setHostDomainResolutions(testHost, common.TestDomainNameResolutionsWildcardResolved)
+					case DNSResponseStateResolvedIllegalWildcardWithCname:
+						setHostDomainResolutions(testHost, common.TestDomainNameResolutionsWildcardResolvedWithCname)
 					case DNSSubDomainResponseStateResolvedIllegalWildcard:
 						setHostDomainResolutions(testHost, common.TestSubDomainNameResolutionsWildcardResolved)
 					case DNSResponseStateCorruptResponse:
@@ -630,6 +644,7 @@ var _ = Describe("Validations test", func() {
 				testClusterDay2Parameters       *day2TestInfo
 				testClusterHasManagedNetworking bool
 				testHostResolvedDNS             bool
+				testHostResolvedDNSWithCname    bool
 				// whether the scenario requires the cluster to have a base
 				// domain set. This should be set to true for scenarios that
 				// actually try to validate DNS and don't give a fake "success"
@@ -648,6 +663,16 @@ var _ = Describe("Validations test", func() {
 					expectedMessage:                 successMessage,
 				},
 				{
+					testCaseName:                    "day 1 cluster - managed networking - valid DNS with CNAME",
+					testClusterDay2Parameters:       nil,
+					testClusterHasManagedNetworking: true,
+					testHostResolvedDNS:             true,
+					testHostResolvedDNSWithCname:    true,
+					requiresBaseDomain:              false,
+					expectedValidationStatus:        ValidationSuccess,
+					expectedMessage:                 successMessage,
+				},
+				{
 					testCaseName:                    "day 1 cluster - managed networking - invalid DNS",
 					testClusterDay2Parameters:       nil,
 					testClusterHasManagedNetworking: true,
@@ -661,6 +686,16 @@ var _ = Describe("Validations test", func() {
 					testClusterDay2Parameters:       nil,
 					testClusterHasManagedNetworking: false,
 					testHostResolvedDNS:             true,
+					requiresBaseDomain:              true,
+					expectedValidationStatus:        ValidationSuccess,
+					expectedMessage:                 successMessage,
+				},
+				{
+					testCaseName:                    "day 1 cluster - user managed networking - valid DNS with CNAME",
+					testClusterDay2Parameters:       nil,
+					testClusterHasManagedNetworking: false,
+					testHostResolvedDNS:             true,
+					testHostResolvedDNSWithCname:    true,
 					requiresBaseDomain:              true,
 					expectedValidationStatus:        ValidationSuccess,
 					expectedMessage:                 successMessage,
@@ -875,7 +910,8 @@ var _ = Describe("Validations test", func() {
 					dnsTestCase := dnsTestCase
 					withBaseDomain := withBaseDomain
 					It(fmt.Sprintf("%s - %s - %s", domainType.destination, dnsTestCase.testCaseName, withBaseDomainTestName), func() {
-						resolutions := common.TestDomainNameResolutionsSuccess
+						resolutions := lo.Ternary(dnsTestCase.testHostResolvedDNSWithCname, common.TestDomainNameResolutionsSuccessWithCname,
+							common.TestDomainNameResolutionsSuccess)
 						if !dnsTestCase.testHostResolvedDNS {
 							resolutions = common.TestDomainResolutionsAllEmpty
 						}

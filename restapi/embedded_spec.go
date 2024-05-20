@@ -7508,6 +7508,13 @@ func init() {
               "domain_name"
             ],
             "properties": {
+              "cnames": {
+                "description": "The cnames that were resolved for the domain, empty if none",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
               "domain_name": {
                 "description": "The domain that was resolved",
                 "type": "string"
@@ -16696,6 +16703,13 @@ func init() {
         "domain_name"
       ],
       "properties": {
+        "cnames": {
+          "description": "The cnames that were resolved for the domain, empty if none",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "domain_name": {
           "description": "The domain that was resolved",
           "type": "string"
