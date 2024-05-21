@@ -1820,6 +1820,41 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		Expect(found.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(int32(servicePort.IntValue())))
 		Expect(found.Spec.Template.Spec.Containers[0].Ports[1].ContainerPort).To(Equal(int32(serviceHTTPPort.IntValue())))
 	})
+
+	It("deploys the default image when no base image annotation is present", func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc, route, assistedCM)
+		ascc = initASC(ascr, asc)
+		AssertReconcileSuccess(ctx, log, ascc, newAssistedServiceDeployment)
+
+		found := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+		Expect(found.Spec.Template.Spec.Containers[0].Image).To(Equal("quay.io/edge-infrastructure/assisted-service:latest"))
+	})
+
+	It("deploys the el8 image when the base image annotation is set to el8", func() {
+		asc = newASCDefault()
+		setAnnotation(&asc.ObjectMeta, serviceImageBaseAnnotation, serviceImageBaseEL8)
+		ascr = newTestReconciler(asc, route, assistedCM)
+		ascc = initASC(ascr, asc)
+		AssertReconcileSuccess(ctx, log, ascc, newAssistedServiceDeployment)
+
+		found := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+		Expect(found.Spec.Template.Spec.Containers[0].Image).To(Equal("quay.io/edge-infrastructure/assisted-service-el8:latest"))
+	})
+
+	It("deploys the default image when the base image annotation is set to any value other than el8", func() {
+		asc = newASCDefault()
+		setAnnotation(&asc.ObjectMeta, serviceImageBaseAnnotation, "el10")
+		ascr = newTestReconciler(asc, route, assistedCM)
+		ascc = initASC(ascr, asc)
+		AssertReconcileSuccess(ctx, log, ascc, newAssistedServiceDeployment)
+
+		found := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+		Expect(found.Spec.Template.Spec.Containers[0].Image).To(Equal("quay.io/edge-infrastructure/assisted-service:latest"))
+	})
 })
 
 var _ = Describe("getMustGatherImages", func() {
@@ -2225,7 +2260,7 @@ var _ = Describe("getDeploymentData", func() {
 	})
 	It("sets the DEPLOYMENT TYPE and VERSION to operator when both ACM/MCE don't exist", func() {
 		getDeploymentData(ctx, cm, ascc)
-		version := ServiceImage()
+		version := ServiceImage(ascc.Object)
 		Expect(cm.Data["DEPLOYMENT_TYPE"]).To(Equal("Operator"))
 		Expect(cm.Data["DEPLOYMENT_VERSION"]).To(Equal(version))
 	})
