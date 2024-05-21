@@ -15,6 +15,7 @@ import (
 	yamlpatch "github.com/krishicks/yaml-patch"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
+	"golang.org/x/sys/unix"
 	"gorm.io/gorm"
 )
 
@@ -40,8 +41,8 @@ const (
 
 	IgnitionTokenKeyInSecret = "ignition-token"
 
-	FamilyIPv4 int32 = 4
-	FamilyIPv6 int32 = 6
+	FamilyIPv4 int32 = unix.AF_INET
+	FamilyIPv6 int32 = unix.AF_INET6
 
 	AMD64CPUArchitecture   = "amd64"
 	X86CPUArchitecture     = "x86_64"

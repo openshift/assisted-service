@@ -5,16 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/dustin/go-humanize"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/feature"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
@@ -37,7 +40,7 @@ type Validator interface {
 	GetHostInstallationPath(host *models.Host) string
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error)
-	DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, hostArchitecture string, allDisks []*models.Disk) ([]string, error)
+	DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, inventory *models.Inventory) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 	IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string, openshiftVersion string) bool
 	GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error)
@@ -108,7 +111,7 @@ func isNvme(name string) bool {
 // it against a list of predicates. Returns all the reasons the disk
 // was found to be not eligible, or an empty slice if it was found to
 // be eligible
-func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, hostArchitecture string, allDisks []*models.Disk) ([]string, error) {
+func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, inventory *models.Inventory) ([]string, error) {
 	var requirements *models.ClusterHostRequirements
 	var err error
 	var clusterVersion string
@@ -133,6 +136,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
+	hostArchitecture := inventory.CPU.Architecture
 	if !v.IsValidStorageDeviceType(disk, hostArchitecture, clusterVersion) {
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(v.getValidDeviceStorageTypes(hostArchitecture, clusterVersion), ", ")))
@@ -140,7 +144,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 
 	// We only allow multipath if all paths are FC
 	if disk.DriveType == models.DriveTypeMultipath {
-		for _, inventoryDisk := range allDisks {
+		for _, inventoryDisk := range inventory.Disks {
 			if funk.ContainsString(strings.Split(inventoryDisk.Holders, ","), disk.Name) {
 				if inventoryDisk.DriveType != models.DriveTypeFC {
 					notEligibleReasons = append(notEligibleReasons,
@@ -151,26 +155,85 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 		}
 	}
 
-	// We are not allow iSCSI disk with multipath holder
 	if disk.DriveType == models.DriveTypeISCSI {
-		multipathDiskNamesMap := make(map[string]struct{})
-		for _, inventoryDisk := range allDisks {
-			if inventoryDisk.DriveType == models.DriveTypeMultipath {
-				multipathDiskNamesMap[inventoryDisk.Name] = struct{}{}
-			}
+		err := areISCSIHoldersValid(disk, inventory)
+		if err != nil {
+			notEligibleReasons = append(notEligibleReasons, err.Error())
 		}
 
-		// Check if the iSCSI disk has any holders that are multipath disks
-		holders := strings.Split(disk.Holders, ",")
-		for _, holder := range holders {
-			if _, exists := multipathDiskNamesMap[holder]; exists {
-				notEligibleReasons = append(notEligibleReasons, iSCSIWithMultipathHolder)
-				break
-			}
+		// Check if network is configured properly to install on iSCSI boot drive
+		err = isISCSINetworkingValid(disk, inventory)
+		if err != nil {
+			notEligibleReasons = append(notEligibleReasons, err.Error())
 		}
 	}
 
 	return notEligibleReasons, nil
+}
+
+// Validate holders of iSCSI disk. We do not allow iSCSI disk with multipath holder.
+func areISCSIHoldersValid(disk *models.Disk, inventory *models.Inventory) error {
+	multipathDiskNamesMap := make(map[string]struct{})
+	for _, inventoryDisk := range inventory.Disks {
+		if inventoryDisk.DriveType == models.DriveTypeMultipath {
+			multipathDiskNamesMap[inventoryDisk.Name] = struct{}{}
+		}
+	}
+
+	// Check if the iSCSI disk has any holders that are multipath disks
+	holders := strings.Split(disk.Holders, ",")
+	for _, holder := range holders {
+		if _, exists := multipathDiskNamesMap[holder]; exists {
+			return fmt.Errorf(iSCSIWithMultipathHolder)
+		}
+	}
+
+	return nil
+
+}
+
+// isISCSINetworkingValid checks if the iSCSI dish is not connected through the
+// default network interface. The default network interface is the interface
+// which is used by the default gateway.
+func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) error {
+	// get the IPv4 or the IPv6 of the interface connected to the iSCSI target
+	if disk.Iscsi == nil {
+		return fmt.Errorf("Host IP address is not available")
+
+	}
+	iSCSIHostIP := net.ParseIP(disk.Iscsi.HostIPAddress)
+	if iSCSIHostIP == nil {
+		return fmt.Errorf("Cannot parse iSCSI host IP %s", disk.Iscsi.HostIPAddress)
+	}
+	isIPv6 := govalidator.IsIPv6(iSCSIHostIP.String())
+
+	defaultRoute := network.GetDefaultRouteByFamily(inventory.Routes, isIPv6)
+	if defaultRoute == nil {
+		return fmt.Errorf("Cannot find default route")
+	}
+
+	defaultInterface := funk.Find(inventory.Interfaces, func(i *models.Interface) bool {
+		return i.Name == defaultRoute.Interface
+	}).(*models.Interface)
+	if defaultInterface == nil {
+		return fmt.Errorf("Cannot find the network interface behind the default route")
+	}
+
+	// look if one of the IP assigned to the default interface interface
+	// corresponds to the IP used by host to connect on the iSCSI target
+	ips := defaultInterface.IPV4Addresses
+	if isIPv6 {
+		ips = defaultInterface.IPV6Addresses
+	}
+	found := funk.Find(ips, func(ip string) bool {
+		interfaceIP, _, _ := net.ParseCIDR(ip)
+		return interfaceIP.String() == iSCSIHostIP.String()
+	})
+
+	if found != nil {
+		return fmt.Errorf("iSCSI volume %s cannot be connected through default network interface %s", disk.Name, defaultRoute.Interface)
+	}
+	return nil
 }
 
 func (v *validator) IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string, openshiftVersion string) bool {
