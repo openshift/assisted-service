@@ -5933,6 +5933,8 @@ definitions:
       holders:
         type: string
         description: A comma-separated list of disk names that this disk belongs to
+      iscsi:
+        $ref: '#/definitions/iscsi'
 
   drive_type:
     type: string
@@ -5958,6 +5960,13 @@ definitions:
       sync_duration:
         type: integer
         description: 99th percentile of fsync duration in milliseconds
+
+  iscsi:
+    type: object
+    properties:
+      host_ip_address:
+        type: string
+        description: Host IP address used to reach iSCSI target
 
   boot:
     type: object

@@ -12,13 +12,14 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
+	"golang.org/x/sys/unix"
 	"gorm.io/gorm"
 )
 
 func IsDefaultRoute(r *models.Route) (bool, error) {
 	gw := net.ParseIP(r.Gateway)
 	if gw == nil {
-		return false, nil //gateway is empty for non default routes
+		return false, nil // gateway is empty for non default routes
 	}
 
 	dst := net.ParseIP(r.Destination)
@@ -27,6 +28,36 @@ func IsDefaultRoute(r *models.Route) (bool, error) {
 	}
 
 	return dst.IsUnspecified() && !gw.IsUnspecified(), nil
+}
+
+// Returns the IPv4 or the IPv6 default route
+func GetDefaultRouteByFamily(routes []*models.Route, ipv6 bool) *models.Route {
+	family := unix.AF_INET
+	if ipv6 {
+		family = unix.AF_INET6
+	}
+
+	defaultRoutes := funk.Filter(routes, func(r *models.Route) bool {
+		return int(r.Family) == family
+	}).([]*models.Route)
+	defaultRoutes = funk.Filter(defaultRoutes, func(r *models.Route) bool {
+		isDefault, _ := IsDefaultRoute(r)
+		return isDefault
+	}).([]*models.Route)
+
+	// keep the route with the lowest metric
+	var metric *int32
+	var defaultRoute *models.Route
+	for _, r := range defaultRoutes {
+		if metric != nil && *metric < r.Metric {
+			continue
+		}
+
+		metric = &r.Metric
+		defaultRoute = r
+	}
+
+	return defaultRoute
 }
 
 // Obtains the IP addresses used by a host
@@ -83,7 +114,6 @@ func GetClusterAddressStack(hosts []*models.Host) (bool, bool, error) {
 // Get configured address families from cluster configuration based on the CIDRs (machine-network-cidr, cluster-network-cidr,
 // service-network-cidr)
 func GetConfiguredAddressFamilies(cluster *common.Cluster) (ipv4 bool, ipv6 bool, err error) {
-
 	for _, cidr := range common.GetNetworksCidrs(cluster) {
 		if cidr == nil || *cidr == "" {
 			continue
