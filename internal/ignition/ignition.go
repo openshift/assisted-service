@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -327,8 +328,12 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 
 	mirrorRegistriesBuilder := mirrorregistries.New()
-	ocRelease := oc.NewRelease(&executer.CommonExecuter{}, oc.Config{
-		MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, mirrorRegistriesBuilder)
+	ocRelease := oc.NewRelease(
+		&executer.CommonExecuter{},
+		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay},
+		mirrorRegistriesBuilder,
+		system.NewLocalSystemInfo(),
+	)
 
 	release, err := g.installerCache.Get(g.installerReleaseImageOverride, g.releaseImageMirror,
 		g.cluster.PullSecret, ocRelease, g.cluster.OpenshiftVersion)
