@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	logrus "github.com/sirupsen/logrus"
@@ -35,18 +36,20 @@ var test_skopeo_multiarch_image_output string
 
 var _ = Describe("oc", func() {
 	var (
-		oc           Release
-		tempFilePath string
-		ctrl         *gomock.Controller
-		mockExecuter *executer.MockExecuter
+		oc             Release
+		tempFilePath   string
+		ctrl           *gomock.Controller
+		mockExecuter   *executer.MockExecuter
+		mockSystemInfo *system.MockSystemInfo
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockExecuter = executer.NewMockExecuter(ctrl)
+		mockSystemInfo = system.NewMockSystemInfo(ctrl)
 		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
 		mirrorRegistriesBuilder := mirrorregistries.New()
-		oc = NewRelease(mockExecuter, config, mirrorRegistriesBuilder)
+		oc = NewRelease(mockExecuter, config, mirrorRegistriesBuilder, mockSystemInfo)
 		tempFilePath = "/tmp/pull-secret"
 		mockExecuter.EXPECT().TempFile(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(dir, pattern string) (*os.File, error) {
@@ -368,6 +371,10 @@ var _ = Describe("oc", func() {
 	})
 
 	Context("Extract", func() {
+		BeforeEach(func() {
+			mockSystemInfo.EXPECT().FIPSEnabled().Return(false, nil).AnyTimes()
+		})
+
 		It("extract baremetal-install from release image", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
 				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
@@ -606,39 +613,92 @@ var _ = Describe("getIcspFileFromRegistriesConfig", func() {
 })
 
 var _ = Describe("GetReleaseBinaryPath", func() {
-	var r Release
+	var (
+		ctrl           *gomock.Controller
+		mockSystemInfo *system.MockSystemInfo
+		r              Release
+	)
+
 	BeforeEach(func() {
-		r = NewRelease(nil, Config{}, nil)
+		ctrl = gomock.NewController(GinkgoT())
+		mockSystemInfo = system.NewMockSystemInfo(ctrl)
+		r = NewRelease(nil, Config{}, nil, mockSystemInfo)
 	})
 
-	It("returns the openshift-baremetal-install binary for versions earlier than 4.16", func() {
-		_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.15.0")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-baremetal-install"))
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
-	It("returns the openshift-install binary for 4.16.0", func() {
-		_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.16.0")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-install"))
+	Context("with FIPS disabled", func() {
+		BeforeEach(func() {
+			mockSystemInfo.EXPECT().FIPSEnabled().Return(false, nil).AnyTimes()
+		})
+
+		It("returns the openshift-baremetal-install binary for versions earlier than 4.16", func() {
+			_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.15.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-baremetal-install"))
+		})
+
+		It("returns the openshift-install binary for 4.16.0", func() {
+			_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.16.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-install"))
+		})
+
+		It("returns the openshift-install binary for 4.16 pre release", func() {
+			_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.16.0-ec.6")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-install"))
+			_, bin, _, err = r.GetReleaseBinaryPath("image", "dir", "4.16.0-rc.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-install"))
+		})
+
+		It("returns the openshift-install binary for versions later than 4.16.0", func() {
+			_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.17.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-install"))
+			_, bin, _, err = r.GetReleaseBinaryPath("image", "dir", "4.18.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-install"))
+		})
 	})
 
-	It("returns the openshift-install binary for 4.16 pre release", func() {
-		_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.16.0-ec.6")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-install"))
-		_, bin, _, err = r.GetReleaseBinaryPath("image", "dir", "4.16.0-rc.0")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-install"))
-	})
+	Context("with FIPS enabled", func() {
+		BeforeEach(func() {
+			mockSystemInfo.EXPECT().FIPSEnabled().Return(true, nil).AnyTimes()
+		})
 
-	It("returns the openshift-install binary for versions later than 4.16.0", func() {
-		_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.17.0")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-install"))
-		_, bin, _, err = r.GetReleaseBinaryPath("image", "dir", "4.18.0")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-install"))
+		It("returns the openshift-baremetal-install binary for versions earlier than 4.16", func() {
+			_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.15.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-baremetal-install"))
+		})
+
+		It("returns the openshift-baremetal-install binary for 4.16.0", func() {
+			_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.16.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-baremetal-install"))
+		})
+
+		It("returns the openshift-install binary for 4.16 pre release", func() {
+			_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.16.0-ec.6")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-baremetal-install"))
+			_, bin, _, err = r.GetReleaseBinaryPath("image", "dir", "4.16.0-rc.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-baremetal-install"))
+		})
+
+		It("returns the openshift-install binary for versions later than 4.16.0", func() {
+			_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.17.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-baremetal-install"))
+			_, bin, _, err = r.GetReleaseBinaryPath("image", "dir", "4.18.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(bin).To(Equal("openshift-baremetal-install"))
+		})
 	})
 })
 
