@@ -2125,6 +2125,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 	}
 	if params.ClusterUpdateParams.MachineNetworks != nil &&
 		common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) &&
+		interactivity == Interactive &&
 		!reqDualStack {
 		err := errors.New("Setting Machine network CIDR is forbidden when cluster is not in vip-dhcp-allocation mode")
 		log.WithError(err).Warnf("Set Machine Network CIDR")
