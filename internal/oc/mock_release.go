@@ -35,18 +35,18 @@ func (m *MockRelease) EXPECT() *MockReleaseMockRecorder {
 }
 
 // Extract mocks base method.
-func (m *MockRelease) Extract(log logrus.FieldLogger, releaseImage, releaseImageMirror, cacheDir, pullSecret string) (string, error) {
+func (m *MockRelease) Extract(log logrus.FieldLogger, releaseImage, releaseImageMirror, cacheDir, pullSecret, ocpVersion string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Extract", log, releaseImage, releaseImageMirror, cacheDir, pullSecret)
+	ret := m.ctrl.Call(m, "Extract", log, releaseImage, releaseImageMirror, cacheDir, pullSecret, ocpVersion)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Extract indicates an expected call of Extract.
-func (mr *MockReleaseMockRecorder) Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret interface{}) *gomock.Call {
+func (mr *MockReleaseMockRecorder) Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret, ocpVersion interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockRelease)(nil).Extract), log, releaseImage, releaseImageMirror, cacheDir, pullSecret)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockRelease)(nil).Extract), log, releaseImage, releaseImageMirror, cacheDir, pullSecret, ocpVersion)
 }
 
 // GetIronicAgentImage mocks base method.
@@ -155,17 +155,18 @@ func (mr *MockReleaseMockRecorder) GetReleaseArchitecture(log, releaseImage, rel
 }
 
 // GetReleaseBinaryPath mocks base method.
-func (m *MockRelease) GetReleaseBinaryPath(releaseImage, cacheDir string) (string, string, string) {
+func (m *MockRelease) GetReleaseBinaryPath(releaseImage, cacheDir, ocpVersion string) (string, string, string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetReleaseBinaryPath", releaseImage, cacheDir)
+	ret := m.ctrl.Call(m, "GetReleaseBinaryPath", releaseImage, cacheDir, ocpVersion)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(string)
-	return ret0, ret1, ret2
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
 }
 
 // GetReleaseBinaryPath indicates an expected call of GetReleaseBinaryPath.
-func (mr *MockReleaseMockRecorder) GetReleaseBinaryPath(releaseImage, cacheDir interface{}) *gomock.Call {
+func (mr *MockReleaseMockRecorder) GetReleaseBinaryPath(releaseImage, cacheDir, ocpVersion interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseBinaryPath", reflect.TypeOf((*MockRelease)(nil).GetReleaseBinaryPath), releaseImage, cacheDir)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseBinaryPath", reflect.TypeOf((*MockRelease)(nil).GetReleaseBinaryPath), releaseImage, cacheDir, ocpVersion)
 }
