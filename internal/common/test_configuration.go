@@ -159,6 +159,31 @@ var DomainResolutions = []*models.DomainResolutionResponseDomain{
 	},
 }
 
+var DomainResolutionsWithCname = []*models.DomainResolutionResponseDomain{
+	{
+		DomainName: &DomainAPI,
+		Cnames:     []string{"api.cname.com"},
+	},
+	{
+		DomainName: &DomainAPIInternal,
+		Cnames:     []string{"api-int.cname.com"},
+	},
+	{
+		DomainName: &DomainApps,
+		Cnames:     []string{"console.apps.cname.com"},
+	},
+	{
+		DomainName: &ReleaseDomain,
+		Cnames:     []string{"release.cname.com"},
+	},
+	{
+		DomainName: &WildcardDomain,
+	},
+	{
+		DomainName: &UndottedWildcardDomain,
+	},
+}
+
 var WildcardResolved = []*models.DomainResolutionResponseDomain{
 	{
 		DomainName:    &WildcardDomain,
@@ -169,6 +194,17 @@ var WildcardResolved = []*models.DomainResolutionResponseDomain{
 		DomainName:    &UndottedWildcardDomain,
 		IPV4Addresses: []strfmt.IPv4{"7.8.9.10/24"},
 		IPV6Addresses: []strfmt.IPv6{"1003:db8::40/120"},
+	},
+}
+
+var WildcardResolvedWithCname = []*models.DomainResolutionResponseDomain{
+	{
+		DomainName: &WildcardDomain,
+		Cnames:     []string{"a.test.com"},
+	},
+	{
+		DomainName: &UndottedWildcardDomain,
+		Cnames:     []string{"a.test.com"},
 	},
 }
 
@@ -237,9 +273,11 @@ var DomainResolutionAllEmpty = []*models.DomainResolutionResponseDomain{
 }
 
 var TestDomainNameResolutionsSuccess = &models.DomainResolutionResponse{Resolutions: DomainResolutions}
+var TestDomainNameResolutionsSuccessWithCname = &models.DomainResolutionResponse{Resolutions: DomainResolutionsWithCname}
 var TestDomainResolutionsNoAPI = &models.DomainResolutionResponse{Resolutions: DomainResolutionNoAPI}
 var TestDomainResolutionsAllEmpty = &models.DomainResolutionResponse{Resolutions: DomainResolutionAllEmpty}
 var TestDomainNameResolutionsWildcardResolved = &models.DomainResolutionResponse{Resolutions: WildcardResolved}
+var TestDomainNameResolutionsWildcardResolvedWithCname = &models.DomainResolutionResponse{Resolutions: WildcardResolvedWithCname}
 var TestSubDomainNameResolutionsWildcardResolved = &models.DomainResolutionResponse{Resolutions: SubDomainWildcardResolved}
 
 var TestDefaultRouteConfiguration = []*models.Route{{Family: FamilyIPv4, Interface: "eth0", Gateway: "1.2.3.10", Destination: "0.0.0.0", Metric: 600}}
