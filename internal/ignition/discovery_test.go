@@ -301,23 +301,22 @@ var _ = Describe("IgnitionBuilder", func() {
 				"https://usr%%40name:passwd%%5D@10.10.1.1:3128",
 			),
 		),
+		Entry(
+			"contains asterisk no proxy",
+			models.Proxy{HTTPProxy: swag.String("http://10.10.1.1:3128"), NoProxy: swag.String("*")},
+			`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["*"] }`,
+			fmt.Sprintf(
+				"export HTTP_PROXY=%[1]s\nexport http_proxy=%[1]s\nexport NO_PROXY=%[2]s\nexport no_proxy=%[2]s\n",
+				"http://10.10.1.1:3128",
+				"*",
+			),
+			fmt.Sprintf(
+				`Environment=HTTP_PROXY=%[1]s\nEnvironment=http_proxy=%[1]s\nEnvironment=HTTPS_PROXY=\nEnvironment=https_proxy=\nEnvironment=NO_PROXY=%[2]s\nEnvironment=no_proxy=%[2]s`,
+				"http://10.10.1.1:3128",
+				"*",
+			),
+		),
 	)
-
-	It("ignition_file_contains_asterisk_no_proxy", func() {
-		proxy := models.Proxy{
-			HTTPProxy: swag.String("http://10.10.1.1:3128"),
-			NoProxy:   swag.String("*"),
-		}
-		infraEnv.Proxy = &proxy
-		serviceBaseURL := "file://10.56.20.70:7878"
-		ignitionConfig.ServiceBaseURL = serviceBaseURL
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
-
-		Expect(err).Should(BeNil())
-		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["*"] }`))
-	})
 
 	It("produces a valid ignition v3.1 spec by default", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
