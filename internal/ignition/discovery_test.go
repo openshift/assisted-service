@@ -225,7 +225,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	DescribeTable("ignition_file_contains_http_proxy",
-		func(proxy models.Proxy, expectedIgnitionProxySetting, expectedProxyScriptSetting string) {
+		func(proxy models.Proxy, expectedIgnitionProxySetting, expectedProxyScriptSetting string, expectedAgentSeriveProxySetting string) {
 			infraEnv.Proxy = &proxy
 			serviceBaseURL := "file://10.56.20.70:7878"
 			ignitionConfig.ServiceBaseURL = serviceBaseURL
@@ -242,6 +242,8 @@ var _ = Describe("IgnitionBuilder", func() {
 			expectedFileContent := dataurl.EncodeBytes([]byte(expectedProxyScriptSetting))
 			Expect(minifiedText).Should(ContainSubstring(`{"path":"/etc/profile.d/proxy.sh","mode":644,"user":{"name":"root"},"contents":{"source":"` + expectedFileContent + `"}}`))
 
+			By("verify agent.service proxy settings are correct")
+			Expect(minifiedText).Should(ContainSubstring(expectedAgentSeriveProxySetting))
 		},
 		Entry(
 			"http",
@@ -252,6 +254,11 @@ var _ = Describe("IgnitionBuilder", func() {
 				"http://10.10.1.1:3128",
 				"quay.io",
 			),
+			fmt.Sprintf(
+				`Environment=HTTP_PROXY=%[1]s\nEnvironment=http_proxy=%[1]s\nEnvironment=HTTPS_PROXY=\nEnvironment=https_proxy=\nEnvironment=NO_PROXY=%[2]s\nEnvironment=no_proxy=%[2]s`,
+				"http://10.10.1.1:3128",
+				"quay.io",
+			),
 		),
 		Entry(
 			"https",
@@ -259,6 +266,10 @@ var _ = Describe("IgnitionBuilder", func() {
 			`"proxy": { "httpsProxy": "https://10.10.1.1:3128"`,
 			fmt.Sprintf(
 				"export HTTPS_PROXY=%[1]s\nexport https_proxy=%[1]s\n",
+				"https://10.10.1.1:3128",
+			),
+			fmt.Sprintf(
+				`Environment=HTTP_PROXY=\nEnvironment=http_proxy=\nEnvironment=HTTPS_PROXY=%[1]s\nEnvironment=https_proxy=%[1]s\nEnvironment=NO_PROXY=\nEnvironment=no_proxy=`,
 				"https://10.10.1.1:3128",
 			),
 		),
