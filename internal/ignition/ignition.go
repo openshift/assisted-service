@@ -331,7 +331,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, mirrorRegistriesBuilder)
 
 	release, err := g.installerCache.Get(g.installerReleaseImageOverride, g.releaseImageMirror,
-		g.cluster.PullSecret, ocRelease, g.cluster.OpenshiftVersion)
+		g.cluster.PullSecret, ocRelease)
 	if err != nil {
 		return errors.Wrap(err, "failed to get installer path")
 	}

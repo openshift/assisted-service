@@ -374,7 +374,7 @@ var _ = Describe("oc", func() {
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
-			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret, "4.15.0")
+			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret)
 			filePath := filepath.Join(cacheDir+"/"+releaseImage, baremetalInstallBinary)
 			Expect(path).To(Equal(filePath))
 			Expect(err).ShouldNot(HaveOccurred())
@@ -386,14 +386,14 @@ var _ = Describe("oc", func() {
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
-			path, err := oc.Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret, "4.15.0")
+			path, err := oc.Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret)
 			filePath := filepath.Join(cacheDir+"/"+releaseImageMirror, baremetalInstallBinary)
 			Expect(path).To(Equal(filePath))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("extract baremetal-install with no release image or mirror", func() {
-			path, err := oc.Extract(log, "", "", cacheDir, pullSecret, "4.15.0")
+			path, err := oc.Extract(log, "", "", cacheDir, pullSecret)
 			Expect(path).Should(BeEmpty())
 			Expect(err).Should(HaveOccurred())
 		})
@@ -404,7 +404,7 @@ var _ = Describe("oc", func() {
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "Failed to extract the installer", 1).Times(1)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
-			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret, "4.15.0")
+			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret)
 			filePath := filepath.Join(cacheDir+"/"+releaseImage, baremetalInstallBinary)
 			Expect(path).To(Equal(filePath))
 			Expect(err).ShouldNot(HaveOccurred())
@@ -416,7 +416,7 @@ var _ = Describe("oc", func() {
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "Failed to extract the installer", 1).Times(5)
 
-			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret, "4.15.0")
+			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret)
 			Expect(path).To(Equal(""))
 			Expect(err).Should(HaveOccurred())
 		})
@@ -602,43 +602,6 @@ var _ = Describe("getIcspFileFromRegistriesConfig", func() {
 		Expect(err).Should(HaveOccurred())
 		Expect(err).Should(MatchError("extract failed"))
 		Expect(icspFile).Should(Equal(""))
-	})
-})
-
-var _ = Describe("GetReleaseBinaryPath", func() {
-	var r Release
-	BeforeEach(func() {
-		r = NewRelease(nil, Config{}, nil)
-	})
-
-	It("returns the openshift-baremetal-install binary for versions earlier than 4.16", func() {
-		_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.15.0")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-baremetal-install"))
-	})
-
-	It("returns the openshift-install binary for 4.16.0", func() {
-		_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.16.0")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-install"))
-	})
-
-	It("returns the openshift-install binary for 4.16 pre release", func() {
-		_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.16.0-ec.6")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-install"))
-		_, bin, _, err = r.GetReleaseBinaryPath("image", "dir", "4.16.0-rc.0")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-install"))
-	})
-
-	It("returns the openshift-install binary for versions later than 4.16.0", func() {
-		_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.17.0")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-install"))
-		_, bin, _, err = r.GetReleaseBinaryPath("image", "dir", "4.18.0")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(bin).To(Equal("openshift-install"))
 	})
 })
 

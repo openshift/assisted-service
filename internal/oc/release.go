@@ -24,13 +24,12 @@ import (
 )
 
 const (
-	mcoImageName                   = "machine-config-operator"
-	ironicAgentImageName           = "ironic-agent"
-	mustGatherImageName            = "must-gather"
-	okdRPMSImageName               = "okd-rpms"
-	DefaultTries                   = 5
-	DefaltRetryDelay               = time.Second * 5
-	staticInstallerRequiredVersion = "4.16.0-ec.6"
+	mcoImageName         = "machine-config-operator"
+	ironicAgentImageName = "ironic-agent"
+	mustGatherImageName  = "must-gather"
+	okdRPMSImageName     = "okd-rpms"
+	DefaultTries         = 5
+	DefaltRetryDelay     = time.Second * 5
 )
 
 type Config struct {
@@ -47,8 +46,8 @@ type Release interface {
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) ([]string, error)
-	GetReleaseBinaryPath(releaseImage string, cacheDir string, ocpVersion string) (workdir string, binary string, path string, err error)
-	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, ocpVersion string) (string, error)
+	GetReleaseBinaryPath(releaseImage string, cacheDir string) (workdir string, binary string, path string)
+	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string) (string, error)
 }
 
 type imageValue struct {
@@ -312,9 +311,9 @@ func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, release
 	return strings.Trim(version, "'"), nil
 }
 
-// Extract installer binary from releaseImageMirror if provided.
+// Extract openshift-baremetal-install binary from releaseImageMirror if provided.
 // Else extract from the source releaseImage
-func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, ocpVersion string) (string, error) {
+func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string) (string, error) {
 	var path string
 	var err error
 	if releaseImage == "" && releaseImageMirror == "" {
@@ -329,13 +328,13 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
-		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, icspFile, ocpVersion)
+		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, icspFile)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from mirror release image %s", releaseImageMirror)
 			return "", err
 		}
 	} else {
-		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, icspFile, ocpVersion)
+		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, icspFile)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from release image %s", releaseImage)
 			return "", err
@@ -344,35 +343,19 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 	return path, err
 }
 
-func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string, ocpVersion string) (workdir string, binary string, path string, err error) {
-	binary = "openshift-baremetal-install"
-
-	// use the statically linked binary for 4.16 and up since our container is el8
-	// based and the baremetal binary for those versions is dynamically linked
-	// against el9 libaries
-	staticLinkingRequiredVersion := version.Must(version.NewVersion(staticInstallerRequiredVersion))
-	v, err := version.NewVersion(ocpVersion)
-	if err != nil {
-		return "", "", "", err
-	}
-	if v.GreaterThanOrEqual(staticLinkingRequiredVersion) {
-		binary = "openshift-install"
-	}
-
+func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string) (workdir string, binary string, path string) {
 	workdir = filepath.Join(cacheDir, releaseImage)
+	binary = "openshift-baremetal-install"
 	path = filepath.Join(workdir, binary)
 	return
 }
 
 // extractFromRelease returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image.
-func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, icspFile string, ocpVersion string) (string, error) {
-	workdir, binary, path, err := r.GetReleaseBinaryPath(releaseImage, cacheDir, ocpVersion)
-	if err != nil {
-		return "", err
-	}
+func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, icspFile string) (string, error) {
+	workdir, binary, path := r.GetReleaseBinaryPath(releaseImage, cacheDir)
 	log.Infof("extracting %s binary to %s", binary, workdir)
-	err = os.MkdirAll(workdir, 0755)
+	err := os.MkdirAll(workdir, 0755)
 	if err != nil {
 		return "", err
 	}

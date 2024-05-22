@@ -39,29 +39,29 @@ var _ = Describe("installer cache", func() {
 		os.RemoveAll(cacheDir)
 	})
 
-	testGet := func(releaseID, version string) (string, string) {
+	testGet := func(releaseID string) (string, string) {
 		workdir := filepath.Join(cacheDir, "quay.io", "release-dev")
 		fname := filepath.Join(workdir, releaseID)
 
 		mockRelease.EXPECT().GetReleaseBinaryPath(
-			gomock.Any(), gomock.Any(), version).
-			Return(workdir, releaseID, fname, nil)
+			gomock.Any(), gomock.Any()).
+			Return(workdir, releaseID, fname)
 		mockRelease.EXPECT().Extract(gomock.Any(), releaseID,
-			gomock.Any(), cacheDir, gomock.Any(), version).
-			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, version string) (string, error) {
+			gomock.Any(), cacheDir, gomock.Any()).
+			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string) (string, error) {
 				err := os.WriteFile(fname, []byte("abcde"), 0600)
 				return "", err
 			})
-		l, err := manager.Get(releaseID, "mirror", "pull-secret", mockRelease, version)
+		l, err := manager.Get(releaseID, "mirror", "pull-secret", mockRelease)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		time.Sleep(1 * time.Second)
 		return fname, l.Path
 	}
 	It("evicts the oldest file", func() {
-		r1, l1 := testGet("4.8", "4.8.0")
-		r2, l2 := testGet("4.9", "4.9.0")
-		r3, l3 := testGet("4.10", "4.10.0")
+		r1, l1 := testGet("4.8")
+		r2, l2 := testGet("4.9")
+		r3, l3 := testGet("4.10")
 
 		By("verify that the oldest file was deleted")
 		_, err := os.Stat(r1)
@@ -82,10 +82,10 @@ var _ = Describe("installer cache", func() {
 	})
 
 	It("exising files access time is updated", func() {
-		_, _ = testGet("4.8", "4.8.0")
-		r2, _ := testGet("4.9", "4.9.0")
-		r1, _ := testGet("4.8", "4.8.0")
-		r3, _ := testGet("4.10", "4.10.0")
+		_, _ = testGet("4.8")
+		r2, _ := testGet("4.9")
+		r1, _ := testGet("4.8")
+		r3, _ := testGet("4.10")
 
 		By("verify that the oldest file was deleted")
 		_, err := os.Stat(r1)
@@ -99,9 +99,9 @@ var _ = Describe("installer cache", func() {
 	It("when cache limit is not set eviction is skipped", func() {
 		manager.storageCapacity = 0
 
-		r1, _ := testGet("4.8", "4.8.0")
-		r2, _ := testGet("4.9", "4.9.0")
-		r3, _ := testGet("4.10", "4.10.0")
+		r1, _ := testGet("4.8")
+		r2, _ := testGet("4.9")
+		r3, _ := testGet("4.10")
 
 		By("verify that the no file was deleted")
 		_, err := os.Stat(r1)
@@ -116,40 +116,38 @@ var _ = Describe("installer cache", func() {
 	It("extracts from the mirror", func() {
 		releaseID := "4.10-orig"
 		releaseMirrorID := "4.10-mirror"
-		version := "4.10.0"
 		workdir := filepath.Join(cacheDir, "quay.io", "release-dev")
 		fname := filepath.Join(workdir, releaseID)
 
 		mockRelease.EXPECT().GetReleaseBinaryPath(
-			releaseMirrorID, gomock.Any(), version).
-			Return(workdir, releaseID, fname, nil)
+			releaseMirrorID, gomock.Any()).
+			Return(workdir, releaseID, fname)
 		mockRelease.EXPECT().Extract(gomock.Any(), releaseID,
-			gomock.Any(), cacheDir, gomock.Any(), version).
-			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, version string) (string, error) {
+			gomock.Any(), cacheDir, gomock.Any()).
+			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string) (string, error) {
 				err := os.WriteFile(fname, []byte("abcde"), 0600)
 				return "", err
 			})
-		_, err := manager.Get(releaseID, releaseMirrorID, "pull-secret", mockRelease, version)
+		_, err := manager.Get(releaseID, releaseMirrorID, "pull-secret", mockRelease)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("extracts without a mirror", func() {
 		releaseID := "4.10-orig"
 		releaseMirrorID := ""
-		version := "4.10.0"
 		workdir := filepath.Join(cacheDir, "quay.io", "release-dev")
 		fname := filepath.Join(workdir, releaseID)
 
 		mockRelease.EXPECT().GetReleaseBinaryPath(
-			releaseID, gomock.Any(), version).
-			Return(workdir, releaseID, fname, nil)
+			releaseID, gomock.Any()).
+			Return(workdir, releaseID, fname)
 		mockRelease.EXPECT().Extract(gomock.Any(), releaseID,
-			gomock.Any(), cacheDir, gomock.Any(), version).
-			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, version string) (string, error) {
+			gomock.Any(), cacheDir, gomock.Any()).
+			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string) (string, error) {
 				err := os.WriteFile(fname, []byte("abcde"), 0600)
 				return "", err
 			})
-		_, err := manager.Get(releaseID, releaseMirrorID, "pull-secret", mockRelease, version)
+		_, err := manager.Get(releaseID, releaseMirrorID, "pull-secret", mockRelease)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 })
