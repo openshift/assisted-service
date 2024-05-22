@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-version"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/patrickmn/go-cache"
@@ -60,14 +61,20 @@ type release struct {
 	executer                executer.Executer
 	config                  Config
 	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+	sys                     system.SystemInfo
 
 	// A map for caching images (image name > release image URL > image)
 	imagesMap common.ExpiringCache
 }
 
-func NewRelease(executer executer.Executer, config Config, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder) Release {
-	return &release{executer: executer, config: config, imagesMap: common.NewExpiringCache(cache.NoExpiration, cache.NoExpiration),
-		mirrorRegistriesBuilder: mirrorRegistriesBuilder}
+func NewRelease(executer executer.Executer, config Config, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder, sys system.SystemInfo) Release {
+	return &release{
+		executer:                executer,
+		config:                  config,
+		imagesMap:               common.NewExpiringCache(cache.NoExpiration, cache.NoExpiration),
+		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
+		sys:                     sys,
+	}
 }
 
 const (
@@ -347,16 +354,23 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string, ocpVersion string) (workdir string, binary string, path string, err error) {
 	binary = "openshift-baremetal-install"
 
-	// use the statically linked binary for 4.16 and up since our container is el8
-	// based and the baremetal binary for those versions is dynamically linked
-	// against el9 libaries
-	staticLinkingRequiredVersion := version.Must(version.NewVersion(staticInstallerRequiredVersion))
-	v, err := version.NewVersion(ocpVersion)
+	fipsEnabled, err := r.sys.FIPSEnabled()
 	if err != nil {
 		return "", "", "", err
 	}
-	if v.GreaterThanOrEqual(staticLinkingRequiredVersion) {
-		binary = "openshift-install"
+
+	if !fipsEnabled {
+		// use the statically linked binary for 4.16 and up since our container is el8
+		// based and the baremetal binary for those versions is dynamically linked
+		// against el9 libaries
+		staticLinkingRequiredVersion := version.Must(version.NewVersion(staticInstallerRequiredVersion))
+		v, err := version.NewVersion(ocpVersion)
+		if err != nil {
+			return "", "", "", err
+		}
+		if v.GreaterThanOrEqual(staticLinkingRequiredVersion) {
+			binary = "openshift-install"
+		}
 	}
 
 	workdir = filepath.Join(cacheDir, releaseImage)

@@ -51,6 +51,7 @@ import (
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/internal/stream"
+	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/internal/uploader"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -301,8 +302,12 @@ func main() {
 	var startupLeader leader.ElectorInterface
 
 	mirrorRegistriesBuilder := mirrorregistries.New()
-	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
-		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, mirrorRegistriesBuilder)
+	releaseHandler := oc.NewRelease(
+		&executer.CommonExecuter{},
+		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay},
+		mirrorRegistriesBuilder,
+		system.NewLocalSystemInfo(),
+	)
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 
