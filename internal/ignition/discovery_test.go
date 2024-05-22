@@ -273,6 +273,34 @@ var _ = Describe("IgnitionBuilder", func() {
 				"https://10.10.1.1:3128",
 			),
 		),
+		Entry(
+			"http with special characters",
+			models.Proxy{HTTPProxy: swag.String("http://usr%40name:passwd%5D@10.10.1.1:3128"), NoProxy: swag.String("quay.io")},
+			`"proxy": { "httpProxy": "http://usr%40name:passwd%5D@10.10.1.1:3128", "noProxy": ["quay.io"] }`,
+			fmt.Sprintf(
+				"export HTTP_PROXY=%[1]s\nexport http_proxy=%[1]s\nexport NO_PROXY=%[2]s\nexport no_proxy=%[2]s\n",
+				"http://usr%40name:passwd%5D@10.10.1.1:3128",
+				"quay.io",
+			),
+			fmt.Sprintf(
+				`Environment=HTTP_PROXY=%[1]s\nEnvironment=http_proxy=%[1]s\nEnvironment=HTTPS_PROXY=\nEnvironment=https_proxy=\nEnvironment=NO_PROXY=%[2]s\nEnvironment=no_proxy=%[2]s`,
+				"http://usr%%40name:passwd%%5D@10.10.1.1:3128",
+				"quay.io",
+			),
+		),
+		Entry(
+			"https with special characters",
+			models.Proxy{HTTPSProxy: swag.String("https://usr%40name:passwd%5D@10.10.1.1:3128")},
+			`"proxy": { "httpsProxy": "https://usr%40name:passwd%5D@10.10.1.1:3128"`,
+			fmt.Sprintf(
+				"export HTTPS_PROXY=%[1]s\nexport https_proxy=%[1]s\n",
+				"https://usr%40name:passwd%5D@10.10.1.1:3128",
+			),
+			fmt.Sprintf(
+				`Environment=HTTP_PROXY=\nEnvironment=http_proxy=\nEnvironment=HTTPS_PROXY=%[1]s\nEnvironment=https_proxy=%[1]s\nEnvironment=NO_PROXY=\nEnvironment=no_proxy=`,
+				"https://usr%%40name:passwd%%5D@10.10.1.1:3128",
+			),
+		),
 	)
 
 	It("ignition_file_contains_asterisk_no_proxy", func() {
