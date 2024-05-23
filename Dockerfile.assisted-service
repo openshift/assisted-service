@@ -1,3 +1,5 @@
+ARG BASE_TAG=stream9
+
 # Generate python client
 FROM quay.io/edge-infrastructure/swagger-codegen-cli:2.4.18 as swagger_py
 COPY swagger.yaml .
@@ -13,9 +15,11 @@ RUN cd /assisted-service/build && python3 ../tools/client_package_initializer.py
 # TODO: Currently, the Python package is included in the service image for testing purposes. It conveniently allows matching a service version to a specific Python client version. In the future, once the Python package is published on pip, it should (probably) be removed from the Assisted Service image (this dockerfile).
 
 # Build binaries
-FROM quay.io/centos/centos:stream9 as builder
+FROM quay.io/centos/centos:$BASE_TAG as builder
 
-RUN dnf install --enablerepo=crb -y gcc git nmstate-devel && dnf clean all
+COPY hack/container_build_scripts/install_build_deps.sh .
+ARG BASE_TAG
+RUN ./install_build_deps.sh $BASE_TAG
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.20 /usr/local/go /usr/local/go
 
 ENV GOROOT=/usr/local/go
@@ -39,7 +43,7 @@ RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o
 RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
 
 # Create final image
-FROM quay.io/centos/centos:stream9
+FROM quay.io/centos/centos:$BASE_TAG
 
 # multiarch images need it till WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
 RUN dnf install -y --setopt=install_weak_deps=False skopeo
