@@ -19,8 +19,10 @@ import (
 
 // #nosec
 const (
+	// dXNlcjpwYXNzd29yZAo= <-> user:password
+	// dXNlcjpwYXNzOndvcmQK <-> user:pass:word
 	validPullSecretWithCIToken = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}, \"registry.ci\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
-	validSecretFormat          = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
+	validSecretFormat          = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzOndvcmQK\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
 	invalidAuthFormat          = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
 	invalidSecretFormat        = "{\"auths\":{\"cloud.openshift.com\":{\"key\":\"abcdef=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"adasfsdf=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"tatastata==\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
 	invalidStrSecretFormat     = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":null,\"email\":null},\"quay.io\":{\"auth\":\"adasfsdf=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"tatastata==\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
@@ -29,14 +31,14 @@ const (
 	invalidSSHPublicKeyA       = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDI2PBP9RuAHCJ1JvxS0gkK7cm1sMHtdqCYuHzK7fmoMSPeAu+GEPVlBmes825gabO7vUK/pVmcsP9mQLXB0KZ8m/QEBXSO9vmF8dEt5OqtpRLcRzxmcnU1iUs50VSQyEeSxdSV4KA9JuWa+q0f3o3VO+CF6s4kQvQ4lumyCyNSFIBnFCX16+O8syah/UpHUWVqJeHaXCV8qzYKyRvy6nMI5lqCgxe+ENqHkgfkQkgEKHZ8gEnzHtJgewZ3E6fbjQ59eEEvF0zb7WKKWA0YzWOMVGGybj4cFMPQ4Jt7iJ0OZKPBQZMHBcPNrej5lasgcKR7nH5XS0UjHhX5vZJ7e7zONHK4XZj6OjEOXilg3/4rxSn0+QQtT1v0RDXRQhHS6sCyRFV12MqEP8XjPIdBMbE26lRwk3tBwWx7plj3UCVamQid3nY5kslD4X7+cqE8n3bNF922rhCy5STycfEFN3XTs73yKvVPjpro4aQw4BVi4P7B7m7F1d/DqRBuYwWuQ6cLLLLLLLLLLL= root@xxxxxx.xx.xxx.xxx.redhat.com"
 	invalidSSHPublicKeyB       = "test!!! ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56uar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvHMAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqngqbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3fAC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAqIfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
 	userName                   = "jdoe123@example.com"
-	validSecretFormatUpdated   = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.stage.redhat.io\":{\"auth\":\"c29tZW9uZUBleGFtcGxlLmNvbTp0aGlzaXNhc2VjcmV0\"}}}"
+	validSecretFormatUpdated   = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzOndvcmQK\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.stage.redhat.io\":{\"auth\":\"c29tZW9uZUBleGFtcGxlLmNvbTp0aGlzaXNhc2VjcmV0\"}}}"
 	regCred                    = "someone@example.com:thisisasecret"
 )
 
 var _ = Describe("Pull secret validation", func() {
 
 	var secretValidator PullSecretValidator
-	var secretValiatorWithNoAuth PullSecretValidator
+	var secretValidatorWithNoAuth PullSecretValidator
 
 	log := logrus.New()
 	authHandlerDisabled := auth.NewNoneAuthenticator(log.WithField("pkg", "auth"))
@@ -55,29 +57,29 @@ var _ = Describe("Pull secret validation", func() {
 
 		BeforeEach(func() {
 			secretValidator, _ = NewPullSecretValidator(map[string]bool{}, authHandler)
-			secretValiatorWithNoAuth, _ = NewPullSecretValidator(map[string]bool{}, authHandlerDisabled)
+			secretValidatorWithNoAuth, _ = NewPullSecretValidator(map[string]bool{}, authHandlerDisabled)
 		})
 
 		It("valid format", func() {
-			err := secretValiatorWithNoAuth.ValidatePullSecret(validSecretFormat, "", "")
+			err := secretValidatorWithNoAuth.ValidatePullSecret(validSecretFormat, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("empty secret", func() {
-			err := secretValiatorWithNoAuth.ValidatePullSecret("", "", "")
+			err := secretValidatorWithNoAuth.ValidatePullSecret("", "", "")
 			Expect(err).Should(HaveOccurred())
 		})
 		It("invalid format for the auth", func() {
-			err := secretValiatorWithNoAuth.ValidatePullSecret(invalidAuthFormat, "", "")
+			err := secretValidatorWithNoAuth.ValidatePullSecret(invalidAuthFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("invalid format", func() {
-			err := secretValiatorWithNoAuth.ValidatePullSecret(invalidSecretFormat, "", "")
+			err := secretValidatorWithNoAuth.ValidatePullSecret(invalidSecretFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("invalid format - non-string", func() {
-			err := secretValiatorWithNoAuth.ValidatePullSecret(invalidStrSecretFormat, "", "")
+			err := secretValidatorWithNoAuth.ValidatePullSecret(invalidStrSecretFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
@@ -365,7 +367,7 @@ var _ = Describe("URL validations", func() {
 	})
 })
 
-var _ = Describe("Get registirey", func() {
+var _ = Describe("Get registries", func() {
 	getRegistriesWithAuth := func(ignorableImages map[string]bool, images ...string) (*map[string]bool, error) {
 		registriesWithAuth := map[string]bool{}
 		for _, image := range images {
