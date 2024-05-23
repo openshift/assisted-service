@@ -13,6 +13,7 @@ import (
 	"github.com/nmstate/nmstate/rust/src/go/nmstate"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v2"
@@ -164,13 +165,46 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 	return buf.String(), nil
 }
 
+func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistence(macInterfaceMap models.MacInterfaceMap, networksConfig []StaticNetworkConfigData) error {
+	interfaceNames := lo.Map(macInterfaceMap, func(m *models.MacInterfaceMapItems0, _ int) string { return m.LogicalNicName })
+	var matched bool
+	for _, nc := range networksConfig {
+		cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, []byte(nc.FileContents))
+		if err != nil {
+			s.log.WithError(err).Errorf("Failed to load the ini format string %s", nc.FileContents)
+			return err
+		}
+		connectionSection := cfg.Section("connection")
+		interfaceName, err := connectionSection.GetKey("interface-name")
+		if err != nil {
+			return errors.Wrapf(err, "failed to get interface-name for file %s", nc.FilePath)
+		}
+		interfaceType, err := connectionSection.GetKey("type")
+		if err != nil {
+			return errors.Wrapf(err, "failed to get interface type for interface %s", interfaceName.String())
+		}
+		if lo.Contains([]string{"802-3-ethernet", "ethernet"}, interfaceType.String()) {
+			if !lo.Contains(interfaceNames, interfaceName.String()) {
+				return errors.Errorf("mac-interface mapping for interface %s is missing", interfaceName.String())
+			}
+			matched = true
+		}
+	}
+	if !matched {
+		return errors.Errorf("no mac address mapping can be associated with the available network interfaces %v", interfaceNames)
+	}
+	return nil
+}
+
 func (s *StaticNetworkConfigGenerator) ValidateStaticConfigParams(staticNetworkConfig []*models.HostStaticNetworkConfig) error {
 	var err *multierror.Error
 	for i, hostConfig := range staticNetworkConfig {
 		err = multierror.Append(err, s.validateMacInterfaceName(i, hostConfig.MacInterfaceMap))
-		if validateErr := s.validateNMStateYaml(hostConfig.NetworkYaml); validateErr != nil {
+		networkConfigs, validateErr := s.createConnectionFilesFromNMStateYaml(hostConfig.NetworkYaml)
+		if validateErr != nil {
 			err = multierror.Append(err, fmt.Errorf("failed to validate network yaml for host %d, %s", i, validateErr))
 		}
+		err = multierror.Append(err, s.validateInterfaceNamesExistence(hostConfig.MacInterfaceMap, networkConfigs))
 	}
 	return err.ErrorOrNil()
 }
@@ -188,16 +222,15 @@ func (s *StaticNetworkConfigGenerator) validateMacInterfaceName(hostIdx int, mac
 	return nil
 }
 
-func (s *StaticNetworkConfigGenerator) validateNMStateYaml(networkYaml string) error {
+func (s *StaticNetworkConfigGenerator) createConnectionFilesFromNMStateYaml(networkYaml string) ([]StaticNetworkConfigData, error) {
 	result, err := s.generateConfiguration(networkYaml)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Check that the file content can be created
 	// This doesn't write anything to the local filesystem
-	_, err = s.createNMConnectionFiles(result, "temphostdir")
-	return err
+	return s.createNMConnectionFiles(result, "temphostdir")
 }
 
 func compareMapInterfaces(intf1, intf2 *models.MacInterfaceMapItems0) bool {

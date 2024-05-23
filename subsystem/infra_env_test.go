@@ -326,6 +326,12 @@ var _ = Describe("Infra_Env", func() {
   type: ethernet`
 		staticNetworkConfig := models.HostStaticNetworkConfig{
 			NetworkYaml: netYaml,
+			MacInterfaceMap: []*models.MacInterfaceMapItems0{
+				{
+					LogicalNicName: "eth0",
+					MacAddress:     "52:54:00:09:de:93",
+				},
+			},
 		}
 		staticNetworkConfigs := []*models.HostStaticNetworkConfig{&staticNetworkConfig}
 		updateParams := &installer.UpdateInfraEnvParams{
