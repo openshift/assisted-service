@@ -13,7 +13,7 @@ import (
 func GetDisksToBeFormatted(inventory *models.Inventory) []*models.Disk {
 	formatDisks := make([]*models.Disk, 0, len(inventory.Disks))
 
-	skipDriveTypes := []string{string(models.DriveTypeFC), string(models.DriveTypeISCSI), string(models.DriveTypeLVM)}
+	skipDriveTypes := []string{string(models.DriveTypeFC), string(models.DriveTypeISCSI), string(models.DriveTypeLVM), string(models.DriveTypeMultipath)}
 	for _, disk := range inventory.Disks {
 		diskRemovable := disk.Removable || strings.Contains(disk.ByPath, "mmcblk") //mmc devices should be treated as removable
 
