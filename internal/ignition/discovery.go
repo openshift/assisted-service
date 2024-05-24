@@ -167,7 +167,6 @@ type IgnitionConfig struct {
 	InstallRHCa          bool          `envconfig:"INSTALL_RH_CA" default:"false"`
 	ServiceBaseURL       string        `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath    string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	ServiceIPs           string        `envconfig:"SERVICE_IPS" default:""`
 	SkipCertVerification bool          `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 	EnableOKDSupport     bool          `envconfig:"ENABLE_OKD_SUPPORT" default:"true"`
 	OKDRPMsImage         string        `envconfig:"OKD_RPMS_IMAGE" default:""`
@@ -281,9 +280,6 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 	if infraEnv.AdditionalTrustBundle != "" {
 		ignitionParams["AdditionalTrustBundle"] = dataurl.EncodeBytes([]byte(infraEnv.AdditionalTrustBundle))
 		ignitionParams["AdditionalTrustBundlePath"] = common.AdditionalTrustBundlePath
-	}
-	if cfg.ServiceIPs != "" {
-		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(GetServiceIPHostnames(cfg.ServiceIPs)))
 	}
 
 	isoType := overrideDiscoveryISOType

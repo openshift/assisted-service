@@ -110,7 +110,6 @@ type Config struct {
 	InstallRHCa                         bool              `envconfig:"INSTALL_RH_CA" default:"false"`
 	RhQaRegCred                         string            `envconfig:"REGISTRY_CREDS" default:""`
 	AgentTimeoutStart                   time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
-	ServiceIPs                          string            `envconfig:"SERVICE_IPS" default:""`
 	DefaultNTPSource                    string            `envconfig:"NTP_DEFAULT_SERVER"`
 	ISOCacheDir                         string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
 	DefaultClusterNetworkCidr           string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
@@ -200,7 +199,7 @@ type bareMetalInventory struct {
 	metricApi            metrics.API
 	usageApi             usage.API
 	operatorManagerApi   operators.API
-	generator            generator.ISOInstallConfigGenerator
+	generator            generator.InstallConfigGenerator
 	authHandler          auth.Authenticator
 	authzHandler         auth.Authorizer
 	k8sClient            k8sclient.K8SClient
@@ -227,7 +226,7 @@ func NewBareMetalInventory(
 	clusterApi clusterPkg.API,
 	infraEnvApi infraenv.API,
 	cfg Config,
-	generator generator.ISOInstallConfigGenerator,
+	generator generator.InstallConfigGenerator,
 	eventsHandler eventsapi.Handler,
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,

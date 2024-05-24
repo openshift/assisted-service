@@ -7,32 +7,29 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
 )
 
 type dummyGenerator struct {
-	log            logrus.FieldLogger
-	serviceBaseURL string
-	workDir        string
-	cluster        *common.Cluster
-	s3Client       s3wrapper.API
+	log      logrus.FieldLogger
+	workDir  string
+	cluster  *common.Cluster
+	s3Client s3wrapper.API
 }
 
 // NewDummyGenerator returns a Generator that creates the expected files but with nonsense content
-func NewDummyGenerator(serviceBaseURL string, workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
+func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
 	return &dummyGenerator{
-		workDir:        workDir,
-		log:            log,
-		serviceBaseURL: serviceBaseURL,
-		cluster:        cluster,
-		s3Client:       s3Client,
+		workDir:  workDir,
+		log:      log,
+		cluster:  cluster,
+		s3Client: s3Client,
 	}
 }
 
 // Generate creates the expected ignition and related files but with nonsense content
-func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte, authType auth.AuthType) error {
+func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte) error {
 	toUpload := fileNames[:]
 	for _, host := range g.cluster.Hosts {
 		toUpload = append(toUpload, hostutil.IgnitionFileName(host))

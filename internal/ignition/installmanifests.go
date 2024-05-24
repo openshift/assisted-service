@@ -30,7 +30,6 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/executer"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
@@ -73,14 +72,12 @@ type clusterVersion struct {
 
 // Generator can generate ignition files and upload them to an S3-like service
 type Generator interface {
-	Generate(ctx context.Context, installConfig []byte, authType auth.AuthType) error
+	Generate(ctx context.Context, installConfig []byte) error
 	UploadToS3(ctx context.Context) error
-	UpdateEtcHosts(string) error
 }
 
 type installerGenerator struct {
 	log                           logrus.FieldLogger
-	serviceBaseURL                string
 	workDir                       string
 	cluster                       *common.Cluster
 	releaseImage                  string
@@ -108,13 +105,12 @@ var fileNames = [...]string{
 }
 
 // NewGenerator returns a generator that can generate ignition files
-func NewGenerator(serviceBaseURL string, workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
+func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, providerRegistry registry.ProviderRegistry,
 	installerReleaseImageOverride, clusterTLSCertOverrideDir string, storageCapacityLimit int64) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
-		serviceBaseURL:                serviceBaseURL,
 		releaseImage:                  releaseImage,
 		releaseImageMirror:            releaseImageMirror,
 		workDir:                       workDir,
@@ -137,7 +133,7 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 }
 
 // Generate generates ignition files and applies modifications.
-func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, authType auth.AuthType) error {
+func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
 	var err error
 	log := logutil.FromContext(ctx, g.log)
 
@@ -906,26 +902,6 @@ func (g *installerGenerator) updateIgnitions() error {
 	return nil
 }
 
-func (g *installerGenerator) UpdateEtcHosts(serviceIPs string) error {
-	masterPath := filepath.Join(g.workDir, masterIgn)
-
-	if serviceIPs != "" {
-		err := setEtcHostsInIgnition(models.HostRoleMaster, masterPath, g.workDir, GetServiceIPHostnames(serviceIPs))
-		if err != nil {
-			return errors.Wrapf(err, "error adding Etc Hosts to ignition %s", masterPath)
-		}
-	}
-
-	workerPath := filepath.Join(g.workDir, workerIgn)
-	if serviceIPs != "" {
-		err := setEtcHostsInIgnition(models.HostRoleWorker, workerPath, g.workDir, GetServiceIPHostnames(serviceIPs))
-		if err != nil {
-			return errors.Wrapf(err, "error adding Etc Hosts to ignition %s", workerPath)
-		}
-	}
-	return nil
-}
-
 func (g *installerGenerator) selectInterfaceIPInsideMachineCIDR(interfaceCIDRs []string) string {
 	machineCIDRs := make([]string, len(g.cluster.MachineNetworks))
 	for i, machineNetwork := range g.cluster.MachineNetworks {
@@ -1370,22 +1346,6 @@ func machineConfilePoolExists(manifestFname, content, poolName string) (bool, er
 		return false, err
 	}
 	return manifest.Kind == "MachineConfigPool" && manifest.Metadata != nil && manifest.Metadata.Name == poolName, nil
-}
-
-func setEtcHostsInIgnition(role models.HostRole, path string, workDir string, content string) error {
-	config, err := parseIgnitionFile(path)
-	if err != nil {
-		return err
-	}
-
-	setFileInIgnition(config, "/etc/hosts", dataurl.EncodeBytes([]byte(content)), true, 420, false)
-
-	fileName := fmt.Sprintf("%s.ign", role)
-	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func firstN(s string, n int) string {

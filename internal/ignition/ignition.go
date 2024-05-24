@@ -2,9 +2,7 @@ package ignition
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
-	"strings"
 
 	"github.com/coreos/ignition/v2/config/merge"
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
@@ -126,15 +124,4 @@ func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
 	}
 
 	return string(res), nil
-}
-
-func GetServiceIPHostnames(serviceIPs string) string {
-	ips := strings.Split(strings.TrimSpace(serviceIPs), ",")
-	content := ""
-	for _, ip := range ips {
-		if ip != "" {
-			content = content + fmt.Sprintf(ip+" assisted-api.local.openshift.io\n")
-		}
-	}
-	return content
 }

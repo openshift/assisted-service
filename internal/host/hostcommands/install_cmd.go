@@ -181,10 +181,6 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 
 	request.Proxy = i.getProxyArguments(cluster.Name, cluster.BaseDNSDomain, cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
 
-	if i.instructionConfig.ServiceIPs != "" {
-		request.ServiceIps = strings.Split(i.instructionConfig.ServiceIPs, ",")
-	}
-
 	b, err := json.Marshal(&request)
 	if err != nil {
 		i.log.WithError(err).Warn("Json marshal")
