@@ -598,6 +598,62 @@ var _ = Describe("createHostIgnitions", func() {
 		})
 	})
 
+	It("none platform: expect hint to be created when node-ip allocations exist", func() {
+		cluster.Hosts = []*models.Host{
+			{
+				RequestedHostname: "master0.example.com",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				RequestedHostname: "master1.example.com",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				RequestedHostname: "master2.example.com",
+				Role:              models.HostRoleMaster,
+			},
+		}
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		cluster.UserManagedNetworking = swag.Bool(true)
+
+		// create an ID for each host
+		for _, host := range cluster.Hosts {
+			id := strfmt.UUID(uuid.New().String())
+			host.ID = &id
+		}
+
+		g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5).(*installerGenerator)
+		g.nodeIpAllocations = make(map[strfmt.UUID]*network.NodeIpAllocation)
+		for i, h := range cluster.Hosts {
+			g.nodeIpAllocations[*h.ID] = &network.NodeIpAllocation{
+				NodeIp: fmt.Sprintf("3.3.3.%d", i+1),
+				HintIp: "3.3.3.0",
+				Cidr:   "3.3.3.0/24",
+			}
+		}
+		err := g.createHostIgnitions()
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, host := range cluster.Hosts {
+			ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", host.Role, host.ID)))
+			Expect(err).NotTo(HaveOccurred())
+			config, _, err := config_32.Parse(ignBytes)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Validating nodeip hint was not added")
+			var f *config_32_types.File
+			for fileidx, file := range config.Storage.Files {
+				if file.Node.Path == nodeIpHintFile {
+					f = &config.Storage.Files[fileidx]
+					Expect(*f.Node.User.Name).To(Equal("root"))
+					Expect(*f.FileEmbedded1.Contents.Source).To(Equal(fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", "3.3.3.0")))
+					Expect(*f.FileEmbedded1.Mode).To(Equal(420))
+					Expect(*f.Node.Overwrite).To(Equal(true))
+				}
+			}
+		}
+	})
+
 	It("applies overrides correctly", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		cluster.Hosts = []*models.Host{{
@@ -1336,6 +1392,11 @@ var _ = Describe("Set kubelet node ip", func() {
 		workDir      string
 	)
 
+	uuidPtr := func() *strfmt.UUID {
+		ret := strfmt.UUID(uuid.New().String())
+		return &ret
+	}
+
 	BeforeEach(func() {
 
 		bootstrapInventory := `{"bmc_address":"0.0.0.0","bmc_v6address":"::/0","boot":{"current_boot_mode":"bios"},"cpu":{"architecture":"x86_64","count":4,"flags":["fpu","vme","de","pse","tsc","msr","pae","mce","cx8","apic","sep","mtrr","pge","mca","cmov","pat","pse36","clflush","mmx","fxsr","sse","sse2","ss","syscall","nx","pdpe1gb","rdtscp","lm","constant_tsc","arch_perfmon","rep_good","nopl","xtopology","cpuid","tsc_known_freq","pni","pclmulqdq","vmx","ssse3","fma","cx16","pcid","sse4_1","sse4_2","x2apic","movbe","popcnt","tsc_deadline_timer","aes","xsave","avx","f16c","rdrand","hypervisor","lahf_lm","abm","3dnowprefetch","cpuid_fault","invpcid_single","pti","ssbd","ibrs","ibpb","stibp","tpr_shadow","vnmi","flexpriority","ept","vpid","ept_ad","fsgsbase","tsc_adjust","bmi1","hle","avx2","smep","bmi2","erms","invpcid","rtm","mpx","avx512f","avx512dq","rdseed","adx","smap","clflushopt","clwb","avx512cd","avx512bw","avx512vl","xsaveopt","xsavec","xgetbv1","xsaves","arat","umip","pku","ospke","md_clear","arch_capabilities"],"frequency":2095.076,"model_name":"Intel(R) Xeon(R) Gold 6152 CPU @ 2.10GHz"},"disks":[{"by_path":"/dev/disk/by-path/pci-0000:00:06.0","drive_type":"HDD","model":"unknown","name":"vda","path":"/dev/vda","serial":"unknown","size_bytes":21474836480,"vendor":"0x1af4","wwn":"unknown"}],"hostname":"test-infra-cluster-master-1.redhat.com","interfaces":[{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.126.10/24"],"ipv6_addresses":["fe80::5054:ff:fe42:1e8d/64"],"mac_address":"52:54:00:42:1e:8d","mtu":1500,"name":"eth0","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"},{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.140.133/24"],"ipv6_addresses":["fe80::5054:ff:feca:7b16/64"],"mac_address":"52:54:00:ca:7b:16","mtu":1500,"name":"eth1","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"}],"memory":{"physical_bytes":17809014784,"usable_bytes":17378611200},"system_vendor":{"manufacturer":"Red Hat","product_name":"KVM"}}`
@@ -1343,12 +1404,14 @@ var _ = Describe("Set kubelet node ip", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.168.126.0/24"}, {Cidr: "192.168.140.0/24"}}
 		cluster.Hosts = []*models.Host{
 			{
+				ID:                uuidPtr(),
 				Inventory:         bootstrapInventory,
 				RequestedHostname: "example0",
 				Role:              models.HostRoleMaster,
 				Bootstrap:         true,
 			},
 			{
+				ID:                uuidPtr(),
 				Inventory:         hostInventory,
 				RequestedHostname: "example1",
 				Role:              models.HostRoleMaster,
@@ -1392,6 +1455,20 @@ var _ = Describe("Set kubelet node ip", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(basicEnvVars).ShouldNot(ContainElement("OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP=192.168.126.10"))
 		Expect(len(basicEnvVars)).Should(Equal(1))
+	})
+	It("UMN platform bootstrap kubelet ip should be set when node-ip-allocations exist", func() {
+		cluster.UserManagedNetworking = swag.Bool(true)
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		generator.nodeIpAllocations = map[strfmt.UUID]*network.NodeIpAllocation{
+			*cluster.Hosts[0].ID: {
+				NodeIp: "192.168.126.11",
+				HintIp: "192.168.126.0",
+				Cidr:   "192.168.126.0/24",
+			},
+		}
+		basicEnvVars, err = generator.addBootstrapKubeletIpIfRequired(generator.log, basicEnvVars)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(basicEnvVars).Should(ContainElement("OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP=192.168.126.11"))
 	})
 	It("should fail if no machine networks exists", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{}

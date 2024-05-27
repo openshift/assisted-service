@@ -609,3 +609,7 @@ func IsExternalIntegrationEnabled(platform *models.Platform, platformName string
 func IsOciExternalIntegrationEnabled(platform *models.Platform) bool {
 	return IsExternalIntegrationEnabled(platform, ExternalPlatformNameOci)
 }
+
+func IsMultiNodeNonePlatformCluster(cluster *Cluster) bool {
+	return !IsSingleNodeCluster(cluster) && swag.BoolValue(cluster.UserManagedNetworking)
+}
