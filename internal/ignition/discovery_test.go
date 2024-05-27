@@ -13,6 +13,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -223,60 +224,99 @@ var _ = Describe("IgnitionBuilder", func() {
 		Expect(text).Should(ContainSubstring("--insecure=false"))
 	})
 
-	It("ignition_file_contains_http_proxy", func() {
-		proxy := models.Proxy{
-			HTTPProxy: swag.String("http://10.10.1.1:3128"),
-			NoProxy:   swag.String("quay.io"),
-		}
-		infraEnv.Proxy = &proxy
-		serviceBaseURL := "file://10.56.20.70:7878"
-		ignitionConfig.ServiceBaseURL = serviceBaseURL
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(2)
-		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+	DescribeTable("ignition_file_contains_http_proxy",
+		func(proxy models.Proxy, expectedIgnitionProxySetting, expectedProxyScriptSetting string, expectedAgentSeriveProxySetting string) {
+			infraEnv.Proxy = &proxy
+			serviceBaseURL := "file://10.56.20.70:7878"
+			ignitionConfig.ServiceBaseURL = serviceBaseURL
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false)
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 
-		Expect(err).Should(BeNil())
-		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
-
-		By("ignition file should only contain the proxy config entries that are set", func() {
-			minifiedText := strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "\n", "")
-			expectedFileContent := dataurl.EncodeBytes([]byte(fmt.Sprintf(
-				"export HTTP_PROXY=%[1]s\nexport http_proxy=%[1]s\nexport NO_PROXY=%[2]s\nexport no_proxy=%[2]s\n",
-				*proxy.HTTPProxy,
-				*proxy.NoProxy,
-			)))
-			Expect(minifiedText).Should(ContainSubstring(`{"path":"/etc/profile.d/proxy.sh","mode":644,"user":{"name":"root"},"contents":{"source":"` + expectedFileContent + `"}}`))
-
-			infraEnv.Proxy.HTTPProxy = nil
-			infraEnv.Proxy.HTTPSProxy = swag.String("http://10.10.1.1:3128")
-			infraEnv.Proxy.NoProxy = nil
-			text, err = builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+			By("verify ignition file contains only the proxy config entries that are set")
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
 			Expect(err).Should(BeNil())
-			minifiedText = strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "\n", "")
-			expectedFileContent = dataurl.EncodeBytes([]byte(fmt.Sprintf(
-				"export HTTPS_PROXY=%[1]s\nexport https_proxy=%[1]s\n",
-				*infraEnv.Proxy.HTTPSProxy,
-			)))
+			Expect(text).Should(ContainSubstring(expectedIgnitionProxySetting))
+
+			By("verify proxy.sh is correctly generated")
+			minifiedText := strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "\n", "")
+			expectedFileContent := dataurl.EncodeBytes([]byte(expectedProxyScriptSetting))
 			Expect(minifiedText).Should(ContainSubstring(`{"path":"/etc/profile.d/proxy.sh","mode":644,"user":{"name":"root"},"contents":{"source":"` + expectedFileContent + `"}}`))
 
-		})
-	})
-
-	It("ignition_file_contains_asterisk_no_proxy", func() {
-		proxy := models.Proxy{
-			HTTPProxy: swag.String("http://10.10.1.1:3128"),
-			NoProxy:   swag.String("*"),
-		}
-		infraEnv.Proxy = &proxy
-		serviceBaseURL := "file://10.56.20.70:7878"
-		ignitionConfig.ServiceBaseURL = serviceBaseURL
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
-
-		Expect(err).Should(BeNil())
-		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["*"] }`))
-	})
+			By("verify agent.service proxy settings are correct")
+			Expect(minifiedText).Should(ContainSubstring(expectedAgentSeriveProxySetting))
+		},
+		Entry(
+			"http",
+			models.Proxy{HTTPProxy: swag.String("http://10.10.1.1:3128"), NoProxy: swag.String("quay.io")},
+			`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`,
+			fmt.Sprintf(
+				"export HTTP_PROXY=%[1]s\nexport http_proxy=%[1]s\nexport NO_PROXY=%[2]s\nexport no_proxy=%[2]s\n",
+				"http://10.10.1.1:3128",
+				"quay.io",
+			),
+			fmt.Sprintf(
+				`Environment=HTTP_PROXY=%[1]s\nEnvironment=http_proxy=%[1]s\nEnvironment=HTTPS_PROXY=\nEnvironment=https_proxy=\nEnvironment=NO_PROXY=%[2]s\nEnvironment=no_proxy=%[2]s`,
+				"http://10.10.1.1:3128",
+				"quay.io",
+			),
+		),
+		Entry(
+			"https",
+			models.Proxy{HTTPSProxy: swag.String("https://10.10.1.1:3128")},
+			`"proxy": { "httpsProxy": "https://10.10.1.1:3128"`,
+			fmt.Sprintf(
+				"export HTTPS_PROXY=%[1]s\nexport https_proxy=%[1]s\n",
+				"https://10.10.1.1:3128",
+			),
+			fmt.Sprintf(
+				`Environment=HTTP_PROXY=\nEnvironment=http_proxy=\nEnvironment=HTTPS_PROXY=%[1]s\nEnvironment=https_proxy=%[1]s\nEnvironment=NO_PROXY=\nEnvironment=no_proxy=`,
+				"https://10.10.1.1:3128",
+			),
+		),
+		Entry(
+			"http with special characters",
+			models.Proxy{HTTPProxy: swag.String("http://usr%40name:passwd%5D@10.10.1.1:3128"), NoProxy: swag.String("quay.io")},
+			`"proxy": { "httpProxy": "http://usr%40name:passwd%5D@10.10.1.1:3128", "noProxy": ["quay.io"] }`,
+			fmt.Sprintf(
+				"export HTTP_PROXY=%[1]s\nexport http_proxy=%[1]s\nexport NO_PROXY=%[2]s\nexport no_proxy=%[2]s\n",
+				"http://usr%40name:passwd%5D@10.10.1.1:3128",
+				"quay.io",
+			),
+			fmt.Sprintf(
+				`Environment=HTTP_PROXY=%[1]s\nEnvironment=http_proxy=%[1]s\nEnvironment=HTTPS_PROXY=\nEnvironment=https_proxy=\nEnvironment=NO_PROXY=%[2]s\nEnvironment=no_proxy=%[2]s`,
+				"http://usr%%40name:passwd%%5D@10.10.1.1:3128",
+				"quay.io",
+			),
+		),
+		Entry(
+			"https with special characters",
+			models.Proxy{HTTPSProxy: swag.String("https://usr%40name:passwd%5D@10.10.1.1:3128")},
+			`"proxy": { "httpsProxy": "https://usr%40name:passwd%5D@10.10.1.1:3128"`,
+			fmt.Sprintf(
+				"export HTTPS_PROXY=%[1]s\nexport https_proxy=%[1]s\n",
+				"https://usr%40name:passwd%5D@10.10.1.1:3128",
+			),
+			fmt.Sprintf(
+				`Environment=HTTP_PROXY=\nEnvironment=http_proxy=\nEnvironment=HTTPS_PROXY=%[1]s\nEnvironment=https_proxy=%[1]s\nEnvironment=NO_PROXY=\nEnvironment=no_proxy=`,
+				"https://usr%%40name:passwd%%5D@10.10.1.1:3128",
+			),
+		),
+		Entry(
+			"contains asterisk no proxy",
+			models.Proxy{HTTPProxy: swag.String("http://10.10.1.1:3128"), NoProxy: swag.String("*")},
+			`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["*"] }`,
+			fmt.Sprintf(
+				"export HTTP_PROXY=%[1]s\nexport http_proxy=%[1]s\nexport NO_PROXY=%[2]s\nexport no_proxy=%[2]s\n",
+				"http://10.10.1.1:3128",
+				"*",
+			),
+			fmt.Sprintf(
+				`Environment=HTTP_PROXY=%[1]s\nEnvironment=http_proxy=%[1]s\nEnvironment=HTTPS_PROXY=\nEnvironment=https_proxy=\nEnvironment=NO_PROXY=%[2]s\nEnvironment=no_proxy=%[2]s`,
+				"http://10.10.1.1:3128",
+				"*",
+			),
+		),
+	)
 
 	It("produces a valid ignition v3.1 spec by default", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
