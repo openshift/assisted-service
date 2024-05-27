@@ -35,7 +35,7 @@ function install_lso() {
       "${index_image}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
   fi
 
-  tee << EOCR >(oc apply -f -)
+  tee << EOCR >(oc apply --wait=true --timeout=30s -f -)
 apiVersion: operators.coreos.com/v1alpha2
 kind: OperatorGroup
 metadata:
