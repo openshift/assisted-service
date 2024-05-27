@@ -20,7 +20,7 @@ FROM quay.io/centos/centos:$BASE_TAG as builder
 COPY hack/container_build_scripts/install_build_deps.sh .
 ARG BASE_TAG
 RUN ./install_build_deps.sh $BASE_TAG
-COPY --from=registry.ci.openshift.org/openshift/release:golang-1.20 /usr/local/go /usr/local/go
+COPY --from=registry.ci.openshift.org/openshift/release:golang-1.21 /usr/local/go /usr/local/go
 
 ENV GOROOT=/usr/local/go
 ENV PATH=$PATH:$GOROOT/bin

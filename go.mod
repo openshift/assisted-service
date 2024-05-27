@@ -1,6 +1,6 @@
 module github.com/openshift/assisted-service
 
-go 1.20
+go 1.21
 
 require (
 	github.com/IBM/netaddr v1.5.0
@@ -44,10 +44,10 @@ require (
 	github.com/moby/moby v26.0.0+incompatible
 	github.com/nmstate/nmstate/rust/src/go/nmstate v0.0.0-20220811151154-801022633c42
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.29.0
+	github.com/onsi/gomega v1.32.0
 	github.com/openshift-online/ocm-sdk-go v0.1.205
 	github.com/openshift/api v0.0.0-20240521212423-414cf30d37be
-	github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf
+	github.com/openshift/assisted-image-service v0.0.0-20240522091714-d3f8a0398019
 	github.com/openshift/assisted-service/api v0.0.0
 	github.com/openshift/assisted-service/client v0.0.0
 	github.com/openshift/assisted-service/models v0.0.0
@@ -62,7 +62,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.57.0
-	github.com/prometheus/client_golang v1.17.0
+	github.com/prometheus/client_golang v1.19.0
 	github.com/rs/cors v1.10.1
 	github.com/samber/lo v1.39.0
 	github.com/segmentio/kafka-go v0.4.38
@@ -73,7 +73,7 @@ require (
 	github.com/thoas/go-funk v0.9.3
 	github.com/vincent-petithory/dataurl v1.0.0
 	golang.org/x/crypto v0.22.0
-	golang.org/x/sync v0.5.0
+	golang.org/x/sync v0.7.0
 	golang.org/x/sys v0.19.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/square/go-jose.v2 v2.6.0
@@ -228,7 +228,7 @@ require (
 	github.com/pkg/xattr v0.4.9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
-	github.com/prometheus/common v0.45.0 // indirect
+	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
@@ -250,7 +250,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/oauth2 v0.12.0 // indirect
+	golang.org/x/oauth2 v0.16.0 // indirect
 	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
@@ -280,6 +280,8 @@ replace (
 	github.com/openshift/assisted-service/client => ./client
 	github.com/openshift/assisted-service/cmd/agentbasedinstaller => ./cmd/agentbasedinstaller
 	github.com/openshift/assisted-service/models => ./models
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.18.0
+	github.com/prometheus/common => github.com/prometheus/common v0.45.0
 	golang.org/x/net => golang.org/x/net v0.24.0
 	sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20201022175424-d30c7a274820
 	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
