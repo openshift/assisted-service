@@ -2,6 +2,7 @@ package ocm
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	sdkClient "github.com/openshift-online/ocm-sdk-go"
@@ -28,8 +29,19 @@ type Config struct {
 	BaseURL      string `envconfig:"OCM_BASE_URL" default:""`
 	ClientID     string `envconfig:"OCM_SERVICE_CLIENT_ID" default:""`
 	ClientSecret string `envconfig:"OCM_SERVICE_CLIENT_SECRET" default:""`
-	SelfToken    string `envconfig:"OCM_SELF_TOKEN" default:""`
 	TokenURL     string `envconfig:"OCM_TOKEN_URL" default:""`
+
+	// The OCM team is deprecating the support for offline tokens. In order to detect
+	// situations where the user is trying to use that we will check if the OCM_SELF_TOKEN
+	// environment variable has a value, and return an error. If the user still wants to use
+	// that deprecated support then we force them to akcnowledge it by also setting the
+	// ACKNOWLEDGE_DEPRECATED_OCM_SELF_TOKEN environment variable to `yes`, and we will emit
+	// a warning.
+	//
+	// These two environment variables and the code that uses them should eventually
+	// be removed.
+	SelfToken                      string `envconfig:"OCM_SELF_TOKEN" default:""`
+	AcknowledgeDeprecatedSelfToken string `envconfig:"ACKNOWLEDGE_DEPRECATED_OCM_SELF_TOKEN" default:""`
 }
 
 type SdKLogger struct {
@@ -113,7 +125,25 @@ func (c *Client) newConnection() error {
 	if c.Config.ClientID != "" && c.Config.ClientSecret != "" {
 		builder = builder.Client(c.Config.ClientID, c.Config.ClientSecret)
 	} else if c.Config.SelfToken != "" {
-		builder = builder.Tokens(c.Config.SelfToken)
+		if strings.EqualFold(c.Config.AcknowledgeDeprecatedSelfToken, "yes") {
+			c.logger.Warn(
+				context.TODO(),
+				"Authentication using an offline token via the 'OCM_SELF_TOKEN' "+
+					"environment variable is deprecated, but you have agreed "+
+					"to use it anyhow setting the environment variable "+
+					"'ACKNOWLEDGE_DEPRECATED_OCM_SELF_TOKEN' to '%s'",
+				c.Config.AcknowledgeDeprecatedSelfToken,
+			)
+			builder = builder.Tokens(c.Config.SelfToken)
+		} else {
+			return errors.New(
+				"authentication using an offline token via the 'OCM_SELF_TOKEN' " +
+					"environment variable is deprecated and disabled, but if " +
+					"you really need to use it you can enable it setting the " +
+					"'ACKNOWLEDGE_DEPRECATED_OCM_SELF_TOKEN' environment " +
+					"variable to 'yes'",
+			)
+		}
 	} else {
 		return errors.Errorf("Can't build OCM client connection. No Client/Secret or Token has been provided.")
 	}
