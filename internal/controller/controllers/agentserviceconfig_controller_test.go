@@ -123,7 +123,7 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 					AccessModes: []corev1.PersistentVolumeAccessMode{
 						corev1.ReadWriteOnce,
 					},
-					Resources: corev1.ResourceRequirements{
+					Resources: corev1.VolumeResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceStorage: resource.MustParse("1Ti"),
 						},
@@ -133,7 +133,7 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 					AccessModes: []corev1.PersistentVolumeAccessMode{
 						corev1.ReadWriteOnce,
 					},
-					Resources: corev1.ResourceRequirements{
+					Resources: corev1.VolumeResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceStorage: resource.MustParse("1Ti"),
 						},
@@ -143,7 +143,7 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 					AccessModes: []corev1.PersistentVolumeAccessMode{
 						corev1.ReadWriteOnce,
 					},
-					Resources: corev1.ResourceRequirements{
+					Resources: corev1.VolumeResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceStorage: resource.MustParse("1Ti"),
 						},
@@ -2299,21 +2299,21 @@ func newASCDefault() *aiv1beta1.AgentServiceConfig {
 		},
 		Spec: aiv1beta1.AgentServiceConfigSpec{
 			FileSystemStorage: corev1.PersistentVolumeClaimSpec{
-				Resources: corev1.ResourceRequirements{
+				Resources: corev1.VolumeResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("20Gi"),
 					},
 				},
 			},
 			DatabaseStorage: corev1.PersistentVolumeClaimSpec{
-				Resources: corev1.ResourceRequirements{
+				Resources: corev1.VolumeResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("10Gi"),
 					},
 				},
 			},
 			ImageStorage: &corev1.PersistentVolumeClaimSpec{
-				Resources: corev1.ResourceRequirements{
+				Resources: corev1.VolumeResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("10Gi"),
 					},
