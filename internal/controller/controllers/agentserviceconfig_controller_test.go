@@ -2107,8 +2107,23 @@ var _ = Describe("newAssistedCM", func() {
 			location = "quay.io/edge-infrastructure"
 			mirror-by-digest-only = true
 	
-		[[registry.mirror]]
-			location = "mirror1.registry.corp.com:5000/edge-infrastructure"`
+			[[registry.mirror]]
+			location = "mirror1.registry.corp.com:5000/edge-infrastructure"
+
+			[[registry.mirror]]
+			location = "mirror2.registry.corp.com:5000/edge-infrastructure"
+		
+		[[registry]]
+			prefix = ""
+			location = "foo-bar/edge-infrastructure"
+			mirror-by-digest-only = true
+	
+			[[registry.mirror]]
+			location = "mirror-foo-bar1.registry.corp.com:5000/edge-infrastructure"
+
+			[[registry.mirror]]
+			location = "mirror-foo-bar2.registry.corp.com:5000/edge-infrastructure"`
+
 		mirrorCM = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      testMirrorRegConfigmapName,
@@ -2140,12 +2155,27 @@ var _ = Describe("newAssistedCM", func() {
 	It("default public container registries", func() {
 		ensureNewAssistedConfigmapValue(ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org")
 	})
+	It("adds unqualified-search-registries", func() {
+		asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: testMirrorRegConfigmapName}
+		mirrorCM.Data[mirrorRegistryRefRegistryConfKey] = registryConf
+		ascr := newTestReconciler(asc, route, imageRoute, mirrorCM)
+		ascc = initASC(ascr, asc)
+		ensureNewAssistedConfigmapValue(
+			ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,mirror1.registry.corp.com:5000,mirror2.registry.corp.com:5000,mirror-foo-bar1.registry.corp.com:5000,mirror-foo-bar2.registry.corp.com:5000",
+		)
+	})
 	It("adds mirror registries", func() {
 		asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: testMirrorRegConfigmapName}
 		mirrorCM.Data[mirrorRegistryRefRegistryConfKey] = registryConf
 		ascr := newTestReconciler(asc, route, imageRoute, mirrorCM)
 		ascc = initASC(ascr, asc)
-		ensureNewAssistedConfigmapValue(ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io")
+		ensureNewAssistedConfigmapValue(
+			ctx,
+			log,
+			ascc,
+			"PUBLIC_CONTAINER_REGISTRIES",
+			"quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,mirror1.registry.corp.com:5000,mirror2.registry.corp.com:5000,mirror-foo-bar1.registry.corp.com:5000,mirror-foo-bar2.registry.corp.com:5000",
+		)
 	})
 	It("adds user-specified unauthenticated registries", func() {
 		asc.Spec.UnauthenticatedRegistries = []string{"example.com"}
@@ -2157,7 +2187,7 @@ var _ = Describe("newAssistedCM", func() {
 		mirrorCM.Data[mirrorRegistryRefRegistryConfKey] = registryConf
 		ascr := newTestReconciler(asc, route, imageRoute, mirrorCM)
 		ascc = initASC(ascr, asc)
-		ensureNewAssistedConfigmapValue(ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,example.com")
+		ensureNewAssistedConfigmapValue(ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,mirror1.registry.corp.com:5000,mirror2.registry.corp.com:5000,mirror-foo-bar1.registry.corp.com:5000,mirror-foo-bar2.registry.corp.com:5000,example.com")
 	})
 })
 

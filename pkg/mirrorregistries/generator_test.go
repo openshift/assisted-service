@@ -47,23 +47,23 @@ location = "mirror_location3"
 
 var _ = Describe("extractLocationMirrorDataFromRegistries", func() {
 	It("extracts data from registry config with mirrors", func() {
-		dataList, err := extractLocationMirrorDataFromRegistries(configWithMirrors)
+		dataList, err := ExtractLocationMirrorDataFromRegistriesFromToml(configWithMirrors)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(dataList).Should(Equal(expectedExtractList))
 	})
 
 	It("fails to extract data from registry config without mirrors", func() {
-		_, err := extractLocationMirrorDataFromRegistries(configWithoutMirrors)
+		_, err := ExtractLocationMirrorDataFromRegistriesFromToml(configWithoutMirrors)
 		Expect(err.Error()).Should(Equal("failed to cast registry key to toml Tree, registriesConfToml: unqualified-search-registries = [\"registry1\", \"registry2\", \"registry3\"]"))
 	})
 
 	It("fails to extract data from registry config with garbage", func() {
-		_, err := extractLocationMirrorDataFromRegistries(configWithGarbage)
+		_, err := ExtractLocationMirrorDataFromRegistriesFromToml(configWithGarbage)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("fails to extract data from empty config", func() {
-		_, err := extractLocationMirrorDataFromRegistries("")
+		_, err := ExtractLocationMirrorDataFromRegistriesFromToml("")
 		Expect(err.Error()).Should(Equal("failed to cast registry key to toml Tree, registriesConfToml: "))
 	})
 
