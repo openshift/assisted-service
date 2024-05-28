@@ -258,7 +258,7 @@ update: build-all
 	$(CONTAINER_COMMAND) push $(SERVICE)
 
 publish-client: generate-python-client
-	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*.whl"
+	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*"
 
 build-openshift-ci-test-bin: init
 
