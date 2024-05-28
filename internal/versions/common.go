@@ -4,6 +4,7 @@ import (
 	context "context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/go-openapi/strfmt"
@@ -128,7 +129,7 @@ func validateReleaseImageForRHCOS(
 ) error {
 	// Multi is not a valid RHCOS CPU architecture, its sub-architectures are
 	if cpuArchitecture == common.MultiCPUArchitecture {
-		return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image", rhcosVersion, cpuArchitecture)
+		return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image, there are no valid Openshift versions for architecture %s", rhcosVersion, cpuArchitecture, common.MultiCPUArchitecture)
 	}
 
 	rhcosVersionPtr, err := common.GetMajorMinorVersion(rhcosVersion)
@@ -141,6 +142,8 @@ func validateReleaseImageForRHCOS(
 		cpuArchitecture = common.DefaultCPUArchitecture
 	}
 
+	uniqueRHCOSVersions := map[string]bool{}
+	rhcosVersionSummary := ""
 	for _, releaseImage := range releaseImages {
 		minorVersion, err := common.GetMajorMinorVersion(*releaseImage.OpenshiftVersion)
 		if err != nil {
@@ -158,11 +161,16 @@ func validateReleaseImageForRHCOS(
 					log.Debugf("Validator for the architecture %s found the following OCP version: %s", cpuArchitecture, *releaseImage.Version)
 					return nil
 				}
+				// Build up a unique list of qualifying Openshift versions for the architecture so that we may return a summary.
+				if _, ok := uniqueRHCOSVersions[*minorVersion]; !ok {
+					rhcosVersionSummary += fmt.Sprintf("%s%s\n", rhcosVersionSummary, *minorVersion)
+					uniqueRHCOSVersions[*minorVersion] = true
+				}
 			}
 		}
 	}
 
-	return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image", *rhcosVersionPtr, cpuArchitecture)
+	return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image\nUse one of the following Openshift versions for that architecture:\n%s", *rhcosVersionPtr, cpuArchitecture, rhcosVersionSummary)
 }
 
 func AddReleaseImagesToDBIfNeeded(
