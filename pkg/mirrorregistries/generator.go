@@ -74,10 +74,10 @@ func (m *mirrorRegistriesConfigBuilder) ExtractLocationMirrorDataFromRegistries(
 	if err != nil {
 		return nil, err
 	}
-	return extractLocationMirrorDataFromRegistries(string(contents))
+	return ExtractLocationMirrorDataFromRegistriesFromToml(string(contents))
 }
 
-func extractLocationMirrorDataFromRegistries(registriesConfToml string) ([]RegistriesConf, error) {
+func ExtractLocationMirrorDataFromRegistriesFromToml(registriesConfToml string) ([]RegistriesConf, error) {
 	tomlTree, err := toml.Load(registriesConfToml)
 	if err != nil {
 		return nil, err

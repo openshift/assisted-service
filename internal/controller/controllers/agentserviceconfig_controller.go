@@ -30,11 +30,13 @@ import (
 	"github.com/hashicorp/go-version"
 	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	toml "github.com/pelletier/go-toml"
 	pkgerror "github.com/pkg/errors"
@@ -1034,9 +1036,20 @@ func unauthenticatedRegistries(ctx context.Context, asc ASC) string {
 						}
 					}
 				}
+
+				if mirrorsData, err := mirrorregistries.ExtractLocationMirrorDataFromRegistriesFromToml(contents); err == nil {
+					for _, registriesConf := range mirrorsData {
+						for _, mirror := range registriesConf.Mirror {
+							if registry, err := validations.ParseRegistry(mirror); err == nil {
+								unauthenticatedRegistries = append(unauthenticatedRegistries, registry)
+							}
+						}
+					}
+				}
 			}
 		}
 	}
+
 	if asc.spec.UnauthenticatedRegistries != nil {
 		unauthenticatedRegistries = append(unauthenticatedRegistries, asc.spec.UnauthenticatedRegistries...)
 	}
