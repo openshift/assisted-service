@@ -1039,10 +1039,8 @@ func unauthenticatedRegistries(ctx context.Context, asc ASC) string {
 
 				if mirrorsData, err := mirrorregistries.ExtractLocationMirrorDataFromRegistriesFromToml(contents); err == nil {
 					for _, registriesConf := range mirrorsData {
-						for _, mirror := range registriesConf.Mirror {
-							if registry, err := validations.ParseRegistry(mirror); err == nil {
-								unauthenticatedRegistries = append(unauthenticatedRegistries, registry)
-							}
+						if registry, err := validations.ParseRegistry(registriesConf.Location); err == nil {
+							unauthenticatedRegistries = append(unauthenticatedRegistries, registry)
 						}
 					}
 				}
