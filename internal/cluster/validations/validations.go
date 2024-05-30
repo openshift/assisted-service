@@ -129,7 +129,7 @@ func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' field of %q is not base64-encoded", d)}
 		}
 
-		res := bytes.Split(data, []byte(":"))
+		res := bytes.SplitN(data, []byte(":"), 2)
 		if len(res) != 2 {
 			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' for %s is not in 'user:password' format", d)}
 		}
