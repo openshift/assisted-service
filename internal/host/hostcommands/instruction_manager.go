@@ -78,7 +78,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	instructionConfig InstructionConfig, connectivityValidator connectivity.Validator, eventsHandler eventsapi.Handler,
 	versionHandler versions.Handler, osImages versions.OSImages, kubeApiEnabled bool) *InstructionManager {
 	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.AgentImage)
-	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler, instructionConfig.EnableSkipMcoReboot)
+	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler, instructionConfig.EnableSkipMcoReboot, !kubeApiEnabled)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.AgentImage)
 	freeAddressesCmd := newFreeAddressesCmd(log, kubeApiEnabled)
 	stopCmd := NewStopInstallationCmd(log)
