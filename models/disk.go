@@ -57,6 +57,9 @@ type Disk struct {
 	// name
 	Name string `json:"name,omitempty"`
 
+	// partition types
+	PartitionTypes string `json:"partitionTypes,omitempty"`
+
 	// path
 	Path string `json:"path,omitempty"`
 

@@ -7326,6 +7326,9 @@ func init() {
         "name": {
           "type": "string"
         },
+        "partitionTypes": {
+          "type": "string"
+        },
         "path": {
           "type": "string"
         },
@@ -18116,6 +18119,9 @@ func init() {
           "type": "string"
         },
         "name": {
+          "type": "string"
+        },
+        "partitionTypes": {
           "type": "string"
         },
         "path": {
