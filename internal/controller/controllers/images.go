@@ -18,14 +18,30 @@ package controllers
 
 import (
 	"os"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	OsImagesEnvVar string = "OS_IMAGES"
+	OsImagesEnvVar             string = "OS_IMAGES"
+	serviceImageBaseAnnotation string = "agent-install.openshift.io/service-image-base"
+	serviceImageBaseEL8        string = "el8"
 )
 
-func ServiceImage() string {
+func ServiceImage(asc client.Object) string {
+	val, ok := asc.GetAnnotations()[serviceImageBaseAnnotation]
+	if ok && val == serviceImageBaseEL8 {
+		return serviceImageEL8()
+	}
+	return serviceImageDefault()
+}
+
+func serviceImageDefault() string {
 	return getEnvVar("SERVICE_IMAGE", "quay.io/edge-infrastructure/assisted-service:latest")
+}
+
+func serviceImageEL8() string {
+	return getEnvVar("SERVICE_EL8_IMAGE", "quay.io/edge-infrastructure/assisted-service-el8:latest")
 }
 
 func ImageServiceImage() string {

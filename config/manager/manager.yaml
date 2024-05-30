@@ -32,6 +32,8 @@ spec:
         env:
           - name: SERVICE_IMAGE
             value: quay.io/edge-infrastructure/assisted-service:latest
+          - name: SERVICE_EL8_IMAGE
+            value: quay.io/edge-infrastructure/assisted-service-el8:latest
           - name: IMAGE_SERVICE_IMAGE
             value: quay.io/edge-infrastructure/assisted-image-service:latest
           - name: DATABASE_IMAGE

@@ -1093,7 +1093,7 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"AGENT_DOCKER_IMAGE":     AgentImage(),
 			"CONTROLLER_IMAGE":       ControllerImage(),
 			"INSTALLER_IMAGE":        InstallerImage(),
-			"SELF_VERSION":           ServiceImage(),
+			"SELF_VERSION":           ServiceImage(asc.Object),
 			"OS_IMAGES":              getOSImages(log, asc.spec),
 			"MUST_GATHER_IMAGES":     getMustGatherImages(log, asc.spec),
 			"ISO_IMAGE_TYPE":         "minimal-iso",
@@ -1179,7 +1179,7 @@ func getDeploymentData(ctx context.Context, cm *corev1.ConfigMap, asc ASC) {
 	}
 	//  Both ACM and MCE are not deployed so this is a stand-alone operator deployment
 	cm.Data["DEPLOYMENT_TYPE"] = "Operator"
-	cm.Data["DEPLOYMENT_VERSION"] = ServiceImage()
+	cm.Data["DEPLOYMENT_VERSION"] = ServiceImage(asc.Object)
 }
 
 // Extracts the environment variable OPERATOR_VERSION from a k8s deployment
@@ -1615,7 +1615,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 
 	serviceContainer := corev1.Container{
 		Name:  serviceName,
-		Image: ServiceImage(),
+		Image: ServiceImage(asc.Object),
 		Ports: []corev1.ContainerPort{
 			{
 				ContainerPort: int32(servicePort.IntValue()),
@@ -2379,8 +2379,9 @@ func newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 
 func newWebHookDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	serviceContainer := corev1.Container{
-		Name:  "agentinstalladmission",
-		Image: ServiceImage(),
+		Name: "agentinstalladmission",
+		// always use the default image for webhooks since this will never need to run the installer binary
+		Image: serviceImageDefault(),
 		Command: []string{
 			"/assisted-service-admission",
 			"--secure-port=9443",
