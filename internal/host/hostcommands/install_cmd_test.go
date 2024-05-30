@@ -219,17 +219,25 @@ var _ = Describe("installcmd", func() {
 		sdh := createDisk("sdh", false)
 		sdc := createDisk("sdc", true)
 
-		It("Doesn't format removable disks", func() {
-			disks := []*models.Disk{
-				createRemovableDisk("sda", true), //removable disk
-				sdb,                              //installation disk
-			}
-			host.Inventory = getInventory(disks)
-			mockFormatEvent(disks[0], 0)
-			prepareGetStep(sdb)
-			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
-			verifyDiskFormatCommand(installCmdSteps[0], disks[0].ID, false)
-		})
+		DescribeTable("Doesn't format",
+			func(disk *models.Disk) {
+				disks := []*models.Disk{
+					disk,
+					sdb, // installation disk
+				}
+				host.Inventory = getInventory(disks)
+				mockFormatEvent(disks[0], 0)
+				prepareGetStep(sdb)
+				installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
+				verifyDiskFormatCommand(installCmdSteps[0], disks[0].ID, false)
+			},
+			Entry("when disk is removable", createRemovableDisk("sda", true)),
+			Entry("when disk path contains mmcblk", &models.Disk{DriveType: models.DriveTypeHDD, ID: "/dev/disk/by-id/wwn-someid", ByPath: "/dev/mmcblk0", Name: "sda", SizeBytes: int64(128849018880), Bootable: true}),
+			Entry("when disk type is LVM", &models.Disk{DriveType: models.DriveTypeLVM, ID: "/dev/disk/by-id/wwn-someid", Name: "sda", SizeBytes: int64(128849018880), Bootable: true}),
+			Entry("when disk type is iSCSI", &models.Disk{DriveType: models.DriveTypeISCSI, ID: "/dev/disk/by-id/wwn-someid", Name: "sda", SizeBytes: int64(128849018880), Bootable: true}),
+			Entry("when disk type is FC", &models.Disk{DriveType: models.DriveTypeFC, ID: "/dev/disk/by-id/wwn-someid", Name: "sda", SizeBytes: int64(128849018880), Bootable: true}),
+			Entry("when disk type is multipath", &models.Disk{DriveType: models.DriveTypeMultipath, ID: "/dev/disk/by-id/wwn-someid", Name: "sda", SizeBytes: int64(128849018880), Bootable: true}),
+		)
 
 		It("Formats a single removable disk", func() {
 			disks := []*models.Disk{
