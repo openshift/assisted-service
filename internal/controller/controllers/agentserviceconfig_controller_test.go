@@ -2150,7 +2150,7 @@ var _ = Describe("newAssistedCM", func() {
 		
 		[[registry]]
 			prefix = ""
-			location = "foo-bar/edge-infrastructure"
+			location = "registry.ci.openshift.org/edge-infrastructure"
 			mirror-by-digest-only = true
 	
 			[[registry.mirror]]
@@ -2196,7 +2196,7 @@ var _ = Describe("newAssistedCM", func() {
 		ascr := newTestReconciler(asc, route, imageRoute, mirrorCM)
 		ascc = initASC(ascr, asc)
 		ensureNewAssistedConfigmapValue(
-			ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,mirror1.registry.corp.com:5000,mirror2.registry.corp.com:5000,mirror-foo-bar1.registry.corp.com:5000,mirror-foo-bar2.registry.corp.com:5000",
+			ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,registry.ci.openshift.org",
 		)
 	})
 	It("adds mirror registries", func() {
@@ -2209,12 +2209,18 @@ var _ = Describe("newAssistedCM", func() {
 			log,
 			ascc,
 			"PUBLIC_CONTAINER_REGISTRIES",
-			"quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,mirror1.registry.corp.com:5000,mirror2.registry.corp.com:5000,mirror-foo-bar1.registry.corp.com:5000,mirror-foo-bar2.registry.corp.com:5000",
+			"quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,registry.ci.openshift.org",
 		)
 	})
 	It("adds user-specified unauthenticated registries", func() {
 		asc.Spec.UnauthenticatedRegistries = []string{"example.com"}
-		ensureNewAssistedConfigmapValue(ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,example.com")
+		ensureNewAssistedConfigmapValue(
+			ctx,
+			log,
+			ascc,
+			"PUBLIC_CONTAINER_REGISTRIES",
+			"quay.io,registry.svc.ci.openshift.org,example.com",
+		)
 	})
 	It("ignores duplicate values", func() {
 		asc.Spec.UnauthenticatedRegistries = []string{"example.com", "quay.io", "docker.io"}
@@ -2222,7 +2228,12 @@ var _ = Describe("newAssistedCM", func() {
 		mirrorCM.Data[mirrorRegistryRefRegistryConfKey] = registryConf
 		ascr := newTestReconciler(asc, route, imageRoute, mirrorCM)
 		ascc = initASC(ascr, asc)
-		ensureNewAssistedConfigmapValue(ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,mirror1.registry.corp.com:5000,mirror2.registry.corp.com:5000,mirror-foo-bar1.registry.corp.com:5000,mirror-foo-bar2.registry.corp.com:5000,example.com")
+		ensureNewAssistedConfigmapValue(
+			ctx,
+			log,
+			ascc,
+			"PUBLIC_CONTAINER_REGISTRIES",
+			"quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,registry.ci.openshift.org,example.com")
 	})
 })
 
