@@ -4840,7 +4840,7 @@ var _ = Describe("finalizing timeouts", func() {
 		})
 		for _, st := range finalizingStages {
 			stage := st
-			timeout := finalizingStageTimeout(stage, nil, logrus.New())
+			timeout := finalizingStageTimeout(stage, nil, false, logrus.New())
 			Context(fmt.Sprintf("finalizing stage '%s' timeout expired", stage), func() {
 				if funk.Contains(nonFailingFinalizingStages, stage) {
 					It("should stay in same status and trigger soft timeout", func() {
@@ -4886,7 +4886,7 @@ var _ = Describe("finalizing timeouts", func() {
 		})
 		for _, st := range finalizingStages {
 			stage := st
-			timeout := finalizingStageTimeout(stage, nil, logrus.New())
+			timeout := finalizingStageTimeout(stage, nil, true, logrus.New())
 			It(fmt.Sprintf("finalizing stage '%s' timeout expired", stage), func() {
 				cls := createCluster(models.ClusterStatusFinalizing, stage, time.Now(), time.Now().Add(-(timeout + time.Second)))
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)

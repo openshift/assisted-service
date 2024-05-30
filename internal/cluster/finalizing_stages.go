@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openshift/assisted-service/models"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
@@ -18,8 +19,17 @@ const (
 	shortWaitTimeout   = 10 * time.Minute
 )
 
-var finalizingStagesTimeoutsDefaults = map[models.FinalizingStage]time.Duration{
+var finalizingStagesTimeoutsDefaultsHardTimeous = map[models.FinalizingStage]time.Duration{
 	models.FinalizingStageWaitingForClusterOperators:              longWaitTimeout,
+	models.FinalizingStageAddingRouterCa:                          generalWaitTimeout,
+	models.FinalizingStageApplyingOlmManifests:                    shortWaitTimeout,
+	models.FinalizingStageWaitingForOlmOperatorsCsv:               generalWaitTimeout,
+	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization: generalWaitTimeout,
+	models.FinalizingStageDone:                                    shortWaitTimeout,
+}
+
+var finalizingStagesTimeoutsDefaultsSoftTimeouts = map[models.FinalizingStage]time.Duration{
+	models.FinalizingStageWaitingForClusterOperators:              generalWaitTimeout,
 	models.FinalizingStageAddingRouterCa:                          generalWaitTimeout,
 	models.FinalizingStageApplyingOlmManifests:                    shortWaitTimeout,
 	models.FinalizingStageWaitingForOlmOperatorsCsv:               generalWaitTimeout,
@@ -46,7 +56,7 @@ func convertStageToEnvVar(stage models.FinalizingStage) string {
 	return fmt.Sprintf("FINALIZING_STAGE_%s_TIMEOUT", strings.ReplaceAll(strings.ToUpper(string(stage)), " ", "_"))
 }
 
-func finalizingStageDefaultTimeout(stage models.FinalizingStage, log logrus.FieldLogger) time.Duration {
+func finalizingStageDefaultTimeout(stage models.FinalizingStage, softTimeoutEnabled bool, log logrus.FieldLogger) time.Duration {
 	var (
 		d   time.Duration
 		err error
@@ -60,7 +70,7 @@ func finalizingStageDefaultTimeout(stage models.FinalizingStage, log logrus.Fiel
 		}
 		log.WithError(err).Warningf("failed to parse duration '%s' for stage '%s'", val, stage)
 	}
-	d, ok = finalizingStagesTimeoutsDefaults[stage]
+	d, ok = lo.Ternary(softTimeoutEnabled, finalizingStagesTimeoutsDefaultsSoftTimeouts, finalizingStagesTimeoutsDefaultsHardTimeous)[stage]
 	if ok {
 		return d
 	}
@@ -68,8 +78,8 @@ func finalizingStageDefaultTimeout(stage models.FinalizingStage, log logrus.Fiel
 	return generalWaitTimeout
 }
 
-func finalizingStageTimeout(stage models.FinalizingStage, operators []*models.MonitoredOperator, log logrus.FieldLogger) time.Duration {
-	timeout := finalizingStageDefaultTimeout(stage, log)
+func finalizingStageTimeout(stage models.FinalizingStage, operators []*models.MonitoredOperator, softTimeoutEnabled bool, log logrus.FieldLogger) time.Duration {
+	timeout := finalizingStageDefaultTimeout(stage, softTimeoutEnabled, log)
 	if funk.Contains([]models.FinalizingStage{models.FinalizingStageWaitingForOlmOperatorsCsvInitialization, models.FinalizingStageWaitingForOlmOperatorsCsv}, stage) {
 		timeoutSeconds := timeout.Seconds()
 		for _, m := range operators {
