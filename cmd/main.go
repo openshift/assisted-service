@@ -610,7 +610,6 @@ func main() {
 				ApproveCsrsRequeueDuration: Options.ApproveCsrsRequeueDuration,
 				AgentContainerImage:        Options.BMConfig.AgentDockerImg,
 				HostFSMountDir:             hostFSMountDir,
-				EventSender:                eventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
 			failOnError((&controllers.BMACReconciler{
