@@ -630,6 +630,15 @@ var _ = Describe("GetReleaseBinaryPath", func() {
 		_, bin, _, err = r.GetReleaseBinaryPath("image", "dir", "4.16.0-rc.0")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(bin).To(Equal("openshift-install"))
+		_, bin, _, err = r.GetReleaseBinaryPath("image", "dir", "4.16.0-rc.3")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(bin).To(Equal("openshift-install"))
+	})
+
+	It("returns the openshift-install binary for 4.16 nightlies", func() {
+		_, bin, _, err := r.GetReleaseBinaryPath("image", "dir", "4.16.0-0.nightly-2024-05-30-130713")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(bin).To(Equal("openshift-install"))
 	})
 
 	It("returns the openshift-install binary for versions later than 4.16.0", func() {

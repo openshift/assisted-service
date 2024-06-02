@@ -30,7 +30,7 @@ const (
 	okdRPMSImageName               = "okd-rpms"
 	DefaultTries                   = 5
 	DefaltRetryDelay               = time.Second * 5
-	staticInstallerRequiredVersion = "4.16.0-ec.6"
+	staticInstallerRequiredVersion = "4.16.0-0.alpha"
 )
 
 type Config struct {
