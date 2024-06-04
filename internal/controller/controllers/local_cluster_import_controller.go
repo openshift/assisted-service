@@ -238,6 +238,19 @@ func (r *LocalClusterImportReconciler) deleteAgentClusterInstall(ctx context.Con
 	return nil
 }
 
+func (r *LocalClusterImportReconciler) deleteInfraEnv(ctx context.Context, namespace string, name string) error {
+	infraEnv := &aiv1beta1.InfraEnv{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	if err := r.client.Delete(ctx, infraEnv); err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to delete InfraEnv %s in namespace %s", name, namespace)
+	}
+	return nil
+}
+
 func (r *LocalClusterImportReconciler) hasLocalManagedCluster(ctx context.Context) (bool, error) {
 	managedCluster := &clusterv1.ManagedCluster{}
 	namespacedName := types.NamespacedName{
@@ -266,6 +279,40 @@ func (r *LocalClusterImportReconciler) ensureLocalClusterCRsDeleted(ctx context.
 	if err != nil && !k8serrors.IsNotFound(err) {
 		r.log.Errorf("could not delete local AgentClusterInstall due to error %s", err.Error())
 		return err
+	}
+	err = r.deleteInfraEnv(ctx, r.localClusterName, r.localClusterName)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		r.log.Errorf("could not delete local InfraEnv due to error %s", err.Error())
+		return err
+	}
+	return nil
+}
+
+func (r *LocalClusterImportReconciler) createOrUpdateInfraEnv(ctx context.Context, pullSecretRefName string) error {
+	infraEnv := aiv1beta1.InfraEnv{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      r.localClusterName,
+			Namespace: r.localClusterName,
+		},
+		Spec: aiv1beta1.InfraEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{
+				Name:      r.localClusterName,
+				Namespace: r.localClusterName,
+			},
+			PullSecretRef: &v1.LocalObjectReference{
+				Name: pullSecretRefName,
+			},
+		},
+	}
+	mutateFn := func() error {
+		return nil
+	}
+	createOrUpdateResult, err := controllerutil.CreateOrUpdate(ctx, r.client, &infraEnv, mutateFn)
+	if err != nil {
+		return errors.Wrap(err, "could not create InfraEnv")
+	}
+	if createOrUpdateResult != controllerutil.OperationResultNone {
+		r.log.Infof("InfraEnv %s has been %s", infraEnv.Name, createOrUpdateResult)
 	}
 	return nil
 }
@@ -507,6 +554,11 @@ func (r *LocalClusterImportReconciler) importLocalCluster(ctx context.Context, i
 	}
 
 	err = r.createOrUpdateClusterDeployment(ctx, pullSecret, dns, kubeConfigSecret, instance)
+	if err != nil {
+		return err
+	}
+
+	err = r.createOrUpdateInfraEnv(ctx, pullSecret.Name)
 	if err != nil {
 		return err
 	}
