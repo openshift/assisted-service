@@ -16,6 +16,9 @@ RUN cd /assisted-service/build && python3 ../tools/client_package_initializer.py
 # Build binaries
 FROM quay.io/centos/centos:stream8 as builder
 
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+
 RUN dnf install --enablerepo=powertools -y gcc git nmstate-devel && dnf clean all
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.18 /usr/local/go /usr/local/go
 
@@ -40,6 +43,9 @@ RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=
 
 # Create final image
 FROM quay.io/centos/centos:stream8
+
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
 
 # multiarch images need it till WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
 RUN dnf install -y --setopt=install_weak_deps=False skopeo
