@@ -3,6 +3,9 @@ RUN chmod g+xw -R /usr/local/go
 
 FROM quay.io/centos/centos:stream8
 
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+
 ENV GOPATH=/go
 ENV GOROOT=/usr/local/go
 ENV VIRTUAL_ENV=/opt/venv
