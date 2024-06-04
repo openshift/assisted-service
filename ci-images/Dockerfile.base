@@ -1,5 +1,8 @@
 FROM quay.io/centos/centos:stream8
 
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+
 RUN dnf install -y 'dnf-command(config-manager)' && \
     dnf config-manager --set-enabled powertools && \
     dnf install -y git unzip make gcc which nmstate-devel python3
