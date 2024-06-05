@@ -43,15 +43,15 @@ function gather_operator_data() {
 }
 
 function gather_agentclusterinstall_data() {
-  readarray -t agentclusterinstall_objects < <(oc get agentclusterinstall -n ${SPOKE_NAMESPACE} -o json | jq -c '.items[]')
+  readarray -t agentclusterinstall_objects < <(oc get agentclusterinstall -A -o json | jq -c '.items[]')
   for agentclusterinstall in "${agentclusterinstall_objects[@]}"; do
     agentclusterinstall_name=$(echo ${agentclusterinstall} | jq -r .metadata.name)
     agentclusterinstall_namespace=$(echo ${agentclusterinstall} | jq -r .metadata.namespace)
 
-    cluster_dir="${LOGS_DEST}/${agentclusterinstall_namespace}_${agentclusterinstall_name}"
+    cluster_dir="${LOGS_DEST}/agentclusterinstall"
     mkdir -p "${cluster_dir}"
 
-    oc get agentclusterinstall -n ${agentclusterinstall_namespace} ${agentclusterinstall_name} -o yaml > "${cluster_dir}/agentclusterinstall.yaml"
+    oc get agentclusterinstall -n ${agentclusterinstall_namespace} ${agentclusterinstall_name} -o yaml > "${cluster_dir}/${agentclusterinstall_namespace}_${agentclusterinstall_name}.yaml"
 
     events_url=$(echo ${agentclusterinstall} | jq -r .status.debugInfo.eventsURL)
     if [ -n "${events_url}" ] && [ "${events_url}" != null ]; then
@@ -104,10 +104,11 @@ function gather_clusterdeployment_data() {
   cd_dir="${LOGS_DEST}/clusterdeployment"
   mkdir -p "${cd_dir}"
 
-  readarray -t cd_objects < <(oc get clusterdeployments.hive.openshift.io -n ${SPOKE_NAMESPACE} -o json | jq -c '.items[]')
+  readarray -t cd_objects < <(oc get clusterdeployments.hive.openshift.io -A -o json | jq -c '.items[]')
   for cd in "${cd_objects[@]}"; do
     cd_name=$(echo ${cd} | jq -r .metadata.name)
-    oc get clusterdeployments.hive.openshift.io -n "${SPOKE_NAMESPACE}" "${cd_name}" -o yaml > "${cd_dir}/${cd_name}.yaml"
+    cd_namespace=$(echo ${cd} | jq -r .metadata.namespace)
+    oc get clusterdeployments.hive.openshift.io -n "${cd_namespace}" "${cd_name}" -o yaml > "${cd_dir}/${cd_namespace}_${cd_name}.yaml"
   done
 }
 
