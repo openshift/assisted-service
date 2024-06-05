@@ -257,8 +257,8 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				Expect(supportLevel).To(Equal(expectedSupportLevel))
 			},
 			Entry("OCI unavailable with Openshift 4.13", "4.13", models.SupportLevelUnavailable),
-			Entry("OCI tech-preview with Openshift 4.14", "4.14", models.SupportLevelTechPreview),
-			Entry("OCI tech-preview with Openshidt 4.15", "4.15", models.SupportLevelTechPreview),
+			Entry("OCI tech-preview with Openshift 4.14", "4.14", models.SupportLevelSupported),
+			Entry("OCI tech-preview with Openshidt 4.15", "4.15", models.SupportLevelSupported),
 		)
 	})
 
