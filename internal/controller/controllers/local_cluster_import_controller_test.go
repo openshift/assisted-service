@@ -237,6 +237,7 @@ var _ = Describe("Reconcile", func() {
 		Expect(err).ToNot(HaveOccurred())
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
 		namespacedName := types.NamespacedName{
 			Namespace: localClusterName,
 			Name:      localClusterName,
@@ -245,11 +246,14 @@ var _ = Describe("Reconcile", func() {
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Get(ctx, namespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedName, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("cluster import CR's should not be present after reconcile if AgentServiceConfig is not present", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
 		namespacedname := types.NamespacedName{
 			Namespace: localClusterName,
 			Name:      localClusterName,
@@ -262,11 +266,14 @@ var _ = Describe("Reconcile", func() {
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, namespacedname, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
 	It("cluster import CR's should not be present after reconcile if ManagedCluster is not present", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
 		namespacedname := types.NamespacedName{
 			Namespace: localClusterName,
 			Name:      localClusterName,
@@ -278,11 +285,14 @@ var _ = Describe("Reconcile", func() {
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, namespacedname, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
 	It("should remove cluster import CR's when AgentServiceConfig is removed", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
 		namespacedname := types.NamespacedName{
 			Namespace: localClusterName,
 			Name:      localClusterName,
@@ -291,6 +301,8 @@ var _ = Describe("Reconcile", func() {
 		err := client.Get(ctx, namespacedname, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, infraEnv)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Delete(ctx, agentServiceConfig)
 		Expect(err).ToNot(HaveOccurred())
@@ -300,11 +312,14 @@ var _ = Describe("Reconcile", func() {
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, namespacedname, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
 	It("should remove cluster import CR's when ManagedCluster is removed", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
 		namespacedname := types.NamespacedName{
 			Namespace: localClusterName,
 			Name:      localClusterName,
@@ -313,6 +328,8 @@ var _ = Describe("Reconcile", func() {
 		err := client.Get(ctx, namespacedname, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, infraEnv)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Delete(ctx, managedCluster)
 		Expect(err).ToNot(HaveOccurred())
@@ -321,11 +338,14 @@ var _ = Describe("Reconcile", func() {
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, namespacedname, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
 	It("should monitor for proxy change and update AgentClusterInstall correctly", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
 		namespacedname := types.NamespacedName{
 			Namespace: localClusterName,
 			Name:      localClusterName,
@@ -334,6 +354,8 @@ var _ = Describe("Reconcile", func() {
 		err := client.Get(ctx, namespacedname, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, infraEnv)
 		Expect(err).ToNot(HaveOccurred())
 
 		//Test a change of proxy settings
@@ -358,6 +380,7 @@ var _ = Describe("Reconcile", func() {
 	It("should monitor for DNS change and update ClusterDeployment correctly", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
 		namespacedname := types.NamespacedName{
 			Namespace: localClusterName,
 			Name:      localClusterName,
@@ -366,6 +389,8 @@ var _ = Describe("Reconcile", func() {
 		err := client.Get(ctx, namespacedname, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, infraEnv)
 		Expect(err).ToNot(HaveOccurred())
 
 		//Test a change of DNS settings
@@ -387,6 +412,7 @@ var _ = Describe("Reconcile", func() {
 	It("should monitor for Cluster Version change and update ClusterDeployment correctly", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
 		namespacedname := types.NamespacedName{
 			Namespace: localClusterName,
 			Name:      localClusterName,
@@ -395,6 +421,8 @@ var _ = Describe("Reconcile", func() {
 		err := client.Get(ctx, namespacedname, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, infraEnv)
 		Expect(err).ToNot(HaveOccurred())
 
 		//Test that a change to ClusterVersion changes the cluster image set correctly.
@@ -437,6 +465,7 @@ var _ = Describe("Reconcile", func() {
 	It("should monitor for changes to secret pull-secret in namespace openshift-config and update pull-secret for clusterdeployment", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
 		namespacedname := types.NamespacedName{
 			Namespace: localClusterName,
 			Name:      localClusterName,
@@ -445,6 +474,8 @@ var _ = Describe("Reconcile", func() {
 		err := client.Get(ctx, namespacedname, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, infraEnv)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Verify content of pull secret against local-cluster pull-secret before we change it.
@@ -487,6 +518,7 @@ var _ = Describe("Reconcile", func() {
 	It("should monitor for changes to secret node-kubeconfigs in namespace openshift-kube-apiserver", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
 		namespacedname := types.NamespacedName{
 			Namespace: localClusterName,
 			Name:      localClusterName,
@@ -495,6 +527,8 @@ var _ = Describe("Reconcile", func() {
 		err := client.Get(ctx, namespacedname, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, infraEnv)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Verify content of pull secret against local-cluster pull-secret before we change it.
