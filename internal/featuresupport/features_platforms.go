@@ -274,8 +274,8 @@ func (feature *OciIntegrationFeature) getSupportLevel(filters SupportLevelFilter
 		return models.SupportLevelUnavailable
 	}
 
-	if isTechPreview, err := common.BaseVersionGreaterOrEqual("4.14", filters.OpenshiftVersion); isTechPreview || err != nil {
-		return models.SupportLevelTechPreview
+	if isSupported, err := common.BaseVersionGreaterOrEqual("4.14", filters.OpenshiftVersion); isSupported || err != nil {
+		return models.SupportLevelSupported
 	}
 
 	return models.SupportLevelUnavailable
