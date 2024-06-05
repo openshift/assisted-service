@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
@@ -24,45 +25,37 @@ type OSImages interface {
 type osImageList models.OsImages
 
 func NewOSImages(images models.OsImages) (OSImages, error) {
-	i := osImageList(images)
-	if err := i.validate(); err != nil {
-		return nil, err
+	if len(images) == 0 {
+		return nil, errors.New("No OS images provided")
 	}
-	return i, nil
+	for _, osImage := range images {
+		if err := validateOSImage(osImage); err != nil {
+			return nil, err
+		}
+
+		normalizeOSImageCPUArchitecture(osImage)
+	}
+
+	return osImageList(images), nil
 }
 
-func (images osImageList) validate() error {
-	for _, osImage := range images {
-		if swag.StringValue(osImage.OpenshiftVersion) == "" {
-			return errors.Errorf("Missing openshift_version in OsImage: %v", osImage)
-		}
-	}
-
-	openshiftVersions := images.GetOpenshiftVersions()
-	if len(openshiftVersions) == 0 {
-		return errors.Errorf("No OS images are available")
-	}
-
+func validateOSImage(osImage *models.OsImage) error {
 	missingValueTemplate := "Missing value in OSImage for '%s' field (openshift_version: %s)"
-	for _, key := range openshiftVersions {
-		architectures := images.GetCPUArchitectures(key)
-		for _, architecture := range architectures {
-			osImage, err := images.GetOsImage(key, architecture)
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Failed to get OSImage for openshift version: %s", key))
-			}
-			if swag.StringValue(osImage.URL) == "" {
-				return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url", key))
-			}
-			if swag.StringValue(osImage.Version) == "" {
-				return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version", key))
-			}
-			// Normalize osImage.CPUArchitecture
-			// TODO: remove this block when AI starts using aarch64 instead of arm64
-			if architecture == common.AARCH64CPUArchitecture {
-				*osImage.CPUArchitecture = common.NormalizeCPUArchitecture(*osImage.CPUArchitecture)
-			}
-		}
+	if swag.StringValue(osImage.OpenshiftVersion) == "" {
+		return errors.Errorf("Missing openshift_version in OsImage: %v", osImage)
+	}
+
+	if swag.StringValue(osImage.URL) == "" {
+		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url", *osImage.OpenshiftVersion))
+	}
+	if swag.StringValue(osImage.Version) == "" {
+		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version", *osImage.OpenshiftVersion))
+	}
+	if osImage.CPUArchitecture == nil {
+		return errors.Errorf("osImage version '%s' CPU architecture is missing", *osImage.OpenshiftVersion)
+	}
+	if err := osImage.Validate(strfmt.Default); err != nil {
+		return errors.Wrapf(err, "osImage version '%s' CPU architecture is not valid", *osImage.OpenshiftVersion)
 	}
 
 	return nil
@@ -70,10 +63,13 @@ func (images osImageList) validate() error {
 
 // Returns the OsImage entity
 func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
+	cpuArchitecture = common.NormalizeCPUArchitecture(cpuArchitecture)
+
 	if cpuArchitecture == "" {
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture
 	}
+
 	// Filter OS images by specified CPU architecture
 	archImages := funk.Filter(images, func(osImage *models.OsImage) bool {
 		if swag.StringValue(osImage.CPUArchitecture) == "" {
@@ -90,7 +86,7 @@ func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture string) (
 		return swag.StringValue(osImage.OpenshiftVersion) == openshiftVersion
 	})
 
-	versionKey, err := toMajorMinor(openshiftVersion)
+	versionKey, err := common.GetMajorMinorVersion(openshiftVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -98,18 +94,18 @@ func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture string) (
 	if osImage == nil {
 		// Fallback to x.y version
 		osImage = funk.Find(archImages, func(osImage *models.OsImage) bool {
-			return *osImage.OpenshiftVersion == versionKey
+			return *osImage.OpenshiftVersion == *versionKey
 		})
 	}
 
 	if osImage == nil {
 		// Find latest available patch version by x.y version
 		osImages := funk.Filter(archImages, func(osImage *models.OsImage) bool {
-			imageVersionKey, err := toMajorMinor(*osImage.OpenshiftVersion)
+			imageVersionKey, err := common.GetMajorMinorVersion(*osImage.OpenshiftVersion)
 			if err != nil {
 				return false
 			}
-			return imageVersionKey == versionKey
+			return *imageVersionKey == *versionKey
 		}).([]*models.OsImage)
 		sort.Slice(osImages, func(i, j int) bool {
 			v1, _ := version.NewVersion(*osImages[i].OpenshiftVersion)
@@ -176,12 +172,12 @@ func (images osImageList) GetOsImageOrLatest(version string, cpuArch string) (*m
 // according to the OS images list.
 func (images osImageList) GetCPUArchitectures(openshiftVersion string) []string {
 	cpuArchitectures := []string{}
-	versionKey, err := toMajorMinor(openshiftVersion)
+	versionKey, err := common.GetMajorMinorVersion(openshiftVersion)
 	if err != nil {
 		return cpuArchitectures
 	}
 	for _, osImage := range images {
-		if *osImage.OpenshiftVersion == openshiftVersion || *osImage.OpenshiftVersion == versionKey {
+		if *osImage.OpenshiftVersion == openshiftVersion || *osImage.OpenshiftVersion == *versionKey {
 			if swag.StringValue(osImage.CPUArchitecture) == "" {
 				// Empty or missing property implies default CPU architecture
 				defaultArch := common.DefaultCPUArchitecture
@@ -204,4 +200,12 @@ func (images osImageList) GetOpenshiftVersions() []string {
 		}
 	}
 	return versions
+}
+
+func normalizeOSImageCPUArchitecture(osImage *models.OsImage) {
+	// Normalize osImage.CPUArchitecture
+	// TODO: remove this block when AI starts using aarch64 instead of arm64
+	if *osImage.CPUArchitecture == common.AARCH64CPUArchitecture {
+		*osImage.CPUArchitecture = common.NormalizeCPUArchitecture(*osImage.CPUArchitecture)
+	}
 }
