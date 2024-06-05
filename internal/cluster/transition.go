@@ -648,7 +648,7 @@ func FinalizingStage(sCluster *stateCluster) interface{} {
 }
 
 func (th *transitionHandler) finalizingStageTimeoutMinutes(sCluster *stateCluster) int64 {
-	return int64(finalizingStageTimeout(sCluster.cluster.Progress.FinalizingStage, sCluster.cluster.MonitoredOperators, th.log).Minutes())
+	return int64(finalizingStageTimeout(sCluster.cluster.Progress.FinalizingStage, sCluster.cluster.MonitoredOperators, th.isSoftTimeoutsEnabled(sCluster.cluster), th.log).Minutes())
 }
 
 func (th *transitionHandler) FinalizingStageTimeoutMinutes(sCluster *stateCluster) interface{} {
@@ -691,7 +691,7 @@ func (th *transitionHandler) IsFinalizingStageTimedOut(sw stateswitch.StateSwitc
 	if sCluster.cluster.Progress == nil || sCluster.cluster.Progress.FinalizingStage == "" {
 		return false, nil
 	}
-	timeout := finalizingStageTimeout(sCluster.cluster.Progress.FinalizingStage, sCluster.cluster.MonitoredOperators, th.log)
+	timeout := finalizingStageTimeout(sCluster.cluster.Progress.FinalizingStage, sCluster.cluster.MonitoredOperators, th.isSoftTimeoutsEnabled(sCluster.cluster), th.log)
 	return time.Since(time.Time(sCluster.cluster.Progress.FinalizingStageStartedAt)) > timeout, nil
 }
 
@@ -703,12 +703,16 @@ func finalizingStageTimeoutTriggered(sw stateswitch.StateSwitch, _ stateswitch.T
 	return sCluster.cluster.Progress != nil && sCluster.cluster.Progress.FinalizingStageTimedOut, nil
 }
 
+func (tr *transitionHandler) isSoftTimeoutsEnabled(cluster *common.Cluster) bool {
+	return tr.softTimeoutsEnabled && cluster.OrgSoftTimeoutsEnabled
+}
+
 func (tr *transitionHandler) SoftTimeoutsEnabled(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
 	if !ok {
 		return false, errors.New("SoftTimeoutsEnabled incompatible type of StateSwitch")
 	}
-	return tr.softTimeoutsEnabled && (sCluster.cluster != nil && sCluster.cluster.OrgSoftTimeoutsEnabled), nil
+	return sCluster.cluster != nil && tr.isSoftTimeoutsEnabled(sCluster.cluster), nil
 }
 
 func (th *transitionHandler) InstallCluster(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
