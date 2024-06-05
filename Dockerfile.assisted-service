@@ -18,6 +18,7 @@ RUN cd /assisted-service/build && python3 ../tools/client_package_initializer.py
 FROM quay.io/centos/centos:$BASE_TAG as builder
 
 COPY hack/container_build_scripts/install_build_deps.sh .
+COPY hack/container_build_scripts/utils.sh .
 ARG BASE_TAG
 RUN ./install_build_deps.sh $BASE_TAG
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.20 /usr/local/go /usr/local/go
@@ -44,6 +45,11 @@ RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=
 
 # Create final image
 FROM quay.io/centos/centos:$BASE_TAG
+
+COPY hack/container_build_scripts/replace_dnf_repositories_ref_if_needed.sh .
+COPY hack/container_build_scripts/utils.sh .
+ARG BASE_TAG
+RUN ./replace_dnf_repositories_ref_if_needed.sh $BASE_TAG
 
 # multiarch images need it till WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
 RUN dnf install -y --setopt=install_weak_deps=False skopeo
