@@ -27,12 +27,10 @@ var _ = Describe("AuthAgentAuth", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Encode to Base64 (Standard encoding)
-		encodedPrivateKey := base64.StdEncoding.EncodeToString([]byte(privKey))
 		encodedPubKey := base64.StdEncoding.EncodeToString([]byte(pubKey))
 
 		cfg := &Config{
-			ECPublicKeyPEM:  encodedPubKey,
-			ECPrivateKeyPEM: encodedPrivateKey,
+			ECPublicKeyPEM: encodedPubKey,
 		}
 
 		token, err = gencrypto.LocalJWTForKey(infraEnvID.String(), privKey, gencrypto.InfraEnvKey)

@@ -756,11 +756,11 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 
 func (b *bareMetalInventory) generateShortImageDownloadURL(infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
 	switch b.authHandler.AuthType() {
-	case auth.TypeLocal, auth.TypeAgentLocal:
+	case auth.TypeLocal:
 		return b.generateShortImageDownloadURLByAPIKey(infraEnvID, imageType, version, arch)
 	case auth.TypeRHSSO:
 		return b.generateShortImageDownloadURLByToken(infraEnvID, imageType, version, arch, imageTokenKey)
-	case auth.TypeNone:
+	case auth.TypeNone, auth.TypeAgentLocal:
 		return b.generateShortImageDownloadURLByID(infraEnvID, imageType, version, arch)
 	}
 

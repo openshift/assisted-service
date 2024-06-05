@@ -41,7 +41,6 @@ type Config struct {
 	AdminUsers                 []string `envconfig:"ADMIN_USERS" default:""`
 	EnableOrgTenancy           bool     `envconfig:"ENABLE_ORG_TENANCY" default:"false"`
 	EnableOrgBasedFeatureGates bool     `envconfig:"ENABLE_ORG_BASED_FEATURE_GATES" default:"false"`
-	ECPrivateKeyPEM            string   `envconfig:"EC_PRIVATE_KEY_PEM"`
 }
 
 func NewAuthenticator(cfg *Config, ocmClient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) (a Authenticator, err error) {

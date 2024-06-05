@@ -53,13 +53,13 @@ var _ = Describe("NewAuthenticator", func() {
 
 		// AgentLocalAuthenticator
 		pubKey, privKey, err := gencrypto.ECDSAKeyPairPEM()
+		Expect(pubKey).ToNot(BeEmpty())
+		Expect(privKey).ToNot(BeEmpty())
 		Expect(err).ToNot(HaveOccurred())
-		encodedPrivateKey := base64.StdEncoding.EncodeToString([]byte(privKey))
 		encodedPubKey := base64.StdEncoding.EncodeToString([]byte(pubKey))
 		config = &Config{
-			AuthType:        TypeAgentLocal,
-			ECPublicKeyPEM:  encodedPubKey,
-			ECPrivateKeyPEM: encodedPrivateKey,
+			AuthType:       TypeAgentLocal,
+			ECPublicKeyPEM: encodedPubKey,
 		}
 
 		a, err = NewAuthenticator(config, nil, logrus.New(), nil)

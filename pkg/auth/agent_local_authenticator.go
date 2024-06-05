@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"encoding/base64"
 	"net/http"
-	"os"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
@@ -38,13 +37,6 @@ func NewAgentLocalAuthenticator(cfg *Config, log logrus.FieldLogger) (*AgentLoca
 		log.WithError(err).Fatal("Error decoding public key:")
 	}
 	cfg.ECPublicKeyPEM = string(decodedECPublicKeyPEM)
-
-	decodedECPrivateKeyPEM, err := base64.StdEncoding.DecodeString(cfg.ECPrivateKeyPEM)
-	if err != nil {
-		log.WithError(err).Fatal("Error decoding private key:")
-	}
-	cfg.ECPrivateKeyPEM = string(decodedECPrivateKeyPEM)
-	os.Setenv("EC_PRIVATE_KEY_PEM", string(decodedECPrivateKeyPEM))
 
 	key, err := jwt.ParseECPublicKeyFromPEM([]byte(cfg.ECPublicKeyPEM))
 	if err != nil {
