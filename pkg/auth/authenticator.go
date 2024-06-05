@@ -13,10 +13,11 @@ import (
 type AuthType string
 
 const (
-	TypeEmpty AuthType = ""
-	TypeNone  AuthType = "none"
-	TypeRHSSO AuthType = "rhsso"
-	TypeLocal AuthType = "local"
+	TypeEmpty      AuthType = ""
+	TypeNone       AuthType = "none"
+	TypeRHSSO      AuthType = "rhsso"
+	TypeLocal      AuthType = "local"
+	TypeAgentLocal AuthType = "agent-installer-local"
 )
 
 type Authenticator interface {
@@ -50,6 +51,8 @@ func NewAuthenticator(cfg *Config, ocmClient *ocm.Client, log logrus.FieldLogger
 		a = NewNoneAuthenticator(log)
 	case TypeLocal:
 		a, err = NewLocalAuthenticator(cfg, log, db)
+	case TypeAgentLocal:
+		a, err = NewAgentLocalAuthenticator(cfg, log)
 	default:
 		err = fmt.Errorf("invalid authenticator type %v", cfg.AuthType)
 	}

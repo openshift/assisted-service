@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"encoding/base64"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -48,5 +50,22 @@ var _ = Describe("NewAuthenticator", func() {
 		Expect(err).ToNot(HaveOccurred())
 		_, ok = a.(*LocalAuthenticator)
 		Expect(ok).To(BeTrue())
+
+		// AgentLocalAuthenticator
+		pubKey, privKey, err := gencrypto.ECDSAKeyPairPEM()
+		Expect(pubKey).ToNot(BeEmpty())
+		Expect(privKey).ToNot(BeEmpty())
+		Expect(err).ToNot(HaveOccurred())
+		encodedPubKey := base64.StdEncoding.EncodeToString([]byte(pubKey))
+		config = &Config{
+			AuthType:       TypeAgentLocal,
+			ECPublicKeyPEM: encodedPubKey,
+		}
+
+		a, err = NewAuthenticator(config, nil, logrus.New(), nil)
+		Expect(err).ToNot(HaveOccurred())
+		_, ok = a.(*AgentLocalAuthenticator)
+		Expect(ok).To(BeTrue())
+
 	})
 })

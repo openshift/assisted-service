@@ -32,7 +32,9 @@ func AgentToken(resource interface{}, authType auth.AuthType) (token string, err
 		token, err = cloudPullSecretToken(pullSecret)
 	case auth.TypeLocal:
 		token, err = gencrypto.LocalJWT(resId, gencrypto.InfraEnvKey)
-	case auth.TypeNone:
+	case auth.TypeNone, auth.TypeAgentLocal:
+		// For the agent based installer, the token is externally created by agent based installer.
+		// Hence, it is fine to return and empty token here for TypeAgentLocal.
 		token = ""
 	default:
 		err = errors.Errorf("invalid authentication type %v", authType)

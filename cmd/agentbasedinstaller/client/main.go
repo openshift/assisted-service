@@ -35,6 +35,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/client"
+	"github.com/openshift/assisted-service/pkg/auth"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,6 +43,7 @@ const failureOutputPath = "/var/run/agent-installer/host-config-failures"
 
 var Options struct {
 	ServiceBaseUrl string `envconfig:"SERVICE_BASE_URL" default:""`
+	Token          string `envconfig:"AGENT_AUTH_TOKEN" default:""`
 }
 
 var RegisterOptions struct {
@@ -82,6 +84,10 @@ func main() {
 	}
 	u.Path = path.Join(u.Path, client.DefaultBasePath)
 	clientConfig.URL = u
+
+	userToken := Options.Token
+	clientConfig.AuthInfo = auth.UserAuthHeaderWriter(userToken)
+
 	bmInventory := client.New(clientConfig)
 	ctx := context.Background()
 	log.Info("SERVICE_BASE_URL: " + Options.ServiceBaseUrl)
