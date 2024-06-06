@@ -21,13 +21,16 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
+	eventModels "github.com/openshift/assisted-service/pkg/uploader/models"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
 
-var _ Client = &eventsUploader{}
+const (
+	metadataFileName = "metadata.json"
+)
 
 type eventsUploader struct {
 	Config
@@ -76,31 +79,6 @@ func (e *eventsUploader) setHeaders(req *http.Request, clusterID *strfmt.UUID, t
 	return nil
 }
 
-func prepareBody(buffer *bytes.Buffer) (*bytes.Buffer, string, error) {
-	if buffer == nil || buffer.Bytes() == nil {
-		return nil, "", errors.Errorf("no data passed to prepare body")
-	}
-	mimeHeader := make(textproto.MIMEHeader)
-	mimeHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, "file", "events.tgz"))
-	mimeHeader.Set("Content-Type", "application/vnd.redhat.assisted-installer.events+tar")
-
-	var formBuffer bytes.Buffer
-	w := multipart.NewWriter(&formBuffer)
-	fw, err := w.CreatePart(mimeHeader)
-	if err != nil {
-		return nil, "", errors.Wrapf(err, "failed creating multipart section for request body")
-	}
-
-	if _, err := fw.Write(buffer.Bytes()); err != nil {
-		return nil, "", err
-	}
-
-	if err := w.Close(); err != nil {
-		return nil, "", err
-	}
-	return &formBuffer, w.FormDataContentType(), nil
-}
-
 func (e *eventsUploader) sendRequest(req *http.Request) error {
 	transport := &http.Transport{
 		TLSClientConfig:     &tls.Config{},
@@ -124,6 +102,31 @@ func (e *eventsUploader) sendRequest(req *http.Request) error {
 		e.log.Debugf("error reading response body for request to %s: %s", req.URL, err.Error())
 	}
 	return fmt.Errorf("uploading events: upload to %s returned status code %d (body: %s)", req.URL, res.StatusCode, string(body))
+}
+
+func prepareBody(buffer *bytes.Buffer) (*bytes.Buffer, string, error) {
+	if buffer == nil || buffer.Bytes() == nil {
+		return nil, "", errors.Errorf("no data passed to prepare body")
+	}
+	mimeHeader := make(textproto.MIMEHeader)
+	mimeHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, "file", "events.tgz"))
+	mimeHeader.Set("Content-Type", "application/vnd.redhat.assisted-installer.events+tar")
+
+	var formBuffer bytes.Buffer
+	w := multipart.NewWriter(&formBuffer)
+	fw, err := w.CreatePart(mimeHeader)
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "failed creating multipart section for request body")
+	}
+
+	if _, err := fw.Write(buffer.Bytes()); err != nil {
+		return nil, "", err
+	}
+
+	if err := w.Close(); err != nil {
+		return nil, "", err
+	}
+	return &formBuffer, w.FormDataContentType(), nil
 }
 
 func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eventsHandler eventsapi.Handler, pullSecret *validations.PullSecretCreds,
@@ -177,13 +180,23 @@ func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eve
 }
 
 func metadataFile(tw *tar.Writer, clusterID *strfmt.UUID, config Config) {
-	metadata := versions.GetModelVersions(config.Versions)
-	metadata["deployment-type"] = config.DeploymentType
-	metadata["deployment-version"] = config.DeploymentVersion
-	metadata["git-ref"] = config.AssistedServiceVersion
+	metadata := createMetadataContent(config)
 
 	if metadataJson, err := json.Marshal(metadata); err == nil {
-		addFile(tw, metadataJson, fmt.Sprintf("%s/metadata.json", *clusterID)) //nolint:errcheck // errors adding this file shouldn't prevent the data from being sent
+		addFile(tw, metadataJson, fmt.Sprintf("%s/%s", *clusterID, metadataFileName)) //nolint:errcheck // errors adding this file shouldn't prevent the data from being sent
+	}
+}
+
+func createMetadataContent(config Config) eventModels.Metadata {
+	return eventModels.Metadata{
+		AssistedInstallerServiceVersion:    config.Versions.SelfVersion,
+		DiscoveryAgentVersion:              config.Versions.AgentDockerImg,
+		AssistedInstallerVersion:           config.Versions.InstallerImage,
+		AssistedInstallerControllerVersion: config.Versions.ControllerImage,
+
+		DeploymentType:    config.DeploymentType,
+		DeploymentVersion: config.DeploymentVersion,
+		GitRef:            config.AssistedServiceVersion,
 	}
 }
 

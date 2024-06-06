@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
+	eventModels "github.com/openshift/assisted-service/pkg/uploader/models"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
@@ -669,5 +670,14 @@ func checkMetadataFile(metadataFile *testFile, cfg Config) {
 		expectedMetadata["deployment-version"] = cfg.DeploymentVersion
 		expectedMetadata["git-ref"] = cfg.AssistedServiceVersion
 		Expect(metadataContents).To(BeEquivalentTo(expectedMetadata))
+	}
+}
+
+func generateExpectedEvents(clusterID string, config Config) eventModels.Events {
+	meta := createMetadataContent(config)
+
+	return eventModels.Events{
+		ClusterID: clusterID,
+		Metadata:  &meta,
 	}
 }
