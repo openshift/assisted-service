@@ -1219,12 +1219,12 @@ spec:
 		err := os.WriteFile(manifestPatchPath, []byte(schedulableMastersManifestPatch), 0600)
 		Expect(err).NotTo(HaveOccurred())
 
-		manifestPatchCustomTestPath := filepath.Join(manifestsOpenshiftDir, "cluster-scheduler-02-config.yml.patch_custom_test")
-		err = os.WriteFile(manifestPatchCustomTestPath, []byte(schedulerPatchCustomTest), 0600)
-		Expect(err).NotTo(HaveOccurred())
-
 		manifestsDir := filepath.Join(workDir, "/manifests")
 		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
+
+		manifestPatchCustomTestPath := filepath.Join(manifestsDir, "cluster-scheduler-02-config.yml.patch_custom_test")
+		err = os.WriteFile(manifestPatchCustomTestPath, []byte(schedulerPatchCustomTest), 0600)
+		Expect(err).NotTo(HaveOccurred())
 
 		err = os.WriteFile(filepath.Join(manifestsDir, "cluster-scheduler-02-config.yml"), []byte(base), 0600)
 		Expect(err).NotTo(HaveOccurred())
