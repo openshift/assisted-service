@@ -269,7 +269,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			It("Does not accept a filename that does not contain a name before the extension", func() {
 				clusterID := registerCluster().ID
 				content := "{}"
-				fileName := ".yaml"
+				fileName := ".yaml.patch"
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
