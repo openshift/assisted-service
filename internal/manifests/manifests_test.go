@@ -191,6 +191,27 @@ var _ = Describe("ClusterManifestTests", func() {
 			Expect(responsePayload.Payload.Folder).To(Equal(validFolder))
 		})
 
+		It("should throw an appropriate exception - with message for user re-upload when operation to mark manifest as user-supplied fails", func() {
+			clusterID := registerCluster().ID
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", "test.json")).Return(false, nil).AnyTimes()
+			srcFolder := "openshift"
+			srcFileName := "test.json"
+			mockS3Client.EXPECT().Upload(ctx, []byte(contentAsJSON), getObjectName(clusterID, srcFolder, srcFileName)).Return(nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte{}, getMetadataObjectName(clusterID, srcFolder, srcFileName, constants.ManifestSourceUserSupplied)).Return(errors.New("Something went wrong in S3!!!")).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getMetadataObjectName(clusterID, srcFolder, srcFileName, constants.ManifestSourceUserSupplied)).Return(true, nil).AnyTimes()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(true, nil).AnyTimes()
+			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+				ClusterID: *clusterID,
+				CreateManifestParams: &models.CreateManifestParams{
+					Content:  &contentJson,
+					FileName: &srcFileName,
+					Folder:   &srcFolder,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(response.(*common.ApiErrorResponse).Error()).To(Equal("failed to mark the manifest as user-supplied - please re-upload this file: Something went wrong in S3!!!"))
+		})
+
 		It("override an existing manifest", func() {
 			clusterID := registerCluster().ID
 			mockUpload(2)
@@ -1278,6 +1299,32 @@ invalid YAML content: {
 				},
 			})
 			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2UpdateClusterManifestOK()))
+		})
+
+		It("should throw an appropriate exception - with message for user re-upload when operation to mark manifest as user-supplied fails", func() {
+			clusterID := registerCluster().ID
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", "test2.json")).Return(false, nil).AnyTimes()
+			srcFolder := "openshift"
+			srcFileName := "test.json"
+			destFolder := "openshift"
+			destFileName := "test.json"
+			reader := io.NopCloser(strings.NewReader(contentAsYAML))
+			mockS3Client.EXPECT().Download(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(reader, int64(0), nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte(contentAsYAML), getObjectName(clusterID, destFolder, destFileName)).Return(nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte{}, getMetadataObjectName(clusterID, destFolder, destFileName, constants.ManifestSourceUserSupplied)).Return(errors.New("Something went wrong in S3!!!")).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getMetadataObjectName(clusterID, srcFolder, srcFileName, constants.ManifestSourceUserSupplied)).Return(true, nil).AnyTimes()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(true, nil).AnyTimes()
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        srcFileName,
+					Folder:          srcFolder,
+					UpdatedFileName: &destFileName,
+					UpdatedFolder:   &destFolder,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(response.(*common.ApiErrorResponse).Error()).To(Equal("failed to mark the manifest as user-supplied - please re-upload this file: Something went wrong in S3!!!"))
 		})
 
 		It("should accept an update where folders remain the same and files remain the same", func() {

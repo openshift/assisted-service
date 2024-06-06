@@ -124,7 +124,7 @@ func (m *Manifests) unmarkUserSuppliedManifest(ctx context.Context, clusterID st
 func (m *Manifests) markUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, path string) error {
 	objectName := GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied)
 	if err := m.objectHandler.Upload(ctx, []byte{}, objectName); err != nil {
-		return err
+		return errors.Wrap(err, "failed to mark the manifest as user-supplied - please re-upload this file")
 	}
 	return nil
 }
