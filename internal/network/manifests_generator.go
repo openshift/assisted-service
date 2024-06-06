@@ -85,7 +85,9 @@ const snoDnsmasqConf = `#!/usr/bin/env bash
 # SNO_CLUSTER_NAME_OVERRIDE=<new cluster name>
 # SNO_BASE_DOMAIN_OVERRIDE=<your new base domain>
 # SNO_DNSMASQ_IP_OVERRIDE=<new ip>
-source /etc/default/sno_dnsmasq_configuration_overrides
+if [ -f /etc/default/sno_dnsmasq_configuration_overrides ]; then
+    source /etc/default/sno_dnsmasq_configuration_overrides
+fi
 
 HOST_IP=${SNO_DNSMASQ_IP_OVERRIDE:-"{{.HOST_IP}}"}
 CLUSTER_NAME=${SNO_CLUSTER_NAME_OVERRIDE:-"{{.CLUSTER_NAME}}"}
@@ -110,7 +112,9 @@ const forceDnsDispatcherScript = `#!/bin/bash
 # SNO_CLUSTER_NAME_OVERRIDE=<new cluster name>
 # SNO_BASE_DOMAIN_OVERRIDE=<your new base domain>
 # SNO_DNSMASQ_IP_OVERRIDE=<new ip>
-source /etc/default/sno_dnsmasq_configuration_overrides
+if [ -f /etc/default/sno_dnsmasq_configuration_overrides ]; then
+    source /etc/default/sno_dnsmasq_configuration_overrides
+fi
 
 HOST_IP=${SNO_DNSMASQ_IP_OVERRIDE:-"{{.HOST_IP}}"}
 CLUSTER_NAME=${SNO_CLUSTER_NAME_OVERRIDE:-"{{.CLUSTER_NAME}}"}
