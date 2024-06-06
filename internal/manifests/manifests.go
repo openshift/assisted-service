@@ -453,7 +453,7 @@ func (m *Manifests) fetchManifestContent(ctx context.Context, clusterID strfmt.U
 func (m *Manifests) validateManifestFileNames(ctx context.Context, clusterID strfmt.UUID, fileNames []string) error {
 	for _, fileName := range fileNames {
 		fileNameWithoutExtension := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-		if len(strings.TrimSpace(fileNameWithoutExtension)) == 0 {
+		if fileName[0] == '.' || len(strings.TrimSpace(fileNameWithoutExtension)) == 0 {
 			return m.prepareAndLogError(
 				ctx,
 				http.StatusUnprocessableEntity,
