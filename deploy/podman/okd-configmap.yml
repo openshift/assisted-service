@@ -24,7 +24,7 @@ data:
   POSTGRESQL_DATABASE: installer
   POSTGRESQL_PASSWORD: admin
   POSTGRESQL_USER: admin
-  PUBLIC_CONTAINER_REGISTRIES: 'quay.io'
+  PUBLIC_CONTAINER_REGISTRIES: 'quay.io,registry.ci.openshift.org'
   SERVICE_BASE_URL: http://127.0.0.1:8090
   STORAGE: filesystem
   OS_IMAGES: '[{"openshift_version":"4.16","cpu_architecture":"x86_64","url":"https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/39.20240322.3.1/x86_64/fedora-coreos-39.20240322.3.1-live.x86_64.iso","version":"39.20240322.3.1"}]'
