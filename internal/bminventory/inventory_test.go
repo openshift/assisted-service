@@ -4769,6 +4769,26 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest,
 						"Setting Machine network CIDR is forbidden when cluster is not in vip-dhcp-allocation mode")
 				})
+				It("Machine network CIDR in non dhcp non interactive", func() {
+					mockClusterUpdatability(2)
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+					setAndCheck := func(cidr models.Subnet) {
+						_, err := bm.UpdateClusterNonInteractive(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								MachineNetworks: []*models.MachineNetwork{{Cidr: cidr}},
+							},
+						})
+						Expect(err).ToNot(HaveOccurred())
+						var machineNetworks []*models.MachineNetwork
+						Expect(db.Where("cluster_id = ?", clusterID).Find(&machineNetworks).Error).ToNot(HaveOccurred())
+						Expect(machineNetworks).To(HaveLen(1))
+						Expect(machineNetworks[0].Cidr).To(Equal(cidr))
+					}
+					setAndCheck("10.11.0.0/16")
+					setAndCheck("1.2.3.0/24")
+				})
 
 				It("Machine network CIDR in non dhcp for dual-stack", func() {
 					mockClusterUpdatability(1)
