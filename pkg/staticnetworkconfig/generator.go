@@ -183,11 +183,21 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistence(macInterf
 		if err != nil {
 			return errors.Wrapf(err, "failed to get interface type for interface %s", interfaceName.String())
 		}
-		if lo.Contains([]string{"802-3-ethernet", "ethernet"}, interfaceType.String()) {
+		switch interfaceType.String() {
+		case "802-3-ethernet", "ethernet":
 			if !lo.Contains(interfaceNames, interfaceName.String()) {
 				return errors.Errorf("mac-interface mapping for interface %s is missing", interfaceName.String())
 			}
 			matched = true
+		case "vlan":
+			vlanSection := cfg.Section("vlan")
+			parent, err := vlanSection.GetKey("parent")
+			if err != nil {
+				return errors.Wrapf(err, "failed to get parent of vlan %s", interfaceName.Name())
+			}
+			if lo.Contains(interfaceNames, parent.String()) {
+				matched = true
+			}
 		}
 	}
 	if !matched {
