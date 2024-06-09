@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	configv1 "github.com/openshift/api/config/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
@@ -450,8 +451,13 @@ func (r *LocalClusterImportReconciler) createOrUpdateClusterDeployment(ctx conte
 		clusterDeployment.Spec.PullSecretRef = &v1.LocalObjectReference{
 			Name: pullSecret.Name,
 		}
-		clusterDeployment.Spec.ClusterName = r.localClusterName
-		clusterDeployment.Spec.BaseDomain = dns.Spec.BaseDomain
+		// By convention the local cluster has a domain in the form <cluster name>.<base domain>
+		baseDomainParts := strings.Split(dns.Spec.BaseDomain, ".")
+		if len(baseDomainParts) < 2 {
+			return errors.Errorf("The base domain %s could not be parsed into cluster name + base domain, cannot proceed with import of local cluster", dns.Spec.BaseDomain)
+		}
+		clusterDeployment.Spec.ClusterName = baseDomainParts[0]
+		clusterDeployment.Spec.BaseDomain = strings.Join(baseDomainParts[1:], ".")
 		return nil
 	}
 	createOrUpdateResult, err := controllerutil.CreateOrUpdate(ctx, r.client, &clusterDeployment, mutateFn)
