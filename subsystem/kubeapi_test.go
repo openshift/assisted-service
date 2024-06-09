@@ -208,8 +208,35 @@ func deployNamespace(ctx context.Context, client k8sclient.Client, nsName string
 	Expect(err).To(BeNil())
 }
 
+func deleteNamespace(ctx context.Context, client k8sclient.Client, nsName string) {
+	err := client.Delete(ctx, &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nsName,
+		},
+	})
+	Expect(err).To(BeNil())
+}
+
 func deployServiceAccount(ctx context.Context, client k8sclient.Client, namespace, name string) {
 	err := client.Create(ctx, &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ServiceAccount",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	})
+	Expect(err).To(BeNil())
+}
+
+func deleteServiceAccount(ctx context.Context, client k8sclient.Client, namespace, name string) {
+	err := client.Delete(ctx, &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccount",
 			APIVersion: "v1",
@@ -234,8 +261,34 @@ func deployClusterRole(ctx context.Context, client k8sclient.Client, name string
 	Expect(err).To(BeNil())
 }
 
+func deleteClusterRole(ctx context.Context, client k8sclient.Client, name string) {
+	err := client.Delete(ctx, &rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterRole",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	})
+	Expect(err).To(BeNil())
+}
+
 func deployClusterRoleBinding(ctx context.Context, client k8sclient.Client, name string, roleRef rbacv1.RoleRef, subjects []rbacv1.Subject) {
 	err := client.Create(ctx, &rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterRoleBinding",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		RoleRef:  roleRef,
+		Subjects: subjects,
+	})
+	Expect(err).To(BeNil())
+}
+
+func deleteClusterRoleBinding(ctx context.Context, client k8sclient.Client, name string, roleRef rbacv1.RoleRef, subjects []rbacv1.Subject) {
+	err := client.Delete(ctx, &rbacv1.ClusterRoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "ClusterRoleBinding",
 		},
@@ -259,6 +312,20 @@ func deploySecret(ctx context.Context, client k8sclient.Client, secretName strin
 			Name:      secretName,
 		},
 		StringData: secretData,
+	})
+	Expect(err).To(BeNil())
+}
+
+func deleteSecret(ctx context.Context, client k8sclient.Client, secretName string) {
+	err := client.Delete(ctx, &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      secretName,
+		},
 	})
 	Expect(err).To(BeNil())
 }
@@ -1374,8 +1441,19 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		name := "cloud-controller-manager"
 		namespace := fmt.Sprintf("oci-%s", name)
 		deployNamespace(ctx, kubeClient, namespace)
+		defer func() {
+			deleteNamespace(ctx, kubeClient, namespace)
+		}()
+
 		deployServiceAccount(ctx, kubeClient, namespace, name)
+		defer func() {
+			deleteServiceAccount(ctx, kubeClient, namespace, name)
+		}()
+
 		deployClusterRole(ctx, kubeClient, fmt.Sprintf("system:%s", name))
+		defer func() {
+			deleteClusterRole(ctx, kubeClient, fmt.Sprintf("system:%s", name))
+		}()
 
 		roleRef := rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
@@ -1390,6 +1468,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			},
 		}
 		deployClusterRoleBinding(ctx, kubeClient, fmt.Sprintf("oci-%s", name), roleRef, subjects)
+		defer func() {
+			deleteClusterRoleBinding(ctx, kubeClient, fmt.Sprintf("oci-%s", name), roleRef, subjects)
+		}()
 
 		secretData := map[string]string{
 			"cloud-provider.yaml": `
@@ -1397,6 +1478,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				`,
 		}
 		deploySecret(ctx, kubeClient, name, secretData)
+		defer func() {
+			deleteSecret(ctx, kubeClient, name)
+		}()
 
 		imageSetRef4_14 := &hivev1.ClusterImageSetReference{
 			Name: "openshift-v4.14.0",
@@ -1625,18 +1709,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		caCertificate, err := generateTestCertificate()
 		Expect(err).To(BeNil())
 		deploySecret(ctx, kubeClient, caCertificateSecretName, map[string]string{corev1.TLSCertKey: caCertificate})
-		caSec := &corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: Options.Namespace,
-				Name:      caCertificateSecretName,
-			},
-		}
 		defer func() {
-			_ = kubeClient.Delete(ctx, caSec)
+			deleteSecret(ctx, kubeClient, caCertificateSecretName)
 		}()
 		aciSNOSpec.IgnitionEndpoint = &hiveext.IgnitionEndpoint{
 			Url: "https://example.com",
@@ -1664,18 +1738,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		ignitionTokenSecretName := "ignition-token"
 		ignitionEndpointToken := "abcdef"
 		deploySecret(ctx, kubeClient, ignitionTokenSecretName, map[string]string{"ignition-token": ignitionEndpointToken})
-		tokenSec := &corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: Options.Namespace,
-				Name:      ignitionTokenSecretName,
-			},
-		}
 		defer func() {
-			_ = kubeClient.Delete(ctx, tokenSec)
+			deleteSecret(ctx, kubeClient, ignitionTokenSecretName)
 		}()
 		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
 

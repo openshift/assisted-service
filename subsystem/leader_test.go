@@ -153,8 +153,8 @@ var _ = Describe("Leader tests", func() {
 		for _, test := range tests {
 			test.stop()
 		}
-		_ = client.CoordinationV1().Leases(namespace).Delete(ctx, lockName, metav1.DeleteOptions{})
-		_ = client.CoreV1().ConfigMaps(namespace).Delete(ctx, lockName, metav1.DeleteOptions{})
+		_ = client.CoordinationV1().Leases(namespace).DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{})
+		_ = client.CoreV1().ConfigMaps(namespace).DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{})
 	})
 
 	BeforeEach(func() {
