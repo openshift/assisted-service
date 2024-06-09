@@ -5909,6 +5909,8 @@ definitions:
         type: boolean
       removable:
         type: boolean
+      partitionTypes:
+        type: string
       is_installation_media:
         type: boolean
         description: Whether the disk appears to be an installation media or not
