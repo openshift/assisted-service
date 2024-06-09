@@ -31,7 +31,11 @@ spec:
   spec:
     type: LoadBalancer
     ports:
-      - port: 8080
+      - name: assisted-image-service
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+        nodePort: 30002
     selector:
       app: wiremock
   status:

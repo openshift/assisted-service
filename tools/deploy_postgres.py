@@ -31,6 +31,14 @@ def deploy_postgres_secret(deploy_options):
         docs=docs
     )
 
+    if deploy_options.target == "kind":
+        utils.override_service_type_definition_and_node_port(
+            internal_definitions_path=f'build/{deploy_options.namespace}/postgres-secret.yaml',
+            internal_target_definitions_path=f'build/{deploy_options.namespace}/postgres-secret.yaml',
+            service_type="NodePort",
+            node_port=30003
+        )
+
     if not deploy_options.apply_manifest:
         return
     log.info('Deploying %s', dst_file)
@@ -67,7 +75,6 @@ def deploy_postgres(deploy_options):
 
 def deploy_postgres_storage(deploy_options):
     docs = utils.load_yaml_file_docs('deploy/postgres/postgres-storage.yaml')
-
     utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
 
     log.info('Updating pvc size for postgres-pv-claim')

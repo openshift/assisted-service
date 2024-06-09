@@ -60,6 +60,8 @@ spec:
   type: LoadBalancer
   ports:
     - port: 5432
+      targetPort: 5432
+      nodePort: 30003
   selector:
     app: postgres
 status:

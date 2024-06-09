@@ -1,0 +1,26 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: assisted-installer-kind
+nodes:
+- role: control-plane
+  extraPortMappings:
+  # assisted-service
+  - containerPort: 30000
+    hostPort: 8090
+    protocol: TCP
+  # assisted-image-service
+  - containerPort: 30001
+    hostPort: 8080
+    protocol: TCP
+  # Wiremock
+  - containerPort: 30002
+    hostPort: 8070
+    protocol: TCP
+  # Postgresql
+  - containerPort: 30003
+    hostPort: 5432
+    protocol: TCP
+  # UI
+  - containerPort: 30004
+    hostPort: 8060
+    protocol: TCP

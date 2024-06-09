@@ -1,103 +1,73 @@
-# How to run Assisted-service subsystem tests
+# Running Assisted-service Subsystem Tests on Kubernetes
 
-There are two "flavors" of subsystem tests:
+## Overview
 
-* subsystem tests for the service deployed in REST-API mode
-* subsystem tests for the service deployed in kube-api mode
+This document details the steps required to run subsystem tests for the Assisted-service deployed in two modes:
+- REST-API mode
+- Kube-API mode
 
-Assisted-service subsystem tests require that you first deploy the
-assisted-service on a k8s cluster (e.g. minikube).
+## Deployment for Subsystem Tests
 
-This document will explain how you can easily deploy the service in preperation
-for subsystem tests, and also how to run the tests themselves.
-
-The subsystem tests themselves are located in the
-[subsystem](https://github.com/openshift/assisted-service/tree/master/subsystem)
-directory, but they are launched via `make` targets in the Makefile at the root
-of this repository.
-
-## Service deployment
-
-This section will show you how you can deploy the assisted installer to
-a minikube cluster in preperation for subsystem tests.
-
-### minikube
-
-First we must prepare the minikube cluster -
+Assisted-service components will be deployed in a Kind cluster using the Podman provider. 
+`podman` and `kind` and `skipper` executables must be available in the $PATH.
+you can install kind by running:
 
 ```bash
-# Optionally delete the existing minikube cluster:
-# minikube delete
-
-# Clean remains of any networks created by minikube
-podman network rm minikube || true
-
-# Start minikube
-minikube start --insecure-registry=$(hostname --ip):5000 --driver=podman --addons dashboard --force
-
-# enable the registry addon using quay.io images (to overcome docker-hub's rate-limiter)
-minikube addons enable registry --images="Registry=quay.io/libpod/registry:2.8"
-
-# Make the registry addon accessible locally:
-nohup kubectl port-forward svc/registry --address 0.0.0.0 5000:80 -n kube-system &>/dev/null &
-export LOCAL_SUBSYSTEM_REGISTRY=$(hostname --ip):5000
-
-echo "Waiting for registry to become ready..."
-while ! curl --location $LOCAL_SUBSYSTEM_REGISTRY; do
-    sleep 10
-    echo "kubectl registry service tunnel at port 5000 is not available yet, retrying..."
-    echo "If this persists, try running the kubectl port-forward command above without"
-    echo "nohup, /dev/null redirection and the background job & operator and see if there"
-    echo "are any errors"
-done
-
-# Make a tunnel to make minikube services reachable (the command will ask for root password):
-nohup minikube tunnel &>/dev/null &
+make install-kind-if-needed
 ```
+which will install `kind` latest version if it is not present.
 
-Now that the cluster is prepared, we can deploy the service -
+## Deploying Components
 
-To deploy the service in REST-API mode, run:
+To deploy in REST-API mode, run:
 
 ```bash
-skipper make deploy-service-for-subsystem-test
+make deploy-service-for-subsystem-test
 ```
 
-To deploy the service in kube-api mode, run:
+To deploy kube-api mode, run:
 
 ```bash
-ENABLE_KUBE_API=true skipper make deploy-service-for-subsystem-test
-skipper make enable-kube-api-for-subsystem
+ENABLE_KUBE_API=true make deploy-service-for-subsystem-test
 ```
 
-## Running the subsystem tests
+Optionally the following environment variables can be exported:
 
-To run the REST-API subsystem tests, run:
+* `SUBSYSTEM_SERVICE_IMAGE` - Specify external image to use for assisted-service.
+* `FOCUS="install_cluster"` - An optional flag used for [focused specs](https://onsi.github.io/ginkgo/#focused-specs) with regular expression.
+* `SKIP="install_cluster"` - An optional flag to skip scopes with regular expressions.
+* `VERBOSE=true` - An optional flag to print verbosed data.
+
+## Running the tests
+
+When the components are already deployed, you can run the tests as many times as you like:
+
+To test in REST-API mode, run:
 
 ```bash
 skipper make subsystem-test
 ```
 
-To run the kube-api subsystem tests, run:
+To test kube-api mode, run:
 
 ```bash
 skipper make subsystem-test-kube-api
 ```
 
-Optionally the following environment variables can be exported:
+## Quick Update and Test
 
-* `FOCUS="install_cluster"` - An optional flag used for [focused specs](https://onsi.github.io/ginkgo/#focused-specs) with regular expression.
-* `SKIP="install_cluster"` - An optional flag to skip scopes with regular expressions.
-* `VERBOSE=true` - An optional flag to print verbosed data.
-
-## Update service for the subsystem tests
-
-If you are making changes to the service's code and don't want to go through
-the slow steps above once again, you can simply run this command instead:
+To quickly update the service and run tests after making code changes, use:
 
 ```bash
-skipper make patch-service
+make patch-service
 ```
 
-It will build and push a new image of the service to the container registry,
-then trigger a rollout of the service Deployment.
+This command builds a new service image, pushes it to the container registry, and triggers a rollout of the updated service Deployment.
+
+## Cleanup
+
+to Destroy the cluster, run:
+
+```bash
+destroy-kind-cluster
+```

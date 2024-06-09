@@ -26,10 +26,19 @@ def main():
         with open(SERVICE_DST_FILE, "w+") as dst:
             raw_data = src.read()
             raw_data = raw_data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
+
             data = yaml.safe_load(raw_data)
 
             print("Deploying {}".format(SERVICE_DST_FILE))
             dst.write(yaml.dump(data))
+    
+    if deploy_options.target == "kind":
+        utils.override_service_type_definition_and_node_port(
+            internal_definitions_path=SERVICE_DST_FILE,
+            internal_target_definitions_path=SERVICE_DST_FILE,
+            service_type="NodePort",
+            node_port=30001
+        )
 
     if deploy_options.apply_manifest:
         utils.apply(
@@ -49,7 +58,7 @@ def main():
         # as part of service deployment flow in assisted-test-infra (sets custom hostname and port).
         # Otherwise, fetching the base url from the deployed image-service `service`.
         if deploy_options.target == "kind":
-            image_service_base_url = f"http://{socket.gethostname()}"
+            image_service_base_url = f"http://{os.environ.get('IP', 'localhost')}:8080"
         else:
             image_service_base_url = os.environ.get(
                 "IMAGE_SERVICE_BASE_URL",
