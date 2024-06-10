@@ -25,7 +25,6 @@ parameters:
 - name: OPENSHIFT_RELEASE_SYNCER_INTERVAL
   value: "30m"
   required: false
-  required: false
 - name: OPENSHIFT_RELEASE_SYNCER_INTERVAL
   value: "30m"
   required: false
