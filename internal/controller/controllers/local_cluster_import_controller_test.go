@@ -180,7 +180,7 @@ var _ = Describe("Reconcile", func() {
 				Name: "cluster",
 			},
 			Spec: configv1.DNSSpec{
-				BaseDomain: "app.foobar.bar",
+				BaseDomain: "some-cluster.some.base.domain",
 			},
 		}
 
@@ -399,13 +399,15 @@ var _ = Describe("Reconcile", func() {
 			Name: "cluster",
 		}, dns)
 		Expect(err).ToNot(HaveOccurred())
-		dns.Spec.BaseDomain = "new.base.domain"
+		Expect(clusterDeployment.Spec.ClusterName).To(Equal("some-cluster"))
+		Expect(clusterDeployment.Spec.BaseDomain).To(Equal("some.base.domain"))
+		dns.Spec.BaseDomain = "some-new-cluster.new.base.domain"
 		err = client.Update(ctx, dns)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(clusterDeployment.Spec.BaseDomain).ToNot(Equal("new.base.domain"))
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
 		err = client.Get(ctx, namespacedname, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
+		Expect(clusterDeployment.Spec.ClusterName).To(Equal("some-new-cluster"))
 		Expect(clusterDeployment.Spec.BaseDomain).To(Equal("new.base.domain"))
 	})
 
