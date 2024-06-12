@@ -234,11 +234,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return result, err
 	}
 
-	if err = updateConditions(ctx, log, asc); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
+	return updateConditions(ctx, log, asc)
 }
 
 func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {

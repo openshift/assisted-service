@@ -204,6 +204,8 @@ const (
 	ReasonKonnectivityAgentFailure string = "KonnectivityAgentFailure"
 	// ReasonOSImageCACertRefFailure when there has been a failure resolving the OS image CA using OSImageCACertRef.
 	ReasonOSImageCACertRefFailure string = "OSImageCACertRefFailure"
+	// ReasonMonitoringFailure indicates there was a failure monitoring operand status
+	ReasonMonitoringFailure string = "MonitoringFailure"
 
 	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to enable the route
 	IPXEHTTPRouteEnabled string = "enabled"
