@@ -122,6 +122,17 @@ type AgentServiceConfigSpec struct {
 	// +optional
 	OSImageAdditionalParamsRef *corev1.LocalObjectReference `json:"OSImageAdditionalParamsRef,omitempty"`
 
+	// AssistedServiceIngressHost is the hostname to be assigned to the assisted-service ingress.
+	// Has no effect when running on an OpenShift cluster.
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Assisted Service Ingress hostname"
+	// +optional
+	AssistedServiceIngressHost string `json:"assistedServiceIngressHost,omitempty"`
+
+	// ImageServiceIngressHost is the hostname to be assigned to the assisted-image-service ingress.
+	// Has no effect when running on an OpenShift cluster.
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Assisted Image Service Ingress hostname"
+	// +optional
+	ImageServiceIngressHost string `json:"imageServiceIngressHost,omitempty"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons

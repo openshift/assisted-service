@@ -37,6 +37,11 @@ spec:
           certificate will be used by the assisted-image-service when pulling OS images.
         displayName: OS Image CA Cert ConfigMap reference
         path: OSImageCACertRef
+      - description: AssistedServiceIngressHost is the hostname to be assigned to
+          the assisted-service ingress. Has no effect when running on an OpenShift
+          cluster.
+        displayName: Assisted Service Ingress hostname
+        path: assistedServiceIngressHost
       - description: DatabaseStorage defines the spec of the PersistentVolumeClaim
           to be created for the database's filesystem. With respect to the resource
           requests, minimum 10GiB is recommended.
@@ -58,6 +63,11 @@ spec:
           in -image-service'
         displayName: Expose IPXE HTTP route
         path: iPXEHTTPRoute
+      - description: ImageServiceIngressHost is the hostname to be assigned to the
+          assisted-image-service ingress. Has no effect when running on an OpenShift
+          cluster.
+        displayName: Assisted Image Service Ingress hostname
+        path: imageServiceIngressHost
       - description: ImageStorage defines the spec of the PersistentVolumeClaim to
           be created for each replica of the image service. If a PersistentVolumeClaim
           is provided 2GiB per OSImage entry is required

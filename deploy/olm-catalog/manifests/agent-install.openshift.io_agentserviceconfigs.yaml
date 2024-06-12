@@ -58,6 +58,11 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              assistedServiceIngressHost:
+                description: AssistedServiceIngressHost is the hostname to be assigned
+                  to the assisted-service ingress. Has no effect when running on an
+                  OpenShift cluster.
+                type: string
               databaseStorage:
                 description: DatabaseStorage defines the spec of the PersistentVolumeClaim
                   to be created for the database's filesystem. With respect to the
@@ -468,6 +473,11 @@ spec:
                 enum:
                 - enabled
                 - disabled
+                type: string
+              imageServiceIngressHost:
+                description: ImageServiceIngressHost is the hostname to be assigned
+                  to the assisted-image-service ingress. Has no effect when running
+                  on an OpenShift cluster.
                 type: string
               imageStorage:
                 description: ImageStorage defines the spec of the PersistentVolumeClaim
