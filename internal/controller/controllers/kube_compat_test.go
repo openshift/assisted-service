@@ -8,7 +8,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -21,7 +20,7 @@ var _ = Describe("ServerIsOpenShift", func() {
 
 	BeforeEach(func() {
 		scheme := runtime.NewScheme()
-		apiextensionsv1.AddToScheme(scheme)
+		Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
 		client = fake.NewClientBuilder().WithScheme(scheme).Build()
 		ctx = context.Background()
 	})

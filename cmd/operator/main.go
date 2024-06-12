@@ -157,6 +157,17 @@ func main() {
 	spokeClientFactory := spoke_k8s_client.NewSpokeK8sClientFactory(log)
 	spokeClientCache := controllers.NewSpokeClientCache(spokeClientFactory)
 
+	c, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
+	if err != nil {
+		log.WithError(err).Error("failed to initialize client")
+		os.Exit(1)
+	}
+	isOpenShift, err := controllers.ServerIsOpenShift(context.Background(), c)
+	if err != nil {
+		log.WithError(err).Error("failed to check server ")
+		os.Exit(1)
+	}
+
 	if err = (&controllers.AgentServiceConfigReconciler{
 		AgentServiceConfigReconcileContext: controllers.AgentServiceConfigReconcileContext{
 			Log:          log,
@@ -164,6 +175,7 @@ func main() {
 			NodeSelector: nodeSelector,
 			Tolerations:  tolerations,
 			Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
+			IsOpenShift:  isOpenShift,
 		},
 		Client:    mgr.GetClient(),
 		Namespace: ns,
@@ -179,6 +191,7 @@ func main() {
 			NodeSelector: nodeSelector,
 			Tolerations:  tolerations,
 			Recorder:     mgr.GetEventRecorderFor("hypershiftagentserviceconfig-controller"),
+			IsOpenShift:  isOpenShift,
 		},
 		Client:       mgr.GetClient(),
 		SpokeClients: spokeClientCache,
@@ -186,10 +199,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "HypershiftAgentServiceConfig")
 		os.Exit(1)
 	}
-	// +kubebuilder:scaffold:builder
-	if err = (controllers.NewLocalClusterImportReconciler(mgr.GetClient(), "local-cluster", controllers.AgentServiceConfigName, log)).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "LocalClusterImportReconciler")
-		os.Exit(1)
+
+	// local cluster import is only relevant if assisted installer can manage/scale the local cluster and this is only the case for OpenShift
+	if isOpenShift {
+		if err = (controllers.NewLocalClusterImportReconciler(mgr.GetClient(), "local-cluster", controllers.AgentServiceConfigName, log)).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "LocalClusterImportReconciler")
+			os.Exit(1)
+		}
 	}
 
 	if err := mgr.AddHealthzCheck("health", healthz.Ping); err != nil {

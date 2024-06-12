@@ -494,22 +494,25 @@ func (hr *HypershiftAgentServiceConfigReconciler) ensureSpokeNamespace(ctx conte
 
 // SetupWithManager sets up the controller with the Manager.
 func (hr *HypershiftAgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	b := ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.HypershiftAgentServiceConfig{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
-		Owns(&monitoringv1.ServiceMonitor{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&corev1.Secret{}).
-		Owns(&routev1.Route{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&apiregv1.APIService{}).
-		Complete(hr)
+		Owns(&apiregv1.APIService{})
+
+	if hr.IsOpenShift {
+		b = b.Owns(&monitoringv1.ServiceMonitor{}).Owns(&routev1.Route{})
+	}
+
+	return b.Complete(hr)
 }
 
 func parseFile(fileName string, dest interface{}) error {
