@@ -482,6 +482,22 @@ func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, para
 	return releaseImage, nil
 }
 
+func MarshalNewClusterParamsNoPullSecret(params installer.V2RegisterClusterParams, log *logrus.Entry) []byte {
+	// Masked the Pull Secret to prevent its value from being displayed in the logs.
+	clusterParamsNoPullSecret := *params.NewClusterParams
+	if clusterParamsNoPullSecret.PullSecret != nil {
+		newSecret := "***"
+		clusterParamsNoPullSecret.PullSecret = &newSecret
+	}
+
+	jsonNewClusterParams, err := json.Marshal(clusterParamsNoPullSecret)
+	if err != nil {
+		log.Error("An error occurred while marshaling the new cluster's parameters: ", err)
+		return nil
+	}
+	return jsonNewClusterParams
+}
+
 func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
@@ -491,10 +507,12 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	url := installer.V2GetClusterURL{ClusterID: id}
 
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
-	log.Infof("Register cluster: %s with id %s and params %+v", swag.StringValue(params.NewClusterParams.Name), id, params.NewClusterParams)
+
+	log.Infof("Register cluster: %s with id %s and params %s", swag.StringValue(params.NewClusterParams.Name), id, MarshalNewClusterParamsNoPullSecret(params, log))
 	success := false
 	cluster := &common.Cluster{}
 	var err error
+
 	defer func() {
 		if success {
 			if err == nil && cluster != nil {
