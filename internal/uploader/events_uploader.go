@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -40,42 +39,60 @@ type eventsUploader struct {
 }
 
 func (e *eventsUploader) UploadEvents(ctx context.Context, cluster *common.Cluster, eventsHandler eventsapi.Handler) error {
-	pullSecret, err := getPullSecret(cluster.PullSecret, e.client, openshiftTokenKey)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get pull secret to upload event data for cluster %s", cluster.ID)
+	if cluster == nil {
+		return nil // nothing to upload
 	}
-	buffer, err := prepareFiles(ctx, e.db, cluster, eventsHandler, pullSecret, e.Config)
+
+	pullSecret, err := getPullSecret(cluster.PullSecret, e.client)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get pull secrets to upload event data for cluster %s", cluster.ID)
+	}
+
+	buffer, err := prepareFiles(ctx, e.db, cluster, eventsHandler, pullSecret.Identity, e.Config)
 	if err != nil {
 		return errors.Wrapf(err, "failed to prepare files to upload for cluster %s", cluster.ID)
 	}
+
 	formBuffer, contentType, err := prepareBody(buffer)
 	if err != nil {
 		return errors.Wrapf(err, "failed to prepare event data content to upload for cluster %s", *cluster.ID)
 	}
+
 	req, err := http.NewRequest(http.MethodPost, e.DataUploadEndpoint, formBuffer)
 	if err != nil {
 		return errors.Wrapf(err, "failed preparing new https request for endpoint %s", e.DataUploadEndpoint)
 	}
-	if err := e.setHeaders(req, cluster.ID, pullSecret.AuthRaw, contentType); err != nil {
+
+	if err := e.setHeaders(req, cluster.ID, pullSecret.APIAuth.AuthRaw, contentType); err != nil {
 		return errors.Wrapf(err, "failed setting header for endpoint %s", e.DataUploadEndpoint)
 	}
+
 	return e.sendRequest(req)
 }
 
 func (e *eventsUploader) IsEnabled() bool {
-	return e.EnableDataCollection && isOCMPullSecretOptIn(e.client) && isURLReachable(e.DataUploadEndpoint)
+	// This is arguable since we could use the workload pull secret creds to upload.
+	isOCMPullSecretOptIn, err := isOCMPullSecretOptIn(e.client)
+	if err != nil {
+		return false
+	}
+
+	return e.EnableDataCollection && isOCMPullSecretOptIn && isURLReachable(e.DataUploadEndpoint)
 }
 
 func (e *eventsUploader) setHeaders(req *http.Request, clusterID *strfmt.UUID, token, formDataContentType string) error {
 	if token == "" {
 		return fmt.Errorf("no auth token available for cluster %s", clusterID)
 	}
+
 	if req.Header == nil {
 		req.Header = make(http.Header)
 	}
+
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	req.Header.Set("Content-Type", formDataContentType)
 	req.Header.Set("User-Agent", fmt.Sprintf("assisted-installer-operator/%s cluster/%s", e.AssistedServiceVersion, *clusterID))
+
 	return nil
 }
 
@@ -91,16 +108,19 @@ func (e *eventsUploader) sendRequest(req *http.Request) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to send request to %s", req.URL)
 	}
+
 	// Successful http response code from the ingress server is in the 200s
 	if res.StatusCode >= 200 && res.StatusCode <= 299 {
 		e.log.Debugf("Successful response received from %s. Red Hat Insights Request ID: %+v", req.URL, res.Header.Get("X-Rh-Insights-Request-Id"))
 		return nil
 	}
 	defer res.Body.Close()
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		e.log.Debugf("error reading response body for request to %s: %s", req.URL, err.Error())
 	}
+
 	return fmt.Errorf("uploading events: upload to %s returned status code %d (body: %s)", req.URL, res.StatusCode, string(body))
 }
 
@@ -108,6 +128,7 @@ func prepareBody(buffer *bytes.Buffer) (*bytes.Buffer, string, error) {
 	if buffer == nil || buffer.Bytes() == nil {
 		return nil, "", errors.Errorf("no data passed to prepare body")
 	}
+
 	mimeHeader := make(textproto.MIMEHeader)
 	mimeHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, "file", "events.tgz"))
 	mimeHeader.Set("Content-Type", "application/vnd.redhat.assisted-installer.events+tar")
@@ -129,16 +150,20 @@ func prepareBody(buffer *bytes.Buffer) (*bytes.Buffer, string, error) {
 	return &formBuffer, w.FormDataContentType(), nil
 }
 
-func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eventsHandler eventsapi.Handler, pullSecret *validations.PullSecretCreds,
+// Be careful with cluster that *will* be modified by prepareFiles
+// TODO: Deepcopy the models to avoid side effects in the future
+func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eventsHandler eventsapi.Handler, identity Identity,
 	config Config) (*bytes.Buffer, error) {
 	buffer := &bytes.Buffer{}
 	gz := gzip.NewWriter(buffer)
 	tw := tar.NewWriter(gz)
 	filesCreated := 0
 
+	editClusterData(cluster, identity)
+
 	// errors creating files below will be ignored since failing to create one of the files
 	// doesn't mean the rest of the function should fail
-	if err := clusterFile(tw, cluster, pullSecret); err == nil {
+	if err := clusterFile(tw, cluster); err == nil {
 		filesCreated++
 	}
 
@@ -204,6 +229,7 @@ func eventsFile(ctx context.Context, clusterID *strfmt.UUID, eventsHandler event
 	if eventsHandler == nil {
 		return errors.Errorf("failed to get events for cluster %s, events handler is nil", clusterID)
 	}
+
 	response, err := eventsHandler.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser))
 	if err != nil {
 		return errors.Wrapf(err, "failed to find events for cluster %s", clusterID)
@@ -218,74 +244,94 @@ func eventsFile(ctx context.Context, clusterID *strfmt.UUID, eventsHandler event
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal events")
 	}
+
 	return addFile(tw, contents, fmt.Sprintf("%s/events.json", *clusterID))
 }
 
-func clusterFile(tw *tar.Writer, cluster *common.Cluster, pullSecret *validations.PullSecretCreds) error {
-	if cluster != nil && cluster.ID != nil {
-		// To distinguish who is uploading the data
-		if cluster.EmailDomain == "" || cluster.EmailDomain == "Unknown" {
-			cluster.EmailDomain = getEmailDomain(pullSecret.Email)
-		}
-		if cluster.UserName == "" {
-			cluster.UserName = pullSecret.Username
-		}
-
-		clusterJson, err := json.Marshal(cluster.Cluster)
-		if err != nil {
-			return errors.Wrapf(err, "failed to marshal cluster %s", *cluster.ID)
-		}
-		return addFile(tw, clusterJson, fmt.Sprintf("%s/events/cluster.json", *cluster.ID))
+// This is where the deepcopy could/should happen. The copy could/should be returned.
+func editClusterData(cluster *common.Cluster, identity Identity) {
+	if cluster == nil {
+		return
 	}
-	return errors.New("no cluster provided for cluster file")
+
+	// To distinguish who is uploading the data
+	if cluster.EmailDomain == "" || cluster.EmailDomain == "Unknown" {
+		cluster.EmailDomain = identity.EmailDomain
+	}
+	if cluster.UserName == "" {
+		cluster.UserName = identity.Username
+	}
+}
+
+func clusterFile(tw *tar.Writer, cluster *common.Cluster) error {
+	if cluster == nil || cluster.ID == nil {
+		return errors.New("no cluster provided for cluster file")
+	}
+
+	clusterJson, err := json.Marshal(cluster.Cluster)
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal cluster %s", *cluster.ID)
+	}
+
+	return addFile(tw, clusterJson, fmt.Sprintf("%s/events/cluster.json", *cluster.ID))
 }
 
 func infraEnvFile(db *gorm.DB, tw *tar.Writer, infraEnvID *strfmt.UUID, clusterID *strfmt.UUID) error {
-	if infraEnvID != nil {
-		infraEnv, err := common.GetInfraEnvFromDB(db, *infraEnvID)
-		if err != nil {
-			return errors.Wrapf(err, "error getting infra-env %s from db", *infraEnvID)
-		}
-		iJson, err := json.Marshal(infraEnv.InfraEnv)
-		if err != nil {
-			return errors.Wrapf(err, "error marshalling infra-env %s", *infraEnvID)
-		}
-		// add the file content
-		return addFile(tw, iJson, fmt.Sprintf("%s/events/infraenv.json", *clusterID))
+	if infraEnvID == nil {
+		return errors.Errorf("no infra-env id provided to upload data for cluster %s", clusterID)
 	}
-	return errors.Errorf("no infra-env id provided to upload data for cluster %s", clusterID)
+
+	infraEnv, err := common.GetInfraEnvFromDB(db, *infraEnvID)
+	if err != nil {
+		return errors.Wrapf(err, "error getting infra-env %s from db", *infraEnvID)
+	}
+
+	iJson, err := json.Marshal(infraEnv.InfraEnv)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling infra-env %s", *infraEnvID)
+	}
+
+	// add the file content
+	return addFile(tw, iJson, fmt.Sprintf("%s/events/infraenv.json", *clusterID))
 }
 
 func hostsFile(db *gorm.DB, tw *tar.Writer, cluster *common.Cluster) (*strfmt.UUID, error) {
 	if cluster == nil || cluster.ID == nil {
 		return nil, errors.New("no cluster specified for hosts file")
 	}
+
 	var infraEnvID *strfmt.UUID
 	clusterWithHosts, err := common.GetClusterFromDBWithHosts(db, *cluster.ID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to find cluster %s", *cluster.ID)
 	}
+
 	hosts := clusterWithHosts.Cluster.Hosts
-	if len(hosts) > 0 {
-		hostJson, err := json.MarshalIndent(hosts, "", " ")
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed marshalling hosts for cluster %s for events file", *cluster.ID)
-		}
-		foundHost := funk.Find(hosts, func(host *models.Host) bool {
-			return host.InfraEnvID.String() != ""
-		})
-		if host, ok := foundHost.(*models.Host); ok {
-			infraEnvID = &host.InfraEnvID
-		}
-		return infraEnvID, addFile(tw, hostJson, fmt.Sprintf("%s/events/hosts.json", *cluster.ID))
+	if len(hosts) == 0 {
+		return nil, errors.Errorf("no hosts found for cluster %s", *cluster.ID)
 	}
-	return nil, errors.Errorf("no hosts found for cluster %s", *cluster.ID)
+
+	hostJson, err := json.MarshalIndent(hosts, "", " ")
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed marshalling hosts for cluster %s for events file", *cluster.ID)
+	}
+
+	foundHost := funk.Find(hosts, func(host *models.Host) bool {
+		return host.InfraEnvID.String() != ""
+	})
+
+	if host, ok := foundHost.(*models.Host); ok {
+		infraEnvID = &host.InfraEnvID
+	}
+
+	return infraEnvID, addFile(tw, hostJson, fmt.Sprintf("%s/events/hosts.json", *cluster.ID))
 }
 
 func addFile(tw *tar.Writer, contents []byte, fileName string) error {
 	if len(contents) < 1 {
 		return errors.Errorf("no file contents to write for %s", fileName)
 	}
+
 	// add the file content
 	hdr := &tar.Header{
 		Name: fileName,
@@ -299,6 +345,7 @@ func addFile(tw *tar.Writer, contents []byte, fileName string) error {
 	if _, err := tw.Write(contents); err != nil {
 		return errors.Wrapf(err, "failed writing contents to file %s", fileName)
 	}
+
 	return nil
 }
 
