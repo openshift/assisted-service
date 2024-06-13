@@ -595,7 +595,7 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
 		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 
-		Expect(err).NotTo(Succeed())
+		Expect(err).To(BeNil())
 		Expect(result).NotTo(Equal(ctrl.Result{}))
 
 		instance := &aiv1beta1.AgentServiceConfig{}
@@ -646,7 +646,7 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
 		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 
-		Expect(err).NotTo(Succeed())
+		Expect(err).To(BeNil())
 		Expect(result).NotTo(Equal(ctrl.Result{}))
 
 		instance := &aiv1beta1.AgentServiceConfig{}

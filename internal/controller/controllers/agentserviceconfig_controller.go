@@ -288,14 +288,10 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 
 	}
 
-	if err := updateConditions(ctx, log, asc); err != nil {
-		return ctrl.Result{Requeue: true}, err
-	}
-
-	return ctrl.Result{}, nil
+	return updateConditions(ctx, log, asc)
 }
 
-func updateConditions(ctx context.Context, log *logrus.Entry, asc ASC) error {
+func updateConditions(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
 	msg := "AgentServiceConfig reconcile completed without error."
 	conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConditionReconcileCompleted,
@@ -304,18 +300,30 @@ func updateConditions(ctx context.Context, log *logrus.Entry, asc ASC) error {
 		Message: msg,
 	})
 
-	if err := monitorOperands(ctx, log, asc); err != nil {
+	if message, err := monitorOperands(ctx, log, asc); err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionDeploymentsHealthy,
 			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonDeploymentFailure,
+			Reason:  aiv1beta1.ReasonMonitoringFailure,
 			Message: err.Error(),
 		})
 		if updateErr := asc.Client.Status().Update(ctx, asc.Object); updateErr != nil {
 			log.WithError(updateErr).Error("Failed to update status")
-			return updateErr
+			return ctrl.Result{}, updateErr
 		}
-		return err
+		return ctrl.Result{}, err
+	} else if message != "" {
+		conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionDeploymentsHealthy,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonDeploymentFailure,
+			Message: message,
+		})
+		if updateErr := asc.Client.Status().Update(ctx, asc.Object); updateErr != nil {
+			log.WithError(updateErr).Error("Failed to update status")
+			return ctrl.Result{}, updateErr
+		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
@@ -327,10 +335,10 @@ func updateConditions(ctx context.Context, log *logrus.Entry, asc ASC) error {
 
 	if statusErr := asc.Client.Status().Update(ctx, asc.Object); statusErr != nil {
 		log.WithError(statusErr).Error("Failed to update status")
-		return statusErr
+		return ctrl.Result{}, statusErr
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func getComponents(spec *aiv1beta1.AgentServiceConfigSpec) []component {
@@ -493,7 +501,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) error {
+func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) (string, error) {
 	isStatusConditionFalse := func(conditions []appsv1.DeploymentCondition, conditionType appsv1.DeploymentConditionType) bool {
 		for _, condition := range conditions {
 			if condition.Type == conditionType {
@@ -507,49 +515,41 @@ func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) error
 	for _, deployName := range []string{"agentinstalladmission", "assisted-service"} {
 		deployment := &appsv1.Deployment{}
 		if err := asc.Client.Get(ctx, types.NamespacedName{Name: deployName, Namespace: asc.namespace}, deployment); err != nil {
-			return err
+			return "", err
 		}
 
 		if isStatusConditionFalse(deployment.Status.Conditions, appsv1.DeploymentAvailable) {
 			msg := fmt.Sprintf("Deployment %s is not available", deployName)
 			log.Error(msg)
-			return pkgerror.New(msg)
+			return msg, nil
 		}
 
 		if isStatusConditionFalse(deployment.Status.Conditions, appsv1.DeploymentProgressing) {
 			msg := fmt.Sprintf("Deployment %s is not progressing", deployName)
 			log.Error(msg)
-			return pkgerror.New(msg)
+			return msg, nil
 		}
 	}
 
 	// monitor statefulset
 	ss := &appsv1.StatefulSet{}
 	if err := asc.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: asc.namespace}, ss); err != nil {
-		return err
+		return "", err
 	}
 
 	desiredReplicas := *ss.Spec.Replicas
-	checkReplicas := func(replicas int32, name string) error {
+	for kind, replicas := range map[string]int32{
+		"created": ss.Status.Replicas,
+		"ready":   ss.Status.ReadyReplicas,
+		"current": ss.Status.CurrentReplicas,
+		"updated": ss.Status.UpdatedReplicas,
+	} {
 		if replicas != desiredReplicas {
-			return fmt.Errorf("StatefulSet %s %s replicas does not match desired replicas", imageServiceName, name)
+			return fmt.Sprintf("StatefulSet %s %s replicas does not match desired replicas", imageServiceName, kind), nil
 		}
-		return nil
-	}
-	if err := checkReplicas(ss.Status.Replicas, "created"); err != nil {
-		return err
-	}
-	if err := checkReplicas(ss.Status.ReadyReplicas, "ready"); err != nil {
-		return err
-	}
-	if err := checkReplicas(ss.Status.CurrentReplicas, "current"); err != nil {
-		return err
-	}
-	if err := checkReplicas(ss.Status.UpdatedReplicas, "updated"); err != nil {
-		return err
 	}
 
-	return nil
+	return "", nil
 }
 
 func newFilesystemPVC(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
