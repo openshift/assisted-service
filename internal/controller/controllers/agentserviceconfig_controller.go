@@ -274,14 +274,18 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	}
 
 	// Reconcile components
-	for _, component := range getComponents(asc.spec) {
+	for _, component := range getComponents(asc.spec, asc.rec.IsOpenShift) {
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 			return result, err
 		}
 	}
-	for _, component := range r.getWebhookComponents() {
-		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
-			return result, err
+	// TODO: webhooks _require_ HTTPS so we need a way to create and maintain certs before we can enable them
+	// ref: https://github.com/openshift/generic-admission-server/blob/8dcc3c9b298fefaf4d31c60001907222bf2c3f83/README.md#why-cant-i-write-a-simple-http-webhook-server
+	if asc.rec.IsOpenShift {
+		for _, component := range r.getWebhookComponents() {
+			if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
+				return result, err
+			}
 		}
 	}
 
@@ -344,30 +348,39 @@ func updateConditions(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Res
 	return ctrl.Result{}, nil
 }
 
-func getComponents(spec *aiv1beta1.AgentServiceConfigSpec) []component {
+func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool) []component {
 	components := []component{
 		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, newFilesystemPVC},
 		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, newDatabasePVC},
 		{"ImageServiceService", aiv1beta1.ReasonImageHandlerServiceFailure, newImageServiceService},
 		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, newAgentService},
-		{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, newServiceMonitor},
-		{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceRoute},
-		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, newAgentRoute},
 		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, newAgentLocalAuthSecret},
 		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, newPostgresSecret},
 		{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, newImageServiceServiceAccount},
-		{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, newIngressCertCM},
-		{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, newImageServiceConfigMap},
-		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM},
-		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment},
 	}
-	// Additional routes need to be synced if HTTP iPXE routes are exposed
-	if exposeIPXEHTTPRoute(spec) {
+	if isOpenshift {
 		components = append(components,
-			component{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceIPXERoute},
-			component{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, newAgentIPXERoute},
+			component{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, newServiceMonitor},
+			component{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceRoute},
+			component{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, newAgentRoute},
+			component{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, newIngressCertCM},
+			// this is only for mounting in the https certs
+			component{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, newImageServiceConfigMap},
 		)
+		// Additional routes need to be synced if HTTP iPXE routes are exposed
+		if exposeIPXEHTTPRoute(spec) {
+			components = append(components,
+				component{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceIPXERoute},
+				component{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, newAgentIPXERoute},
+			)
+		}
 	}
+	components = append(components,
+		// needs to be created after the route to pull the hostname into the configmap
+		component{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM},
+		// needs to be created after the configmap to calculate the config hash
+		component{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment},
+	)
 	return components
 
 }
@@ -519,7 +532,11 @@ func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) (stri
 	}
 
 	// monitor deployments
-	for _, deployName := range []string{"agentinstalladmission", "assisted-service"} {
+	deploys := []string{"assisted-service"}
+	if asc.rec.IsOpenShift {
+		deploys = append(deploys, "agentinstalladmission")
+	}
+	for _, deployName := range deploys {
 		deployment := &appsv1.Deployment{}
 		if err := asc.Client.Get(ctx, types.NamespacedName{Name: deployName, Namespace: asc.namespace}, deployment); err != nil {
 			return "", err
@@ -618,7 +635,9 @@ func newAgentService(ctx context.Context, log logrus.FieldLogger, asc ASC) (clie
 			return err
 		}
 		addAppLabel(serviceName, &svc.ObjectMeta)
-		setAnnotation(&svc.ObjectMeta, servingCertAnnotation, serviceName)
+		if asc.rec.IsOpenShift {
+			setAnnotation(&svc.ObjectMeta, servingCertAnnotation, serviceName)
+		}
 		if len(svc.Spec.Ports) != 2 {
 			svc.Spec.Ports = []corev1.ServicePort{}
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
@@ -652,7 +671,9 @@ func newImageServiceService(ctx context.Context, log logrus.FieldLogger, asc ASC
 			return err
 		}
 		addAppLabel(serviceName, &svc.ObjectMeta)
-		setAnnotation(&svc.ObjectMeta, servingCertAnnotation, imageServiceName)
+		if asc.rec.IsOpenShift {
+			setAnnotation(&svc.ObjectMeta, servingCertAnnotation, imageServiceName)
+		}
 		if len(svc.Spec.Ports) != 2 {
 			svc.Spec.Ports = []corev1.ServicePort{}
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
@@ -1011,16 +1032,32 @@ func newImageServiceConfigMap(ctx context.Context, log logrus.FieldLogger, asc A
 }
 
 func urlForRoute(ctx context.Context, asc ASC, routeName string) (string, error) {
-	route := &routev1.Route{}
-	err := asc.Client.Get(ctx, types.NamespacedName{Name: routeName, Namespace: asc.namespace}, route)
-	if err != nil || route.Spec.Host == "" {
-		if err == nil {
-			err = fmt.Errorf("%s route host is empty", routeName)
+	var hostname, scheme string
+
+	if asc.rec.IsOpenShift {
+		scheme = "https"
+		route := &routev1.Route{}
+		err := asc.Client.Get(ctx, types.NamespacedName{Name: routeName, Namespace: asc.namespace}, route)
+		if err != nil || route.Spec.Host == "" {
+			if err == nil {
+				err = fmt.Errorf("%s route host is empty", routeName)
+			}
+			return "", err
 		}
-		return "", err
+		hostname = route.Spec.Host
+	} else {
+		scheme = "http"
+		switch routeName {
+		case serviceName:
+			hostname = asc.spec.AssistedServiceIngressHost
+		case imageServiceName:
+			hostname = asc.spec.ImageServiceIngressHost
+		default:
+			return "", fmt.Errorf("unknown route name %s", routeName)
+		}
 	}
 
-	u := &url.URL{Scheme: "https", Host: route.Spec.Host}
+	u := &url.URL{Scheme: scheme, Host: hostname}
 	return u.String(), nil
 }
 
@@ -1130,13 +1167,14 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 
 			"NAMESPACE":       asc.namespace,
 			"INSTALL_INVOKER": "assisted-installer-operator",
-
-			// enable https
-			"SERVE_HTTPS":            "True",
-			"HTTPS_CERT_FILE":        "/etc/assisted-tls-config/tls.crt",
-			"HTTPS_KEY_FILE":         "/etc/assisted-tls-config/tls.key",
-			"SERVICE_CA_CERT_PATH":   "/etc/assisted-ingress-cert/ca-bundle.crt",
-			"SKIP_CERT_VERIFICATION": "False",
+		}
+		// enable https only on OCP
+		if asc.rec.IsOpenShift {
+			cm.Data["SERVE_HTTPS"] = "True"
+			cm.Data["HTTPS_CERT_FILE"] = "/etc/assisted-tls-config/tls.crt"
+			cm.Data["HTTPS_KEY_FILE"] = "/etc/assisted-tls-config/tls.key"
+			cm.Data["SERVICE_CA_CERT_PATH"] = "/etc/assisted-ingress-cert/ca-bundle.crt"
+			cm.Data["SKIP_CERT_VERIFICATION"] = "False"
 		}
 
 		copyEnv(cm.Data, "HTTP_PROXY")
@@ -1231,6 +1269,39 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 	}
 
 	imageServiceBaseURL := getImageService(ctx, log, asc)
+	containerEnv := []corev1.EnvVar{
+		{Name: "LISTEN_PORT", Value: imageHandlerPort.String()},
+		{Name: "RHCOS_VERSIONS", Value: getOSImages(log, asc.spec)},
+		{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + asc.namespace + ".svc:" + servicePort.String()},
+		{Name: "IMAGE_SERVICE_BASE_URL", Value: imageServiceBaseURL},
+		{Name: "INSECURE_SKIP_VERIFY", Value: skipVerifyTLS},
+		{Name: "DATA_DIR", Value: "/data"},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{Name: "image-service-data", MountPath: "/data"},
+	}
+	var healthCheckScheme corev1.URIScheme
+
+	// enable https only for openshift
+	if asc.rec.IsOpenShift {
+		containerEnv = append(containerEnv,
+			corev1.EnvVar{Name: "HTTPS_CERT_FILE", Value: "/etc/image-service/certs/tls.crt"},
+			corev1.EnvVar{Name: "HTTPS_KEY_FILE", Value: "/etc/image-service/certs/tls.key"},
+			corev1.EnvVar{Name: "HTTPS_CA_FILE", Value: "/etc/image-service/ca-bundle/service-ca.crt"},
+			corev1.EnvVar{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
+			corev1.EnvVar{Name: "HTTP_LISTEN_PORT", Value: imageHandlerHTTPPort.String()},
+		)
+		volumeMounts = append(volumeMounts,
+			corev1.VolumeMount{Name: "tls-certs", MountPath: "/etc/image-service/certs"},
+			corev1.VolumeMount{Name: "service-cabundle", MountPath: "/etc/image-service/ca-bundle"},
+		)
+		healthCheckScheme = corev1.URISchemeHTTPS
+	} else {
+		containerEnv = append(containerEnv,
+			corev1.EnvVar{Name: "ASSISTED_SERVICE_SCHEME", Value: "http"},
+		)
+		healthCheckScheme = corev1.URISchemeHTTP
+	}
 
 	container := corev1.Container{
 		Name:  imageServiceName,
@@ -1245,24 +1316,8 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		Env: []corev1.EnvVar{
-			{Name: "LISTEN_PORT", Value: imageHandlerPort.String()},
-			{Name: "HTTP_LISTEN_PORT", Value: imageHandlerHTTPPort.String()},
-			{Name: "RHCOS_VERSIONS", Value: getOSImages(log, asc.spec)},
-			{Name: "HTTPS_CERT_FILE", Value: "/etc/image-service/certs/tls.crt"},
-			{Name: "HTTPS_KEY_FILE", Value: "/etc/image-service/certs/tls.key"},
-			{Name: "HTTPS_CA_FILE", Value: "/etc/image-service/ca-bundle/service-ca.crt"},
-			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
-			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + asc.namespace + ".svc:" + servicePort.String()},
-			{Name: "IMAGE_SERVICE_BASE_URL", Value: imageServiceBaseURL},
-			{Name: "INSECURE_SKIP_VERIFY", Value: skipVerifyTLS},
-			{Name: "DATA_DIR", Value: "/data"},
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{Name: "tls-certs", MountPath: "/etc/image-service/certs"},
-			{Name: "service-cabundle", MountPath: "/etc/image-service/ca-bundle"},
-			{Name: "image-service-data", MountPath: "/data"},
-		},
+		Env:          containerEnv,
+		VolumeMounts: volumeMounts,
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("100m"),
@@ -1274,7 +1329,7 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/health",
 					Port:   imageHandlerPort,
-					Scheme: corev1.URISchemeHTTPS,
+					Scheme: healthCheckScheme,
 				},
 			},
 		},
@@ -1284,7 +1339,7 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/live",
 					Port:   imageHandlerPort,
-					Scheme: corev1.URISchemeHTTPS,
+					Scheme: healthCheckScheme,
 				},
 			},
 		},
@@ -1325,24 +1380,27 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 		statefulSet.Spec.Replicas = &replicas
 		statefulSet.Spec.Template.Spec.ServiceAccountName = imageServiceName
 
-		volumes := ensureVolume(statefulSet.Spec.Template.Spec.Volumes, corev1.Volume{
-			Name: "tls-certs",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: imageServiceName,
-				},
-			},
-		})
-		volumes = ensureVolume(volumes, corev1.Volume{
-			Name: "service-cabundle",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: imageServiceName,
+		volumes := statefulSet.Spec.Template.Spec.Volumes
+		if asc.rec.IsOpenShift {
+			volumes = ensureVolume(volumes, corev1.Volume{
+				Name: "tls-certs",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: imageServiceName,
 					},
 				},
-			},
-		})
+			})
+			volumes = ensureVolume(volumes, corev1.Volume{
+				Name: "service-cabundle",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: imageServiceName,
+						},
+					},
+				},
+			})
+		}
 
 		if asc.spec.OSImageCACertRef != nil {
 			cm := &corev1.ConfigMap{}
@@ -1618,6 +1676,58 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		)
 	}
 
+	volumes := []corev1.Volume{
+		{
+			Name: "bucket-filesystem",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: serviceName,
+				},
+			},
+		},
+		{
+			Name: "postgresdb",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: databaseName,
+				},
+			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{Name: "bucket-filesystem", MountPath: "/data"},
+	}
+	var healthCheckScheme corev1.URIScheme
+	if asc.rec.IsOpenShift {
+		volumes = append(volumes,
+			corev1.Volume{
+				Name: "tls-certs",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: serviceName,
+					},
+				},
+			},
+			corev1.Volume{
+				Name: "ingress-cert",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: defaultIngressCertCMName,
+						},
+					},
+				},
+			},
+		)
+		volumeMounts = append(volumeMounts,
+			corev1.VolumeMount{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},
+			corev1.VolumeMount{Name: "ingress-cert", MountPath: "/etc/assisted-ingress-cert"},
+		)
+		healthCheckScheme = corev1.URISchemeHTTPS
+	} else {
+		healthCheckScheme = corev1.URISchemeHTTP
+	}
+
 	serviceContainer := corev1.Container{
 		Name:  serviceName,
 		Image: ServiceImage(asc.Object),
@@ -1631,13 +1741,9 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		EnvFrom: envFrom,
-		Env:     envSecrets,
-		VolumeMounts: []corev1.VolumeMount{
-			{Name: "bucket-filesystem", MountPath: "/data"},
-			{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},
-			{Name: "ingress-cert", MountPath: "/etc/assisted-ingress-cert"},
-		},
+		EnvFrom:      envFrom,
+		Env:          envSecrets,
+		VolumeMounts: volumeMounts,
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("200m"),
@@ -1650,7 +1756,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/health",
 					Port:   servicePort,
-					Scheme: corev1.URISchemeHTTPS,
+					Scheme: healthCheckScheme,
 				},
 			},
 		},
@@ -1659,7 +1765,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/ready",
 					Port:   servicePort,
-					Scheme: corev1.URISchemeHTTPS,
+					Scheme: healthCheckScheme,
 				},
 			},
 		},
@@ -1690,43 +1796,6 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			Requests: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("100m"),
 				corev1.ResourceMemory: resource.MustParse("400Mi"),
-			},
-		},
-	}
-
-	volumes := []corev1.Volume{
-		{
-			Name: "bucket-filesystem",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: serviceName,
-				},
-			},
-		},
-		{
-			Name: "postgresdb",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: databaseName,
-				},
-			},
-		},
-		{
-			Name: "tls-certs",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: serviceName,
-				},
-			},
-		},
-		{
-			Name: "ingress-cert",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: defaultIngressCertCMName,
-					},
-				},
 			},
 		},
 	}
@@ -2342,6 +2411,7 @@ func newWebHookService(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 		}
 		svc.Spec.Ports[0].Name = webhookServiceName
 		svc.Spec.Ports[0].Port = 443
+		// port change?
 		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: 9443}
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": webhookServiceName}
@@ -2375,7 +2445,7 @@ func newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 			return err
 		}
 
-		setAnnotation(&as.ObjectMeta, "service.beta.openshift.io/inject-cabundle", "true")
+		setAnnotation(&as.ObjectMeta, injectCABundleAnnotation, "true")
 		baseApiServiceSpec(as, asc.namespace)
 		return nil
 	}

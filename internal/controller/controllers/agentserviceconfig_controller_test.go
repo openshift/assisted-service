@@ -22,6 +22,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -62,7 +63,8 @@ func newTestReconciler(initObjs ...client.Object) *AgentServiceConfigReconciler 
 			Log:    logrus.New(),
 			// TODO(djzager): If we need to verify emitted events
 			// https://github.com/kubernetes/kubernetes/blob/ea0764452222146c47ec826977f49d7001b0ea8c/pkg/controller/statefulset/stateful_pod_control_test.go#L474
-			Recorder: record.NewFakeRecorder(10),
+			Recorder:    record.NewFakeRecorder(10),
+			IsOpenShift: true,
 		},
 		Client:    c,
 		Namespace: testNamespace,
@@ -161,9 +163,10 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		// Create the reconciler:
 		reconciler = &AgentServiceConfigReconciler{
 			AgentServiceConfigReconcileContext: AgentServiceConfigReconcileContext{
-				Scheme:   cluster.Scheme(),
-				Log:      logrusLogger,
-				Recorder: cluster.Recorder(),
+				Scheme:      cluster.Scheme(),
+				Log:         logrusLogger,
+				Recorder:    cluster.Recorder(),
+				IsOpenShift: true,
 			},
 			Client:    client,
 			Namespace: "assisted-installer",
@@ -2562,3 +2565,120 @@ func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
 
 	return asc, string(encoded)
 }
+
+var _ = Describe("Reconcile on non-OCP clusters", func() {
+	var (
+		asc        *aiv1beta1.AgentServiceConfig
+		ctx        context.Context
+		reconciler *AgentServiceConfigReconciler
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		asc.Spec.AssistedServiceIngressHost = "assisted.example.com"
+		asc.Spec.ImageServiceIngressHost = "images.example.com"
+
+		ctx = context.Background()
+
+		reconciler = newTestReconciler(asc)
+		reconciler.AgentServiceConfigReconcileContext.IsOpenShift = false
+	})
+
+	It("does not deploy ServiceMonitors", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		smList := monitoringv1.ServiceMonitorList{}
+		Expect(reconciler.Client.List(ctx, &smList)).To(Succeed())
+		Expect(len(smList.Items)).To(Equal(0))
+	})
+
+	It("does not deploy webhook components", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		ascWrapper := initASC(reconciler, asc)
+		components := reconciler.getWebhookComponents()
+		for _, c := range components {
+			obj, _, err := c.fn(ctx, reconciler.Log, ascWrapper)
+			Expect(err).To(BeNil())
+			err = reconciler.Client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		}
+	})
+
+	It("creates the assisted configmap without https config", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		cm := corev1.ConfigMap{}
+		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &cm)).To(Succeed())
+		Expect(cm.Data).ToNot(HaveKey("SERVE_HTTPS"))
+		Expect(cm.Data).ToNot(HaveKey("HTTPS_CERT_FILE"))
+		Expect(cm.Data).ToNot(HaveKey("HTTPS_KEY_FILE"))
+		Expect(cm.Data).ToNot(HaveKey("SERVICE_CA_CERT_PATH"))
+		Expect(cm.Data).ToNot(HaveKey("SKIP_CERT_VERIFICATION"))
+	})
+
+	It("creates the assisted deployment without https config", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		deploy := appsv1.Deployment{}
+		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &deploy)).To(Succeed())
+
+		var container *corev1.Container
+		for i, c := range deploy.Spec.Template.Spec.Containers {
+			if c.Name == serviceName {
+				container = &deploy.Spec.Template.Spec.Containers[i]
+			}
+		}
+
+		By("ensure no cert volumes are present")
+		Expect(container.VolumeMounts).To(Equal([]corev1.VolumeMount{{Name: "bucket-filesystem", MountPath: "/data"}}))
+		for _, vol := range deploy.Spec.Template.Spec.Volumes {
+			Expect(vol.Name).NotTo(Equal("tls-certs"))
+			Expect(vol.Name).NotTo(Equal("ingress-cert"))
+		}
+
+		By("ensure probe scheme is http")
+		Expect(container.ReadinessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+		Expect(container.LivenessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+	})
+
+	It("creates the image service statefulset without https config", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		ss := appsv1.StatefulSet{}
+		key := types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &ss)).To(Succeed())
+
+		Expect(len(ss.Spec.Template.Spec.Containers)).To(Equal(1))
+		container := ss.Spec.Template.Spec.Containers[0]
+
+		By("ensure no cert volumes are present")
+		Expect(container.VolumeMounts).To(Equal([]corev1.VolumeMount{{Name: "image-service-data", MountPath: "/data"}}))
+		Expect(len(ss.Spec.Template.Spec.Volumes)).To(Equal(0))
+
+		By("ensure env is set up for http")
+		httpsEnvVars := []string{"HTTPS_CERT_FILE", "HTTPS_KEY_FILE", "HTTPS_CA_FILE", "HTTP_LISTEN_PORT"}
+		for _, env := range container.Env {
+			Expect(env.Name).ToNot(BeElementOf(httpsEnvVars))
+			if env.Name == "ASSISTED_SERVICE_SCHEME" {
+				Expect(env.Value).To(Equal("http"))
+			}
+		}
+
+		By("ensure probe scheme is http")
+		Expect(container.ReadinessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+		Expect(container.LivenessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+	})
+})
