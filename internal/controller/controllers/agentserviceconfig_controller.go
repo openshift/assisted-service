@@ -126,6 +126,9 @@ type AgentServiceConfigReconcileContext struct {
 	Tolerations  []corev1.Toleration
 
 	Recorder record.EventRecorder
+
+	// flag to indicate if the operator is running on an OpenShift cluster or some other flavor of Kubernetes
+	IsOpenShift bool
 }
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -471,34 +474,38 @@ func cleanHTTPRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) error 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	ingressCMPredicates := builder.WithPredicates(predicate.Funcs{
-		CreateFunc:  func(e event.CreateEvent) bool { return checkIngressCMName(e.Object) },
-		UpdateFunc:  func(e event.UpdateEvent) bool { return checkIngressCMName(e.ObjectNew) },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return checkIngressCMName(e.Object) },
-		GenericFunc: func(e event.GenericEvent) bool { return checkIngressCMName(e.Object) },
-	})
-	ingressCMHandler := handler.EnqueueRequestsFromMapFunc(
-		func(_ context.Context, _ client.Object) []reconcile.Request {
-			return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: AgentServiceConfigName}}}
-		},
-	)
-
-	return ctrl.NewControllerManagedBy(mgr).
+	b := ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.AgentServiceConfig{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
-		Owns(&monitoringv1.ServiceMonitor{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&corev1.Secret{}).
-		Owns(&routev1.Route{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&rbacv1.ClusterRole{}).
-		Owns(&apiregv1.APIService{}).
-		Watches(&corev1.ConfigMap{}, ingressCMHandler, ingressCMPredicates).
-		Complete(r)
+		Owns(&apiregv1.APIService{})
+
+	if r.IsOpenShift {
+		ingressCMPredicates := builder.WithPredicates(predicate.Funcs{
+			CreateFunc:  func(e event.CreateEvent) bool { return checkIngressCMName(e.Object) },
+			UpdateFunc:  func(e event.UpdateEvent) bool { return checkIngressCMName(e.ObjectNew) },
+			DeleteFunc:  func(e event.DeleteEvent) bool { return checkIngressCMName(e.Object) },
+			GenericFunc: func(e event.GenericEvent) bool { return checkIngressCMName(e.Object) },
+		})
+		ingressCMHandler := handler.EnqueueRequestsFromMapFunc(
+			func(_ context.Context, _ client.Object) []reconcile.Request {
+				return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: AgentServiceConfigName}}}
+			},
+		)
+
+		b = b.Owns(&monitoringv1.ServiceMonitor{}).
+			Owns(&routev1.Route{}).
+			Watches(&corev1.ConfigMap{}, ingressCMHandler, ingressCMPredicates)
+	}
+
+	return b.Complete(r)
 }
 
 func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) (string, error) {
