@@ -3899,6 +3899,11 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
 						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 				}
+				if t.dstState == models.ClusterStatusError {
+					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ClusterInstallationFailedEventName),
+						eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
+				}
 				if t.srcState == models.ClusterStatusFinalizing && !t.requiresAMSUpdate && !t.installationTimeout &&
 					funk.ContainsString([]string{models.ClusterStatusInstalled, models.ClusterStatusFinalizing}, t.dstState) {
 					mockS3Api.EXPECT().DoesObjectExist(ctx, fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)).Return(false, nil)
@@ -4755,7 +4760,7 @@ var _ = Describe("installation timeout", func() {
 		func(status, statusInfo string, installStartedAt time.Time, timeoutExpected bool) {
 			cls := createCluster(status, statusInfo, installStartedAt)
 			if timeoutExpected {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(2)
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			}
@@ -4855,7 +4860,7 @@ var _ = Describe("finalizing timeouts", func() {
 				} else {
 					It("should move to error", func() {
 						cls := createCluster(models.ClusterStatusFinalizing, stage, time.Now(), time.Now().Add(-(timeout + time.Second)))
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(2)
 						mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusError, models.ClusterStatusFinalizing,
 							cls.OpenshiftVersion, *cls.ID, cls.EmailDomain, gomock.Any()).Times(1)
 						clusterAfterUpdate, err := clusterApi.RefreshStatus(ctx, cls, db)
