@@ -6890,15 +6890,30 @@ definitions:
       $ref: '#/definitions/manifest'
 
   manifest:
-    type: object
-    properties:
-      folder:
-        description: The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
+   type: object
+   properties:
+     id:
+       type: string
+       format: uuid
+       description: Unique identifier of the object.
+       x-go-custom-tag: gorm:"primaryKey"
+     cluster_id:
         type: string
-        enum: [manifests,openshift]
-      file_name:
-        type: string
-        description: The file name prefaced by the folder that contains it.
+        format: uuid
+        x-go-custom-tag: gorm:"foreignkey:Cluster"
+        x-nullable: true
+        description: The cluster that this manifest is associated with.
+     is_user_generated:
+        type: boolean
+        description: Is the manifest user generated or system generated?
+        default: false
+     folder:
+       description: The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
+       type: string
+       enum: [manifests,openshift]
+     file_name:
+       type: string
+       description: The file name prefaced by the folder that contains it.
 
   create-manifest-params:
     type: object
