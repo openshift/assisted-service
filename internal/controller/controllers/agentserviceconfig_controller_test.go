@@ -21,6 +21,7 @@ import (
 	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -2680,5 +2681,73 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		By("ensure probe scheme is http")
 		Expect(container.ReadinessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
 		Expect(container.LivenessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+	})
+
+	validateIngress := func(ingress *netv1.Ingress, host string, service string, port int32) {
+		Expect(len(ingress.Spec.Rules)).To(Equal(1))
+		rule := ingress.Spec.Rules[0]
+		Expect(rule.Host).To(Equal(host))
+		Expect(rule.IngressRuleValue.HTTP).NotTo(BeNil())
+		Expect(len(rule.IngressRuleValue.HTTP.Paths)).To(Equal(1))
+		Expect(rule.IngressRuleValue.HTTP.Paths[0].Path).To(Equal("/"))
+		Expect(rule.IngressRuleValue.HTTP.Paths[0].PathType).To(HaveValue(Equal(netv1.PathTypePrefix)))
+		serviceBackend := netv1.IngressServiceBackend{
+			Name: service,
+			Port: netv1.ServiceBackendPort{Number: port},
+		}
+		Expect(rule.IngressRuleValue.HTTP.Paths[0].Backend.Service).To(HaveValue(Equal(serviceBackend)))
+	}
+
+	It("creates ingress instead of routes", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		// No routes should be created
+		routeList := routev1.RouteList{}
+		Expect(reconciler.Client.List(ctx, &routeList)).To(Succeed())
+		Expect(len(routeList.Items)).To(Equal(0))
+
+		// An ingress should be created for both services
+		ingress := netv1.Ingress{}
+		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &ingress)).To(Succeed())
+		validateIngress(&ingress, asc.Spec.AssistedServiceIngressHost, serviceName, 8090)
+
+		key = types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &ingress)).To(Succeed())
+		validateIngress(&ingress, asc.Spec.ImageServiceIngressHost, imageServiceName, 8080)
+	})
+
+	It("creates the assisted configmap with the ingress host for the base URLs", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		cm := corev1.ConfigMap{}
+		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &cm)).To(Succeed())
+		Expect(cm.Data["SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("http://%s", asc.Spec.AssistedServiceIngressHost)))
+		Expect(cm.Data["IMAGE_SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("http://%s", asc.Spec.ImageServiceIngressHost)))
+	})
+
+	It("sets the image service base URL env to the ingress host", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		ss := appsv1.StatefulSet{}
+		key := types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &ss)).To(Succeed())
+
+		Expect(len(ss.Spec.Template.Spec.Containers)).To(Equal(1))
+		var found bool
+		for _, env := range ss.Spec.Template.Spec.Containers[0].Env {
+			if env.Name == "IMAGE_SERVICE_BASE_URL" {
+				Expect(env.Value).To(Equal(fmt.Sprintf("http://%s", asc.Spec.ImageServiceIngressHost)))
+				found = true
+			}
+		}
+		Expect(found).To(BeTrue(), "Expected to find the IMAGE_SERVICE_BASE_URL env var")
 	})
 })

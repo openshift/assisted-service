@@ -46,6 +46,7 @@ import (
 	admregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -208,6 +209,7 @@ type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups="apiregistration.k8s.io",resources=apiservices,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 
 func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var asc ASC
@@ -357,12 +359,16 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool) []c
 		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, newAgentLocalAuthSecret},
 		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, newPostgresSecret},
 		{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, newImageServiceServiceAccount},
+		{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceRoute},
+		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, newAgentRoute},
+		// needs to be created after the route to pull the hostname into the configmap
+		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM},
+		// needs to be created after the configmap to calculate the config hash
+		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment},
 	}
 	if isOpenshift {
 		components = append(components,
 			component{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, newServiceMonitor},
-			component{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceRoute},
-			component{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, newAgentRoute},
 			component{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, newIngressCertCM},
 			// this is only for mounting in the https certs
 			component{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, newImageServiceConfigMap},
@@ -375,12 +381,6 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool) []c
 			)
 		}
 	}
-	components = append(components,
-		// needs to be created after the route to pull the hostname into the configmap
-		component{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM},
-		// needs to be created after the configmap to calculate the config hash
-		component{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment},
-	)
 	return components
 
 }
@@ -516,6 +516,8 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		b = b.Owns(&monitoringv1.ServiceMonitor{}).
 			Owns(&routev1.Route{}).
 			Watches(&corev1.ConfigMap{}, ingressCMHandler, ingressCMPredicates)
+	} else {
+		b = b.Owns(&netv1.Ingress{})
 	}
 
 	return b.Complete(r)
@@ -728,6 +730,9 @@ func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 }
 
 func newAgentRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	if !asc.rec.IsOpenShift {
+		return newIngress(ctx, log, asc, serviceName, asc.spec.AssistedServiceIngressHost, int32(servicePort.IntValue()))
+	}
 	weight := int32(100)
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
@@ -845,6 +850,9 @@ func newAgentIPXERoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 }
 
 func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	if !asc.rec.IsOpenShift {
+		return newIngress(ctx, log, asc, imageServiceName, asc.spec.ImageServiceIngressHost, int32(imageHandlerPort.IntValue()))
+	}
 	weight := int32(100)
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
@@ -881,6 +889,44 @@ func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 	}
 
 	return route, mutateFn, nil
+}
+
+func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name string, host string, port int32) (client.Object, controllerutil.MutateFn, error) {
+	pathTypePrefix := netv1.PathTypePrefix
+	ingress := &netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: asc.namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(asc.Object, ingress, asc.rec.Scheme); err != nil {
+			return err
+		}
+		ingress.Spec = netv1.IngressSpec{
+			Rules: []netv1.IngressRule{{
+				Host: host,
+				IngressRuleValue: netv1.IngressRuleValue{HTTP: &netv1.HTTPIngressRuleValue{
+					Paths: []netv1.HTTPIngressPath{{
+						Path:     "/",
+						PathType: &pathTypePrefix,
+						Backend: netv1.IngressBackend{
+							Service: &netv1.IngressServiceBackend{
+								Name: name,
+								Port: netv1.ServiceBackendPort{
+									Number: port,
+								},
+							},
+						},
+					}},
+				}},
+			}},
+		}
+		return nil
+	}
+
+	return ingress, mutateFn, nil
 }
 
 func newImageServiceIPXERoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
