@@ -904,7 +904,9 @@ func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name strin
 		if err := controllerutil.SetControllerReference(asc.Object, ingress, asc.rec.Scheme); err != nil {
 			return err
 		}
+		ingressClassName := asc.spec.IngressClassName
 		ingress.Spec = netv1.IngressSpec{
+			IngressClassName: &ingressClassName,
 			Rules: []netv1.IngressRule{{
 				Host: host,
 				IngressRuleValue: netv1.IngressRuleValue{HTTP: &netv1.HTTPIngressRuleValue{
@@ -922,6 +924,9 @@ func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name strin
 					}},
 				}},
 			}},
+		}
+		if ingressClassName == "" {
+			ingress.Spec.IngressClassName = nil
 		}
 		return nil
 	}

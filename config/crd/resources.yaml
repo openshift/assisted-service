@@ -1782,6 +1782,11 @@ spec:
                       backing this claim.
                     type: string
                 type: object
+              ingressClassName:
+                description: IngressClassName is the name of the ingress class to
+                  be used when configuring ingress resources. Has no effect when running
+                  on an OpenShift cluster.
+                type: string
               mirrorRegistryRef:
                 description: 'MirrorRegistryRef is the reference to the configmap
                   that contains mirror registry configuration In case no configuration
@@ -2590,6 +2595,11 @@ spec:
                       backing this claim.
                     type: string
                 type: object
+              ingressClassName:
+                description: IngressClassName is the name of the ingress class to
+                  be used when configuring ingress resources. Has no effect when running
+                  on an OpenShift cluster.
+                type: string
               kubeconfigSecretRef:
                 description: KubeconfigSecretRef is a reference to the secret containing
                   the kubeconfig for the destination Hypershift instance.

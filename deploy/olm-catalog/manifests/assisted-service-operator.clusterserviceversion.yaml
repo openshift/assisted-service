@@ -329,6 +329,11 @@ spec:
           is provided 2GiB per OSImage entry is required
         displayName: Storage for images
         path: imageStorage
+      - description: IngressClassName is the name of the ingress class to be used
+          when configuring ingress resources. Has no effect when running on an OpenShift
+          cluster.
+        displayName: Ingress Class Name
+        path: ingressClassName
       - description: 'MirrorRegistryRef is the reference to the configmap that contains
           mirror registry configuration In case no configuration is need, this field
           will be nil. ConfigMap must contain to entries: ca-bundle.crt - hold the

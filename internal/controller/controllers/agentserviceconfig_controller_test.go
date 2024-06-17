@@ -2578,6 +2578,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		asc = newASCDefault()
 		asc.Spec.AssistedServiceIngressHost = "assisted.example.com"
 		asc.Spec.ImageServiceIngressHost = "images.example.com"
+		asc.Spec.IngressClassName = "nginx"
 
 		ctx = context.Background()
 
@@ -2684,6 +2685,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 	})
 
 	validateIngress := func(ingress *netv1.Ingress, host string, service string, port int32) {
+		Expect(ingress.Spec.IngressClassName).To(HaveValue(Equal(asc.Spec.IngressClassName)))
 		Expect(len(ingress.Spec.Rules)).To(Equal(1))
 		rule := ingress.Spec.Rules[0]
 		Expect(rule.Host).To(Equal(host))

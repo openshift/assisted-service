@@ -133,6 +133,12 @@ type AgentServiceConfigSpec struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Assisted Image Service Ingress hostname"
 	// +optional
 	ImageServiceIngressHost string `json:"imageServiceIngressHost,omitempty"`
+
+	// IngressClassName is the name of the ingress class to be used when configuring ingress resources.
+	// Has no effect when running on an OpenShift cluster.
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ingress Class Name"
+	// +optional
+	IngressClassName string `json:"ingressClassName,omitempty"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons
