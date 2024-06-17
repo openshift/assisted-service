@@ -48,20 +48,22 @@ var _ = Describe("getPullSecret", func() {
 			Type: corev1.SecretTypeDockerConfigJson,
 		}
 		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(OCMSecret, nil).Times(1)
-		pullSecret, err := getPullSecret("", mockK8sClient, openshiftTokenKey)
+		pullSecret, err := getPullSecret("", mockK8sClient)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(pullSecret).NotTo(BeNil())
-		Expect(pullSecret.AuthRaw).To(Equal(OCMPullSecretToken))
+		Expect(pullSecret.Identity.Username).To(Equal("ocmuser"))
+		Expect(pullSecret.Identity.EmailDomain).To(Equal("example.com"))
+		Expect(pullSecret.APIAuth.AuthRaw).To(Equal(OCMPullSecretToken))
 	})
 	It("successfully gets a pull secret from the cluster when the OCM pull secret doesn't exist", func() {
 		clusterPullSecret := fmt.Sprintf(pullSecretFormat, openshiftTokenKey, clusterPullSecretToken)
 
 		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(
 			nil, apierrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Secret"}, "pullsecret")).Times(1)
-		pullSecret, err := getPullSecret(clusterPullSecret, mockK8sClient, openshiftTokenKey)
+		pullSecret, err := getPullSecret(clusterPullSecret, mockK8sClient)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(pullSecret).NotTo(BeNil())
-		Expect(pullSecret.AuthRaw).To(Equal(clusterPullSecretToken))
+		Expect(pullSecret.Identity.Username).To(Equal("clustersecret"))
+		Expect(pullSecret.Identity.EmailDomain).To(Equal("example.com"))
+		Expect(pullSecret.APIAuth.AuthRaw).To(Equal(clusterPullSecretToken))
 	})
 	It("fails to gets a pull secret when the OCM pull secret exists, but doesn't contain the correct credentials", func() {
 		OCMPullSecret := fmt.Sprintf(pullSecretFormat, "clouds.openshift.com", OCMPullSecretToken)
@@ -80,9 +82,8 @@ var _ = Describe("getPullSecret", func() {
 			Type: corev1.SecretTypeDockerConfigJson,
 		}
 		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(OCMSecret, nil).Times(1)
-		pullSecret, err := getPullSecret("", mockK8sClient, openshiftTokenKey)
+		_, err := getPullSecret("", mockK8sClient)
 		Expect(err).To(HaveOccurred())
-		Expect(pullSecret).To(BeNil())
 	})
 	It("fails to gets a pull secret when the token is incorrectly formatted", func() {
 		token := fmt.Sprintf("%s\n%s", OCMPullSecretToken, "token")
@@ -102,9 +103,8 @@ var _ = Describe("getPullSecret", func() {
 			Type: corev1.SecretTypeDockerConfigJson,
 		}
 		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(OCMSecret, nil).Times(1)
-		pullSecret, err := getPullSecret("", mockK8sClient, openshiftTokenKey)
+		_, err := getPullSecret("", mockK8sClient)
 		Expect(err).To(HaveOccurred())
-		Expect(pullSecret).To(BeNil())
 	})
 })
 

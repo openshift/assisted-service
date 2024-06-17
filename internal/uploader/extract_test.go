@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -164,10 +165,10 @@ var _ = Describe("Trying to extract events", func() {
 
 					Expect(err).NotTo(HaveOccurred())
 					Expect(len(events)).To(Equal(2))
-					Expect(events).To(Equal([]eventModels.Events{
+					Expect(events).To(BeComparableTo([]eventModels.Events{
 						generateExpectedEvents(clusterID1.String(), config1),
 						generateExpectedEvents(clusterID2.String(), config2),
-					}))
+					}, cmpopts.SortSlices(func(a, b eventModels.Events) bool { return a.ClusterID < b.ClusterID })))
 				})
 			})
 		})
