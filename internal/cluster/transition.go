@@ -73,6 +73,45 @@ type TransitionHandler interface {
 	SoftTimeoutsEnabled(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
 	FinalizingStageTimeoutMinutes(sCluster *stateCluster) interface{}
 	InstallationTimeoutMinutes(_ *stateCluster) interface{}
+
+	EventHandler
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Event Handler
+////////////////////////////////////////////////////////////////////////////
+
+type EventHandler interface {
+	SendClusterInstallationFailedEvent(template string, formatFuncs ...formatFunction) stateswitch.PostTransition
+}
+
+type ErrorEventArgs interface {
+	GetContext() context.Context
+}
+
+func (th *transitionHandler) SendClusterInstallationFailedEvent(template string, formatFuncs ...formatFunction) stateswitch.PostTransition {
+	return func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+		if sw.State() != stateswitch.State(models.ClusterStatusError) {
+			return nil
+		}
+
+		sCluster, ok := sw.(*stateCluster)
+		if !ok {
+			return errors.New("SendErrorEvent incompatible type of StateSwitch")
+		}
+
+		errorEventArgs, ok := args.(ErrorEventArgs)
+		if !ok {
+			return errors.New("SendErrorEvent incompatible type of args")
+		}
+
+		ctx := errorEventArgs.GetContext()
+		reason := computeReason(sCluster, template, formatFuncs...)
+
+		eventgen.SendClusterInstallationFailedEvent(ctx, th.eventsHandler, *sCluster.cluster.ID, reason)
+
+		return nil
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -350,6 +389,10 @@ type TransitionArgsRefreshCluster struct {
 	updatedCluster    *common.Cluster
 }
 
+func (t *TransitionArgsRefreshCluster) GetContext() context.Context {
+	return t.ctx
+}
+
 func If(id stringer) stateswitch.Condition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 		params, ok := args.(*TransitionArgsRefreshCluster)
@@ -574,6 +617,15 @@ func (th *transitionHandler) PostPreparingTimedOut(sw stateswitch.StateSwitch, a
 
 type formatFunction func(sCluster *stateCluster) interface{}
 
+func computeReason(sCluster *stateCluster, template string, formatFuncs ...formatFunction) string {
+	var values []interface{}
+	for _, formatFunc := range formatFuncs {
+		values = append(values, formatFunc(sCluster))
+	}
+
+	return fmt.Sprintf(template, values...)
+}
+
 // Return a post transition function with a constant reason
 func (th *transitionHandler) PostRefreshCluster(template string, formatFuncs ...formatFunction) stateswitch.PostTransition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -585,11 +637,8 @@ func (th *transitionHandler) PostRefreshCluster(template string, formatFuncs ...
 		if !ok {
 			return errors.New("PostRefreshCluster invalid argument")
 		}
-		var values []interface{}
-		for _, formatFunc := range formatFuncs {
-			values = append(values, formatFunc(sCluster))
-		}
-		reason := fmt.Sprintf(template, values...)
+
+		reason := computeReason(sCluster, template, formatFuncs...)
 
 		var (
 			err            error

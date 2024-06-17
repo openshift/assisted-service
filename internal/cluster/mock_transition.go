@@ -5,6 +5,7 @@
 package cluster
 
 import (
+	context "context"
 	reflect "reflect"
 
 	stateswitch "github.com/filanov/stateswitch"
@@ -341,6 +342,25 @@ func (mr *MockTransitionHandlerMockRecorder) PostUpdateFinalizingAMSConsoleUrl(s
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostUpdateFinalizingAMSConsoleUrl", reflect.TypeOf((*MockTransitionHandler)(nil).PostUpdateFinalizingAMSConsoleUrl), sw, args)
 }
 
+// SendClusterInstallationFailedEvent mocks base method.
+func (m *MockTransitionHandler) SendClusterInstallationFailedEvent(template string, formatFuncs ...formatFunction) stateswitch.PostTransition {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{template}
+	for _, a := range formatFuncs {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SendClusterInstallationFailedEvent", varargs...)
+	ret0, _ := ret[0].(stateswitch.PostTransition)
+	return ret0
+}
+
+// SendClusterInstallationFailedEvent indicates an expected call of SendClusterInstallationFailedEvent.
+func (mr *MockTransitionHandlerMockRecorder) SendClusterInstallationFailedEvent(template interface{}, formatFuncs ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{template}, formatFuncs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendClusterInstallationFailedEvent", reflect.TypeOf((*MockTransitionHandler)(nil).SendClusterInstallationFailedEvent), varargs...)
+}
+
 // SoftTimeoutsEnabled mocks base method.
 func (m *MockTransitionHandler) SoftTimeoutsEnabled(arg0 stateswitch.StateSwitch, arg1 stateswitch.TransitionArgs) (bool, error) {
 	m.ctrl.T.Helper()
@@ -399,4 +419,83 @@ func (m *MockTransitionHandler) hasClusterCompleteInstallation(sw stateswitch.St
 func (mr *MockTransitionHandlerMockRecorder) hasClusterCompleteInstallation(sw, args interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "hasClusterCompleteInstallation", reflect.TypeOf((*MockTransitionHandler)(nil).hasClusterCompleteInstallation), sw, args)
+}
+
+// MockEventHandler is a mock of EventHandler interface.
+type MockEventHandler struct {
+	ctrl     *gomock.Controller
+	recorder *MockEventHandlerMockRecorder
+}
+
+// MockEventHandlerMockRecorder is the mock recorder for MockEventHandler.
+type MockEventHandlerMockRecorder struct {
+	mock *MockEventHandler
+}
+
+// NewMockEventHandler creates a new mock instance.
+func NewMockEventHandler(ctrl *gomock.Controller) *MockEventHandler {
+	mock := &MockEventHandler{ctrl: ctrl}
+	mock.recorder = &MockEventHandlerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockEventHandler) EXPECT() *MockEventHandlerMockRecorder {
+	return m.recorder
+}
+
+// SendClusterInstallationFailedEvent mocks base method.
+func (m *MockEventHandler) SendClusterInstallationFailedEvent(template string, formatFuncs ...formatFunction) stateswitch.PostTransition {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{template}
+	for _, a := range formatFuncs {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SendClusterInstallationFailedEvent", varargs...)
+	ret0, _ := ret[0].(stateswitch.PostTransition)
+	return ret0
+}
+
+// SendClusterInstallationFailedEvent indicates an expected call of SendClusterInstallationFailedEvent.
+func (mr *MockEventHandlerMockRecorder) SendClusterInstallationFailedEvent(template interface{}, formatFuncs ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{template}, formatFuncs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendClusterInstallationFailedEvent", reflect.TypeOf((*MockEventHandler)(nil).SendClusterInstallationFailedEvent), varargs...)
+}
+
+// MockErrorEventArgs is a mock of ErrorEventArgs interface.
+type MockErrorEventArgs struct {
+	ctrl     *gomock.Controller
+	recorder *MockErrorEventArgsMockRecorder
+}
+
+// MockErrorEventArgsMockRecorder is the mock recorder for MockErrorEventArgs.
+type MockErrorEventArgsMockRecorder struct {
+	mock *MockErrorEventArgs
+}
+
+// NewMockErrorEventArgs creates a new mock instance.
+func NewMockErrorEventArgs(ctrl *gomock.Controller) *MockErrorEventArgs {
+	mock := &MockErrorEventArgs{ctrl: ctrl}
+	mock.recorder = &MockErrorEventArgsMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockErrorEventArgs) EXPECT() *MockErrorEventArgsMockRecorder {
+	return m.recorder
+}
+
+// GetContext mocks base method.
+func (m *MockErrorEventArgs) GetContext() context.Context {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetContext")
+	ret0, _ := ret[0].(context.Context)
+	return ret0
+}
+
+// GetContext indicates an expected call of GetContext.
+func (mr *MockErrorEventArgsMockRecorder) GetContext() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContext", reflect.TypeOf((*MockErrorEventArgs)(nil).GetContext))
 }

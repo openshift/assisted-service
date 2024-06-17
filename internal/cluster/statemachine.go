@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/filanov/stateswitch"
@@ -13,6 +14,21 @@ const (
 	TransitionTypePrepareForInstallation = "PrepareForInstallation"
 	TransitionTypeRefreshStatus          = "RefreshStatus"
 )
+
+func SequentialPostTransitions(postTransitions ...stateswitch.PostTransition) stateswitch.PostTransition {
+	return func(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+		var ret error
+
+		for _, postTransition := range postTransitions {
+			err := postTransition(stateSwitch, args) // Run everything anyway ?
+			if err != nil {
+				ret = errors.Join(ret, err)
+			}
+		}
+
+		return ret
+	}
+}
 
 func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 	sm := stateswitch.NewStateMachine()
@@ -271,7 +287,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 			),
 		),
 		DestinationState: stateswitch.State(models.ClusterStatusError),
-		PostTransition:   th.PostRefreshCluster(statusInfoError),
+		PostTransition:   SequentialPostTransitions(th.PostRefreshCluster(statusInfoError), th.SendClusterInstallationFailedEvent(statusInfoError)),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "TODO: Name this transition",
 			Description: "TODO: Document this transition",
@@ -285,7 +301,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		},
 		Condition:        th.IsInstallationTimedOut,
 		DestinationState: stateswitch.State(models.ClusterStatusError),
-		PostTransition:   th.PostRefreshCluster(statusInfoTimeout),
+		PostTransition:   SequentialPostTransitions(th.PostRefreshCluster(statusInfoTimeout), th.SendClusterInstallationFailedEvent(statusInfoTimeout)),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Timed out while waiting for user",
 			Description: "User was asked to take action and did not do so in time, give up and display appropriate error",
@@ -300,7 +316,10 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		},
 		Condition:        stateswitch.And(th.IsInstallationTimedOut, th.SoftTimeoutsEnabled),
 		DestinationState: stateswitch.State(models.ClusterStatusError),
-		PostTransition:   th.PostRefreshCluster(statusInfoInstallationTimeout, th.InstallationTimeoutMinutes),
+		PostTransition: SequentialPostTransitions(
+			th.PostRefreshCluster(statusInfoInstallationTimeout, th.InstallationTimeoutMinutes),
+			th.SendClusterInstallationFailedEvent(statusInfoInstallationTimeout, th.InstallationTimeoutMinutes),
+		),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Timed out while installing",
 			Description: "Cluster installation is taking too long, give up and display appropriate error",
@@ -315,7 +334,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		Condition: stateswitch.And(th.IsFinalizingTimedOut,
 			stateswitch.Not(th.SoftTimeoutsEnabled)),
 		DestinationState: stateswitch.State(models.ClusterStatusError),
-		PostTransition:   th.PostRefreshCluster(statusInfoFinalizingTimeout),
+		PostTransition:   SequentialPostTransitions(th.PostRefreshCluster(statusInfoFinalizingTimeout), th.SendClusterInstallationFailedEvent(statusInfoFinalizingTimeout)),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Timed out while finalizing",
 			Description: "Cluster finalization took too long, display appropriate error",
@@ -331,7 +350,10 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 			th.IsFinalizingStageTimedOut,
 			stateswitch.Not(isInFinalizingStages(nonFailingFinalizingStages...))),
 		DestinationState: stateswitch.State(models.ClusterStatusError),
-		PostTransition:   th.PostRefreshCluster(statusInfoFinalizingStageTimeout, FinalizingStage, th.FinalizingStageTimeoutMinutes),
+		PostTransition: SequentialPostTransitions(
+			th.PostRefreshCluster(statusInfoFinalizingStageTimeout, FinalizingStage, th.FinalizingStageTimeoutMinutes),
+			th.SendClusterInstallationFailedEvent(statusInfoFinalizingStageTimeout, FinalizingStage, th.FinalizingStageTimeoutMinutes),
+		),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Finalizing stage timed out.  Move to error",
 			Description: "Cluster finalization stage took too long, display appropriate error",
@@ -503,7 +525,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 			stateswitch.Not(th.IsInstalling),
 		),
 		DestinationState: stateswitch.State(models.ClusterStatusError),
-		PostTransition:   th.PostRefreshCluster(statusInfoError),
+		PostTransition:   SequentialPostTransitions(th.PostRefreshCluster(statusInfoError), th.SendClusterInstallationFailedEvent(statusInfoError)),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Installation error",
 			Description: "This transition is fired when the cluster is in installing and should move to error",
