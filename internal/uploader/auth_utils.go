@@ -8,7 +8,6 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -52,26 +51,6 @@ func getPullSecret(clusterPullSecret string, k8sclient k8sclient.K8SClient) (Pul
 	ret.APIAuth.AuthRaw = authCreds.AuthRaw
 
 	return ret, nil
-}
-
-// Checks if cloud.openshift.com is present in the OCM pull secret to see if the user
-// is still opted-in to sending data
-func isOCMPullSecretOptIn(k8sclient k8sclient.K8SClient) (bool, error) {
-	creds, err := getManagementCreds(k8sclient)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			// Indicates the pull secret doesn't exist, so we'll assume they're opted-in
-			return true, nil
-		}
-
-		return false, fmt.Errorf("failed to get management creds: %w", err)
-	}
-
-	if creds == nil {
-		return false, nil
-	}
-
-	return true, nil
 }
 
 func getManagementCreds(k8sclient k8sclient.K8SClient) (*validations.PullSecretCreds, error) {

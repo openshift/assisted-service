@@ -71,13 +71,8 @@ func (e *eventsUploader) UploadEvents(ctx context.Context, cluster *common.Clust
 }
 
 func (e *eventsUploader) IsEnabled() bool {
-	// This is arguable since we could use the workload pull secret creds to upload.
-	isOCMPullSecretOptIn, err := isOCMPullSecretOptIn(e.client)
-	if err != nil {
-		return false
-	}
-
-	return e.EnableDataCollection && isOCMPullSecretOptIn && isURLReachable(e.DataUploadEndpoint)
+	// isURLReachable is arguable: it could have failed because of a transient error.
+	return e.EnableDataCollection && isURLReachable(e.DataUploadEndpoint)
 }
 
 func (e *eventsUploader) setHeaders(req *http.Request, clusterID *strfmt.UUID, token, formDataContentType string) error {
