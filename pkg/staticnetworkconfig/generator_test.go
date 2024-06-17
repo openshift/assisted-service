@@ -278,6 +278,19 @@ parent=eth1
 			})
 			Expect(err).ToNot(HaveOccurred())
 		})
+		It("vlan with underlying interface - with mapping without parent", func() {
+			err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+				{
+					LogicalNicName: "eth1",
+					MacAddress:     "f8:75:a4:a4:00:fe",
+				},
+			}, []StaticNetworkConfigData{
+				{
+					FileContents: vlanConnection,
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 })
 
