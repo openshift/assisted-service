@@ -57,16 +57,6 @@ else
 	UPDATE_IMAGE=update-minimal
 endif
 
-ifdef SUBSYSTEM_LOCAL_REGISTRY
-	UPDATE_LOCAL_SERVICE=_update-private-registry-image
-	LOCAL_SERVICE_IMAGE=${SUBSYSTEM_LOCAL_REGISTRY}/assisted-service:${ASSISTED_TAG}
-	IMAGE_PULL_POLICY=--image-pull-policy Always
-else
-	IMAGE_PULL_POLICY=--image-pull-policy IfNotPresent
-	UPDATE_LOCAL_SERVICE=_update-local-k8s-image
-	LOCAL_SERVICE_IMAGE=${SERVICE}
-endif
-
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
 MUST_GATHER_IMAGES := $(or ${MUST_GATHER_IMAGES}, $(shell (tr -d '\n\t ' < ${ROOT_DIR}/data/default_must_gather_versions.json)))
@@ -101,6 +91,9 @@ DISABLE_TLS := $(or ${DISABLE_TLS},false)
 ENABLE_ORG_TENANCY := $(or ${ENABLE_ORG_TENANCY},False)
 ALLOW_CONVERGED_FLOW := $(or ${ALLOW_CONVERGED_FLOW}, false)
 ENABLE_ORG_BASED_FEATURE_GATES := $(or ${ENABLE_ORG_BASED_FEATURE_GATES},False)
+KIND_EXPERIMENTAL_PROVIDER=podman
+SUBSYSTEM_LOCAL_SERVICE=localhost/assisted-service:latest
+SUBSYSTEM_LOCAL_IMAGE_ARCHIVE=build/assisted_service_image.tar
 
 ifeq ($(DISABLE_TLS),true)
 	DISABLE_TLS_CMD := --disable-tls
@@ -238,16 +231,18 @@ update-debug-minimal:
 
 update-image: $(UPDATE_IMAGE)
 
-_update-private-registry-image: update-image
-	$(CONTAINER_COMMAND) tag $(SERVICE) $(LOCAL_SERVICE_IMAGE)
-	$(CONTAINER_COMMAND) push $(PUSH_FLAGS) $(LOCAL_SERVICE_IMAGE)
-
-_update-local-k8s-image:
-	# Temporary hack that updates the local k8s(e.g minikube) with the latest image.
-	# Should be replaced after installing a local registry
-	./hack/update_local_image.sh
-
-update-local-image: $(UPDATE_LOCAL_SERVICE)
+load-image: create-hub-cluster
+	rm -f $(SUBSYSTEM_LOCAL_IMAGE_ARCHIVE) || true
+	@if [ -z ${SUBSYSTEM_SERVICE_IMAGE} ]; then \
+		echo "Building and using local assisted-service image..."; \
+		$(MAKE) update-image SERVICE=$(SUBSYSTEM_LOCAL_SERVICE); \
+	else \
+		echo "Using image from ${SUBSYSTEM_SERVICE_IMAGE}..."; \
+		$(CONTAINER_COMMAND) pull ${SUBSYSTEM_SERVICE_IMAGE}; \
+		$(CONTAINER_COMMAND) tag ${SUBSYSTEM_SERVICE_IMAGE} $(SUBSYSTEM_LOCAL_SERVICE); \
+	fi
+	$(CONTAINER_COMMAND) save -o $(SUBSYSTEM_LOCAL_IMAGE_ARCHIVE) $(SUBSYSTEM_LOCAL_SERVICE)
+	./hack/kind/kind.sh load_kind_image $(SUBSYSTEM_LOCAL_IMAGE_ARCHIVE) assisted-installer-kind
 
 build-image: update-minimal
 
@@ -380,13 +375,10 @@ create-ocp-manifests:
 	export HW_REQUIREMENTS="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_hw_requirements.json | tr -d "\n\t "))" && \
 	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
-ci-deploy-for-subsystem: _verify_cluster generate-keys
-	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
-	export IPV6_SUPPORT="True" && export ENABLE_ORG_TENANCY="True" && export ENABLE_ORG_BASED_FEATURE_GATES="True" && \
-	export RELEASE_SOURCES='$(or ${RELEASE_SOURCES},${DEFAULT_RELEASE_SOURCES})' && \
-	$(MAKE) deploy-wiremock deploy-all
+ci-deploy-for-subsystem: deploy-test
 
-patch-service: _verify_cluster update-local-image
+patch-service: _verify_cluster
+	$(MAKE) load-image
 ifdef DEBUG_SERVICE
 	$(KUBECTL) patch deployment assisted-service --type json -p='[{"op": "add", "path": "/spec/template/spec/containers/0/ports/-", "value": {"containerPort": 40000}}]'
 	$(KUBECTL) patch service assisted-service --type json -p='[{"op": "add", "path": "/spec/ports/-", value: {"name": "assisted-service-debug", "port": 40000, "protocol": "TCP", "targetPort": 40000}}]'
@@ -394,16 +386,24 @@ ifdef DEBUG_SERVICE
 endif
 	$(call restart_service_pods)
 
-deploy-test: _verify_cluster generate-keys update-local-image
+deploy-test: _verify_cluster generate-keys
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
-	export SERVICE=${LOCAL_SERVICE_IMAGE} && export TEST_FLAGS=--subsystem-test && \
+	export TEST_FLAGS=--subsystem-test && \
 	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && \
 	export IPV6_SUPPORT="True" && ENABLE_ORG_TENANCY="True" && ENABLE_ORG_BASED_FEATURE_GATES="True" && \
 	export RELEASE_SOURCES='$(or ${RELEASE_SOURCES},${DEFAULT_RELEASE_SOURCES})' && \
 	$(MAKE) deploy-wiremock deploy-all
 
-# An alias for the deploy-test target
-deploy-service-for-subsystem-test: deploy-test
+# execute on the host, without skipper
+deploy-service-for-subsystem-test: create-hub-cluster load-image
+	skipper $(MAKE) deploy-test TARGET=kind SERVICE=$(SUBSYSTEM_LOCAL_SERVICE) IP=$(shell ip route get 1 | sed 's/^.*src \([^ ]*\).*$$/\1/;q')
+	@if [ $(ENABLE_KUBE_API) == "true" ]; then \
+		echo "Deploying assisted-service for subsystem tests in kube-api mode..."; \
+		TARGET=kind skipper make enable-kube-api-for-subsystem; \
+	fi
+
+destroy-kind-cluster:
+	./hack/kind/kind.sh delete
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
 # we need to pull it from the docker daemon before deploy-onprem.
@@ -417,34 +417,41 @@ deploy-onprem:
 
 deploy-on-openshift-ci:
 	export PERSISTENT_STORAGE="False" && export TARGET='oc' && export GENERATE_CRD='false' && unset GOFLAGS && \
-	$(MAKE) ci-deploy-for-subsystem
+	$(MAKE) deploy-test
 	oc get pods
 
 ########
 # Test #
 ########
 
-subsystem-run: test subsystem-clean
-
-subsystem-run-kube-api: enable-kube-api-for-subsystem test-kube-api subsystem-clean
-
 test:
 	$(MAKE) _run_subsystem_test AUTH_TYPE=rhsso ENABLE_ORG_TENANCY=true ENABLE_ORG_BASED_FEATURE_GATES=true
 
 test-kube-api:
-	$(MAKE) _run_subsystem_test AUTH_TYPE=local ENABLE_KUBE_API=true FOCUS="$(or ${FOCUS},kube-api)"
+	$(MAKE) _run_subsystem_test AUTH_TYPE=local FOCUS="$(or ${FOCUS},kube-api)"
 
-# An alias for the test target
-subsystem-test: test
+subsystem-test:
+	$(MAKE) test TARGET=kind
 
-# An alias for the test-kube-api target
-subsystem-test-kube-api: test-kube-api
+subsystem-test-kube-api:
+	$(MAKE) test-kube-api TARGET=kind
 
 _run_subsystem_test:
-	INVENTORY=$(shell $(call get_service_host_port,assisted-service) | sed 's/http:\/\///g') \
-	DB_HOST=$(shell $(call get_service_host_port,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
-	DB_PORT=$(shell $(call get_service_host_port,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
-	OCM_HOST=$(shell $(call get_service_host_port,wiremock) | sed 's/http:\/\///g') \
+	@if [ $(TARGET) == "kind" ]; then \
+		assisted_service_url="localhost:8090"; \
+		db_host="localhost"; \
+		db_port="5432"; \
+		ocm_host="localhost:8070"; \
+	else \
+		assisted_service_url="$(shell $(call get_service_host_port,assisted-service) | sed 's/http:\/\///g')"; \
+		db_host="$(shell $(call get_service_host_port,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1)"; \
+		db_port="$(shell $(call get_service_host_port,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2)"; \
+		ocm_host="$(shell $(call get_service_host_port,wiremock) | sed 's/http:\/\///g')"; \
+	fi; \
+	INVENTORY=$$assisted_service_url \
+	DB_HOST=$$db_host \
+	DB_PORT=$$db_port \
+	OCM_HOST=$$ocm_host \
 	TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
 	TEST_TOKEN_2="$(shell cat $(BUILD_FOLDER)/auth-tokenString2)" \
 	TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
@@ -461,9 +468,6 @@ enable-kube-api-for-subsystem: $(BUILD_FOLDER)
 
 deploy-wiremock: deploy-namespace
 	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)"
-	timeout 5m ./hack/wait_for_wiremock.sh
-	OCM_URL=$$(kubectl get service wiremock -n $(NAMESPACE) -ojson | jq --from-file ./hack/k8s_service_host_port.jq --raw-output); \
-	export OCM_URL && go run ./hack/add_wiremock_stubs.go
 
 deploy-olm: deploy-namespace
 	python3 ./tools/deploy_olm.py --target $(TARGET)
@@ -535,6 +539,15 @@ test-on-openshift-ci:
 	export TARGET='oc' && unset GOFLAGS && \
 	$(MAKE) test FOCUS="[minimal-set]"
 
+install-kind-if-needed:
+	./hack/kind/kind.sh install
+
+delete-kind-cluster:
+	kind delete cluster
+
+create-hub-cluster:
+	./hack/kind/kind.sh create
+
 #########
 # Clean #
 #########
@@ -544,9 +557,6 @@ clear-all: clean subsystem-clean clear-deployment clear-images clean-onprem
 clean:
 	-rm -rf $(BUILD_FOLDER) $(REPORTS)
 	-rm -rf bundle*
-
-subsystem-clean:
-	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete --force --grace-period=0 1> /dev/null || true
 
 clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --target "$(TARGET)" || true

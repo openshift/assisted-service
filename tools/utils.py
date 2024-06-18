@@ -8,6 +8,7 @@ import waiting
 from distutils.spawn import find_executable
 from functools import reduce
 from typing import Optional, Tuple
+from pathlib import Path
 from deployment_options import INGRESS_REMOTE_TARGET, OCP_TARGET, KIND_TARGET
 
 
@@ -134,7 +135,13 @@ def get_service_address(
         service_host = f"assisted-installer.{domain}"
         service_port = 80 if disable_tls else 443
     elif target == KIND_TARGET:
-        service_host, service_port = socket.gethostname(), 80
+        service_host = os.environ.get('IP', 'localhost')
+        if service == "assisted-service":
+            service_port = "8090"
+        elif service == "assisted-image-service":
+            service_port = "8080"
+        else:
+            raise ValueError("Not implemented, please provide a port for the new service")
     else:
         service_host = get_service_host(
             service,
@@ -329,3 +336,22 @@ def get_cluster_server(cluster_name='default'):
         )
 
     return out
+
+
+def override_service_type_definition_and_node_port(
+    internal_definitions_path: str,
+    internal_target_definitions_path: str,
+    service_type: str,
+    node_port: int
+):
+    definitions = load_yaml_file_docs(basename=internal_definitions_path)
+    for definition in definitions:
+        if definition["kind"] != "Service":
+            continue
+
+        spec = definition["spec"]
+        spec["ports"][0]["nodePort"] = node_port
+        spec["type"] = service_type
+        break
+    
+    dump_yaml_file_docs(basename=internal_target_definitions_path, docs=definitions)

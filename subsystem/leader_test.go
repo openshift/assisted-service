@@ -3,7 +3,6 @@ package subsystem
 import (
 	"context"
 	"os"
-	"os/user"
 	"path"
 	"time"
 
@@ -112,11 +111,7 @@ func getKubeconfig() string {
 }
 
 func getHomeDir() string {
-	usr, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return usr.HomeDir
+	return os.Getenv("HOME")
 }
 
 var _ = Describe("Leader tests", func() {
