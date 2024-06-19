@@ -735,8 +735,9 @@ spec:
 			}}
 
 			g := NewGenerator(workDir, "", cluster, "", "", "", "", mockS3Client, logrus.New(), nil, "", "", 5).(*installerGenerator)
-			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
-			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
+			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder)).Return([]s3wrapper.ObjectInfo{}, nil).AnyTimes()
+			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]s3wrapper.ObjectInfo{{Path: "mcp.yaml", Metadata: make(map[string]string)}}, nil)
+			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]s3wrapper.ObjectInfo{}, nil)
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(io.NopCloser(strings.NewReader(mcp)), int64(0), nil)
 			err := g.writeSingleHostFile(cluster.Hosts[0], workerIgn, g.workDir)
 			Expect(err).NotTo(HaveOccurred())
@@ -761,8 +762,9 @@ spec:
 			}}
 
 			g := NewGenerator(workDir, "", cluster, "", "", "", "", mockS3Client, logrus.New(), nil, "", "", 5).(*installerGenerator)
-			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
-			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
+			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder)).Return([]s3wrapper.ObjectInfo{}, nil).AnyTimes()
+			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]s3wrapper.ObjectInfo{{Path: "mcp.yaml", Metadata: make(map[string]string)}}, nil)
+			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]s3wrapper.ObjectInfo{}, nil)
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(io.NopCloser(strings.NewReader(mc)), int64(0), nil)
 			err := g.writeSingleHostFile(cluster.Hosts[0], workerIgn, g.workDir)
 			Expect(err).To(HaveOccurred())
@@ -921,7 +923,7 @@ var _ = Describe("Generator UploadToS3", func() {
 	})
 
 	mockUploadFile := func() *gomock.Call {
-		return mockS3Client.EXPECT().UploadFile(gomock.Any(), gomock.Any(), gomock.Any())
+		return mockS3Client.EXPECT().UploadFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	}
 
 	mockUploadObjectTimestamp := func() *gomock.Call {
@@ -943,13 +945,13 @@ var _ = Describe("Generator UploadToS3", func() {
 			for _, f := range fileNames {
 				fullPath := filepath.Join(generator.workDir, f)
 				key := filepath.Join(cluster.ID.String(), f)
-				mockS3Client.EXPECT().UploadFile(gomock.Any(), fullPath, key).Return(nil).Times(1)
+				mockS3Client.EXPECT().UploadFile(gomock.Any(), fullPath, key, gomock.Any()).Return(nil).Times(1)
 				mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), key).Return(true, nil).Times(1)
 			}
 			for i := range cluster.Hosts {
 				fullPath := filepath.Join(generator.workDir, hostutil.IgnitionFileName(cluster.Hosts[i]))
 				key := filepath.Join(cluster.ID.String(), hostutil.IgnitionFileName(cluster.Hosts[i]))
-				mockS3Client.EXPECT().UploadFile(gomock.Any(), fullPath, key).Return(nil).Times(1)
+				mockS3Client.EXPECT().UploadFile(gomock.Any(), fullPath, key, gomock.Any()).Return(nil).Times(1)
 				mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), key).Return(true, nil).Times(1)
 			}
 
@@ -1008,7 +1010,7 @@ var _ = Describe("downloadManifest", func() {
 	It("writes the correct file", func() {
 		ctx := context.Background()
 		manifestName := fmt.Sprintf("%s/manifests/openshift/masters-chrony-configuration.yaml", cluster.ID)
-		mockS3Client.EXPECT().Download(ctx, manifestName).Return(io.NopCloser(strings.NewReader("content:entry")), int64(10), nil)
+		mockS3Client.EXPECT().Download(ctx, manifestName).Return(io.NopCloser(strings.NewReader("content:entry")), int64(0), nil)
 		Expect(os.Mkdir(filepath.Join(workDir, "/openshift"), 0755)).To(Succeed())
 		Expect(os.Mkdir(filepath.Join(workDir, "/manifests"), 0755)).To(Succeed())
 
@@ -1290,12 +1292,14 @@ first: one
 - second: two
 ---
 `
-		s3Metadata := []string{
-			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "manifests", "multidoc.yml", constants.ManifestSourceUserSupplied),
-			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "manifests", "manifest.json", constants.ManifestSourceUserSupplied), // json file will be ignored
-			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "manifests", "manifest.yml", "other-metadata"),
+		userSuppliedMetadata := map[string]string{constants.ManifestSourceAttribute: constants.ManifestSourceUserSupplied}
+		fileData := []s3wrapper.ObjectInfo{
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests, "multidoc.yml"), Metadata: userSuppliedMetadata},
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests, "manifest.json"), Metadata: userSuppliedMetadata},
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests, "manifest2.json"), Metadata: make(map[string]string)},
 		}
-		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder)).Return(s3Metadata, nil).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests)).Return(fileData, nil).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift)).Return([]s3wrapper.ObjectInfo{}, nil).Times(1)
 
 		manifestsDir := filepath.Join(workDir, "/manifests")
 		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
@@ -1356,10 +1360,12 @@ first: one
 first: one
 ---
 `
-		s3Metadata := []string{
-			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "openshift", "manifest.yml", constants.ManifestSourceUserSupplied),
+		userSuppliedMetadata := map[string]string{constants.ManifestSourceAttribute: constants.ManifestSourceUserSupplied}
+		fileData := []s3wrapper.ObjectInfo{
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift, "manifest.yml"), Metadata: userSuppliedMetadata},
 		}
-		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder)).Return(s3Metadata, nil).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift)).Return(fileData, nil).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests)).Return([]s3wrapper.ObjectInfo{}, nil).Times(1)
 
 		openshiftDir := filepath.Join(workDir, "/openshift")
 		Expect(os.Mkdir(openshiftDir, 0755)).To(Succeed())

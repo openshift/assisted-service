@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -206,7 +207,7 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 // so user can provide here even CRs provisioned by the OLM.
 func (mgr *Manager) createControllerManifest(ctx context.Context, cluster *common.Cluster, content string) error {
 	objectFileName := path.Join(string(*cluster.ID), controllerManifestFile)
-	if err := mgr.objectHandler.Upload(ctx, []byte(content), objectFileName); err != nil {
+	if err := mgr.objectHandler.Upload(ctx, []byte(content), objectFileName, map[string]string{constants.ManifestSourceAttribute: constants.ManifestSourceSystemGenerated}); err != nil {
 		return errors.Errorf("Failed to upload custom manifests for cluster %s", cluster.ID)
 	}
 	return nil

@@ -113,7 +113,7 @@ var _ = Describe("s3client", func() {
 
 	It("fail UploadStream with nil reader", func() {
 		objectName := "fakeObjectName"
-		err := client.UploadStream(ctx, nil, objectName)
+		err := client.UploadStream(ctx, nil, objectName, make(map[string]string))
 		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).To(Equal(fmt.Sprintf("Upfile log may not be nil. Cannot upload %s to bucket %s", objectName, bucket)))
 	})

@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
@@ -2834,9 +2835,11 @@ spec:
   kernelArguments:
   - 'loglevel=7'`
 				base64Content := base64.StdEncoding.EncodeToString([]byte(content))
+				userSupplied := constants.ManifestSourceUserSupplied
 				manifest := models.Manifest{
-					FileName: "01-user-generated-manifest.yaml",
-					Folder:   "openshift",
+					FileName:       "01-user-generated-manifest.yaml",
+					Folder:         "openshift",
+					ManifestSource: &userSupplied,
 				}
 				// All manifests created via the API are considered to be "user generated"
 				response, err := userBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{

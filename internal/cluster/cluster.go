@@ -26,7 +26,6 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/internal/manifests"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -1073,7 +1072,7 @@ func (m *Manager) uploadDataAsFile(ctx context.Context, log logrus.FieldLogger, 
 		return err
 	}
 
-	err = objectHandler.Upload(ctx, marshalled, fileName)
+	err = objectHandler.Upload(ctx, marshalled, fileName, make(map[string]string))
 	if err != nil {
 		log.WithError(err).Warnf("Failed to upload %s", fileName)
 		return err
@@ -1119,17 +1118,7 @@ func (m *Manager) createClusterDataFiles(ctx context.Context, c *common.Cluster,
 			log.WithError(err).Errorf("failed to read file data %s (%d) from cluster while building log: %s", path, numberOfBytes, *c.ID)
 			continue
 		}
-		// Determine the manifest type, this will determine where the file is uploaded to
-		isUserManifest, err := m.manifestApi.IsUserManifest(ctx, *c.ID, manifestEntry.Folder, manifestEntry.FileName)
-		manifest_prefix := "system-generated"
-		if err != nil {
-			log.WithError(err).Errorf("Unable to determine if manifest is user generated or not for %s/%s", manifestEntry.Folder, manifestEntry.FileName)
-			manifest_prefix = "unknown"
-		}
-		if isUserManifest {
-			manifest_prefix = "user-supplied"
-		}
-		fileName := fmt.Sprintf("%s/logs/cluster/manifest_%s_%s_%s", c.ID, manifest_prefix, manifestEntry.Folder, manifestEntry.FileName)
+		fileName := fmt.Sprintf("%s/logs/cluster/manifest_%s_%s_%s", c.ID, *manifestEntry.ManifestSource, manifestEntry.Folder, manifestEntry.FileName)
 		err = m.uploadDataAsFile(ctx, log, string(fileContent), fileName, objectHandler)
 		if err != nil {
 			log.WithError(err).Errorf("Unable to upload %s to logs for cluster id %s", fileName, *c.ID)
@@ -1142,10 +1131,14 @@ func (m *Manager) PrepareHostLogFile(ctx context.Context, c *common.Cluster, hos
 		fileName        string
 		tarredFilename  string
 		tarredFilenames []string
+		files           []string
 	)
 	log := logutil.FromContext(ctx, m.log)
 
-	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/%s", c.ID, host.ID))
+	fileObjects, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/%s", c.ID, host.ID))
+	for _, fileObject := range fileObjects {
+		files = append(files, fileObject.Path)
+	}
 	if err != nil {
 		return "", common.NewApiError(http.StatusNotFound, err)
 	}
@@ -1208,9 +1201,12 @@ func (m *Manager) PrepareClusterLogFile(ctx context.Context, c *common.Cluster, 
 	log := logutil.FromContext(ctx, m.log)
 	fileName = fmt.Sprintf("%s/logs/cluster_logs.tar", c.ID)
 	m.createClusterDataFiles(ctx, c, objectHandler)
-	allFiles, err = objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
+	allFileObjects, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
 	if err != nil {
 		return "", common.NewApiError(http.StatusNotFound, err)
+	}
+	for _, fileObject := range allFileObjects {
+		allFiles = append(allFiles, fileObject.Path)
 	}
 	allFiles = funk.Filter(allFiles, func(x string) bool {
 		return x != fileName
@@ -1451,7 +1447,7 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	return m.setConnectivityMajorityGroupsForClusterInternal(cluster, db)
 }
 
-func (m *Manager) getClusterFilesForFolder(ctx context.Context, c *common.Cluster, folder string, objectHandler s3wrapper.API) ([]string, error) {
+func (m *Manager) getClusterFilesForFolder(ctx context.Context, c *common.Cluster, folder string, objectHandler s3wrapper.API) ([]s3wrapper.ObjectInfo, error) {
 	path := filepath.Join(string(*c.ID), folder) + "/"
 	files, err := objectHandler.ListObjectsByPrefix(ctx, path)
 	if err != nil {
@@ -1472,24 +1468,17 @@ func (m *Manager) ResetClusterFiles(ctx context.Context, c *common.Cluster, obje
 	var failedToDelete []string
 	for _, file := range files {
 		// Filter out any user generated manifests and prevent their deletion
-		if manifests.IsManifest(file) {
-			currentFolder, currentFileName, _ := manifests.ParsePath(file)
-			var isUserManifest bool
-			isUserManifest, err = m.manifestApi.IsUserManifest(ctx, *c.Cluster.ID, currentFolder, currentFileName)
-			if err != nil {
-				return err
-			}
-			if isUserManifest {
-				continue
-			}
+		metadata, ok := file.Metadata[constants.ManifestSourceAttribute]
+		if ok && metadata == constants.ManifestSourceUserSupplied {
+			continue
 		}
-		if strings.Contains(file, "logs") || strings.Contains(file, constants.ManifestMetadataFolder) {
+		if strings.Contains(file.Path, "logs") {
 			// Also prevent the deletion of any logs, and don't allow the manifest metadata folder to be directly deleted.
 			continue
 		}
 		// Delete anything else
-		if err = m.deleteClusterFile(ctx, c, file); err != nil {
-			failedToDelete = append(failedToDelete, file)
+		if err = m.deleteClusterFile(ctx, c, file.Path); err != nil {
+			failedToDelete = append(failedToDelete, file.Path)
 		}
 	}
 	if len(failedToDelete) > 0 {
@@ -1523,8 +1512,8 @@ func (m *Manager) deleteClusterFilesInFolder(ctx context.Context, c *common.Clus
 	}
 	var failedToDelete []string
 	for _, file := range files {
-		if err = m.deleteClusterFile(ctx, c, file); err != nil {
-			failedToDelete = append(failedToDelete, file)
+		if err = m.deleteClusterFile(ctx, c, file.Path); err != nil {
+			failedToDelete = append(failedToDelete, file.Path)
 		}
 	}
 	if len(failedToDelete) > 0 {

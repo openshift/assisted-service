@@ -245,10 +245,10 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 
 	// download manifests files to working directory
 	for _, manifest := range manifestFiles {
-		log.Infof("adding manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
-		err = g.downloadManifest(ctx, manifest)
+		log.Infof("adding manifest %s to working dir for cluster %s", manifest.Path, g.cluster.ID)
+		err = g.downloadManifest(ctx, manifest.Path)
 		if err != nil {
-			log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
+			log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest.Path, g.cluster.ID)
 			return err
 		}
 	}
@@ -548,30 +548,36 @@ func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(ctx context.Context
 func (g *installerGenerator) expandUserMultiDocYamls(ctx context.Context) error {
 	log := logutil.FromContext(ctx, g.log)
 
-	metadata, err := manifests.GetManifestMetadata(ctx, g.cluster.ID, g.s3Client)
+	manifests, err := manifests.GetClusterManifests(ctx, g.cluster.ID, g.s3Client)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to retrieve manifest matadata")
-	}
-	userManifests, err := manifests.ResolveManifestNamesFromMetadata(
-		manifests.FilterMetadataOnManifestSource(metadata, constants.ManifestSourceUserSupplied),
-	)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to resolve manifest names from metadata")
+		return errors.Wrapf(err, "Failed to retrieve cluster manifests for cluster id %s", g.cluster.ID)
 	}
 
 	// pass a random token to expandMultiDocYaml in order to prevent name
 	// clashes when spliting one file into several ones
 	randomToken := uuid.NewString()[:7]
 
-	for _, manifest := range userManifests {
+	for _, manifest := range manifests {
+
+		// Skip any files that are not user supplied
+		metadata, ok := manifest.Metadata[constants.ManifestSourceAttribute]
+		if ok && metadata != constants.ManifestSourceUserSupplied {
+			continue
+		}
+
 		log.Debugf("Looking at expanding manifest file %s", manifest)
 
-		extension := filepath.Ext(manifest)
+		extension := filepath.Ext(manifest.Path)
 		if !(extension == ".yaml" || extension == ".yml") {
 			continue
 		}
 
-		manifestPath := filepath.Join(g.workDir, manifest)
+		pathElements := strings.Split(manifest.Path, "/")
+		if len(pathElements) != 4 {
+			return errors.Wrapf(err, "File path %s is not in the expected format for a manifest file path", manifest.Path)
+		}
+
+		manifestPath := filepath.Join(g.workDir, pathElements[len(pathElements)-2], pathElements[len(pathElements)-1])
 		err := g.expandMultiDocYaml(ctx, manifestPath, randomToken)
 		if err != nil {
 			return err
@@ -1002,11 +1008,11 @@ func (g *installerGenerator) clusterHasMCP(poolName string, clusterId *strfmt.UU
 		return false, err
 	}
 	for _, manifest := range manifestList {
-		content, err := g.getManifestContent(ctx, manifest)
+		content, err := g.getManifestContent(ctx, manifest.Path)
 		if err != nil {
 			return false, err
 		}
-		exists, err := machineConfilePoolExists(manifest, content, poolName)
+		exists, err := machineConfilePoolExists(manifest.Path, content, poolName)
 		if err != nil {
 			return false, err
 		}
@@ -1197,7 +1203,7 @@ func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3
 	for _, fileName := range toUpload {
 		fullPath := filepath.Join(workDir, fileName)
 		key := filepath.Join(cluster.ID.String(), fileName)
-		err := s3Client.UploadFile(ctx, fullPath, key)
+		err := s3Client.UploadFile(ctx, fullPath, key, make(map[string]string))
 		if err != nil {
 			log.Errorf("Failed to upload file %s as object %s", fullPath, key)
 			return err

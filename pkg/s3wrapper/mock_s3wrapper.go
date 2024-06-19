@@ -154,10 +154,10 @@ func (mr *MockAPIMockRecorder) IsAwsS3() *gomock.Call {
 }
 
 // ListObjectsByPrefix mocks base method.
-func (m *MockAPI) ListObjectsByPrefix(arg0 context.Context, arg1 string) ([]string, error) {
+func (m *MockAPI) ListObjectsByPrefix(arg0 context.Context, arg1 string) ([]ObjectInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListObjectsByPrefix", arg0, arg1)
-	ret0, _ := ret[0].([]string)
+	ret0, _ := ret[0].([]ObjectInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -184,43 +184,43 @@ func (mr *MockAPIMockRecorder) UpdateObjectTimestamp(arg0, arg1 interface{}) *go
 }
 
 // Upload mocks base method.
-func (m *MockAPI) Upload(arg0 context.Context, arg1 []byte, arg2 string) error {
+func (m *MockAPI) Upload(arg0 context.Context, arg1 []byte, arg2 string, arg3 map[string]string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Upload", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Upload", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Upload indicates an expected call of Upload.
-func (mr *MockAPIMockRecorder) Upload(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) Upload(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*MockAPI)(nil).Upload), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*MockAPI)(nil).Upload), arg0, arg1, arg2, arg3)
 }
 
 // UploadFile mocks base method.
-func (m *MockAPI) UploadFile(arg0 context.Context, arg1, arg2 string) error {
+func (m *MockAPI) UploadFile(arg0 context.Context, arg1, arg2 string, arg3 map[string]string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadFile", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "UploadFile", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UploadFile indicates an expected call of UploadFile.
-func (mr *MockAPIMockRecorder) UploadFile(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) UploadFile(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFile", reflect.TypeOf((*MockAPI)(nil).UploadFile), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFile", reflect.TypeOf((*MockAPI)(nil).UploadFile), arg0, arg1, arg2, arg3)
 }
 
 // UploadStream mocks base method.
-func (m *MockAPI) UploadStream(arg0 context.Context, arg1 io.Reader, arg2 string) error {
+func (m *MockAPI) UploadStream(arg0 context.Context, arg1 io.Reader, arg2 string, arg3 map[string]string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadStream", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "UploadStream", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UploadStream indicates an expected call of UploadStream.
-func (mr *MockAPIMockRecorder) UploadStream(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) UploadStream(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadStream", reflect.TypeOf((*MockAPI)(nil).UploadStream), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadStream", reflect.TypeOf((*MockAPI)(nil).UploadStream), arg0, arg1, arg2, arg3)
 }

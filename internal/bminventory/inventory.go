@@ -1017,7 +1017,7 @@ func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context
 
 	fileName := fmt.Sprintf("%s/%s-%s.ign", cluster.ID, common.GetEffectiveRole(host), host.ID)
 	log.Infof("Uploading ignition file <%s>", fileName)
-	err = b.objectHandler.Upload(ctx, fullIgnition, fileName)
+	err = b.objectHandler.Upload(ctx, fullIgnition, fileName, make(map[string]string))
 	if err != nil {
 		return errors.Errorf("Failed to upload worker ignition for cluster %s", cluster.ID)
 	}
@@ -4113,7 +4113,7 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Ho
 	fileName := b.getLogsFullName(logPrefix, host.ID.String())
 
 	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
-	err := b.objectHandler.UploadStream(ctx, upFile, fileName)
+	err := b.objectHandler.UploadStream(ctx, upFile, fileName, make(map[string]string))
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload %s to s3 for host %s", fileName, host.ID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
