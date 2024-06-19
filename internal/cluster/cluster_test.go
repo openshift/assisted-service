@@ -2881,7 +2881,7 @@ var _ = Describe("Cluster tarred files", func() {
 
 	It("list objects only all logs file", func() {
 		uploadClusterDataSuccess()
-		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{}, nil)
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix)
 		_, err := capi.PrepareClusterLogFile(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
@@ -3218,7 +3218,7 @@ var _ = Describe("Permanently delete clusters", func() {
 
 		mockS3Api.EXPECT().DeleteObject(gomock.Any(), c1.ID.String()).Return(false, nil).Times(1)
 		mockS3Api.EXPECT().DeleteObject(gomock.Any(), c2.ID.String()).Return(false, nil).Times(1)
-		mockS3Api.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{}, nil).AnyTimes()
+		mockS3Api.EXPECT().ListObjectsByPrefixWithMetadata(gomock.Any(), gomock.Any()).AnyTimes()
 
 		Expect(state.PermanentClustersDeletion(ctx, strfmt.DateTime(time.Now().Add(time.Minute)), mockS3Api)).ShouldNot(HaveOccurred())
 
@@ -4062,11 +4062,15 @@ var _ = Describe("ResetClusterFiles", func() {
 		clusterPath := filepath.Join(cluster.ID.String()) + "/"
 		userManifestPath := filepath.Join(cluster.ID.String(), constants.ManifestFolder, "openshift", "some-user-manifest.yaml")
 		systemGeneratedManifestPath := filepath.Join(cluster.ID.String(), constants.ManifestFolder, "manifests", "system-generated-manifest.yaml")
-		mockObjectHandler.EXPECT().ListObjectsByPrefix(ctx, clusterPath).Return([]string{userManifestPath, systemGeneratedManifestPath}, nil).Times(1)
-		mockManifestsApi.EXPECT().IsUserManifest(ctx, *cluster.ID, "openshift", "some-user-manifest.yaml").Return(true, nil).Times(1)
-		mockManifestsApi.EXPECT().IsUserManifest(ctx, *cluster.ID, "manifests", "system-generated-manifest.yaml").Return(false, nil).Times(1)
+		legacyUserGeneratedManifestPath := filepath.Join(cluster.ID.String(), constants.ManifestFolder, "openshift", "legacy-user-generated-manifest.yaml")
+		userManifestMetadata := map[string]string{constants.ManifestSourceAttribute: constants.ManifestSourceUserSupplied}
+		mockManifestsApi.EXPECT().FindUserManifestPathsByLegacyMetadata(ctx, *cluster.ID).Return([]string{
+			legacyUserGeneratedManifestPath,
+		}, nil).Times(1)
+		mockObjectHandler.EXPECT().ListObjectsByPrefixWithMetadata(ctx, clusterPath).Return([]s3wrapper.ObjectInfo{{Path: userManifestPath, Metadata: userManifestMetadata}, {Path: systemGeneratedManifestPath}, {Path: legacyUserGeneratedManifestPath}}, nil).Times(1)
 		mockObjectHandler.EXPECT().DeleteObject(ctx, systemGeneratedManifestPath).Times(1)
 		mockObjectHandler.EXPECT().DeleteObject(ctx, userManifestPath).Times(0)
+		mockObjectHandler.EXPECT().DeleteObject(ctx, legacyUserGeneratedManifestPath).Times(0)
 		Expect(capi.ResetClusterFiles(ctx, &cluster, mockObjectHandler)).To(BeNil())
 	})
 
@@ -4075,7 +4079,8 @@ var _ = Describe("ResetClusterFiles", func() {
 		clusterPath := filepath.Join(cluster.ID.String()) + "/"
 		logFilePath := filepath.Join(cluster.ID.String(), "logs", "somelog.txt")
 		fileToBeDeletedPath := filepath.Join(cluster.ID.String(), "something.ign")
-		mockObjectHandler.EXPECT().ListObjectsByPrefix(ctx, clusterPath).Return([]string{logFilePath, fileToBeDeletedPath}, nil).Times(1)
+		mockManifestsApi.EXPECT().FindUserManifestPathsByLegacyMetadata(ctx, *cluster.ID).Times(1)
+		mockObjectHandler.EXPECT().ListObjectsByPrefixWithMetadata(ctx, clusterPath).Return([]s3wrapper.ObjectInfo{{Path: logFilePath}, {Path: fileToBeDeletedPath}}, nil).Times(1)
 		mockObjectHandler.EXPECT().DeleteObject(ctx, fileToBeDeletedPath).Times(1)
 		mockObjectHandler.EXPECT().DeleteObject(ctx, logFilePath).Times(0)
 		Expect(capi.ResetClusterFiles(ctx, &cluster, mockObjectHandler)).To(BeNil())

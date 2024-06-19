@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
@@ -2435,7 +2436,7 @@ name: exampleNamespace2`
 			Expect(err).NotTo(HaveOccurred())
 			tarReader := tar.NewReader(file)
 			numOfarchivedFiles := 0
-			expectedFiles := []string{"cluster_manifest_user-supplied_openshift_manifest1.yaml", "cluster_manifest_user-supplied_openshift_manifest2.yaml", "cluster_events.json", "cluster_metadata.json", "controller_logs.tar.gz", "test-cluster_auto-assign_h1.tar", "test-cluster_auto-assign_h2.tar", "test-cluster_auto-assign_h3.tar"}
+			expectedFiles := []string{"cluster_manifest_user_openshift_manifest1.yaml", "cluster_manifest_user_openshift_manifest2.yaml", "cluster_events.json", "cluster_metadata.json", "controller_logs.tar.gz", "test-cluster_auto-assign_h1.tar", "test-cluster_auto-assign_h2.tar", "test-cluster_auto-assign_h3.tar"}
 			for {
 				header, err := tarReader.Next()
 				if err == io.EOF {
@@ -2835,8 +2836,9 @@ spec:
   - 'loglevel=7'`
 				base64Content := base64.StdEncoding.EncodeToString([]byte(content))
 				manifest := models.Manifest{
-					FileName: "01-user-generated-manifest.yaml",
-					Folder:   "openshift",
+					FileName:       "01-user-generated-manifest.yaml",
+					Folder:         "openshift",
+					ManifestSource: constants.ManifestSourceUserSupplied,
 				}
 				// All manifests created via the API are considered to be "user generated"
 				response, err := userBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{

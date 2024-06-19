@@ -6899,6 +6899,10 @@ definitions:
       file_name:
         type: string
         description: The file name prefaced by the folder that contains it.
+      manifest_source:
+        type: string
+        enum: [user,system]
+        description: Describes whether manifest is sourced from a user or created by the system.
 
   create-manifest-params:
     type: object
