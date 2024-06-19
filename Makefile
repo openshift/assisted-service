@@ -233,6 +233,7 @@ update-image: $(UPDATE_IMAGE)
 
 load-image: create-hub-cluster
 	rm -f $(SUBSYSTEM_LOCAL_IMAGE_ARCHIVE) || true
+	mkdir -p build
 	@if [ -z ${SUBSYSTEM_SERVICE_IMAGE} ]; then \
 		echo "Building and using local assisted-service image..."; \
 		$(MAKE) update-image SERVICE=$(SUBSYSTEM_LOCAL_SERVICE); \
