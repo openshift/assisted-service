@@ -152,8 +152,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.15.17-x86_64",
-        "version": "4.15.17",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.15.18-x86_64",
+        "version": "4.15.18",
         "default": true
     },
     {
@@ -162,8 +162,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.15.17-aarch64",
-        "version": "4.15.17"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.15.18-aarch64",
+        "version": "4.15.18"
     },
     {
         "openshift_version": "4.15-multi",
@@ -174,8 +174,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.15.17-multi",
-        "version": "4.15.17-multi"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.15.18-multi",
+        "version": "4.15.18-multi"
     },
     {
         "openshift_version": "4.16",
@@ -183,9 +183,9 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.16.0-rc.5-x86_64",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.16.0-rc.6-x86_64",
         "support_level": "beta",
-        "version": "4.16.0-rc.5"
+        "version": "4.16.0-rc.6"
     },
     {
         "openshift_version": "4.16",
@@ -193,9 +193,9 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.16.0-rc.5-aarch64",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.16.0-rc.6-aarch64",
         "support_level": "beta",
-        "version": "4.16.0-rc.5"
+        "version": "4.16.0-rc.6"
     },
     {
         "openshift_version": "4.16-multi",
@@ -206,8 +206,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.16.0-rc.5-multi",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.16.0-rc.6-multi",
         "support_level": "beta",
-        "version": "4.16.0-rc.5-multi"
+        "version": "4.16.0-rc.6-multi"
     }
 ]
