@@ -50,7 +50,7 @@ func (p nutanixProvider) AddPlatformToInstallConfig(
 			return errors.New("invalid cluster parameters, IngressVip must be provided")
 		}
 
-		if featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
+		if featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture), cluster.HighAvailabilityMode) {
 			nPlatform.APIVIPs = network.GetApiVips(cluster)
 			nPlatform.IngressVIPs = network.GetIngressVips(cluster)
 		} else {

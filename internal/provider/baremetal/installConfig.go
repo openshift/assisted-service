@@ -90,7 +90,7 @@ func (p baremetalProvider) AddPlatformToInstallConfig(
 	}
 	p.Log.Infof("setting Baremetal.ProvisioningNetwork to %s", provNetwork)
 
-	if featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
+	if featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture), cluster.HighAvailabilityMode) {
 		cfg.Platform = installcfg.Platform{
 			Baremetal: &installcfg.BareMetalInstallConfigPlatform{
 				ProvisioningNetwork: provNetwork,
