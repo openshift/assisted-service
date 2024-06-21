@@ -47,6 +47,21 @@ func (mr *MockBMOUtilsMockRecorder) ConvergedFlowAvailable() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConvergedFlowAvailable", reflect.TypeOf((*MockBMOUtils)(nil).ConvergedFlowAvailable))
 }
 
+// GetICCConfig mocks base method.
+func (m *MockBMOUtils) GetICCConfig() (*ICCConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetICCConfig")
+	ret0, _ := ret[0].(*ICCConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetICCConfig indicates an expected call of GetICCConfig.
+func (mr *MockBMOUtilsMockRecorder) GetICCConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetICCConfig", reflect.TypeOf((*MockBMOUtils)(nil).GetICCConfig))
+}
+
 // GetIronicIPs mocks base method.
 func (m *MockBMOUtils) GetIronicIPs() ([]string, []string, error) {
 	m.ctrl.T.Helper()
