@@ -18,7 +18,52 @@ LABEL io.openshift.release.operator=true
 # multiarch images need skopeo until WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
 # ToDo: Replace postgres with SQLite DB
 # https://issues.redhat.com/browse/AGENT-223
-RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo openshift-clients && dnf clean all
+
+RUN if grep -q '^ID="centos"' /etc/os-release; then \
+    # Synchronize repositories and set up local mirror
+    ls -la /etc/yum.repos.d/ && \
+    dnf -y install yum-utils skopeo && \
+    mkdir -p /var/www/repos/centos-stream/9/x86_64/os && \
+    chmod -R 755 /var/www/repos && \
+    reposync -p /var/www/repos/centos-stream/9/x86_64/os/ --repo=baseos --download-metadata && \
+    reposync -p /var/www/repos/centos-stream/9/x86_64/os/ --repo=appstream --download-metadata && \
+    reposync -p /var/www/repos/centos-stream/9/x86_64/os/ --repo=extras-common --download-metadata && \
+    # Update repository configuration to use local mirror
+    echo '[local-baseos]' > /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'name=Local CentOS Stream - BaseOS' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'baseurl=file:///var/www/repos/centos-stream/9/x86_64/os/baseos' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'enabled=1' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'gpgcheck=0' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo '[local-appstream]' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'name=Local CentOS Stream - AppStream' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'baseurl=file:///var/www/repos/centos-stream/9/x86_64/os/appstream' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'enabled=1' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'gpgcheck=0' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo '[local-extras-common]' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'name=Local CentOS Stream - Extras Common' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'baseurl=file:///var/www/repos/centos-stream/9/x86_64/os/extras-common' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'enabled=1' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    echo 'gpgcheck=0' >> /etc/yum.repos.d/local-centos-stream.repo && \
+    # Disable remote repositories
+    sed -i 's/enabled=1/enabled=0/g' /etc/yum.repos.d/CentOS-Stream-* && \
+    dnf install -y 'dnf-command(copr)' && \
+    echo y | dnf copr enable nmstate/nmstate-git && \
+    skopeo copy docker://quay.io/openshift/origin-cli:4.12 docker-archive:/tmp/origin-cli.tar && \
+    tar -xf /tmp/origin-cli.tar -C /tmp && \
+    tar -xf /tmp/e026412ff296a8ef1b9d1af62e266fc42528ef89e69aee533ab76d76629a1c69.tar -C /tmp && \
+    ls -la && \
+    ls -la /tmp/usr/bin && \
+    cp /tmp/usr/bin/oc /usr/local/bin/ && \
+    rm -rf /tmp/* && \
+    # rm -rf /tmp/origin-cli.tar /tmp/usr && \
+    dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo && dnf clean all; \
+    else \
+    dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo openshift-clients && dnf clean all; \
+    fi
+
+RUN dnf install -y glibc-langpack-en
+ENV LANG en_US.utf8
+ENV LC_ALL en_US.utf8
 
 RUN dnf update libksba libxml2 -y && dnf clean all
 
@@ -39,3 +84,4 @@ RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-
 ENV GODEBUG=madvdontneed=1
 ENV GOGC=50
 CMD ["/assisted-service"]
+
