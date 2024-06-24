@@ -68,6 +68,7 @@ var ImportOptions struct {
 	ClusterID            string `envconfig:"CLUSTER_ID" default:""`
 	ClusterName          string `envconfig:"CLUSTER_NAME" default:""`
 	ClusterAPIVIPDNSName string `envconfig:"CLUSTER_API_VIP_DNS_NAME" default:""`
+	ClusterConfigDir     string `envconfig:"CLUSTER_CONFIG_DIR" default:"/clusterconfig"`
 }
 
 func main() {
@@ -271,7 +272,7 @@ func importCluster(ctx context.Context, log *log.Logger, bmInventory *client.Ass
 	}
 
 	clusterID := strfmt.UUID(ImportOptions.ClusterID)
-	_, err = agentbasedinstaller.ImportCluster(ctx, log, bmInventory, clusterID, ImportOptions.ClusterName, ImportOptions.ClusterAPIVIPDNSName)
+	_, err = agentbasedinstaller.ImportCluster(ctx, log, bmInventory, clusterID, ImportOptions.ClusterName, ImportOptions.ClusterAPIVIPDNSName, ImportOptions.ClusterConfigDir)
 	if err != nil {
 		log.Fatal("Failed to import cluster with assisted-service: ", err)
 	}
