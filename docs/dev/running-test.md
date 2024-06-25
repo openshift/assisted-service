@@ -69,5 +69,5 @@ This command builds a new service image, pushes it to the container registry, an
 to Destroy the cluster, run:
 
 ```bash
-destroy-kind-cluster
+make destroy-kind-cluster
 ```
