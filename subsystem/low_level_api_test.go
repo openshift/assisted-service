@@ -14,7 +14,7 @@ import (
 )
 
 var _ = Describe("Low level API behaviours", func() {
-	It("low_level_api Rejects unknown JSON fields", func() {
+	It("Rejects unknown JSON fields", func() {
 		// Create a request and marshal it:
 		requestObject := models.ClusterCreateParams{
 			Name:             swag.String("test-cluster"),
@@ -60,7 +60,7 @@ var _ = Describe("Low level API behaviours", func() {
 		}`))
 	})
 
-	It("low_level_api Returns 400 for unmatched regex field", func() {
+	It("Returns 400 for unmatched regex field", func() {
 		requestObject := models.ClusterCreateParams{
 			Name:             swag.String("test-cluster"),
 			OpenshiftVersion: swag.String(openshiftVersion),

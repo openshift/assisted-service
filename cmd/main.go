@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	errormiddleware "github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -200,26 +199,6 @@ func maxDuration(dur time.Duration, durations ...time.Duration) time.Duration {
 		}
 	}
 	return ret
-}
-
-func WrapServeError() func(rw http.ResponseWriter, r *http.Request, err error) {
-	compositeErrorDefaultMessage := "validation failure list:"
-	unsupportedHttpCodes := map[int32]struct{}{
-		http.StatusUnprocessableEntity: {},
-	}
-
-	return func(rw http.ResponseWriter, r *http.Request, err error) {
-		if e, ok := err.(*errormiddleware.CompositeError); ok {
-			if _, statusChangeNeeded := unsupportedHttpCodes[e.Code()]; statusChangeNeeded {
-				if len(e.Errors) > 0 {
-					ce := e.Errors[0]
-					message := strings.TrimSpace(strings.TrimPrefix(ce.Error(), compositeErrorDefaultMessage))
-					err = errormiddleware.New(http.StatusBadRequest, message)
-				}
-			}
-		}
-		errormiddleware.ServeError(rw, r, err)
-	}
 }
 
 func main() {
@@ -551,7 +530,7 @@ func main() {
 		OperatorsAPI:        operatorsHandler,
 		JSONConsumer:        jsonConsumer,
 	})
-	api.ServeError = WrapServeError()
+	api.ServeError = app.WrapServeError()
 	failOnError(err, "Failed to init rest handler")
 
 	if Options.Auth.AllowedDomains != "" {

@@ -1,12 +1,14 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
+	errormiddleware "github.com/go-openapi/errors"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -117,4 +119,38 @@ func WithIPXEScriptMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func WrapServeError() func(http.ResponseWriter, *http.Request, error) {
+	unsupportedHTTPCodes := map[int32]struct{}{
+		http.StatusUnprocessableEntity: {},
+	}
+
+	return func(rw http.ResponseWriter, r *http.Request, err error) {
+		if shouldModifyError(err, unsupportedHTTPCodes) {
+			err = unwrapCompositeError(err)
+			err = errormiddleware.New(http.StatusBadRequest, err.Error())
+		}
+		errormiddleware.ServeError(rw, r, err)
+	}
+}
+
+func shouldModifyError(err error, unsupportedCodes map[int32]struct{}) bool {
+	e, ok := err.(errormiddleware.Error)
+	if !ok {
+		return false
+	}
+	_, shouldReplace := unsupportedCodes[e.Code()]
+	return shouldReplace
+}
+
+func unwrapCompositeError(err error) error {
+	var ce *errormiddleware.CompositeError
+	for errors.As(err, &ce) {
+		if len(ce.Errors) == 0 {
+			break
+		}
+		err = ce.Errors[0]
+	}
+	return err
 }
