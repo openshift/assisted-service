@@ -122,23 +122,31 @@ type AgentServiceConfigSpec struct {
 	// +optional
 	OSImageAdditionalParamsRef *corev1.LocalObjectReference `json:"OSImageAdditionalParamsRef,omitempty"`
 
-	// AssistedServiceIngressHost is the hostname to be assigned to the assisted-service ingress.
+	// Ingress contains configuration for the ingress resources.
 	// Has no effect when running on an OpenShift cluster.
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Assisted Service Ingress hostname"
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ingress"
 	// +optional
-	AssistedServiceIngressHost string `json:"assistedServiceIngressHost,omitempty"`
+	Ingress Ingress `json:"ingress,omitempty"`
+}
 
-	// ImageServiceIngressHost is the hostname to be assigned to the assisted-image-service ingress.
+type Ingress struct {
+	// AssistedServiceHostname is the hostname to be assigned to the assisted-service ingress.
 	// Has no effect when running on an OpenShift cluster.
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Assisted Image Service Ingress hostname"
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Assisted Service hostname"
 	// +optional
-	ImageServiceIngressHost string `json:"imageServiceIngressHost,omitempty"`
+	AssistedServiceHostname string `json:"assistedServiceHostname,omitempty"`
 
-	// IngressClassName is the name of the ingress class to be used when configuring ingress resources.
+	// ImageServiceHostname is the hostname to be assigned to the assisted-image-service ingress.
 	// Has no effect when running on an OpenShift cluster.
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ingress Class Name"
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Assisted Image Service hostname"
 	// +optional
-	IngressClassName string `json:"ingressClassName,omitempty"`
+	ImageServiceHostname string `json:"imageServiceHostname,omitempty"`
+
+	// ClassName is the name of the ingress class to be used when configuring ingress resources.
+	// Has no effect when running on an OpenShift cluster.
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Class Name"
+	// +optional
+	ClassName string `json:"ClassName,omitempty"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons

@@ -61,11 +61,6 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
-              assistedServiceIngressHost:
-                description: AssistedServiceIngressHost is the hostname to be assigned
-                  to the assisted-service ingress. Has no effect when running on an
-                  OpenShift cluster.
-                type: string
               databaseStorage:
                 description: DatabaseStorage defines the spec of the PersistentVolumeClaim
                   to be created for the database's filesystem. With respect to the
@@ -477,11 +472,6 @@ spec:
                 - enabled
                 - disabled
                 type: string
-              imageServiceIngressHost:
-                description: ImageServiceIngressHost is the hostname to be assigned
-                  to the assisted-image-service ingress. Has no effect when running
-                  on an OpenShift cluster.
-                type: string
               imageStorage:
                 description: ImageStorage defines the spec of the PersistentVolumeClaim
                   to be created for each replica of the image service. If a PersistentVolumeClaim
@@ -680,11 +670,26 @@ spec:
                       backing this claim.
                     type: string
                 type: object
-              ingressClassName:
-                description: IngressClassName is the name of the ingress class to
-                  be used when configuring ingress resources. Has no effect when running
-                  on an OpenShift cluster.
-                type: string
+              ingress:
+                description: Ingress contains configuration for the ingress resources.
+                  Has no effect when running on an OpenShift cluster.
+                properties:
+                  ClassName:
+                    description: ClassName is the name of the ingress class to be
+                      used when configuring ingress resources. Has no effect when
+                      running on an OpenShift cluster.
+                    type: string
+                  assistedServiceHostname:
+                    description: AssistedServiceHostname is the hostname to be assigned
+                      to the assisted-service ingress. Has no effect when running
+                      on an OpenShift cluster.
+                    type: string
+                  imageServiceHostname:
+                    description: ImageServiceHostname is the hostname to be assigned
+                      to the assisted-image-service ingress. Has no effect when running
+                      on an OpenShift cluster.
+                    type: string
+                type: object
               kubeconfigSecretRef:
                 description: KubeconfigSecretRef is a reference to the secret containing
                   the kubeconfig for the destination Hypershift instance.

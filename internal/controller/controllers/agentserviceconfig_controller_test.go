@@ -2576,9 +2576,9 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 
 	BeforeEach(func() {
 		asc = newASCDefault()
-		asc.Spec.AssistedServiceIngressHost = "assisted.example.com"
-		asc.Spec.ImageServiceIngressHost = "images.example.com"
-		asc.Spec.IngressClassName = "nginx"
+		asc.Spec.Ingress.AssistedServiceHostname = "assisted.example.com"
+		asc.Spec.Ingress.ImageServiceHostname = "images.example.com"
+		asc.Spec.Ingress.ClassName = "nginx"
 
 		ctx = context.Background()
 
@@ -2685,7 +2685,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 	})
 
 	validateIngress := func(ingress *netv1.Ingress, host string, service string, port int32) {
-		Expect(ingress.Spec.IngressClassName).To(HaveValue(Equal(asc.Spec.IngressClassName)))
+		Expect(ingress.Spec.IngressClassName).To(HaveValue(Equal(asc.Spec.Ingress.ClassName)))
 		Expect(len(ingress.Spec.Rules)).To(Equal(1))
 		rule := ingress.Spec.Rules[0]
 		Expect(rule.Host).To(Equal(host))
@@ -2714,11 +2714,11 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		ingress := netv1.Ingress{}
 		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
 		Expect(reconciler.Client.Get(ctx, key, &ingress)).To(Succeed())
-		validateIngress(&ingress, asc.Spec.AssistedServiceIngressHost, serviceName, 8090)
+		validateIngress(&ingress, asc.Spec.Ingress.AssistedServiceHostname, serviceName, 8090)
 
 		key = types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}
 		Expect(reconciler.Client.Get(ctx, key, &ingress)).To(Succeed())
-		validateIngress(&ingress, asc.Spec.ImageServiceIngressHost, imageServiceName, 8080)
+		validateIngress(&ingress, asc.Spec.Ingress.ImageServiceHostname, imageServiceName, 8080)
 	})
 
 	It("creates the assisted configmap with the ingress host for the base URLs", func() {
@@ -2729,8 +2729,8 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		cm := corev1.ConfigMap{}
 		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
 		Expect(reconciler.Client.Get(ctx, key, &cm)).To(Succeed())
-		Expect(cm.Data["SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("http://%s", asc.Spec.AssistedServiceIngressHost)))
-		Expect(cm.Data["IMAGE_SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("http://%s", asc.Spec.ImageServiceIngressHost)))
+		Expect(cm.Data["SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("http://%s", asc.Spec.Ingress.AssistedServiceHostname)))
+		Expect(cm.Data["IMAGE_SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("http://%s", asc.Spec.Ingress.ImageServiceHostname)))
 	})
 
 	It("sets the image service base URL env to the ingress host", func() {
@@ -2746,7 +2746,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		var found bool
 		for _, env := range ss.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "IMAGE_SERVICE_BASE_URL" {
-				Expect(env.Value).To(Equal(fmt.Sprintf("http://%s", asc.Spec.ImageServiceIngressHost)))
+				Expect(env.Value).To(Equal(fmt.Sprintf("http://%s", asc.Spec.Ingress.ImageServiceHostname)))
 				found = true
 			}
 		}

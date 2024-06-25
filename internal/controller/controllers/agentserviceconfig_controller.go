@@ -731,7 +731,7 @@ func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 
 func newAgentRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	if !asc.rec.IsOpenShift {
-		return newIngress(ctx, log, asc, serviceName, asc.spec.AssistedServiceIngressHost, int32(servicePort.IntValue()))
+		return newIngress(ctx, log, asc, serviceName, asc.spec.Ingress.AssistedServiceHostname, int32(servicePort.IntValue()))
 	}
 	weight := int32(100)
 	route := &routev1.Route{
@@ -851,7 +851,7 @@ func newAgentIPXERoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 
 func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	if !asc.rec.IsOpenShift {
-		return newIngress(ctx, log, asc, imageServiceName, asc.spec.ImageServiceIngressHost, int32(imageHandlerPort.IntValue()))
+		return newIngress(ctx, log, asc, imageServiceName, asc.spec.Ingress.ImageServiceHostname, int32(imageHandlerPort.IntValue()))
 	}
 	weight := int32(100)
 	route := &routev1.Route{
@@ -904,7 +904,7 @@ func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name strin
 		if err := controllerutil.SetControllerReference(asc.Object, ingress, asc.rec.Scheme); err != nil {
 			return err
 		}
-		ingressClassName := asc.spec.IngressClassName
+		ingressClassName := asc.spec.Ingress.ClassName
 		ingress.Spec = netv1.IngressSpec{
 			IngressClassName: &ingressClassName,
 			Rules: []netv1.IngressRule{{
@@ -1100,9 +1100,9 @@ func urlForRoute(ctx context.Context, asc ASC, routeName string) (string, error)
 		scheme = "http"
 		switch routeName {
 		case serviceName:
-			hostname = asc.spec.AssistedServiceIngressHost
+			hostname = asc.spec.Ingress.AssistedServiceHostname
 		case imageServiceName:
-			hostname = asc.spec.ImageServiceIngressHost
+			hostname = asc.spec.Ingress.ImageServiceHostname
 		default:
 			return "", fmt.Errorf("unknown route name %s", routeName)
 		}
