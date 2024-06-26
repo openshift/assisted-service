@@ -512,7 +512,7 @@ func main() {
 	}
 
 	operatorsHandler := handler.NewHandler(operatorsManager, log.WithField("pkg", "operators"), db, eventsHandler, clusterApi)
-	h, err := restapi.Handler(restapi.Config{
+	h, api, err := restapi.HandlerAPI(restapi.Config{
 		AuthAgentAuth:       authHandler.AuthAgentAuth,
 		AuthUserAuth:        authHandler.AuthUserAuth,
 		AuthURLAuth:         authHandler.AuthURLAuth,
@@ -530,6 +530,7 @@ func main() {
 		OperatorsAPI:        operatorsHandler,
 		JSONConsumer:        jsonConsumer,
 	})
+	api.ServeError = app.WrapServeError()
 	failOnError(err, "Failed to init rest handler")
 
 	if Options.Auth.AllowedDomains != "" {
