@@ -475,6 +475,9 @@ var _ = Describe("Cancel cluster installation", func() {
 })
 
 var _ = Describe("Reset cluster", func() {
+	timeZero := time.Time{}
+	timeZeroLocal := timeZero.Local()
+
 	var (
 		ctx               = context.Background()
 		dbName            string
@@ -521,14 +524,34 @@ var _ = Describe("Reset cluster", func() {
 		t := t
 		clusterId := strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{
-			Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.state)},
+			Cluster: models.Cluster{
+				ID:     &clusterId,
+				Status: swag.String(t.state),
+			},
 		}
+		if t.state == models.ClusterStatusFinalizing {
+			cluster.Progress = &models.ClusterProgressInfo{
+				FinalizingStage:                         models.FinalizingStageWaitingForClusterOperators,
+				FinalizingStagePercentage:               42,
+				FinalizingStageStartedAt:                strfmt.DateTime(time.Now()),
+				FinalizingStageTimedOut:                 true,
+				InstallingStagePercentage:               100,
+				PreparingForInstallationStagePercentage: 80,
+				TotalPercentage:                         90,
+			}
+		}
+
 		It(fmt.Sprintf("resets cluster from state %s", t.state), func() {
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			acceptNewEvents(t.eventsNum)
 			err := capi.ResetCluster(ctx, &cluster, "reason", db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
+
+				updatedCluster := getClusterFromDB(clusterId, db)
+				if updatedCluster.Progress != nil {
+					Expect(*updatedCluster.Progress).To(Equal(models.ClusterProgressInfo{FinalizingStageStartedAt: strfmt.DateTime(timeZeroLocal)}))
+				}
 			} else {
 				Expect(err).Should(HaveOccurred())
 				Expect(err.StatusCode()).Should(Equal(t.statusCode))
@@ -554,6 +577,11 @@ var _ = Describe("Reset cluster", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(len(cluster.Cluster.APIVips)).Should(Equal(0))
 				Expect(len(cluster.Cluster.IngressVips)).Should(Equal(0))
+
+				updatedCluster := getClusterFromDB(clusterId, db)
+				if updatedCluster.Progress != nil {
+					Expect(*updatedCluster.Progress).To(Equal(models.ClusterProgressInfo{FinalizingStageStartedAt: strfmt.DateTime(timeZeroLocal)}))
+				}
 			} else {
 				Expect(err).Should(HaveOccurred())
 				Expect(err.StatusCode()).Should(Equal(t.statusCode))
