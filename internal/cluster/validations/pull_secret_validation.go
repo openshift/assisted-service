@@ -1,7 +1,6 @@
 package validations
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -161,13 +160,13 @@ func parseAuthConfig(registry string, authConfig map[string]interface{}) (PullSe
 		return ret, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' field of %q is not base64-encoded", registry)}
 	}
 
-	res := bytes.SplitN(data, []byte(":"), 2)
+	res := strings.SplitN(string(data), ":", 2)
 	if len(res) != 2 {
 		return ret, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' for %s is not in 'user:password' format", registry)}
 	}
 
-	ret.Username = string(res[0])
-	ret.Password = string(res[1])
+	ret.Username = res[0]
+	ret.Password = res[1]
 
 	return ret, nil
 }
