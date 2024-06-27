@@ -2576,14 +2576,55 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 
 	BeforeEach(func() {
 		asc = newASCDefault()
-		asc.Spec.Ingress.AssistedServiceHostname = "assisted.example.com"
-		asc.Spec.Ingress.ImageServiceHostname = "images.example.com"
-		asc.Spec.Ingress.ClassName = "nginx"
+		asc.Spec.Ingress = &aiv1beta1.Ingress{
+			AssistedServiceHostname: "assisted.example.com",
+			ImageServiceHostname:    "images.example.com",
+			ClassName:               swag.String("nginx"),
+		}
 
 		ctx = context.Background()
 
 		reconciler = newTestReconciler(asc)
 		reconciler.AgentServiceConfigReconcileContext.IsOpenShift = false
+	})
+
+	expectIngressConditionFailed := func() {
+		updated := aiv1beta1.AgentServiceConfig{}
+		Expect(reconciler.Client.Get(ctx, clnt.ObjectKey{Name: "agent"}, &updated)).To(Succeed())
+		cond := conditionsv1.FindStatusCondition(updated.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+		Expect(cond).NotTo(BeNil())
+		Expect(cond.Status).To(Equal(corev1.ConditionFalse))
+		Expect(cond.Reason).To(Equal(aiv1beta1.ReasonKubernetesIngressMissing))
+	}
+
+	It("sets a validation failure condition if ingress is not specified", func() {
+		asc.Spec.Ingress = nil
+		Expect(reconciler.Client.Update(ctx, asc)).To(Succeed())
+
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+		expectIngressConditionFailed()
+	})
+
+	It("sets a validation failure condition if assisted host is not specified", func() {
+		asc.Spec.Ingress.AssistedServiceHostname = ""
+		Expect(reconciler.Client.Update(ctx, asc)).To(Succeed())
+
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+		expectIngressConditionFailed()
+	})
+
+	It("sets a validation failure condition if image service host is not specified", func() {
+		asc.Spec.Ingress.ImageServiceHostname = ""
+		Expect(reconciler.Client.Update(ctx, asc)).To(Succeed())
+
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+		expectIngressConditionFailed()
 	})
 
 	It("does not deploy ServiceMonitors", func() {
@@ -2685,7 +2726,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 	})
 
 	validateIngress := func(ingress *netv1.Ingress, host string, service string, port int32) {
-		Expect(ingress.Spec.IngressClassName).To(HaveValue(Equal(asc.Spec.Ingress.ClassName)))
+		Expect(ingress.Spec.IngressClassName).To(HaveValue(Equal(*asc.Spec.Ingress.ClassName)))
 		Expect(len(ingress.Spec.Rules)).To(Equal(1))
 		rule := ingress.Spec.Rules[0]
 		Expect(rule.Host).To(Equal(host))

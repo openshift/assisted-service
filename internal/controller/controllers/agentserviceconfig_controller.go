@@ -731,6 +731,9 @@ func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 
 func newAgentRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	if !asc.rec.IsOpenShift {
+		if asc.spec.Ingress == nil {
+			return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
+		}
 		return newIngress(ctx, log, asc, serviceName, asc.spec.Ingress.AssistedServiceHostname, int32(servicePort.IntValue()))
 	}
 	weight := int32(100)
@@ -851,6 +854,9 @@ func newAgentIPXERoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 
 func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	if !asc.rec.IsOpenShift {
+		if asc.spec.Ingress == nil {
+			return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
+		}
 		return newIngress(ctx, log, asc, imageServiceName, asc.spec.Ingress.ImageServiceHostname, int32(imageHandlerPort.IntValue()))
 	}
 	weight := int32(100)
@@ -892,6 +898,9 @@ func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 }
 
 func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name string, host string, port int32) (client.Object, controllerutil.MutateFn, error) {
+	if asc.spec.Ingress == nil {
+		return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
+	}
 	pathTypePrefix := netv1.PathTypePrefix
 	ingress := &netv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -904,9 +913,8 @@ func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name strin
 		if err := controllerutil.SetControllerReference(asc.Object, ingress, asc.rec.Scheme); err != nil {
 			return err
 		}
-		ingressClassName := asc.spec.Ingress.ClassName
 		ingress.Spec = netv1.IngressSpec{
-			IngressClassName: &ingressClassName,
+			IngressClassName: asc.spec.Ingress.ClassName,
 			Rules: []netv1.IngressRule{{
 				Host: host,
 				IngressRuleValue: netv1.IngressRuleValue{HTTP: &netv1.HTTPIngressRuleValue{
@@ -924,9 +932,6 @@ func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name strin
 					}},
 				}},
 			}},
-		}
-		if ingressClassName == "" {
-			ingress.Spec.IngressClassName = nil
 		}
 		return nil
 	}
@@ -1097,6 +1102,9 @@ func urlForRoute(ctx context.Context, asc ASC, routeName string) (string, error)
 		}
 		hostname = route.Spec.Host
 	} else {
+		if asc.spec.Ingress == nil {
+			return "", fmt.Errorf("ingress config is required for non-OpenShift deployments")
+		}
 		scheme = "http"
 		switch routeName {
 		case serviceName:
@@ -2708,7 +2716,31 @@ func validate(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error
 		return false, nil
 	}
 
-	// If we are here then the storage configuration validation succeeded, so we may need to
+	// validate kubernetes ingress config if not running on OpenShift
+	// Ingress must not be nil and both hostnames must be provided
+	if !asc.rec.IsOpenShift &&
+		(asc.spec.Ingress == nil ||
+			asc.spec.Ingress.AssistedServiceHostname == "" ||
+			asc.spec.Ingress.ImageServiceHostname == "") {
+		message := "ingress configuration is required for non-OpenShift deployment"
+		log.Error(message)
+		conditionsv1.SetStatusConditionNoHeartbeat(
+			asc.conditions, conditionsv1.Condition{
+				Type:    aiv1beta1.ConditionReconcileCompleted,
+				Status:  corev1.ConditionFalse,
+				Reason:  aiv1beta1.ReasonKubernetesIngressMissing,
+				Message: message,
+			},
+		)
+		err = asc.Client.Status().Update(ctx, asc.Object)
+		if err != nil {
+			log.WithError(err).Error("Failed to update status")
+			return false, err
+		}
+		return false, nil
+	}
+
+	// If we are here then all the validations succeeded, so we may need to
 	// remove a previous failure condition:
 	condition := conditionsv1.FindStatusCondition(
 		*asc.conditions,

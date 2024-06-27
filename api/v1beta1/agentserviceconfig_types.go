@@ -126,27 +126,25 @@ type AgentServiceConfigSpec struct {
 	// Has no effect when running on an OpenShift cluster.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ingress"
 	// +optional
-	Ingress Ingress `json:"ingress,omitempty"`
+	Ingress *Ingress `json:"ingress,omitempty"`
 }
 
 type Ingress struct {
 	// AssistedServiceHostname is the hostname to be assigned to the assisted-service ingress.
 	// Has no effect when running on an OpenShift cluster.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Assisted Service hostname"
-	// +optional
-	AssistedServiceHostname string `json:"assistedServiceHostname,omitempty"`
+	AssistedServiceHostname string `json:"assistedServiceHostname"`
 
 	// ImageServiceHostname is the hostname to be assigned to the assisted-image-service ingress.
 	// Has no effect when running on an OpenShift cluster.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Assisted Image Service hostname"
-	// +optional
-	ImageServiceHostname string `json:"imageServiceHostname,omitempty"`
+	ImageServiceHostname string `json:"imageServiceHostname"`
 
 	// ClassName is the name of the ingress class to be used when configuring ingress resources.
 	// Has no effect when running on an OpenShift cluster.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Class Name"
 	// +optional
-	ClassName string `json:"ClassName,omitempty"`
+	ClassName *string `json:"className,omitempty"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons
@@ -231,6 +229,8 @@ const (
 	ReasonOSImageCACertRefFailure string = "OSImageCACertRefFailure"
 	// ReasonMonitoringFailure indicates there was a failure monitoring operand status
 	ReasonMonitoringFailure string = "MonitoringFailure"
+	// ReasonKubernetesIngressMissing indicates the user has not provided the required configuration for kubernetes ingress
+	ReasonKubernetesIngressMissing string = "KubernetesIngressConfigMissing"
 
 	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to enable the route
 	IPXEHTTPRouteEnabled string = "enabled"

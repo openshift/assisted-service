@@ -671,21 +671,24 @@ spec:
                 description: Ingress contains configuration for the ingress resources.
                   Has no effect when running on an OpenShift cluster.
                 properties:
-                  ClassName:
-                    description: ClassName is the name of the ingress class to be
-                      used when configuring ingress resources. Has no effect when
-                      running on an OpenShift cluster.
-                    type: string
                   assistedServiceHostname:
                     description: AssistedServiceHostname is the hostname to be assigned
                       to the assisted-service ingress. Has no effect when running
                       on an OpenShift cluster.
+                    type: string
+                  className:
+                    description: ClassName is the name of the ingress class to be
+                      used when configuring ingress resources. Has no effect when
+                      running on an OpenShift cluster.
                     type: string
                   imageServiceHostname:
                     description: ImageServiceHostname is the hostname to be assigned
                       to the assisted-image-service ingress. Has no effect when running
                       on an OpenShift cluster.
                     type: string
+                required:
+                - assistedServiceHostname
+                - imageServiceHostname
                 type: object
               mirrorRegistryRef:
                 description: 'MirrorRegistryRef is the reference to the configmap

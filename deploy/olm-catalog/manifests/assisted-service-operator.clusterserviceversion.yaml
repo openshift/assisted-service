@@ -323,14 +323,14 @@ spec:
           no effect when running on an OpenShift cluster.
         displayName: Ingress
         path: ingress
-      - description: ClassName is the name of the ingress class to be used when configuring
-          ingress resources. Has no effect when running on an OpenShift cluster.
-        displayName: Class Name
-        path: ingress.ClassName
       - description: AssistedServiceHostname is the hostname to be assigned to the
           assisted-service ingress. Has no effect when running on an OpenShift cluster.
         displayName: Assisted Service hostname
         path: ingress.assistedServiceHostname
+      - description: ClassName is the name of the ingress class to be used when configuring
+          ingress resources. Has no effect when running on an OpenShift cluster.
+        displayName: Class Name
+        path: ingress.className
       - description: ImageServiceHostname is the hostname to be assigned to the assisted-image-service
           ingress. Has no effect when running on an OpenShift cluster.
         displayName: Assisted Image Service hostname
