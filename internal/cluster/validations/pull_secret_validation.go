@@ -68,7 +68,7 @@ func (e *PullSecretError) Unwrap() error {
 	return e.Cause
 }
 
-// ParsePullSecret validates the format of a pull secret and converts the secret string into individual credentail entries
+// ParsePullSecret validates the format of a pull secret and converts the secret string into individual credential entries
 func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 	result := make(map[string]PullSecretCreds)
 	var s imagePullSecret
@@ -83,11 +83,9 @@ func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 	}
 
 	for d, a := range s.Auths {
-
 		_, authPresent := a["auth"]
-		_, credsStorePresent := a["credsStore"]
-		if !authPresent && !credsStorePresent {
-			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: %q JSON-object requires either 'auth' or 'credsStore' field", d)}
+		if !authPresent {
+			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: %q JSON-object requires 'auth' field", d)}
 		}
 
 		var authRaw string
