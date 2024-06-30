@@ -16,11 +16,12 @@ import (
 
 var _ = Describe("getPullSecret", func() {
 	var (
-		ctrl                   *gomock.Controller
-		mockK8sClient          *k8sclient.MockK8SClient
-		clusterPullSecretToken string
-		OCMPullSecretToken     string
-		pullSecretFormat       string
+		ctrl                          *gomock.Controller
+		mockK8sClient                 *k8sclient.MockK8SClient
+		clusterPullSecretToken        string
+		OCMPullSecretToken            string
+		pullSecretFormat              string
+		pullSecretWithEmptyAuthFormat string
 	)
 
 	BeforeEach(func() {
@@ -28,7 +29,8 @@ var _ = Describe("getPullSecret", func() {
 		mockK8sClient = k8sclient.NewMockK8SClient(ctrl)
 		clusterPullSecretToken = base64.StdEncoding.EncodeToString([]byte("clustersecret:clustercredentials"))
 		OCMPullSecretToken = base64.StdEncoding.EncodeToString([]byte("ocmuser:ocmcredentials"))
-		pullSecretFormat = `{"auths":{"%s":{"auth":"%s","email":"r@example.com"}}}` // #nosec
+		pullSecretFormat = `{"auths":{"%s":{"auth":"%s","email":"r@example.com"}}}`          // #nosec
+		pullSecretWithEmptyAuthFormat = `{"auths":{"%s":{"auth":"","email":"r@empty.com"}}}` // #nosec
 	})
 
 	It("successfully gets a pull secret when the OCM pull secret is present", func() {
@@ -64,6 +66,66 @@ var _ = Describe("getPullSecret", func() {
 		Expect(pullSecret.Identity.Username).To(Equal("clustersecret"))
 		Expect(pullSecret.Identity.EmailDomain).To(Equal("example.com"))
 		Expect(pullSecret.APIAuth.AuthRaw).To(Equal(clusterPullSecretToken))
+	})
+	It("successfully forge a pull secret when auth is not defined in the OCM pull secret", func() {
+		By("setting up the ocm pull secret")
+		OCMPullSecret := fmt.Sprintf(pullSecretWithEmptyAuthFormat, openshiftTokenKey)
+		data := map[string][]byte{corev1.DockerConfigJsonKey: []byte(OCMPullSecret)}
+
+		OCMSecret := &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "openshift-config",
+				Name:      "pull-secret",
+			},
+			Data: data,
+			Type: corev1.SecretTypeDockerConfigJson,
+		}
+		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(OCMSecret, nil).Times(1)
+
+		By("setting up the cluster pull secret")
+		clusterPullSecret := fmt.Sprintf(pullSecretFormat, openshiftTokenKey, clusterPullSecretToken)
+
+		By("calling getPullSecret")
+		pullSecret, err := getPullSecret(clusterPullSecret, mockK8sClient)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pullSecret.Identity.Username).To(Equal("clustersecret"))
+		Expect(pullSecret.Identity.EmailDomain).To(Equal("example.com"))
+		Expect(pullSecret.APIAuth.AuthRaw).To(Equal(clusterPullSecretToken))
+	})
+	It("successfully forge a pull secret when auth is not defined in the cluster pull secret", func() {
+		By("setting up the ocm pull secret")
+		OCMPullSecret := fmt.Sprintf(pullSecretFormat, openshiftTokenKey, OCMPullSecretToken)
+		data := map[string][]byte{corev1.DockerConfigJsonKey: []byte(OCMPullSecret)}
+
+		OCMSecret := &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "openshift-config",
+				Name:      "pull-secret",
+			},
+			Data: data,
+			Type: corev1.SecretTypeDockerConfigJson,
+		}
+		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(OCMSecret, nil).Times(1)
+
+		By("setting up the cluster pull secret")
+		clusterPullSecret := fmt.Sprintf(pullSecretWithEmptyAuthFormat, openshiftTokenKey)
+
+		By("calling getPullSecret")
+		pullSecret, err := getPullSecret(clusterPullSecret, mockK8sClient)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pullSecret.Identity.Username).To(Equal("ocmuser"))
+		Expect(pullSecret.Identity.EmailDomain).To(Equal("example.com"))
+		Expect(pullSecret.APIAuth.AuthRaw).To(Equal(OCMPullSecretToken))
 	})
 	It("fails to gets a pull secret when the OCM pull secret exists, but doesn't contain the correct credentials", func() {
 		OCMPullSecret := fmt.Sprintf(pullSecretFormat, "clouds.openshift.com", OCMPullSecretToken)
@@ -104,6 +166,33 @@ var _ = Describe("getPullSecret", func() {
 		}
 		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(OCMSecret, nil).Times(1)
 		_, err := getPullSecret("", mockK8sClient)
+		Expect(err).To(HaveOccurred())
+	})
+	It("fails when auth fields are empty", func() {
+		By("setting up the ocm pull secret")
+		OCMPullSecret := fmt.Sprintf(pullSecretWithEmptyAuthFormat, openshiftTokenKey)
+		data := map[string][]byte{corev1.DockerConfigJsonKey: []byte(OCMPullSecret)}
+
+		OCMSecret := &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "openshift-config",
+				Name:      "pull-secret",
+			},
+			Data: data,
+			Type: corev1.SecretTypeDockerConfigJson,
+		}
+		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(OCMSecret, nil).Times(1)
+
+		By("setting up the cluster pull secret")
+		clusterPullSecret := fmt.Sprintf(pullSecretWithEmptyAuthFormat, openshiftTokenKey)
+
+		By("calling getPullSecret")
+		_, err := getPullSecret(clusterPullSecret, mockK8sClient)
+
 		Expect(err).To(HaveOccurred())
 	})
 })

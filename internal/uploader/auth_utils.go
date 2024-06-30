@@ -50,6 +50,10 @@ func getPullSecret(clusterPullSecret string, k8sclient k8sclient.K8SClient) (Pul
 	ret.Identity.EmailDomain = getEmailDomain(identityCreds.Email)
 	ret.APIAuth.AuthRaw = authCreds.AuthRaw
 
+	if ret.APIAuth.AuthRaw == "" {
+		return ret, errors.New("no credentials provided")
+	}
+
 	return ret, nil
 }
 
@@ -91,18 +95,53 @@ func getCloudOpenshiftCreds(pullSecretData string) (*validations.PullSecretCreds
 }
 
 func selectPullSecretForDataProcessing(managementCreds, workloadCreds *validations.PullSecretCreds) *validations.PullSecretCreds {
-	if workloadCreds != nil {
-		return workloadCreds
-	}
-
-	return managementCreds
-}
-
-func selectPullSecretForAuthent(managementCreds, workloadCreds *validations.PullSecretCreds) *validations.PullSecretCreds {
-	if managementCreds != nil {
+	// If one of the two is nil, return the other
+	if workloadCreds == nil {
 		return managementCreds
 	}
 
+	if managementCreds == nil {
+		return workloadCreds
+	}
+
+	// Otherwise, return the one with more information.
+	// If both have the same number of information, priority to the workloadCreds
+	workloadInfos := countIdentityInfo(workloadCreds)
+	managementInfos := countIdentityInfo(managementCreds)
+
+	if managementInfos > workloadInfos {
+		return managementCreds
+	}
+
+	return workloadCreds
+}
+
+func countIdentityInfo(creds *validations.PullSecretCreds) int {
+	ret := 0
+
+	if creds.Username != "" {
+		ret++
+	}
+
+	if creds.Email != "" {
+		ret++
+	}
+
+	return ret
+}
+
+func selectPullSecretForAuthent(managementCreds, workloadCreds *validations.PullSecretCreds) *validations.PullSecretCreds {
+	if managementCreds != nil && managementCreds.AuthRaw != "" {
+		return managementCreds
+	}
+
+	if workloadCreds != nil && workloadCreds.AuthRaw != "" {
+		return workloadCreds
+	}
+
+	if managementCreds != nil {
+		return managementCreds
+	}
 	return workloadCreds
 }
 
