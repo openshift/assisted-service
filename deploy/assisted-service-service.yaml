@@ -13,7 +13,6 @@ spec:
       port: 8090
       protocol: TCP
       targetPort: 8090
-      nodePort: 30000
   selector:
     app: assisted-service
   type: LoadBalancer
