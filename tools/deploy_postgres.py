@@ -31,14 +31,6 @@ def deploy_postgres_secret(deploy_options):
         docs=docs
     )
 
-    if deploy_options.target == "kind":
-        utils.override_service_type_definition_and_node_port(
-            internal_definitions_path=f'build/{deploy_options.namespace}/postgres-secret.yaml',
-            internal_target_definitions_path=f'build/{deploy_options.namespace}/postgres-secret.yaml',
-            service_type="NodePort",
-            node_port=30003
-        )
-
     if not deploy_options.apply_manifest:
         return
     log.info('Deploying %s', dst_file)
@@ -61,6 +53,14 @@ def deploy_postgres(deploy_options):
         basename=f'build/{deploy_options.namespace}/postgres-deployment.yaml',
         docs=docs
     )
+
+    if deploy_options.target == "kind":
+        utils.override_service_type_definition_and_node_port(
+            internal_definitions_path=f'build/{deploy_options.namespace}/postgres-deployment.yaml',
+            internal_target_definitions_path=f'build/{deploy_options.namespace}/postgres-deployment.yaml',
+            service_type="NodePort",
+            node_port=30003
+        )
 
     if not deploy_options.apply_manifest:
         return
