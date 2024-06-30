@@ -569,6 +569,9 @@ clear-images:
 clean-onprem:
 	podman pod rm --force --ignore assisted-installer
 
+subsystem-clean:
+	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete --force --grace-period=0 1> /dev/null || true
+
 ############
 # Operator #
 ############
