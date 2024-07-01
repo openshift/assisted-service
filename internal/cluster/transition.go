@@ -31,7 +31,9 @@ import (
 
 var resetLogsField = []interface{}{"logs_info", "", "controller_logs_started_at", strfmt.DateTime(time.Time{}), "controller_logs_collected_at", strfmt.DateTime(time.Time{})}
 var resetProgressFields = []interface{}{"progress_finalizing_stage_percentage", 0, "progress_installing_stage_percentage", 0,
-	"progress_preparing_for_installation_stage_percentage", 0, "progress_total_percentage", 0}
+	"progress_preparing_for_installation_stage_percentage", 0, "progress_total_percentage", 0,
+	"progress_finalizing_stage_timed_out", false,
+	"progress_finalizing_stage", "", "progress_finalizing_stage_started_at", strfmt.DateTime(time.Time{})}
 
 var resetFields = append(append(resetProgressFields, resetLogsField...), "openshift_cluster_id", "")
 
