@@ -904,48 +904,6 @@ func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 	return route, mutateFn, nil
 }
 
-func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name string, host string, port int32) (client.Object, controllerutil.MutateFn, error) {
-	if asc.spec.Ingress == nil {
-		return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
-	}
-	pathTypePrefix := netv1.PathTypePrefix
-	ingress := &netv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: asc.namespace,
-		},
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(asc.Object, ingress, asc.rec.Scheme); err != nil {
-			return err
-		}
-		ingress.Spec = netv1.IngressSpec{
-			IngressClassName: asc.spec.Ingress.ClassName,
-			Rules: []netv1.IngressRule{{
-				Host: host,
-				IngressRuleValue: netv1.IngressRuleValue{HTTP: &netv1.HTTPIngressRuleValue{
-					Paths: []netv1.HTTPIngressPath{{
-						Path:     "/",
-						PathType: &pathTypePrefix,
-						Backend: netv1.IngressBackend{
-							Service: &netv1.IngressServiceBackend{
-								Name: name,
-								Port: netv1.ServiceBackendPort{
-									Number: port,
-								},
-							},
-						},
-					}},
-				}},
-			}},
-		}
-		return nil
-	}
-
-	return ingress, mutateFn, nil
-}
-
 func newImageServiceIPXERoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	return newHTTPRoute(ctx, log, asc, imageServiceName)
 }
