@@ -9371,6 +9371,13 @@ func init() {
     "manifest": {
       "type": "object",
       "properties": {
+        "cluster_id": {
+          "description": "The cluster that this manifest is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"foreignkey:Cluster\"",
+          "x-nullable": true
+        },
         "file_name": {
           "description": "The file name prefaced by the folder that contains it.",
           "type": "string"
@@ -9382,6 +9389,17 @@ func init() {
             "manifests",
             "openshift"
           ]
+        },
+        "id": {
+          "description": "Unique identifier of the object.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primaryKey\""
+        },
+        "is_user_generated": {
+          "description": "Is the manifest user generated or system generated?",
+          "type": "boolean",
+          "default": false
         }
       }
     },
@@ -20128,6 +20146,13 @@ func init() {
     "manifest": {
       "type": "object",
       "properties": {
+        "cluster_id": {
+          "description": "The cluster that this manifest is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"foreignkey:Cluster\"",
+          "x-nullable": true
+        },
         "file_name": {
           "description": "The file name prefaced by the folder that contains it.",
           "type": "string"
@@ -20139,6 +20164,17 @@ func init() {
             "manifests",
             "openshift"
           ]
+        },
+        "id": {
+          "description": "Unique identifier of the object.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primaryKey\""
+        },
+        "is_user_generated": {
+          "description": "Is the manifest user generated or system generated?",
+          "type": "boolean",
+          "default": false
         }
       }
     },

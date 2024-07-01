@@ -20,25 +20,56 @@ import (
 // swagger:model manifest
 type Manifest struct {
 
+	// The cluster that this manifest is associated with.
+	// Format: uuid
+	ClusterID *strfmt.UUID `json:"cluster_id,omitempty" gorm:"foreignkey:Cluster"`
+
 	// The file name prefaced by the folder that contains it.
 	FileName string `json:"file_name,omitempty"`
 
 	// The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
 	// Enum: [manifests openshift]
 	Folder string `json:"folder,omitempty"`
+
+	// Unique identifier of the object.
+	// Format: uuid
+	ID strfmt.UUID `json:"id,omitempty" gorm:"primaryKey"`
+
+	// Is the manifest user generated or system generated?
+	IsUserGenerated *bool `json:"is_user_generated,omitempty"`
 }
 
 // Validate validates this manifest
 func (m *Manifest) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateClusterID(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateFolder(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateID(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Manifest) validateClusterID(formats strfmt.Registry) error {
+	if swag.IsZero(m.ClusterID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -78,6 +109,18 @@ func (m *Manifest) validateFolder(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateFolderEnum("folder", "body", m.Folder); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Manifest) validateID(formats strfmt.Registry) error {
+	if swag.IsZero(m.ID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
 		return err
 	}
 
