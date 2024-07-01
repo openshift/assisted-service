@@ -1,6 +1,6 @@
 module github.com/openshift/assisted-service
 
-go 1.20
+go 1.22
 
 require (
 	github.com/IBM/netaddr v1.5.0
