@@ -25,13 +25,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
+	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clnt "sigs.k8s.io/controller-runtime/pkg/client"
@@ -2639,19 +2639,15 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		Expect(len(smList.Items)).To(Equal(0))
 	})
 
-	It("does not deploy webhook components", func() {
+	It("sets the CA injection annotation for the webhook API Service", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
 
-		ascWrapper := initASC(reconciler, asc)
-		components := reconciler.getWebhookComponents()
-		for _, c := range components {
-			obj, _, err := c.fn(ctx, reconciler.Log, ascWrapper)
-			Expect(err).To(BeNil())
-			err = reconciler.Client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
-			Expect(apierrors.IsNotFound(err)).To(BeTrue())
-		}
+		as := &apiregv1.APIService{}
+		key := types.NamespacedName{Name: "v1.admission.agentinstall.openshift.io"}
+		Expect(reconciler.Client.Get(ctx, key, as)).To(Succeed())
+		Expect(as.GetAnnotations()[certManagerCAInjectionAnnotation]).To(Equal("test-namespace/agentinstalladmission"))
 	})
 
 	It("creates required certificates and issuers", func() {

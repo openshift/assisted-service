@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	caCommonName          = "Assisted Installer CA"
-	caIssuerName          = "assisted-installer-ca"
-	clusterVersionCRDName = "clusterversions.config.openshift.io"
-	selfSignedIssuerName  = "assisted-installer-selfsigned-ca"
+	caCommonName                     = "Assisted Installer CA"
+	caIssuerName                     = "assisted-installer-ca"
+	certManagerCAInjectionAnnotation = "cert-manager.io/inject-ca-from"
+	clusterVersionCRDName            = "clusterversions.config.openshift.io"
+	selfSignedIssuerName             = "assisted-installer-selfsigned-ca"
 )
 
 func ServerIsOpenShift(ctx context.Context, c client.Client) (bool, error) {

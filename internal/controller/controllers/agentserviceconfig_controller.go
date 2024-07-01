@@ -284,13 +284,9 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 			return result, err
 		}
 	}
-	// TODO: webhooks _require_ HTTPS so we need a way to create and maintain certs before we can enable them
-	// ref: https://github.com/openshift/generic-admission-server/blob/8dcc3c9b298fefaf4d31c60001907222bf2c3f83/README.md#why-cant-i-write-a-simple-http-webhook-server
-	if asc.rec.IsOpenShift {
-		for _, component := range r.getWebhookComponents() {
-			if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
-				return result, err
-			}
+	for _, component := range r.getWebhookComponents() {
+		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
+			return result, err
 		}
 	}
 
@@ -2429,7 +2425,9 @@ func newWebHookService(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 			return err
 		}
 		addAppLabel(webhookServiceName, &svc.ObjectMeta)
-		setAnnotation(&svc.ObjectMeta, servingCertAnnotation, webhookServiceName)
+		if asc.rec.IsOpenShift {
+			setAnnotation(&svc.ObjectMeta, servingCertAnnotation, webhookServiceName)
+		}
 		if len(svc.Spec.Ports) == 0 {
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
 		}
@@ -2469,7 +2467,11 @@ func newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 			return err
 		}
 
-		setAnnotation(&as.ObjectMeta, injectCABundleAnnotation, "true")
+		if asc.rec.IsOpenShift {
+			setAnnotation(&as.ObjectMeta, injectCABundleAnnotation, "true")
+		} else {
+			setAnnotation(&as.ObjectMeta, certManagerCAInjectionAnnotation, fmt.Sprintf("%s/%s", asc.namespace, webhookServiceName))
+		}
 		baseApiServiceSpec(as, asc.namespace)
 		return nil
 	}
