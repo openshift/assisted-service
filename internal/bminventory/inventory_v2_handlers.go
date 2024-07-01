@@ -302,7 +302,7 @@ func (b *bareMetalInventory) V2UploadClusterIngressCert(ctx context.Context, par
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	if err := b.objectHandler.Upload(ctx, mergedKubeConfig, objectName); err != nil {
+	if err := b.objectHandler.Upload(ctx, mergedKubeConfig, objectName, make(map[string]string)); err != nil {
 		return installer.NewV2UploadClusterIngressCertInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, errors.Errorf("failed to upload %s to s3", objectName)))
 	}
@@ -495,7 +495,7 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 	}
 	fileName := b.getLogsFullName(params.ClusterID.String(), params.LogsType)
 	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
-	err = b.objectHandler.UploadStream(ctx, params.Upfile, fileName)
+	err = b.objectHandler.UploadStream(ctx, params.Upfile, fileName, make(map[string]string))
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload %s to s3", fileName)
 		return common.NewApiError(http.StatusInternalServerError, err)

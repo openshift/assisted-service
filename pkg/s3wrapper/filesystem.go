@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
+	"github.com/pkg/xattr"
 	"github.com/sirupsen/logrus"
 	syscall "golang.org/x/sys/unix"
 )
@@ -52,7 +53,40 @@ func (f *FSClient) CreateBucket() error {
 	return nil
 }
 
-func (f *FSClient) Upload(ctx context.Context, data []byte, objectName string) error {
+const xattrUserAttributePrefix = "user."
+
+func (f *FSClient) writeFileMetadata(filePath string, metadata map[string]string) error {
+	for attributeName, attributeValue := range metadata {
+		err := xattr.Set(filePath, strings.ToLower(fmt.Sprintf("%s%s", xattrUserAttributePrefix, attributeName)), []byte(attributeValue))
+		if err != nil {
+			return errors.Wrapf(err, "unable to store metadata key %s = %s", attributeName, attributeValue)
+		}
+	}
+	return nil
+}
+
+func (f *FSClient) getFileMetadata(filePath string) (map[string]string, error) {
+	attributes := make(map[string]string)
+	attributeNames, err := xattr.List(filePath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to obtain extended file attributes while retrieving file metadata")
+	}
+	for _, attributeName := range attributeNames {
+		if !strings.HasPrefix(attributeName, xattrUserAttributePrefix) {
+			continue
+		}
+		attributeByteValue, err := xattr.Get(filePath, attributeName)
+		if err != nil {
+			return nil, errors.Wrap(err, "Unable to obtain extended file attributes while retrieving file metadata")
+		}
+		attributeValue := string(attributeByteValue)
+		attributes[strings.TrimPrefix(attributeName, xattrUserAttributePrefix)] = attributeValue
+	}
+	return attributes, nil
+}
+
+func (f *FSClient) Upload(ctx context.Context, data []byte, objectName string, metadata map[string]string) error {
+
 	log := logutil.FromContext(ctx, f.log)
 	filePath := filepath.Join(f.basedir, objectName)
 	if err := os.MkdirAll(path.Dir(filePath), 0755); err != nil {
@@ -60,16 +94,40 @@ func (f *FSClient) Upload(ctx context.Context, data []byte, objectName string) e
 		log.Error(err)
 		return err
 	}
-	if err := renameio.WriteFile(filePath, data, 0600); err != nil {
+	t, err := renameio.TempFile("", filePath)
+	if err != nil {
+		err = errors.Wrapf(err, "Unable to create a temp file for %s", filePath)
+		log.Error(err)
+		return err
+	}
+
+	defer func() {
+		if err := t.Cleanup(); err != nil {
+			log.Errorf("Unable to clean up temp file %s", t.Name())
+		}
+	}()
+
+	if bytesWritten, err := t.Write(data); err != nil || bytesWritten != len(data) {
 		err = errors.Wrapf(err, "Unable to write data to file %s", filePath)
 		log.Error(err)
 		return err
 	}
+	if err := f.writeFileMetadata(t.Name(), metadata); err != nil {
+		err = errors.Wrapf(err, "Unable to write file metadata for file %s", filePath)
+		log.Error(err)
+		return err
+	}
+	if err := t.CloseAtomicallyReplace(); err != nil {
+		err = errors.Wrapf(err, "Unable to atomically replace %s with temp file %s", filePath, t.Name())
+		log.Error(err)
+		return err
+	}
+
 	log.Infof("Successfully uploaded file %s", objectName)
 	return nil
 }
 
-func (f *FSClient) UploadFile(ctx context.Context, filePath, objectName string) error {
+func (f *FSClient) UploadFile(ctx context.Context, filePath, objectName string, metadata map[string]string) error {
 	log := logutil.FromContext(ctx, f.log)
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -80,10 +138,10 @@ func (f *FSClient) UploadFile(ctx context.Context, filePath, objectName string) 
 
 	defer file.Close()
 
-	return f.UploadStream(ctx, file, objectName)
+	return f.UploadStream(ctx, file, objectName, metadata)
 }
 
-func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectName string) error {
+func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectName string, metadata map[string]string) error {
 	log := logutil.FromContext(ctx, f.log)
 	filePath := filepath.Join(f.basedir, objectName)
 	if err := os.MkdirAll(path.Dir(filePath), 0755); err != nil {
@@ -125,12 +183,18 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 			break
 		}
 	}
+	if err := f.writeFileMetadata(t.Name(), metadata); err != nil {
+		err = errors.Wrapf(err, "Unable to write file metadata for file %s", filePath)
+		log.Error(err)
+		return err
+	}
 
 	if err := t.CloseAtomicallyReplace(); err != nil {
 		err = errors.Wrapf(err, "Unable to atomically replace %s with temp file %s", filePath, t.Name())
 		log.Error(err)
 		return err
 	}
+
 	log.Infof("Successfully uploaded file %s", objectName)
 	return nil
 }
@@ -249,9 +313,9 @@ func (f *FSClient) handleFile(ctx context.Context, log logrus.FieldLogger, fileP
 	callback(ctx, log, filePath)
 }
 
-func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
+func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]ObjectInfo, error) {
 	log := logutil.FromContext(ctx, f.log)
-	var matches []string
+	var matches []ObjectInfo
 	prefixWithBase := filepath.Join(f.basedir, prefix)
 	err := filepath.Walk(f.basedir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -266,7 +330,12 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 				return err
 			}
 
-			matches = append(matches, relative)
+			metadata, err := f.getFileMetadata(path)
+			if err != nil {
+				return err
+			}
+
+			matches = append(matches, ObjectInfo{Path: relative, Metadata: metadata})
 		}
 		return nil
 	})
@@ -341,24 +410,24 @@ func (d *FSClientDecorator) CreateBucket() error {
 	return d.fsClient.CreateBucket()
 }
 
-func (d *FSClientDecorator) Upload(ctx context.Context, data []byte, objectName string) error {
-	err := d.fsClient.Upload(ctx, data, objectName)
+func (d *FSClientDecorator) Upload(ctx context.Context, data []byte, objectName string, metadata map[string]string) error {
+	err := d.fsClient.Upload(ctx, data, objectName, metadata)
 	if err == nil {
 		d.reportFilesystemUsageMetrics()
 	}
 	return err
 }
 
-func (d *FSClientDecorator) UploadStream(ctx context.Context, reader io.Reader, objectName string) error {
-	err := d.fsClient.UploadStream(ctx, reader, objectName)
+func (d *FSClientDecorator) UploadStream(ctx context.Context, reader io.Reader, objectName string, metadata map[string]string) error {
+	err := d.fsClient.UploadStream(ctx, reader, objectName, metadata)
 	if err == nil {
 		d.reportFilesystemUsageMetrics()
 	}
 	return err
 }
 
-func (d *FSClientDecorator) UploadFile(ctx context.Context, filePath, objectName string) error {
-	err := d.fsClient.UploadFile(ctx, filePath, objectName)
+func (d *FSClientDecorator) UploadFile(ctx context.Context, filePath, objectName string, metadata map[string]string) error {
+	err := d.fsClient.UploadFile(ctx, filePath, objectName, metadata)
 	if err == nil {
 		d.reportFilesystemUsageMetrics()
 	}
@@ -398,6 +467,6 @@ func (d *FSClientDecorator) ExpireObjects(ctx context.Context, prefix string, de
 	d.reportFilesystemUsageMetrics()
 }
 
-func (d *FSClientDecorator) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
+func (d *FSClientDecorator) ListObjectsByPrefix(ctx context.Context, prefix string) ([]ObjectInfo, error) {
 	return d.fsClient.ListObjectsByPrefix(ctx, prefix)
 }

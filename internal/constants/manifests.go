@@ -1,6 +1,7 @@
 package constants
 
-// ManifestFolder represents the manifests folder on s3 per cluster
 const ManifestFolder = "manifests"
 const ManifestMetadataFolder = "manifest-attributes"
+const ManifestSourceAttribute = "assisted-installer-generated-by"
+const ManifestSourceSystemGenerated = "system-generated"
 const ManifestSourceUserSupplied = "user-supplied"

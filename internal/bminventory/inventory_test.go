@@ -10690,7 +10690,7 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		Expect(merged).ShouldNot(Equal([]byte(ingressCa)))
 		objectExists()
 		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(kubeconfigFile, int64(0), nil).Times(1)
-		mockS3Client.EXPECT().Upload(ctx, merged, kubeconfigObject).Return(errors.Errorf("Dummy"))
+		mockS3Client.EXPECT().Upload(ctx, merged, kubeconfigObject, gomock.Any()).Return(errors.Errorf("Dummy"))
 		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
@@ -10712,7 +10712,7 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		objectExists()
 		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(kubeconfigFile, int64(0), nil).Times(1)
-		mockS3Client.EXPECT().Upload(ctx, merged, kubeconfigObject).Return(nil)
+		mockS3Client.EXPECT().Upload(ctx, merged, kubeconfigObject, gomock.Any()).Return(nil)
 
 		// validate triggeredMonitored timestamp is zero
 		Expect(c.TriggerMonitorTimestamp.IsZero()).To(Equal(true))
@@ -11125,7 +11125,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		}
 
 		fileName := bm.getLogsFullName(clusterID.String(), host.ID.String())
-		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("Dummy")).Times(1)
+		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName, gomock.Any()).Return(errors.Errorf("Dummy")).Times(1)
 		verifyApiError(bm.V2UploadLogs(ctx, params), http.StatusInternalServerError)
 	})
 
@@ -11146,7 +11146,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			eventstest.WithNameMatcher(eventgen.HostLogsUploadedEventName),
 			eventstest.WithClusterIdMatcher(clusterID.String()),
 			eventstest.WithHostIdMatcher(host.ID.String()))).Times(1)
-		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
+		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName, gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().SetUploadLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(1)
 		reply := bm.V2UploadLogs(ctx, params)
@@ -11196,7 +11196,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ClusterLogsUploadedEventName),
 			eventstest.WithClusterIdMatcher(clusterID.String()))).Times(1)
-		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(2)
+		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName, gomock.Any()).Return(nil).Times(2)
 		mockClusterApi.EXPECT().SetUploadControllerLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		mockClusterApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(2)
 		By("Upload cluster logs for the first time")
@@ -12797,7 +12797,7 @@ var _ = Describe("Install Host test", func() {
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.V2InstallHost(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2InstallHostAccepted()))
@@ -12815,7 +12815,7 @@ var _ = Describe("Install Host test", func() {
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile("http://example.com/worker", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.V2InstallHost(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2InstallHostAccepted()))
@@ -12863,7 +12863,7 @@ var _ = Describe("Install Host test", func() {
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(0)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(0)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("ign failure")).Times(1)
 		res := bm.V2InstallHost(ctx, params)
 		verifyApiError(res, http.StatusInternalServerError)
@@ -12878,7 +12878,7 @@ var _ = Describe("Install Host test", func() {
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.V2InstallHost(ctx, params)
 		verifyApiError(res, http.StatusInternalServerError)
@@ -12927,7 +12927,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, clusterID, hostId)
 		Expect(res).Should(BeNil())
@@ -12940,7 +12940,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, clusterID, hostId)
 		Expect(res.Error()).Should(Equal(expectedErrMsg))

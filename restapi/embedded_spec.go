@@ -9382,6 +9382,15 @@ func init() {
             "manifests",
             "openshift"
           ]
+        },
+        "manifest_source": {
+          "description": "Describes whether manifest is user-supplied or system-generated.",
+          "type": "string",
+          "default": "system-generated",
+          "enum": [
+            "user-supplied",
+            "system-generated"
+          ]
         }
       }
     },
@@ -20138,6 +20147,15 @@ func init() {
           "enum": [
             "manifests",
             "openshift"
+          ]
+        },
+        "manifest_source": {
+          "description": "Describes whether manifest is user-supplied or system-generated.",
+          "type": "string",
+          "default": "system-generated",
+          "enum": [
+            "user-supplied",
+            "system-generated"
           ]
         }
       }

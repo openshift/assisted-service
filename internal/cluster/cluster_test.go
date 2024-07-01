@@ -2776,7 +2776,7 @@ var _ = Describe("Cluster tarred files", func() {
 		mockEvents            *eventsapi.MockHandler
 		mockS3Client          *s3wrapper.MockAPI
 		prefix                string
-		files                 []string
+		files                 []s3wrapper.ObjectInfo
 		tarFile               string
 		clusterObjectFilename string
 		eventsFilename        string
@@ -2784,7 +2784,7 @@ var _ = Describe("Cluster tarred files", func() {
 	)
 
 	uploadClusterDataSuccess := func() {
-		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), clusterObjectFilename).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), clusterObjectFilename, gomock.Any()).Return(nil).Times(1)
 
 		events := []*common.Event{{
 			Event: models.Event{
@@ -2793,13 +2793,13 @@ var _ = Describe("Cluster tarred files", func() {
 		}}
 		mockEvents.EXPECT().V2GetEvents(gomock.Any(), common.GetDefaultV2GetEventsParams(cl.ID, nil, nil)).Return(&common.V2GetEventsResponse{Events: events}, nil).Times(1)
 		eventsData, _ := json.MarshalIndent(events, "", " ")
-		mockS3Client.EXPECT().Upload(ctx, eventsData, eventsFilename).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(ctx, eventsData, eventsFilename, gomock.Any()).Return(nil).Times(1)
 	}
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		cfg := Config{}
-		files = []string{"test", "test2"}
+		files = []s3wrapper.ObjectInfo{{Path: "test1", Metadata: make(map[string]string)}, {Path: "test2", Metadata: make(map[string]string)}}
 		ctrl = gomock.NewController(GinkgoT())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -2832,35 +2832,35 @@ var _ = Describe("Cluster tarred files", func() {
 	})
 
 	It("list events failed - but PrepareClusterLogFile should continue to download", func() {
-		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), clusterObjectFilename).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), clusterObjectFilename, gomock.Any()).Return(nil).Times(1)
 		mockEvents.EXPECT().V2GetEvents(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("dummy")).Times(1)
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
-		mockS3Client.EXPECT().Download(ctx, files[0]).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
-		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Download(ctx, files[0].Path).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
+		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		_, err := capi.PrepareClusterLogFile(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("upload events failed - but PrepareClusterLogFile should continue to download", func() {
-		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), clusterObjectFilename).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), clusterObjectFilename, gomock.Any()).Return(nil).Times(1)
 		mockEvents.EXPECT().V2GetEvents(gomock.Any(), common.GetDefaultV2GetEventsParams(cl.ID, nil, nil)).Return(&common.V2GetEventsResponse{}, nil).Times(1)
-		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), gomock.Any()).Return(fmt.Errorf("dummy")).Times(1)
+		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("dummy")).Times(1)
 
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
-		mockS3Client.EXPECT().Download(ctx, files[0]).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
-		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Download(ctx, files[0].Path).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
+		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		_, err := capi.PrepareClusterLogFile(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("upload cluster data failed - but PrepareClusterLogFile should continue to download", func() {
-		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), gomock.Any()).Return(fmt.Errorf("dummy")).Times(1)
+		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("dummy")).Times(1)
 		mockEvents.EXPECT().V2GetEvents(gomock.Any(), common.GetDefaultV2GetEventsParams(cl.ID, nil, nil)).Return(&common.V2GetEventsResponse{}, nil).Times(1)
-		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
-		mockS3Client.EXPECT().Download(ctx, files[0]).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
-		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Download(ctx, files[0].Path).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
+		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		_, err := capi.PrepareClusterLogFile(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
@@ -2874,14 +2874,14 @@ var _ = Describe("Cluster tarred files", func() {
 
 	It("list objects no files", func() {
 		uploadClusterDataSuccess()
-		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{tarFile}, nil)
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]s3wrapper.ObjectInfo{{Path: tarFile, Metadata: make(map[string]string)}}, nil)
 		_, err := capi.PrepareClusterLogFile(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("list objects only all logs file", func() {
 		uploadClusterDataSuccess()
-		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{}, nil)
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]s3wrapper.ObjectInfo{}, nil)
 		_, err := capi.PrepareClusterLogFile(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
@@ -2889,8 +2889,8 @@ var _ = Describe("Cluster tarred files", func() {
 	It("download failed", func() {
 		uploadClusterDataSuccess()
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
-		mockS3Client.EXPECT().Download(ctx, files[0]).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
-		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Download(ctx, files[0].Path).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
+		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		_, err := capi.PrepareClusterLogFile(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
@@ -2900,7 +2900,7 @@ var _ = Describe("Cluster tarred files", func() {
 		r := io.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
 		mockS3Client.EXPECT().Download(ctx, gomock.Any()).Return(r, int64(4), nil).AnyTimes()
-		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), tarFile).Return(errors.Errorf("Dummy")).Times(1)
+		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), tarFile, gomock.Any()).Return(errors.Errorf("Dummy")).Times(1)
 		_, err := capi.PrepareClusterLogFile(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
@@ -3218,7 +3218,7 @@ var _ = Describe("Permanently delete clusters", func() {
 
 		mockS3Api.EXPECT().DeleteObject(gomock.Any(), c1.ID.String()).Return(false, nil).Times(1)
 		mockS3Api.EXPECT().DeleteObject(gomock.Any(), c2.ID.String()).Return(false, nil).Times(1)
-		mockS3Api.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{}, nil).AnyTimes()
+		mockS3Api.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]s3wrapper.ObjectInfo{}, nil).AnyTimes()
 
 		Expect(state.PermanentClustersDeletion(ctx, strfmt.DateTime(time.Now().Add(time.Minute)), mockS3Api)).ShouldNot(HaveOccurred())
 
@@ -4062,9 +4062,8 @@ var _ = Describe("ResetClusterFiles", func() {
 		clusterPath := filepath.Join(cluster.ID.String()) + "/"
 		userManifestPath := filepath.Join(cluster.ID.String(), constants.ManifestFolder, "openshift", "some-user-manifest.yaml")
 		systemGeneratedManifestPath := filepath.Join(cluster.ID.String(), constants.ManifestFolder, "manifests", "system-generated-manifest.yaml")
-		mockObjectHandler.EXPECT().ListObjectsByPrefix(ctx, clusterPath).Return([]string{userManifestPath, systemGeneratedManifestPath}, nil).Times(1)
-		mockManifestsApi.EXPECT().IsUserManifest(ctx, *cluster.ID, "openshift", "some-user-manifest.yaml").Return(true, nil).Times(1)
-		mockManifestsApi.EXPECT().IsUserManifest(ctx, *cluster.ID, "manifests", "system-generated-manifest.yaml").Return(false, nil).Times(1)
+		userManifestMetadata := map[string]string{constants.ManifestSourceAttribute: constants.ManifestSourceUserSupplied}
+		mockObjectHandler.EXPECT().ListObjectsByPrefix(ctx, clusterPath).Return([]s3wrapper.ObjectInfo{{Path: userManifestPath, Metadata: userManifestMetadata}, {Path: systemGeneratedManifestPath}}, nil).Times(1)
 		mockObjectHandler.EXPECT().DeleteObject(ctx, systemGeneratedManifestPath).Times(1)
 		mockObjectHandler.EXPECT().DeleteObject(ctx, userManifestPath).Times(0)
 		Expect(capi.ResetClusterFiles(ctx, &cluster, mockObjectHandler)).To(BeNil())
@@ -4075,7 +4074,7 @@ var _ = Describe("ResetClusterFiles", func() {
 		clusterPath := filepath.Join(cluster.ID.String()) + "/"
 		logFilePath := filepath.Join(cluster.ID.String(), "logs", "somelog.txt")
 		fileToBeDeletedPath := filepath.Join(cluster.ID.String(), "something.ign")
-		mockObjectHandler.EXPECT().ListObjectsByPrefix(ctx, clusterPath).Return([]string{logFilePath, fileToBeDeletedPath}, nil).Times(1)
+		mockObjectHandler.EXPECT().ListObjectsByPrefix(ctx, clusterPath).Return([]s3wrapper.ObjectInfo{{Path: logFilePath, Metadata: make(map[string]string)}, {Path: fileToBeDeletedPath, Metadata: make(map[string]string)}}, nil).Times(1)
 		mockObjectHandler.EXPECT().DeleteObject(ctx, fileToBeDeletedPath).Times(1)
 		mockObjectHandler.EXPECT().DeleteObject(ctx, logFilePath).Times(0)
 		Expect(capi.ResetClusterFiles(ctx, &cluster, mockObjectHandler)).To(BeNil())

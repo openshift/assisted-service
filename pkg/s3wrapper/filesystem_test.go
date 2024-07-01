@@ -47,7 +47,7 @@ var _ = Describe("s3filesystem", func() {
 	It("upload_download", func() {
 		mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
 		expLen := len(dataStr)
-		err := client.Upload(ctx, []byte(dataStr), objKey)
+		err := client.Upload(ctx, []byte(dataStr), objKey, make(map[string]string))
 		Expect(err).Should(BeNil())
 
 		size, err := client.GetObjectSizeBytes(ctx, objKey)
@@ -66,7 +66,7 @@ var _ = Describe("s3filesystem", func() {
 		mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
 		expLen := len(dataStr)
 		filePath, _ := createFileObject(client.basedir, objKey, now)
-		err := client.UploadFile(ctx, filePath, objKey)
+		err := client.UploadFile(ctx, filePath, objKey, make(map[string]string))
 		Expect(err).Should(BeNil())
 
 		size, err := client.GetObjectSizeBytes(ctx, objKey)
@@ -87,7 +87,7 @@ var _ = Describe("s3filesystem", func() {
 		filePath, _ := createFileObject(client.basedir, "foo", now)
 		fileReader, err := os.Open(filePath)
 		Expect(err).Should(BeNil())
-		err = client.UploadStream(ctx, fileReader, objKey)
+		err = client.UploadStream(ctx, fileReader, objKey, make(map[string]string))
 		Expect(err).Should(BeNil())
 		fileReader.Close()
 
@@ -105,7 +105,7 @@ var _ = Describe("s3filesystem", func() {
 	})
 	It("doesobjectexist_delete", func() {
 		mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(2)
-		err := client.Upload(ctx, []byte(dataStr), objKey)
+		err := client.Upload(ctx, []byte(dataStr), objKey, make(map[string]string))
 		Expect(err).Should(BeNil())
 
 		exists, err := client.DoesObjectExist(ctx, objKey)
@@ -163,17 +163,48 @@ var _ = Describe("s3filesystem", func() {
 		Expect(called).To(Equal(false))
 	})
 
+	createFile := func(key string, metadata map[string]string) {
+		filePath, _ := createFileObject(client.basedir, key, now)
+		fileReader, err := os.Open(filePath)
+		Expect(err).Should(BeNil())
+		err = client.UploadStream(ctx, fileReader, key, metadata)
+		Expect(err).Should(BeNil())
+		fileReader.Close()
+	}
+
+	It("ListObjectByPrefix returns metadata about objects", func() {
+		createFile("dir/other/file", map[string]string{
+			"SomeKey":      "bar",
+			"SomeOtherKey": "foo",
+		})
+		createFile("dir/other/file2", map[string]string{
+			"AnotherKey":    "somevalue",
+			"YetAnotherKey": "someOtherValue",
+		})
+
+		objects, err := client.ListObjectsByPrefix(ctx, "dir/other")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(objects)).To(Equal(2))
+		Expect(objects[0].Metadata).ToNot(BeNil())
+		Expect(objects[0].Metadata["somekey"]).To(Equal("bar"))
+		Expect(objects[0].Metadata["someotherkey"]).To(Equal("foo"))
+		Expect(objects[1].Metadata).ToNot(BeNil())
+		Expect(objects[1].Metadata["anotherkey"]).To(Equal("somevalue"))
+		Expect(objects[1].Metadata["yetanotherkey"]).To(Equal("someOtherValue"))
+
+	})
+
 	It("ListObjectByPrefix lists the correct object without a leading slash", func() {
 		_, _ = createFileObject(client.basedir, "dir/other/file", now)
 		_, _ = createFileObject(client.basedir, "dir/other/file2", now)
 		_, _ = createFileObject(client.basedir, "dir/file", now)
 		_, _ = createFileObject(client.basedir, "dir2/file", now)
 
-		var objects []string
+		var objects []ObjectInfo
 		var err error
 		containsObj := func(obj string) bool {
 			for _, o := range objects {
-				if obj == o {
+				if obj == o.Path {
 					return true
 				}
 			}
@@ -183,21 +214,29 @@ var _ = Describe("s3filesystem", func() {
 		objects, err = client.ListObjectsByPrefix(ctx, "dir/other")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(objects)).To(Equal(2))
-		Expect(containsObj("dir/other/file")).To(BeTrue(), "file list %v does not contain \"dir/other/file\"", objects)
-		Expect(containsObj("dir/other/file2")).To(BeTrue(), "file list %v does not contain \"dir/other/file2\"", objects)
+		paths := []string{}
+		for _, object := range objects {
+			paths = append(paths, object.Path)
+		}
+		Expect(containsObj("dir/other/file")).To(BeTrue(), "file list %v does not contain \"dir/other/file\"", paths)
+		Expect(containsObj("dir/other/file2")).To(BeTrue(), "file list %v does not contain \"dir/other/file2\"", paths)
 
 		objects, err = client.ListObjectsByPrefix(ctx, "dir2")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(objects)).To(Equal(1))
-		Expect(objects[0]).To(Equal("dir2/file"))
+		Expect(objects[0].Path).To(Equal("dir2/file"))
 
 		objects, err = client.ListObjectsByPrefix(ctx, "")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(objects)).To(Equal(4))
-		Expect(containsObj("dir/other/file")).To(BeTrue(), "file list %v does not contain \"dir/other/file\"", objects)
-		Expect(containsObj("dir/other/file2")).To(BeTrue(), "file list %v does not contain \"dir/other/file2\"", objects)
-		Expect(containsObj("dir/file")).To(BeTrue(), "file list %v does not contain \"dir/file\"", objects)
-		Expect(containsObj("dir2/file")).To(BeTrue(), "file list %v does not contain \"dir2/file\"", objects)
+		paths = []string{}
+		for _, object := range objects {
+			paths = append(paths, object.Path)
+		}
+		Expect(containsObj("dir/other/file")).To(BeTrue(), "file list %v does not contain \"dir/other/file\"", paths)
+		Expect(containsObj("dir/other/file2")).To(BeTrue(), "file list %v does not contain \"dir/other/file2\"", paths)
+		Expect(containsObj("dir/file")).To(BeTrue(), "file list %v does not contain \"dir/file\"", paths)
+		Expect(containsObj("dir2/file")).To(BeTrue(), "file list %v does not contain \"dir2/file\"", paths)
 	})
 
 	AfterEach(func() {

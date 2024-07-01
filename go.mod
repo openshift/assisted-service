@@ -7,7 +7,7 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
-	github.com/aws/aws-sdk-go v1.44.163
+	github.com/aws/aws-sdk-go v1.54.11
 	github.com/bombsimon/logrusr/v3 v3.0.0
 	github.com/buger/jsonparser v1.1.1
 	github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
@@ -225,7 +225,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/openshift/machine-config-operator v0.0.1-0.20201023110058-6c8bd9b2915c
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect
-	github.com/pkg/xattr v0.4.9 // indirect
+	github.com/pkg/xattr v0.4.9
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.45.0 // indirect
