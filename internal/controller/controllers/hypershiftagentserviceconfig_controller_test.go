@@ -110,7 +110,8 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 				Log:    logrus.New(),
 				// TODO(djzager): If we need to verify emitted events
 				// https://github.com/kubernetes/kubernetes/blob/ea0764452222146c47ec826977f49d7001b0ea8c/pkg/controller/statefulset/stateful_pod_control_test.go#L474
-				Recorder: record.NewFakeRecorder(10),
+				Recorder:    record.NewFakeRecorder(10),
+				IsOpenShift: true,
 			},
 			Client:       c,
 			SpokeClients: mockSpokeClientCache,

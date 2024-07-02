@@ -240,7 +240,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
 	hubComponents := []component{}
 	hubComponents = append(hubComponents, assistedServiceRBAC_hub...)
-	hubComponents = append(hubComponents, getComponents(asc.spec)...)
+	hubComponents = append(hubComponents, getComponents(asc.spec, asc.rec.IsOpenShift)...)
 	hubComponents = append(hubComponents, hr.getWebhookComponents_hub()...)
 
 	// Reconcile hub components
