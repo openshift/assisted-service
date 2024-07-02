@@ -43,8 +43,34 @@ RUN cd ./cmd/operator && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /bu
 RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission
 RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
 
+# Licenses
+FROM registry.access.redhat.com/ubi9/go-toolset:1.18 AS licenses
+
+ADD . /app
+WORKDIR /app
+
+RUN go install github.com/google/go-licenses@v1.6.0
+RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
+
 # Create final image
 FROM quay.io/centos/centos:$BASE_TAG
+
+ARG release=main
+ARG version=latest
+
+LABEL com.redhat.component assisted-service
+LABEL description "Service that installs Openshift"
+LABEL summary "Service that installs Openshift"
+LABEL io.k8s.description "Service that installs Openshift"
+LABEL distribution-scope public
+LABEL name assisted-service
+LABEL release ${release}
+LABEL version ${version}
+LABEL url https://github.com/openshift/assisted-service
+LABEL vendor "Red Hat, Inc."
+LABEL maintainer "Red Hat"
+
+COPY --from=licenses /tmp/licenses /licenses
 
 COPY hack/container_build_scripts/replace_dnf_repositories_ref_if_needed.sh .
 COPY hack/container_build_scripts/utils.sh .
@@ -74,4 +100,7 @@ RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-
 COPY --from=pybuilder /assisted-service/build/dist/* /clients/
 ENV GODEBUG=madvdontneed=1
 ENV GOGC=50
+
+USER 1001:1001
+
 CMD ["/assisted-service"]
