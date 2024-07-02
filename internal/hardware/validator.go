@@ -5,16 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/dustin/go-humanize"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/feature"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
@@ -92,11 +95,19 @@ func (v *validator) GetHostInstallationPath(host *models.Host) string {
 }
 
 func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
-	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+	inventory, err := getHostInventory(host)
+	if err != nil {
 		return nil, err
 	}
 	return v.ListEligibleDisks(&inventory), nil
+}
+
+func getHostInventory(host *models.Host) (models.Inventory, error) {
+	var inventory models.Inventory
+	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+		return inventory, err
+	}
+	return inventory, nil
 }
 
 func isNvme(name string) bool {
@@ -150,7 +161,63 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 		}
 	}
 
+	if disk.DriveType == models.DriveTypeISCSI {
+		err := isISCSINetworkingValid(disk, host)
+		if err != nil {
+			notEligibleReasons = append(notEligibleReasons, err.Error())
+		}
+	}
+
 	return notEligibleReasons, nil
+}
+
+// isISCSINetworkingValid checks if the iSCSI dish is not connected through the
+// default network interface. The default network interface is the interface
+// which is used by the default gateway.
+func isISCSINetworkingValid(disk *models.Disk, host *models.Host) error {
+	// get the IPv4 or the IPv6 of the interface connected to the iSCSI target
+	if disk.Iscsi == nil {
+		return fmt.Errorf("Host IP address is not available")
+
+	}
+	iSCSIHostIP := net.ParseIP(disk.Iscsi.HostIPAddress)
+	if iSCSIHostIP == nil {
+		return fmt.Errorf("Cannot parse iSCSI host IP %s", disk.Iscsi.HostIPAddress)
+	}
+	isIPv6 := govalidator.IsIPv6(iSCSIHostIP.String())
+
+	// find the network interface name behind the default route
+	inventory, err := getHostInventory(host)
+	if err != nil {
+		return err
+	}
+	defaultRoute := network.GetDefaultRouteByFamily(inventory.Routes, isIPv6)
+	if defaultRoute == nil {
+		return fmt.Errorf("Cannot find default route")
+	}
+
+	defaultInterface := funk.Find(inventory.Interfaces, func(i *models.Interface) bool {
+		return i.Name == defaultRoute.Interface
+	}).(*models.Interface)
+	if defaultInterface == nil {
+		return fmt.Errorf("Cannot find the network interface behind the default route")
+	}
+
+	// look if one of the IP assigned to the default interface interface
+	// corresponds to the IP used by host to connect on the iSCSI target
+	ips := defaultInterface.IPV4Addresses
+	if isIPv6 {
+		ips = defaultInterface.IPV6Addresses
+	}
+	found := funk.Find(ips, func(ip string) bool {
+		interfaceIP, _, _ := net.ParseCIDR(ip)
+		return interfaceIP.String() == iSCSIHostIP.String()
+	})
+
+	if found != nil {
+		return fmt.Errorf("iSCSI volume %s cannot be connected through default network interface %s", disk.Name, defaultRoute.Interface)
+	}
+	return nil
 }
 
 func (v *validator) IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string, openshiftVersion string) bool {

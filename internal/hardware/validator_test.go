@@ -162,28 +162,62 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check if iSCSI is eligible", func() {
 		testDisk.DriveType = models.DriveTypeISCSI
+		testDisk.Name = "iscsi0"
 		cluster.OpenshiftVersion = "4.15.0"
 		hostInventory, _ := common.UnmarshalInventory(host.Inventory)
+
+		// Add a default IPv6 route
+		hostInventory.Routes = append(hostInventory.Routes, &models.Route{
+			Family:      common.FamilyIPv6,
+			Interface:   "eth0",
+			Gateway:     "fe80:db8::1",
+			Destination: "::",
+			Metric:      600,
+		})
 		hw, _ := json.Marshal(&hostInventory)
 		host.Inventory = string(hw)
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil).AnyTimes()
 
+		By("Check iSCSI is not elegible when host IPv4 address isn't set")
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(ContainElement("Host IP address is not available"))
+
+		By("Check iSCSI is elegible when host IPv4 address is not part of default network interface")
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).To(BeEmpty())
 
+		By("Check iSCSI is not elegible when host IPv4 address is part of default network interface")
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1.2.3.4"}
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(ContainElement("iSCSI volume iscsi0 cannot be connected through default network interface eth0"))
+
+		By("Check iSCSI is elegible when host IPv6 address is not part of default network interface")
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1002:db8::10"}
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
+
+		By("Check iSCSI is not elegible when host IPv6 address is part of default network interface")
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1001:db8::10"}
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(ContainElement("iSCSI volume iscsi0 cannot be connected through default network interface eth0"))
+
 		By("Check iSCSI on older version is not eligible")
-		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil)
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
 		cluster.OpenshiftVersion = "4.14.1"
 		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
-
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(eligible).To(ContainElement("Drive type is iSCSI, it must be one of HDD, SSD, Multipath."))
 
 		By("Check infra env iSCSI is not eligible")
 		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, models.ClusterCPUArchitectureX8664, []*models.Disk{&testDisk})
-
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(eligible).To(ContainElement("Drive type is iSCSI, it must be one of HDD, SSD, Multipath."))
 	})
 
 	It("Check that FC multipath is eligible", func() {
