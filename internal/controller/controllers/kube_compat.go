@@ -19,6 +19,7 @@ import (
 const (
 	caCommonName                     = "Assisted Installer CA"
 	caIssuerName                     = "assisted-installer-ca"
+	certificateCRDName               = "certificates.cert-manager.io"
 	certManagerCAInjectionAnnotation = "cert-manager.io/inject-ca-from"
 	clusterVersionCRDName            = "clusterversions.config.openshift.io"
 	selfSignedIssuerName             = "assisted-installer-selfsigned-ca"
@@ -27,6 +28,15 @@ const (
 func ServerIsOpenShift(ctx context.Context, c client.Client) (bool, error) {
 	clusterVersionCRD := apiextensionsv1.CustomResourceDefinition{}
 	err := c.Get(ctx, types.NamespacedName{Name: clusterVersionCRDName}, &clusterVersionCRD)
+	if err == nil {
+		return true, nil
+	}
+	return false, client.IgnoreNotFound(err)
+}
+
+func serverSupportsCertManager(ctx context.Context, c client.Client) (bool, error) {
+	certCRD := apiextensionsv1.CustomResourceDefinition{}
+	err := c.Get(ctx, types.NamespacedName{Name: certificateCRDName}, &certCRD)
 	if err == nil {
 		return true, nil
 	}

@@ -264,8 +264,18 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		return ctrl.Result{}, nil
 	}
 
+	supportsCertManager := false
+	if !asc.rec.IsOpenShift {
+		var err error
+		supportsCertManager, err = serverSupportsCertManager(ctx, asc.Client)
+		if err != nil {
+			log.WithError(err).Error("failed to check if server supports cert-manager")
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Invoke validation funcs
-	valid, err := validate(ctx, log, asc)
+	valid, err := validate(ctx, log, asc, supportsCertManager)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -2618,7 +2628,7 @@ func registerOSImagesAdditionalParamsFailureCondition(ctx context.Context, log l
 	return nil
 }
 
-func validate(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error) {
+func validate(ctx context.Context, log logrus.FieldLogger, asc ASC, supportsCertManager bool) (bool, error) {
 	if asc.spec.OSImageCACertRef != nil && asc.spec.OSImageCACertRef.Name != "" {
 		osImageCACertConfigMap := &corev1.ConfigMap{}
 		err := asc.Client.Get(ctx, types.NamespacedName{
@@ -2683,28 +2693,36 @@ func validate(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error
 		return false, nil
 	}
 
-	// validate kubernetes ingress config if not running on OpenShift
-	// Ingress must not be nil and both hostnames must be provided
-	if !asc.rec.IsOpenShift &&
-		(asc.spec.Ingress == nil ||
-			asc.spec.Ingress.AssistedServiceHostname == "" ||
-			asc.spec.Ingress.ImageServiceHostname == "") {
-		message := "ingress configuration is required for non-OpenShift deployment"
-		log.Error(message)
-		conditionsv1.SetStatusConditionNoHeartbeat(
-			asc.conditions, conditionsv1.Condition{
-				Type:    aiv1beta1.ConditionReconcileCompleted,
-				Status:  corev1.ConditionFalse,
-				Reason:  aiv1beta1.ReasonKubernetesIngressMissing,
-				Message: message,
-			},
-		)
-		err = asc.Client.Status().Update(ctx, asc.Object)
-		if err != nil {
-			log.WithError(err).Error("Failed to update status")
-			return false, err
+	if !asc.rec.IsOpenShift {
+		message := ""
+		reason := ""
+		// validate kubernetes ingress config if not running on OpenShift
+		// Ingress must not be nil and both hostnames must be provided
+		if asc.spec.Ingress == nil || asc.spec.Ingress.AssistedServiceHostname == "" || asc.spec.Ingress.ImageServiceHostname == "" {
+			message = "ingress configuration is required for non-OpenShift deployment"
+			reason = aiv1beta1.ReasonKubernetesIngressMissing
+		} else if !supportsCertManager {
+			message = "cert-manager is a required dependency for non-OpenShift deployments"
+			reason = aiv1beta1.ReasonCertificateFailure
 		}
-		return false, nil
+
+		if message != "" && reason != "" {
+			log.Error(message)
+			conditionsv1.SetStatusConditionNoHeartbeat(
+				asc.conditions, conditionsv1.Condition{
+					Type:    aiv1beta1.ConditionReconcileCompleted,
+					Status:  corev1.ConditionFalse,
+					Reason:  reason,
+					Message: message,
+				},
+			)
+			err = asc.Client.Status().Update(ctx, asc.Object)
+			if err != nil {
+				log.WithError(err).Error("Failed to update status")
+				return false, err
+			}
+			return false, nil
+		}
 	}
 
 	// If we are here then all the validations succeeded, so we may need to

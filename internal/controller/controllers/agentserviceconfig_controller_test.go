@@ -24,6 +24,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -2588,15 +2589,23 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 
 		reconciler = newTestReconciler(asc)
 		reconciler.AgentServiceConfigReconcileContext.IsOpenShift = false
+
+		// Create Certificate CRD
+		certCRD := &apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: certificateCRDName,
+			},
+		}
+		Expect(reconciler.Client.Create(ctx, certCRD)).To(Succeed())
 	})
 
-	expectIngressConditionFailed := func() {
+	expectReconcileConditionFailed := func(reason string) {
 		updated := aiv1beta1.AgentServiceConfig{}
 		Expect(reconciler.Client.Get(ctx, clnt.ObjectKey{Name: "agent"}, &updated)).To(Succeed())
 		cond := conditionsv1.FindStatusCondition(updated.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
 		Expect(cond).NotTo(BeNil())
 		Expect(cond.Status).To(Equal(corev1.ConditionFalse))
-		Expect(cond.Reason).To(Equal(aiv1beta1.ReasonKubernetesIngressMissing))
+		Expect(cond.Reason).To(Equal(reason))
 	}
 
 	It("sets a validation failure condition if ingress is not specified", func() {
@@ -2606,7 +2615,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
-		expectIngressConditionFailed()
+		expectReconcileConditionFailed(aiv1beta1.ReasonKubernetesIngressMissing)
 	})
 
 	It("sets a validation failure condition if assisted host is not specified", func() {
@@ -2616,7 +2625,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
-		expectIngressConditionFailed()
+		expectReconcileConditionFailed(aiv1beta1.ReasonKubernetesIngressMissing)
 	})
 
 	It("sets a validation failure condition if image service host is not specified", func() {
@@ -2626,7 +2635,21 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
-		expectIngressConditionFailed()
+		expectReconcileConditionFailed(aiv1beta1.ReasonKubernetesIngressMissing)
+	})
+
+	It("sets a validation failure condition if the Certificate CRD doesn't exist", func() {
+		certCRD := &apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: certificateCRDName,
+			},
+		}
+		Expect(reconciler.Client.Delete(ctx, certCRD)).To(Succeed())
+
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+		expectReconcileConditionFailed(aiv1beta1.ReasonCertificateFailure)
 	})
 
 	It("does not deploy ServiceMonitors", func() {
