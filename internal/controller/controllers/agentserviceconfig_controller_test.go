@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -2650,6 +2652,50 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 			err = reconciler.Client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
 			Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		}
+	})
+
+	It("creates required certificates and issuers", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		By("creates the self-signed issuer")
+		is := &certtypes.Issuer{}
+		key := types.NamespacedName{Name: "assisted-installer-selfsigned-ca", Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, is)).To(Succeed())
+		Expect(is.Spec.IssuerConfig.SelfSigned).NotTo(BeNil())
+
+		By("creates the CA certificate")
+		cert := &certtypes.Certificate{}
+		key = types.NamespacedName{Name: "assisted-installer-ca", Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, cert)).To(Succeed())
+		Expect(cert.Spec.IsCA).To(BeTrue())
+		Expect(cert.Spec.SecretName).To(Equal("assisted-installer-ca"))
+		Expect(cert.Spec.IssuerRef).To(Equal(certmeta.ObjectReference{
+			Kind: "Issuer",
+			Name: "assisted-installer-selfsigned-ca",
+		}))
+
+		By("creates the CA issuer")
+		is = &certtypes.Issuer{}
+		key = types.NamespacedName{Name: "assisted-installer-ca", Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, is)).To(Succeed())
+		Expect(is.Spec.IssuerConfig.CA).To(Equal(&certtypes.CAIssuer{
+			SecretName: "assisted-installer-ca",
+		}))
+
+		By("creates the webhook certificate")
+		cert = &certtypes.Certificate{}
+		key = types.NamespacedName{Name: webhookServiceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, cert)).To(Succeed())
+		Expect(cert.Spec.SecretName).To(Equal(webhookServiceName))
+		Expect(cert.Spec.IssuerRef).To(Equal(certmeta.ObjectReference{
+			Kind: "Issuer",
+			Name: "assisted-installer-ca",
+		}))
+		Expect(len(cert.Spec.DNSNames)).To(Equal(2))
+		Expect(cert.Spec.DNSNames).To(ContainElement(fmt.Sprintf("%s.%s.svc", webhookServiceName, testNamespace)))
+		Expect(cert.Spec.DNSNames).To(ContainElement(fmt.Sprintf("%s.%s.svc.cluster.local", webhookServiceName, testNamespace)))
 	})
 
 	It("creates the assisted configmap without https config", func() {

@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
 	routev1 "github.com/openshift/api/route/v1"
@@ -382,6 +383,8 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool) []c
 				component{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, newAgentIPXERoute},
 			)
 		}
+	} else {
+		components = append(components, certManagerComponents()...)
 	}
 	return components
 
@@ -519,7 +522,9 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			Owns(&routev1.Route{}).
 			Watches(&corev1.ConfigMap{}, ingressCMHandler, ingressCMPredicates)
 	} else {
-		b = b.Owns(&netv1.Ingress{})
+		b = b.Owns(&netv1.Ingress{}).
+			Owns(&certtypes.Certificate{}).
+			Owns(&certtypes.Issuer{})
 	}
 
 	return b.Complete(r)

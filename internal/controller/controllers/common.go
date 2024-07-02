@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
@@ -233,6 +234,7 @@ func GetKubeClientSchemes() *runtime.Scheme {
 	utilruntime.Must(configv1.Install(schemes))
 	utilruntime.Must(metal3iov1alpha1.AddToScheme(schemes))
 	utilruntime.Must(apiextensionsv1.AddToScheme(schemes))
+	utilruntime.Must(certtypes.AddToScheme(schemes))
 	return schemes
 }
 
