@@ -1,4 +1,4 @@
-FROM golang:1.16
+FROM golang:1.21.11
 
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash
 RUN apt-get install --yes nodejs
