@@ -63,6 +63,22 @@ spec:
           is provided 2GiB per OSImage entry is required
         displayName: Storage for images
         path: imageStorage
+      - description: Ingress contains configuration for the ingress resources. Has
+          no effect when running on an OpenShift cluster.
+        displayName: Ingress
+        path: ingress
+      - description: AssistedServiceHostname is the hostname to be assigned to the
+          assisted-service ingress. Has no effect when running on an OpenShift cluster.
+        displayName: Assisted Service hostname
+        path: ingress.assistedServiceHostname
+      - description: ClassName is the name of the ingress class to be used when configuring
+          ingress resources. Has no effect when running on an OpenShift cluster.
+        displayName: Class Name
+        path: ingress.className
+      - description: ImageServiceHostname is the hostname to be assigned to the assisted-image-service
+          ingress. Has no effect when running on an OpenShift cluster.
+        displayName: Assisted Image Service hostname
+        path: ingress.imageServiceHostname
       - description: 'MirrorRegistryRef is the reference to the configmap that contains
           mirror registry configuration In case no configuration is need, this field
           will be nil. ConfigMap must contain to entries: ca-bundle.crt - hold the

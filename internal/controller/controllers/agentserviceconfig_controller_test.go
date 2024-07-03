@@ -21,7 +21,9 @@ import (
 	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -62,7 +64,8 @@ func newTestReconciler(initObjs ...client.Object) *AgentServiceConfigReconciler 
 			Log:    logrus.New(),
 			// TODO(djzager): If we need to verify emitted events
 			// https://github.com/kubernetes/kubernetes/blob/ea0764452222146c47ec826977f49d7001b0ea8c/pkg/controller/statefulset/stateful_pod_control_test.go#L474
-			Recorder: record.NewFakeRecorder(10),
+			Recorder:    record.NewFakeRecorder(10),
+			IsOpenShift: true,
 		},
 		Client:    c,
 		Namespace: testNamespace,
@@ -161,9 +164,10 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		// Create the reconciler:
 		reconciler = &AgentServiceConfigReconciler{
 			AgentServiceConfigReconcileContext: AgentServiceConfigReconcileContext{
-				Scheme:   cluster.Scheme(),
-				Log:      logrusLogger,
-				Recorder: cluster.Recorder(),
+				Scheme:      cluster.Scheme(),
+				Log:         logrusLogger,
+				Recorder:    cluster.Recorder(),
+				IsOpenShift: true,
 			},
 			Client:    client,
 			Namespace: "assisted-installer",
@@ -2562,3 +2566,231 @@ func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
 
 	return asc, string(encoded)
 }
+
+var _ = Describe("Reconcile on non-OCP clusters", func() {
+	var (
+		asc        *aiv1beta1.AgentServiceConfig
+		ctx        context.Context
+		reconciler *AgentServiceConfigReconciler
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		asc.Spec.Ingress = &aiv1beta1.Ingress{
+			AssistedServiceHostname: "assisted.example.com",
+			ImageServiceHostname:    "images.example.com",
+			ClassName:               swag.String("nginx"),
+		}
+
+		ctx = context.Background()
+
+		reconciler = newTestReconciler(asc)
+		reconciler.AgentServiceConfigReconcileContext.IsOpenShift = false
+	})
+
+	expectIngressConditionFailed := func() {
+		updated := aiv1beta1.AgentServiceConfig{}
+		Expect(reconciler.Client.Get(ctx, clnt.ObjectKey{Name: "agent"}, &updated)).To(Succeed())
+		cond := conditionsv1.FindStatusCondition(updated.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+		Expect(cond).NotTo(BeNil())
+		Expect(cond.Status).To(Equal(corev1.ConditionFalse))
+		Expect(cond.Reason).To(Equal(aiv1beta1.ReasonKubernetesIngressMissing))
+	}
+
+	It("sets a validation failure condition if ingress is not specified", func() {
+		asc.Spec.Ingress = nil
+		Expect(reconciler.Client.Update(ctx, asc)).To(Succeed())
+
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+		expectIngressConditionFailed()
+	})
+
+	It("sets a validation failure condition if assisted host is not specified", func() {
+		asc.Spec.Ingress.AssistedServiceHostname = ""
+		Expect(reconciler.Client.Update(ctx, asc)).To(Succeed())
+
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+		expectIngressConditionFailed()
+	})
+
+	It("sets a validation failure condition if image service host is not specified", func() {
+		asc.Spec.Ingress.ImageServiceHostname = ""
+		Expect(reconciler.Client.Update(ctx, asc)).To(Succeed())
+
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+		expectIngressConditionFailed()
+	})
+
+	It("does not deploy ServiceMonitors", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		smList := monitoringv1.ServiceMonitorList{}
+		Expect(reconciler.Client.List(ctx, &smList)).To(Succeed())
+		Expect(len(smList.Items)).To(Equal(0))
+	})
+
+	It("does not deploy webhook components", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		ascWrapper := initASC(reconciler, asc)
+		components := reconciler.getWebhookComponents()
+		for _, c := range components {
+			obj, _, err := c.fn(ctx, reconciler.Log, ascWrapper)
+			Expect(err).To(BeNil())
+			err = reconciler.Client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		}
+	})
+
+	It("creates the assisted configmap without https config", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		cm := corev1.ConfigMap{}
+		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &cm)).To(Succeed())
+		Expect(cm.Data).ToNot(HaveKey("SERVE_HTTPS"))
+		Expect(cm.Data).ToNot(HaveKey("HTTPS_CERT_FILE"))
+		Expect(cm.Data).ToNot(HaveKey("HTTPS_KEY_FILE"))
+		Expect(cm.Data).ToNot(HaveKey("SERVICE_CA_CERT_PATH"))
+		Expect(cm.Data).ToNot(HaveKey("SKIP_CERT_VERIFICATION"))
+	})
+
+	It("creates the assisted deployment without https config", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		deploy := appsv1.Deployment{}
+		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &deploy)).To(Succeed())
+
+		var container *corev1.Container
+		for i, c := range deploy.Spec.Template.Spec.Containers {
+			if c.Name == serviceName {
+				container = &deploy.Spec.Template.Spec.Containers[i]
+			}
+		}
+
+		By("ensure no cert volumes are present")
+		Expect(container.VolumeMounts).To(Equal([]corev1.VolumeMount{{Name: "bucket-filesystem", MountPath: "/data"}}))
+		for _, vol := range deploy.Spec.Template.Spec.Volumes {
+			Expect(vol.Name).NotTo(Equal("tls-certs"))
+			Expect(vol.Name).NotTo(Equal("ingress-cert"))
+		}
+
+		By("ensure probe scheme is http")
+		Expect(container.ReadinessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+		Expect(container.LivenessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+	})
+
+	It("creates the image service statefulset without https config", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		ss := appsv1.StatefulSet{}
+		key := types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &ss)).To(Succeed())
+
+		Expect(len(ss.Spec.Template.Spec.Containers)).To(Equal(1))
+		container := ss.Spec.Template.Spec.Containers[0]
+
+		By("ensure no cert volumes are present")
+		Expect(container.VolumeMounts).To(Equal([]corev1.VolumeMount{{Name: "image-service-data", MountPath: "/data"}}))
+		Expect(len(ss.Spec.Template.Spec.Volumes)).To(Equal(0))
+
+		By("ensure env is set up for http")
+		httpsEnvVars := []string{"HTTPS_CERT_FILE", "HTTPS_KEY_FILE", "HTTPS_CA_FILE", "HTTP_LISTEN_PORT"}
+		for _, env := range container.Env {
+			Expect(env.Name).ToNot(BeElementOf(httpsEnvVars))
+			if env.Name == "ASSISTED_SERVICE_SCHEME" {
+				Expect(env.Value).To(Equal("http"))
+			}
+		}
+
+		By("ensure probe scheme is http")
+		Expect(container.ReadinessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+		Expect(container.LivenessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+	})
+
+	validateIngress := func(ingress *netv1.Ingress, host string, service string, port int32) {
+		Expect(ingress.Spec.IngressClassName).To(HaveValue(Equal(*asc.Spec.Ingress.ClassName)))
+		Expect(len(ingress.Spec.Rules)).To(Equal(1))
+		rule := ingress.Spec.Rules[0]
+		Expect(rule.Host).To(Equal(host))
+		Expect(rule.IngressRuleValue.HTTP).NotTo(BeNil())
+		Expect(len(rule.IngressRuleValue.HTTP.Paths)).To(Equal(1))
+		Expect(rule.IngressRuleValue.HTTP.Paths[0].Path).To(Equal("/"))
+		Expect(rule.IngressRuleValue.HTTP.Paths[0].PathType).To(HaveValue(Equal(netv1.PathTypePrefix)))
+		serviceBackend := netv1.IngressServiceBackend{
+			Name: service,
+			Port: netv1.ServiceBackendPort{Number: port},
+		}
+		Expect(rule.IngressRuleValue.HTTP.Paths[0].Backend.Service).To(HaveValue(Equal(serviceBackend)))
+	}
+
+	It("creates ingress instead of routes", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		// No routes should be created
+		routeList := routev1.RouteList{}
+		Expect(reconciler.Client.List(ctx, &routeList)).To(Succeed())
+		Expect(len(routeList.Items)).To(Equal(0))
+
+		// An ingress should be created for both services
+		ingress := netv1.Ingress{}
+		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &ingress)).To(Succeed())
+		validateIngress(&ingress, asc.Spec.Ingress.AssistedServiceHostname, serviceName, 8090)
+
+		key = types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &ingress)).To(Succeed())
+		validateIngress(&ingress, asc.Spec.Ingress.ImageServiceHostname, imageServiceName, 8080)
+	})
+
+	It("creates the assisted configmap with the ingress host for the base URLs", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		cm := corev1.ConfigMap{}
+		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &cm)).To(Succeed())
+		Expect(cm.Data["SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("http://%s", asc.Spec.Ingress.AssistedServiceHostname)))
+		Expect(cm.Data["IMAGE_SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("http://%s", asc.Spec.Ingress.ImageServiceHostname)))
+	})
+
+	It("sets the image service base URL env to the ingress host", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		ss := appsv1.StatefulSet{}
+		key := types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &ss)).To(Succeed())
+
+		Expect(len(ss.Spec.Template.Spec.Containers)).To(Equal(1))
+		var found bool
+		for _, env := range ss.Spec.Template.Spec.Containers[0].Env {
+			if env.Name == "IMAGE_SERVICE_BASE_URL" {
+				Expect(env.Value).To(Equal(fmt.Sprintf("http://%s", asc.Spec.Ingress.ImageServiceHostname)))
+				found = true
+			}
+		}
+		Expect(found).To(BeTrue(), "Expected to find the IMAGE_SERVICE_BASE_URL env var")
+	})
+})
