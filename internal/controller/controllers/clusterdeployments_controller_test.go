@@ -4157,6 +4157,15 @@ var _ = Describe("unbindAgents", func() {
 		}
 		Expect(c.Create(ctx, infraEnv)).To(Succeed())
 
+		clusterDeployment := &hivev1.ClusterDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: clusterReference.Namespace,
+				Name:      clusterReference.Name,
+			},
+			Spec: hivev1.ClusterDeploymentSpec{},
+		}
+		Expect(c.Create(ctx, clusterDeployment)).To(Succeed())
+
 		cdName := types.NamespacedName{
 			Name:      clusterReference.Name,
 			Namespace: clusterReference.Namespace,
@@ -4184,6 +4193,41 @@ var _ = Describe("unbindAgents", func() {
 			Spec: aiv1beta1.InfraEnvSpec{ClusterRef: &clusterReference},
 		}
 		Expect(c.Create(ctx, infraEnv)).To(Succeed())
+
+		cdName := types.NamespacedName{
+			Name:      clusterReference.Name,
+			Namespace: clusterReference.Namespace,
+		}
+		Expect(cr.unbindAgents(ctx, common.GetTestLog(), cdName)).To(Succeed())
+
+		agent := &aiv1beta1.Agent{}
+		err := c.Get(ctx, types.NamespacedName{Name: "test-agent1", Namespace: testNamespace}, agent)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		agent = &aiv1beta1.Agent{}
+		err = c.Get(ctx, types.NamespacedName{Name: "test-agent2", Namespace: testNamespace}, agent)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+	})
+
+	It("deletes late bound agents when cluster deployment is preserved", func() {
+		infraEnv := &aiv1beta1.InfraEnv{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      infraEnvName,
+				Namespace: testNamespace,
+			},
+			Spec: aiv1beta1.InfraEnvSpec{ClusterRef: nil},
+		}
+		Expect(c.Create(ctx, infraEnv)).To(Succeed())
+
+		clusterDeployment := &hivev1.ClusterDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: clusterReference.Namespace,
+				Name:      clusterReference.Name,
+			},
+			Spec: hivev1.ClusterDeploymentSpec{
+				PreserveOnDelete: true,
+			},
+		}
+		Expect(c.Create(ctx, clusterDeployment)).To(Succeed())
 
 		cdName := types.NamespacedName{
 			Name:      clusterReference.Name,
