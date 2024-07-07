@@ -1,5 +1,5 @@
 
-FROM golang:1.18
+FROM golang:1.23rc1
 
 WORKDIR /go/src/github.com/samber/lo
 
