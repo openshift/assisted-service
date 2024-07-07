@@ -128,5 +128,4 @@ for developers
 Configuration differences are:
 * `OS_IMAGES` should point to Fedora CoreOS (see [Fedora CoreOS Release artifacts](https://getfedora.org/en/coreos/download?tab=metal_virtualized&stream=stable&arch=x86_64))
 * `RELEASE_IMAGES` lists available OKD versions (see [OKD Releases](https://github.com/openshift/okd/releases))
-* `OKD_RPMS_IMAGE` is additional image containing Kubelet/CRI-O RPMs (see [example repo](https://github.com/vrutkovs/okd-rpms))
 * `ENABLE_OKD_SUPPORT` whether OKD support is enabled. Required to be `true` so that the service setup necessary RPMs on top of discovery ISO
