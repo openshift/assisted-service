@@ -54,6 +54,14 @@ The nginx controller can be easily deployed with the following command:
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 ```
 
+### Deploy cert-manager
+
+cert-manager is used to create and maintain certificates for use in https services and is required when running on non-OpenShift kubernetes.
+
+```sh
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml
+```
+
 ### Deploy the Infrastructure Operator and related CRDs from the local assisted-service repo
 
 ```sh
