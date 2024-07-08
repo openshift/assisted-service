@@ -56,4 +56,10 @@ items:
                 value: REPLACE_IMAGE_SERVICE_BASE_URL
               - name: ALLOWED_DOMAINS
                 value: "*"
+            volumeMounts:
+              - mountPath: /data
+                name: image-service-data
         serviceAccountName: assisted-service
+        volumes:
+         - emptyDir: {}
+           name: image-service-data
