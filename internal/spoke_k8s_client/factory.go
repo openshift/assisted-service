@@ -41,7 +41,7 @@ func (cf *spokeK8sClientFactory) CreateFromRawKubeconfig(kubeconfig []byte) (Spo
 }
 
 func (cf *spokeK8sClientFactory) CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error) {
-	kubeconfigData, err := KubeconfigFromSecret(secret)
+	kubeconfigData, err := kubeconfigFromSecret(secret)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (cf *spokeK8sClientFactory) CreateFromStorageKubeconfig(ctx context.Context
 }
 
 func (cf *spokeK8sClientFactory) ClientAndSetFromSecret(secret *corev1.Secret) (SpokeK8sClient, *kubernetes.Clientset, error) {
-	kubeconfig, err := KubeconfigFromSecret(secret)
+	kubeconfig, err := kubeconfigFromSecret(secret)
 	if err != nil {
 		cf.log.WithError(err).Error("failed to get kubeconfig from secret")
 		return nil, nil, err
@@ -75,7 +75,7 @@ func (cf *spokeK8sClientFactory) ClientAndSetFromSecret(secret *corev1.Secret) (
 	return cf.clientAndSetForKubeconfig(kubeconfig)
 }
 
-func KubeconfigFromSecret(secret *corev1.Secret) ([]byte, error) {
+func kubeconfigFromSecret(secret *corev1.Secret) ([]byte, error) {
 	if secret.Data == nil {
 		return nil, errors.Errorf("Secret %s/%s  does not contain any data", secret.Namespace, secret.Name)
 	}
