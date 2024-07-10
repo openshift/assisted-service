@@ -26,21 +26,17 @@ const (
 )
 
 func ServerIsOpenShift(ctx context.Context, c client.Client) (bool, error) {
-	clusterVersionCRD := apiextensionsv1.CustomResourceDefinition{}
-	err := c.Get(ctx, types.NamespacedName{Name: clusterVersionCRDName}, &clusterVersionCRD)
-	if err == nil {
-		return true, nil
-	}
-	return false, client.IgnoreNotFound(err)
+	return crdExists(ctx, c, clusterVersionCRDName)
 }
 
 func serverSupportsCertManager(ctx context.Context, c client.Client) (bool, error) {
-	certCRD := apiextensionsv1.CustomResourceDefinition{}
-	err := c.Get(ctx, types.NamespacedName{Name: certificateCRDName}, &certCRD)
-	if err == nil {
-		return true, nil
-	}
-	return false, client.IgnoreNotFound(err)
+	return crdExists(ctx, c, certificateCRDName)
+}
+
+func crdExists(ctx context.Context, c client.Client, crdName string) (bool, error) {
+	crd := apiextensionsv1.CustomResourceDefinition{}
+	err := c.Get(ctx, types.NamespacedName{Name: crdName}, &crd)
+	return err == nil, client.IgnoreNotFound(err)
 }
 
 func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name string, host string, port int32) (client.Object, controllerutil.MutateFn, error) {
