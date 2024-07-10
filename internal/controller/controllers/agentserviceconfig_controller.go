@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
 	routev1 "github.com/openshift/api/route/v1"
@@ -210,6 +211,8 @@ type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.
 // +kubebuilder:rbac:groups="apiregistration.k8s.io",resources=apiservices,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cert-manager.io,resources=issuers,verbs=get;list;watch;create;update;patch;delete
 
 func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var asc ASC
@@ -261,8 +264,18 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		return ctrl.Result{}, nil
 	}
 
+	supportsCertManager := false
+	if !asc.rec.IsOpenShift {
+		var err error
+		supportsCertManager, err = serverSupportsCertManager(ctx, asc.Client)
+		if err != nil {
+			log.WithError(err).Error("failed to check if server supports cert-manager")
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Invoke validation funcs
-	valid, err := validate(ctx, log, asc)
+	valid, err := validate(ctx, log, asc, supportsCertManager)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -281,13 +294,9 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 			return result, err
 		}
 	}
-	// TODO: webhooks _require_ HTTPS so we need a way to create and maintain certs before we can enable them
-	// ref: https://github.com/openshift/generic-admission-server/blob/8dcc3c9b298fefaf4d31c60001907222bf2c3f83/README.md#why-cant-i-write-a-simple-http-webhook-server
-	if asc.rec.IsOpenShift {
-		for _, component := range r.getWebhookComponents() {
-			if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
-				return result, err
-			}
+	for _, component := range r.getWebhookComponents() {
+		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
+			return result, err
 		}
 	}
 
@@ -380,6 +389,8 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool) []c
 				component{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, newAgentIPXERoute},
 			)
 		}
+	} else {
+		components = append(components, certManagerComponents()...)
 	}
 	return components
 
@@ -517,7 +528,9 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			Owns(&routev1.Route{}).
 			Watches(&corev1.ConfigMap{}, ingressCMHandler, ingressCMPredicates)
 	} else {
-		b = b.Owns(&netv1.Ingress{})
+		b = b.Owns(&netv1.Ingress{}).
+			Owns(&certtypes.Certificate{}).
+			Owns(&certtypes.Issuer{})
 	}
 
 	return b.Complete(r)
@@ -734,7 +747,7 @@ func newAgentRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 		if asc.spec.Ingress == nil {
 			return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
 		}
-		return newIngress(ctx, log, asc, serviceName, asc.spec.Ingress.AssistedServiceHostname, int32(servicePort.IntValue()))
+		return newIngress(asc, serviceName, asc.spec.Ingress.AssistedServiceHostname, int32(servicePort.IntValue()))
 	}
 	weight := int32(100)
 	route := &routev1.Route{
@@ -857,7 +870,7 @@ func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 		if asc.spec.Ingress == nil {
 			return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
 		}
-		return newIngress(ctx, log, asc, imageServiceName, asc.spec.Ingress.ImageServiceHostname, int32(imageHandlerPort.IntValue()))
+		return newIngress(asc, imageServiceName, asc.spec.Ingress.ImageServiceHostname, int32(imageHandlerPort.IntValue()))
 	}
 	weight := int32(100)
 	route := &routev1.Route{
@@ -895,48 +908,6 @@ func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 	}
 
 	return route, mutateFn, nil
-}
-
-func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name string, host string, port int32) (client.Object, controllerutil.MutateFn, error) {
-	if asc.spec.Ingress == nil {
-		return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
-	}
-	pathTypePrefix := netv1.PathTypePrefix
-	ingress := &netv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: asc.namespace,
-		},
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(asc.Object, ingress, asc.rec.Scheme); err != nil {
-			return err
-		}
-		ingress.Spec = netv1.IngressSpec{
-			IngressClassName: asc.spec.Ingress.ClassName,
-			Rules: []netv1.IngressRule{{
-				Host: host,
-				IngressRuleValue: netv1.IngressRuleValue{HTTP: &netv1.HTTPIngressRuleValue{
-					Paths: []netv1.HTTPIngressPath{{
-						Path:     "/",
-						PathType: &pathTypePrefix,
-						Backend: netv1.IngressBackend{
-							Service: &netv1.IngressServiceBackend{
-								Name: name,
-								Port: netv1.ServiceBackendPort{
-									Number: port,
-								},
-							},
-						},
-					}},
-				}},
-			}},
-		}
-		return nil
-	}
-
-	return ingress, mutateFn, nil
 }
 
 func newImageServiceIPXERoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
@@ -2464,7 +2435,9 @@ func newWebHookService(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 			return err
 		}
 		addAppLabel(webhookServiceName, &svc.ObjectMeta)
-		setAnnotation(&svc.ObjectMeta, servingCertAnnotation, webhookServiceName)
+		if asc.rec.IsOpenShift {
+			setAnnotation(&svc.ObjectMeta, servingCertAnnotation, webhookServiceName)
+		}
 		if len(svc.Spec.Ports) == 0 {
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
 		}
@@ -2504,7 +2477,11 @@ func newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 			return err
 		}
 
-		setAnnotation(&as.ObjectMeta, injectCABundleAnnotation, "true")
+		if asc.rec.IsOpenShift {
+			setAnnotation(&as.ObjectMeta, injectCABundleAnnotation, "true")
+		} else {
+			setAnnotation(&as.ObjectMeta, certManagerCAInjectionAnnotation, fmt.Sprintf("%s/%s", asc.namespace, webhookServiceName))
+		}
 		baseApiServiceSpec(as, asc.namespace)
 		return nil
 	}
@@ -2651,7 +2628,7 @@ func registerOSImagesAdditionalParamsFailureCondition(ctx context.Context, log l
 	return nil
 }
 
-func validate(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error) {
+func validate(ctx context.Context, log logrus.FieldLogger, asc ASC, supportsCertManager bool) (bool, error) {
 	if asc.spec.OSImageCACertRef != nil && asc.spec.OSImageCACertRef.Name != "" {
 		osImageCACertConfigMap := &corev1.ConfigMap{}
 		err := asc.Client.Get(ctx, types.NamespacedName{
@@ -2716,28 +2693,36 @@ func validate(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error
 		return false, nil
 	}
 
-	// validate kubernetes ingress config if not running on OpenShift
-	// Ingress must not be nil and both hostnames must be provided
-	if !asc.rec.IsOpenShift &&
-		(asc.spec.Ingress == nil ||
-			asc.spec.Ingress.AssistedServiceHostname == "" ||
-			asc.spec.Ingress.ImageServiceHostname == "") {
-		message := "ingress configuration is required for non-OpenShift deployment"
-		log.Error(message)
-		conditionsv1.SetStatusConditionNoHeartbeat(
-			asc.conditions, conditionsv1.Condition{
-				Type:    aiv1beta1.ConditionReconcileCompleted,
-				Status:  corev1.ConditionFalse,
-				Reason:  aiv1beta1.ReasonKubernetesIngressMissing,
-				Message: message,
-			},
-		)
-		err = asc.Client.Status().Update(ctx, asc.Object)
-		if err != nil {
-			log.WithError(err).Error("Failed to update status")
-			return false, err
+	if !asc.rec.IsOpenShift {
+		message := ""
+		reason := ""
+		// validate kubernetes ingress config if not running on OpenShift
+		// Ingress must not be nil and both hostnames must be provided
+		if asc.spec.Ingress == nil || asc.spec.Ingress.AssistedServiceHostname == "" || asc.spec.Ingress.ImageServiceHostname == "" {
+			message = "ingress configuration is required for non-OpenShift deployment"
+			reason = aiv1beta1.ReasonKubernetesIngressMissing
+		} else if !supportsCertManager {
+			message = "cert-manager is a required dependency for non-OpenShift deployments"
+			reason = aiv1beta1.ReasonCertificateFailure
 		}
-		return false, nil
+
+		if message != "" && reason != "" {
+			log.Error(message)
+			conditionsv1.SetStatusConditionNoHeartbeat(
+				asc.conditions, conditionsv1.Condition{
+					Type:    aiv1beta1.ConditionReconcileCompleted,
+					Status:  corev1.ConditionFalse,
+					Reason:  reason,
+					Message: message,
+				},
+			)
+			err = asc.Client.Status().Update(ctx, asc.Object)
+			if err != nil {
+				log.WithError(err).Error("Failed to update status")
+				return false, err
+			}
+			return false, nil
+		}
 	}
 
 	// If we are here then all the validations succeeded, so we may need to

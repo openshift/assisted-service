@@ -298,7 +298,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Message: "Some message",
 			}}
 			SetImageUrl(ppi, *infraEnv)
-			Expect(c.Update(ctx, ppi)).To(BeNil())
+			Expect(c.Status().Update(ctx, ppi)).To(BeNil())
 
 			newURL := "https://example.com/images/4b495e3f-6a3d-4742-aedd-7db57912c819?api_key=mykey&arch=x86_64&type=minimal-iso&version=4.13"
 			infraEnv.Status.ISODownloadURL = newURL

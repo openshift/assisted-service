@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,14 +24,15 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
+	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clnt "sigs.k8s.io/controller-runtime/pkg/client"
@@ -2586,15 +2589,23 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 
 		reconciler = newTestReconciler(asc)
 		reconciler.AgentServiceConfigReconcileContext.IsOpenShift = false
+
+		// Create Certificate CRD
+		certCRD := &apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: certificateCRDName,
+			},
+		}
+		Expect(reconciler.Client.Create(ctx, certCRD)).To(Succeed())
 	})
 
-	expectIngressConditionFailed := func() {
+	expectReconcileConditionFailed := func(reason string) {
 		updated := aiv1beta1.AgentServiceConfig{}
 		Expect(reconciler.Client.Get(ctx, clnt.ObjectKey{Name: "agent"}, &updated)).To(Succeed())
 		cond := conditionsv1.FindStatusCondition(updated.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
 		Expect(cond).NotTo(BeNil())
 		Expect(cond.Status).To(Equal(corev1.ConditionFalse))
-		Expect(cond.Reason).To(Equal(aiv1beta1.ReasonKubernetesIngressMissing))
+		Expect(cond.Reason).To(Equal(reason))
 	}
 
 	It("sets a validation failure condition if ingress is not specified", func() {
@@ -2604,7 +2615,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
-		expectIngressConditionFailed()
+		expectReconcileConditionFailed(aiv1beta1.ReasonKubernetesIngressMissing)
 	})
 
 	It("sets a validation failure condition if assisted host is not specified", func() {
@@ -2614,7 +2625,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
-		expectIngressConditionFailed()
+		expectReconcileConditionFailed(aiv1beta1.ReasonKubernetesIngressMissing)
 	})
 
 	It("sets a validation failure condition if image service host is not specified", func() {
@@ -2624,7 +2635,21 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
-		expectIngressConditionFailed()
+		expectReconcileConditionFailed(aiv1beta1.ReasonKubernetesIngressMissing)
+	})
+
+	It("sets a validation failure condition if the Certificate CRD doesn't exist", func() {
+		certCRD := &apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: certificateCRDName,
+			},
+		}
+		Expect(reconciler.Client.Delete(ctx, certCRD)).To(Succeed())
+
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+		expectReconcileConditionFailed(aiv1beta1.ReasonCertificateFailure)
 	})
 
 	It("does not deploy ServiceMonitors", func() {
@@ -2637,19 +2662,59 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		Expect(len(smList.Items)).To(Equal(0))
 	})
 
-	It("does not deploy webhook components", func() {
+	It("sets the CA injection annotation for the webhook API Service", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
 
-		ascWrapper := initASC(reconciler, asc)
-		components := reconciler.getWebhookComponents()
-		for _, c := range components {
-			obj, _, err := c.fn(ctx, reconciler.Log, ascWrapper)
-			Expect(err).To(BeNil())
-			err = reconciler.Client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
-			Expect(apierrors.IsNotFound(err)).To(BeTrue())
-		}
+		as := &apiregv1.APIService{}
+		key := types.NamespacedName{Name: "v1.admission.agentinstall.openshift.io"}
+		Expect(reconciler.Client.Get(ctx, key, as)).To(Succeed())
+		Expect(as.GetAnnotations()[certManagerCAInjectionAnnotation]).To(Equal("test-namespace/agentinstalladmission"))
+	})
+
+	It("creates required certificates and issuers", func() {
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		By("creates the self-signed issuer")
+		is := &certtypes.Issuer{}
+		key := types.NamespacedName{Name: "assisted-installer-selfsigned-ca", Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, is)).To(Succeed())
+		Expect(is.Spec.IssuerConfig.SelfSigned).NotTo(BeNil())
+
+		By("creates the CA certificate")
+		cert := &certtypes.Certificate{}
+		key = types.NamespacedName{Name: "assisted-installer-ca", Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, cert)).To(Succeed())
+		Expect(cert.Spec.IsCA).To(BeTrue())
+		Expect(cert.Spec.SecretName).To(Equal("assisted-installer-ca"))
+		Expect(cert.Spec.IssuerRef).To(Equal(certmeta.ObjectReference{
+			Kind: "Issuer",
+			Name: "assisted-installer-selfsigned-ca",
+		}))
+
+		By("creates the CA issuer")
+		is = &certtypes.Issuer{}
+		key = types.NamespacedName{Name: "assisted-installer-ca", Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, is)).To(Succeed())
+		Expect(is.Spec.IssuerConfig.CA).To(Equal(&certtypes.CAIssuer{
+			SecretName: "assisted-installer-ca",
+		}))
+
+		By("creates the webhook certificate")
+		cert = &certtypes.Certificate{}
+		key = types.NamespacedName{Name: webhookServiceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, cert)).To(Succeed())
+		Expect(cert.Spec.SecretName).To(Equal(webhookServiceName))
+		Expect(cert.Spec.IssuerRef).To(Equal(certmeta.ObjectReference{
+			Kind: "Issuer",
+			Name: "assisted-installer-ca",
+		}))
+		Expect(len(cert.Spec.DNSNames)).To(Equal(2))
+		Expect(cert.Spec.DNSNames).To(ContainElement(fmt.Sprintf("%s.%s.svc", webhookServiceName, testNamespace)))
+		Expect(cert.Spec.DNSNames).To(ContainElement(fmt.Sprintf("%s.%s.svc.cluster.local", webhookServiceName, testNamespace)))
 	})
 
 	It("creates the assisted configmap without https config", func() {

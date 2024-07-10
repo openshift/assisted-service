@@ -231,6 +231,8 @@ const (
 	ReasonMonitoringFailure string = "MonitoringFailure"
 	// ReasonKubernetesIngressMissing indicates the user has not provided the required configuration for kubernetes ingress
 	ReasonKubernetesIngressMissing string = "KubernetesIngressConfigMissing"
+	// ReasonCertificateFailure indicates that the required certificates could not be created
+	ReasonCertificateFailure string = "CertificateConfigurationFailure"
 
 	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to enable the route
 	IPXEHTTPRouteEnabled string = "enabled"
