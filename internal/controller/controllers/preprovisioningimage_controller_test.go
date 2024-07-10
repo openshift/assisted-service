@@ -432,7 +432,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			backendInfraEnv.PullSecret = "mypullsecret"
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 
-			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), iccConfig.IronicAgentImage, "", backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
+			mockOcRelease.EXPECT().GetImageArchitecture(gomock.Any(), iccConfig.IronicAgentImage, backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
@@ -469,7 +469,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			backendInfraEnv.PullSecret = "mypullsecret"
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 
-			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), gomock.Any(), "", backendInfraEnv.PullSecret).Times(2).Return([]string{"arm64"}, nil)
+			mockOcRelease.EXPECT().GetImageArchitecture(gomock.Any(), iccConfig.IronicAgentImage, backendInfraEnv.PullSecret).Times(1).Return([]string{"arm64"}, nil)
+			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Times(1).Return([]string{"arm64"}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("ironic-image:4.12.0", nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {

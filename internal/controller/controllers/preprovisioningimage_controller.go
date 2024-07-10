@@ -417,7 +417,7 @@ func (r *PreprovisioningImageReconciler) getIronicConfigFromBMOConfig(ctx contex
 	}
 
 	var architectures []string
-	architectures, err = r.OcRelease.GetReleaseArchitecture(log, iccConfig.IronicAgentImage, r.ReleaseImageMirror, infraEnvInternal.PullSecret)
+	architectures, err = r.OcRelease.GetImageArchitecture(log, iccConfig.IronicAgentImage, infraEnvInternal.PullSecret)
 	if err == nil && funk.Contains(architectures, infraEnvInternal.CPUArchitecture) {
 		log.Infof("Setting ironic agent image (%s) for infraEnv %s from ICC config", iccConfig.IronicAgentImage, infraEnvInternal.Name)
 		return iccConfig
