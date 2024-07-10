@@ -511,7 +511,6 @@ func (r *PreprovisioningImageReconciler) getIronicServiceURLs(ctx context.Contex
 
 	// default to the first IP returned
 	// v4 for dualstack hub or whatever family the single stack is
-
 	ironicURL := getUrlFromIP(ironicIPs[0])
 	inspectorURL := getUrlFromIP(inspectorIPs[0])
 
