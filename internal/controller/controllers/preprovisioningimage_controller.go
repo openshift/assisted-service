@@ -421,7 +421,7 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	// 2 - Check if ICC config is available, use agent image if CPU architecture is supported.
 	var iccConfig *ICCConfig
 	if ironicAgentImage == "" {
-		iccConfig, err = r.BMOUtils.GetICCConfig()
+		iccConfig, err = r.BMOUtils.GetICCConfig(ctx)
 		if err != nil {
 			log.WithError(err).Info("ICC configuration is not available, will continue without it")
 		}

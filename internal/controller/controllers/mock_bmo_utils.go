@@ -5,6 +5,7 @@
 package controllers
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -48,18 +49,18 @@ func (mr *MockBMOUtilsMockRecorder) ConvergedFlowAvailable() *gomock.Call {
 }
 
 // GetICCConfig mocks base method.
-func (m *MockBMOUtils) GetICCConfig() (*ICCConfig, error) {
+func (m *MockBMOUtils) GetICCConfig(arg0 context.Context) (*ICCConfig, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetICCConfig")
+	ret := m.ctrl.Call(m, "GetICCConfig", arg0)
 	ret0, _ := ret[0].(*ICCConfig)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetICCConfig indicates an expected call of GetICCConfig.
-func (mr *MockBMOUtilsMockRecorder) GetICCConfig() *gomock.Call {
+func (mr *MockBMOUtilsMockRecorder) GetICCConfig(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetICCConfig", reflect.TypeOf((*MockBMOUtils)(nil).GetICCConfig))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetICCConfig", reflect.TypeOf((*MockBMOUtils)(nil).GetICCConfig), arg0)
 }
 
 // GetIronicIPs mocks base method.
