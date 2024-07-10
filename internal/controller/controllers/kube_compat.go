@@ -39,7 +39,7 @@ func crdExists(ctx context.Context, c client.Client, crdName string) (bool, erro
 	return err == nil, client.IgnoreNotFound(err)
 }
 
-func newIngress(ctx context.Context, log logrus.FieldLogger, asc ASC, name string, host string, port int32) (client.Object, controllerutil.MutateFn, error) {
+func newIngress(asc ASC, name string, host string, port int32) (client.Object, controllerutil.MutateFn, error) {
 	if asc.spec.Ingress == nil {
 		return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
 	}

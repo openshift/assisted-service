@@ -747,7 +747,7 @@ func newAgentRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 		if asc.spec.Ingress == nil {
 			return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
 		}
-		return newIngress(ctx, log, asc, serviceName, asc.spec.Ingress.AssistedServiceHostname, int32(servicePort.IntValue()))
+		return newIngress(asc, serviceName, asc.spec.Ingress.AssistedServiceHostname, int32(servicePort.IntValue()))
 	}
 	weight := int32(100)
 	route := &routev1.Route{
@@ -870,7 +870,7 @@ func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 		if asc.spec.Ingress == nil {
 			return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
 		}
-		return newIngress(ctx, log, asc, imageServiceName, asc.spec.Ingress.ImageServiceHostname, int32(imageHandlerPort.IntValue()))
+		return newIngress(asc, imageServiceName, asc.spec.Ingress.ImageServiceHostname, int32(imageHandlerPort.IntValue()))
 	}
 	weight := int32(100)
 	route := &routev1.Route{
