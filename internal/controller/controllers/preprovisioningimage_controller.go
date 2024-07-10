@@ -419,11 +419,11 @@ func (r *PreprovisioningImageReconciler) getIronicConfigFromBMOConfig(ctx contex
 	var architectures []string
 	architectures, err = r.OcRelease.GetImageArchitecture(log, iccConfig.IronicAgentImage, infraEnvInternal.PullSecret)
 	if err == nil && funk.Contains(architectures, infraEnvInternal.CPUArchitecture) {
-		log.Infof("Setting ironic agent image (%s) for infraEnv %s from ICC config", iccConfig.IronicAgentImage, infraEnvInternal.Name)
+		log.Infof("Setting ironic agent image (%s) for infraEnv %v from ICC config", iccConfig.IronicAgentImage, infraEnvInternal.Name)
 		return iccConfig
 	}
 
-	log.Infof("CPU architecture (%v) of Ironic agent image (%s) from ICC config is not available for infraEnv (%s) with arch (%s)",
+	log.Infof("CPU architecture (%v) of Ironic agent image (%s) from ICC config is not available for infraEnv %v with arch (%s)",
 		architectures,
 		iccConfig.IronicAgentImage,
 		infraEnvInternal.Name,
@@ -438,7 +438,7 @@ func (r *PreprovisioningImageReconciler) getIronicConfigFromHUB(ctx context.Cont
 		return nil
 	}
 
-	log.Infof("Setting ironic agent image (%s) for infraEnv %s from HUB cluster", ironicAgentImage, infraEnvInternal.Name)
+	log.Infof("Setting ironic agent image (%s) for infraEnv %v from HUB cluster", ironicAgentImage, infraEnvInternal.Name)
 	return &ICCConfig{
 		IronicAgentImage: ironicAgentImage,
 	}
@@ -452,7 +452,7 @@ func (r *PreprovisioningImageReconciler) getIronicDefaultConfig(log logrus.Field
 		ironicAgentImage = r.Config.BaremetalIronicAgentImage
 	}
 
-	log.Infof("Setting default ironic agent image (%s) for infraEnv %s", ironicAgentImage, infraEnvInternal.Name)
+	log.Infof("Setting default ironic agent image (%s) for infraEnv %v", ironicAgentImage, infraEnvInternal.Name)
 	return &ICCConfig{
 		IronicAgentImage: ironicAgentImage,
 	}
