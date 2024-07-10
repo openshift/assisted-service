@@ -399,7 +399,7 @@ func (r *PreprovisioningImageReconciler) mapInfraEnvPPI() func(ctx context.Conte
 func (r *PreprovisioningImageReconciler) getIronicConfigFromUserOverride(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) *ICCConfig {
 	ironicAgentImage, ok := infraEnv.GetAnnotations()[ironicAgentImageOverrideAnnotation]
 	if ok && ironicAgentImage != "" {
-		log.Infof("Using override ironic agent image (%s) for infraEnv %s", ironicAgentImage, infraEnv.Name)
+		log.Infof("Using override ironic agent image (%s) from infraEnv", ironicAgentImage)
 		return &ICCConfig{
 			IronicAgentImage: ironicAgentImage,
 		}
@@ -419,28 +419,50 @@ func (r *PreprovisioningImageReconciler) getIronicConfigFromBMOConfig(ctx contex
 	var architectures []string
 	architectures, err = r.OcRelease.GetImageArchitecture(log, iccConfig.IronicAgentImage, infraEnvInternal.PullSecret)
 	if err == nil && funk.Contains(architectures, infraEnvInternal.CPUArchitecture) {
-		log.Infof("Setting ironic agent image (%s) for infraEnv %v from ICC config", iccConfig.IronicAgentImage, infraEnvInternal.Name)
+		log.Infof("Setting ironic agent image (%s) from ICC config", iccConfig.IronicAgentImage)
 		return iccConfig
 	}
 
-	log.Infof("CPU architecture (%v) of Ironic agent image (%s) from ICC config is not available for infraEnv %v with arch (%s)",
+	log.Infof("CPU architecture (%v) of Ironic agent image (%s) from ICC config is not available for infraEnv with arch (%s)",
 		architectures,
 		iccConfig.IronicAgentImage,
-		infraEnvInternal.Name,
 		infraEnvInternal.CPUArchitecture)
 	return nil
 }
 
 func (r *PreprovisioningImageReconciler) getIronicConfigFromHUB(ctx context.Context, log logrus.FieldLogger, infraEnvInternal *common.InfraEnv) *ICCConfig {
-	ironicAgentImage, err := r.getIronicAgentImageByRelease(ctx, log, infraEnvInternal)
-	if err != nil {
-		log.WithError(err).Warningf("Failed to get ironic agent image by release for infraEnv: %v", infraEnvInternal.Name)
+	image := r.hubIronicAgentImage
+	architectures := r.hubReleaseArchitectures
+	if image == "" {
+		cv := &configv1.ClusterVersion{}
+		err := r.Get(ctx, types.NamespacedName{Name: "version"}, cv)
+		if err != nil {
+			log.WithError(err).Warningf("Failed to get ClusterVersion")
+			return nil
+		}
+		architectures, err = r.OcRelease.GetReleaseArchitecture(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnvInternal.PullSecret)
+		if err != nil {
+			log.WithError(err).Warningf("Failed to get release architecture for (%s)", cv.Status.Desired.Image)
+			return nil
+		}
+		image, err = r.OcRelease.GetIronicAgentImage(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnvInternal.PullSecret)
+		if err != nil {
+			log.WithError(err).Warningf("Failed to get ironic agent image from release (%s)", cv.Status.Desired.Image)
+			return nil
+		}
+		r.hubIronicAgentImage = image
+		r.hubReleaseArchitectures = architectures
+		log.Infof("Caching hub ironic agent image %s for architectures %v", image, architectures)
+	}
+
+	if !funk.Contains(architectures, infraEnvInternal.CPUArchitecture) {
+		log.Warningf("Release image architectures %v do not match infraEnv architecture %s", architectures, infraEnvInternal.CPUArchitecture)
 		return nil
 	}
 
-	log.Infof("Setting ironic agent image (%s) for infraEnv %v from HUB cluster", ironicAgentImage, infraEnvInternal.Name)
+	log.Infof("Setting ironic agent image (%s) from HUB cluster", image)
 	return &ICCConfig{
-		IronicAgentImage: ironicAgentImage,
+		IronicAgentImage: image,
 	}
 }
 
@@ -452,7 +474,7 @@ func (r *PreprovisioningImageReconciler) getIronicDefaultConfig(log logrus.Field
 		ironicAgentImage = r.Config.BaremetalIronicAgentImage
 	}
 
-	log.Infof("Setting default ironic agent image (%s) for infraEnv %v", ironicAgentImage, infraEnvInternal.Name)
+	log.Infof("Setting default ironic agent image (%s)", ironicAgentImage)
 	return &ICCConfig{
 		IronicAgentImage: ironicAgentImage,
 	}
@@ -486,17 +508,21 @@ func (r *PreprovisioningImageReconciler) getIronicConfig(ctx context.Context, lo
 		}
 	}
 
-	log.Infof("Ironic Agent Image is (%s) Ironic URL is (%s) Inspector URL is (%s) for infraEnv %s",
+	log.Infof("Ironic Agent Image is (%s) Ironic URL is (%s) Inspector URL is (%s)",
 		iccConfig.IronicAgentImage,
 		iccConfig.IronicBaseURL,
-		iccConfig.IronicInspectorBaseUrl,
-		infraEnv.Name)
+		iccConfig.IronicInspectorBaseUrl)
 	return iccConfig, nil
 }
 
 // AddIronicAgentToInfraEnv updates the infra-env in the database with the ironic agent ignition config if required
 // returns true when the infra-env was updated, false otherwise
 func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (bool, error) {
+	log = log.WithFields(logrus.Fields{
+		"infra_env":           infraEnv.Name,
+		"infra_env_namespace": infraEnv.Namespace,
+	})
+
 	// Retrieve infraenv from the database
 	key := types.NamespacedName{
 		Name:      infraEnv.Name,
@@ -510,7 +536,7 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 
 	iccConfig, err := r.getIronicConfig(ctx, log, infraEnv, infraEnvInternal)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get Ironic configuration for infraEnv %s", infraEnv.Name)
+		log.WithError(err).Errorf("Failed to get Ironic configuration")
 		return false, err
 	}
 
@@ -533,7 +559,7 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		setAnnotation(&infraEnv.ObjectMeta, EnableIronicAgentAnnotation, "true")
 		if err := r.Client.Update(ctx, infraEnv); err != nil {
 			// Just warn here if the update fails as this annotation is just informational
-			log.WithError(err).Warnf("failed to set %s annotation on infraEnv %s", EnableIronicAgentAnnotation, infraEnv.Name)
+			log.WithError(err).Warnf("failed to set %s annotation on infraEnv", EnableIronicAgentAnnotation)
 		}
 	}
 
@@ -576,35 +602,6 @@ func (r *PreprovisioningImageReconciler) fillIronicServiceURLs(ctx context.Conte
 	iccConfig.IronicBaseURL = ironicURL
 	iccConfig.IronicInspectorBaseUrl = inspectorURL
 	return nil
-}
-
-func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx context.Context, log logrus.FieldLogger, infraEnv *common.InfraEnv) (string, error) {
-	image := r.hubIronicAgentImage
-	architectures := r.hubReleaseArchitectures
-	if image == "" {
-		cv := &configv1.ClusterVersion{}
-		if err := r.Get(ctx, types.NamespacedName{Name: "version"}, cv); err != nil {
-			return "", err
-		}
-		var err error
-		architectures, err = r.OcRelease.GetReleaseArchitecture(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
-		if err != nil {
-			return "", err
-		}
-		image, err = r.OcRelease.GetIronicAgentImage(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
-		if err != nil {
-			return "", err
-		}
-		r.hubIronicAgentImage = image
-		r.hubReleaseArchitectures = architectures
-		log.Infof("Caching hub ironic agent image %s for architectures %v", image, architectures)
-	}
-
-	if !funk.Contains(architectures, infraEnv.CPUArchitecture) {
-		return "", fmt.Errorf("release image architectures %v do not match infraEnv architecture %s", architectures, infraEnv.CPUArchitecture)
-	}
-
-	return image, nil
 }
 
 func (r *PreprovisioningImageReconciler) setBMHRebootAnnotation(ctx context.Context, image *metal3_v1alpha1.PreprovisioningImage) error {
