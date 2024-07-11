@@ -3,6 +3,7 @@ import deployment_options
 import os
 import requests
 import waiting
+import time
 from argparse import Namespace
 
 
@@ -94,7 +95,13 @@ def deploy_ingress(hostname, deploy_options):
 def populate_stubs(hostname: str, port: str):
     cmd = f"go run ./hack/add_wiremock_stubs.go"
     os.environ["OCM_URL"] = f"{hostname}:{port}"
-    utils.check_output(cmd)
+    
+    waiting.wait(
+        lambda: utils.check_output(cmd),
+        timeout_seconds=TIMEOUT,
+        expected_exceptions=(RuntimeError),
+        sleep_seconds=SLEEP, waiting_for="Stubs to be populated"
+    )
 
 
 def is_wiremock_service_ready(namespace: str) -> bool:
