@@ -126,6 +126,11 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
+	log = log.WithFields(logrus.Fields{
+		"infra_env":           infraEnv.Name,
+		"infra_env_namespace": infraEnv.Namespace,
+	})
+
 	imageArch := common.NormalizeCPUArchitecture(image.Spec.Architecture)
 	infraArch := common.NormalizeCPUArchitecture(infraEnv.Spec.CpuArchitecture)
 	if infraArch != imageArch {
@@ -518,11 +523,6 @@ func (r *PreprovisioningImageReconciler) getIronicConfig(ctx context.Context, lo
 // AddIronicAgentToInfraEnv updates the infra-env in the database with the ironic agent ignition config if required
 // returns true when the infra-env was updated, false otherwise
 func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (bool, error) {
-	log = log.WithFields(logrus.Fields{
-		"infra_env":           infraEnv.Name,
-		"infra_env_namespace": infraEnv.Namespace,
-	})
-
 	// Retrieve infraenv from the database
 	key := types.NamespacedName{
 		Name:      infraEnv.Name,
