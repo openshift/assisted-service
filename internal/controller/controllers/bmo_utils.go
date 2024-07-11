@@ -31,7 +31,7 @@ const (
 type BMOUtils interface {
 	ConvergedFlowAvailable() bool
 	GetIronicIPs() ([]string, []string, error)
-	GetICCConfig(ctx context.Context) (*ICCConfig, error)
+	getICCConfig(ctx context.Context) (*ICCConfig, error)
 }
 
 type ICCConfig struct {
@@ -106,7 +106,7 @@ func (r *bmoUtils) GetIronicIPs() ([]string, []string, error) {
 	return ironicIPs, inspectorIPs, nil
 }
 
-func (r *bmoUtils) GetICCConfig(ctx context.Context) (*ICCConfig, error) {
+func (r *bmoUtils) getICCConfig(ctx context.Context) (*ICCConfig, error) {
 	const configKeyNotFoundError string = "Failed to get '%s' key from secret %s in namespace %s"
 
 	secret := &corev1.Secret{}

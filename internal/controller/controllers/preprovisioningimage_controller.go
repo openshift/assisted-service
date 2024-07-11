@@ -415,7 +415,7 @@ func (r *PreprovisioningImageReconciler) getIronicConfigFromUserOverride(log log
 }
 
 func (r *PreprovisioningImageReconciler) getIronicConfigFromBMOConfig(ctx context.Context, log logrus.FieldLogger, infraEnvInternal *common.InfraEnv) *ICCConfig {
-	iccConfig, err := r.BMOUtils.GetICCConfig(ctx)
+	iccConfig, err := r.BMOUtils.getICCConfig(ctx)
 	if err != nil {
 		log.WithError(err).Info("ICC configuration is not available")
 		return nil

@@ -48,21 +48,6 @@ func (mr *MockBMOUtilsMockRecorder) ConvergedFlowAvailable() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConvergedFlowAvailable", reflect.TypeOf((*MockBMOUtils)(nil).ConvergedFlowAvailable))
 }
 
-// GetICCConfig mocks base method.
-func (m *MockBMOUtils) GetICCConfig(arg0 context.Context) (*ICCConfig, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetICCConfig", arg0)
-	ret0, _ := ret[0].(*ICCConfig)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetICCConfig indicates an expected call of GetICCConfig.
-func (mr *MockBMOUtilsMockRecorder) GetICCConfig(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetICCConfig", reflect.TypeOf((*MockBMOUtils)(nil).GetICCConfig), arg0)
-}
-
 // GetIronicIPs mocks base method.
 func (m *MockBMOUtils) GetIronicIPs() ([]string, []string, error) {
 	m.ctrl.T.Helper()
@@ -77,4 +62,19 @@ func (m *MockBMOUtils) GetIronicIPs() ([]string, []string, error) {
 func (mr *MockBMOUtilsMockRecorder) GetIronicIPs() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIronicIPs", reflect.TypeOf((*MockBMOUtils)(nil).GetIronicIPs))
+}
+
+// getICCConfig mocks base method.
+func (m *MockBMOUtils) getICCConfig(arg0 context.Context) (*ICCConfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "getICCConfig", arg0)
+	ret0, _ := ret[0].(*ICCConfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// getICCConfig indicates an expected call of getICCConfig.
+func (mr *MockBMOUtilsMockRecorder) getICCConfig(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getICCConfig", reflect.TypeOf((*MockBMOUtils)(nil).getICCConfig), arg0)
 }

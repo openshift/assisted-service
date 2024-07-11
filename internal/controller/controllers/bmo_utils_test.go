@@ -123,7 +123,7 @@ var _ = Describe("bmoUtils", func() {
 		})
 
 	})
-	Context("GetICCConfig", func() {
+	Context("getICCConfig", func() {
 		It("success", func() {
 			bmoUtils := &bmoUtils{
 				c:              c,
@@ -145,7 +145,7 @@ var _ = Describe("bmoUtils", func() {
 				},
 			}
 			Expect(c.Create(context.Background(), secret)).To(BeNil())
-			iccConfig, err := bmoUtils.GetICCConfig(context.Background())
+			iccConfig, err := bmoUtils.getICCConfig(context.Background())
 			Expect(err).Should(BeNil())
 			Expect(iccConfig.IronicBaseURL).Should(Equal(ironicURLs))
 			Expect(iccConfig.IronicInspectorBaseUrl).Should(Equal(inspectorURLs))
@@ -157,7 +157,7 @@ var _ = Describe("bmoUtils", func() {
 				log:            log,
 				kubeAPIEnabled: true,
 			}
-			_, err := bmoUtils.GetICCConfig(context.Background())
+			_, err := bmoUtils.getICCConfig(context.Background())
 			Expect(err).Should(Not(BeNil()))
 		})
 
@@ -186,7 +186,7 @@ var _ = Describe("bmoUtils", func() {
 				}
 
 				Expect(c.Create(context.Background(), secret)).To(BeNil())
-				_, err := bmoUtils.GetICCConfig(context.Background())
+				_, err := bmoUtils.getICCConfig(context.Background())
 				Expect(err).Should(Not(BeNil()))
 			},
 			Entry("ironicURLs is missing", nil, []byte("some"), []byte("some")),
@@ -199,7 +199,7 @@ var _ = Describe("bmoUtils", func() {
 				log:            log,
 				kubeAPIEnabled: true,
 			}
-			_, err := bmoUtils.GetICCConfig(context.Background())
+			_, err := bmoUtils.getICCConfig(context.Background())
 			Expect(err).Should(Not(BeNil()))
 		})
 
