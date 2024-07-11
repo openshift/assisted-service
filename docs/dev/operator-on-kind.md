@@ -40,7 +40,7 @@ Some CRDs are not included in the Infrastructure Operator CSV and must be instal
 For development these CRDs can be installed using copies in the assisted-service repo:
 
 ```sh
-kubectl apply -f <assisted-service-repo>/hack/crds/*
+kubectl apply -f <assisted-service-repo>/hack/crds/
 ```
 
 This creates the ClusterDeployment, ClusterImageSet, and BareMetalHost CRDs.
