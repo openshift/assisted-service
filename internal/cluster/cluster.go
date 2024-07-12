@@ -26,7 +26,6 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/internal/manifests"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -1119,17 +1118,7 @@ func (m *Manager) createClusterDataFiles(ctx context.Context, c *common.Cluster,
 			log.WithError(err).Errorf("failed to read file data %s (%d) from cluster while building log: %s", path, numberOfBytes, *c.ID)
 			continue
 		}
-		// Determine the manifest type, this will determine where the file is uploaded to
-		isUserManifest, err := m.manifestApi.IsUserManifest(ctx, *c.ID, manifestEntry.Folder, manifestEntry.FileName)
-		manifest_prefix := "system-generated"
-		if err != nil {
-			log.WithError(err).Errorf("Unable to determine if manifest is user generated or not for %s/%s", manifestEntry.Folder, manifestEntry.FileName)
-			manifest_prefix = "unknown"
-		}
-		if isUserManifest {
-			manifest_prefix = "user-supplied"
-		}
-		fileName := fmt.Sprintf("%s/logs/cluster/manifest_%s_%s_%s", c.ID, manifest_prefix, manifestEntry.Folder, manifestEntry.FileName)
+		fileName := fmt.Sprintf("%s/logs/cluster/manifest_%s_%s_%s", c.ID, manifestEntry.ManifestSource, manifestEntry.Folder, manifestEntry.FileName)
 		err = m.uploadDataAsFile(ctx, log, string(fileContent), fileName, objectHandler)
 		if err != nil {
 			log.WithError(err).Errorf("Unable to upload %s to logs for cluster id %s", fileName, *c.ID)
@@ -1451,9 +1440,9 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	return m.setConnectivityMajorityGroupsForClusterInternal(cluster, db)
 }
 
-func (m *Manager) getClusterFilesForFolder(ctx context.Context, c *common.Cluster, folder string, objectHandler s3wrapper.API) ([]string, error) {
+func (m *Manager) getClusterFilesForFolder(ctx context.Context, c *common.Cluster, folder string, objectHandler s3wrapper.API) ([]s3wrapper.ObjectInfo, error) {
 	path := filepath.Join(string(*c.ID), folder) + "/"
-	files, err := objectHandler.ListObjectsByPrefix(ctx, path)
+	files, err := objectHandler.ListObjectsByPrefixWithMetadata(ctx, path)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to list files in %s", path)
 		m.log.WithError(err).Errorf(msg)
@@ -1465,31 +1454,32 @@ func (m *Manager) getClusterFilesForFolder(ctx context.Context, c *common.Cluste
 }
 
 func (m *Manager) ResetClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	legacyUserManifestPaths, err := m.manifestApi.FindUserManifestPathsByLegacyMetadata(ctx, *c.ID)
+	if err != nil {
+		return err
+	}
+
 	files, err := m.getClusterFilesForFolder(ctx, c, "", objectHandler)
 	if err != nil {
 		return err
 	}
 	var failedToDelete []string
 	for _, file := range files {
-		// Filter out any user generated manifests and prevent their deletion
-		if manifests.IsManifest(file) {
-			currentFolder, currentFileName, _ := manifests.ParsePath(file)
-			var isUserManifest bool
-			isUserManifest, err = m.manifestApi.IsUserManifest(ctx, *c.Cluster.ID, currentFolder, currentFileName)
-			if err != nil {
-				return err
-			}
-			if isUserManifest {
-				continue
-			}
+		// We should ensure that this file is not a legacy metadata file
+		pathParts := strings.Split(file.Path, "/")
+		if len(pathParts) >= 2 && pathParts[1] == constants.ManifestMetadataFolder {
+			continue
 		}
-		if strings.Contains(file, "logs") || strings.Contains(file, constants.ManifestMetadataFolder) {
-			// Also prevent the deletion of any logs, and don't allow the manifest metadata folder to be directly deleted.
+		// Filter out any user generated manifests and prevent their deletion
+		// Check whether file is represented as "user supplied" in legacy metadata
+		// Also prevent the deletion of any logs, and don't allow the manifest metadata folder to be directly deleted.
+		metadata, ok := file.Metadata[constants.ManifestSourceAttribute]
+		if (ok && metadata == constants.ManifestSourceUserSupplied) || swag.ContainsStrings(legacyUserManifestPaths, file.Path) || strings.Contains(file.Path, "logs") {
 			continue
 		}
 		// Delete anything else
-		if err = m.deleteClusterFile(ctx, c, file); err != nil {
-			failedToDelete = append(failedToDelete, file)
+		if err = m.deleteClusterFile(ctx, c, file.Path); err != nil {
+			failedToDelete = append(failedToDelete, file.Path)
 		}
 	}
 	if len(failedToDelete) > 0 {
@@ -1523,8 +1513,8 @@ func (m *Manager) deleteClusterFilesInFolder(ctx context.Context, c *common.Clus
 	}
 	var failedToDelete []string
 	for _, file := range files {
-		if err = m.deleteClusterFile(ctx, c, file); err != nil {
-			failedToDelete = append(failedToDelete, file)
+		if err = m.deleteClusterFile(ctx, c, file.Path); err != nil {
+			failedToDelete = append(failedToDelete, file.Path)
 		}
 	}
 	if len(failedToDelete) > 0 {

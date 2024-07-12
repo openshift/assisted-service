@@ -17,8 +17,8 @@ type ManifestsAPI interface {
 
 //go:generate mockgen --build_flags=--mod=mod -package api -destination mock_manifests_internal.go . ClusterManifestsInternals
 type ClusterManifestsInternals interface {
-	IsUserManifest(ctx context.Context, clusterID strfmt.UUID, folder string, fileName string) (bool, error)
 	CreateClusterManifestInternal(ctx context.Context, params operations.V2CreateClusterManifestParams, isCustomManifest bool) (*models.Manifest, error)
 	ListClusterManifestsInternal(ctx context.Context, params operations.V2ListClusterManifestsParams) (models.ListManifests, error)
 	DeleteClusterManifestInternal(ctx context.Context, params operations.V2DeleteClusterManifestParams) error
+	FindUserManifestPathsByLegacyMetadata(ctx context.Context, clusterID strfmt.UUID) ([]string, error)
 }

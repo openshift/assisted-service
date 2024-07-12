@@ -89,50 +89,19 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 		return nil, err
 	}
 
-	err = m.uploadManifest(ctx, manifestContent, params.ClusterID, path)
+	manifestSource := constants.ManifestSourceSystemGenerated
+	if isCustomManifest {
+		manifestSource = constants.ManifestSourceUserSupplied
+	}
+
+	err = m.uploadManifest(ctx, manifestContent, params.ClusterID, path, manifestSource)
 	if err != nil {
 		return nil, err
 	}
 
-	if isCustomManifest {
-		err = m.markUserSuppliedManifest(ctx, params.ClusterID, path)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	log.Infof("Done creating manifest %s for cluster %s", path, params.ClusterID.String())
-	manifest := models.Manifest{FileName: fileName, Folder: folder}
+	manifest := models.Manifest{FileName: fileName, Folder: folder, ManifestSource: manifestSource}
 	return &manifest, nil
-}
-
-func (m *Manifests) unmarkUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, path string) error {
-	objectName := GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied)
-	exists := false
-	var err error
-	if exists, err = m.objectHandler.DoesObjectExist(ctx, objectName); err != nil {
-		return errors.Wrapf(err, "Failed to delete metadata object %s from storage for cluster %s", objectName, clusterID)
-	}
-	if exists {
-		if _, err = m.objectHandler.DeleteObject(ctx, objectName); err != nil {
-			return errors.Wrapf(err, "Failed to delete metadata object %s from storage for cluster %s", objectName, clusterID)
-		}
-	}
-	return nil
-}
-
-func (m *Manifests) markUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, path string) error {
-	objectName := GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied)
-	if err := m.objectHandler.Upload(ctx, []byte{}, objectName); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *Manifests) IsUserManifest(ctx context.Context, clusterID strfmt.UUID, folder string, fileName string) (bool, error) {
-	path := filepath.Join(folder, fileName)
-	isCustomManifest, err := m.objectHandler.DoesObjectExist(ctx, GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied))
-	return isCustomManifest, err
 }
 
 func IsManifest(file string) bool {
@@ -146,6 +115,33 @@ func ParsePath(file string) (folder string, filename string, err error) {
 		return "", "", errors.Errorf("Filepath %s is not a manifest path", file)
 	}
 	return parts[2], parts[3], nil
+}
+
+// Initially, some clusters may have legacy "file path" based metadata
+// This will find the paths of any manifests that have been marked as `user-supplied` by this method
+func (m *Manifests) FindUserManifestPathsByLegacyMetadata(ctx context.Context, clusterID strfmt.UUID) ([]string, error) {
+	files := []string{}
+	objectName := filepath.Join(clusterID.String(), constants.ManifestMetadataFolder)
+	objects, err := m.objectHandler.ListObjectsByPrefixWithMetadata(ctx, objectName)
+	if err != nil {
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+	for _, file := range objects {
+		// Convert the path from a manifest metadata path into a manifest path
+		// metadata paths are of the format {cluster_id}/manifest-metadata/manifests/some-manifest.yml/user-supplied
+		// file path for metadata path would be {cluster_id}/manifests/manifests/some-manifest.yml
+		pathParts := strings.Split(file.Path, "/")
+		if len(pathParts) != 5 || pathParts[4] != constants.LegacyManifestSourceUserSupplied {
+			// This really shouldn't happen unless the user injects something into that path themselves...
+			// If this happens, warn and skip the file.
+			m.log.Warnf("skipped metdata filepath for file %s as it does not appear to be a manifest metadata file", file.Path)
+			continue
+		}
+		pathParts[1] = constants.ManifestFolder
+		manifestFilePath := strings.Join(pathParts[0:4], "/")
+		files = append(files, manifestFilePath)
+	}
+	return files, nil
 }
 
 func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params operations.V2ListClusterManifestsParams) (models.ListManifests, error) {
@@ -162,23 +158,33 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 	}
 
 	objectName := filepath.Join(params.ClusterID.String(), constants.ManifestFolder)
-	files, err := m.objectHandler.ListObjectsByPrefix(ctx, objectName)
+	files, err := m.objectHandler.ListObjectsByPrefixWithMetadata(ctx, objectName)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	// legacyUserManifestPaths is temporarily included until no more legacy manifest paths are supported
+	legacyUserManifestPaths, err := m.FindUserManifestPathsByLegacyMetadata(ctx, strfmt.UUID(params.ClusterID.String()))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to identify user manifest paths based on filesystem")
+	}
+
 	manifests := models.ListManifests{}
 	for _, file := range files {
-		folder, filename, err := ParsePath(file)
+		folder, filename, err := ParsePath(file.Path)
 		if err != nil {
 			return nil, err
 		}
-		isUserManifest, err := m.IsUserManifest(ctx, params.ClusterID, folder, filename)
-		if err != nil {
-			return nil, err
+
+		manifestSource := constants.ManifestSourceSystemGenerated
+		manifestSourceAttributeValue, ok := file.Metadata[constants.ManifestSourceAttribute]
+		if ok {
+			manifestSource = manifestSourceAttributeValue
+		} else if swag.ContainsStrings(legacyUserManifestPaths, file.Path) {
+			manifestSource = constants.ManifestSourceUserSupplied
 		}
-		if isUserManifest || swag.BoolValue(params.IncludeSystemGenerated) {
-			manifests = append(manifests, &models.Manifest{FileName: filename, Folder: folder})
+		if manifestSource == constants.ManifestSourceUserSupplied || swag.BoolValue(params.IncludeSystemGenerated) {
+			manifests = append(manifests, &models.Manifest{FileName: filename, Folder: folder, ManifestSource: manifestSource})
 		}
 	}
 	return manifests, nil
@@ -260,28 +266,18 @@ func (m *Manifests) UpdateClusterManifestInternal(ctx context.Context, params op
 		}
 	}
 
-	err = m.uploadManifest(ctx, content, params.ClusterID, destPath)
+	err = m.uploadManifest(ctx, content, params.ClusterID, destPath, constants.ManifestSourceUserSupplied)
 	if err != nil {
 		return nil, err
 	}
 
-	isCustomManifest, err := m.IsUserManifest(ctx, params.ClusterID, srcFolder, srcFileName)
-	if err != nil {
-		return nil, err
-	}
-	if isCustomManifest {
-		err = m.markUserSuppliedManifest(ctx, params.ClusterID, destPath)
-		if err != nil {
-			return nil, err
-		}
-	}
 	if srcPath != destPath {
 		err = m.deleteManifest(ctx, params.ClusterID, srcPath)
 		if err != nil {
 			return nil, err
 		}
 	}
-	manifest := models.Manifest{FileName: destFileName, Folder: destFolder}
+	manifest := models.Manifest{FileName: destFileName, Folder: destFolder, ManifestSource: constants.ManifestSourceUserSupplied}
 	return &manifest, nil
 }
 
@@ -348,41 +344,20 @@ func GetManifestObjectName(clusterID strfmt.UUID, fileName string) string {
 	return filepath.Join(string(clusterID), constants.ManifestFolder, fileName)
 }
 
-// GetManifestObjectName returns the manifest object name as stored in S3
-func GetManifestMetadataObjectName(clusterID strfmt.UUID, fileName string, manifestSource string) string {
-	return filepath.Join(getManifestMetadataPrefix(clusterID), fileName, manifestSource)
-}
-
-// GetManifestMetadataPrefix returns the prefix of the metedata folder as stored in S3
-func getManifestMetadataPrefix(clusterID strfmt.UUID) string {
-	return filepath.Join(string(clusterID), constants.ManifestMetadataFolder)
-}
-
 // GetClusterManifests returns a list of cluster manifests
-func GetClusterManifests(ctx context.Context, clusterID *strfmt.UUID, s3Client s3wrapper.API) ([]string, error) {
-	manifestFiles := []string{}
+func GetClusterManifests(ctx context.Context, clusterID *strfmt.UUID, s3Client s3wrapper.API) ([]s3wrapper.ObjectInfo, error) {
+	manifestFiles := []s3wrapper.ObjectInfo{}
 	files, err := listManifests(ctx, clusterID, models.CreateManifestParamsFolderManifests, s3Client)
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 	manifestFiles = append(manifestFiles, files...)
 	files, err = listManifests(ctx, clusterID, models.CreateManifestParamsFolderOpenshift, s3Client)
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 	manifestFiles = append(manifestFiles, files...)
 	return manifestFiles, nil
-}
-
-// GetManifestMetadata returns the paths of manifest metadata for a given cluster
-func GetManifestMetadata(ctx context.Context, clusterID *strfmt.UUID, s3Client s3wrapper.API) ([]string, error) {
-	prefix := getManifestMetadataPrefix(*clusterID)
-	metadataList, err := s3Client.ListObjectsByPrefix(ctx, prefix)
-	if err != nil {
-		return []string{}, err
-	}
-
-	return metadataList, nil
 }
 
 // FilterMetadataOnManifestSource filters a list of metadata paths filtered on manifest source
@@ -399,34 +374,11 @@ func FilterMetadataOnManifestSource(metadataList []string, manifestSource string
 	return filteredMetadata
 }
 
-// ResolveManifestNamesFromMetadata resolves metadata paths like
-// "{clusterID}/{ManifestMetadataFolder}/manifests/first.yaml/{manifestSource}" into
-// "manifests/first.yaml"
-func ResolveManifestNamesFromMetadata(metadataList []string) ([]string, error) {
-	manifestList := []string{}
-
-	for _, metadata := range metadataList {
-		fileDir, _ := filepath.Split(metadata)
-		manifestDir, manifestFilename := filepath.Split(filepath.Clean(fileDir))
-		metadataDir, manifestFolder := filepath.Split(filepath.Clean(manifestDir))
-
-		if fileDir == "" || manifestDir == "" || metadataDir == "" {
-			err := errors.Errorf("Failed to extract manifest name from metadata path %s", metadata)
-			return []string{}, err
-		}
-
-		manifestName := filepath.Join(manifestFolder, manifestFilename)
-		manifestList = append(manifestList, manifestName)
-	}
-
-	return manifestList, nil
-}
-
-func listManifests(ctx context.Context, clusterID *strfmt.UUID, folder string, s3Client s3wrapper.API) ([]string, error) {
+func listManifests(ctx context.Context, clusterID *strfmt.UUID, folder string, s3Client s3wrapper.API) ([]s3wrapper.ObjectInfo, error) {
 	key := GetManifestObjectName(*clusterID, folder)
-	files, err := s3Client.ListObjectsByPrefix(ctx, key)
+	files, err := s3Client.ListObjectsByPrefixWithMetadata(ctx, key)
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 	return files, nil
 }
@@ -585,9 +537,10 @@ func (m *Manifests) getManifestPathsFromParameters(ctx context.Context, folder *
 	return *folder, *fileName, filepath.Join(*folder, *fileName)
 }
 
-func (m *Manifests) uploadManifest(ctx context.Context, content []byte, clusterID strfmt.UUID, path string) error {
+func (m *Manifests) uploadManifest(ctx context.Context, content []byte, clusterID strfmt.UUID, path string, manifestSource string) error {
 	objectName := GetManifestObjectName(clusterID, path)
-	if err := m.objectHandler.Upload(ctx, content, objectName); err != nil {
+	metadata := map[string]string{constants.ManifestSourceAttribute: manifestSource}
+	if err := m.objectHandler.UploadWithMetadata(ctx, content, objectName, metadata); err != nil {
 		return m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrapf(err, "Failed to upload mainfest object %s for cluster %s", objectName, clusterID))
 	}
 	return nil
@@ -604,7 +557,7 @@ func (m *Manifests) deleteManifest(ctx context.Context, clusterID strfmt.UUID, p
 			errors.Wrapf(err, "There was an error while determining the existence of manifest %s for cluster %s", path, clusterID))
 	}
 	if !exists {
-		log.Infof("Cluster manifest %s doesn't exists for cluster %s", path, clusterID)
+		log.Infof("Cluster manifest %s doesn't exist for cluster %s", path, clusterID)
 		return nil
 	}
 	if _, err = m.objectHandler.DeleteObject(ctx, objectName); err != nil {
@@ -612,10 +565,6 @@ func (m *Manifests) deleteManifest(ctx context.Context, clusterID strfmt.UUID, p
 			ctx,
 			http.StatusInternalServerError,
 			errors.Wrapf(err, "Failed to delete object %s from storage for cluster %s", objectName, clusterID))
-	}
-	err = m.unmarkUserSuppliedManifest(ctx, clusterID, path)
-	if err != nil {
-		return err
 	}
 	return nil
 }

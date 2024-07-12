@@ -67,19 +67,19 @@ func (mr *MockManifestsAPIMockRecorder) DeleteClusterManifestInternal(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterManifestInternal", reflect.TypeOf((*MockManifestsAPI)(nil).DeleteClusterManifestInternal), arg0, arg1)
 }
 
-// IsUserManifest mocks base method.
-func (m *MockManifestsAPI) IsUserManifest(arg0 context.Context, arg1 strfmt.UUID, arg2, arg3 string) (bool, error) {
+// FindUserManifestPathsByLegacyMetadata mocks base method.
+func (m *MockManifestsAPI) FindUserManifestPathsByLegacyMetadata(arg0 context.Context, arg1 strfmt.UUID) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsUserManifest", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(bool)
+	ret := m.ctrl.Call(m, "FindUserManifestPathsByLegacyMetadata", arg0, arg1)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// IsUserManifest indicates an expected call of IsUserManifest.
-func (mr *MockManifestsAPIMockRecorder) IsUserManifest(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+// FindUserManifestPathsByLegacyMetadata indicates an expected call of FindUserManifestPathsByLegacyMetadata.
+func (mr *MockManifestsAPIMockRecorder) FindUserManifestPathsByLegacyMetadata(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsUserManifest", reflect.TypeOf((*MockManifestsAPI)(nil).IsUserManifest), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserManifestPathsByLegacyMetadata", reflect.TypeOf((*MockManifestsAPI)(nil).FindUserManifestPathsByLegacyMetadata), arg0, arg1)
 }
 
 // ListClusterManifestsInternal mocks base method.

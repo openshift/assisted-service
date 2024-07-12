@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -86,6 +87,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		workDir      string
 		cluster      *common.Cluster
 		ctrl         *gomock.Controller
+		manifestsAPI *manifestsapi.MockManifestsAPI
 	)
 
 	BeforeEach(func() {
@@ -98,7 +100,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		Expect(err1).NotTo(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-
+		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 		cluster = testCluster()
 		cluster.Hosts = []*models.Host{
 			{
@@ -108,7 +110,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			},
 		}
 		db, dbName = common.PrepareTestDB()
-		g := NewGenerator(workDir, "", cluster, "", "", "", "", mockS3Client, logrus.New(), nil, "", "", 5).(*installerGenerator)
+		g := NewGenerator(workDir, "", cluster, "", "", "", "", mockS3Client, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
 
 		Expect(g.updateBootstrap(context.Background(), examplePath)).To(Succeed())
 
@@ -236,13 +238,15 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 -----END CERTIFICATE-----`
 
 	var (
-		masterPath string
-		workerPath string
-		caCertPath string
-		dbName     string
-		db         *gorm.DB
-		cluster    *common.Cluster
-		workDir    string
+		masterPath   string
+		workerPath   string
+		caCertPath   string
+		dbName       string
+		db           *gorm.DB
+		cluster      *common.Cluster
+		workDir      string
+		ctrl         *gomock.Controller
+		manifestsAPI *manifestsapi.MockManifestsAPI
 	)
 
 	BeforeEach(func() {
@@ -262,6 +266,9 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		Expect(err).NotTo(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		cluster = testCluster()
+
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 	})
 
 	AfterEach(func() {
@@ -271,7 +278,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 	Describe("update ignitions", func() {
 		It("with ca cert file", func() {
-			g := NewGenerator(workDir, "", cluster, "", "", caCertPath, "", nil, logrus.New(), nil, "", "", 5).(*installerGenerator)
+			g := NewGenerator(workDir, "", cluster, "", "", caCertPath, "", nil, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
 
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -293,7 +300,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 		})
 		It("with no ca cert file", func() {
-			g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5).(*installerGenerator)
+			g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
 
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -312,7 +319,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		Context("DHCP generation", func() {
 			It("Definitions only", func() {
-				g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5).(*installerGenerator)
+				g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
 
 				g.encodedDhcpFileContents = "data:,abc"
 				err := g.updateIgnitions()
@@ -330,7 +337,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			})
 		})
 		It("Definitions+leases", func() {
-			g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5).(*installerGenerator)
+			g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
 
 			g.encodedDhcpFileContents = "data:,abc"
 			cluster.ApiVipLease = "api"
@@ -423,6 +430,7 @@ var _ = Describe("createHostIgnitions", func() {
 		cluster      *common.Cluster
 		ctrl         *gomock.Controller
 		workDir      string
+		manifestsAPI *manifestsapi.MockManifestsAPI
 	)
 
 	BeforeEach(func() {
@@ -440,6 +448,7 @@ var _ = Describe("createHostIgnitions", func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 		cluster = testCluster()
 	})
 
@@ -476,7 +485,7 @@ var _ = Describe("createHostIgnitions", func() {
 				host.ID = &id
 			}
 
-			g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5).(*installerGenerator)
+			g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
 
 			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -530,7 +539,7 @@ var _ = Describe("createHostIgnitions", func() {
 				host.ID = &id
 			}
 
-			g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5).(*installerGenerator)
+			g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
 
 			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -574,7 +583,7 @@ var _ = Describe("createHostIgnitions", func() {
 				host.ID = &id
 			}
 
-			g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5).(*installerGenerator)
+			g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
 
 			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -622,7 +631,7 @@ var _ = Describe("createHostIgnitions", func() {
 			host.ID = &id
 		}
 
-		g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5).(*installerGenerator)
+		g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
 		g.nodeIpAllocations = make(map[strfmt.UUID]*network.NodeIpAllocation)
 		for i, h := range cluster.Hosts {
 			g.nodeIpAllocations[*h.ID] = &network.NodeIpAllocation{
@@ -663,7 +672,7 @@ var _ = Describe("createHostIgnitions", func() {
 			IgnitionConfigOverrides: `{"ignition": {"version": "3.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
 		}}
 
-		g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5).(*installerGenerator)
+		g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
 
 		err := g.createHostIgnitions()
 		Expect(err).NotTo(HaveOccurred())
@@ -734,9 +743,9 @@ spec:
 				MachineConfigPoolName: "infra",
 			}}
 
-			g := NewGenerator(workDir, "", cluster, "", "", "", "", mockS3Client, logrus.New(), nil, "", "", 5).(*installerGenerator)
-			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
-			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
+			g := NewGenerator(workDir, "", cluster, "", "", "", "", mockS3Client, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
+			mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(gomock.Any(), filepath.Join(clusterID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift)).Return([]s3wrapper.ObjectInfo{{Path: "mcp.yaml"}}, nil).Times(1)
+			mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(gomock.Any(), filepath.Join(clusterID.String(), constants.ManifestFolder, models.ManifestFolderManifests)).Times(1)
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(io.NopCloser(strings.NewReader(mcp)), int64(0), nil)
 			err := g.writeSingleHostFile(cluster.Hosts[0], workerIgn, g.workDir)
 			Expect(err).NotTo(HaveOccurred())
@@ -760,9 +769,9 @@ spec:
 				MachineConfigPoolName: "infra",
 			}}
 
-			g := NewGenerator(workDir, "", cluster, "", "", "", "", mockS3Client, logrus.New(), nil, "", "", 5).(*installerGenerator)
-			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
-			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
+			g := NewGenerator(workDir, "", cluster, "", "", "", "", mockS3Client, logrus.New(), nil, "", "", 5, manifestsAPI).(*installerGenerator)
+			mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(gomock.Any(), filepath.Join(clusterID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift)).Return([]s3wrapper.ObjectInfo{{Path: "mcp.yaml"}}, nil).Times(1)
+			mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(gomock.Any(), filepath.Join(clusterID.String(), constants.ManifestFolder, models.ManifestFolderManifests)).Times(1)
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(io.NopCloser(strings.NewReader(mc)), int64(0), nil)
 			err := g.writeSingleHostFile(cluster.Hosts[0], workerIgn, g.workDir)
 			Expect(err).To(HaveOccurred())
@@ -1260,6 +1269,7 @@ var _ = Describe("expand multi document yamls", func() {
 		ctx          = context.Background()
 		cluster      *common.Cluster
 		workDir      string
+		manifestsAPI *manifestsapi.MockManifestsAPI
 	)
 
 	BeforeEach(func() {
@@ -1269,11 +1279,13 @@ var _ = Describe("expand multi document yamls", func() {
 		var err error
 		workDir, err = os.MkdirTemp("", "expand-multi-document-yamls-test-")
 		Expect(err).NotTo(HaveOccurred())
+		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 		generator = &installerGenerator{
-			log:      logrus.New(),
-			workDir:  workDir,
-			s3Client: mockS3Client,
-			cluster:  cluster,
+			log:         logrus.New(),
+			workDir:     workDir,
+			s3Client:    mockS3Client,
+			cluster:     cluster,
+			manifestApi: manifestsAPI,
 		}
 	})
 
@@ -1290,12 +1302,15 @@ first: one
 - second: two
 ---
 `
-		s3Metadata := []string{
-			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "manifests", "multidoc.yml", constants.ManifestSourceUserSupplied),
-			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "manifests", "manifest.json", constants.ManifestSourceUserSupplied), // json file will be ignored
-			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "manifests", "manifest.yml", "other-metadata"),
+		userSuppliedMetadata := map[string]string{constants.ManifestSourceAttribute: constants.ManifestSourceUserSupplied}
+		fileData := []s3wrapper.ObjectInfo{
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests, "multidoc.yml"), Metadata: userSuppliedMetadata},
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests, "manifest.json"), Metadata: userSuppliedMetadata},
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests, "manifest2.json")},
 		}
-		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder)).Return(s3Metadata, nil).Times(1)
+		manifestsAPI.EXPECT().FindUserManifestPathsByLegacyMetadata(ctx, *cluster.ID).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests)).Return(fileData, nil).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift)).Times(1)
 
 		manifestsDir := filepath.Join(workDir, "/manifests")
 		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
@@ -1356,10 +1371,13 @@ first: one
 first: one
 ---
 `
-		s3Metadata := []string{
-			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "openshift", "manifest.yml", constants.ManifestSourceUserSupplied),
+		userSuppliedMetadata := map[string]string{constants.ManifestSourceAttribute: constants.ManifestSourceUserSupplied}
+		fileData := []s3wrapper.ObjectInfo{
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift, "manifest.yml"), Metadata: userSuppliedMetadata},
 		}
-		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder)).Return(s3Metadata, nil).Times(1)
+		manifestsAPI.EXPECT().FindUserManifestPathsByLegacyMetadata(ctx, *cluster.ID).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift)).Return(fileData, nil).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests)).Times(1)
 
 		openshiftDir := filepath.Join(workDir, "/openshift")
 		Expect(os.Mkdir(openshiftDir, 0755)).To(Succeed())
@@ -1378,6 +1396,79 @@ first: one
 		content, err := os.ReadFile(manifestFilename)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(content)).To(Equal(yamlDoc))
+	})
+
+	It("yaml file is left untouched when it is not user supplied", func() {
+		multiDocYaml := `---
+first: one
+---
+- second: two
+`
+		fileData := []s3wrapper.ObjectInfo{
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift, "manifest.yml")},
+		}
+		manifestsAPI.EXPECT().FindUserManifestPathsByLegacyMetadata(ctx, *cluster.ID).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift)).Return(fileData, nil).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests)).Times(1)
+
+		openshiftDir := filepath.Join(workDir, "/openshift")
+		Expect(os.Mkdir(openshiftDir, 0755)).To(Succeed())
+
+		manifestFilename := filepath.Join(openshiftDir, "manifest.yml")
+		err := os.WriteFile(manifestFilename, []byte(multiDocYaml), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = generator.expandUserMultiDocYamls(ctx)
+		Expect(err).To(Succeed())
+
+		entries, err := os.ReadDir(openshiftDir)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entries).To(HaveLen(1))
+
+		content, err := os.ReadFile(manifestFilename)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(Equal(multiDocYaml))
+	})
+
+	It("yaml file is split when it is marked as user supplied with legacy filesystem method", func() {
+		multiDocYaml := `---
+first: one
+---
+- second: two
+`
+		userSuppliedMetadata := map[string]string{constants.ManifestSourceAttribute: constants.ManifestSourceUserSupplied}
+		fileData := []s3wrapper.ObjectInfo{
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests, "multidoc.yml")},
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests, "manifest.json"), Metadata: userSuppliedMetadata},
+			{Path: filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests, "manifest2.json")},
+		}
+		userManifestsFromLegacyMetadata := []string{
+			filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests, "multidoc.yml"),
+		}
+		manifestsAPI.EXPECT().FindUserManifestPathsByLegacyMetadata(ctx, *cluster.ID).Return(userManifestsFromLegacyMetadata, nil).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderManifests)).Return(fileData, nil).Times(1)
+		mockS3Client.EXPECT().ListObjectsByPrefixWithMetadata(ctx, filepath.Join(cluster.ID.String(), constants.ManifestFolder, models.ManifestFolderOpenshift)).Times(1)
+
+		manifestsDir := filepath.Join(workDir, "/manifests")
+		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
+
+		err := os.WriteFile(filepath.Join(manifestsDir, "multidoc.yml"), []byte(multiDocYaml), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = generator.expandUserMultiDocYamls(ctx)
+		Expect(err).To(Succeed())
+
+		entries, err := os.ReadDir(manifestsDir)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entries).To(HaveLen(2))
+
+		content, err := os.ReadFile(filepath.Join(manifestsDir, entries[0].Name()))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(Equal("first: one\n"))
+
+		content, err = os.ReadFile(filepath.Join(manifestsDir, entries[1].Name()))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(Equal("- second: two\n"))
 	})
 })
 
@@ -1478,12 +1569,18 @@ var _ = Describe("Set kubelet node ip", func() {
 })
 
 var _ = Describe("Bare metal host generation", func() {
-	var workDir string
+	var (
+		workDir      string
+		ctrl         *gomock.Controller
+		manifestsAPI *manifestsapi.MockManifestsAPI
+	)
 
 	BeforeEach(func() {
 		var err error
 		workDir, err = os.MkdirTemp("", "bmh-generation-test-")
 		Expect(err).NotTo(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 	})
 
 	AfterEach(func() {
@@ -1508,6 +1605,7 @@ var _ = Describe("Bare metal host generation", func() {
 				"",
 				"",
 				5,
+				manifestsAPI,
 			).(*installerGenerator)
 
 			// The default host inventory used by these tests has two NICs, each with
@@ -1567,11 +1665,13 @@ var _ = Describe("Bare metal host generation", func() {
 
 var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 	var (
-		certDir string
-		dbName  string
-		db      *gorm.DB
-		cluster *common.Cluster
-		workDir string
+		certDir      string
+		dbName       string
+		db           *gorm.DB
+		cluster      *common.Cluster
+		workDir      string
+		ctrl         *gomock.Controller
+		manifestsAPI *manifestsapi.MockManifestsAPI
 	)
 
 	certFiles := []string{"test-cert.crt", "test-cert.key"}
@@ -1599,6 +1699,8 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 		}
 		workDir, err = os.MkdirTemp("", "ephemeral-install-tls-cert-test-")
 		Expect(err).NotTo(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 	})
 
 	AfterEach(func() {
@@ -1607,7 +1709,7 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 	})
 
 	It("copies the tls cert files", func() {
-		g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", certDir, 5).(*installerGenerator)
+		g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", certDir, 5, manifestsAPI).(*installerGenerator)
 
 		err := g.importClusterTLSCerts(context.Background())
 		Expect(err).NotTo(HaveOccurred())

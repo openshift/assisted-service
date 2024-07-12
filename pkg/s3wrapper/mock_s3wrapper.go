@@ -168,6 +168,21 @@ func (mr *MockAPIMockRecorder) ListObjectsByPrefix(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListObjectsByPrefix", reflect.TypeOf((*MockAPI)(nil).ListObjectsByPrefix), arg0, arg1)
 }
 
+// ListObjectsByPrefixWithMetadata mocks base method.
+func (m *MockAPI) ListObjectsByPrefixWithMetadata(arg0 context.Context, arg1 string) ([]ObjectInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListObjectsByPrefixWithMetadata", arg0, arg1)
+	ret0, _ := ret[0].([]ObjectInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListObjectsByPrefixWithMetadata indicates an expected call of ListObjectsByPrefixWithMetadata.
+func (mr *MockAPIMockRecorder) ListObjectsByPrefixWithMetadata(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListObjectsByPrefixWithMetadata", reflect.TypeOf((*MockAPI)(nil).ListObjectsByPrefixWithMetadata), arg0, arg1)
+}
+
 // UpdateObjectTimestamp mocks base method.
 func (m *MockAPI) UpdateObjectTimestamp(arg0 context.Context, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()
@@ -211,6 +226,20 @@ func (mr *MockAPIMockRecorder) UploadFile(arg0, arg1, arg2 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFile", reflect.TypeOf((*MockAPI)(nil).UploadFile), arg0, arg1, arg2)
 }
 
+// UploadFileWithMetadata mocks base method.
+func (m *MockAPI) UploadFileWithMetadata(arg0 context.Context, arg1, arg2 string, arg3 map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadFileWithMetadata", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UploadFileWithMetadata indicates an expected call of UploadFileWithMetadata.
+func (mr *MockAPIMockRecorder) UploadFileWithMetadata(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFileWithMetadata", reflect.TypeOf((*MockAPI)(nil).UploadFileWithMetadata), arg0, arg1, arg2, arg3)
+}
+
 // UploadStream mocks base method.
 func (m *MockAPI) UploadStream(arg0 context.Context, arg1 io.Reader, arg2 string) error {
 	m.ctrl.T.Helper()
@@ -223,4 +252,32 @@ func (m *MockAPI) UploadStream(arg0 context.Context, arg1 io.Reader, arg2 string
 func (mr *MockAPIMockRecorder) UploadStream(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadStream", reflect.TypeOf((*MockAPI)(nil).UploadStream), arg0, arg1, arg2)
+}
+
+// UploadStreamWithMetadata mocks base method.
+func (m *MockAPI) UploadStreamWithMetadata(arg0 context.Context, arg1 io.Reader, arg2 string, arg3 map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadStreamWithMetadata", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UploadStreamWithMetadata indicates an expected call of UploadStreamWithMetadata.
+func (mr *MockAPIMockRecorder) UploadStreamWithMetadata(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadStreamWithMetadata", reflect.TypeOf((*MockAPI)(nil).UploadStreamWithMetadata), arg0, arg1, arg2, arg3)
+}
+
+// UploadWithMetadata mocks base method.
+func (m *MockAPI) UploadWithMetadata(arg0 context.Context, arg1 []byte, arg2 string, arg3 map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadWithMetadata", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UploadWithMetadata indicates an expected call of UploadWithMetadata.
+func (mr *MockAPIMockRecorder) UploadWithMetadata(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadWithMetadata", reflect.TypeOf((*MockAPI)(nil).UploadWithMetadata), arg0, arg1, arg2, arg3)
 }
