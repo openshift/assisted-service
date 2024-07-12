@@ -1,0 +1,11 @@
+{
+    "schedule": ["on Saturday"],
+    "groupName": "Konflux build pipeline",
+    "includePaths": [".tekton/*"],
+    "commitMessagePrefix": "[cloud_hotfix_releases] NO-ISSUE: ",
+    "prBodyNotes": [
+        "/lgtm",
+        "/approve"
+    ]
+}
+
