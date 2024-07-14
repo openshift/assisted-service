@@ -94,7 +94,15 @@ def deploy_ingress(hostname, deploy_options):
 def populate_stubs(hostname: str, port: str):
     cmd = f"go run ./hack/add_wiremock_stubs.go"
     os.environ["OCM_URL"] = f"{hostname}:{port}"
-    utils.check_output(cmd)
+
+    log.info("Waiting for wiremock stubs population...")
+    
+    waiting.wait(
+        lambda: utils.check_output(cmd),
+        timeout_seconds=120,
+        expected_exceptions=(RuntimeError),
+        sleep_seconds=SLEEP, waiting_for="Stubs to be populated"
+    )
 
 
 def is_wiremock_service_ready(namespace: str) -> bool:
