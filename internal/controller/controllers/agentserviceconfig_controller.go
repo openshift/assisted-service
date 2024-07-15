@@ -1093,7 +1093,7 @@ func urlForRoute(ctx context.Context, asc ASC, routeName string) (string, error)
 
 // unauthenticatedRegistries appends mirror registries and user-specified unauthenticated registries to the default list
 func unauthenticatedRegistries(ctx context.Context, asc ASC) string {
-	unauthenticatedRegistries := []string{"quay.io", "registry.svc.ci.openshift.org"}
+	unauthenticatedRegistries := []string{"quay.io", "registry.ci.openshift.org"}
 	if asc.spec.MirrorRegistryRef != nil {
 		cm := &corev1.ConfigMap{}
 		// Any errors in the following code block is not handled since they indicate a problem with the
