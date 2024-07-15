@@ -2195,7 +2195,7 @@ var _ = Describe("newAssistedCM", func() {
 	})
 
 	It("default public container registries", func() {
-		ensureNewAssistedConfigmapValue(ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org")
+		ensureNewAssistedConfigmapValue(ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.ci.openshift.org")
 	})
 	It("adds unqualified-search-registries", func() {
 		asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: testMirrorRegConfigmapName}
@@ -2203,7 +2203,7 @@ var _ = Describe("newAssistedCM", func() {
 		ascr := newTestReconciler(asc, route, imageRoute, mirrorCM)
 		ascc = initASC(ascr, asc)
 		ensureNewAssistedConfigmapValue(
-			ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,registry.ci.openshift.org",
+			ctx, log, ascc, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.ci.openshift.org,registry.access.redhat.com,docker.io",
 		)
 	})
 	It("adds mirror registries", func() {
@@ -2216,7 +2216,7 @@ var _ = Describe("newAssistedCM", func() {
 			log,
 			ascc,
 			"PUBLIC_CONTAINER_REGISTRIES",
-			"quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,registry.ci.openshift.org",
+			"quay.io,registry.ci.openshift.org,registry.access.redhat.com,docker.io",
 		)
 	})
 	It("adds user-specified unauthenticated registries", func() {
@@ -2226,7 +2226,7 @@ var _ = Describe("newAssistedCM", func() {
 			log,
 			ascc,
 			"PUBLIC_CONTAINER_REGISTRIES",
-			"quay.io,registry.svc.ci.openshift.org,example.com",
+			"quay.io,registry.ci.openshift.org,example.com",
 		)
 	})
 	It("ignores duplicate values", func() {
@@ -2240,7 +2240,7 @@ var _ = Describe("newAssistedCM", func() {
 			log,
 			ascc,
 			"PUBLIC_CONTAINER_REGISTRIES",
-			"quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,registry.ci.openshift.org,example.com")
+			"quay.io,registry.ci.openshift.org,registry.access.redhat.com,docker.io,example.com")
 	})
 })
 
