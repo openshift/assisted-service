@@ -7,6 +7,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -291,8 +292,10 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 
 	installerArgs, hasIPConfigOverride := appends390xArgs(inventory, installerArgs, log)
 
+	hasUserConfiguredIP := hasUserConfiguredIP(installerArgs)
+
 	// set DHCP args only if no IP config override was specified (only for LPAR and zVM nodes on s390x)
-	if !hasStaticNetwork && !hasIPConfigOverride {
+	if !hasStaticNetwork && !hasIPConfigOverride && !hasUserConfiguredIP {
 		// The set of ip=<nic>:dhcp kernel arguments should be added only if there is no static
 		// network configured by the user. This is because this parameter will configure RHCOS to
 		// try to obtain IP address from the DHCP server even if we provide a static addressing.
@@ -305,15 +308,22 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		}
 	}
 
+	var installationDisk *models.Disk
 	for _, disk := range inventory.Disks {
 		if disk.ID == host.InstallationDiskID {
-			if disk.DriveType == models.DriveTypeMultipath {
-				installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
-			} else if disk.DriveType == models.DriveTypeISCSI {
-				// Currently only allowed on the OCI platform
-				installerArgs = append(installerArgs, "--append-karg", "rd.iscsi.firmware=1")
-			}
+			installationDisk = disk
+			break
 		}
+	}
+
+	if installationDisk.DriveType == models.DriveTypeMultipath {
+		installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
+	} else if installationDisk.DriveType == models.DriveTypeISCSI {
+		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
+		if err != nil {
+			return "", err
+		}
+
 	}
 
 	if hasStaticNetwork && !funk.Contains(installerArgs, "--copy-network") {
@@ -323,6 +333,45 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 	}
 
 	return toJSONString(installerArgs)
+}
+
+func appendISCSIArgs(installerArgs []string, disk *models.Disk, inventory *models.Inventory, hasUserConfiguredIP bool) ([]string, error) {
+	// enable iSCSI on boot
+	installerArgs = append(installerArgs, "--append-karg", "rd.iscsi.firmware=1")
+
+	if hasUserConfiguredIP {
+		return installerArgs, nil
+	}
+
+	// configure DHCP on the interface used by the iSCSI boot volume
+	iSCSIHostIP := net.ParseIP(disk.Iscsi.HostIPAddress)
+	if iSCSIHostIP == nil {
+		return nil, fmt.Errorf("Cannot parse iSCSI host IP %s", disk.Iscsi.HostIPAddress)
+	}
+	isIPv6 := govalidator.IsIPv6(iSCSIHostIP.String())
+
+	nic := funk.Find(inventory.Interfaces, func(nic *models.Interface) bool {
+		ips := nic.IPV4Addresses
+		if isIPv6 {
+			ips = nic.IPV6Addresses
+		}
+		return funk.Contains(ips, func(ip string) bool {
+			nicIP, _, _ := net.ParseCIDR(ip)
+			return nicIP.String() == iSCSIHostIP.String()
+		})
+	}).(*models.Interface)
+
+	if nic == nil {
+		return nil, fmt.Errorf("Cannot find the interface belonging to iSCSI host IP %s", iSCSIHostIP.String())
+	}
+
+	dhcp := "dhcp"
+	if isIPv6 {
+		dhcp = "dhcp6"
+	}
+	installerArgs = append(installerArgs, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp))
+
+	return installerArgs, nil
 }
 
 func appends390xArgs(inventory *models.Inventory, installerArgs []string, log logrus.FieldLogger) ([]string, bool) {
@@ -365,11 +414,6 @@ func appends390xArgs(inventory *models.Inventory, installerArgs []string, log lo
 }
 
 func appendDHCPArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, installerArgs []string, log logrus.FieldLogger) ([]string, error) {
-
-	if hasUserConfiguredIP(installerArgs) {
-		return installerArgs, nil
-	}
-
 	machineNetworkCIDR := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
 	if machineNetworkCIDR != "" {
 		ipv6 := network.IsIPv6CIDR(machineNetworkCIDR)

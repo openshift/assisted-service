@@ -732,7 +732,10 @@ var _ = Describe("construct host install arguments", func() {
 			"disks":[
 				{
 					"id": "install-id",
-					"drive_type": "%s"
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.80"
+					}
 				},
 				{
 					"id": "other-id",
@@ -743,13 +746,17 @@ var _ = Describe("construct host install arguments", func() {
 				{
 					"name": "eth1",
 					"ipv4_addresses":["10.56.20.80/25"]
+				},
+				{
+					"name": "eth2",
+					"ipv4_addresses":["10.56.21.80/25"]
 				}
 			]
 		}`, models.DriveTypeISCSI, models.DriveTypeSSD)
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=eth1:dhcp"]`))
 	})
 	It("ip=<nic>:dhcp6 added when machine CIDR is IPv6", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/64"}}
