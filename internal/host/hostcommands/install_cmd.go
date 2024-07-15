@@ -44,10 +44,11 @@ type installCmd struct {
 	eventsHandler       eventsapi.Handler
 	versionsHandler     versions.Handler
 	enableSkipMcoReboot bool
+	notifyNumReboots    bool
 }
 
 func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
-	instructionConfig InstructionConfig, eventsHandler eventsapi.Handler, versionsHandler versions.Handler, enableSkipMcoReboot bool) *installCmd {
+	instructionConfig InstructionConfig, eventsHandler eventsapi.Handler, versionsHandler versions.Handler, enableSkipMcoReboot, notifyNumReboots bool) *installCmd {
 	return &installCmd{
 		baseCmd:             baseCmd{log: log},
 		db:                  db,
@@ -57,6 +58,7 @@ func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Val
 		eventsHandler:       eventsHandler,
 		versionsHandler:     versionsHandler,
 		enableSkipMcoReboot: enableSkipMcoReboot,
+		notifyNumReboots:    notifyNumReboots,
 	}
 }
 
@@ -130,6 +132,7 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		request.EnableSkipMcoReboot = featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDSKIPMCOREBOOT,
 			cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))
 	}
+	request.NotifyNumReboots = i.notifyNumReboots
 
 	// those flags are not used on day2 installation
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {

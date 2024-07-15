@@ -6646,6 +6646,9 @@ definitions:
       enable_skip_mco_reboot:
         type: boolean
         description: If true, assisted service will attempt to skip MCO reboot
+      notify_num_reboots:
+        type: boolean
+        description: If true, notify number of reboots by assisted controller
 
   ntp_synchronization_request:
     type: object

@@ -75,6 +75,9 @@ type InstallCmdRequest struct {
 	// Must-gather images to use
 	MustGatherImage string `json:"must_gather_image,omitempty"`
 
+	// If true, notify number of reboots by assisted controller
+	NotifyNumReboots bool `json:"notify_num_reboots,omitempty"`
+
 	// Version of the OpenShift cluster.
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
