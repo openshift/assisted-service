@@ -11,6 +11,7 @@ import (
 )
 
 var _ = Describe("V2ListFeatureSupportLevels API", func() {
+	featureCNV := models.FeatureSupportLevelIDCNV
 	lVMavailableVersions := []string{"4.11", "4.12", "4.13", "4.14", "4.15"}
 	unspportedLVMVersions := []string{"4.10", "4.9", "4.8", "4.7", "4.6"}
 
@@ -217,5 +218,78 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable))
 		})
+	})
+
+	Context("Test CNV feature", func() {
+		supportedCpuArch := models.ClusterCPUArchitectureX8664
+		notSupportedCpuArch := []string{
+			models.ClusterCPUArchitectureS390x,
+			models.ClusterCPUArchitecturePpc64le,
+		}
+		cpuARM := models.ClusterCPUArchitectureArm64
+		for _, ocpVersion := range []string{"4.11", "4.14", "4.21"} {
+			version := ocpVersion
+			It(fmt.Sprintf("Validate CNV supported on Architecture: %s", supportedCpuArch), func() {
+				Expect(IsFeatureAvailable(featureCNV, version, swag.String(supportedCpuArch))).To(BeTrue(),
+					fmt.Sprintf("Feature: %s, OCP version: %s, CpuArch: %s", featureCNV, version, supportedCpuArch))
+			})
+			for _, arch := range notSupportedCpuArch {
+				cpuArchitecture := arch
+				It(fmt.Sprintf("Validate CNV not supported on Architecture: %s", cpuArchitecture), func() {
+					Expect(IsFeatureAvailable(featureCNV, version, swag.String(cpuArchitecture))).To(BeFalse(),
+						fmt.Sprintf("Feature: %s, OCP version: %s, CpuArch: %s", featureCNV, version, cpuArchitecture))
+				})
+			}
+		}
+
+		for _, ocpVersion := range []string{"4.11", "4.12", "4.13"} {
+			version := ocpVersion
+			It(fmt.Sprintf("Validate featurue CNV not avilable on Architecture: %s", models.ClusterCPUArchitectureArm64), func() {
+				Expect(IsFeatureAvailable(featureCNV, version, swag.String(models.ClusterCPUArchitectureArm64))).To(BeFalse(),
+					fmt.Sprintf("Feature: %s, OCP version: %s, CpuArch: %s", featureCNV, version, models.ClusterCPUArchitectureArm64))
+			})
+		}
+		for _, ocpVersion := range []string{"4.13", "4.15", "4.21"} {
+			version := ocpVersion
+			It(fmt.Sprintf("Validate featurue CNV is avilable on Architecture: %s", cpuARM), func() {
+				Expect(IsFeatureAvailable(featureCNV, version, swag.String(cpuARM))).To(BeTrue(),
+					fmt.Sprintf("Feature: %s, OCP version: %s, CpuArch: %s", featureCNV, version, models.ClusterCPUArchitectureArm64))
+			})
+		}
+
+		for _, ocpVersion := range []string{"4.11", "4.12", "4.14", "4.21"} {
+			version := ocpVersion
+			featureSupport := GetFeatureSupportList(version, swag.String(supportedCpuArch), models.PlatformTypeBaremetal.Pointer(), nil)[string(featureCNV)]
+			It(fmt.Sprintf("CNV feature level is supported in Architecture: %s", supportedCpuArch), func() {
+				Expect(featureSupport).To(Equal(models.SupportLevelSupported),
+					fmt.Sprintf("OCP version: %s, CpuArch: %s, supportLevel: %s", version, supportedCpuArch, featureSupport))
+			})
+
+			for _, arch := range notSupportedCpuArch {
+				cpuArchitecture := arch
+				featureSupport := GetFeatureSupportList(version, swag.String(cpuArchitecture), models.PlatformTypeBaremetal.Pointer(), nil)[string(featureCNV)]
+				It(fmt.Sprintf("CNV feature level is unavailable in Architecture: %s", cpuArchitecture), func() {
+					Expect(featureSupport).To(Equal(models.SupportLevelUnavailable),
+						fmt.Sprintf("OCP version: %s, CpuArch: %s, supportLevel: %s", version, cpuArchitecture, featureSupport))
+				})
+			}
+		}
+		for _, ocpVersion := range []string{"4.11", "4.12", "4.13"} {
+			version := ocpVersion
+			featureSupport := GetFeatureSupportList(version, swag.String(cpuARM), models.PlatformTypeBaremetal.Pointer(), nil)[string(featureCNV)]
+			It(fmt.Sprintf("CNV feature level is unavailable in Architecture: %s", cpuARM), func() {
+				Expect(featureSupport).To(Equal(models.SupportLevelUnavailable),
+					fmt.Sprintf("OCP version: %s, CpuArch: %s, supportLevel: %s", version, cpuARM, featureSupport))
+			})
+		}
+
+		for _, ocpVersion := range []string{"4.14", "4.15", "4.21"} {
+			version := ocpVersion
+			featureSupport := GetFeatureSupportList(version, swag.String(cpuARM), models.PlatformTypeBaremetal.Pointer(), nil)[string(featureCNV)]
+			It(fmt.Sprintf("CNV feature level is DevPreview in Architecture: %s", cpuARM), func() {
+				Expect(featureSupport).To(Equal(models.SupportLevelDevPreview),
+					fmt.Sprintf("OCP version: %s, CpuArch: %s, supportLevel: %s", version, cpuARM, featureSupport))
+			})
+		}
 	})
 })
