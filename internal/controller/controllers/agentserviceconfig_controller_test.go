@@ -2717,7 +2717,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		Expect(cert.Spec.DNSNames).To(ContainElement(fmt.Sprintf("%s.%s.svc.cluster.local", webhookServiceName, testNamespace)))
 	})
 
-	It("creates the assisted configmap without https config", func() {
+	It("creates the assisted configmap without https server config and with ingress https config", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
@@ -2728,11 +2728,11 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		Expect(cm.Data).ToNot(HaveKey("SERVE_HTTPS"))
 		Expect(cm.Data).ToNot(HaveKey("HTTPS_CERT_FILE"))
 		Expect(cm.Data).ToNot(HaveKey("HTTPS_KEY_FILE"))
-		Expect(cm.Data).ToNot(HaveKey("SERVICE_CA_CERT_PATH"))
-		Expect(cm.Data).ToNot(HaveKey("SKIP_CERT_VERIFICATION"))
+
+		Expect(cm.Data["SERVICE_CA_CERT_PATH"]).To(Equal("/etc/assisted-ingress-cert/ca.crt"))
 	})
 
-	It("creates the assisted deployment without https config", func() {
+	It("creates the assisted deployment without serving https, but with ingress https config", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
@@ -2749,11 +2749,18 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		}
 
 		By("ensure no cert volumes are present")
-		Expect(container.VolumeMounts).To(Equal([]corev1.VolumeMount{{Name: "bucket-filesystem", MountPath: "/data"}}))
+		Expect(container.VolumeMounts).To(ConsistOf(
+			corev1.VolumeMount{Name: "bucket-filesystem", MountPath: "/data"},
+			corev1.VolumeMount{Name: "ingress-cert", MountPath: "/etc/assisted-ingress-cert"},
+		))
+		foundIngressVol := false
 		for _, vol := range deploy.Spec.Template.Spec.Volumes {
 			Expect(vol.Name).NotTo(Equal("tls-certs"))
-			Expect(vol.Name).NotTo(Equal("ingress-cert"))
+			if vol.Name == "ingress-cert" {
+				foundIngressVol = true
+			}
 		}
+		Expect(foundIngressVol).To(BeTrue(), "expected ingress volume to be present")
 
 		By("ensure probe scheme is http")
 		Expect(container.ReadinessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
@@ -2793,6 +2800,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 	validateIngress := func(ingress *netv1.Ingress, host string, service string, port int32) {
 		Expect(ingress.Spec.IngressClassName).To(HaveValue(Equal(*asc.Spec.Ingress.ClassName)))
 		Expect(len(ingress.Spec.Rules)).To(Equal(1))
+
 		rule := ingress.Spec.Rules[0]
 		Expect(rule.Host).To(Equal(host))
 		Expect(rule.IngressRuleValue.HTTP).NotTo(BeNil())
@@ -2804,6 +2812,10 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 			Port: netv1.ServiceBackendPort{Number: port},
 		}
 		Expect(rule.IngressRuleValue.HTTP.Paths[0].Backend.Service).To(HaveValue(Equal(serviceBackend)))
+
+		Expect(len(ingress.Spec.TLS)).To(Equal(1))
+		tls := ingress.Spec.TLS[0]
+		Expect(tls.Hosts).To(Equal([]string{host}))
 	}
 
 	It("creates ingress instead of routes", func() {
@@ -2835,8 +2847,8 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		cm := corev1.ConfigMap{}
 		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
 		Expect(reconciler.Client.Get(ctx, key, &cm)).To(Succeed())
-		Expect(cm.Data["SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("http://%s", asc.Spec.Ingress.AssistedServiceHostname)))
-		Expect(cm.Data["IMAGE_SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("http://%s", asc.Spec.Ingress.ImageServiceHostname)))
+		Expect(cm.Data["SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("https://%s", asc.Spec.Ingress.AssistedServiceHostname)))
+		Expect(cm.Data["IMAGE_SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("https://%s", asc.Spec.Ingress.ImageServiceHostname)))
 	})
 
 	It("sets the image service base URL env to the ingress host", func() {
@@ -2852,7 +2864,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		var found bool
 		for _, env := range ss.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "IMAGE_SERVICE_BASE_URL" {
-				Expect(env.Value).To(Equal(fmt.Sprintf("http://%s", asc.Spec.Ingress.ImageServiceHostname)))
+				Expect(env.Value).To(Equal(fmt.Sprintf("https://%s", asc.Spec.Ingress.ImageServiceHostname)))
 				found = true
 			}
 		}
