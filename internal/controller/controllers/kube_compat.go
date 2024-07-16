@@ -21,6 +21,7 @@ const (
 	caIssuerName                     = "assisted-installer-ca"
 	certificateCRDName               = "certificates.cert-manager.io"
 	certManagerCAInjectionAnnotation = "cert-manager.io/inject-ca-from"
+	certManagerIssuerAnnotation      = "cert-manager.io/issuer"
 	clusterVersionCRDName            = "clusterversions.config.openshift.io"
 	selfSignedIssuerName             = "assisted-installer-selfsigned-ca"
 )
@@ -39,6 +40,10 @@ func crdExists(ctx context.Context, c client.Client, crdName string) (bool, erro
 	return err == nil, client.IgnoreNotFound(err)
 }
 
+func ingressTLSSecretName(ingressName string) string {
+	return fmt.Sprintf("%s-ingress", ingressName)
+}
+
 func newIngress(asc ASC, name string, host string, port int32) (client.Object, controllerutil.MutateFn, error) {
 	if asc.spec.Ingress == nil {
 		return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
@@ -55,6 +60,7 @@ func newIngress(asc ASC, name string, host string, port int32) (client.Object, c
 		if err := controllerutil.SetControllerReference(asc.Object, ingress, asc.rec.Scheme); err != nil {
 			return err
 		}
+		setAnnotation(&ingress.ObjectMeta, certManagerIssuerAnnotation, caIssuerName)
 		ingress.Spec = netv1.IngressSpec{
 			IngressClassName: asc.spec.Ingress.ClassName,
 			Rules: []netv1.IngressRule{{
@@ -73,6 +79,10 @@ func newIngress(asc ASC, name string, host string, port int32) (client.Object, c
 						},
 					}},
 				}},
+			}},
+			TLS: []netv1.IngressTLS{{
+				Hosts:      []string{host},
+				SecretName: ingressTLSSecretName(name),
 			}},
 		}
 		return nil
