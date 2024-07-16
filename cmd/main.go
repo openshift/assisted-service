@@ -304,8 +304,6 @@ func main() {
 		mirrorRegistriesBuilder,
 		system.NewLocalSystemInfo(),
 	)
-	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
-		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 
 	versionHandler, versionsAPIHandler, err := createVersionHandlers(
 		log,
@@ -330,7 +328,7 @@ func main() {
 	createS3Bucket(objectHandler, log)
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler, usageManager)
-	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler, extracterHandler)
+	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler)
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager, providerRegistry)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	Options.InstructionConfig.HostFSMountDir = hostFSMountDir
