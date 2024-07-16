@@ -461,9 +461,6 @@ enable-kube-api-for-subsystem: $(BUILD_FOLDER)
 
 deploy-wiremock: deploy-namespace
 	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)"
-	timeout 5m ./hack/wait_for_wiremock.sh
-	OCM_URL=$$(kubectl get service wiremock -n $(NAMESPACE) -ojson | jq --from-file ./hack/k8s_service_host_port.jq --raw-output); \
-	export OCM_URL && go run ./hack/add_wiremock_stubs.go
 
 deploy-olm: deploy-namespace
 	python3 ./tools/deploy_olm.py --target $(TARGET)
