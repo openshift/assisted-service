@@ -26,7 +26,7 @@ func getPullSecret(clusterPullSecret string, k8sclient k8sclient.K8SClient, key 
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse pull secret")
 	}
-	if auth, ok := pullSecret[key]; ok {
+	if auth, ok := pullSecret[key]; ok && auth.AuthRaw != "" {
 		return &auth, nil
 	}
 	return nil, errors.Errorf("pull secret doesn't contain authentication information for %s", key)

@@ -96,7 +96,7 @@ func (e *PullSecretError) Unwrap() error {
 	return e.Cause
 }
 
-// ParsePullSecret validates the format of a pull secret and converts the secret string into individual credentail entries
+// ParsePullSecret validates the format of a pull secret and converts the secret string into individual credential entries
 func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 	result := make(map[string]PullSecretCreds)
 	var s imagePullSecret
@@ -111,44 +111,55 @@ func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 	}
 
 	for d, a := range s.Auths {
-
-		_, authPresent := a["auth"]
-		_, credsStorePresent := a["credsStore"]
-		if !authPresent && !credsStorePresent {
-			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: %q JSON-object requires either 'auth' or 'credsStore' field", d)}
-		}
-
-		var authRaw string
-		if auth, ok := a["auth"].(string); authPresent && !ok {
-			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' field of %q is %v but should be a string", d, a["auth"])}
-		} else {
-			authRaw = auth
-		}
-		data, err := base64.StdEncoding.DecodeString(authRaw)
+		pullSecretCreds, err := parseAuthConfig(d, a)
 		if err != nil {
-			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' field of %q is not base64-encoded", d)}
+			return nil, err
 		}
 
-		res := bytes.Split(data, []byte(":"))
-		if len(res) != 2 {
-			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' for %s is not in 'user:password' format", d)}
-		}
-
-		var email string
-		if emailString, ok := a["email"].(string); ok {
-			email = emailString
-		}
-
-		result[d] = PullSecretCreds{
-			Password: string(res[1]),
-			Username: string(res[0]),
-			AuthRaw:  authRaw,
-			Registry: d,
-			Email:    email,
-		}
-
+		result[d] = pullSecretCreds
 	}
+
 	return result, nil
+}
+
+func parseAuthConfig(registry string, authConfig map[string]interface{}) (PullSecretCreds, error) {
+	email, _ := authConfig["email"].(string)
+
+	ret := PullSecretCreds{
+		Registry: registry,
+		Email:    email,
+	}
+
+	auth, authPresent := authConfig["auth"]
+	if !authPresent {
+		return ret, nil
+	}
+
+	authRaw, ok := auth.(string)
+	if !ok {
+		return ret, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' field of %q is %v but should be a string", registry, authConfig["auth"])}
+	}
+
+	if len(authRaw) == 0 {
+		return ret, nil
+	}
+
+	ret.AuthRaw = authRaw
+
+	data, err := base64.StdEncoding.DecodeString(authRaw)
+	if err != nil {
+		return ret, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' field of %q is not base64-encoded", registry)}
+	}
+
+	res := strings.SplitN(string(data), ":", 2)
+	if len(res) != 2 {
+		return ret, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' for %s is not in 'user:password' format", registry)}
+	}
+
+	ret.Username = res[0]
+	ret.Password = res[1]
+
+	return ret, nil
 }
 
 func AddRHRegPullSecret(secret, rhCred string) (string, error) {
