@@ -63,12 +63,18 @@ func (o *operator) GetFullName() string {
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	lsoOperator := []string{lso.Operator.Name}
+	lvmOperator := []string{lvm.Operator.Name}
+
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); isGreaterOrEqual {
+		return lvmOperator, nil
+	}
+
 	if !common.IsSingleNodeCluster(cluster) || cluster.OpenshiftVersion == "" {
 		return lsoOperator, nil
 	}
 
 	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion); isGreaterOrEqual {
-		return []string{lvm.Operator.Name}, nil
+		return lvmOperator, nil
 	}
 
 	return lsoOperator, nil
