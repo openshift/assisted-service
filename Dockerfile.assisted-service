@@ -1,18 +1,3 @@
-# Generate python client
-FROM quay.io/edge-infrastructure/swagger-codegen-cli:2.4.18 as swagger_py
-COPY swagger.yaml .
-COPY tools/generate_python_client.sh .
-RUN chmod +x ./generate_python_client.sh && SWAGGER_FILE=swagger.yaml OUTPUT=/build ./generate_python_client.sh
-
-# TODO: Find a pure Python3 base image, rather than relying on the golang one
-FROM registry.ci.openshift.org/openshift/release:golang-1.18 as pybuilder
-COPY . /assisted-service
-COPY --from=swagger_py /build /assisted-service/build
-RUN python3 -m pip install -I pip && pip3 install -I -r /assisted-service/dev-requirements.txt
-RUN cd /assisted-service/build && python3 ../tools/client_package_initializer.py ./ https://github.com/openshift/assisted-service
-
-# TODO: Currently, the Python package is included in the service image for testing purposes. It conveniently allows matching a service version to a specific Python client version. In the future, once the Python package is published on pip, it should (probably) be removed from the Assisted Service image (this dockerfile).
-
 # Build binaries
 FROM quay.io/centos/centos:stream8 as builder
 
@@ -65,7 +50,6 @@ COPY --from=builder /build/assisted-service-operator /assisted-service-operator
 COPY --from=builder /build/assisted-service-admission /assisted-service-admission
 COPY --from=builder /build/agent-installer-client /usr/local/bin/agent-installer-client
 RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-cluster-and-infraenv
-COPY --from=pybuilder /assisted-service/build/dist/* /clients/
 ENV GODEBUG=madvdontneed=1
 ENV GOGC=50
 CMD ["/assisted-service"]
