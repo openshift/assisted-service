@@ -111,7 +111,7 @@ var _ = BeforeEach(func() {
 	ctrl = gomock.NewController(GinkgoT())
 	manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 	mockS3Api = s3wrapper.NewMockAPI(ctrl)
-	manager = operators.NewManager(log, manifestsAPI, operators.Options{}, mockS3Api, nil)
+	manager = operators.NewManager(log, manifestsAPI, operators.Options{}, mockS3Api)
 })
 
 var validYamlOrError = func(ctx context.Context, params operations.V2CreateClusterManifestParams, isCustomManifest bool) (*models.Manifest, error) {
