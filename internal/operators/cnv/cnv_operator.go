@@ -8,7 +8,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
-	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
@@ -28,9 +27,8 @@ const (
 )
 
 type operator struct {
-	log       logrus.FieldLogger
-	config    Config
-	extracter oc.Extracter
+	log    logrus.FieldLogger
+	config Config
 }
 
 var Operator = models.MonitoredOperator{
@@ -42,12 +40,11 @@ var Operator = models.MonitoredOperator{
 }
 
 // NewCNVOperator creates new instance of a Container Native Virtualization installation plugin
-func NewCNVOperator(log logrus.FieldLogger, cfg Config, extracter oc.Extracter) *operator {
+func NewCNVOperator(log logrus.FieldLogger, cfg Config) *operator {
 	log.WithField("config", cfg).Infof("Configuring CNV Operator plugin")
 	return &operator{
-		log:       log,
-		config:    cfg,
-		extracter: extracter,
+		log:    log,
+		config: cfg,
 	}
 }
 

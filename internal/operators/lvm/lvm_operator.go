@@ -7,7 +7,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/models"
@@ -17,9 +16,8 @@ import (
 
 // operator is an ODF LVM OLM operator plugin; it implements api.Operator
 type operator struct {
-	log       logrus.FieldLogger
-	Config    *Config
-	extracter oc.Extracter
+	log    logrus.FieldLogger
+	Config *Config
 }
 
 const defaultStorageClassName = "lvms-" + defaultDeviceName
@@ -33,21 +31,20 @@ var Operator = models.MonitoredOperator{
 }
 
 // NewLvmOperator creates new LvmOperator
-func NewLvmOperator(log logrus.FieldLogger, extracter oc.Extracter) *operator {
+func NewLvmOperator(log logrus.FieldLogger) *operator {
 	cfg := Config{}
 	err := envconfig.Process(common.EnvConfigPrefix, &cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	return newLvmOperatorWithConfig(log, &cfg, extracter)
+	return newLvmOperatorWithConfig(log, &cfg)
 }
 
 // newOdfOperatorWithConfig creates new ODFOperator with given configuration
-func newLvmOperatorWithConfig(log logrus.FieldLogger, config *Config, extracter oc.Extracter) *operator {
+func newLvmOperatorWithConfig(log logrus.FieldLogger, config *Config) *operator {
 	return &operator{
-		log:       log,
-		Config:    config,
-		extracter: extracter,
+		log:    log,
+		Config: config,
 	}
 }
 

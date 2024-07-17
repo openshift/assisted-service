@@ -32,7 +32,7 @@ var _ = Describe("CNV operator", func() {
 				"8086:158b": true,
 				"15b3:1015": true,
 			}}
-		operator = cnv.NewCNVOperator(log, cfg, nil)
+		operator = cnv.NewCNVOperator(log, cfg)
 	})
 
 	Context("getDependencies", func() {
@@ -258,7 +258,7 @@ var _ = Describe("CNV operator", func() {
 			SNOPoolSizeRequestHPPGib: 50,
 			SNOInstallHPP:            true,
 		}
-		cnvOperator := cnv.NewCNVOperator(log, cfg, nil)
+		cnvOperator := cnv.NewCNVOperator(log, cfg)
 		fullHaMode := models.ClusterHighAvailabilityModeFull
 		noneHaMode := models.ClusterHighAvailabilityModeNone
 		masterWithLessDiskSizeAndVirt := &models.Host{Role: models.HostRoleMaster, InstallationDiskID: "disk1",
@@ -311,7 +311,7 @@ var _ = Describe("CNV operator", func() {
 		noneHaMode := models.ClusterHighAvailabilityModeNone
 
 		table.DescribeTable("should be returned", func(cfg cnv.Config, cluster common.Cluster) {
-			cnvOperator := cnv.NewCNVOperator(log, cfg, nil)
+			cnvOperator := cnv.NewCNVOperator(log, cfg)
 			requirements, err := cnvOperator.GetPreflightRequirements(context.TODO(), &cluster)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requirements.Dependencies).To(ConsistOf(lso.Operator.Name))
