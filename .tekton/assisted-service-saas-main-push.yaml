@@ -27,10 +27,6 @@ spec:
     value: Dockerfile.assisted-service
   - name: path-context
     value: .
-  - name: build-args
-    value:
-    - release={{target_branch}
-    - version={{revision}}
   pipelineSpec:
     finally:
     - name: show-sbom
