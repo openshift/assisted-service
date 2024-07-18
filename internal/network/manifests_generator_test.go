@@ -621,3 +621,54 @@ var _ = Describe("disk encryption manifest", func() {
 		})
 	}
 })
+
+var _ = Describe("nic reaaply manifest", func() {
+	var (
+		ctx                   = context.Background()
+		log                   *logrus.Logger
+		ctrl                  *gomock.Controller
+		manifestsApi          *manifestsapi.MockManifestsAPI
+		manifestsGeneratorApi ManifestsGeneratorAPI
+		db                    *gorm.DB
+		dbName                string
+		clusterId             strfmt.UUID
+		cluster               common.Cluster
+	)
+
+	BeforeEach(func() {
+		log = logrus.New()
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{}, db)
+		db, dbName = common.PrepareTestDB()
+		clusterId = strfmt.UUID(uuid.New().String())
+
+		cluster = common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterId,
+			},
+		}
+		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
+		manifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("CreateClusterManifest success", func() {
+		It("CreateClusterManifest success", func() {
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false),Times(2).Return(&models.Manifest{
+				FileName: "manifest.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil)
+			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("CreateClusterManifest failure", func() {
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(nil, errors.Errorf("Failed to create manifest")).Times(1)
+			Expect(manifestsGeneratorApi.AddSchedulableMastersManifest(ctx, log, &cluster)).Should(HaveOccurred())
+		})
+	})
+})

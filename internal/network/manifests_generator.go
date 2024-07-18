@@ -30,6 +30,7 @@ type ManifestsGeneratorAPI interface {
 	AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+	AddNicReapply(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	IsSNODNSMasqEnabled() bool
 }
 
@@ -526,6 +527,65 @@ func (m *ManifestsGenerator) AddTelemeterManifest(ctx context.Context, log logru
 		return err
 	}
 
+	return nil
+}
+
+const nicReapplyManifest = `
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: {{.ROLE}}
+  name: 50-{{.ROLE}}s-iscsi-nic-reapply
+spec:
+  config:
+    ignition:
+      version: 3.1.0
+    systemd:
+      units:
+        - name: iscsi-nic-reapply.service
+          enabled: true
+          contents: |
+            # This service is used to force the reconfiguration of the network interfaces
+            # on first boot when booting from an iSCSI volume because the DNS configuration
+            # is not propagated properly to the real root.
+            # This is a workaround for bug https://issues.redhat.com/browse/OCPBUGS-26580.
+            [Unit]
+            Description=Force reapply of network configuration on first boot when iSCSI boot volume is in use
+            After=NetworkManager.service
+
+            [Service]
+            Type=oneshot
+            ExecStart=-/bin/sh -c '                                                      \
+            lsblk -o NAME,TRAN,MOUNTPOINTS --json | jq -e \'.blockdevices[] | select(.tran == "iscsi") | select(.children) | .children[].mountpoints | select(.) | index("/sysroot") | select(.)\' > /dev/null; \
+            if [ $? = 0 ];                                                               \
+            then                                                                         \
+                echo "iSCSI boot volume detected, force network reconfiguration...";     \
+                nmcli -t -f DEVICE device status | xargs -l nmcli device reapply;        \
+            fi'
+            ExecStartPost=-systemctl disable iscsi-nic-reapply.service
+
+            [Install]
+            WantedBy=multi-user.target
+`
+
+func (m *ManifestsGenerator) AddNicReapply(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+	manifestParamsList := []map[string]interface{}{
+		{"ROLE": "master"},
+		{"ROLE": "worker"},
+	}
+	for _, manifestParams := range manifestParamsList {
+		content, err := fillTemplate(manifestParams, nicReapplyManifest, log)
+		if err != nil {
+			log.WithError(err).Error("Failed to parse nic reapply template")
+			return err
+		}
+		manifestFilename := fmt.Sprintf("50-%ss-iscsi-nic-reapply.yaml", manifestParams["ROLE"])
+		if err := m.createManifests(ctx, c, manifestFilename, content); err != nil {
+			log.WithError(err).Error("Failed to create nic reqpply manifest")
+			return err
+		}
+	}
 	return nil
 }
 

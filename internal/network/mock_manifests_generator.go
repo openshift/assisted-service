@@ -78,6 +78,20 @@ func (mr *MockManifestsGeneratorAPIMockRecorder) AddDnsmasqForSingleNode(ctx, lo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDnsmasqForSingleNode", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddDnsmasqForSingleNode), ctx, log, c)
 }
 
+// AddNicReapply mocks base method.
+func (m *MockManifestsGeneratorAPI) AddNicReapply(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddNicReapply", ctx, log, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddNicReapply indicates an expected call of AddNicReapply.
+func (mr *MockManifestsGeneratorAPIMockRecorder) AddNicReapply(ctx, log, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddNicReapply", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddNicReapply), ctx, log, c)
+}
+
 // AddSchedulableMastersManifest mocks base method.
 func (m *MockManifestsGeneratorAPI) AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 	m.ctrl.T.Helper()
