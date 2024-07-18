@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
+	types_31 "github.com/coreos/ignition/v2/config/v3_1/types"
 	config_32 "github.com/coreos/ignition/v2/config/v3_2"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -608,6 +612,219 @@ var _ = Describe("IgnitionBuilder", func() {
 			}
 			Expect(count).Should(Equal(2))
 		})
+	})
+
+	It("Adds NTP sources script and systemd service when one additional NTP source is given", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+
+		// Generate a ignition config adding one additional NTP source:
+		infraEnv.AdditionalNtpSources = "ntp1.example.com"
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+		Expect(err).ToNot(HaveOccurred())
+
+		// Parse the generated configuration:
+		config, report, err := config_31.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+
+		// Check the script:
+		var scriptFile *types_31.File
+		for _, file := range config.Storage.Files {
+			if file.Path == "/usr/local/bin/add-ntp-sources.sh" {
+				scriptFile = new(types_31.File)
+				*scriptFile = file
+				break
+			}
+		}
+		Expect(scriptFile).ToNot(BeNil())
+		Expect(scriptFile.Mode).ToNot(BeNil())
+		Expect(*scriptFile.Mode).To(Equal(0755))
+		Expect(scriptFile.User.Name).ToNot(BeNil())
+		Expect(*scriptFile.User.Name).To(Equal("root"))
+		Expect(scriptFile.Contents.Source).ToNot(BeNil())
+		Expect(*scriptFile.Contents.Source).ToNot(BeEmpty())
+
+		// Check that the script contains the line that will be added to the chrony configuration file:
+		scriptData, err := dataurl.DecodeString(*scriptFile.Contents.Source)
+		Expect(err).ToNot(HaveOccurred())
+		scriptText := string(scriptData.Data)
+		Expect(scriptText).To(MatchRegexp(`(?m)^server ntp1.example.com iburst$`))
+
+		// Check the systemd service:
+		var serviceUnit *types_31.Unit
+		for _, unit := range config.Systemd.Units {
+			if unit.Name == "add-ntp-sources.service" {
+				serviceUnit = new(types_31.Unit)
+				*serviceUnit = unit
+				break
+			}
+		}
+		Expect(serviceUnit).ToNot(BeNil())
+		Expect(serviceUnit.Enabled).ToNot(BeNil())
+		Expect(*serviceUnit.Enabled).To(BeTrue())
+		Expect(serviceUnit.Contents).ToNot(BeNil())
+		Expect(*serviceUnit.Contents).ToNot(BeEmpty())
+	})
+
+	It("Adds NTP sources script and systemd service when two additional NTP sources are given", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+
+		// Generate a ignition config adding one additional NTP source:
+		infraEnv.AdditionalNtpSources = "ntp1.example.com,ntp2.example.com"
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+		Expect(err).ToNot(HaveOccurred())
+
+		// Parse the generated configuration:
+		config, report, err := config_31.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+
+		// Check the script:
+		var scriptFile *types_31.File
+		for _, file := range config.Storage.Files {
+			if file.Path == "/usr/local/bin/add-ntp-sources.sh" {
+				scriptFile = new(types_31.File)
+				*scriptFile = file
+				break
+			}
+		}
+		Expect(scriptFile).ToNot(BeNil())
+		Expect(scriptFile.Mode).ToNot(BeNil())
+		Expect(*scriptFile.Mode).To(Equal(0755))
+		Expect(scriptFile.User.Name).ToNot(BeNil())
+		Expect(*scriptFile.User.Name).To(Equal("root"))
+		Expect(scriptFile.Contents.Source).ToNot(BeNil())
+		Expect(*scriptFile.Contents.Source).ToNot(BeEmpty())
+
+		// Check that the script contains the line that will be added to the chrony configuration file:
+		scriptData, err := dataurl.DecodeString(*scriptFile.Contents.Source)
+		Expect(err).ToNot(HaveOccurred())
+		scriptText := string(scriptData.Data)
+		Expect(scriptText).To(MatchRegexp(`(?m)^server ntp1.example.com iburst$`))
+		Expect(scriptText).To(MatchRegexp(`(?m)^server ntp2.example.com iburst$`))
+
+		// Check the systemd service:
+		var serviceUnit *types_31.Unit
+		for _, unit := range config.Systemd.Units {
+			if unit.Name == "add-ntp-sources.service" {
+				serviceUnit = new(types_31.Unit)
+				*serviceUnit = unit
+				break
+			}
+		}
+		Expect(serviceUnit).ToNot(BeNil())
+		Expect(serviceUnit.Enabled).ToNot(BeNil())
+		Expect(*serviceUnit.Enabled).To(BeTrue())
+		Expect(serviceUnit.Contents).ToNot(BeNil())
+		Expect(*serviceUnit.Contents).ToNot(BeEmpty())
+	})
+
+	It("Doesn't add NTP sources script and systemd service when no additional NTP sources are given", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+
+		// Generate a ignition config without additional NTP sources
+		infraEnv.AdditionalNtpSources = ""
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+		Expect(err).ToNot(HaveOccurred())
+
+		// Parse the generated configuration:
+		config, report, err := config_31.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+
+		// Check that there is no script:
+		var scriptFile *types_31.File
+		for _, file := range config.Storage.Files {
+			if file.Path == "/usr/local/bin/add-ntp-sources.sh" {
+				scriptFile = new(types_31.File)
+				*scriptFile = file
+				break
+			}
+		}
+		Expect(scriptFile).To(BeNil())
+
+		// Check that there is no systemd service:
+		var serviceUnit *types_31.Unit
+		for _, unit := range config.Systemd.Units {
+			if unit.Name == "add-ntp-sources.service" {
+				serviceUnit = new(types_31.Unit)
+				*serviceUnit = unit
+				break
+			}
+		}
+		Expect(serviceUnit).To(BeNil())
+	})
+
+	It("NTP sources script adds entries to existing 'chrony.conf' configuration file", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+
+		// Generate a ignition config with two additional NTP sources:
+		infraEnv.AdditionalNtpSources = "ntp1.example.com,ntp2.example.com"
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+		Expect(err).ToNot(HaveOccurred())
+
+		// Parse the generated configuration:
+		config, report, err := config_31.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+
+		// Find the script:
+		var scriptFile *types_31.File
+		for _, file := range config.Storage.Files {
+			if file.Path == "/usr/local/bin/add-ntp-sources.sh" {
+				scriptFile = new(types_31.File)
+				*scriptFile = file
+				break
+			}
+		}
+		scriptData, err := dataurl.DecodeString(*scriptFile.Contents.Source)
+		Expect(err).ToNot(HaveOccurred())
+		scriptText := string(scriptData.Data)
+
+		// Create a temporary directory for the script and for the configuration file that
+		// it will modify:
+		tmpDir, err := os.MkdirTemp("", "*.test")
+		Expect(err).ToNot(HaveOccurred())
+		defer os.RemoveAll(tmpDir)
+
+		// Create the configuration file that will be modified by the script:
+		configPath := filepath.Join(tmpDir, "chrony.conf")
+		configFile, err := os.OpenFile(configPath, os.O_CREATE|os.O_WRONLY, 0600)
+		Expect(err).ToNot(HaveOccurred())
+		_, err = fmt.Fprintf(configFile, "makestep 1.0 3\n")
+		Expect(err).ToNot(HaveOccurred())
+		err = configFile.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Modify the script so that it will write to the configuration file that we
+		// created, and write it to the temporary directory.
+		scriptText = strings.ReplaceAll(scriptText, "/etc/chrony.conf", configPath)
+		scriptPath := filepath.Join(tmpDir, "add-ntp-sources.sh")
+		err = os.WriteFile(scriptPath, []byte(scriptText), 0700) // #nosec G306
+		Expect(err).ToNot(HaveOccurred())
+
+		// Execute the script:
+		scriptCmd := exec.Command(scriptPath)
+		scriptCmd.Stdout = GinkgoWriter
+		scriptCmd.Stderr = GinkgoWriter
+		err = scriptCmd.Run()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Read the modified configuration file:
+		configData, err := os.ReadFile(configPath)
+		Expect(err).ToNot(HaveOccurred())
+		configText := string(configData)
+
+		// Check that the additional NTP servers have been added:
+		Expect(configText).To(MatchRegexp(`(?m)^server ntp1.example.com iburst$`))
+		Expect(configText).To(MatchRegexp(`(?m)^server ntp2.example.com iburst$`))
+
+		// Check that the original config has been preserved:
+		Expect(configText).To(MatchRegexp("(?m)^makestep 1.0 3$"))
 	})
 })
 

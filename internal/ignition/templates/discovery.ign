@@ -42,7 +42,13 @@
         "name": "iscsistart.service",
         "enabled": true,
         "contents": {{ executeTemplate "iscsistart.service" . | toString | toJson }}
-    }{{end}}
+    }{{end}}{{if .AdditionalNtpSources}},
+    {
+        "name": "add-ntp-sources.service",
+        "enabled": true,
+        "contents": {{ executeTemplate "add-ntp-sources.service" . | toString | toJson }}
+    }
+    {{end}}
     ]
   },
   "storage": {
@@ -196,6 +202,14 @@
         "name": "root"
       },
       "contents": { "source": "{{.ProfileProxyExports}}" }
+    }{{end}}{{if .AdditionalNtpSources}},
+    {
+      "path": "/usr/local/bin/add-ntp-sources.sh",
+      "mode": 493,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;charset=utf-8;base64,{{ executeTemplate "add-ntp-sources.sh" . | toBase64 }}" }
     }{{end}}]
   }
 }
