@@ -242,6 +242,13 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		return "", err
 	}
 
+	// If the list of additional NTP sources is empty then we want to pass an empty list to the
+	// template, but the Split method returns a slice with one empty element in that case.
+	additionalNtpSources := strings.Split(infraEnv.AdditionalNtpSources, ",")
+	if len(additionalNtpSources) == 1 && additionalNtpSources[0] == "" {
+		additionalNtpSources = []string{}
+	}
+
 	var ignitionParams = map[string]interface{}{
 		"userSshKey":          userSshKey,
 		"AgentDockerImg":      cfg.AgentDockerImg,
@@ -264,6 +271,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
 		"EnableAgentService":   infraEnv.InternalIgnitionConfigOverride == "",
 		"ProfileProxyExports":  dataurl.EncodeBytes([]byte(GetProfileProxyEntries(httpProxy, httpsProxy, noProxy))),
+		"AdditionalNtpSources": additionalNtpSources,
 	}
 	if safeForLogs {
 		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {
