@@ -1061,8 +1061,8 @@ func newImageServiceConfigMap(ctx context.Context, log logrus.FieldLogger, asc A
 func urlForRoute(ctx context.Context, asc ASC, routeName string) (string, error) {
 	var hostname, scheme string
 
-	scheme = "https"
 	if asc.rec.IsOpenShift {
+		scheme = "https"
 		route := &routev1.Route{}
 		err := asc.Client.Get(ctx, types.NamespacedName{Name: routeName, Namespace: asc.namespace}, route)
 		if err != nil || route.Spec.Host == "" {
@@ -1076,6 +1076,7 @@ func urlForRoute(ctx context.Context, asc ASC, routeName string) (string, error)
 		if asc.spec.Ingress == nil {
 			return "", fmt.Errorf("ingress config is required for non-OpenShift deployments")
 		}
+		scheme = "http"
 		switch routeName {
 		case serviceName:
 			hostname = asc.spec.Ingress.AssistedServiceHostname
@@ -1194,18 +1195,16 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"ENABLE_DATA_COLLECTION": "True",
 			"DATA_UPLOAD_ENDPOINT":   "https://console.redhat.com/api/ingress/v1/upload",
 
-			"NAMESPACE":              asc.namespace,
-			"INSTALL_INVOKER":        "assisted-installer-operator",
-			"SKIP_CERT_VERIFICATION": "False",
+			"NAMESPACE":       asc.namespace,
+			"INSTALL_INVOKER": "assisted-installer-operator",
 		}
-		// serve https only on OCP
+		// enable https only on OCP
 		if asc.rec.IsOpenShift {
 			cm.Data["SERVE_HTTPS"] = "True"
 			cm.Data["HTTPS_CERT_FILE"] = "/etc/assisted-tls-config/tls.crt"
 			cm.Data["HTTPS_KEY_FILE"] = "/etc/assisted-tls-config/tls.key"
 			cm.Data["SERVICE_CA_CERT_PATH"] = "/etc/assisted-ingress-cert/ca-bundle.crt"
-		} else {
-			cm.Data["SERVICE_CA_CERT_PATH"] = "/etc/assisted-ingress-cert/ca.crt"
+			cm.Data["SKIP_CERT_VERIFICATION"] = "False"
 		}
 
 		copyEnv(cm.Data, "HTTP_PROXY")
@@ -1727,7 +1726,6 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{Name: "bucket-filesystem", MountPath: "/data"},
-		{Name: "ingress-cert", MountPath: "/etc/assisted-ingress-cert"},
 	}
 	var healthCheckScheme corev1.URIScheme
 	if asc.rec.IsOpenShift {
@@ -1753,19 +1751,10 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		)
 		volumeMounts = append(volumeMounts,
 			corev1.VolumeMount{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},
+			corev1.VolumeMount{Name: "ingress-cert", MountPath: "/etc/assisted-ingress-cert"},
 		)
 		healthCheckScheme = corev1.URISchemeHTTPS
 	} else {
-		volumes = append(volumes,
-			corev1.Volume{
-				Name: "ingress-cert",
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: ingressTLSSecretName(serviceName),
-					},
-				},
-			},
-		)
 		healthCheckScheme = corev1.URISchemeHTTP
 	}
 
