@@ -71,9 +71,13 @@ RUN dnf install -y libvirt-libs nmstate nmstate-libs &&\
 
 RUN dnf update libksba libxml2 -y && dnf clean all
 
+# Ensure UID can write in data dir (e.g.: when using podman, docker, ...)
+# Ensure root group can write in data dir when deployed on OCP
+# https://docs.openshift.com/container-platform/4.16/openshift_images/create-images.html#use-uid_create-images
 ARG WORK_DIR=/data
-
-RUN mkdir $WORK_DIR && chmod 775 $WORK_DIR
+ARG UID=1001
+ARG GID=0
+RUN mkdir $WORK_DIR && chmod 775 $WORK_DIR && chown $UID:$GID $WORK_DIR
 
 # downstream this can be installed as an RPM
 COPY --from=quay.io/openshift/origin-cli:4.12 /usr/bin/oc /usr/local/bin/
@@ -86,6 +90,6 @@ RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-
 ENV GODEBUG=madvdontneed=1
 ENV GOGC=50
 
-USER 1001:1001
+USER $UID:$GID
 
 CMD ["/assisted-service"]
