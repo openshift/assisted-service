@@ -4,8 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,14 +18,15 @@ import (
 
 var _ = Describe("AuthAgentAuth", func() {
 	var (
-		a     *AgentLocalAuthenticator
-		token string
+		a                 *AgentLocalAuthenticator
+		token, privateKey string
 	)
 
 	BeforeEach(func() {
 		infraEnvID := strfmt.UUID(uuid.New().String())
 
 		pubKey, privKey, err := gencrypto.ECDSAKeyPairPEM()
+		privateKey = privKey
 		Expect(err).ToNot(HaveOccurred())
 
 		// Encode to Base64 (Standard encoding)
@@ -91,6 +94,35 @@ var _ = Describe("AuthAgentAuth", func() {
 	It("Fails with image auth", func() {
 		_, err := a.AuthImageAuth(token)
 		Expect(err).To(HaveOccurred())
+	})
+
+	It("Validates an unexpired token correctly", func() {
+		t, _ := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+			return nil, nil
+		})
+		if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
+			claims["exp"] = time.Now().UTC().Add(30 * time.Second).Unix()
+			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+			tokenWithExp, err := token.SignedString(privateKey)
+			Expect(err).To(HaveOccurred())
+			_, err = a.AuthAgentAuth(tokenWithExp)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	})
+
+	It("Fails an expired token", func() {
+		t, _ := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+			return nil, nil
+		})
+		if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
+			claims["exp"] = time.Now().UTC().Add(-30 * time.Second).Unix()
+			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+			tokenWithExp, err := token.SignedString(privateKey)
+			Expect(err).To(HaveOccurred())
+			_, err = a.AuthAgentAuth(tokenWithExp)
+			Expect(err).To(HaveOccurred())
+			validateErrorResponse(err)
+		}
 	})
 
 	It("Fails a token with invalid signing method", func() {
