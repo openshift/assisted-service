@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	MaxHostnameLength = 64
+	MaxHostnameLength = 63
 	HostnamePattern   = "^[a-z0-9][a-z0-9-]{0,62}(?:[.][a-z0-9-]{1,63})*$"
 )
 
@@ -76,7 +76,7 @@ func GetEventSeverityFromHostStatus(status string) string {
 
 func ValidateHostname(hostname string) error {
 	if len(hostname) > MaxHostnameLength {
-		return common.NewApiError(http.StatusBadRequest, errors.New("hostname is too long"))
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("hostname is too long, must be 63 characters or less. Hostname: %s has %d characters", hostname, len(hostname)))
 	}
 	b, err := regexp.MatchString(HostnamePattern, hostname)
 	if err != nil {
