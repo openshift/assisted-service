@@ -18,7 +18,7 @@ ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 COPY . /assisted-service/
 WORKDIR /assisted-service/
 
-RUN go mod vendor
+RUN go mod tidy && go mod vendor
 
 RUN chmod 775 -R $GOPATH && chmod 775 -R $(go env GOROOT) && chmod 775 -R /assisted-service/ && \
     mkdir /.cache && chmod 775 -R /.cache
