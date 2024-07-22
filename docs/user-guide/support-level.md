@@ -89,7 +89,7 @@ When adding a new feature to the feature-usage API, it is not necessary to add t
 ## Adding a new feature
 To add a new feature to the support-level API, follow these steps: 
 1. Add a new enum to `feature-support-level-id` under the `swagger.yaml` file - [here](https://github.com/openshift/assisted-service/blob/master/swagger.yaml#L3910-#L3924)
-2. Generate `models` and `vendor` files - `skipper make generate-from-swagger && skipper make generate-vendor`
+2. Generate `models` and `vendor` files - `skipper make generate-from-swagger && skipper make generate-go`
 3. Create a new struct that represent the new feature and follows the `SupportLevelFeature` [interface](https://github.com/openshift/assisted-service/blob/master/internal/featuresupport/features.go#L18-#L25)
 4. Initiate the new object on [featuresList](https://github.com/openshift/assisted-service/blob/master/internal/featuresupport/feature_support_level.go#L13)
 map and map the newly generated feature-id to the new object.
