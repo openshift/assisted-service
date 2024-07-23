@@ -17,7 +17,7 @@ ifeq ($(CONTAINER_COMMAND), docker)
 	CONTAINER_COMMAND = $(shell docker -v 2>/dev/null | cut -f1 -d' ' | tr '[:upper:]' '[:lower:]')
 endif
 
-TARGET := $(or ${TARGET},minikube)
+TARGET := $(or ${TARGET},kind)
 KUBECTL=kubectl -n $(NAMESPACE)
 
 define get_service_host_port
@@ -92,8 +92,8 @@ ENABLE_ORG_TENANCY := $(or ${ENABLE_ORG_TENANCY},False)
 ALLOW_CONVERGED_FLOW := $(or ${ALLOW_CONVERGED_FLOW}, false)
 ENABLE_ORG_BASED_FEATURE_GATES := $(or ${ENABLE_ORG_BASED_FEATURE_GATES},False)
 KIND_EXPERIMENTAL_PROVIDER=podman
-SUBSYSTEM_LOCAL_SERVICE=localhost/assisted-service:latest
-SUBSYSTEM_LOCAL_IMAGE_ARCHIVE=build/assisted_service_image.tar
+LOCAL_ASSISTED_SERVICE_IMAGE=localhost/assisted-service:latest
+LOCAL_IMAGE_ARCHIVE=build/assisted_service_image.tar
 
 ifeq ($(DISABLE_TLS),true)
 	DISABLE_TLS_CMD := --disable-tls
@@ -226,24 +226,24 @@ update-minimal:
 update-debug-minimal:
 	export DEBUG_SERVICE=True && $(MAKE) build-minimal
 	mkdir -p build/debug-image && cp Dockerfile.assisted-service-debug $(BUILD_FOLDER)/assisted-service $(BUILD_FOLDER)/assisted-service-operator build/debug-image
-	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) --build-arg DEBUG_SERVICE_PORT=$(DEBUG_SERVICE_PORT) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
+	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) --build-arg DEBUG_SERVICE_PORT=$(DEBUG_SERVICE_PORT) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
 	rm -r build/debug-image
 
 update-image: $(UPDATE_IMAGE)
 
 load-image: create-hub-cluster
-	rm -f $(SUBSYSTEM_LOCAL_IMAGE_ARCHIVE) || true
+	rm -f $(LOCAL_IMAGE_ARCHIVE) || true
 	mkdir -p build
 	@if [ -z ${SUBSYSTEM_SERVICE_IMAGE} ]; then \
 		echo "Building and using local assisted-service image..."; \
-		$(MAKE) update-image SERVICE=$(SUBSYSTEM_LOCAL_SERVICE); \
+		$(MAKE) update-image SERVICE=$(LOCAL_ASSISTED_SERVICE_IMAGE); \
 	else \
 		echo "Using image from ${SUBSYSTEM_SERVICE_IMAGE}..."; \
 		$(CONTAINER_COMMAND) pull ${SUBSYSTEM_SERVICE_IMAGE}; \
-		$(CONTAINER_COMMAND) tag ${SUBSYSTEM_SERVICE_IMAGE} $(SUBSYSTEM_LOCAL_SERVICE); \
+		$(CONTAINER_COMMAND) tag ${SUBSYSTEM_SERVICE_IMAGE} $(LOCAL_ASSISTED_SERVICE_IMAGE); \
 	fi
-	$(CONTAINER_COMMAND) save -o $(SUBSYSTEM_LOCAL_IMAGE_ARCHIVE) $(SUBSYSTEM_LOCAL_SERVICE)
-	./hack/kind/kind.sh load_kind_image $(SUBSYSTEM_LOCAL_IMAGE_ARCHIVE) assisted-installer-kind
+	$(CONTAINER_COMMAND) save -o $(LOCAL_IMAGE_ARCHIVE) $(LOCAL_ASSISTED_SERVICE_IMAGE)
+	./hack/kind/kind.sh load_kind_image $(LOCAL_IMAGE_ARCHIVE) assisted-installer-kind
 
 build-image: update-minimal
 
@@ -272,6 +272,14 @@ endif
 define restart_service_pods
 $(KUBECTL) rollout restart deployment assisted-service
 $(KUBECTL) rollout status  deployment assisted-service
+endef
+
+define remove_assisted_service_deployment_liveness_probe
+$(KUBECTL) patch deployment assisted-service --type json -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}]' || true
+endef
+
+define set_assisted_service_deployment_replicas_to_one
+$(KUBECTL) patch deployment assisted-service --type='json' -p='[{"op": "replace", "path": "/spec/replicas", "value": 1}]'
 endef
 
 _verify_cluster:
@@ -378,12 +386,14 @@ create-ocp-manifests:
 
 ci-deploy-for-subsystem: deploy-test
 
-patch-service: _verify_cluster
+patch-service: create-hub-cluster
 	$(MAKE) load-image
+	$(KUBECTL) patch deployment assisted-service \
+		--type json \
+		-p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value": "$(LOCAL_ASSISTED_SERVICE_IMAGE)"},{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "Never"}]'
 ifdef DEBUG_SERVICE
-	$(KUBECTL) patch deployment assisted-service --type json -p='[{"op": "add", "path": "/spec/template/spec/containers/0/ports/-", "value": {"containerPort": 40000}}]'
-	$(KUBECTL) patch service assisted-service --type json -p='[{"op": "add", "path": "/spec/ports/-", value: {"name": "assisted-service-debug", "port": 40000, "protocol": "TCP", "targetPort": 40000}}]'
-	$(KUBECTL) patch deployment assisted-service --type json -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}]'
+	$(call remove_assisted_service_deployment_liveness_probe)
+	$(call set_assisted_service_deployment_replicas_to_one)
 endif
 	$(call restart_service_pods)
 
@@ -397,11 +407,16 @@ deploy-test: _verify_cluster generate-keys
 
 # execute on the host, without skipper
 deploy-service-for-subsystem-test: create-hub-cluster load-image
-	skipper $(MAKE) deploy-test TARGET=kind SERVICE=$(SUBSYSTEM_LOCAL_SERVICE) IP=$(shell ip route get 1 | sed 's/^.*src \([^ ]*\).*$$/\1/;q')
+	skipper $(MAKE) deploy-test SERVICE=$(LOCAL_ASSISTED_SERVICE_IMAGE) IP=$(shell ip route get 1 | sed 's/^.*src \([^ ]*\).*$$/\1/;q')
 	@if [ $(ENABLE_KUBE_API) == "true" ]; then \
 		echo "Deploying assisted-service for subsystem tests in kube-api mode..."; \
-		TARGET=kind skipper make enable-kube-api-for-subsystem; \
+		skipper make enable-kube-api-for-subsystem; \
 	fi
+ifdef DEBUG_SERVICE
+	$(call remove_assisted_service_deployment_liveness_probe)
+	$(call set_assisted_service_deployment_replicas_to_one)
+	$(call restart_service_pods)
+endif
 
 destroy-kind-cluster:
 	./hack/kind/kind.sh delete
@@ -431,11 +446,11 @@ test:
 test-kube-api:
 	$(MAKE) _run_subsystem_test AUTH_TYPE=local FOCUS="$(or ${FOCUS},kube-api)"
 
-subsystem-test:
-	$(MAKE) test TARGET=kind
+# Alias for test
+subsystem-test: test
 
-subsystem-test-kube-api:
-	$(MAKE) test-kube-api TARGET=kind
+# Alias for test-kube-api
+subsystem-test-kube-api: test-kube-api
 
 _run_subsystem_test:
 	@if [ $(TARGET) == "kind" ]; then \
@@ -480,6 +495,10 @@ deploy-grafana: $(BUILD_FOLDER)
 	python3 ./tools/deploy_grafana.py --target $(TARGET) --namespace "$(NAMESPACE)"
 
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
+
+deploy-service-debug: create-hub-cluster
+	skipper $(MAKE) deploy-all DEBUG_SERVICE=true
+	$(MAKE) patch-service DEBUG_SERVICE=true
 
 _test: $(REPORTS)
 	gotestsum $(GOTEST_FLAGS) $(TEST) $(GINKGO_FLAGS) -timeout $(TIMEOUT) || ($(MAKE) _post_test && /bin/false)
