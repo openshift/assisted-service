@@ -96,6 +96,9 @@ var _ = Describe("Reconcile", func() {
 		agentServiceConfig = &aiv1beta1.AgentServiceConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "agent",
+				Annotations: map[string]string{
+					importLocalClusterEnabledAnnotation: "true",
+				},
 			},
 			Spec: aiv1beta1.AgentServiceConfigSpec{
 				DatabaseStorage: corev1.PersistentVolumeClaimSpec{
@@ -270,6 +273,29 @@ var _ = Describe("Reconcile", func() {
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
+	It("cluster import CR's should not be present after reconcile if Local Cluster Import Annotation is not present in AgentServiceConfig", func() {
+		asc := &aiv1beta1.AgentServiceConfig{}
+		clusterDeployment := &hivev1.ClusterDeployment{}
+		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
+		nameSpacedName := types.NamespacedName{
+			Name: "agent",
+		}
+		err := client.Get(ctx, nameSpacedName, asc)
+		Expect(err).To(BeNil())
+		asc.ObjectMeta.Annotations = nil
+		err = client.Update(ctx, asc)
+		Expect(err).To(BeNil())
+		_, err = reconciler.Reconcile(ctx, request)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, nameSpacedName, clusterDeployment)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, nameSpacedName, agentClusterInstall)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, nameSpacedName, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+	})
+
 	It("cluster import CR's should not be present after reconcile if ManagedCluster is not present", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
@@ -340,6 +366,41 @@ var _ = Describe("Reconcile", func() {
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 		err = client.Get(ctx, namespacedname, infraEnv)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+	})
+
+	It("should NOT remove cluster import CR's when AgentServiceConfig has Local Cluster Import Annotation removed", func() {
+		clusterDeployment := &hivev1.ClusterDeployment{}
+		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
+		namespacedname := types.NamespacedName{
+			Namespace: localClusterName,
+			Name:      localClusterName,
+		}
+		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
+		err := client.Get(ctx, namespacedname, clusterDeployment)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+
+		asc := &aiv1beta1.AgentServiceConfig{}
+		agentNamespacedName := types.NamespacedName{
+			Name: "agent",
+		}
+		err = client.Get(ctx, agentNamespacedName, asc)
+		Expect(err).To(BeNil())
+		asc.ObjectMeta.Annotations = nil
+		err = client.Update(ctx, asc)
+		Expect(err).To(BeNil())
+
+		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterImportNotEnabled, corev1.ConditionFalse, nil)
+		err = client.Get(ctx, namespacedname, clusterDeployment)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, namespacedname, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("should monitor for proxy change and update AgentClusterInstall correctly", func() {
