@@ -99,10 +99,11 @@ var _ = Describe("Validation", func() {
 		}
 	})
 
-	It("Should not allow hostnames longer than 64 characters", func() {
+	It("Should not allow hostnames longer than 63 characters", func() {
 		for _, hostName := range []string{
 			"foobar.local.arbitrary.hostname.longer.than.64-characters.inthis.name",
 			"foobar1234-foobar1234-foobar1234-foobar1234-foobar1234-foobar1234-foobar1234",
+			"this-host.name-iss.exactly-64.characters.long.so.itt-should.fail",
 		} {
 			err := ValidateHostname(hostName)
 			Expect(err).To(HaveOccurred())
