@@ -1,7 +1,7 @@
 # Adds namespace to all resources.
 namespace: assisted-installer
 
-bases:
+resources:
 - ../crd
 - ../rbac
 - ../manager
