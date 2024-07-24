@@ -138,20 +138,6 @@ func ValidateHTTPProxyFormat(proxyURL string) error {
 	if u.Scheme != "http" {
 		return errors.Errorf("The URL scheme must be http and specified in the URL: '%s'", proxyURL)
 	}
-
-	userName := u.User.Username()
-	encodedUserName := url.QueryEscape(userName)
-	if userName != encodedUserName {
-		return errors.Errorf("The URL '%s' user name '%s' has to be encoded: '%s'", proxyURL, userName, encodedUserName)
-	}
-
-	password, hasPassword := u.User.Password()
-	if hasPassword {
-		encodedPassword := url.QueryEscape(password)
-		if password != encodedPassword {
-			return errors.Errorf("The URL '%s' password '%s' has to be encoded: '%s'", proxyURL, password, encodedPassword)
-		}
-	}
 	return nil
 }
 

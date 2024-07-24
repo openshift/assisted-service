@@ -65,14 +65,6 @@ var _ = Describe("URL validations", func() {
 				"http://!@#$!@#$",
 				"Proxy URL format is not valid: 'http://!@#$!@#$'",
 			},
-			{
-				"http://user@name:pswd@proxy.com",
-				"The URL 'http://user@name:pswd@proxy.com' user name 'user@name' has to be encoded: 'user%40name'",
-			},
-			{
-				"http://username:ps$wd@proxy.com",
-				"The URL 'http://username:ps$wd@proxy.com' password 'ps$wd' has to be encoded: 'ps%24wd'",
-			},
 		}
 
 		It("validates proxy URL input", func() {
