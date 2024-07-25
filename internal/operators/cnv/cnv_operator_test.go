@@ -2,6 +2,7 @@ package cnv_test
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -352,21 +353,46 @@ var _ = Describe("CNV operator", func() {
 	})
 
 	Context("cluster requirements", func() {
-		It("only x86_64 is supported for CNV operator", func() {
-			cluster := common.Cluster{}
+		cluster := common.Cluster{}
+		cluster.CPUArchitecture = common.DefaultCPUArchitecture
 
-			cluster.CPUArchitecture = common.DefaultCPUArchitecture
-			validation, err := operator.ValidateCluster(context.TODO(), &cluster)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(validation.Status).To(Equal(api.Success))
+		ocpSupportedVersions := []string{"4.12", "4.13", "4.15", "4.16", "4.22"}
+		ocpARMSupportedVersions := []string{"4.14", "4.15", "4.11", "4.16", "4.22"}
+		ocpARMNotSupportedVersions := []string{"4.11", "4.12", "4.13"}
 
-			cluster.CPUArchitecture = "arm64"
-			validation, err = operator.ValidateCluster(context.TODO(), &cluster)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(validation.Status).To(Equal(api.Failure))
-			Expect(validation.Reasons).To(ContainElements(
-				"OpenShift Virtualization is supported only for x86_64 CPU architecture."))
-		})
+		for _, version := range ocpSupportedVersions {
+			v := version
+			It("support X86 on all version ", func() {
+				cluster.OpenshiftVersion = v
+				validation, err := operator.ValidateCluster(context.TODO(), &cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(validation.Status).To(Equal(api.Success),
+					fmt.Sprintf("CNV should be supported x86 in %s. API status was: %v", cluster.OpenshiftVersion, validation.Status))
+			})
+		}
+
+		cluster.CPUArchitecture = common.ARM64CPUArchitecture
+		for _, version := range ocpARMSupportedVersions {
+			cluster.OpenshiftVersion = version
+			FIt("CNV support ARM from version 4.14 ", func() {
+				validation, err := operator.ValidateCluster(context.TODO(), &cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(validation.Status).To(Equal(api.Success),
+					fmt.Sprintf("CNV should be supported ARM in %s. API status was: %v", cluster.OpenshiftVersion, validation.Status))
+			})
+		}
+
+		for _, version := range ocpARMNotSupportedVersions {
+			v := version
+			It("CNV does not support ARM below version 4.14 ", func() {
+				cluster.OpenshiftVersion = v
+				validation, err := operator.ValidateCluster(context.TODO(), &cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(validation.Status).To(Equal(api.Failure),
+					fmt.Sprintf("CNV should not supported ARM in %s. API status was: %v", cluster.OpenshiftVersion, validation.Status))
+			})
+		}
+
 		It("multi-arch is supported for CNV operator", func() {
 			cluster := common.Cluster{}
 
