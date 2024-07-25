@@ -82,6 +82,8 @@ const (
 
 	defaultIngressCertCMName      string = "default-ingress-cert"
 	defaultIngressCertCMNamespace string = "openshift-config-managed"
+	clusterCAConfigMapName        string = "cluster-trusted-ca-bundle"
+	assistedCAConfigMapName       string = "assisted-trusted-ca-bundle"
 
 	configmapAnnotation                 = "unsupported.agent-install.openshift.io/assisted-service-configmap"
 	imageServiceSkipVerifyTLSAnnotation = "unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls"
@@ -96,6 +98,7 @@ const (
 
 	servingCertAnnotation    = "service.beta.openshift.io/serving-cert-secret-name"
 	injectCABundleAnnotation = "service.beta.openshift.io/inject-cabundle"
+	injectTrustedCALabel     = "config.openshift.io/inject-trusted-cabundle"
 
 	defaultNamespace                 = "default"
 	osImageDownloadTrustedCAFilename = "tls.crt"
@@ -381,6 +384,8 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool) []c
 			component{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, newIngressCertCM},
 			// this is only for mounting in the https certs
 			component{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, newImageServiceConfigMap},
+			component{"ClusterTrustedCAConfigMap", aiv1beta1.ReasonConfigFailure, newClusterTrustedCACM},
+			component{"AssistedTrustedCAConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedTrustedCACM},
 		)
 		// Additional routes need to be synced if HTTP iPXE routes are exposed
 		if exposeIPXEHTTPRoute(spec) {
@@ -1031,6 +1036,70 @@ func newIngressCertCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (cli
 		cm.Data = make(map[string]string)
 		for k, v := range sourceCM.Data {
 			cm.Data[k] = v
+		}
+		return nil
+	}
+
+	return cm, mutateFn, nil
+}
+
+func newClusterTrustedCACM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterCAConfigMapName,
+			Namespace: asc.namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(asc.Object, cm, asc.rec.Scheme); err != nil {
+			return err
+		}
+		metav1.SetMetaDataLabel(&cm.ObjectMeta, injectTrustedCALabel, "true")
+		return nil
+	}
+
+	return cm, mutateFn, nil
+}
+
+func newAssistedTrustedCACM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	var b strings.Builder
+
+	clusterTrustedCACM := &corev1.ConfigMap{}
+	if err := asc.Client.Get(ctx, types.NamespacedName{Name: clusterCAConfigMapName, Namespace: asc.namespace}, clusterTrustedCACM); err != nil {
+		log.WithError(err).Error("Failed to get cluster trusted CA config map")
+		return nil, nil, err
+	}
+	if _, err := b.WriteString(clusterTrustedCACM.Data[caBundleKey]); err != nil {
+		log.WithError(err).Error("Failed to get ca-bundle from cluster CA ConfigMap")
+		return nil, nil, err
+	}
+
+	if asc.spec.MirrorRegistryRef != nil {
+		mirrorCM := &corev1.ConfigMap{}
+		namespacedName := types.NamespacedName{Name: asc.spec.MirrorRegistryRef.Name, Namespace: asc.namespace}
+		if err := asc.Client.Get(ctx, namespacedName, mirrorCM); err != nil {
+			return nil, nil, err
+		}
+		if _, err := b.WriteString("\n" + mirrorCM.Data[mirrorRegistryRefCertKey]); err != nil {
+			log.WithError(err).Error("Failed to get ca-bundle from mirror registry CA ConfigMap")
+			return nil, nil, err
+		}
+	}
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      assistedCAConfigMapName,
+			Namespace: asc.namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(asc.Object, cm, asc.rec.Scheme); err != nil {
+			return err
+		}
+		cm.Data = map[string]string{
+			caBundleKey: b.String(),
 		}
 		return nil
 	}
@@ -1748,10 +1817,30 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 					},
 				},
 			},
+			corev1.Volume{
+				Name: "trusted-ca-certs",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						Items: []corev1.KeyToPath{{
+							Key:  caBundleKey,
+							Path: common.MirrorRegistriesCertificateFile,
+						}},
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: assistedCAConfigMapName,
+						},
+						DefaultMode: swag.Int32(420),
+					},
+				},
+			},
 		)
 		volumeMounts = append(volumeMounts,
 			corev1.VolumeMount{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},
 			corev1.VolumeMount{Name: "ingress-cert", MountPath: "/etc/assisted-ingress-cert"},
+			corev1.VolumeMount{
+				Name:      "trusted-ca-certs",
+				MountPath: common.MirrorRegistriesCertificatePath,
+				SubPath:   common.MirrorRegistriesCertificateFile,
+			},
 		)
 		healthCheckScheme = corev1.URISchemeHTTPS
 	} else {
@@ -1877,25 +1966,6 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 				MountPath: common.MirrorRegistriesConfigDir,
 			},
 		)
-
-		if _, ok := cm.Data[mirrorRegistryRefCertKey]; ok {
-			volume.VolumeSource.ConfigMap.Items = append(
-				volume.VolumeSource.ConfigMap.Items,
-				corev1.KeyToPath{
-					Key:  mirrorRegistryRefCertKey,
-					Path: common.MirrorRegistriesCertificateFile,
-				},
-			)
-
-			serviceContainer.VolumeMounts = append(
-				serviceContainer.VolumeMounts,
-				corev1.VolumeMount{
-					Name:      mirrorRegistryConfigVolume,
-					MountPath: common.MirrorRegistriesCertificatePath,
-					SubPath:   common.MirrorRegistriesCertificateFile,
-				},
-			)
-		}
 
 		// add our mirror registry config to volumes
 		volumes = append(volumes, volume)
