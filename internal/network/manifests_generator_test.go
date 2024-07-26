@@ -659,7 +659,7 @@ var _ = Describe("nic reaaply manifest", func() {
 
 	Context("CreateClusterManifest success", func() {
 		It("CreateClusterManifest success", func() {
-			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false),Times(2).Return(&models.Manifest{
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Times(2).Return(&models.Manifest{
 				FileName: "manifest.yaml",
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil)
