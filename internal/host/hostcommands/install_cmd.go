@@ -316,9 +316,9 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		}
 	}
 
-	if installationDisk.DriveType == models.DriveTypeMultipath {
+	if installationDisk != nil && installationDisk.DriveType == models.DriveTypeMultipath {
 		installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
-	} else if installationDisk.DriveType == models.DriveTypeISCSI {
+	} else if installationDisk != nil && installationDisk.DriveType == models.DriveTypeISCSI {
 		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
 		if err != nil {
 			return "", err
