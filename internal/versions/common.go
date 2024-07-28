@@ -4,6 +4,7 @@ import (
 	context "context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/go-openapi/strfmt"
@@ -128,19 +129,18 @@ func validateReleaseImageForRHCOS(
 ) error {
 	// Multi is not a valid RHCOS CPU architecture, its sub-architectures are
 	if cpuArchitecture == common.MultiCPUArchitecture {
-		return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image", rhcosVersion, cpuArchitecture)
+		return errors.Errorf("RHCOS CPU architecture should be single arch")
 	}
-
 	rhcosVersionPtr, err := common.GetMajorMinorVersion(rhcosVersion)
 	if err != nil {
 		return err
 	}
-
 	if cpuArchitecture == "" {
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture
 	}
 
+	availableOCPVersions := []string{}
 	for _, releaseImage := range releaseImages {
 		minorVersion, err := common.GetMajorMinorVersion(*releaseImage.OpenshiftVersion)
 		if err != nil {
@@ -160,9 +160,15 @@ func validateReleaseImageForRHCOS(
 				}
 			}
 		}
+		if swag.ContainsStrings(releaseImage.CPUArchitectures, cpuArchitecture) && !swag.ContainsStrings(availableOCPVersions, swag.StringValue(minorVersion)) {
+			availableOCPVersions = append(availableOCPVersions, swag.StringValue(releaseImage.OpenshiftVersion))
+		}
 	}
-
-	return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image", *rhcosVersionPtr, cpuArchitecture)
+	ocpVersionAdvice := fmt.Sprintf("There are no OCP versions available in release images for arch %s.", cpuArchitecture)
+	if len(availableOCPVersions) > 0 {
+		ocpVersionAdvice = fmt.Sprintf("These are the OCP versions for which a matching release image has been found for arch %s please review your release images or choose your OCP version to match one of these: %s", cpuArchitecture, strings.Join(availableOCPVersions, ","))
+	}
+	return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image. %s", *rhcosVersionPtr, cpuArchitecture, ocpVersionAdvice)
 }
 
 func AddReleaseImagesToDBIfNeeded(
