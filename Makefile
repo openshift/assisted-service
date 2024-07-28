@@ -236,7 +236,7 @@ load-image: create-hub-cluster
 	mkdir -p build
 	@if [ -z ${SUBSYSTEM_SERVICE_IMAGE} ]; then \
 		echo "Building and using local assisted-service image..."; \
-		$(MAKE) update-image SERVICE=$(LOCAL_ASSISTED_SERVICE_IMAGE); \
+		skipper $(MAKE) update-image SERVICE=$(LOCAL_ASSISTED_SERVICE_IMAGE); \
 	else \
 		echo "Using image from ${SUBSYSTEM_SERVICE_IMAGE}..."; \
 		$(CONTAINER_COMMAND) pull ${SUBSYSTEM_SERVICE_IMAGE}; \
