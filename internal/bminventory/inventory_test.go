@@ -4197,7 +4197,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
-						"ingress-vip <1.2.3.20> does not belong to machine-network-cidr <10.11.0.0/16>")
+						"ingress-vip <1.2.3.20> does not belong to any Machine Network")
 				})
 				It("Same api and ingress", func() {
 					apiVip := "10.11.12.15"
@@ -4339,33 +4339,6 @@ var _ = Describe("cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated)
 					Expect(len(actual.Payload.MachineNetworks)).To(Equal(2))
 				})
-				It("Wrong order of machine network CIDRs in non dhcp for dual-stack", func() {
-					mockClusterUpdatability(1)
-					mockSuccess(1)
-
-					apiVip := "10.11.12.15"
-					ingressVip := "10.11.12.16"
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
-							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
-							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
-							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-
-					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVips:         []*models.APIVip{{IP: models.IP(apiVip)}},
-							IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip)}},
-							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
-				})
 				It("API VIP in wrong subnet for dual-stack", func() {
 					apiVip := "10.11.12.15"
 					ingressVip := "10.11.12.16"
@@ -4378,7 +4351,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.12.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to machine-network-cidr <10.12.0.0/16>")
+					verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to any Machine Network")
 				})
 			})
 
@@ -4846,9 +4819,9 @@ var _ = Describe("cluster", func() {
 
 			Context("Networks", func() {
 				var (
-					clusterNetworks = common.TestIPv4Networking.ClusterNetworks
-					serviceNetworks = common.TestIPv4Networking.ServiceNetworks
-					machineNetworks = common.TestIPv4Networking.MachineNetworks
+					clusterNetworks = []*models.ClusterNetwork{{Cidr: "1.1.0.0/24", HostPrefix: 24}, {Cidr: "2.2.0.0/24", HostPrefix: 24}}
+					serviceNetworks = []*models.ServiceNetwork{{Cidr: "3.3.0.0/24"}, {Cidr: "4.4.0.0/24"}}
+					machineNetworks = []*models.MachineNetwork{{Cidr: "5.5.0.0/24"}, {Cidr: "6.6.0.0/24"}}
 				)
 
 				setNetworksClusterID := func(clusterID strfmt.UUID,
@@ -5037,22 +5010,16 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR '': Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
-				It("Multiple machine networks illegal for single-stack", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							MachineNetworks: []*models.MachineNetwork{{Cidr: "15.15.0.0/21"}, {Cidr: "16.16.0.0/21"}},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Single-stack cluster cannot contain multiple Machine Networks")
-				})
+				It("Override networks - additional subnet", func() {
+					clusterNetworks = []*models.ClusterNetwork{{Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}}
+					serviceNetworks = []*models.ServiceNetwork{{Cidr: "13.13.0.0/21"}, {Cidr: "14.14.0.0/21"}}
+					machineNetworks = []*models.MachineNetwork{{Cidr: "15.15.0.0/21"}, {Cidr: "16.16.0.0/21"}}
 
-				It("Override networks - additional cluster subnet", func() {
 					mockSuccess(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							ClusterNetworks:   []*models.ClusterNetwork{{Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}},
+							ClusterNetworks:   clusterNetworks,
 							ServiceNetworks:   serviceNetworks,
 							MachineNetworks:   machineNetworks,
 							VipDhcpAllocation: swag.Bool(true),
@@ -5061,19 +5028,20 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
 
-					validateNetworkConfiguration(actual.Payload,
-						&[]*models.ClusterNetwork{{Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}},
-						&serviceNetworks,
-						&machineNetworks)
+					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
 					validateHostsRequestedHostname(actual.Payload)
 				})
 
-				It("Override networks - 2 additional cluster subnets", func() {
+				It("Override networks - 2 additional subnets", func() {
+					clusterNetworks = []*models.ClusterNetwork{{Cidr: "10.10.0.0/21", HostPrefix: 24}, {Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}}
+					serviceNetworks = []*models.ServiceNetwork{{Cidr: "13.13.0.0/21"}, {Cidr: "14.14.0.0/21"}}
+					machineNetworks = []*models.MachineNetwork{{Cidr: "15.15.0.0/21"}, {Cidr: "16.16.0.0/21"}}
+
 					mockSuccess(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							ClusterNetworks:   []*models.ClusterNetwork{{Cidr: "10.10.0.0/21", HostPrefix: 24}, {Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}},
+							ClusterNetworks:   clusterNetworks,
 							ServiceNetworks:   serviceNetworks,
 							MachineNetworks:   machineNetworks,
 							VipDhcpAllocation: swag.Bool(true),
@@ -5082,10 +5050,7 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
 
-					validateNetworkConfiguration(actual.Payload,
-						&[]*models.ClusterNetwork{{Cidr: "10.10.0.0/21", HostPrefix: 24}, {Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}},
-						&serviceNetworks,
-						&machineNetworks)
+					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
 					validateHostsRequestedHostname(actual.Payload)
 				})
 
@@ -14473,7 +14438,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						VipDhcpAllocation: swag.Bool(false),
 					},
 				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to machine-network-cidr <1.2.3.0/24>")
+				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to any Machine Network")
 			})
 			It("Ingress VIP not in Machine Network", func() {
 				apiVip := "1.2.3.5"
@@ -14489,7 +14454,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						VipDhcpAllocation: swag.Bool(false),
 					},
 				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <10.11.12.16> does not belong to machine-network-cidr <1.2.3.0/24>")
+				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <10.11.12.16> does not belong to any Machine Network")
 			})
 			It("API VIP and Ingress VIP with empty Machine Networks", func() {
 				apiVip := "10.11.12.15"
@@ -14505,40 +14470,6 @@ var _ = Describe("TestRegisterCluster", func() {
 					},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "Dual-stack cluster cannot be created with empty Machine Networks")
-			})
-
-			It("API VIP from IPv6 Machine Network", func() {
-				apiVip := "1001:db8::64"
-				ingressVip := "1.2.3.6"
-
-				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
-						IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
-						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
-						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
-						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
-						VipDhcpAllocation: swag.Bool(false),
-					},
-				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <1001:db8::64> does not belong to machine-network-cidr <1.2.3.0/24>")
-			})
-
-			It("Ingress VIP from IPv6 Machine Network", func() {
-				apiVip := "1.2.3.5"
-				ingressVip := "1001:db8::65"
-
-				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
-						IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
-						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
-						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
-						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
-						VipDhcpAllocation: swag.Bool(false),
-					},
-				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <1001:db8::65> does not belong to machine-network-cidr <1.2.3.0/24>")
 			})
 		})
 
@@ -14983,9 +14914,9 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	Context("Networking", func() {
 		var (
-			clusterNetworks = common.TestIPv4Networking.ClusterNetworks
-			serviceNetworks = common.TestIPv4Networking.ServiceNetworks
-			machineNetworks = common.TestIPv4Networking.MachineNetworks
+			clusterNetworks = []*models.ClusterNetwork{{Cidr: "1.1.1.0/24", HostPrefix: 24}, {Cidr: "2.2.2.0/24", HostPrefix: 24}}
+			serviceNetworks = []*models.ServiceNetwork{{Cidr: "3.3.3.0/24"}, {Cidr: "4.4.4.0/24"}}
+			machineNetworks = []*models.MachineNetwork{{Cidr: "5.5.5.0/24"}, {Cidr: "6.6.6.0/24"}, {Cidr: "7.7.7.0/24"}}
 		)
 
 		registerCluster := func() *models.Cluster {
@@ -17324,9 +17255,36 @@ var _ = Describe("Dual-stack cluster", func() {
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
-			It("v6-first in machine networks rejected", func() {
-				errStr := "First machine network has to be IPv4 subnet"
-				params.NewClusterParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
+		})
+
+		Context("Cluster with two networks of same stack", func() {
+			It("only v4 in cluster networks rejected", func() {
+				errStr := "Second cluster network has to be IPv6 subnet"
+				params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
+					{Cidr: "1.3.0.0/16", HostPrefix: 16},
+					{Cidr: "1.4.0.0/16", HostPrefix: 16},
+				}
+				params.NewClusterParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
+				reply := bm.V2RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+			})
+			It("only v4 in service networks rejected", func() {
+				errStr := "Second service network has to be IPv6 subnet"
+				params.NewClusterParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
+				params.NewClusterParams.ServiceNetworks = []*models.ServiceNetwork{
+					{Cidr: "1.2.5.0/24"},
+					{Cidr: "1.2.6.0/24"},
+				}
+				reply := bm.V2RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+			})
+			It("only v4 in machine networks rejected", func() {
+				errStr := "One machine network has to be IPv6 subnet"
+				params.NewClusterParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
+				params.NewClusterParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "1.2.3.0/24"},
+					{Cidr: "1.2.4.0/24"},
+				}
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
@@ -17389,11 +17347,6 @@ var _ = Describe("Dual-stack cluster", func() {
 				params.ClusterUpdateParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
 				reply := bm.V2UpdateCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, "First service network has to be IPv4 subnet")
-			})
-			It("v6-first in machine networks rejected", func() {
-				params.ClusterUpdateParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
 			})
 		})
 

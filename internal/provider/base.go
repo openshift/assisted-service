@@ -38,12 +38,14 @@ type Provider interface {
 	PostCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
 }
 
-func GetMachineNetworkForUserManagedNetworking(log logrus.FieldLogger, cluster *common.Cluster) []installcfg.MachineNetwork {
+func GetMachineNetworksForUserManagedNetworking(log logrus.FieldLogger, cluster *common.Cluster) []installcfg.MachineNetwork {
 	bootstrapCidr := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
 	if bootstrapCidr != "" {
 		log.Infof("Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
+		if !network.IsMachineCidrAvailable(cluster) {
+			cluster.MachineNetworks = network.GetMachineNetworksFromBootstrapHost(cluster, log)
+		}
 		var machineNetwork []installcfg.MachineNetwork
-		cluster.MachineNetworks = network.GetMachineNetworksFromBoostrapHost(cluster, log)
 		for _, net := range cluster.MachineNetworks {
 			machineNetwork = append(machineNetwork, installcfg.MachineNetwork{Cidr: string(net.Cidr)})
 		}

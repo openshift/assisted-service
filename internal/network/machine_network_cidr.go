@@ -115,12 +115,25 @@ func VerifyVipFree(hosts []*models.Host, vip string, machineNetworkCidr string, 
 	return IpInFreeList(hosts, vip, machineNetworkCidr, log)
 }
 
-func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, verification *models.VipVerification, log logrus.FieldLogger) (models.VipVerification, error) {
-	if machineNetworkCidr == "" {
+func VerifyVip(hosts []*models.Host, machineNetworks []*models.MachineNetwork, vip string, vipName string, verification *models.VipVerification, log logrus.FieldLogger) (models.VipVerification, error) {
+	machineNetworkCidr := ""
+	validMachineNetwork := false
+	for _, machineNetwork := range machineNetworks {
+		if machineNetwork == nil || machineNetwork.Cidr == "" {
+			continue
+		}
+		validMachineNetwork = true
+		if ipInCidr(vip, string(machineNetwork.Cidr)) {
+			machineNetworkCidr = string(machineNetwork.Cidr)
+			break
+		}
+	}
+
+	if !validMachineNetwork {
 		return models.VipVerificationUnverified, errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty", vipName, vip)
 	}
-	if !ipInCidr(vip, machineNetworkCidr) {
-		return models.VipVerificationFailed, errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
+	if machineNetworkCidr == "" {
+		return models.VipVerificationFailed, errors.Errorf("%s <%s> does not belong to any Machine Network", vipName, vip)
 	}
 	if ipIsBroadcast(vip, machineNetworkCidr) {
 		return models.VipVerificationFailed, errors.Errorf("%s <%s> is the broadcast address of machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
@@ -193,11 +206,11 @@ func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*m
 // This function is called from places which assume it is OK for a VIP to be unverified.
 // The assumption is that VIPs are eventually verified by cluster validation
 // (i.e api-vips-valid, ingress-vips-valid)
-func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, log logrus.FieldLogger) error {
-	verification, err := VerifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", nil, log)
+func VerifyVips(hosts []*models.Host, machineNetworks []*models.MachineNetwork, apiVip string, ingressVip string, log logrus.FieldLogger) error {
+	verification, err := VerifyVip(hosts, machineNetworks, apiVip, "api-vip", nil, log)
 	// Error is ignored if the verification didn't fail
 	if verification != models.VipVerificationFailed {
-		verification, err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", nil, log)
+		verification, err = VerifyVip(hosts, machineNetworks, ingressVip, "ingress-vip", nil, log)
 	}
 	if verification != models.VipVerificationFailed {
 		return ValidateNoVIPAddressesDuplicates([]*models.APIVip{{IP: models.IP(apiVip)}}, []*models.IngressVip{{IP: models.IP(ingressVip)}})
@@ -339,25 +352,9 @@ func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log log
 	return ""
 }
 
-func GetSecondaryMachineCidr(cluster *common.Cluster) (string, error) {
-	var secondaryMachineCidr string
-
-	if IsMachineCidrAvailable(cluster) {
-		secondaryMachineCidr = GetMachineCidrById(cluster, 1)
-	}
-	if secondaryMachineCidr != "" {
-		return secondaryMachineCidr, nil
-	}
-	return "", errors.Errorf("unable to get secondary machine network for cluster %s", cluster.ID.String())
-}
-
-// GetMachineNetworksFromBoostrapHost used to collect machine networks from the cluster's bootstrap host.
+// GetMachineNetworksFromBootstrapHost used to collect machine networks from the cluster's bootstrap host.
 // The function will get at most one IPv4 and one IPv6 network.
-func GetMachineNetworksFromBoostrapHost(cluster *common.Cluster, log logrus.FieldLogger) []*models.MachineNetwork {
-	if IsMachineCidrAvailable(cluster) {
-		return cluster.MachineNetworks
-	}
-
+func GetMachineNetworksFromBootstrapHost(cluster *common.Cluster, log logrus.FieldLogger) []*models.MachineNetwork {
 	bootstrap := common.GetBootstrapHost(cluster)
 	if bootstrap == nil {
 		log.Warnf("No bootstrap found in cluster %s", cluster.ID)
@@ -516,23 +513,25 @@ func GetDefaultRouteNetworkByFamily(h *models.Host, networks map[AddressFamily][
 	return ret, fmt.Errorf("can not find cidr by route: no inventory for host %s", h.ID.String())
 }
 
-func IsHostInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
-	// The host should belong to all the networks specified as Machine Networks.
-
-	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
-	//           entries using the same IP stack.
-
+func IsHostInMachineNetCidrs(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
+	// The host should belong to one of the networks specified as Machine
+	// Networks in each address family.
 	if !IsMachineCidrAvailable(cluster) {
 		return false
 	}
 
-	ret := true
+	results := map[bool]bool{}
 	for _, machineNet := range cluster.MachineNetworks {
 		_, machineIpnet, err := net.ParseCIDR(string(machineNet.Cidr))
 		if err != nil {
 			return false
 		}
-		ret = ret && belongsToNetwork(log, host, machineIpnet)
+		isIPv4 := IsIPV4CIDR(string(machineNet.Cidr))
+		results[isIPv4] = results[isIPv4] || belongsToNetwork(log, host, machineIpnet)
+	}
+	ret := true
+	for _, present := range results {
+		ret = ret && present
 	}
 	return ret
 }
