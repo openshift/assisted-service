@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"encoding/base64"
 	"net/http"
+	"time"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
@@ -42,7 +43,6 @@ func NewAgentLocalAuthenticator(cfg *Config, log logrus.FieldLogger) (*AgentLoca
 	if err != nil {
 		return nil, err
 	}
-
 	a := &AgentLocalAuthenticator{
 		log:       log,
 		publicKey: key,
@@ -73,19 +73,31 @@ func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, erro
 	}
 	claims, ok := t.Claims.(jwt.MapClaims)
 	if !ok {
-		err := errors.Errorf("failed to parse JWT token claims")
+		err = errors.Errorf("failed to parse JWT token claims")
 		a.log.Error(err)
 		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
 
 	infraEnvID, infraEnvOk := claims[string(gencrypto.InfraEnvKey)].(string)
 	if !infraEnvOk {
-		err := errors.Errorf("claims are incorrectly formatted")
+		err = errors.Errorf("claims are incorrectly formatted")
 		a.log.Error(err)
 		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
 	a.log.Infof("Authenticating infraEnv %s JWT", infraEnvID)
 
+	exp, found := claims["exp"].(float64)
+	if !found {
+		// exp claim is not found in the case of install workflow
+		return ocm.AdminPayload(), nil
+	}
+	// in the case of addnodes workflow, check if the token is expired
+	expTime := time.Unix(int64(exp), 0)
+	if expTime.Before(time.Now().UTC()) {
+		err = errors.Errorf("The provided authentication token has expired. Please generate a new token and try again.")
+		a.log.Error(err)
+		return nil, common.NewInfraError(http.StatusUnauthorized, err)
+	}
 	return ocm.AdminPayload(), nil
 }
 
