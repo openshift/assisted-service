@@ -176,7 +176,7 @@ var _ = Describe("Disk eligibility", func() {
 
 		// Add a default IPv6 route
 		inventory.Routes = append(hostInventory.Routes, &models.Route{
-			Family:      common.FamilyIPv6,
+			Family:      int32(common.IPv6),
 			Interface:   "eth0",
 			Gateway:     "fe80:db8::1",
 			Destination: "::",

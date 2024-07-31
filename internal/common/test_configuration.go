@@ -280,7 +280,7 @@ var TestDomainNameResolutionsWildcardResolved = &models.DomainResolutionResponse
 var TestDomainNameResolutionsWildcardResolvedWithCname = &models.DomainResolutionResponse{Resolutions: WildcardResolvedWithCname}
 var TestSubDomainNameResolutionsWildcardResolved = &models.DomainResolutionResponse{Resolutions: SubDomainWildcardResolved}
 
-var TestDefaultRouteConfiguration = []*models.Route{{Family: FamilyIPv4, Interface: "eth0", Gateway: "1.2.3.10", Destination: "0.0.0.0", Metric: 600}}
+var TestDefaultRouteConfiguration = []*models.Route{{Family: int32(IPv4), Interface: "eth0", Gateway: "1.2.3.10", Destination: "0.0.0.0", Metric: 600}}
 
 var TestIPv4Networking = TestNetworking{
 	ClusterNetworks: []*models.ClusterNetwork{{Cidr: "1.3.0.0/16", HostPrefix: 24}},

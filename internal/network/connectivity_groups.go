@@ -2,7 +2,6 @@ package network
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 
 	"github.com/go-openapi/strfmt"
@@ -11,30 +10,18 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
-	"golang.org/x/sys/unix"
 )
 
-type AddressFamily int
+type AddressFamily = common.AddressFamily
 
 const (
-	IPv4 AddressFamily = unix.AF_INET
-	IPv6 AddressFamily = unix.AF_INET6
+	IPv4 AddressFamily = common.IPv4
+	IPv6 AddressFamily = common.IPv6
 )
 
 type Connectivity struct {
 	MajorityGroups       map[string][]strfmt.UUID `json:"majority_groups"`
 	L3ConnectedAddresses map[strfmt.UUID][]string `json:"l3_connected_addresses"`
-}
-
-func (a AddressFamily) String() string {
-	switch a {
-	case IPv4:
-		return "IPv4"
-	case IPv6:
-		return "IPv6"
-	default:
-		return fmt.Sprintf("Unexpected family value %d", a)
-	}
 }
 
 type connectivityKey struct {
