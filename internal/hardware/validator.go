@@ -21,8 +21,8 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"k8s.io/utils/ptr"
 )
 
@@ -145,7 +145,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	// We only allow multipath if all paths are FC
 	if disk.DriveType == models.DriveTypeMultipath {
 		for _, inventoryDisk := range inventory.Disks {
-			if funk.ContainsString(strings.Split(inventoryDisk.Holders, ","), disk.Name) {
+			if lo.Contains(strings.Split(inventoryDisk.Holders, ","), disk.Name) {
 				if inventoryDisk.DriveType != models.DriveTypeFC {
 					notEligibleReasons = append(notEligibleReasons,
 						fmt.Sprintf(wrongMultipathTypeTemplate, inventoryDisk.DriveType, string(models.DriveTypeFC)))
@@ -211,10 +211,10 @@ func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) erro
 		return fmt.Errorf("Cannot find default route")
 	}
 
-	defaultInterface := funk.Find(inventory.Interfaces, func(i *models.Interface) bool {
+	defaultInterface, ok := lo.Find(inventory.Interfaces, func(i *models.Interface) bool {
 		return i.Name == defaultRoute.Interface
-	}).(*models.Interface)
-	if defaultInterface == nil {
+	})
+	if !ok {
 		return fmt.Errorf("Cannot find the network interface behind the default route")
 	}
 
@@ -224,19 +224,19 @@ func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) erro
 	if iSCSIHostIP.Is6() {
 		ips = defaultInterface.IPV6Addresses
 	}
-	found := funk.Find(ips, func(ip string) bool {
+	_, ok = lo.Find(ips, func(ip string) bool {
 		prefix, err := netip.ParsePrefix(ip)
 		return err == nil && iSCSIHostIP.Compare(prefix.Addr()) == 0
 	})
 
-	if found != nil {
+	if ok {
 		return fmt.Errorf(wrongISCSINetworkTemplate, iSCSIHostIP.String())
 	}
 	return nil
 }
 
 func (v *validator) IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string, openshiftVersion string) bool {
-	return funk.ContainsString(v.getValidDeviceStorageTypes(hostArchitecture, openshiftVersion), string(disk.DriveType))
+	return lo.Contains(v.getValidDeviceStorageTypes(hostArchitecture, openshiftVersion), string(disk.DriveType))
 }
 
 func (v *validator) purgeServiceReasons(reasons []string) []string {
@@ -257,9 +257,9 @@ func (v *validator) purgeServiceReasons(reasons []string) []string {
 }
 
 func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Disk {
-	eligibleDisks := funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
+	eligibleDisks := lo.Filter(inventory.Disks, func(disk *models.Disk, index int) bool {
 		return disk.InstallationEligibility.Eligible
-	}).([]*models.Disk)
+	})
 
 	// Sorting list by size increase
 	sort.Slice(eligibleDisks, func(i, j int) bool {
@@ -453,7 +453,7 @@ func (v *validator) isEdgeWorker(host *models.Host) bool {
 		return false
 	}
 
-	return funk.Contains(v.edgeWorkersProductList, strings.ToLower(strings.ReplaceAll(inventory.SystemVendor.ProductName, " ", "")))
+	return lo.Contains(v.edgeWorkersProductList, strings.ToLower(strings.ReplaceAll(inventory.SystemVendor.ProductName, " ", "")))
 }
 
 func (v *validator) getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv *common.InfraEnv, role models.HostRole) (models.ClusterHostRequirementsDetails, error) {

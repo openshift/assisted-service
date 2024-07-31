@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
-	"github.com/thoas/go-funk"
+	"github.com/samber/lo"
 	"golang.org/x/sys/unix"
 	"gorm.io/gorm"
 )
@@ -37,13 +37,13 @@ func GetDefaultRouteByFamily(routes []*models.Route, ipv6 bool) *models.Route {
 		family = unix.AF_INET6
 	}
 
-	defaultRoutes := funk.Filter(routes, func(r *models.Route) bool {
-		return int(r.Family) == family
-	}).([]*models.Route)
-	defaultRoutes = funk.Filter(defaultRoutes, func(r *models.Route) bool {
-		isDefault, _ := IsDefaultRoute(r)
-		return isDefault
-	}).([]*models.Route)
+	defaultRoutes := lo.Filter(routes, func(r *models.Route, index int) bool {
+		if int(r.Family) == family {
+			isDefault, _ := IsDefaultRoute(r)
+			return isDefault
+		}
+		return false
+	})
 
 	// keep the route with the lowest metric
 	var metric *int32
@@ -232,7 +232,7 @@ func GetApiVips(cluster *common.Cluster) (ret []string) {
 	if cluster.APIVips == nil {
 		return nil
 	}
-	ret = funk.Map(cluster.APIVips, func(x *models.APIVip) string { return string(x.IP) }).([]string)
+	ret = lo.Map(cluster.APIVips, func(x *models.APIVip, index int) string { return string(x.IP) })
 	return
 }
 
@@ -240,7 +240,7 @@ func GetIngressVips(cluster *common.Cluster) (ret []string) {
 	if cluster.IngressVips == nil {
 		return nil
 	}
-	ret = funk.Map(cluster.IngressVips, func(x *models.IngressVip) string { return string(x.IP) }).([]string)
+	ret = lo.Map(cluster.IngressVips, func(x *models.IngressVip, index int) string { return string(x.IP) })
 	return
 }
 
@@ -365,7 +365,7 @@ func areListsEquivalent(len1, len2 int, areItemsEquivalent func(int, int) bool) 
 	var usedIndexes []int
 	containsEquivalentItem := func(index, length int) bool {
 		for i := 0; i != length; i++ {
-			if !funk.ContainsInt(usedIndexes, i) && areItemsEquivalent(index, i) {
+			if !lo.Contains(usedIndexes, i) && areItemsEquivalent(index, i) {
 				usedIndexes = append(usedIndexes, i)
 				return true
 			}
