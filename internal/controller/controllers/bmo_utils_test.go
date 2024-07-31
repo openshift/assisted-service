@@ -151,6 +151,32 @@ var _ = Describe("bmoUtils", func() {
 			Expect(iccConfig.IronicInspectorBaseUrl).Should(Equal(inspectorURLs))
 			Expect(iccConfig.IronicAgentImage).Should(Equal(agentImage))
 		})
+
+		It("succeeds when only the inspector url is missing", func() {
+			bmoUtils := &bmoUtils{
+				c:              c,
+				log:            log,
+				kubeAPIEnabled: true,
+			}
+			ironicURLs := getUrlFromIP("10.10.10.11")
+			agentImage := "quay.io/some/agent:image"
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      iccSecretName,
+					Namespace: iccNamespace,
+				},
+				Data: map[string][]byte{
+					ironicBaseURLKey:    []byte(ironicURLs),
+					ironicAgentImageKey: []byte(agentImage),
+				},
+			}
+			Expect(c.Create(context.Background(), secret)).To(BeNil())
+			iccConfig, err := bmoUtils.getICCConfig(context.Background())
+			Expect(err).Should(BeNil())
+			Expect(iccConfig.IronicBaseURL).Should(Equal(ironicURLs))
+			Expect(iccConfig.IronicAgentImage).Should(Equal(agentImage))
+		})
+
 		It("throws an error when secret is missing", func() {
 			bmoUtils := &bmoUtils{
 				c:              c,
@@ -190,19 +216,8 @@ var _ = Describe("bmoUtils", func() {
 				Expect(err).Should(Not(BeNil()))
 			},
 			Entry("ironicURLs is missing", nil, []byte("some"), []byte("some")),
-			Entry("ironicInspectorURLs is missing", []byte("some"), nil, []byte("some")),
 			Entry("ironicAgentImage is missing", []byte("some"), []byte("some"), nil),
 		)
-		It("throws an error when the configuration is incomplete", func() {
-			bmoUtils := &bmoUtils{
-				c:              c,
-				log:            log,
-				kubeAPIEnabled: true,
-			}
-			_, err := bmoUtils.getICCConfig(context.Background())
-			Expect(err).Should(Not(BeNil()))
-		})
-
 	})
 })
 
