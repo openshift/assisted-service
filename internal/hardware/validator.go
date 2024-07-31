@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"net"
+	"net/netip"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/dustin/go-humanize"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -32,6 +31,7 @@ const (
 	wrongDriveTypeTemplate     = "Drive type is %s, it must be one of %s."
 	wrongMultipathTypeTemplate = "Multipath device has path of type %s, it must be %s"
 	iSCSIWithMultipathHolder   = "iSCSI disk with a multipath holder is not eligible"
+	wrongISCSINetworkTemplate  = "iSCSI host IP %s is the same as host IP, they must be different"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
@@ -201,13 +201,12 @@ func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) erro
 		return fmt.Errorf("Host IP address is not available")
 
 	}
-	iSCSIHostIP := net.ParseIP(disk.Iscsi.HostIPAddress)
-	if iSCSIHostIP == nil {
-		return fmt.Errorf("Cannot parse iSCSI host IP %s", disk.Iscsi.HostIPAddress)
+	iSCSIHostIP, err := netip.ParseAddr(disk.Iscsi.HostIPAddress)
+	if err != nil {
+		return fmt.Errorf("Cannot parse iSCSI host IP %s: %w", disk.Iscsi.HostIPAddress, err)
 	}
-	isIPv6 := govalidator.IsIPv6(iSCSIHostIP.String())
 
-	defaultRoute := network.GetDefaultRouteByFamily(inventory.Routes, isIPv6)
+	defaultRoute := network.GetDefaultRouteByFamily(inventory.Routes, iSCSIHostIP.Is6())
 	if defaultRoute == nil {
 		return fmt.Errorf("Cannot find default route")
 	}
@@ -222,16 +221,16 @@ func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) erro
 	// look if one of the IP assigned to the default interface interface
 	// corresponds to the IP used by host to connect on the iSCSI target
 	ips := defaultInterface.IPV4Addresses
-	if isIPv6 {
+	if iSCSIHostIP.Is6() {
 		ips = defaultInterface.IPV6Addresses
 	}
 	found := funk.Find(ips, func(ip string) bool {
-		interfaceIP, _, _ := net.ParseCIDR(ip)
-		return interfaceIP.String() == iSCSIHostIP.String()
+		prefix, err := netip.ParsePrefix(ip)
+		return err == nil && iSCSIHostIP.Compare(prefix.Addr()) == 0
 	})
 
 	if found != nil {
-		return fmt.Errorf("iSCSI volume %s cannot be connected through default network interface %s", disk.Name, defaultRoute.Interface)
+		return fmt.Errorf(wrongISCSINetworkTemplate, iSCSIHostIP.String())
 	}
 	return nil
 }

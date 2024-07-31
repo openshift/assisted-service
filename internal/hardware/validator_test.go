@@ -201,7 +201,7 @@ var _ = Describe("Disk eligibility", func() {
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1.2.3.4"}
 		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("iSCSI volume iscsi0 cannot be connected through default network interface eth0"))
+		Expect(eligible).To(ContainElement("iSCSI host IP 1.2.3.4 is the same as host IP, they must be different"))
 
 		By("Check iSCSI is eligible when host IPv6 address is not part of default network interface")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1002:db8::10"}
@@ -213,7 +213,7 @@ var _ = Describe("Disk eligibility", func() {
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1001:db8::10"}
 		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("iSCSI volume iscsi0 cannot be connected through default network interface eth0"))
+		Expect(eligible).To(ContainElement("iSCSI host IP 1001:db8::10 is the same as host IP, they must be different"))
 
 		By("Check iSCSI on older version is not eligible")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
