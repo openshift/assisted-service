@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/netip"
 	"strings"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -21,8 +21,8 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
 
@@ -257,7 +257,7 @@ func (i *installCmd) getDisksToFormat(ctx context.Context, host *models.Host, in
 
 	for _, disk := range allFormattingCandidateDisks {
 		identifier := common.GetDeviceIdentifier(disk)
-		if !funk.Contains(skippedDisksIdentifiers, identifier) {
+		if !lo.Contains(skippedDisksIdentifiers, identifier) {
 			eventgen.SendQuickDiskFormatPerformedEvent(ctx, i.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID,
 				hostutil.GetHostnameForMsg(host), disk.Name, identifier)
 
@@ -326,7 +326,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 
 	}
 
-	if hasStaticNetwork && !funk.Contains(installerArgs, "--copy-network") {
+	if hasStaticNetwork && !lo.Contains(installerArgs, "--copy-network") {
 		// network not configured statically or
 		// installer args already contain command for network configuration
 		installerArgs = append(installerArgs, "--copy-network")
@@ -344,29 +344,29 @@ func appendISCSIArgs(installerArgs []string, disk *models.Disk, inventory *model
 	}
 
 	// configure DHCP on the interface used by the iSCSI boot volume
-	iSCSIHostIP := net.ParseIP(disk.Iscsi.HostIPAddress)
-	if iSCSIHostIP == nil {
-		return nil, fmt.Errorf("Cannot parse iSCSI host IP %s", disk.Iscsi.HostIPAddress)
+	iSCSIHostIP, err := netip.ParseAddr(disk.Iscsi.HostIPAddress)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot parse iSCSI host IP %s: %w", disk.Iscsi.HostIPAddress, err)
 	}
-	isIPv6 := govalidator.IsIPv6(iSCSIHostIP.String())
 
-	nic := funk.Find(inventory.Interfaces, func(nic *models.Interface) bool {
+	nic, ok := lo.Find(inventory.Interfaces, func(nic *models.Interface) bool {
 		ips := nic.IPV4Addresses
-		if isIPv6 {
+		if iSCSIHostIP.Is6() {
 			ips = nic.IPV6Addresses
 		}
-		return funk.Contains(ips, func(ip string) bool {
-			nicIP, _, _ := net.ParseCIDR(ip)
-			return nicIP.String() == iSCSIHostIP.String()
+		_, ok := lo.Find(ips, func(ip string) bool {
+			prefix, err := netip.ParsePrefix(ip)
+			return err == nil && iSCSIHostIP.Compare(prefix.Addr()) == 0
 		})
-	}).(*models.Interface)
+		return ok
+	})
 
-	if nic == nil {
+	if !ok {
 		return nil, fmt.Errorf("Cannot find the interface belonging to iSCSI host IP %s", iSCSIHostIP.String())
 	}
 
 	dhcp := "dhcp"
-	if isIPv6 {
+	if iSCSIHostIP.Is6() {
 		dhcp = "dhcp6"
 	}
 	installerArgs = append(installerArgs, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp))
@@ -485,7 +485,7 @@ func findAnyInCIDR(network *net.IPNet, addresses []string) (bool, error) {
 func hasUserConfiguredIP(args []string) bool {
 	// check if the user has configured any ip arguments manually
 	// https://man7.org/linux/man-pages/man7/dracut.cmdline.7.html
-	_, result := funk.FindString(args, func(s string) bool {
+	_, result := lo.Find(args, func(s string) bool {
 		return strings.HasPrefix(s, "ip=")
 	})
 	return result
