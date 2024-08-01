@@ -316,6 +316,8 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		if err != nil {
 			return "", err
 		}
+	} else {
+		log.Warnf("No installation disk found for host ID %s", host.ID)
 	}
 
 	if hasStaticNetwork && !lo.Contains(installerArgs, "--copy-network") {
