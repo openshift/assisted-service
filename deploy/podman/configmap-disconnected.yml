@@ -26,7 +26,7 @@ data:
   POSTGRESQL_DATABASE: installer
   POSTGRESQL_PASSWORD: admin
   POSTGRESQL_USER: admin
-  PUBLIC_CONTAINER_REGISTRIES: 'quay.io'
+  PUBLIC_CONTAINER_REGISTRIES: 'quay.io,registry.ci.openshift.org'
   RELEASE_IMAGES: '[{"openshift_version":"4.10","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"<container image registry server:port>/ocp4/openshift4:4.10.22-x86_64","version":"4.10.22","default":true}]'
   SERVICE_BASE_URL: http://<IP address of assisted installer host>:8090
   STORAGE: filesystem
