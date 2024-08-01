@@ -249,7 +249,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					fmt.Sprintf("Feature: %s, OCP version: %s, CpuArch: %s", featureCNV, version, models.ClusterCPUArchitectureArm64))
 			})
 		}
-		for _, ocpVersion := range []string{"4.13", "4.15", "4.21"} {
+		for _, ocpVersion := range []string{"4.14", "4.15", "4.21"} {
 			version := ocpVersion
 			It(fmt.Sprintf("Validate featurue CNV is avilable on Architecture: %s", cpuARM), func() {
 				Expect(IsFeatureAvailable(featureCNV, version, swag.String(cpuARM))).To(BeTrue(),

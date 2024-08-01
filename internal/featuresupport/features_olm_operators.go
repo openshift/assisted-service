@@ -171,7 +171,7 @@ func (feature *CnvFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	architectureID := cpuArchitectureFeatureIdMap[swag.StringValue(filters.CPUArchitecture)]
 	if architectureID == models.ArchitectureSupportLevelIDARM64ARCHITECTURE {
 		if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual("4.14", filters.OpenshiftVersion); isGreaterOrEqual {
-			return models.SupportLevelTechPreview
+			return models.SupportLevelDevPreview
 		}
 	}
 

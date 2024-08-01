@@ -372,11 +372,27 @@ var _ = Describe("Operators manager", func() {
 			err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
 			Expect(err).To(Not(BeNil()))
 		})
-		It("error on LVM with CNV architecture", func() {
+		It("error on LVM with CNV architecture below version 4.14", func() {
 			monitoredOperators := []*models.MonitoredOperator{{Name: "cnv"}}
 			cluster.CPUArchitecture = common.ARM64CPUArchitecture
-			err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
-			Expect(err).To(Not(BeNil()))
+			for _, version := range []string{"4.8", "4.11", "4.12", "4.13"} {
+				v := version
+				cluster.OpenshiftVersion = v
+				err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
+				Expect(err).To(Not(BeNil()),
+					fmt.Sprintf("ocpVersion: %v, with error: %v", cluster.OpenshiftVersion, err))
+			}
+		})
+		It("no error on LVM with CNV architecture above version 4.14", func() {
+			monitoredOperators := []*models.MonitoredOperator{{Name: "cnv"}}
+			cluster.CPUArchitecture = common.ARM64CPUArchitecture
+			for _, version := range []string{"4.14", "4.15", "4.16", "4.17", "4.31"} {
+				v := version
+				cluster.OpenshiftVersion = v
+				err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
+				Expect(err).To(BeNil(),
+					fmt.Sprintf("ocpVersion: %v, with error: %v", cluster.OpenshiftVersion, err))
+			}
 		})
 		It("no on operators supports both ARM and x86 while cluster supports multi cpu architecture", func() {
 			monitoredOperators := []*models.MonitoredOperator{
@@ -398,13 +414,39 @@ var _ = Describe("Operators manager", func() {
 				{Name: "cnv"},
 			}
 			cluster.CPUArchitecture = common.ARM64CPUArchitecture
-			err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
+			When("OCP verison below 4.14", func() {
+				cluster.OpenshiftVersion = "4.13"
+				err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
 
-			Expect(err).To(Not(BeNil()))
-			ExpectWithOffset(1, err.Error()).To(ContainSubstring("Local Storage Operator"))
-			ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Data Foundation"))
-			ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Virtualization"))
-			ExpectWithOffset(1, err.Error()).To(Not(ContainSubstring("Logical Volume Management")))
+				Expect(err).To(Not(BeNil()),
+					fmt.Sprintf("ocpversion: 4.13, Got error: %s", err))
+				ExpectWithOffset(1, err.Error()).To(ContainSubstring("Local Storage Operator"),
+					fmt.Sprintf("ocpversion: 4.13, Got error: %s", err))
+				ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Data Foundation"),
+					fmt.Sprintf("ocpversion: 4.13, Got error: %s", err))
+				ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Virtualization"),
+					fmt.Sprintf("ocpversion: 4.13, Got error: %s", err))
+				ExpectWithOffset(1, err.Error()).To(Not(ContainSubstring("Logical Volume Management")),
+					fmt.Sprintf("ocpversion: 4.13, Got error: %s", err))
+
+			})
+			When("OCP verison above 4.14", func() {
+				cluster.OpenshiftVersion = "4.14"
+				err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
+
+				Expect(err).To(Not(BeNil()),
+					fmt.Sprintf("ocpversion: 4.14, Got error: %s", err))
+				ExpectWithOffset(1, err.Error()).To(ContainSubstring("Local Storage Operator"),
+					fmt.Sprintf("ocpversion: 4.14, Got error: %s", err))
+				ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Data Foundation"),
+					fmt.Sprintf("ocpversion: 4.14, Got error: %s", err))
+				ExpectWithOffset(1, err.Error()).To(Not(ContainSubstring("OpenShift Virtualization")),
+					fmt.Sprintf("ocpversion: 4.14, Got error: %s", err))
+				ExpectWithOffset(1, err.Error()).To(Not(ContainSubstring("Logical Volume Management")),
+					fmt.Sprintf("ocpversion: 4.14, Got error: %s", err))
+
+			})
+
 		})
 
 	})
