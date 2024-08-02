@@ -12,17 +12,32 @@ import (
 	"github.com/openshift/cluster-baremetal-operator/provisioning"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const MinimalVersionForConvergedFlow = "4.12.0-0.alpha"
+const (
+	MinimalVersionForConvergedFlow = "4.12.0-0.alpha"
+	iccNamespace                   = "openshift-machine-api"
+	iccSecretName                  = "metal3-image-customization-config" // #nosec G101
+	ironicBaseURLKey               = "IRONIC_BASE_URL"
+	ironicInspectorBaseURLKey      = "IRONIC_INSPECTOR_BASE_URL"
+	ironicAgentImageKey            = "IRONIC_AGENT_IMAGE"
+)
 
 //go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_bmo_utils.go . BMOUtils
 type BMOUtils interface {
 	ConvergedFlowAvailable() bool
 	GetIronicIPs() ([]string, []string, error)
+	getICCConfig(ctx context.Context) (*ICCConfig, error)
+}
+
+type ICCConfig struct {
+	IronicBaseURL          string
+	IronicInspectorBaseUrl string
+	IronicAgentImage       string
 }
 
 type bmoUtils struct {
@@ -89,6 +104,32 @@ func (r *bmoUtils) GetIronicIPs() ([]string, []string, error) {
 		return nil, nil, err
 	}
 	return ironicIPs, inspectorIPs, nil
+}
+
+func (r *bmoUtils) getICCConfig(ctx context.Context) (*ICCConfig, error) {
+	const configKeyNotFoundError string = "Failed to get '%s' key from secret %s in namespace %s"
+
+	secret := &corev1.Secret{}
+	namespacedName := types.NamespacedName{Name: iccSecretName, Namespace: iccNamespace}
+	if err := r.c.Get(ctx, namespacedName, secret); err != nil {
+		return nil, fmt.Errorf("Failed to get secret %s in namespace %s: %w", iccSecretName, iccNamespace, err)
+	}
+
+	ironicBaseURL, ok := secret.Data[ironicBaseURLKey]
+	if !ok {
+		return nil, fmt.Errorf(configKeyNotFoundError, ironicBaseURLKey, secret.Name, secret.Namespace)
+	}
+
+	ironicAgentImage, ok := secret.Data[ironicAgentImageKey]
+	if !ok {
+		return nil, fmt.Errorf(configKeyNotFoundError, ironicAgentImageKey, secret.Name, secret.Namespace)
+	}
+
+	return &ICCConfig{
+		IronicBaseURL:          string(ironicBaseURL),
+		IronicInspectorBaseUrl: string(secret.Data[ironicInspectorBaseURLKey]),
+		IronicAgentImage:       string(ironicAgentImage),
+	}, nil
 }
 
 func (r *bmoUtils) getProvisioningInfo() (*provisioning.ProvisioningInfo, error) {

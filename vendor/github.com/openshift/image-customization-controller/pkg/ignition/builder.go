@@ -37,9 +37,6 @@ func New(nmStateData, registriesConf []byte, ironicBaseURL, ironicInspectorBaseU
 	if ironicBaseURL == "" {
 		return nil, errors.New("ironicBaseURL is required")
 	}
-	if ironicInspectorBaseURL == "" {
-		ironicInspectorBaseURL = ironicBaseURL
-	}
 	if ironicAgentImage == "" {
 		return nil, errors.New("ironicAgentImage is required")
 	}

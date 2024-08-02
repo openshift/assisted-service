@@ -48,6 +48,7 @@ type Release interface {
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) ([]string, error)
+	GetImageArchitecture(log logrus.FieldLogger, image string, pullSecret string) ([]string, error)
 	GetReleaseBinaryPath(releaseImage string, cacheDir string, ocpVersion string) (workdir string, binary string, path string, err error)
 	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, ocpVersion string) (string, error)
 }
@@ -197,6 +198,10 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 		return nil, errors.New("no releaseImage nor releaseImageMirror provided")
 	}
 
+	return r.GetImageArchitecture(log, image, pullSecret)
+}
+
+func (r *release) GetImageArchitecture(log logrus.FieldLogger, image string, pullSecret string) ([]string, error) {
 	icspFile, err := r.getIcspFileFromRegistriesConfig(log)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create file ICSP file from registries config")
