@@ -28,6 +28,7 @@ const (
 	tooSmallDiskTemplate       = "Disk is too small (disk only has %s, but %s are required)"
 	wrongDriveTypeTemplate     = "Drive type is %s, it must be one of %s."
 	wrongMultipathTypeTemplate = "Multipath device has path of type %s, it must be %s"
+	iSCSIWithMultipathHolder   = "iSCSI disk with a multipath holder is not eligible"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
@@ -146,6 +147,25 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 						fmt.Sprintf(wrongMultipathTypeTemplate, inventoryDisk.DriveType, string(models.DriveTypeFC)))
 					break
 				}
+			}
+		}
+	}
+
+	// We are not allow iSCSI disk with multipath holder
+	if disk.DriveType == models.DriveTypeISCSI {
+		multipathDiskNamesMap := make(map[string]struct{})
+		for _, inventoryDisk := range allDisks {
+			if inventoryDisk.DriveType == models.DriveTypeMultipath {
+				multipathDiskNamesMap[inventoryDisk.Name] = struct{}{}
+			}
+		}
+
+		// Check if the iSCSI disk has any holders that are multipath disks
+		holders := strings.Split(disk.Holders, ",")
+		for _, holder := range holders {
+			if _, exists := multipathDiskNamesMap[holder]; exists {
+				notEligibleReasons = append(notEligibleReasons, iSCSIWithMultipathHolder)
+				break
 			}
 		}
 	}
