@@ -168,6 +168,13 @@ func (feature *CnvFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelUnavailable
 	}
 
+	architectureID := cpuArchitectureFeatureIdMap[swag.StringValue(filters.CPUArchitecture)]
+	if architectureID == models.ArchitectureSupportLevelIDARM64ARCHITECTURE {
+		if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual("4.14", filters.OpenshiftVersion); isGreaterOrEqual {
+			return models.SupportLevelDevPreview
+		}
+	}
+
 	return models.SupportLevelSupported
 }
 
@@ -178,12 +185,16 @@ func (feature *CnvFeature) getIncompatibleFeatures(string) *[]models.FeatureSupp
 	}
 }
 
-func (feature *CnvFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
-	return &[]models.ArchitectureSupportLevelID{
+func (feature *CnvFeature) getIncompatibleArchitectures(OCPVersion *string) *[]models.ArchitectureSupportLevelID {
+	incompatibleArchitecture := []models.ArchitectureSupportLevelID{
 		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
 		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
-		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
 	}
+	if isLessThan, _ := common.BaseVersionLessThan("4.14", *OCPVersion); isLessThan {
+		incompatibleArchitecture = append(incompatibleArchitecture, models.ArchitectureSupportLevelIDARM64ARCHITECTURE)
+	}
+
+	return &incompatibleArchitecture
 }
 
 func (feature *CnvFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
