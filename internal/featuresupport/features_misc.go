@@ -63,8 +63,10 @@ func (feature *SnoFeature) getIncompatibleArchitectures(openshiftVersion *string
 }
 
 func (feature *SnoFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	if cluster != nil && swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-		return activeLevelActive
+	if cluster != nil && cluster.HighAvailabilityMode != nil {
+		if *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+			return activeLevelActive
+		}
 	}
 	return activeLevelNotActive
 }
