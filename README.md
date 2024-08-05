@@ -95,19 +95,13 @@ If you want to update the underlying operating system image used by the discover
 
 ## Deployment
 
-### Deploy to minikube
+### Deploy to k8s
 
 The deployment is a system deployment, it contains all the components the service need for all the operations to work (if implemented).
 S3 service (minio), DB and will use the image generator to create the images in the deployed S3 and create relevant bucket in S3.
 
 ```shell
-skipper make deploy-all
-```
-
-Note: when deployed in minikube, we need to be running [minikube tunnel](https://minikube.sigs.k8s.io/docs/handbook/accessing/#using-minikube-tunnel), as some services are type `LoadBalancer` and need to be exposed.
-
-```shell
-nohup minikube tunnel &>/dev/null
+make deploy-on-k8s
 ```
 
 
@@ -147,46 +141,8 @@ For OpenShift users, look at the service deployment options on OpenShift platfor
 
 ### Deploy Monitoring
 
-Note: This target is only for development purpose.
+See - [deploy monitoring](./docs/user-guide/deploy-assisted-monitoring.md)
 
-This will allow you to deploy Prometheus and Grafana already integrated with Assisted installer:
-
-- On Minikube
-
-```shell
-# Step by step
-make deploy-olm
-make deploy-prometheus
-make deploy-grafana
-
-# Or just all-in
-make deploy-monitoring
-```
-
-- On Openshift
-
-```shell
-# Step by step
-make deploy-prometheus TARGET=oc-ingress APPLY_NAMESPACE=false
-make deploy-grafana TARGET=oc-ingress APPLY_NAMESPACE=false
-
-# Or just all-in
-make deploy-monitoring TARGET=oc-ingress APPLY_NAMESPACE=false
-```
-
-NOTE: To expose the monitoring UI's on your local environment you could follow these steps
-
-```shell
-kubectl config set-context $(kubectl config current-context) --namespace assisted-installer
-
-# To expose Prometheus
-kubectl port-forward svc/prometheus-k8s 9090:9090
-
-# To expose Grafana
-kubectl port-forward svc/grafana 3000:3000
-```
-
-Now you just need to access [http://127.0.0.1:3000](http://127.0.0.1:3000) to access to your Grafana deployment or [http://127.0.0.1:9090](http://127.0.0.1:9090) for Prometheus.
 
 ### Deploy by tag
 

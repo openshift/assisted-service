@@ -1,9 +1,9 @@
 ## Debugging
 
-To debug assisted-service, run:
+To debug your changes on k8s cluster, run:
 
 ```bash
-make deploy-service-debug
+make deploy-on-k8s DEBUG_SERVICE=true
 ```
 
 It will deploy assisted-service in a debug mode together with its components. To connect to the dlv session, you need to connect to assisted-service on port `40000`. For example, in vscode this configuration should do the trick: (after installing go extension and dlv)
