@@ -1,11 +1,24 @@
-ARG SERVICE=quay.io/edge-infrastructure/assisted-service:latest
-FROM registry.ci.openshift.org/openshift/release:golang-1.18 AS download_dlv
+FROM registry.access.redhat.com/ubi9/go-toolset:1.18 AS golang
+
 RUN GOFLAGS=-mod=mod go install github.com/go-delve/delve/cmd/dlv@v1.9.1
 
-FROM $SERVICE
+FROM quay.io/centos/centos:stream9
+
+RUN dnf install --enablerepo=crb -y gcc git nmstate-devel openssl-devel && dnf clean all
+
+ENV GOROOT=/usr/lib/golang
+ENV GOPATH=/opt/app-root/src/go
+ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+
+COPY --from=golang $GOPATH $GOPATH
+COPY --from=golang $GOROOT $GOROOT
+
+RUN chmod 775 -R $GOPATH && chmod 775 -R $GOROOT
+
 ARG DEBUG_SERVICE_PORT=40000
-COPY --from=download_dlv /go/bin/dlv /
 EXPOSE 8090 $DEBUG_SERVICE_PORT
+
 COPY assisted-service /assisted-service
 COPY assisted-service-operator /assisted-service-operator
-CMD ["/dlv", "--listen=:40000", "--headless=true", "--continue", "--api-version=2", "--accept-multiclient", "exec", "/assisted-service"]
+
+CMD ["dlv", "--listen=:40000", "--headless=true", "--continue", "--api-version=2", "--accept-multiclient", "exec", "/assisted-service"]
