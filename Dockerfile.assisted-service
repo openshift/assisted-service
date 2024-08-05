@@ -1,16 +1,30 @@
-ARG BASE_TAG=stream9
+ARG RHEL_VERSION=9
+
+FROM registry.access.redhat.com/ubi$RHEL_VERSION/go-toolset:1.20 AS golang
+
+ADD . /app
+WORKDIR /app
+
+# Licenses
+RUN go install github.com/google/go-licenses@v1.6.0
+RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
 
 # Build binaries
-FROM quay.io/centos/centos:$BASE_TAG as builder
+FROM quay.io/centos/centos:stream$RHEL_VERSION as builder
 
 COPY hack/container_build_scripts/install_build_deps.sh .
 COPY hack/container_build_scripts/utils.sh .
-ARG BASE_TAG
-RUN ./install_build_deps.sh $BASE_TAG
-COPY --from=registry.ci.openshift.org/openshift/release:golang-1.20 /usr/local/go /usr/local/go
+ARG RHEL_VERSION
+RUN ./install_build_deps.sh $RHEL_VERSION
 
-ENV GOROOT=/usr/local/go
-ENV PATH=$PATH:$GOROOT/bin
+ENV GOROOT=/usr/lib/golang
+ENV GOPATH=/opt/app-root/src/go
+ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+
+COPY --from=golang $GOPATH $GOPATH
+COPY --from=golang $GOROOT $GOROOT
+
+RUN chmod 775 -R $GOPATH && chmod 775 -R $GOROOT
 
 WORKDIR /assisted-service/
 
@@ -29,17 +43,8 @@ RUN cd ./cmd/operator && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /bu
 RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission
 RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
 
-# Licenses
-FROM registry.access.redhat.com/ubi9/go-toolset:1.18 AS licenses
-
-ADD . /app
-WORKDIR /app
-
-RUN go install github.com/google/go-licenses@v1.6.0
-RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
-
 # Create final image
-FROM quay.io/centos/centos:$BASE_TAG
+FROM quay.io/centos/centos:stream$RHEL_VERSION
 
 ARG release=main
 ARG version=latest
@@ -56,12 +61,12 @@ LABEL url https://github.com/openshift/assisted-service
 LABEL vendor "Red Hat, Inc."
 LABEL maintainer "Red Hat"
 
-COPY --from=licenses /tmp/licenses /licenses
+COPY --from=golang /tmp/licenses /licenses
 
 COPY hack/container_build_scripts/replace_dnf_repositories_ref_if_needed.sh .
 COPY hack/container_build_scripts/utils.sh .
-ARG BASE_TAG
-RUN ./replace_dnf_repositories_ref_if_needed.sh $BASE_TAG
+ARG RHEL_VERSION
+RUN ./replace_dnf_repositories_ref_if_needed.sh $RHEL_VERSION
 
 # multiarch images need it till WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
 RUN dnf install -y --setopt=install_weak_deps=False skopeo

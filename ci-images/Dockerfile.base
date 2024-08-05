@@ -1,24 +1,28 @@
+FROM registry.access.redhat.com/ubi9/go-toolset:1.20 AS golang
+
+RUN go install gotest.tools/gotestsum@latest
+
 FROM quay.io/centos/centos:stream9
 
 RUN dnf install --enablerepo=crb -y \
-    git unzip make gcc which nmstate-devel python3
+    git unzip make gcc which nmstate-devel python3 openssl-devel
 
 # Git checks if the user that owns the files on the filesystem match the
 # current user.  We need to disable this check because tests in Prow are
 # running with a random user.
 RUN git config --system --add safe.directory '*'
 
-COPY --from=registry.ci.openshift.org/openshift/release:golang-1.20 /usr/local/go /usr/local/go
-COPY --from=registry.ci.openshift.org/openshift/release:golang-1.20 /usr/bin/gotestsum /usr/bin/make /usr/bin/
-
-ENV GOPATH=/go
-ENV GOROOT=/usr/local/go
+ENV GOROOT=/usr/lib/golang
+ENV GOPATH=/opt/app-root/src/go
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+
+COPY --from=golang $GOPATH $GOPATH
+COPY --from=golang $GOROOT $GOROOT
 
 COPY . /assisted-service/
 WORKDIR /assisted-service/
 
 RUN go mod tidy && go mod vendor
 
-RUN chmod 775 -R $GOPATH && chmod 775 -R $(go env GOROOT) && chmod 775 -R /assisted-service/ && \
+RUN chmod 775 -R $GOPATH && chmod 775 -R $GOROOT && chmod 775 -R /assisted-service/ && \
     mkdir /.cache && chmod 775 -R /.cache
