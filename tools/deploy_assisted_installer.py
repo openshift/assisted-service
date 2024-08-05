@@ -67,8 +67,8 @@ def main():
             else:
                 data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
 
-        if deploy_options.image_pull_policy:
-            data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = deploy_options.image_pull_policy
+        if deploy_options.image_pull_policy or os.environ.get("IMAGE_PULL_POLICY"):
+            data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = deploy_options.image_pull_policy or os.environ.get("IMAGE_PULL_POLICY")
 
         if deploy_options.target == deployment_options.OCP_TARGET:
             data["spec"]["replicas"] = 1 # force single replica
