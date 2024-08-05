@@ -192,7 +192,7 @@ func areISCSIHoldersValid(disk *models.Disk, inventory *models.Inventory) error 
 
 }
 
-// isISCSINetworkingValid checks if the iSCSI dish is not connected through the
+// isISCSINetworkingValid checks if the iSCSI disk is not connected through the
 // default network interface. The default network interface is the interface
 // which is used by the default gateway.
 func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) error {
@@ -208,7 +208,7 @@ func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) erro
 
 	defaultRoute := network.GetDefaultRouteByFamily(inventory.Routes, iSCSIHostIP.Is6())
 	if defaultRoute == nil {
-		return fmt.Errorf("Cannot find default route")
+		return nil
 	}
 
 	defaultInterface, ok := lo.Find(inventory.Interfaces, func(i *models.Interface) bool {
