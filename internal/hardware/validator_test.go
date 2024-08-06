@@ -270,8 +270,9 @@ var _ = Describe("Disk eligibility", func() {
 		cluster.OpenshiftVersion = "4.15.0"
 		testDisk.DriveType = models.DriveTypeISCSI
 		allDisks := []*models.Disk{&testDisk, {Name: "sdc", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "dm-0", DriveType: models.DriveTypeMultipath}}
+		inventory.Disks = allDisks
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, allDisks)
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible[0]).To(Equal(iSCSIWithMultipathHolder))
@@ -283,8 +284,9 @@ var _ = Describe("Disk eligibility", func() {
 		cluster.OpenshiftVersion = "4.14.1"
 		testDisk.DriveType = models.DriveTypeISCSI
 		allDisks := []*models.Disk{&testDisk, {Name: "sdc", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "dm-0", DriveType: models.DriveTypeMultipath}}
+		inventory.Disks = allDisks
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, models.ClusterCPUArchitectureX8664, allDisks)
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible[0]).To(ContainSubstring(fmt.Sprintf("Drive type is %s, it must be one of", models.DriveTypeISCSI)))
