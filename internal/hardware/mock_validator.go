@@ -37,18 +37,18 @@ func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 }
 
 // DiskIsEligible mocks base method.
-func (m *MockValidator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, hostArchitecture string, allDisks []*models.Disk) ([]string, error) {
+func (m *MockValidator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, inventory *models.Inventory) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DiskIsEligible", ctx, disk, infraEnv, cluster, host, hostArchitecture, allDisks)
+	ret := m.ctrl.Call(m, "DiskIsEligible", ctx, disk, infraEnv, cluster, host, inventory)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DiskIsEligible indicates an expected call of DiskIsEligible.
-func (mr *MockValidatorMockRecorder) DiskIsEligible(ctx, disk, infraEnv, cluster, host, hostArchitecture, allDisks interface{}) *gomock.Call {
+func (mr *MockValidatorMockRecorder) DiskIsEligible(ctx, disk, infraEnv, cluster, host, inventory interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskIsEligible", reflect.TypeOf((*MockValidator)(nil).DiskIsEligible), ctx, disk, infraEnv, cluster, host, hostArchitecture, allDisks)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskIsEligible", reflect.TypeOf((*MockValidator)(nil).DiskIsEligible), ctx, disk, infraEnv, cluster, host, inventory)
 }
 
 // GetClusterHostRequirements mocks base method.

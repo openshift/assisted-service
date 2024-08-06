@@ -15,6 +15,7 @@ import (
 	yamlpatch "github.com/krishicks/yaml-patch"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
+	"golang.org/x/sys/unix"
 	"gorm.io/gorm"
 )
 
@@ -40,9 +41,6 @@ const (
 
 	IgnitionTokenKeyInSecret = "ignition-token"
 
-	FamilyIPv4 int32 = 4
-	FamilyIPv6 int32 = 6
-
 	AMD64CPUArchitecture   = "amd64"
 	X86CPUArchitecture     = "x86_64"
 	DefaultCPUArchitecture = X86CPUArchitecture
@@ -55,6 +53,24 @@ const (
 
 	ExternalPlatformNameOci = "oci"
 )
+
+type AddressFamily int
+
+const (
+	IPv4 AddressFamily = unix.AF_INET
+	IPv6 AddressFamily = unix.AF_INET6
+)
+
+func (a AddressFamily) String() string {
+	switch a {
+	case IPv4:
+		return "IPv4"
+	case IPv6:
+		return "IPv6"
+	default:
+		return fmt.Sprintf("Unexpected family value %d", a)
+	}
+}
 
 var (
 	UnlimitedEvents *int64 = swag.Int64(-1)

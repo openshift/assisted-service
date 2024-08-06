@@ -5668,25 +5668,25 @@ var _ = Describe("Refresh Host", func() {
 	Context("Default route", func() {
 
 		ipv4Routes := []*models.Route{
-			{Family: common.FamilyIPv4, Destination: "0.0.0.0", Gateway: "10.254.0.1"},
-			{Family: common.FamilyIPv4, Destination: "192.168.122.0", Gateway: "0.0.0.0"}}
+			{Family: int32(common.IPv4), Destination: "0.0.0.0", Gateway: "10.254.0.1"},
+			{Family: int32(common.IPv4), Destination: "192.168.122.0", Gateway: "0.0.0.0"}}
 		ipv6Routes := []*models.Route{
-			{Family: common.FamilyIPv6, Destination: net.IPv6zero.String(), Gateway: "2001:1::1"},
-			{Family: common.FamilyIPv6, Destination: "2001:1::1", Gateway: net.IPv6zero.String()},
-			{Family: common.FamilyIPv6, Destination: net.IPv6zero.String(), Gateway: net.IPv6zero.String()}}
+			{Family: int32(common.IPv6), Destination: net.IPv6zero.String(), Gateway: "2001:1::1"},
+			{Family: int32(common.IPv6), Destination: "2001:1::1", Gateway: net.IPv6zero.String()},
+			{Family: int32(common.IPv6), Destination: net.IPv6zero.String(), Gateway: net.IPv6zero.String()}}
 
 		noDefaultRoute := []*models.Route{
-			{Family: common.FamilyIPv4, Destination: "10.254.2.2", Gateway: "10.254.2.1"},
-			{Family: common.FamilyIPv4, Destination: "172.17.0.15", Gateway: "172.17.0.1"},
-			{Family: common.FamilyIPv6, Destination: "2001:1::10", Gateway: "2001:1::1"},
+			{Family: int32(common.IPv4), Destination: "10.254.2.2", Gateway: "10.254.2.1"},
+			{Family: int32(common.IPv4), Destination: "172.17.0.15", Gateway: "172.17.0.1"},
+			{Family: int32(common.IPv6), Destination: "2001:1::10", Gateway: "2001:1::1"},
 		}
 
 		invalidDestination := []*models.Route{
-			{Family: common.FamilyIPv4, Destination: "invalid", Gateway: "10.254.2.1"},
+			{Family: int32(common.IPv4), Destination: "invalid", Gateway: "10.254.2.1"},
 		}
 
 		invalidGateway := []*models.Route{
-			{Family: common.FamilyIPv4, Destination: "0.0.0.0", Gateway: "invalid"},
+			{Family: int32(common.IPv4), Destination: "0.0.0.0", Gateway: "invalid"},
 		}
 		defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
 		domainNameResolutions := common.TestDomainNameResolutionsSuccess
