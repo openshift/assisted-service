@@ -464,6 +464,15 @@ _run_subsystem_test:
 		db_port="$(shell $(call get_service_host_port,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2)"; \
 		ocm_host="$(shell $(call get_service_host_port,wiremock) | sed 's/http:\/\///g')"; \
 	fi; \
+	echo "INVENTORY=$$assisted_service_url\n"; \
+	echo "DB_HOST=$$db_host\n"; \
+	echo "DB_PORT=$$db_port\n"; \
+	echo "OCM_HOST=$$ocm_host\n"; \
+	echo "TEST_TOKEN=$(shell cat $(BUILD_FOLDER)/auth-tokenString)"; \
+	echo "TEST_TOKEN_2=$(shell cat $(BUILD_FOLDER)/auth-tokenString2)"; \
+	echo "TEST_TOKEN_ADMIN=$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)"; \
+	echo "TEST_TOKEN_UNALLOWED=$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)"; \
+	echo "TEST_TOKEN_EDITOR=$(shell cat $(BUILD_FOLDER)/auth-tokenClusterEditor)"; \
 	INVENTORY=$$assisted_service_url \
 	DB_HOST=$$db_host \
 	DB_PORT=$$db_port \
