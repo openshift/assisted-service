@@ -637,7 +637,7 @@ var _ = Describe("cluster reconcile", func() {
 					Name:      agentClusterInstallName,
 				}
 
-				err = c.Get(ctx, agentClusterInstallKey, clusterInstall)
+				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
 				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).To(BeNil())
 
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
@@ -648,8 +648,7 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("fails to create a new cluster with invalid mirror registry configmap missing the source in the registries.conf", func() {
-				err := getClusterInstallFailure(getRegistryMissingSourceToml(), mirrorRegistryCertificate, true)
-
+				Expect(getClusterInstallFailure(getRegistryMissingSourceToml(), mirrorRegistryCertificate, true)).ShouldNot(HaveOccurred())
 				clusterInstall := &hiveext.AgentClusterInstall{}
 				agentClusterInstallKey := types.NamespacedName{
 					Namespace: testNamespace,
@@ -662,18 +661,18 @@ var _ = Describe("cluster reconcile", func() {
 					Name:      agentClusterInstallName,
 				}
 
-				err = c.Get(ctx, agentClusterInstallKey, clusterInstall)
+				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
 				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).To(BeNil())
 
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: failed to find registry key in toml tree"))
 
-				err = c.Get(ctx, ClusterDeploymentKey, clusterDeployment)
+				err := c.Get(ctx, ClusterDeploymentKey, clusterDeployment)
 				Expect(err.Error()).To(Equal("clusterdeployments.hive.openshift.io \"test-cluster-aci\" not found"))
 			})
 
 			It("fails to create a new cluster with invalid mirror registry configmap missing the mirror in the registries.conf", func() {
-				err := getClusterInstallFailure(getRegistryMissingMirrorToml(), mirrorRegistryCertificate, true)
+				Expect(getClusterInstallFailure(getRegistryMissingMirrorToml(), mirrorRegistryCertificate, true)).ShouldNot(HaveOccurred())
 
 				clusterInstall := &hiveext.AgentClusterInstall{}
 				agentClusterInstallKey := types.NamespacedName{
@@ -687,13 +686,13 @@ var _ = Describe("cluster reconcile", func() {
 					Name:      agentClusterInstallName,
 				}
 
-				err = c.Get(ctx, agentClusterInstallKey, clusterInstall)
+				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
 				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).To(BeNil())
 
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: failed to find any image mirrors in registry.conf"))
 
-				err = c.Get(ctx, ClusterDeploymentKey, clusterDeployment)
+				err := c.Get(ctx, ClusterDeploymentKey, clusterDeployment)
 				Expect(err.Error()).To(Equal("clusterdeployments.hive.openshift.io \"test-cluster-aci\" not found"))
 			})
 		})
