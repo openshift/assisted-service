@@ -726,8 +726,8 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(BeEmpty())
 	})
-	It("iSCSI installation disk", func() {
-		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
+	It("iSCSI installation disk - Host IPv4 address", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/25"}}
 		host.Inventory = fmt.Sprintf(`{
 			"disks":[
 				{
@@ -757,6 +757,116 @@ var _ = Describe("construct host install arguments", func() {
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=eth1:dhcp"]`))
+	})
+	It("iSCSI installation disk - Host IPv6 address", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/25"}}
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "2002:db8::1"
+					}
+				},
+				{
+					"id": "other-id",
+					"drive_type": "%s"
+				}
+			],
+			"interfaces":[
+				{
+					"name": "eth1",
+					"ipv6_addresses":["2002:db8::1/64"]
+				},
+				{
+					"name": "eth2",
+					"ipv4_addresses":["10.56.21.80/25"]
+				}
+			]
+		}`, models.DriveTypeISCSI, models.DriveTypeSSD)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=eth1:dhcp6"]`))
+	})
+	It("iSCSI installation disk - IP configuration is not appended if user already added it", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
+		kargs := `["--append-karg","ip=dhcp"]`
+		host.InstallerArgs = kargs
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.80"
+					}
+				}
+			],
+			"interfaces":[
+				{
+					"name": "eth1",
+					"ipv4_addresses":["10.56.20.80/25"]
+				},
+				{
+					"name": "eth2",
+					"ipv4_addresses":["10.56.21.80/25"]
+				}
+			]
+		}`, models.DriveTypeISCSI)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","ip=dhcp","--append-karg","rd.iscsi.firmware=1"]`))
+	})
+	It("iSCSI installation disk - Host IP address is invalid", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "invalid IP"
+					}
+				}
+			],
+			"interfaces":[
+				{
+					"name": "eth1",
+					"ipv4_addresses":["10.56.20.80/25"]
+				}
+			]
+		}`, models.DriveTypeISCSI)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		_, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("Cannot parse iSCSI host IP invalid IP: ParseAddr(\"invalid IP\"): unable to parse IP"))
+	})
+	It("iSCSI installation disk - No interface found for host IP address", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.21.80"
+					}
+				}
+			],
+			"interfaces":[
+				{
+					"name": "eth1",
+					"ipv4_addresses":["10.56.20.80/25"]
+				}
+			]
+		}`, models.DriveTypeISCSI)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		_, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("Cannot find the interface belonging to iSCSI host IP 10.56.21.80"))
 	})
 	It("ip=<nic>:dhcp6 added when machine CIDR is IPv6", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/64"}}
