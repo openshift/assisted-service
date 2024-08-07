@@ -168,8 +168,8 @@ type InstallerInternals interface {
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams, interactivity Interactivity) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
-	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) (*common.InfraEnv, error)
-	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
+	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.InfraEnv, error)
+	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
 	DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error
 	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams, reclaimHost bool, interactivity Interactivity) (*common.Host, error)
 	BindHostInternal(ctx context.Context, params installer.BindHostParams) (*common.Host, error)
@@ -1171,7 +1171,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 		return common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
-	err := b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, *infraEnv.ID, common.ImageTypeValue(infraEnv.Type))
+	err := b.createAndUploadNewImage(ctx, log, infraEnv.ProxyHash, *infraEnv.ID, common.ImageTypeValue(infraEnv.Type), mirrorRegistryConfiguration)
 	if err != nil {
 		return err
 	}
@@ -1180,7 +1180,7 @@ func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, in
 }
 
 func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log logrus.FieldLogger, infraEnvProxyHash string,
-	infraEnvID strfmt.UUID, imageType models.ImageType) error {
+	infraEnvID strfmt.UUID, imageType models.ImageType, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) error {
 
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, infraEnvID)
 	if err != nil {
@@ -1189,11 +1189,11 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 		return err
 	}
 
-	return b.updateExternalImageInfo(ctx, infraEnv, infraEnvProxyHash, imageType)
+	return b.updateExternalImageInfo(ctx, infraEnv, infraEnvProxyHash, imageType, mirrorRegistryConfiguration)
 }
 
-func (b *bareMetalInventory) getIgnitionConfigForLogging(ctx context.Context, infraEnv *common.InfraEnv, log logrus.FieldLogger, imageType models.ImageType) string {
-	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, true, b.authHandler.AuthType(), string(imageType))
+func (b *bareMetalInventory) getIgnitionConfigForLogging(ctx context.Context, infraEnv *common.InfraEnv, log logrus.FieldLogger, imageType models.ImageType, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) string {
+	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, true, b.authHandler.AuthType(), string(imageType), mirrorRegistryConfiguration)
 	log.Infof("Generated infra env <%s> image with ignition config", infraEnv.ID)
 	log.Debugf("Ignition for infra env <%s>: %s", infraEnv.ID, ignitionConfigForLogging)
 	var msgDetails []string
@@ -4531,6 +4531,7 @@ func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
 func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
+	mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration,
 	params installer.RegisterInfraEnvParams) (*common.InfraEnv, error) {
 
 	var infraEnv common.InfraEnv
@@ -4685,7 +4686,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			var discoveryIgnition string
 			discoveryIgnition, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(
 				ctx, &infraEnv, b.IgnitionConfig,
-				false, b.authHandler.AuthType(), string(params.InfraenvCreateParams.ImageType))
+				false, b.authHandler.AuthType(), string(params.InfraenvCreateParams.ImageType), mirrorRegistryConfiguration)
 			if err != nil {
 				log.WithError(err).Error("Failed to format discovery ignition config")
 				return common.NewApiError(http.StatusInternalServerError, err)
@@ -4721,7 +4722,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	log.Info(msg)
 	eventgen.SendInfraEnvRegisteredEvent(ctx, b.eventsHandler, id)
 
-	if err = b.GenerateInfraEnvISOInternal(ctx, &infraEnv); err != nil {
+	if err = b.GenerateInfraEnvISOInternal(ctx, &infraEnv, mirrorRegistryConfiguration); err != nil {
 		return nil, err
 	}
 
@@ -4888,14 +4889,20 @@ func (b *bareMetalInventory) setDiscoveryKernelArgumentsUsage(db *gorm.DB, clust
 }
 
 func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {
-	i, err := b.UpdateInfraEnvInternal(ctx, params, nil)
+	i, err := b.UpdateInfraEnvInternal(ctx, params, nil, nil)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewUpdateInfraEnvCreated().WithPayload(&i.InfraEnv)
 }
 
-func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) (*common.InfraEnv, error) {
+func (b *bareMetalInventory) UpdateInfraEnvInternal(
+	ctx context.Context,
+	params installer.UpdateInfraEnvParams,
+	internalIgnitionConfig *string,
+	mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration,
+) (*common.InfraEnv, error) {
+
 	log := logutil.FromContext(ctx, b.log)
 	var infraEnv *common.InfraEnv
 	var err error
@@ -4982,7 +4989,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 
 		// Validate discovery ignition after updating InfraEnv data
-		if err = b.validateDiscoveryIgnitionImageSize(ctx, infraEnv, params, tx, log); err != nil {
+		if err = b.validateDiscoveryIgnitionImageSize(ctx, infraEnv, params, tx, log, mirrorRegistryConfiguration); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
@@ -5010,7 +5017,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *infraEnv.ID})
 }
 
-func (b *bareMetalInventory) validateDiscoveryIgnitionImageSize(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) validateDiscoveryIgnitionImageSize(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) error {
 	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" && params.InfraEnvUpdateParams.IgnitionConfigOverride != infraEnv.IgnitionConfigOverride {
 		infraEnvAfterUpdate, err := common.GetInfraEnvFromDB(db, params.InfraEnvID)
 		if err != nil {
@@ -5019,7 +5026,7 @@ func (b *bareMetalInventory) validateDiscoveryIgnitionImageSize(ctx context.Cont
 		}
 		discoveryIgnition, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(
 			ctx, infraEnvAfterUpdate, b.IgnitionConfig,
-			false, b.authHandler.AuthType(), string(common.ImageTypeValue(infraEnvAfterUpdate.Type)))
+			false, b.authHandler.AuthType(), string(common.ImageTypeValue(infraEnvAfterUpdate.Type)), mirrorRegistryConfiguration)
 		if err != nil {
 			log.WithError(err).Error("Failed to format discovery ignition config")
 			return err
