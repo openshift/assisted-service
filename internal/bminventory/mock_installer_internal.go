@@ -11,6 +11,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
+	v1beta1 "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	installer "github.com/openshift/assisted-service/restapi/operations/installer"
@@ -294,18 +295,18 @@ func (mr *MockInstallerInternalsMockRecorder) HostWithCollectedLogsExists(arg0 i
 }
 
 // InstallClusterInternal mocks base method.
-func (m *MockInstallerInternals) InstallClusterInternal(arg0 context.Context, arg1 installer.V2InstallClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) InstallClusterInternal(arg0 context.Context, arg1 installer.V2InstallClusterParams, arg2 *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InstallClusterInternal", arg0, arg1)
+	ret := m.ctrl.Call(m, "InstallClusterInternal", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*common.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // InstallClusterInternal indicates an expected call of InstallClusterInternal.
-func (mr *MockInstallerInternalsMockRecorder) InstallClusterInternal(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockInstallerInternalsMockRecorder) InstallClusterInternal(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).InstallClusterInternal), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).InstallClusterInternal), arg0, arg1, arg2)
 }
 
 // InstallSingleDay2HostInternal mocks base method.
@@ -323,18 +324,18 @@ func (mr *MockInstallerInternalsMockRecorder) InstallSingleDay2HostInternal(arg0
 }
 
 // RegisterClusterInternal mocks base method.
-func (m *MockInstallerInternals) RegisterClusterInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 installer.V2RegisterClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) RegisterClusterInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 *v1beta1.MirrorRegistryConfiguration, arg3 installer.V2RegisterClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterClusterInternal", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "RegisterClusterInternal", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*common.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RegisterClusterInternal indicates an expected call of RegisterClusterInternal.
-func (mr *MockInstallerInternalsMockRecorder) RegisterClusterInternal(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockInstallerInternalsMockRecorder) RegisterClusterInternal(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).RegisterClusterInternal), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).RegisterClusterInternal), arg0, arg1, arg2, arg3)
 }
 
 // RegisterInfraEnvInternal mocks base method.
@@ -383,18 +384,18 @@ func (mr *MockInstallerInternalsMockRecorder) UnbindHostInternal(arg0, arg1, arg
 }
 
 // UpdateClusterInstallConfigInternal mocks base method.
-func (m *MockInstallerInternals) UpdateClusterInstallConfigInternal(arg0 context.Context, arg1 installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) UpdateClusterInstallConfigInternal(arg0 context.Context, arg1 installer.V2UpdateClusterInstallConfigParams, arg2 *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateClusterInstallConfigInternal", arg0, arg1)
+	ret := m.ctrl.Call(m, "UpdateClusterInstallConfigInternal", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*common.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateClusterInstallConfigInternal indicates an expected call of UpdateClusterInstallConfigInternal.
-func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInstallConfigInternal(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInstallConfigInternal(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInstallConfigInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateClusterInstallConfigInternal), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInstallConfigInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateClusterInstallConfigInternal), arg0, arg1, arg2)
 }
 
 // UpdateClusterNonInteractive mocks base method.

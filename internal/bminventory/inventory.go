@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/kennygrant/sanitize"
+	"github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -144,12 +145,12 @@ type OCPClusterAPI interface {
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
-	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.V2RegisterClusterParams) (*common.Cluster, error)
+	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration, params installer.V2RegisterClusterParams) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error)
 	UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams) (*common.Cluster, error)
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
-	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error)
+	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, cluster *common.Cluster) error
 	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams, interactivity Interactivity) error
 	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
@@ -161,7 +162,7 @@ type InstallerInternals interface {
 	V2DownloadClusterCredentialsInternal(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error)
 	V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID, params installer.V2ImportClusterParams) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, infraEnvId strfmt.UUID, hostId strfmt.UUID) error
-	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
+	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
@@ -505,6 +506,7 @@ func MarshalNewClusterParamsNoPullSecret(params installer.V2RegisterClusterParam
 func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
+	mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration,
 	params installer.V2RegisterClusterParams) (*common.Cluster, error) {
 
 	id := strfmt.UUID(uuid.New().String())
@@ -1085,7 +1087,7 @@ func (b *bareMetalInventory) deleteOrUnbindHosts(ctx context.Context, cluster *c
 	return nil
 }
 
-func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType) error {
+func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) error {
 	updates := map[string]interface{}{}
 
 	// this is updated before now for the v2 (infraEnv) case, but not in the cluster ISO case so we need to check if we should save it here
@@ -1134,7 +1136,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 			return errors.Wrap(err, "failed to create download URL")
 		}
 
-		details := b.getIgnitionConfigForLogging(ctx, infraEnv, b.log, imageType)
+		details := b.getIgnitionConfigForLogging(ctx, infraEnv, b.log, imageType, mirrorRegistryConfiguration)
 
 		eventgen.SendImageInfoUpdatedEvent(ctx, b.eventsHandler, common.StrFmtUUIDPtr(infraEnv.ClusterID), *infraEnv.ID, details)
 		updates["download_url"] = infraEnv.DownloadURL
@@ -1152,7 +1154,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 	return nil
 }
 
-func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, infraEnv *common.InfraEnv) error {
+func (b *bareMetalInventory) GenerateInfraEnvISOInternal(ctx context.Context, infraEnv *common.InfraEnv, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("prepare image for infraEnv %s", infraEnv.ID)
 
@@ -1279,7 +1281,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.
 	return nil
 }
 
-func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var err error
 	var cluster *common.Cluster
@@ -1402,7 +1404,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 			}
 		}()
 
-		if err = b.generateClusterInstallConfig(asyncCtx, *cluster, clusterInfraenvs); err != nil {
+		if err = b.generateClusterInstallConfig(asyncCtx, *cluster, clusterInfraenvs, mirrorRegistryConfiguration); err != nil {
 			return
 		}
 		log.Infof("generated ignition for cluster %s", cluster.ID.String())
@@ -1647,7 +1649,7 @@ func (b *bareMetalInventory) GetArchitecturesSupportLevelListInternal(_ context.
 	return featuresupport.GetCpuArchitectureSupportList(params.OpenshiftVersion), nil
 }
 
-func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
 	var clusterInfraenvs []*common.InfraEnv
@@ -1684,7 +1686,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 
-		err = b.updateMonitoredOperators(tx, cluster)
+		err = b.updateMonitoredOperators(tx, cluster, mirrorRegistryConfiguration)
 		if err != nil {
 			log.WithError(err).Error("failed to update monitored operators")
 			return common.NewApiError(http.StatusInternalServerError, err)
@@ -1739,15 +1741,14 @@ func (b *bareMetalInventory) setInstallConfigOverridesUsage(featureUsages string
 	return nil
 }
 
-func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster, clusterInfraenvs []*common.InfraEnv) error {
+func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster, clusterInfraenvs []*common.InfraEnv, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) error {
 	log := logutil.FromContext(ctx, b.log)
 
 	rhRootCa := ignition.RedhatRootCA
 	if !b.Config.InstallRHCa {
 		rhRootCa = ""
 	}
-
-	cfg, err := b.installConfigBuilder.GetInstallConfig(&cluster, clusterInfraenvs, rhRootCa)
+	cfg, err := b.installConfigBuilder.GetInstallConfig(&cluster, clusterInfraenvs, rhRootCa, mirrorRegistryConfiguration)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get install config for cluster %s", cluster.ID)
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
@@ -4486,7 +4487,7 @@ func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer
 }
 
 func (b *bareMetalInventory) RegisterInfraEnv(ctx context.Context, params installer.RegisterInfraEnvParams) middleware.Responder {
-	i, err := b.RegisterInfraEnvInternal(ctx, nil, params)
+	i, err := b.RegisterInfraEnvInternal(ctx, nil, nil, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -5034,7 +5035,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 	}
 
-	if err = b.GenerateInfraEnvISOInternal(ctx, infraEnv); err != nil {
+	if err = b.GenerateInfraEnvISOInternal(ctx, infraEnv, mirrorRegistryConfiguration); err != nil {
 		return nil, err
 	}
 
@@ -5897,7 +5898,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	switch params.FileName {
 	case "discovery.ign":
 		discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
-		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
+		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType, nil)
 		if err != nil {
 			b.log.WithError(err).Error("Failed to format ignition config")
 			return common.GenerateErrorResponder(err)
@@ -6481,9 +6482,9 @@ func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version s
 // of monitored operators accordingly. For example, if the installer configuration uses the
 // capabilities mechanism to disable the console then the console operator is removed from the list
 // of monitored operators.
-func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *common.Cluster) error {
+func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *common.Cluster, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) error {
 	// Get the complete installer configuration, including the overrides:
-	installConfigData, err := b.installConfigBuilder.GetInstallConfig(cluster, nil, "")
+	installConfigData, err := b.installConfigBuilder.GetInstallConfig(cluster, nil, "", mirrorRegistryConfiguration)
 	if err != nil {
 		return err
 	}
