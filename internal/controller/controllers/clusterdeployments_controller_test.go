@@ -115,6 +115,105 @@ func newAgentClusterInstall(name, namespace string, spec hiveext.AgentClusterIns
 	}
 }
 
+const (
+	providedMirrorRegistryCMName = "user-provided-config-map"
+	mirrorRegistryCertificate    = "    -----BEGIN CERTIFICATE-----\n    certificate contents\n    -----END CERTIFICATE------"
+	sourceRegistry               = "quay.io"
+	mirrorRegistry               = "example-user-registry.com"
+	registryConfKey              = "registries.conf"
+	registryCertKey              = "ca-bundle.crt"
+)
+
+func newUserProvidedRegistryCM(registry, certificate string) *corev1.ConfigMap {
+	data := map[string]string{}
+	if registry != "" {
+		data[registryConfKey] = registry
+	}
+	if certificate != "" {
+		data[registryCertKey] = certificate
+	}
+
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      providedMirrorRegistryCMName,
+			Namespace: testNamespace,
+		},
+		Data: data,
+	}
+}
+
+func getSecureRegistryToml() string {
+	return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+`,
+		sourceRegistry,
+		mirrorRegistry,
+	)
+}
+
+func getRegistryMissingSourceToml() string {
+	return fmt.Sprintf(`
+[[registry.mirror]]
+location = "%s"
+`,
+		mirrorRegistry,
+	)
+}
+
+func getRegistryMissingMirrorToml() string {
+	return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+`,
+		sourceRegistry,
+	)
+}
+
+func getInsecureRegistryToml() string {
+	x := fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+insecure = true
+`,
+		sourceRegistry,
+		mirrorRegistry,
+	)
+	return x
+}
+
+func getSecureRegistryTagOnlyToml() string {
+	return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+pull-from-mirror = "tag-only"
+`,
+		sourceRegistry,
+		mirrorRegistry,
+	)
+}
+
+func getInvalidRegistryToml() string {
+	// location has no quotes, will be parsed as double
+	return `
+[[registry]]
+	location = "%s"
+
+	[[registry.mirror]]
+	location = 192.168.1.1:5000
+	insecure = true
+`
+}
+
 func getDefaultAgentClusterInstallSpec(clusterName string) hiveext.AgentClusterInstallSpec {
 	return hiveext.AgentClusterInstallSpec{
 		APIVIP:      string(common.TestIPv4Networking.APIVips[0].IP),
@@ -254,6 +353,353 @@ var _ = Describe("cluster reconcile", func() {
 		mockCtrl.Finish()
 	})
 
+	Context("Mirror Registry", func() {
+		createAgentClusterInstallForMirrorRegistry := func() *hiveext.AgentClusterInstall {
+			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			defaultAgentClusterInstallSpec.MirrorRegistryRef = &hiveext.MirrorRegistryConfigMapReference{Name: providedMirrorRegistryCMName, Namespace: testNamespace}
+
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+			return getTestClusterInstall()
+		}
+
+		createUserMirrorRegistryConfigmap := func(registryToml string, certificate string) {
+			registryCM := newUserProvidedRegistryCM(registryToml, certificate)
+			Expect(c.Create(ctx, registryCM)).ShouldNot(HaveOccurred())
+		}
+
+		When("the user-provided valid image registry contains correct data", func() {
+			It("Successfully parse and set the given user configmap", func() {
+				createUserMirrorRegistryConfigmap(getSecureRegistryToml(), mirrorRegistryCertificate)
+				aci := createAgentClusterInstallForMirrorRegistry()
+
+				mirrorRegistryConfiguration, err := cr.processMirrorRegistryConfig(ctx, common.GetTestLog(), aci)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(mirrorRegistryConfiguration).ShouldNot(BeNil())
+				Expect(mirrorRegistryConfiguration.CaBundleCrt).To(Equal(mirrorRegistryCertificate))
+
+				updatedAci := getTestClusterInstall()
+
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors).NotTo(BeNil())
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors).To(BeNil())
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.Insecure).To(BeNil())
+			})
+		})
+
+		When("the user not providing image registry configmap", func() {
+			It("processMirrorRegistryConfig fails to find the user configmap", func() {
+				aci := createAgentClusterInstallForMirrorRegistry()
+
+				mirrorRegistryConfiguration, err := cr.processMirrorRegistryConfig(ctx, common.GetTestLog(), aci)
+				Expect(mirrorRegistryConfiguration).To(BeNil())
+				Expect(err.Error()).To(Equal("Failed to get referenced ConfigMap: configmaps \"user-provided-config-map\" not found"))
+			})
+		})
+
+		When("the user-provided image registry ConfigMap contains an insecure registry", func() {
+			It("Successfully parse and set the given user configmap with the insecure registry", func() {
+				createUserMirrorRegistryConfigmap(getInsecureRegistryToml(), mirrorRegistryCertificate)
+				aci := createAgentClusterInstallForMirrorRegistry()
+
+				mirrorRegistryConfiguration, err := cr.processMirrorRegistryConfig(ctx, common.GetTestLog(), aci)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(mirrorRegistryConfiguration).ShouldNot(BeNil())
+				Expect(mirrorRegistryConfiguration.CaBundleCrt).To(Equal(mirrorRegistryCertificate))
+
+				updatedAci := getTestClusterInstall()
+
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors).NotTo(BeNil())
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors).To(BeNil())
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.Insecure).NotTo(BeNil())
+			})
+		})
+
+		When("the user-provided image registry ConfigMap pulls by tag", func() {
+			It("Successfully parse and set the given user configmap that pulls by tag", func() {
+				createUserMirrorRegistryConfigmap(getSecureRegistryTagOnlyToml(), mirrorRegistryCertificate)
+				aci := createAgentClusterInstallForMirrorRegistry()
+
+				mirrorRegistryConfiguration, err := cr.processMirrorRegistryConfig(ctx, common.GetTestLog(), aci)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(mirrorRegistryConfiguration).ShouldNot(BeNil())
+				Expect(mirrorRegistryConfiguration.CaBundleCrt).To(Equal(mirrorRegistryCertificate))
+
+				updatedAci := getTestClusterInstall()
+
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors).To(BeNil())
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors).NotTo(BeNil())
+				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.Insecure).To(BeNil())
+			})
+		})
+
+		When("the user-provided image registry ConfigMap is missing the source in the registries.conf", func() {
+			It("Fails to create and set AgentClusterInstall image registry configurations", func() {
+				createUserMirrorRegistryConfigmap(getRegistryMissingSourceToml(), mirrorRegistryCertificate)
+				aci := createAgentClusterInstallForMirrorRegistry()
+
+				mirrorRegistryConfiguration, err := cr.processMirrorRegistryConfig(ctx, common.GetTestLog(), aci)
+				Expect(err).To(HaveOccurred())
+				Expect(mirrorRegistryConfiguration).Should(BeNil())
+
+				Expect(err.Error()).To(Equal("failed to find registry key in toml tree"))
+			})
+		})
+
+		When("the user-provided image registry ConfigMap is missing the mirror in the registries.conf", func() {
+			It("Fails to create and set AgentClusterInstall image registry configurations", func() {
+				createUserMirrorRegistryConfigmap(getRegistryMissingMirrorToml(), mirrorRegistryCertificate)
+				aci := createAgentClusterInstallForMirrorRegistry()
+
+				mirrorRegistryConfiguration, err := cr.processMirrorRegistryConfig(ctx, common.GetTestLog(), aci)
+				Expect(err).To(HaveOccurred())
+				Expect(mirrorRegistryConfiguration).Should(BeNil())
+
+				Expect(err.Error()).To(Equal("failed to find any image mirrors in registry.conf"))
+			})
+		})
+
+		When("the user-provided image registry ConfigMap registries.conf toml is not well-formatted", func() {
+			It("Fails to create and set AgentClusterInstall image registry configurations", func() {
+				createUserMirrorRegistryConfigmap(fmt.Sprintf("location=%s", sourceRegistry), mirrorRegistryCertificate)
+				aci := createAgentClusterInstallForMirrorRegistry()
+
+				mirrorRegistryConfiguration, err := cr.processMirrorRegistryConfig(ctx, common.GetTestLog(), aci)
+				Expect(err).To(HaveOccurred())
+				Expect(mirrorRegistryConfiguration).Should(BeNil())
+
+				Expect(err.Error()).To(Equal("failed to load value of registries.conf into toml tree; incorrectly formatted toml: (1, 10): no value can start with q"))
+			})
+		})
+
+		When("the user-provided image registry ConfigMap has an invalid toml configuration", func() {
+			It("Fails to create and set AgentClusterInstall image registry configurations", func() {
+				createUserMirrorRegistryConfigmap(getInvalidRegistryToml(), mirrorRegistryCertificate)
+				aci := createAgentClusterInstallForMirrorRegistry()
+
+				mirrorRegistryConfiguration, err := cr.processMirrorRegistryConfig(ctx, common.GetTestLog(), aci)
+				Expect(err).To(HaveOccurred())
+				Expect(mirrorRegistryConfiguration).Should(BeNil())
+
+				Expect(err.Error()).To(Equal("failed to load value of registries.conf into toml tree; incorrectly formatted toml: (6, 13): cannot have two dots in one float"))
+			})
+		})
+
+		getClusterInstallForMirrorRegistry := func(registryToml, certificate string, createMirrorRegistryCM bool) (*hivev1.ClusterDeployment, *hiveext.AgentClusterInstall) {
+			if createMirrorRegistryCM {
+				createUserMirrorRegistryConfigmap(registryToml, certificate)
+			}
+
+			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			defaultAgentClusterInstallSpec.MirrorRegistryRef = &hiveext.MirrorRegistryConfigMapReference{Name: providedMirrorRegistryCMName, Namespace: testNamespace}
+
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+			return cluster, aci
+		}
+
+		getClusterInstallFailure := func(registryToml, certificate string, createMirrorRegistryCM bool) error {
+			cluster, _ := getClusterInstallForMirrorRegistry(registryToml, certificate, createMirrorRegistryCM)
+
+			request := newClusterDeploymentRequest(cluster)
+			_, err := cr.Reconcile(ctx, request)
+			Expect(err).ShouldNot(HaveOccurred())
+			return err
+		}
+
+		Context("create cluster success", func() {
+			BeforeEach(func() {
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
+				pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+				Expect(c.Create(ctx, pullSecret)).To(BeNil())
+				imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
+				Expect(c.Create(ctx, imageSet)).To(BeNil())
+			})
+
+			var clusterReply *common.Cluster
+
+			BeforeEach(func() {
+				id := strfmt.UUID(uuid.New().String())
+				clusterReply = &common.Cluster{
+					Cluster: models.Cluster{
+						Status:     swag.String(models.ClusterStatusPendingForInput),
+						StatusInfo: swag.String("User input required"),
+						ID:         &id,
+					},
+				}
+			})
+
+			validateCreation := func(cluster *hivev1.ClusterDeployment) {
+				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				aci := getTestClusterInstall()
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotReadyReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+			}
+
+			getClusterInstallSuccess := func(registryToml, certificate string) *hiveext.AgentClusterInstall {
+				cluster, _ := getClusterInstallForMirrorRegistry(registryToml, certificate, true)
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2, arg3 interface{}, params installer.V2RegisterClusterParams) {}).Return(clusterReply, nil)
+				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+
+				validateCreation(cluster)
+				clusterInstall := &hiveext.AgentClusterInstall{}
+				Expect(c.Get(ctx, types.NamespacedName{Namespace: testNamespace, Name: agentClusterInstallName}, clusterInstall))
+				return clusterInstall
+			}
+
+			It("successfully create a new cluster with mirror registry", func() {
+				clusterInstall := getClusterInstallSuccess(getSecureRegistryToml(), mirrorRegistryCertificate)
+
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors)).To(Equal(1))
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Source).To(Equal(sourceRegistry))
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors)).To(Equal(1))
+				Expect(string(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
+
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(0))
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(0))
+			})
+
+			It("successfully create a new cluster with insecure mirror registry", func() {
+				clusterInstall := getClusterInstallSuccess(getInsecureRegistryToml(), mirrorRegistryCertificate)
+
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors)).To(Equal(1))
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Source).To(Equal(sourceRegistry))
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors)).To(Equal(1))
+				Expect(string(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
+
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(1))
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(0))
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo.Insecure[0]).To(Equal(mirrorRegistry))
+			})
+
+			It("successfully create a new cluster with mirror registry that pulls by tag", func() {
+				clusterInstall := getClusterInstallSuccess(getSecureRegistryTagOnlyToml(), mirrorRegistryCertificate)
+
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(1))
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors[0].Source).To(Equal(sourceRegistry))
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors[0].Mirrors)).To(Equal(1))
+				Expect(string(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
+
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(0))
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors)).To(Equal(0))
+			})
+
+			It("successfully create a new cluster with mirror registry without additional certificates", func() {
+				clusterInstall := getClusterInstallSuccess(getSecureRegistryToml(), "")
+
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors)).To(Equal(1))
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Source).To(Equal(sourceRegistry))
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors)).To(Equal(1))
+				Expect(string(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
+
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(0))
+				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(0))
+			})
+
+		})
+
+		Context("create cluster failure", func() {
+			It("fails to create a new cluster with no mirror registry configmap ", func() {
+				err := getClusterInstallFailure(getRegistryMissingSourceToml(), mirrorRegistryCertificate, false)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				clusterInstall := &hiveext.AgentClusterInstall{}
+				agentClusterInstallKey := types.NamespacedName{
+					Namespace: testNamespace,
+					Name:      agentClusterInstallName,
+				}
+
+				clusterDeployment := &hivev1.ClusterDeployment{}
+				ClusterDeploymentKey := types.NamespacedName{
+					Namespace: testNamespace,
+					Name:      agentClusterInstallName,
+				}
+
+				err = c.Get(ctx, agentClusterInstallKey, clusterInstall)
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).To(BeNil())
+
+				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
+				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: Failed to get referenced ConfigMap: configmaps \"user-provided-config-map\" not found"))
+
+				err = c.Get(ctx, ClusterDeploymentKey, clusterDeployment)
+				Expect(err.Error()).To(Equal("clusterdeployments.hive.openshift.io \"test-cluster-aci\" not found"))
+			})
+
+			It("fails to create a new cluster with invalid mirror registry configmap missing the source in the registries.conf", func() {
+				err := getClusterInstallFailure(getRegistryMissingSourceToml(), mirrorRegistryCertificate, true)
+
+				clusterInstall := &hiveext.AgentClusterInstall{}
+				agentClusterInstallKey := types.NamespacedName{
+					Namespace: testNamespace,
+					Name:      agentClusterInstallName,
+				}
+
+				clusterDeployment := &hivev1.ClusterDeployment{}
+				ClusterDeploymentKey := types.NamespacedName{
+					Namespace: testNamespace,
+					Name:      agentClusterInstallName,
+				}
+
+				err = c.Get(ctx, agentClusterInstallKey, clusterInstall)
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).To(BeNil())
+
+				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
+				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: failed to find registry key in toml tree"))
+
+				err = c.Get(ctx, ClusterDeploymentKey, clusterDeployment)
+				Expect(err.Error()).To(Equal("clusterdeployments.hive.openshift.io \"test-cluster-aci\" not found"))
+			})
+
+			It("fails to create a new cluster with invalid mirror registry configmap missing the mirror in the registries.conf", func() {
+				err := getClusterInstallFailure(getRegistryMissingMirrorToml(), mirrorRegistryCertificate, true)
+
+				clusterInstall := &hiveext.AgentClusterInstall{}
+				agentClusterInstallKey := types.NamespacedName{
+					Namespace: testNamespace,
+					Name:      agentClusterInstallName,
+				}
+
+				clusterDeployment := &hivev1.ClusterDeployment{}
+				ClusterDeploymentKey := types.NamespacedName{
+					Namespace: testNamespace,
+					Name:      agentClusterInstallName,
+				}
+
+				err = c.Get(ctx, agentClusterInstallKey, clusterInstall)
+				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).To(BeNil())
+
+				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
+				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: failed to find any image mirrors in registry.conf"))
+
+				err = c.Get(ctx, ClusterDeploymentKey, clusterDeployment)
+				Expect(err.Error()).To(Equal("clusterdeployments.hive.openshift.io \"test-cluster-aci\" not found"))
+			})
+		})
+
+	})
+
 	Context("create cluster", func() {
 		BeforeEach(func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
@@ -292,9 +738,9 @@ var _ = Describe("cluster reconcile", func() {
 			}
 
 			It("create new cluster", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2, arg3 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
 					}).Return(clusterReply, nil)
 				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
@@ -311,8 +757,8 @@ var _ = Describe("cluster reconcile", func() {
 				httpProxy := "http://proxy.org"
 				httpsProxy := "https://secureproxy.org"
 				noProxy := "acme.com"
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2, arg3 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.HTTPProxy)).To(Equal(httpProxy))
 						Expect(swag.StringValue(params.NewClusterParams.HTTPSProxy)).To(Equal(httpsProxy))
 						Expect(swag.StringValue(params.NewClusterParams.NoProxy)).To(Equal(noProxy))
@@ -329,9 +775,9 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create new cluster with IgnitionEndpoint CaCertificate", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2, arg3 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
 					}).Return(clusterReply, nil)
 				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
@@ -358,7 +804,7 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create new cluster with arm cpu architecture", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 				clusterReply.Cluster.CPUArchitecture = CpuArchitectureArm
 				armReleaseImageUrl := "quay.io/openshift-release-dev/ocp-release:4.9.11-aarch64"
 				armOcpReleaseVersion := "4.9.11"
@@ -369,8 +815,8 @@ var _ = Describe("cluster reconcile", func() {
 					URL:              &armReleaseImageUrl,
 					Version:          &armOcpReleaseVersion,
 				}
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2, arg3 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*armReleaseImage.Version))
 						Expect(params.NewClusterParams.CPUArchitecture).To(Equal(CpuArchitectureArm))
 					}).Return(clusterReply, nil)
@@ -385,7 +831,7 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create new cluster with disk encryption", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 				tangServersConfig := `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`
 				id := strfmt.UUID(uuid.New().String())
 				clusterReply = &common.Cluster{
@@ -401,8 +847,8 @@ var _ = Describe("cluster reconcile", func() {
 					},
 				}
 
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2, arg3 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(params.NewClusterParams.DiskEncryption).NotTo(BeNil())
 						Expect(swag.StringValue(params.NewClusterParams.DiskEncryption.EnableOn)).To(Equal(models.DiskEncryptionEnableOnMasters))
 						Expect(swag.StringValue(params.NewClusterParams.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTang))
@@ -424,9 +870,9 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create sno cluster", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2, arg3 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(ocpReleaseVersion))
 					}).Return(clusterReply, nil)
 				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
@@ -444,9 +890,9 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create single node cluster", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-					Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams) {
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(ctx, kubeKey, arg3 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
 							To(Equal(HighAvailabilityModeNone))
 					}).Return(clusterReply, nil)
@@ -465,9 +911,9 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create none platform cluster", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
-				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-					Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams) {
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(ctx, kubeKey, arg3 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.BoolValue(params.NewClusterParams.UserManagedNetworking)).
 							To(BeTrue())
 					}).Return(clusterReply, nil)
@@ -488,7 +934,7 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("no pull secret name when trying to create a cluster", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 				cluster := newClusterDeployment(clusterName, testNamespace,
 					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, ""))
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -513,7 +959,7 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("no imagesetref when trying to create a day1 cluster", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 				cluster := newClusterDeployment(clusterName, testNamespace,
 					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName))
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -539,7 +985,7 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("no imagesetref when trying to create a day2 cluster", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 				cluster := newClusterDeployment(clusterName, testNamespace,
 					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, ""))
 				cluster.Spec.Installed = true
@@ -558,7 +1004,7 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("fail to get openshift version when trying to create a cluster", func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("some-error"))
 				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
@@ -595,7 +1041,7 @@ var _ = Describe("cluster reconcile", func() {
 				aci.Spec.ImageSetRef = &hivev1.ClusterImageSetReference{Name: "taggedImageSet-ocp-release:4.15.0-multi"}
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(true)
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(true)
 				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("some-error"))
 				request := newClusterDeploymentRequest(cluster)
 				result, err := cr.Reconcile(ctx, request)
@@ -616,7 +1062,7 @@ var _ = Describe("cluster reconcile", func() {
 				aci.Spec.ImageSetRef = &hivev1.ClusterImageSetReference{Name: "digestBased-ocp-release:4.15.0-multi"}
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(true)
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(true)
 				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("some-error"))
 				request := newClusterDeploymentRequest(cluster)
 				result, err := cr.Reconcile(ctx, request)
@@ -637,7 +1083,7 @@ var _ = Describe("cluster reconcile", func() {
 				aci.Spec.ImageSetRef = &hivev1.ClusterImageSetReference{Name: "taggedImageSet-ocp-release:4.15.0-multi"}
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("some-error"))
 				request := newClusterDeploymentRequest(cluster)
 				result, err := cr.Reconcile(ctx, request)
@@ -650,9 +1096,9 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("create new cluster backend failure", func() {
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 			errString := "internal error"
-			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(nil, errors.Errorf(errString))
 			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
@@ -702,7 +1148,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		})
 
 		setupTestForStatusAndReason := func(status string, reason string) {
@@ -717,8 +1163,8 @@ var _ = Describe("cluster reconcile", func() {
 					},
 				},
 			}
-			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams) {
+			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx, kubeKey, arg3 interface{}, params installer.V2RegisterClusterParams) {
 					Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
 						To(Equal(HighAvailabilityModeNone))
 				}).Return(clusterReply, nil)
@@ -762,7 +1208,7 @@ var _ = Describe("cluster reconcile", func() {
 
 	Context("CreateClusterParams", func() {
 		BeforeEach(func() {
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		})
 
 		It("create new param - success", func() {
@@ -791,7 +1237,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
 			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
 			Expect(c.Create(ctx, imageSet)).To(BeNil())
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		})
 
 		It("Update agentclusterinstall::validationsInfo", func() {
@@ -842,7 +1288,7 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("backend internal error when trying to retrieve cluster details", func() {
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, errors.New("internal error"))
 		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 
@@ -867,7 +1313,7 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("not supported platform", func() {
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		spec := hivev1.ClusterDeploymentSpec{
 			ClusterName: clusterName,
 			Provisioning: &hivev1.Provisioning{
@@ -892,7 +1338,7 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("validate owner reference creation", func() {
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		sId := strfmt.UUID(uuid.New().String())
 		backEndCluster := &common.Cluster{
 			Cluster: models.Cluster{
@@ -926,7 +1372,7 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("validate label on Pull Secret", func() {
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		sId := strfmt.UUID(uuid.New().String())
 		backEndCluster := &common.Cluster{
 			Cluster: models.Cluster{
@@ -979,7 +1425,7 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("validate Event URL", func() {
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		_, priv, err := gencrypto.ECDSAKeyPairPEM()
 		Expect(err).NotTo(HaveOccurred())
 		os.Setenv("EC_PRIVATE_KEY_PEM", priv)
@@ -1017,7 +1463,7 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("validate ignitionEndpoint override doesn't trigger clusterUpdate unless required", func() {
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil).Times(2)
 		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
@@ -1095,7 +1541,7 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("validate Logs URL - before and after host log collection", func() {
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		serviceBaseURL := "http://acme.com"
 		cr.ServiceBaseURL = serviceBaseURL
 		sId := strfmt.UUID(uuid.New().String())
@@ -1168,7 +1614,7 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("validate Logs URL - before and after controller log collection", func() {
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		serviceBaseURL := "http://acme.com"
 		cr.ServiceBaseURL = serviceBaseURL
 		sId := strfmt.UUID(uuid.New().String())
@@ -1239,7 +1685,7 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("create cluster without pull secret reference", func() {
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 		cluster.Spec.PullSecretRef = nil
 		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -1303,7 +1749,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
 			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
 			Expect(c.Create(ctx, imageSet)).To(BeNil())
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		})
 
 		It("agentClusterInstall resource deleted - verify call to deregister cluster", func() {
@@ -1420,7 +1866,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
 			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cd)
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
@@ -1479,7 +1925,7 @@ var _ = Describe("cluster reconcile", func() {
 				hosts = append(hosts, h)
 			}
 			backEndCluster.Hosts = hosts
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		})
 
 		It("success", func() {
@@ -1498,7 +1944,7 @@ var _ = Describe("cluster reconcile", func() {
 					StatusInfo: swag.String("Waiting for control plane"),
 				},
 			}
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(installClusterReply, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -1528,7 +1974,7 @@ var _ = Describe("cluster reconcile", func() {
 					StatusInfo: swag.String("Waiting for control plane"),
 				},
 			}
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(installClusterReply, nil)
 
 			By("hold installation")
@@ -1577,7 +2023,7 @@ var _ = Describe("cluster reconcile", func() {
 					StatusInfo: swag.String("Waiting for control plane"),
 				},
 			}
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(installClusterReply, nil)
 
 			By("hold installation")
@@ -1635,7 +2081,7 @@ var _ = Describe("cluster reconcile", func() {
 					MonitoredOperators: oper,
 				},
 			}
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(installClusterReply, nil)
 
 			cvoMsg := fmt.Sprintf(". Cluster version status: %s, message: %s", models.OperatorStatusProgressing, cvoStatusInfo)
@@ -1673,7 +2119,7 @@ var _ = Describe("cluster reconcile", func() {
 					MonitoredOperators: oper,
 				},
 			}
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(installClusterReply, nil)
 
 			expectedMsg := fmt.Sprintf("%s %s", hiveext.ClusterInstallationInProgressMsg, *installClusterReply.StatusInfo)
@@ -1947,7 +2393,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusReady)
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(nil, errors.Errorf(expectedErr))
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockInstallerInternal.EXPECT().GetKnownHostApprovedCounts(gomock.Any()).Return(5, 5, nil).Times(2)
@@ -2299,7 +2745,7 @@ var _ = Describe("cluster reconcile", func() {
 					StatusInfo: swag.String("Waiting for control plane"),
 				},
 			}
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(installClusterReply, nil)
 
 			cluster = getTestCluster()
@@ -2324,7 +2770,7 @@ var _ = Describe("cluster reconcile", func() {
 					StatusInfo: swag.String("Waiting for control plane"),
 				},
 			}
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(installClusterReply, nil).Times(1)
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 
@@ -2361,7 +2807,7 @@ var _ = Describe("cluster reconcile", func() {
 					StatusInfo: swag.String("Waiting for control plane"),
 				},
 			}
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(installClusterReply, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -2424,7 +2870,7 @@ var _ = Describe("cluster reconcile", func() {
 					StatusInfo: swag.String("Waiting for control plane"),
 				},
 			}
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(installClusterReply, nil)
 
 			cluster = getTestCluster()
@@ -2577,7 +3023,7 @@ var _ = Describe("cluster reconcile", func() {
 					StatusInfo:  swag.String("Waiting for control plane"),
 				},
 			}
-			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(installClusterReply, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -2595,7 +3041,7 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("reconcile on installed sno cluster should not return an error or requeue", func() {
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
 		cluster := newClusterDeployment(clusterName, testNamespace,
 			getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName))
@@ -2649,7 +3095,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		})
 
 		It("update pull-secret network cidr and cluster name", func() {
@@ -2808,7 +3254,7 @@ var _ = Describe("cluster reconcile", func() {
 
 		Context("Networks", func() {
 			BeforeEach(func() {
-				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 			})
 
 			tests := []struct {
@@ -2897,7 +3343,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("only state changed", func() {
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
 					ID:               &sId,
@@ -2935,7 +3381,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("failed getting cluster", func() {
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 			expectedErr := "some internal error"
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).
 				Return(nil, errors.Errorf(expectedErr))
@@ -2952,7 +3398,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("update internal error", func() {
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
 					ID:               &sId,
@@ -2984,7 +3430,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("add install config overrides annotation", func() {
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
 					ID:               &sId,
@@ -3014,8 +3460,8 @@ var _ = Describe("cluster reconcile", func() {
 				},
 				PullSecret: testPullSecretVal,
 			}
-			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams) {
+			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams, mirrorRegistryConfiguration *hiveext.MirrorRegistryConfiguration) {
 					Expect(param.ClusterID).To(Equal(sId))
 					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
 				}).Return(updateReply, nil)
@@ -3029,7 +3475,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("Remove existing install config overrides annotation", func() {
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
 					ID:                     &sId,
@@ -3058,8 +3504,8 @@ var _ = Describe("cluster reconcile", func() {
 				},
 				PullSecret: testPullSecretVal,
 			}
-			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams) {
+			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams, mirrorRegistryConfiguration *hiveext.MirrorRegistryConfiguration) {
 					Expect(param.ClusterID).To(Equal(sId))
 					Expect(param.InstallConfigParams).To(Equal(""))
 				}).Return(updateReply, nil)
@@ -3071,7 +3517,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("Update install config overrides annotation", func() {
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
 					ID:                     &sId,
@@ -3102,8 +3548,8 @@ var _ = Describe("cluster reconcile", func() {
 				},
 				PullSecret: testPullSecretVal,
 			}
-			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams) {
+			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams, mirrorRegistryConfiguration *hiveext.MirrorRegistryConfiguration) {
 					Expect(param.ClusterID).To(Equal(sId))
 					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
 				}).Return(updateReply, nil)
@@ -3117,7 +3563,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("invalid install config overrides annotation", func() {
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
 					ID:               &sId,
@@ -3139,8 +3585,8 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			installConfigOverrides := `{{{"controlPlane": ""`
-			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams) {
+			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.V2UpdateClusterInstallConfigParams, mirrorRegistryConfiguration *hiveext.MirrorRegistryConfiguration) {
 					Expect(param.ClusterID).To(Equal(sId))
 					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
 				}).Return(nil, common.NewApiError(http.StatusBadRequest,
@@ -3167,7 +3613,7 @@ var _ = Describe("cluster reconcile", func() {
 		BeforeEach(func() {
 			id := uuid.New()
 			sId = strfmt.UUID(id.String())
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		})
 
 		It("SSHPublicKey in ClusterDeployment has spaces in suffix", func() {
@@ -3315,7 +3761,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		})
 
 		It("success", func() {
@@ -3390,7 +3836,7 @@ var _ = Describe("cluster reconcile", func() {
 		}
 
 		BeforeEach(func() {
-			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
 			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
@@ -3574,7 +4020,7 @@ var _ = Describe("TestConditions", func() {
 			WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockMirrorRegistries = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(mockCtrl)
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClusterApi := cluster.NewMockAPI(mockCtrl)
 		cr = &ClusterDeploymentsReconciler{
@@ -4269,7 +4715,7 @@ var _ = Describe("day2 cluster", func() {
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockVersions = versions.NewMockHandler(mockCtrl)
 		mockMirrorRegistries = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(mockCtrl)
-		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).AnyTimes().Return(false)
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
 			WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
 
@@ -4364,7 +4810,7 @@ var _ = Describe("day2 cluster", func() {
 		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockInstallerInternal.EXPECT().GetKnownApprovedHosts(gomock.Any()).Return(nil, nil)
 		// expected not to be called
-		mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).Times(0)
+		mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		By("second time will update the cluster by the spec")
 		result, err = cr.Reconcile(ctx, request)
 		Expect(err).To(BeNil())
