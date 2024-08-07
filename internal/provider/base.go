@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,4 +52,32 @@ func GetMachineNetworkForUserManagedNetworking(log logrus.FieldLogger, cluster *
 	}
 
 	return nil
+}
+
+func ReplaceMachineNetworkIfNeeded(log logrus.FieldLogger, cluster *common.Cluster, cfg *installcfg.InstallerConfigBaremetal) {
+	bootstrapHost := common.GetBootstrapHost(cluster)
+	if bootstrapHost == nil {
+		log.Warnf("GetBootstrapHost: failed to get bootstrap host for cluster %s", lo.FromPtr(cluster.ID))
+		return
+	}
+	nodeIpAllocations, err := network.GenerateNonePlatformAddressAllocation(cluster, log)
+	if err != nil {
+		log.WithError(err).Warnf("failed to get node ip allocations for cluster %s", lo.FromPtr(cluster.ID))
+		return
+	}
+	allocation, ok := nodeIpAllocations[lo.FromPtr(bootstrapHost.ID)]
+	if !ok {
+		log.Warnf("node ip allocation for bootstrap host %s in cluster %s is missing", lo.FromPtr(bootstrapHost.ID), lo.FromPtr(cluster.ID))
+		return
+	}
+	isIpv4 := network.IsIPV4CIDR(allocation.Cidr)
+	for i := range cfg.Networking.MachineNetwork {
+		if network.IsIPV4CIDR(cfg.Networking.MachineNetwork[i].Cidr) == isIpv4 {
+			if cfg.Networking.MachineNetwork[i].Cidr != allocation.Cidr {
+				log.Infof("Replacing machine network %s with %s", cfg.Networking.MachineNetwork[i].Cidr, allocation.Cidr)
+				cfg.Networking.MachineNetwork[i].Cidr = allocation.Cidr
+			}
+			break
+		}
+	}
 }

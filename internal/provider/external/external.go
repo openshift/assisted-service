@@ -48,6 +48,8 @@ func (p *externalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerC
 		if bootstrap != nil {
 			cfg.BootstrapInPlace = &installcfg.BootstrapInPlace{InstallationDisk: hostutil.GetHostInstallationPath(bootstrap)}
 		}
+	} else {
+		provider.ReplaceMachineNetworkIfNeeded(p.Log, cluster, cfg)
 	}
 
 	return nil
