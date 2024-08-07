@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/api/common"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -205,6 +206,12 @@ type AgentClusterInstallSpec struct {
 	// Set to true to allow control plane nodes to be schedulable
 	// +optional
 	MastersSchedulable bool `json:"mastersSchedulable,omitempty"`
+
+	// MirrorRegistryRef is a reference to ClusterMirrorRegistry ConfigMap that holds the registries toml
+	// data
+	// Set per cluster mirror registry
+	// +optional
+	MirrorRegistryRef *MirrorRegistryConfigMapReference `json:"mirrorRegistryRef,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.
@@ -283,6 +290,10 @@ type AgentClusterInstallStatus struct {
 	// ValidationsInfo is a JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
 	// +optional
 	ValidationsInfo common.ValidationsStatus `json:"validationsInfo,omitempty"`
+
+	// MirrorRegistryConfigurationInfo contains the mirror registry configuration for this cluster
+	// +optional
+	MirrorRegistryConfigurationInfo *MirrorRegistryConfigurationInfo `json:"mirrorRegistryConfigurationInfo,omitempty"`
 }
 
 type DebugInfo struct {
@@ -504,4 +515,26 @@ type ManifestsConfigMapReference struct {
 
 func init() {
 	SchemeBuilder.Register(&AgentClusterInstall{}, &AgentClusterInstallList{})
+}
+
+// MirrorRegistryConfigMapReference contains reference to a ConfigMap for mirror registry
+type MirrorRegistryConfigMapReference struct {
+	// Name is the name of the ConfigMap that this refers to
+	Name string `json:"name"`
+	// Namespace of the ConfigMap
+	Namespace string `json:"namespace"`
+}
+
+// MirrorRegistryConfigurationInfo holds the mirror registry configuration details
+type MirrorRegistryConfigurationInfo struct {
+	ImageDigestMirrors []configv1.ImageDigestMirrors `json:"imageDigestMirrors,omitempty"`
+	ImageTagMirrors    []configv1.ImageTagMirrors    `json:"imageTagMirrors,omitempty"`
+	Insecure           []string                      `json:"insecure,omitempty"`
+}
+
+// MirrorRegistryConfiguration holds the mirror registry configuration details
+type MirrorRegistryConfiguration struct {
+	MirrorRegistryConfigurationInfo *MirrorRegistryConfigurationInfo `json:"mirrorRegistryConfigurationInfo,omitempty"`
+	RegistriesConf                  string                           `json:"registriesConf,omitempty"`
+	CaBundleCrt                     string                           `json:"caBundleCrt,omitempty"`
 }
