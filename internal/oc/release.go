@@ -445,7 +445,7 @@ func execute(log logrus.FieldLogger, executer executer.Executer, pullSecret stri
 // Create a temporary file containing the ImageContentPolicySources
 func (r *release) getIcspFileFromRegistriesConfig(log logrus.FieldLogger) (string, error) {
 
-	if !r.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+	if !r.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType) {
 		log.Debugf("No mirrors configured to build ICSP file")
 		return "", nil
 	}
