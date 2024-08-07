@@ -572,7 +572,7 @@ var _ = Describe("getIcspFileFromRegistriesConfig", func() {
 
 	It("valid_mirror_registries", func() {
 		regData := []mirrorregistries.RegistriesConf{{Location: "registry.ci.org", Mirror: []string{"host1.example.org:5000/localimages"}}, {Location: "quay.io", Mirror: []string{"host1.example.org:5000/localimages"}}}
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
 		expected := "apiVersion: operator.openshift.io/v1alpha1\nkind: ImageContentSourcePolicy\nmetadata:\n  creationTimestamp: null\n  name: image-policy\nspec:\n  repositoryDigestMirrors:\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: registry.ci.org\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: quay.io\n"
 		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
@@ -584,7 +584,7 @@ var _ = Describe("getIcspFileFromRegistriesConfig", func() {
 	})
 	It("valid_multiple_mirror_registries", func() {
 		regData := []mirrorregistries.RegistriesConf{{Location: "registry.ci.org", Mirror: []string{"host1.example.org:5000/localimages", "host1.example.org:5000/openshift"}}, {Location: "quay.io", Mirror: []string{"host1.example.org:5000/localimages"}}}
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
 		expected := "apiVersion: operator.openshift.io/v1alpha1\nkind: ImageContentSourcePolicy\nmetadata:\n  creationTimestamp: null\n  name: image-policy\nspec:\n  repositoryDigestMirrors:\n  - mirrors:\n    - host1.example.org:5000/localimages\n    - host1.example.org:5000/openshift\n    source: registry.ci.org\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: quay.io\n"
 		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
@@ -596,14 +596,14 @@ var _ = Describe("getIcspFileFromRegistriesConfig", func() {
 	})
 
 	It("no_registries", func() {
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
 		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(icspFile).Should(Equal(""))
 	})
 
 	It("mirror_registries_invalid", func() {
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(nil, fmt.Errorf("extract failed")).Times(1)
 		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
 		Expect(err).Should(HaveOccurred())
