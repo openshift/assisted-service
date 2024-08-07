@@ -8,10 +8,17 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
+type MirrorType int
+
+const (
+	ServiceMirrorRegistryType MirrorType = iota + 1
+	ClusterMirrorRegistryType
+)
+
 //go:generate mockgen -source=generator.go -package=mirrorregistries -destination=mock_generator.go
 type MirrorRegistriesConfigBuilder interface {
-	IsMirrorRegistriesConfigured() bool
-	GetMirrorCA() ([]byte, error)
+	IsMirrorRegistriesConfigured(mirrorType MirrorType) bool
+	GetMirrorCA(mirrorType MirrorType) ([]byte, error)
 	GetMirrorRegistries() ([]byte, error)
 	ExtractLocationMirrorDataFromRegistries() ([]RegistriesConf, error)
 }
@@ -33,12 +40,20 @@ type RegistriesConf struct {
 	Mirror   []string
 }
 
-// IsMirrorRegistriesConfigured We consider mirror registries to be configured if the following conditions are all met
+func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured(mirrorType MirrorType) bool {
+	if mirrorType == ServiceMirrorRegistryType {
+		return m.isServiceMirrorRegistriesConfigured()
+	}
+
+	return m.isClusterMirrorRegistriesConfigured()
+}
+
+// isServiceMirrorRegistriesConfigured We consider mirror registries to be configured if the following conditions are all met
 //   - CA bundle file (e.g. /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem) exists
 //   - registry configuration file (e.g. /etc/containers/registries.conf) exists
 //   - registry configuration contains "[[registry]]" section
-func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
-	_, err := m.GetMirrorCA()
+func (m *mirrorRegistriesConfigBuilder) isServiceMirrorRegistriesConfigured() bool {
+	_, err := m.GetMirrorCA(ServiceMirrorRegistryType)
 	if err != nil {
 		return false
 	}
@@ -59,8 +74,18 @@ func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
 // return error if the path is actually an empty dir, which will indicate that
 // the mirror registries are not configured.
 // empty dir is due to the way we mao configmap in the assisted-service pod
-func (m *mirrorRegistriesConfigBuilder) GetMirrorCA() ([]byte, error) {
-	return os.ReadFile(m.MirrorRegistriesCertificatePath)
+func (m *mirrorRegistriesConfigBuilder) GetMirrorCA(mirrorType MirrorType) ([]byte, error) {
+	if mirrorType == ServiceMirrorRegistryType {
+		return os.ReadFile(m.MirrorRegistriesCertificatePath)
+	}
+
+	// todo
+	return nil, nil
+}
+
+func (m *mirrorRegistriesConfigBuilder) isClusterMirrorRegistriesConfigured() bool {
+	//todo
+	return false
 }
 
 // returns error if the file is not present, which will also indicate that
