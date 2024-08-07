@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	v1beta1 "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	auth "github.com/openshift/assisted-service/pkg/auth"
@@ -38,18 +39,18 @@ func (m *MockIgnitionBuilder) EXPECT() *MockIgnitionBuilderMockRecorder {
 }
 
 // FormatDiscoveryIgnitionFile mocks base method.
-func (m *MockIgnitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string) (string, error) {
+func (m *MockIgnitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FormatDiscoveryIgnitionFile", ctx, infraEnv, cfg, safeForLogs, authType, overrideDiscoveryISOType)
+	ret := m.ctrl.Call(m, "FormatDiscoveryIgnitionFile", ctx, infraEnv, cfg, safeForLogs, authType, overrideDiscoveryISOType, mirrorRegistryConfiguration)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FormatDiscoveryIgnitionFile indicates an expected call of FormatDiscoveryIgnitionFile.
-func (mr *MockIgnitionBuilderMockRecorder) FormatDiscoveryIgnitionFile(ctx, infraEnv, cfg, safeForLogs, authType, overrideDiscoveryISOType interface{}) *gomock.Call {
+func (mr *MockIgnitionBuilderMockRecorder) FormatDiscoveryIgnitionFile(ctx, infraEnv, cfg, safeForLogs, authType, overrideDiscoveryISOType, mirrorRegistryConfiguration interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatDiscoveryIgnitionFile", reflect.TypeOf((*MockIgnitionBuilder)(nil).FormatDiscoveryIgnitionFile), ctx, infraEnv, cfg, safeForLogs, authType, overrideDiscoveryISOType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatDiscoveryIgnitionFile", reflect.TypeOf((*MockIgnitionBuilder)(nil).FormatDiscoveryIgnitionFile), ctx, infraEnv, cfg, safeForLogs, authType, overrideDiscoveryISOType, mirrorRegistryConfiguration)
 }
 
 // FormatSecondDayWorkerIgnitionFile mocks base method.

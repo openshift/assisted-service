@@ -14,6 +14,7 @@ import (
 	"text/template"
 	"time"
 
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -156,7 +157,7 @@ const tempNMConnectionsDir = "/etc/assisted/network"
 //
 //go:generate mockgen -source=discovery.go -package=ignition -destination=mock_ignition_builder.go
 type IgnitionBuilder interface {
-	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string) (string, error)
+	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string, mirrorRegistryConfiguration *hiveext.MirrorRegistryConfiguration) (string, error)
 	FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken, ignitionEndpointHTTPHeaders string, host *models.Host) ([]byte, error)
 }
 
@@ -222,7 +223,37 @@ func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *c
 	return okdRpmsImage, true
 }
 
-func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string) (string, error) {
+func (ib *ignitionBuilder) setIgnitionMirrorRegistry(ignitionParams *map[string]interface{}, configuration *hiveext.MirrorRegistryConfiguration) error {
+	mirrorRegistriesConfigKey := "MirrorRegistriesConfig"
+	mirrorRegistriesCAConfigKey := "MirrorRegistriesCAConfig"
+
+	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType) {
+		ib.log.Infof("Setting ignition cluster mirror registry to %s", configuration.RegistriesConf)
+		(*ignitionParams)[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.RegistriesConf))
+		(*ignitionParams)[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.CaBundleCrt))
+		return nil
+
+	}
+	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType) {
+		caContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorCA(mirrorregistries.ServiceMirrorRegistryType)
+		if mirrorsErr != nil {
+			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries CA contents")
+			return mirrorsErr
+		}
+		registriesContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorRegistries()
+		if mirrorsErr != nil {
+			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries config contents")
+			return mirrorsErr
+		}
+		(*ignitionParams)[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString(registriesContents)
+		(*ignitionParams)[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString(caContents)
+		return nil
+	}
+
+	return nil
+}
+
+func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string, mirrorRegistryConfiguration *hiveext.MirrorRegistryConfiguration) (string, error) {
 	pullSecretToken, err := clusterPkg.AgentToken(infraEnv, authType)
 	if err != nil {
 		return "", err
@@ -326,19 +357,8 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		}
 	}
 
-	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
-		caContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorCA()
-		if mirrorsErr != nil {
-			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries CA contents")
-			return "", mirrorsErr
-		}
-		registriesContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorRegistries()
-		if mirrorsErr != nil {
-			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries config contents")
-			return "", mirrorsErr
-		}
-		ignitionParams["MirrorRegistriesConfig"] = base64.StdEncoding.EncodeToString(registriesContents)
-		ignitionParams["MirrorRegistriesCAConfig"] = base64.StdEncoding.EncodeToString(caContents)
+	if err = ib.setIgnitionMirrorRegistry(&ignitionParams, mirrorRegistryConfiguration); err != nil {
+		return "", err
 	}
 
 	if okdRpmsImage, ok := ib.shouldAppendOKDFiles(ctx, infraEnv, cfg); ok {
