@@ -31,6 +31,12 @@ var _ = Describe("MCE Operator", func() {
 				Ram:  32 * conversions.GiB,
 			}),
 		}
+		hostWithMaximumOffsetLessThanMinimumMemory = &models.Host{
+			Inventory: Inventory(&InventoryResources{
+				Cpus: 12,
+				Ram:  MinimumMemory*conversions.GiB - MaximumMemoryRequirementOffset*conversions.MiB,
+			}),
+		}
 	)
 
 	Context("GetHostRequirements", func() {
@@ -73,6 +79,12 @@ var _ = Describe("MCE Operator", func() {
 			table.Entry("master with sufficient resources",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithSufficientResources}}},
 				hostWithSufficientResources,
+				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
+			),
+
+			table.Entry("host with maximum offset less then minimum memory",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithMaximumOffsetLessThanMinimumMemory}}},
+				hostWithMaximumOffsetLessThanMinimumMemory,
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
 			),
 		)

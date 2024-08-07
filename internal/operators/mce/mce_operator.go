@@ -123,7 +123,8 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 	mem := requirements.RAMMib
 	memBytes := conversions.MibToBytes(mem)
-	if inventory.Memory.UsableBytes < memBytes {
+	const maxOffset = MaximumMemoryRequirementOffset * conversions.MiB
+	if inventory.Memory.UsableBytes < memBytes-maxOffset {
 		usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy multicluster engine. Required memory is %d MiB but found %d MiB", mem, usableMemory)}}, nil
 	}

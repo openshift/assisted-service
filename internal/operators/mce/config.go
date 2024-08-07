@@ -10,6 +10,9 @@ const (
 	// Memory value provided in GiB
 	SNOMinimumMemory int64 = 32
 	SNOMinimumCpu    int64 = 8
+
+	// Memory value provided in MiB
+	MaximumMemoryRequirementOffset int64 = 100
 )
 
 type Config struct {
