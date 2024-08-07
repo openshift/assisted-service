@@ -657,18 +657,81 @@ var _ = Describe("nic reaaply manifest", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	Context("CreateClusterManifest success", func() {
-		It("CreateClusterManifest success", func() {
+	Context("CreateClusterManifest", func() {
+		It("added when one of the host installs on an iSCSI drive", func() {
 			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Times(2).Return(&models.Manifest{
 				FileName: "manifest.yaml",
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil)
+			cluster.Cluster.Hosts = []*models.Host{
+				{
+					Inventory: fmt.Sprintf(`{
+						"disks":[
+							{
+								"id": "install-id",
+								"drive_type": "%s"
+							}
+						]
+						}`, models.DriveTypeISCSI),
+					InstallationDiskID: "install-id",
+				},
+				{
+					Inventory: fmt.Sprintf(`{
+						"disks":[
+							{
+								"id": "install-id",
+								"drive_type": "%s"
+							}
+						]
+						}`, models.DriveTypeSSD),
+					InstallationDiskID: "install-id",
+				},
+			}
 			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
 		})
-
-		It("CreateClusterManifest failure", func() {
+		It("not added when no hosts installs on an iSCSI drive", func() {
+			cluster.Cluster.Hosts = []*models.Host{
+				{
+					Inventory: fmt.Sprintf(`{
+						"disks":[
+							{
+								"id": "install-id",
+								"drive_type": "%s"
+							}
+						]
+						}`, models.DriveTypeSSD),
+					InstallationDiskID: "install-id",
+				},
+				{
+					Inventory: fmt.Sprintf(`{
+						"disks":[
+							{
+								"id": "install-id",
+								"drive_type": "%s"
+							}
+						]
+						}`, models.DriveTypeSSD),
+					InstallationDiskID: "install-id",
+				},
+			}
+			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
+		})
+		It("failure", func() {
 			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(nil, errors.Errorf("Failed to create manifest")).Times(1)
-			Expect(manifestsGeneratorApi.AddSchedulableMastersManifest(ctx, log, &cluster)).Should(HaveOccurred())
+			cluster.Cluster.Hosts = []*models.Host{
+				{
+					Inventory: fmt.Sprintf(`{
+						"disks":[
+							{
+								"id": "install-id",
+								"drive_type": "%s"
+							}
+						]
+						}`, models.DriveTypeISCSI),
+					InstallationDiskID: "install-id",
+				},
+			}
+			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).Should(HaveOccurred())
 		})
 	})
 })
