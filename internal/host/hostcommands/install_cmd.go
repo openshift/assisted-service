@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/netip"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -20,8 +21,8 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
 
@@ -256,7 +257,7 @@ func (i *installCmd) getDisksToFormat(ctx context.Context, host *models.Host, in
 
 	for _, disk := range allFormattingCandidateDisks {
 		identifier := common.GetDeviceIdentifier(disk)
-		if !funk.Contains(skippedDisksIdentifiers, identifier) {
+		if !lo.Contains(skippedDisksIdentifiers, identifier) {
 			eventgen.SendQuickDiskFormatPerformedEvent(ctx, i.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID,
 				hostutil.GetHostnameForMsg(host), disk.Name, identifier)
 
@@ -291,8 +292,10 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 
 	installerArgs, hasIPConfigOverride := appends390xArgs(inventory, installerArgs, log)
 
+	hasUserConfiguredIP := hasUserConfiguredIP(installerArgs)
+
 	// set DHCP args only if no IP config override was specified (only for LPAR and zVM nodes on s390x)
-	if !hasStaticNetwork && !hasIPConfigOverride {
+	if !hasStaticNetwork && !hasIPConfigOverride && !hasUserConfiguredIP {
 		// The set of ip=<nic>:dhcp kernel arguments should be added only if there is no static
 		// network configured by the user. This is because this parameter will configure RHCOS to
 		// try to obtain IP address from the DHCP server even if we provide a static addressing.
@@ -305,24 +308,75 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		}
 	}
 
-	for _, disk := range inventory.Disks {
-		if disk.ID == host.InstallationDiskID {
-			if disk.DriveType == models.DriveTypeMultipath {
-				installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
-			} else if disk.DriveType == models.DriveTypeISCSI {
-				// Currently only allowed on the OCI platform
-				installerArgs = append(installerArgs, "--append-karg", "rd.iscsi.firmware=1")
-			}
+	// append kargs depending on installation drive type
+	installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(host))
+	if installationDisk != nil {
+		installerArgs = appendMultipathArgs(installerArgs, installationDisk)
+		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
+		if err != nil {
+			return "", err
 		}
+	} else {
+		log.Warnf("No installation disk found for host ID %s", host.ID)
 	}
 
-	if hasStaticNetwork && !funk.Contains(installerArgs, "--copy-network") {
+	if hasStaticNetwork && !lo.Contains(installerArgs, "--copy-network") {
 		// network not configured statically or
 		// installer args already contain command for network configuration
 		installerArgs = append(installerArgs, "--copy-network")
 	}
 
 	return toJSONString(installerArgs)
+}
+
+func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasUserConfiguredIP bool) ([]string, error) {
+	if installationDisk.DriveType != models.DriveTypeISCSI {
+		return installerArgs, nil
+	}
+
+	// enable iSCSI on boot
+	installerArgs = append(installerArgs, "--append-karg", "rd.iscsi.firmware=1")
+
+	if hasUserConfiguredIP {
+		return installerArgs, nil
+	}
+
+	// configure DHCP on the interface used by the iSCSI boot volume
+	iSCSIHostIP, err := netip.ParseAddr(installationDisk.Iscsi.HostIPAddress)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot parse iSCSI host IP %s: %w", installationDisk.Iscsi.HostIPAddress, err)
+	}
+
+	nic, ok := lo.Find(inventory.Interfaces, func(nic *models.Interface) bool {
+		ips := nic.IPV4Addresses
+		if iSCSIHostIP.Is6() {
+			ips = nic.IPV6Addresses
+		}
+		_, ok := lo.Find(ips, func(ip string) bool {
+			prefix, err := netip.ParsePrefix(ip)
+			return err == nil && iSCSIHostIP.Compare(prefix.Addr()) == 0
+		})
+		return ok
+	})
+
+	if !ok {
+		return nil, fmt.Errorf("Cannot find the interface belonging to iSCSI host IP %s", iSCSIHostIP.String())
+	}
+
+	dhcp := "dhcp"
+	if iSCSIHostIP.Is6() {
+		dhcp = "dhcp6"
+	}
+	installerArgs = append(installerArgs, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp))
+
+	return installerArgs, nil
+}
+
+func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk) []string {
+	if installationDisk.DriveType != models.DriveTypeMultipath {
+		return installerArgs
+	}
+	return append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
 }
 
 func appends390xArgs(inventory *models.Inventory, installerArgs []string, log logrus.FieldLogger) ([]string, bool) {
@@ -365,11 +419,6 @@ func appends390xArgs(inventory *models.Inventory, installerArgs []string, log lo
 }
 
 func appendDHCPArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, installerArgs []string, log logrus.FieldLogger) ([]string, error) {
-
-	if hasUserConfiguredIP(installerArgs) {
-		return installerArgs, nil
-	}
-
 	machineNetworkCIDR := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
 	if machineNetworkCIDR != "" {
 		ipv6 := network.IsIPv6CIDR(machineNetworkCIDR)
@@ -441,7 +490,7 @@ func findAnyInCIDR(network *net.IPNet, addresses []string) (bool, error) {
 func hasUserConfiguredIP(args []string) bool {
 	// check if the user has configured any ip arguments manually
 	// https://man7.org/linux/man-pages/man7/dracut.cmdline.7.html
-	_, result := funk.FindString(args, func(s string) bool {
+	_, result := lo.Find(args, func(s string) bool {
 		return strings.HasPrefix(s, "ip=")
 	})
 	return result
