@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -114,9 +115,15 @@ type InfraEnvSpec struct {
 	// OSImageVersion is the version of OS image to use when generating the InfraEnv.
 	// The version should refer to an OSImage specified in the AgentServiceConfig
 	// (i.e. OSImageVersion should equal to an OpenshiftVersion in OSImages list).
-	// Note: OSImageVersion can't be specified along with ClusterRef. 
+	// Note: OSImageVersion can't be specified along with ClusterRef.
 	// +optional
 	OSImageVersion string `json:"osImageVersion,omitempty"`
+
+	// MirrorRegistryRef is a reference to ClusterMirrorRegistry ConfigMap that holds the registries toml
+	// data
+	// Set per cluster mirror registry
+	// +optional
+	MirrorRegistryRef *v1beta1.MirrorRegistryConfigMapReference `json:"mirrorRegistryRef,omitempty"`
 }
 
 type KernelArgument struct {
