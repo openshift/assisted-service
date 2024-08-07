@@ -3286,7 +3286,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      infraNsName.Name,
 		}
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
-		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, "Unsupported keys found")
+		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, "Invalid YAML")
 	})
 
 	It("ensure StaticNetworkConfig is empty after NMStateConfig deletion", func() {
