@@ -282,6 +282,10 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 	var err error
 	var hasStaticNetwork bool
 
+	if inventory == nil {
+		return "", fmt.Errorf("Missing inventory")
+	}
+
 	if host.InstallerArgs != "" {
 		err = json.Unmarshal([]byte(host.InstallerArgs), &installerArgs)
 		if err != nil {
