@@ -94,6 +94,8 @@ ENABLE_ORG_BASED_FEATURE_GATES := $(or ${ENABLE_ORG_BASED_FEATURE_GATES},False)
 KIND_EXPERIMENTAL_PROVIDER=podman
 LOCAL_ASSISTED_SERVICE_IMAGE=localhost/assisted-service:latest
 LOCAL_IMAGE_ARCHIVE=build/assisted_service_image.tar
+HUB_CLUSTER_NAME=assisted-hub-cluster
+
 
 ifeq ($(DISABLE_TLS),true)
 	DISABLE_TLS_CMD := --disable-tls
@@ -234,16 +236,16 @@ update-image: $(UPDATE_IMAGE)
 load-image: create-hub-cluster
 	rm -f $(LOCAL_IMAGE_ARCHIVE) || true
 	mkdir -p build
-	@if [ -z ${SUBSYSTEM_SERVICE_IMAGE} ]; then \
+	@if [ -z ${SERVICE_IMAGE} ]; then \
 		echo "Building and using local assisted-service image..."; \
 		skipper $(MAKE) update-image SERVICE=$(LOCAL_ASSISTED_SERVICE_IMAGE); \
 	else \
-		echo "Using image from ${SUBSYSTEM_SERVICE_IMAGE}..."; \
-		$(CONTAINER_COMMAND) pull ${SUBSYSTEM_SERVICE_IMAGE}; \
-		$(CONTAINER_COMMAND) tag ${SUBSYSTEM_SERVICE_IMAGE} $(LOCAL_ASSISTED_SERVICE_IMAGE); \
+		echo "Using image from ${SERVICE_IMAGE}..."; \
+		$(CONTAINER_COMMAND) pull ${SERVICE_IMAGE}; \
+		$(CONTAINER_COMMAND) tag ${SERVICE_IMAGE} $(LOCAL_ASSISTED_SERVICE_IMAGE); \
 	fi
 	$(CONTAINER_COMMAND) save -o $(LOCAL_IMAGE_ARCHIVE) $(LOCAL_ASSISTED_SERVICE_IMAGE)
-	./hack/kind/kind.sh load_kind_image $(LOCAL_IMAGE_ARCHIVE) assisted-installer-kind
+	./hack/hub_cluster.sh load_image $(LOCAL_IMAGE_ARCHIVE) $(HUB_CLUSTER_NAME)
 
 build-image: update-minimal
 
@@ -348,7 +350,7 @@ deploy-converged-flow-requirements:
 deploy-service: deploy-service-requirements
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
 		$(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
-		--apply-manifest $(APPLY_MANIFEST) $(EVENT_STREAMING_OPTIONS) $(DEBUG_PORT_OPTIONS) $(IMAGE_PULL_POLICY)
+		--apply-manifest $(APPLY_MANIFEST) $(EVENT_STREAMING_OPTIONS) $(DEBUG_PORT_OPTIONS)
 	$(MAKE) wait-for-service
 
 wait-for-service:
@@ -418,9 +420,6 @@ ifdef DEBUG_SERVICE
 	$(call restart_service_pods)
 endif
 
-destroy-kind-cluster:
-	./hack/kind/kind.sh delete
-
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
 # we need to pull it from the docker daemon before deploy-onprem.
 podman-pull-service-from-docker-daemon:
@@ -435,6 +434,15 @@ deploy-on-openshift-ci:
 	export PERSISTENT_STORAGE="False" && export TARGET='oc' && export GENERATE_CRD='false' && unset GOFLAGS && \
 	$(MAKE) deploy-test
 	oc get pods
+
+deploy-on-k8s: create-hub-cluster load-image
+	skipper $(MAKE) deploy-all SERVICE=$(LOCAL_ASSISTED_SERVICE_IMAGE) IP=$(shell ip route get 1 | sed 's/^.*src \([^ ]*\).*$$/\1/;q') IMAGE_PULL_POLICY=Never
+ifdef DEBUG_SERVICE
+	$(call remove_assisted_service_deployment_liveness_probe)
+	$(call set_assisted_service_deployment_replicas_to_one)
+	$(call restart_service_pods)
+endif
+
 
 ########
 # Test #
@@ -571,11 +579,11 @@ test-on-openshift-ci:
 install-kind-if-needed:
 	./hack/kind/kind.sh install
 
-delete-kind-cluster:
-	kind delete cluster
-
 create-hub-cluster:
-	./hack/kind/kind.sh create
+	./hack/hub_cluster.sh create
+
+destroy-hub-cluster:
+	./hack/hub_cluster.sh delete
 
 #########
 # Clean #

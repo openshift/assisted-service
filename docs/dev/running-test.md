@@ -33,7 +33,7 @@ ENABLE_KUBE_API=true make deploy-service-for-subsystem-test
 
 Optionally the following environment variables can be exported:
 
-* `SUBSYSTEM_SERVICE_IMAGE` - Specify external image to use for assisted-service.
+* `SERVICE_IMAGE` - Specify external image to use for assisted-service.
 * `DEBUG_SERVICE=true` - Deploy assisted-service for subsystem tests in debug mode. In order to debug assisted-service code after it is deployed, you need need to connect to dlv, see [Debug](debug.md). Once you are connected, set break points and run the tests. **Note**: you can only debug the code executed inside assisted-service container this way (not the test code, etc.)
 
 ## Running the tests

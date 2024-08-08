@@ -117,7 +117,7 @@ def main():
                 "AGENT_DOCKER_IMAGE": "assisted-installer-agent"}
     for env_var_name, image_short_name in versions.items():
         versions[env_var_name] = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
-        if deploy_options.target != "kind":
+        if deploy_options.target != "kind" and deploy_options.target != "minikube":
             log.info(f"Logging {image_short_name} information")
             log_image_revision(versions[env_var_name])
 
