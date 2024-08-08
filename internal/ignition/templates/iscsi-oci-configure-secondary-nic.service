@@ -1,9 +1,9 @@
 [Unit]
 Description=Configure secondary NIC on OCI when using iSSCI boot drive
-After=network-online.target
+After=NetworkManager.service
 
 [Service]
-ExecStart=/usr/local/bin/oci-configure-secondary-nic.sh
+ExecStart=/usr/local/bin/iscsi-oci-configure-secondary-nic.sh
 Type=oneshot
 RemainAfterExit=yes
 Restart=on-failure
