@@ -23,6 +23,29 @@ function get_if_name_from_mac_address {
   ip -json link | jq --raw-output --arg mac_address "${mac_address}" '. | map(select(.address==($mac_address|ascii_downcase))) | .[].ifname'
 }
 
+# /opc/v2/vnics endpoint returns something that will look like the following
+# structure:
+# [
+#   {
+#     "macAddr": "00:10:e0:ec:72:fc",
+#     "nicIndex": 0,
+#     "privateIp": "10.0.29.201",
+#     "subnetCidrBlock": "10.0.16.0/20",
+#     "virtualRouterIp": "10.0.16.1",
+#     "vlanTag": 0,
+#     "vnicId": "ocid1.vnic.oc1.us-sanjose-1.abzwuljrppq34sbvgltddp7wujxwqw6xb7zjkwg54oaewx5mc4wr5cgtdzna"
+#   },
+#   {
+#     "macAddr": "00:10:e0:ec:72:fd",
+#     "nicIndex": 1,
+#     "privateIp": "10.0.32.210",
+#     "subnetCidrBlock": "10.0.32.0/20",
+#     "virtualRouterIp": "10.0.32.1",
+#     "vlanTag": 0,
+#     "vnicId": "ocid1.vnic.oc1.us-sanjose-1.abzwuljrsndaptsyq5mppfsoaqoun3gbvnpngcaspybo2nbpcmrozx25jenq"
+#   }
+# ]
+
 vnics=$(curl --silent -H "Authorization: Bearer Oracle" -L http://169.254.169.254/opc/v2/vnics/)
 secondary_if_mac_address=$(jq -r '.[1].macAddr' <<< "${vnics}")
 secondary_if_name=$(get_if_name_from_mac_address "${secondary_if_mac_address}")
