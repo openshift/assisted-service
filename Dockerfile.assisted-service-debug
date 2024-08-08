@@ -4,6 +4,8 @@ RUN GOFLAGS=-mod=mod go install github.com/go-delve/delve/cmd/dlv@v1.21.2
 
 FROM quay.io/centos/centos:stream9
 
+RUN dnf install --enablerepo=crb -y gcc git nmstate-devel openssl-devel && dnf clean all
+
 ENV GOROOT=/usr/lib/golang
 ENV GOPATH=/opt/app-root/src/go
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
