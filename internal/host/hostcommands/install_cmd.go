@@ -280,8 +280,7 @@ controls DHCP depending on the IP stack being used.
 func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 	var installerArgs []string
 	var err error
-
-	hasStaticNetwork := (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
+	var hasStaticNetwork bool
 
 	if host.InstallerArgs != "" {
 		err = json.Unmarshal([]byte(host.InstallerArgs), &installerArgs)
@@ -302,16 +301,18 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		if err != nil {
 			return "", err
 		}
+
+		// when using ISCSI along OCI, we expect the user (via a
+		// script) to configure the network statically on the nodes as
+		// DHCP is not available in this case
+		hasStaticNetwork = hasStaticNetwork ||
+			(installationDisk.DriveType == models.DriveTypeISCSI && common.IsOciExternalIntegrationEnabled(cluster.Platform))
 	} else {
 		log.Warnf("No installation disk found for host ID %s", host.ID)
 	}
 
-	if installationDisk.DriveType == models.DriveTypeISCSI && common.IsOciExternalIntegrationEnabled(cluster.Platform) {
-		// when using ISCSI along OCI, we expect the user (via a
-		// script) to configure the network statically on the nodes as
-		// DHCP is not available in this case
-		hasStaticNetwork = true
-	}
+	hasStaticNetwork = hasStaticNetwork ||
+		(infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
 
 	// set DHCP args only if no IP config override was specified (only for LPAR and zVM nodes on s390x)
 	if !hasStaticNetwork && !hasIPConfigOverride && !hasUserConfiguredIP {
