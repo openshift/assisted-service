@@ -294,6 +294,25 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 
 	hasUserConfiguredIP := hasUserConfiguredIP(installerArgs)
 
+	// append kargs depending on installation drive type
+	installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(host))
+	if installationDisk != nil {
+		installerArgs = appendMultipathArgs(installerArgs, installationDisk)
+		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		log.Warnf("No installation disk found for host ID %s", host.ID)
+	}
+
+	if installationDisk.DriveType == models.DriveTypeISCSI && common.IsOciExternalIntegrationEnabled(cluster.Platform) {
+		// when using ISCSI along OCI, we expect the user (via a
+		// script) to configure the network statically on the nodes as
+		// DHCP is not available in this case
+		hasStaticNetwork = true
+	}
+
 	// set DHCP args only if no IP config override was specified (only for LPAR and zVM nodes on s390x)
 	if !hasStaticNetwork && !hasIPConfigOverride && !hasUserConfiguredIP {
 		// The set of ip=<nic>:dhcp kernel arguments should be added only if there is no static
@@ -306,18 +325,6 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		if err != nil {
 			return "", err
 		}
-	}
-
-	// append kargs depending on installation drive type
-	installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(host))
-	if installationDisk != nil {
-		installerArgs = appendMultipathArgs(installerArgs, installationDisk)
-		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		log.Warnf("No installation disk found for host ID %s", host.ID)
 	}
 
 	if hasStaticNetwork && !lo.Contains(installerArgs, "--copy-network") {
