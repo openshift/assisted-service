@@ -31,10 +31,10 @@ var _ = Describe("MCE Operator", func() {
 				Ram:  32 * conversions.GiB,
 			}),
 		}
-		hostWithMaximumOffsetLessThanMinimumMemory = &models.Host{
+		hostWithSlightlyLessThanMinimumMemoryButStillTolerable = &models.Host{
 			Inventory: Inventory(&InventoryResources{
 				Cpus: 12,
-				Ram:  MinimumMemory*conversions.GiB - MaximumMemoryRequirementOffset*conversions.MiB,
+				Ram:  MinimumMemory*conversions.GiB - MemoryRequirementToleranceMiB*conversions.MiB,
 			}),
 		}
 	)
@@ -82,9 +82,9 @@ var _ = Describe("MCE Operator", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
 			),
 
-			table.Entry("host with maximum offset less then minimum memory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithMaximumOffsetLessThanMinimumMemory}}},
-				hostWithMaximumOffsetLessThanMinimumMemory,
+			table.Entry("host with slightly less then minimum memory but still tolerable",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithSlightlyLessThanMinimumMemoryButStillTolerable}}},
+				hostWithSlightlyLessThanMinimumMemoryButStillTolerable,
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
 			),
 		)
