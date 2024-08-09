@@ -1,6 +1,8 @@
 package external
 
 import (
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -23,4 +25,17 @@ func (p *baseExternalProvider) IsHostSupported(_ *models.Host) (bool, error) {
 
 func (p *baseExternalProvider) AreHostsSupported(hosts []*models.Host) (bool, error) {
 	return true, nil
+}
+
+func (p *baseExternalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+	cfg.Platform = installcfg.Platform{
+		External: &installcfg.ExternalInstallConfigPlatform{
+			PlatformName:           *cluster.Platform.External.PlatformName,
+			CloudControllerManager: installcfg.CloudControllerManager(*cluster.Platform.External.CloudControllerManager),
+		},
+	}
+
+	provider.ConfigureUserManagedNetworkingInInstallConfig(p.Log, cluster, cfg)
+
+	return nil
 }
