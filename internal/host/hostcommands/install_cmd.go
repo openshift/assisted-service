@@ -280,8 +280,11 @@ controls DHCP depending on the IP stack being used.
 func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 	var installerArgs []string
 	var err error
+	var hasIPConfigOverride bool
 
-	hasStaticNetwork := (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
+	if inventory == nil {
+		return "", fmt.Errorf("Missing inventory")
+	}
 
 	if host.InstallerArgs != "" {
 		err = json.Unmarshal([]byte(host.InstallerArgs), &installerArgs)
@@ -290,9 +293,34 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		}
 	}
 
-	installerArgs, hasIPConfigOverride := appends390xArgs(inventory, installerArgs, log)
+	installerArgs, hasIPConfigOverride = appends390xArgs(inventory, installerArgs, log)
 
 	hasUserConfiguredIP := hasUserConfiguredIP(installerArgs)
+
+	// append kargs depending on installation drive type
+	installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(host))
+	if installationDisk != nil {
+		installerArgs = appendMultipathArgs(installerArgs, installationDisk)
+		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
+		if err != nil {
+			return "", err
+		}
+
+		// When using ISCSI along OCI, we expect the user (via a
+		// script) to configure the network statically on the nodes as
+		// DHCP is not available in this case.
+		//
+		// Even if the user configured the network during discovery, we
+		// cannot propagate the configuration with --copy-network
+		// because it won't work along iSCSI:
+		// https://github.com/coreos/coreos-installer/issues/1389
+		hasIPConfigOverride = hasIPConfigOverride ||
+			(installationDisk.DriveType == models.DriveTypeISCSI && common.IsOciExternalIntegrationEnabled(cluster.Platform))
+	} else {
+		log.Warnf("No installation disk found for host ID %s", host.ID)
+	}
+
+	hasStaticNetwork := (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
 
 	// set DHCP args only if no IP config override was specified (only for LPAR and zVM nodes on s390x)
 	if !hasStaticNetwork && !hasIPConfigOverride && !hasUserConfiguredIP {
@@ -306,18 +334,6 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		if err != nil {
 			return "", err
 		}
-	}
-
-	// append kargs depending on installation drive type
-	installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(host))
-	if installationDisk != nil {
-		installerArgs = appendMultipathArgs(installerArgs, installationDisk)
-		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		log.Warnf("No installation disk found for host ID %s", host.ID)
 	}
 
 	if hasStaticNetwork && !lo.Contains(installerArgs, "--copy-network") {
