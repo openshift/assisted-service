@@ -80,7 +80,7 @@ EOF
 
     if [ -n "${PUBLIC_CONTAINER_REGISTRIES:-}" ]; then
 cat <<EOF
-  PUBLIC_CONTAINER_REGISTRIES: 'quay.io,${PUBLIC_CONTAINER_REGISTRIES}'
+  PUBLIC_CONTAINER_REGISTRIES: 'quay.io,registry.ci.openshift.org,${PUBLIC_CONTAINER_REGISTRIES}'
 EOF
     fi
     if [ -n "${ALLOW_CONVERGED_FLOW:-}" ]; then
