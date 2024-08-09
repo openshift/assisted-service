@@ -280,7 +280,7 @@ controls DHCP depending on the IP stack being used.
 func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 	var installerArgs []string
 	var err error
-	var hasStaticNetwork bool
+	var hasIPConfigOverride bool
 
 	if inventory == nil {
 		return "", fmt.Errorf("Missing inventory")
@@ -293,7 +293,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		}
 	}
 
-	installerArgs, hasIPConfigOverride := appends390xArgs(inventory, installerArgs, log)
+	installerArgs, hasIPConfigOverride = appends390xArgs(inventory, installerArgs, log)
 
 	hasUserConfiguredIP := hasUserConfiguredIP(installerArgs)
 
@@ -306,17 +306,21 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 			return "", err
 		}
 
-		// when using ISCSI along OCI, we expect the user (via a
+		// When using ISCSI along OCI, we expect the user (via a
 		// script) to configure the network statically on the nodes as
-		// DHCP is not available in this case
-		hasStaticNetwork = hasStaticNetwork ||
+		// DHCP is not available in this case.
+		//
+		// Even if the user configured the network during discovery, we
+		// cannot propagate the configuration with --copy-network
+		// because it won't work along iSCSI:
+		// https://github.com/coreos/coreos-installer/issues/1389
+		hasIPConfigOverride = hasIPConfigOverride ||
 			(installationDisk.DriveType == models.DriveTypeISCSI && common.IsOciExternalIntegrationEnabled(cluster.Platform))
 	} else {
 		log.Warnf("No installation disk found for host ID %s", host.ID)
 	}
 
-	hasStaticNetwork = hasStaticNetwork ||
-		(infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
+	hasStaticNetwork := (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
 
 	// set DHCP args only if no IP config override was specified (only for LPAR and zVM nodes on s390x)
 	if !hasStaticNetwork && !hasIPConfigOverride && !hasUserConfiguredIP {
