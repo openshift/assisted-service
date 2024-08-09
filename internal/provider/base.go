@@ -1,7 +1,9 @@
 package provider
 
 import (
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/usage"
@@ -54,7 +56,7 @@ func GetMachineNetworkForUserManagedNetworking(log logrus.FieldLogger, cluster *
 	return nil
 }
 
-func ReplaceMachineNetworkIfNeeded(log logrus.FieldLogger, cluster *common.Cluster, cfg *installcfg.InstallerConfigBaremetal) {
+func replaceMachineNetworkIfNeeded(log logrus.FieldLogger, cluster *common.Cluster, cfg *installcfg.InstallerConfigBaremetal) {
 	bootstrapHost := common.GetBootstrapHost(cluster)
 	if bootstrapHost == nil {
 		log.Warnf("GetBootstrapHost: failed to get bootstrap host for cluster %s", lo.FromPtr(cluster.ID))
@@ -80,4 +82,26 @@ func ReplaceMachineNetworkIfNeeded(log logrus.FieldLogger, cluster *common.Clust
 			break
 		}
 	}
+}
+
+func ConfigureUserManagedNetworkingInInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, cfg *installcfg.InstallerConfigBaremetal) {
+	cfg.Networking.MachineNetwork = GetMachineNetworkForUserManagedNetworking(log, cluster)
+	if cluster.NetworkType != nil {
+		cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
+	}
+
+	if common.IsSingleNodeCluster(cluster) {
+
+		if cfg.Networking.NetworkType == "" {
+			cfg.Networking.NetworkType = models.ClusterNetworkTypeOVNKubernetes
+		}
+
+		bootstrap := common.GetBootstrapHost(cluster)
+		if bootstrap != nil {
+			cfg.BootstrapInPlace = &installcfg.BootstrapInPlace{InstallationDisk: hostutil.GetHostInstallationPath(bootstrap)}
+		}
+	} else {
+		replaceMachineNetworkIfNeeded(log, cluster, cfg)
+	}
+
 }
