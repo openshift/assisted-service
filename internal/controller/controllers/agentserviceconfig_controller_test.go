@@ -745,6 +745,81 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 	})
 
+	It("creates the cluster trusted CA cert config map", func() {
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute)
+		_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+
+		cm := corev1.ConfigMap{}
+		key := types.NamespacedName{
+			Name:      clusterCAConfigMapName,
+			Namespace: ascr.Namespace,
+		}
+		Expect(ascr.Get(ctx, key, &cm)).To(Succeed())
+		Expect(cm.GetLabels()[injectTrustedCALabel]).To(Equal("true"))
+
+	})
+
+	It("copies the contents of the cluster trusted CA cert config map into the assisted cert config map", func() {
+		testClusterCert := "-----BEGIN CERTIFICATE-----\nMIIFNDCCAxygAwIBAgIUIuI4RrUYvTSrIKq0XPr9eZB42CEwDQYJKoZIhvcNAQEL\nBQAwFjEUMBIGA1UEAwwLZXhhbXBsZS5jb20wHhcNMjQwNzIyMjAwMDA2WhcNMzQw\nNzIwMjAwMDA2WjAWMRQwEgYDVQQDDAtleGFtcGxlLmNvbTCCAiIwDQYJKoZIhvcN\nAQEBBQADggIPADCCAgoCggIBAMr6JdHm+2dYV486In1PKN7K2Bp2nbFt+JjE9UjN\nLy5spMEU1nBTTdQp7X2o5IrxcmQm2eWUZsQqRzsipWGLGY433cCHxozJSqincPIz\n3k5vU7nctt0vY8Gd+vX1KggmRVgfRatp2C0We56K3JzpnXk33/X/eI+PATS1LvU+\nJwz1zkoCURos9NJtVKmO/mZsdu1kn7lcA+OXxAkUVuhl4OQYDmhAqFn0HWCP/OYD\nVSKUBegf0TrelkmwqX/50hW1dWCiB39pJqhchLn1EZOrt69YUrfU2cEfw6SnMhaO\neSLBAf9d9krbrNNH8hBfOMxErz3OnHG4hMWnsuUpZlDQOgS5SFOPIVoY70izLDbv\nG6eoVSpC7+ZgotEEPxW3drEMHkzcCMgXCFD3uDJRScoKy2VbovOz8POvjCuYbB6H\nJDoy17w9h8Jk11fBWWG3jU9cgI8xaz7uZB+ctPhfTdV3YxdWvwuvrNPEyZ7QoSt1\nU06l0nnI24zMYnBK4Ogct/mqW4M10027wrTKiEi0PL7U8Rdnfy4Z6WK82uUdYfRC\nNMJw0uhxVyQTxDf0+kwDH82vprbjlAQkRsW+6CLfy2nVJYDkbAI4DnxFdlGnL3Mh\nHkMN7gSIIlI13uQnzPino/QuswV+kFHUSaoheAZlaGaORR3F5DIqf5t0H732X4Qn\nR731AgMBAAGjejB4MB0GA1UdDgQWBBRgPTn7qENgjkciUw2qrJBF3dgNUTAfBgNV\nHSMEGDAWgBRgPTn7qENgjkciUw2qrJBF3dgNUTAPBgNVHRMBAf8EBTADAQH/MCUG\nA1UdEQQeMByCC2V4YW1wbGUuY29tgg0qLmV4YW1wbGUuY29tMA0GCSqGSIb3DQEB\nCwUAA4ICAQAc4YcvCHxaAVcN//4/lnxUKC1T7r2i+jGimgUWWqaER8WH1md2My77\n0HOa0gs4SKJLvxssmyOVaie+prJAl/hyV2T7N4E7fnIVvyBsRqYgrXdISS07/WHc\n1Nz1/qOx7iEt4pB2lVm8PGVZvos97YzYw1odzadMP+J6b3JbYdK/s5iRqULgFzL8\nTNUXM83jTpSTa5SKIyf+RZgdMYasLdla5rChKlc0mpWVvr+mvY+ziKjmZPp6RcKC\nRyddKecwHLClIXz1IuUK0Wdjrr5OwBXnMMy+eIuHFaYYIlt0IYsl3ecT1zRrSVT9\niMulnPLh3TRJ9DC6FcYmy0TXgC3OyAhGFB+hFbqzillqjN4tI6M4GipSAq63IVya\nOxms940SIHS/Jph/ynqncM9bPKuDeKR4BUikLPuOAhogmJ/2vnkQS7VP2TqVjFNZ\nmrxoNHE8eKl7QUJR0Bk6aLkc2wjlHPyqFpgUMhKU+TnRRSGUgmT0fRHkGHwEdsQ4\nqx2r18pk+1fUGqma9P4zDod44iVstpQHZ4iWMtZc/KAvG1fwDJVnEJzOOytoNrc0\nxRu491o2EAUIk2/mfDln5vg8gKNGqARuOc5PEAKGrGthYIluoz6JRSm92khf19fe\nQyFF2sYgIrz/h6L+kx4WTEPQPhQWkeJ/NIiCc687ZP1yNmJI/GcUdg==\n-----END CERTIFICATE-----\n"
+		clusterCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterCAConfigMapName,
+				Namespace: ascr.Namespace,
+				Labels:    map[string]string{injectTrustedCALabel: "true"},
+			},
+			Data: map[string]string{caBundleKey: testClusterCert},
+		}
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, clusterCM)
+		_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+
+		cm := corev1.ConfigMap{}
+		key := types.NamespacedName{
+			Name:      assistedCAConfigMapName,
+			Namespace: ascr.Namespace,
+		}
+		Expect(ascr.Get(ctx, key, &cm)).To(Succeed())
+		Expect(cm.Data[caBundleKey]).To(Equal(testClusterCert))
+	})
+
+	It("combines the cluter trusted CA cert content with user mirror registry certs in the assissted cert config map", func() {
+		testClusterCert := "-----BEGIN CERTIFICATE-----\nMIIFNDCCAxygAwIBAgIUIuI4RrUYvTSrIKq0XPr9eZB42CEwDQYJKoZIhvcNAQEL\nBQAwFjEUMBIGA1UEAwwLZXhhbXBsZS5jb20wHhcNMjQwNzIyMjAwMDA2WhcNMzQw\nNzIwMjAwMDA2WjAWMRQwEgYDVQQDDAtleGFtcGxlLmNvbTCCAiIwDQYJKoZIhvcN\nAQEBBQADggIPADCCAgoCggIBAMr6JdHm+2dYV486In1PKN7K2Bp2nbFt+JjE9UjN\nLy5spMEU1nBTTdQp7X2o5IrxcmQm2eWUZsQqRzsipWGLGY433cCHxozJSqincPIz\n3k5vU7nctt0vY8Gd+vX1KggmRVgfRatp2C0We56K3JzpnXk33/X/eI+PATS1LvU+\nJwz1zkoCURos9NJtVKmO/mZsdu1kn7lcA+OXxAkUVuhl4OQYDmhAqFn0HWCP/OYD\nVSKUBegf0TrelkmwqX/50hW1dWCiB39pJqhchLn1EZOrt69YUrfU2cEfw6SnMhaO\neSLBAf9d9krbrNNH8hBfOMxErz3OnHG4hMWnsuUpZlDQOgS5SFOPIVoY70izLDbv\nG6eoVSpC7+ZgotEEPxW3drEMHkzcCMgXCFD3uDJRScoKy2VbovOz8POvjCuYbB6H\nJDoy17w9h8Jk11fBWWG3jU9cgI8xaz7uZB+ctPhfTdV3YxdWvwuvrNPEyZ7QoSt1\nU06l0nnI24zMYnBK4Ogct/mqW4M10027wrTKiEi0PL7U8Rdnfy4Z6WK82uUdYfRC\nNMJw0uhxVyQTxDf0+kwDH82vprbjlAQkRsW+6CLfy2nVJYDkbAI4DnxFdlGnL3Mh\nHkMN7gSIIlI13uQnzPino/QuswV+kFHUSaoheAZlaGaORR3F5DIqf5t0H732X4Qn\nR731AgMBAAGjejB4MB0GA1UdDgQWBBRgPTn7qENgjkciUw2qrJBF3dgNUTAfBgNV\nHSMEGDAWgBRgPTn7qENgjkciUw2qrJBF3dgNUTAPBgNVHRMBAf8EBTADAQH/MCUG\nA1UdEQQeMByCC2V4YW1wbGUuY29tgg0qLmV4YW1wbGUuY29tMA0GCSqGSIb3DQEB\nCwUAA4ICAQAc4YcvCHxaAVcN//4/lnxUKC1T7r2i+jGimgUWWqaER8WH1md2My77\n0HOa0gs4SKJLvxssmyOVaie+prJAl/hyV2T7N4E7fnIVvyBsRqYgrXdISS07/WHc\n1Nz1/qOx7iEt4pB2lVm8PGVZvos97YzYw1odzadMP+J6b3JbYdK/s5iRqULgFzL8\nTNUXM83jTpSTa5SKIyf+RZgdMYasLdla5rChKlc0mpWVvr+mvY+ziKjmZPp6RcKC\nRyddKecwHLClIXz1IuUK0Wdjrr5OwBXnMMy+eIuHFaYYIlt0IYsl3ecT1zRrSVT9\niMulnPLh3TRJ9DC6FcYmy0TXgC3OyAhGFB+hFbqzillqjN4tI6M4GipSAq63IVya\nOxms940SIHS/Jph/ynqncM9bPKuDeKR4BUikLPuOAhogmJ/2vnkQS7VP2TqVjFNZ\nmrxoNHE8eKl7QUJR0Bk6aLkc2wjlHPyqFpgUMhKU+TnRRSGUgmT0fRHkGHwEdsQ4\nqx2r18pk+1fUGqma9P4zDod44iVstpQHZ4iWMtZc/KAvG1fwDJVnEJzOOytoNrc0\nxRu491o2EAUIk2/mfDln5vg8gKNGqARuOc5PEAKGrGthYIluoz6JRSm92khf19fe\nQyFF2sYgIrz/h6L+kx4WTEPQPhQWkeJ/NIiCc687ZP1yNmJI/GcUdg==\n-----END CERTIFICATE-----\n"
+		clusterCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterCAConfigMapName,
+				Namespace: ascr.Namespace,
+				Labels:    map[string]string{injectTrustedCALabel: "true"},
+			},
+			Data: map[string]string{caBundleKey: testClusterCert},
+		}
+
+		testUserCert := "-----BEGIN CERTIFICATE-----\nMIIFNDCCAxygAwIBAgIUdfm4+FGEMjiv2FGF6IqcNx4aSp8wDQYJKoZIhvcNAQEL\nBQAwFjEUMBIGA1UEAwwLZXhhbXBsZS5vcmcwHhcNMjQwNzE5MjA0MDI3WhcNMzQw\nNzE3MjA0MDI3WjAWMRQwEgYDVQQDDAtleGFtcGxlLm9yZzCCAiIwDQYJKoZIhvcN\nAQEBBQADggIPADCCAgoCggIBAO2DhLgDYi7zwhQXxJ0XWd9UHNE4dnHWX2f5zhXT\n8qrEm8ieXKFt87AUooZcyXn5WH5geiauO+sBQ6ksqvb8Jfuj26YbhCeyxAHoKnne\nU9zKpuNr5nM4GIHd7J8X5LATszdXYIr5ghZ2jwhKYKz4Q0g4kObASISGpDODfqKs\nR+ZjIXI3rWcnSWFTbd5ZkOw+xLvNE58f/K1W8ejCU0oFZ0npyfYgfrmteqfiB4Ra\nta9jXThwPgY8psVMAXF8JGl+4t7s1XWHmeIZm3Pjv84Rg2h/2rPcCT5LBBB2W2b8\n2vaHhhLihAFeyZ5D1XRC+wyVIVXpjSgEvWCaAIfjNZaOe1BWa93s10zmLKH4A1yC\nsJj/hmYY/X2MzgRz3vfKAXSEfcTl1hXSDt+NoXaEJDvPF+g4jO0z9/ajFEu4mb1v\nUhUIr3P7AWVaAyvhoORW0D4t3f9mm9QDT7hLetGDU/gEMa53QehC+mCoHbtWiN7y\n394pdXORm2mzNfXoKlBXF1aiDtUE60h+U+uBoK3sxSZVgJq6anqlOE6ILUQNxFZt\nCiMGPeOoyBQmIqiAfGE2Kkz8Jz/7YuNZLlG9jbQy3JwGMX2I12BvXWcG2ScbITqT\n7NhkUCYKQEzUEeOToIsE7nnnxKi2vKnCvtqPFCR/HX5TetHahFo3TTqO0KIx3KXh\nNUzVAgMBAAGjejB4MB0GA1UdDgQWBBQmtTZjMDEVuVrhdqNXmdMqwqlE9TAfBgNV\nHSMEGDAWgBQmtTZjMDEVuVrhdqNXmdMqwqlE9TAPBgNVHRMBAf8EBTADAQH/MCUG\nA1UdEQQeMByCC2V4YW1wbGUub3Jngg0qLmV4YW1wbGUub3JnMA0GCSqGSIb3DQEB\nCwUAA4ICAQAPQb35BXoOE8iWtADxz7hB2KfM98U7n6robrNt6OJ5mGWgt4KoFbCP\niqdDIGxXXPiecSN1vn3GjGJX5zSojMAAhnoAnxix+0G9E08a3YwJ/VFJqMcmxiX/\n6hXOIIRLHeHOSJaYxmtNZVDFuHeL/JbUcHfWyJsGAnkRNSORm0caU5fF/NyC11KR\nbv31SN61ssO/eKJuroa7jEjg6IhhsvXE749LVXZQj4dEoxd4NS1EZNOI0r6WhXgv\nldYN8k2Mup9HA/P89VPEhjr2NhuFDrQH+ReIOCHHQz4R7AzEzwZtdn9FMkzt13D2\n3pNZgjNBTt65la3PYEaKuPBoAEyhmiykPurp5zj+xLlINHU8lgnhtneUNU3RbX4j\nWFDA+HvhwN/67p6uDW8UwQS6NB5cWflElq3zOJXAK6eO2ZetAGJuDPEXMi52U0eU\neFRHqoksH0ThI8kEU+rRbhOrZjTe/4wbsCBitAjlaKM82RlMCT188d3Y706Bcdme\nZlXFPKksDzvRc8LyoZxT5RYXKdNSS/UF3VxP9aKW+hvHzE5Hr9jeVOhrdNvjhJ5r\nWqbHAubuIFOxYN+dzLqJfhq0ee5h9xcN4JSK7Tlyur4IOaLhR0wDJxVl4+lysAxe\nZNpw+0EhyM3IloGpckyWBQZ3vs3qp2evHqbie/F8gM2v0P5VrYPFZw==\n-----END CERTIFICATE-----\n"
+		mirrorCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mirror-registries",
+				Namespace: ascr.Namespace,
+			},
+			Data: map[string]string{
+				mirrorRegistryRefCertKey:         testUserCert,
+				mirrorRegistryRefRegistryConfKey: "someregistrieshere",
+			},
+		}
+		asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: "mirror-registries"}
+
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, clusterCM, mirrorCM)
+		_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+
+		cm := corev1.ConfigMap{}
+		key := types.NamespacedName{
+			Name:      assistedCAConfigMapName,
+			Namespace: ascr.Namespace,
+		}
+		Expect(ascr.Get(ctx, key, &cm)).To(Succeed())
+		Expect(cm.Data[caBundleKey]).To(Equal(testClusterCert + "\n" + testUserCert))
+	})
+
 	Context("IPXE routes", func() {
 		var (
 			imageServiceStatefulSet *appsv1.StatefulSet
@@ -1580,7 +1655,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(5))
+				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(6))
 				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
 					corev1.VolumeMount{
 						Name:      mirrorRegistryConfigVolume,
@@ -1640,7 +1715,25 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(5))
+				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(6))
+				Expect(found.Spec.Template.Spec.Volumes).To(ContainElement(
+					corev1.Volume{
+						Name: "trusted-ca-certs",
+						VolumeSource: corev1.VolumeSource{
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								Items: []corev1.KeyToPath{{
+									Key:  caBundleKey,
+									Path: common.MirrorRegistriesCertificateFile,
+								}},
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: assistedCAConfigMapName,
+								},
+								DefaultMode: swag.Int32(420),
+							},
+						},
+					},
+				))
+
 				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
 					corev1.VolumeMount{
 						Name:      mirrorRegistryConfigVolume,
@@ -1649,7 +1742,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 				)
 				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
 					corev1.VolumeMount{
-						Name:      mirrorRegistryConfigVolume,
+						Name:      "trusted-ca-certs",
 						MountPath: common.MirrorRegistriesCertificatePath,
 						SubPath:   common.MirrorRegistriesCertificateFile,
 					}),
