@@ -633,6 +633,8 @@ var _ = Describe("nic reaaply manifest", func() {
 		dbName                string
 		clusterId             strfmt.UUID
 		cluster               common.Cluster
+		hostWithiSCSI         models.Host
+		hostWithSSD           models.Host
 	)
 
 	BeforeEach(func() {
@@ -648,6 +650,23 @@ var _ = Describe("nic reaaply manifest", func() {
 				ID: &clusterId,
 			},
 		}
+		diskInventoryTemplate := `{
+						"disks":[
+							{
+								"id": "install-id",
+								"drive_type": "%s"
+							}
+						]
+					}`
+		hostWithiSCSI = models.Host{
+			Inventory:          fmt.Sprintf(diskInventoryTemplate, models.DriveTypeISCSI),
+			InstallationDiskID: "install-id",
+		}
+		hostWithSSD = models.Host{
+			Inventory:          fmt.Sprintf(diskInventoryTemplate, models.DriveTypeSSD),
+			InstallationDiskID: "install-id",
+		}
+
 		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
 		manifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
 	})
@@ -663,74 +682,16 @@ var _ = Describe("nic reaaply manifest", func() {
 				FileName: "manifest.yaml",
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil)
-			cluster.Cluster.Hosts = []*models.Host{
-				{
-					Inventory: fmt.Sprintf(`{
-						"disks":[
-							{
-								"id": "install-id",
-								"drive_type": "%s"
-							}
-						]
-						}`, models.DriveTypeISCSI),
-					InstallationDiskID: "install-id",
-				},
-				{
-					Inventory: fmt.Sprintf(`{
-						"disks":[
-							{
-								"id": "install-id",
-								"drive_type": "%s"
-							}
-						]
-						}`, models.DriveTypeSSD),
-					InstallationDiskID: "install-id",
-				},
-			}
+			cluster.Cluster.Hosts = []*models.Host{&hostWithiSCSI, &hostWithSSD}
 			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
 		})
 		It("not added when no hosts installs on an iSCSI drive", func() {
-			cluster.Cluster.Hosts = []*models.Host{
-				{
-					Inventory: fmt.Sprintf(`{
-						"disks":[
-							{
-								"id": "install-id",
-								"drive_type": "%s"
-							}
-						]
-						}`, models.DriveTypeSSD),
-					InstallationDiskID: "install-id",
-				},
-				{
-					Inventory: fmt.Sprintf(`{
-						"disks":[
-							{
-								"id": "install-id",
-								"drive_type": "%s"
-							}
-						]
-						}`, models.DriveTypeSSD),
-					InstallationDiskID: "install-id",
-				},
-			}
+			cluster.Cluster.Hosts = []*models.Host{&hostWithSSD, &hostWithSSD}
 			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
 		})
 		It("failure", func() {
 			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(nil, errors.Errorf("Failed to create manifest")).Times(1)
-			cluster.Cluster.Hosts = []*models.Host{
-				{
-					Inventory: fmt.Sprintf(`{
-						"disks":[
-							{
-								"id": "install-id",
-								"drive_type": "%s"
-							}
-						]
-						}`, models.DriveTypeISCSI),
-					InstallationDiskID: "install-id",
-				},
-			}
+			cluster.Cluster.Hosts = []*models.Host{&hostWithiSCSI}
 			err := manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)
 			Expect(err).Should(HaveOccurred())
 			Expect(err.Error()).Should(Equal("Failed to create manifest 50-masters-iscsi-nic-reapply.yaml: Failed to create manifest"))
