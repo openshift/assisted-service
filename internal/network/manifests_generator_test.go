@@ -731,7 +731,9 @@ var _ = Describe("nic reaaply manifest", func() {
 					InstallationDiskID: "install-id",
 				},
 			}
-			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).Should(HaveOccurred())
+			err := manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).Should(Equal("Failed to create manifest 50-masters-iscsi-nic-reapply.yaml: Failed to create manifest"))
 		})
 	})
 })
