@@ -955,6 +955,14 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 		dirty = true
 	}
 
+	if bmh.Spec.AutomatedCleaningMode != bmh_v1alpha1.CleaningModeDisabled {
+		// Disable AutomatedCleaningMode if the converged flow is not enabled
+		// since AutomatedCleaning requires IPA, but disabling the converged flow
+		// disables IPA.
+		bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
+		dirty = true
+	}
+
 	proceed, stopReconcileLoop, requeuePeriod, reason := shouldReconcileBMH(bmh, infraEnv)
 
 	if !proceed {
