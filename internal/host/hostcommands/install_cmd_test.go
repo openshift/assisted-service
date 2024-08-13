@@ -868,6 +868,45 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("Cannot find the interface belonging to iSCSI host IP 10.56.21.80"))
 	})
+	It("iSCSI installation disk - OCI - IPv4 address is left un-configured on machine networks interface", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "10.56.21.0/25"}}
+		cluster.Platform = &models.Platform{
+			Type: models.PlatformTypeExternal.Pointer(),
+			External: &models.PlatformExternal{
+				PlatformName:           swag.String(common.ExternalPlatformNameOci),
+				CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+			},
+		}
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.80"
+					}
+				},
+				{
+					"id": "other-id",
+					"drive_type": "%s"
+				}
+			],
+			"interfaces":[
+				{
+					"name": "eth1",
+					"ipv4_addresses":["10.56.20.80/25"]
+				},
+				{
+					"name": "eth2",
+					"ipv4_addresses":["10.56.21.80/25"]
+				}
+			]
+		}`, models.DriveTypeISCSI, models.DriveTypeSSD)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=eth1:dhcp"]`))
+	})
 	It("ip=<nic>:dhcp6 added when machine CIDR is IPv6", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/64"}}
 		host.Inventory = `{

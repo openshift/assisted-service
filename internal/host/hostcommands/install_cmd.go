@@ -280,8 +280,11 @@ controls DHCP depending on the IP stack being used.
 func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 	var installerArgs []string
 	var err error
+	var hasIPConfigOverride bool
 
-	hasStaticNetwork := (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
+	if inventory == nil {
+		return "", fmt.Errorf("Missing inventory")
+	}
 
 	if host.InstallerArgs != "" {
 		err = json.Unmarshal([]byte(host.InstallerArgs), &installerArgs)
@@ -290,23 +293,9 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		}
 	}
 
-	installerArgs, hasIPConfigOverride := appends390xArgs(inventory, installerArgs, log)
-
 	hasUserConfiguredIP := hasUserConfiguredIP(installerArgs)
-
-	// set DHCP args only if no IP config override was specified (only for LPAR and zVM nodes on s390x)
-	if !hasStaticNetwork && !hasIPConfigOverride && !hasUserConfiguredIP {
-		// The set of ip=<nic>:dhcp kernel arguments should be added only if there is no static
-		// network configured by the user. This is because this parameter will configure RHCOS to
-		// try to obtain IP address from the DHCP server even if we provide a static addressing.
-		// As in majority of cases it's not an issue because of the priorities set in the config
-		// of NetworkManager, in some specific scenarios (e.g. BZ-2106110) this causes machines to
-		// lose their connectivity because priorities get mixed.
-		installerArgs, err = appendDHCPArgs(cluster, host, inventory, installerArgs, log)
-		if err != nil {
-			return "", err
-		}
-	}
+	installerArgs, hasIPConfigOverride = appends390xArgs(inventory, installerArgs, log)
+	hasIPConfigOverride = hasIPConfigOverride || hasUserConfiguredIP
 
 	// append kargs depending on installation drive type
 	installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(host))
@@ -316,17 +305,63 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		if err != nil {
 			return "", err
 		}
+
+		// When using ISCSI along OCI, we expect the user (via a
+		// script) to configure the network statically on the nodes as
+		// DHCP is not available in this case.
+		//
+		// Even if the user configured the network during discovery, we
+		// cannot propagate the configuration with --copy-network
+		// because it won't work along iSCSI:
+		// https://github.com/coreos/coreos-installer/issues/1389
+		hasIPConfigOverride = hasIPConfigOverride ||
+			(installationDisk.DriveType == models.DriveTypeISCSI && common.IsOciExternalIntegrationEnabled(cluster.Platform))
 	} else {
 		log.Warnf("No installation disk found for host ID %s", host.ID)
 	}
 
-	if hasStaticNetwork && !lo.Contains(installerArgs, "--copy-network") {
-		// network not configured statically or
-		// installer args already contain command for network configuration
-		installerArgs = append(installerArgs, "--copy-network")
+	installerArgs, err = appendNetworkArgs(installerArgs, cluster, host, inventory, infraEnv, hasIPConfigOverride, log)
+	if err != nil {
+		return "", err
 	}
 
 	return toJSONString(installerArgs)
+}
+
+func appendNetworkArgs(installerArgs []string, cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, hasIPConfigOverride bool, log logrus.FieldLogger) ([]string, error) {
+	if hasStaticNetwork(cluster, infraEnv) {
+		// network configured statically
+		return appendCopyNetwork(installerArgs), nil
+	}
+
+	if hasIPConfigOverride {
+		return installerArgs, nil
+	}
+
+	// set DHCP args only if no IP config override was specified (user
+	// override, LPAR and zVM nodes on s390x, iSCSI boot drive on OCI)
+	//
+	// The set of ip=<nic>:dhcp kernel arguments should be added only if
+	// there is no static network configured by the user. This is because
+	// this parameter will configure RHCOS to try to obtain IP address from
+	// the DHCP server even if we provide a static addressing. As in
+	// majority of cases it's not an issue because of the priorities set in
+	// the config of NetworkManager, in some specific scenarios (e.g.
+	// BZ-2106110) this causes machines to lose their connectivity because
+	// priorities get mixed.
+	installerArgs, err := appendDHCPArgs(cluster, host, inventory, installerArgs, log)
+	if err != nil {
+		return nil, err
+	}
+
+	return installerArgs, nil
+}
+
+func appendCopyNetwork(installerArgs []string) []string {
+	if !lo.Contains(installerArgs, "--copy-network") {
+		installerArgs = append(installerArgs, "--copy-network")
+	}
+	return installerArgs
 }
 
 func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasUserConfiguredIP bool) ([]string, error) {
@@ -494,6 +529,10 @@ func hasUserConfiguredIP(args []string) bool {
 		return strings.HasPrefix(s, "ip=")
 	})
 	return result
+}
+
+func hasStaticNetwork(cluster *common.Cluster, infraEnv *common.InfraEnv) bool {
+	return (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || (cluster != nil && cluster.StaticNetworkConfigured)
 }
 
 func toJSONString(args []string) (string, error) {
