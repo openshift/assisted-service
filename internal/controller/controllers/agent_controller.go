@@ -266,19 +266,12 @@ func deleteBMHForMachine(ctx context.Context, spokeClient client.Client, machine
 
 // removeSpokeResources removes all relevant resources from the agent's spoke cluster
 // This includes all or some of the node, machine, BMH, and scaling the machineset depending on what is present
-func (r *AgentReconciler) removeSpokeResources(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) error {
-	spokeClient, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
-	if err != nil {
-		log.WithError(err).Error("failed to create spoke client")
-		return err
-	}
-
-	nodeName := getAgentHostname(agent)
+func removeSpokeResources(ctx context.Context, log logrus.FieldLogger, spokeClient spoke_k8s_client.SpokeK8sClient, nodeName string) error {
 	log = log.WithField("node", nodeName)
 
 	nodeKey := client.ObjectKey{Name: nodeName}
 	node := &corev1.Node{}
-	if err = spokeClient.Get(ctx, nodeKey, node); err != nil {
+	if err := spokeClient.Get(ctx, nodeKey, node); err != nil {
 		if k8serrors.IsNotFound(err) {
 			log.Warn("node not found")
 			return nil
@@ -401,13 +394,23 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 		if funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
 			if _, skipCleanup := agent.GetAnnotations()[AgentSkipSpokeCleanupAnnotation]; !skipCleanup && agent.Spec.ClusterDeploymentName != nil {
 				// only remove the spoke resources if the entire cluster isn't being deleted
-				clusterExists, err := r.clusterExists(ctx, agent)
+				clusterRef := types.NamespacedName{
+					Name:      agent.Spec.ClusterDeploymentName.Name,
+					Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+				}
+				clusterExists, err := r.clusterExists(ctx, clusterRef)
 				if err != nil {
 					log.WithError(err).Errorf("failed to check cluster deployment presence")
 					return &ctrl.Result{}, err
 				}
 				if clusterExists {
-					if err := r.removeSpokeResources(ctx, log, agent); err != nil {
+					spokeClient, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
+					if err != nil {
+						log.WithError(err).Error("failed to create spoke client")
+						return &ctrl.Result{}, err
+					}
+					nodeName := getAgentHostname(agent)
+					if err := removeSpokeResources(ctx, log, spokeClient, nodeName); err != nil {
 						return &ctrl.Result{}, errors.Wrap(err, "failed to clean spoke cluster resources")
 					}
 				}
@@ -510,17 +513,9 @@ func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent)
 	return true, nil
 }
 
-func (r *AgentReconciler) clusterExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
-	if agent.Spec.ClusterDeploymentName == nil {
-		return false, nil
-	}
-
-	cdKey := types.NamespacedName{
-		Name:      agent.Spec.ClusterDeploymentName.Name,
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
-	}
+func (r *AgentReconciler) clusterExists(ctx context.Context, clusterRef types.NamespacedName) (bool, error) {
 	cd := &hivev1.ClusterDeployment{}
-	if err := r.Client.Get(ctx, cdKey, cd); err != nil {
+	if err := r.Client.Get(ctx, clusterRef, cd); err != nil {
 		return false, client.IgnoreNotFound(err)
 	}
 
