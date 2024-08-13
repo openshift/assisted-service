@@ -1,5 +1,5 @@
 [Unit]
-Description=Configure secondary NIC on OCI when using iSSCI boot drive
+Description=Configure secondary NIC on OCI when using iSCSI boot drive
 After=NetworkManager.service
 
 [Service]
