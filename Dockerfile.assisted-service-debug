@@ -2,9 +2,9 @@ FROM registry.access.redhat.com/ubi9/go-toolset:1.20 AS golang
 
 RUN GOFLAGS=-mod=mod go install github.com/go-delve/delve/cmd/dlv@v1.21.2
 
-FROM quay.io/centos/centos:stream9
+FROM quay.io/centos/centos:stream9 AS builder
 
-RUN dnf install --enablerepo=crb -y gcc git nmstate-devel openssl-devel && dnf clean all
+RUN dnf install --enablerepo=crb -y gcc git nmstate-devel openssl-devel make && dnf clean all
 
 ENV GOROOT=/usr/lib/golang
 ENV GOPATH=/opt/app-root/src/go
@@ -15,10 +15,19 @@ COPY --from=golang $GOROOT $GOROOT
 
 RUN chmod 775 -R $GOPATH && chmod 775 -R $GOROOT
 
+RUN git config --global --add safe.directory /opt/app-root/src
+COPY . ./assisted-service
+RUN cd ./assisted-service && make build-minimal
+
+FROM quay.io/centos/centos:stream9
+
+RUN dnf install --enablerepo=crb -y nmstate-devel
+
 ARG DEBUG_SERVICE_PORT=40000
 EXPOSE 8090 $DEBUG_SERVICE_PORT
 
-COPY assisted-service /assisted-service
-COPY assisted-service-operator /assisted-service-operator
+COPY --from=builder /opt/app-root/src/go/bin/dlv /usr/bin/dlv
+COPY --from=builder /assisted-service/build/assisted-installer/assisted-service /assisted-service
+COPY --from=builder /assisted-service/build/assisted-installer/assisted-service-operator /assisted-service-operator
 
 CMD ["dlv", "--listen=:40000", "--headless=true", "--continue", "--api-version=2", "--accept-multiclient", "exec", "/assisted-service"]
