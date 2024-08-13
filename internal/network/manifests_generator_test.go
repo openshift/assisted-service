@@ -621,3 +621,80 @@ var _ = Describe("disk encryption manifest", func() {
 		})
 	}
 })
+
+var _ = Describe("nic reaaply manifest", func() {
+	var (
+		ctx                   = context.Background()
+		log                   *logrus.Logger
+		ctrl                  *gomock.Controller
+		manifestsApi          *manifestsapi.MockManifestsAPI
+		manifestsGeneratorApi ManifestsGeneratorAPI
+		db                    *gorm.DB
+		dbName                string
+		clusterId             strfmt.UUID
+		cluster               common.Cluster
+		hostWithiSCSI         models.Host
+		hostWithSSD           models.Host
+	)
+
+	BeforeEach(func() {
+		log = logrus.New()
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{}, db)
+		db, dbName = common.PrepareTestDB()
+		clusterId = strfmt.UUID(uuid.New().String())
+
+		cluster = common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterId,
+			},
+		}
+		diskInventoryTemplate := `{
+						"disks":[
+							{
+								"id": "install-id",
+								"drive_type": "%s"
+							}
+						]
+					}`
+		hostWithiSCSI = models.Host{
+			Inventory:          fmt.Sprintf(diskInventoryTemplate, models.DriveTypeISCSI),
+			InstallationDiskID: "install-id",
+		}
+		hostWithSSD = models.Host{
+			Inventory:          fmt.Sprintf(diskInventoryTemplate, models.DriveTypeSSD),
+			InstallationDiskID: "install-id",
+		}
+
+		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
+		manifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("CreateClusterManifest", func() {
+		It("added when one of the host installs on an iSCSI drive", func() {
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Times(2).Return(&models.Manifest{
+				FileName: "manifest.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil)
+			cluster.Cluster.Hosts = []*models.Host{&hostWithiSCSI, &hostWithSSD}
+			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
+		})
+		It("not added when no hosts installs on an iSCSI drive", func() {
+			cluster.Cluster.Hosts = []*models.Host{&hostWithSSD, &hostWithSSD}
+			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
+		})
+		It("failure", func() {
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(nil, errors.Errorf("Failed to create manifest")).Times(1)
+			cluster.Cluster.Hosts = []*models.Host{&hostWithiSCSI}
+			err := manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).Should(Equal("Failed to create manifest 50-masters-iscsi-nic-reapply.yaml: Failed to create manifest"))
+		})
+	})
+})
