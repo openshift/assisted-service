@@ -338,14 +338,17 @@ func appendNetworkArgs(installerArgs []string, cluster *common.Cluster, host *mo
 		return installerArgs, nil
 	}
 
-	// set DHCP args only if no IP config override was specified (user override, LPAR and zVM nodes on s390x, iSCSI boot drive on OCI)
+	// set DHCP args only if no IP config override was specified (user
+	// override, LPAR and zVM nodes on s390x, iSCSI boot drive on OCI)
 	//
-	// The set of ip=<nic>:dhcp kernel arguments should be added only if there is no static
-	// network configured by the user. This is because this parameter will configure RHCOS to
-	// try to obtain IP address from the DHCP server even if we provide a static addressing.
-	// As in majority of cases it's not an issue because of the priorities set in the config
-	// of NetworkManager, in some specific scenarios (e.g. BZ-2106110) this causes machines to
-	// lose their connectivity because priorities get mixed.
+	// The set of ip=<nic>:dhcp kernel arguments should be added only if
+	// there is no static network configured by the user. This is because
+	// this parameter will configure RHCOS to try to obtain IP address from
+	// the DHCP server even if we provide a static addressing. As in
+	// majority of cases it's not an issue because of the priorities set in
+	// the config of NetworkManager, in some specific scenarios (e.g.
+	// BZ-2106110) this causes machines to lose their connectivity because
+	// priorities get mixed.
 	installerArgs, err := appendDHCPArgs(cluster, host, inventory, installerArgs, log)
 	if err != nil {
 		return nil, err
