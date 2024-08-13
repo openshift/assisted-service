@@ -37,31 +37,24 @@ var _ = Describe("CNV operator", func() {
 		operator = cnv.NewCNVOperator(log, cfg)
 	})
 
-	Context("getDependencies", func() {
-		It("request for lvmo", func() {
-			haMode := models.ClusterHighAvailabilityModeNone
-			cluster := common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: lvm.LvmsMinOpenshiftVersion4_12},
-			}
+	DescribeTable("getDependencies", func(ocpVersion string, haMode string, expectedOperator string) {
+		cluster := common.Cluster{
+			Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: ocpVersion},
+		}
 
-			requirements, err := operator.GetDependencies(&cluster)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(requirements).ToNot(BeNil())
-			Expect(requirements[0]).To(BeEquivalentTo(lvm.Operator.Name))
-		})
+		requirements, err := operator.GetDependencies(&cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(requirements).ToNot(BeNil())
 
-		It("request for lso, ocp version older than 4.11 will not get lvmo", func() {
-			haMode := models.ClusterHighAvailabilityModeNone
-			cluster := common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: "4.11.0-0.0"},
-			}
+		Expect(requirements[0]).To(BeEquivalentTo(expectedOperator))
+	},
 
-			requirements, err := operator.GetDependencies(&cluster)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(requirements).ToNot(BeNil())
-			Expect(requirements[0]).To(BeEquivalentTo(lso.Operator.Name))
-		})
-	})
+		Entry("LVM, Single node 4.12", "4.12", models.ClusterHighAvailabilityModeNone, lvm.Operator.Name),
+		Entry("LVM, Multi node 4.15", "4.15", models.ClusterHighAvailabilityModeFull, lvm.Operator.Name),
+		Entry("LVM, Multi node 4.21", "4.21", models.ClusterHighAvailabilityModeFull, lvm.Operator.Name),
+		Entry("LSO, Multi node 4.12", "4.12", models.ClusterHighAvailabilityModeFull, lso.Operator.Name),
+		Entry("LSO, Single node 4.11", "4.11", models.ClusterHighAvailabilityModeNone, lso.Operator.Name),
+	)
 
 	Context("host requirements", func() {
 
@@ -326,10 +319,8 @@ var _ = Describe("CNV operator", func() {
 
 		Expect(requirements.Requirements.Worker.Qualitative).To(HaveLen(numQualitative))
 		Expect(requirements.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerRequirements))
-
 		Expect(requirements.Requirements.Master.Qualitative).To(HaveLen(numQualitative))
 		Expect(requirements.Requirements.Master.Quantitative).To(BeEquivalentTo(masterRequirements))
-
 		Expect(requirements.Requirements.Master.Qualitative).To(BeEquivalentTo(requirements.Requirements.Worker.Qualitative))
 	},
 		Entry("for non-SNO", cnv.Config{SNOPoolSizeRequestHPPGib: 50}, common.Cluster{Cluster: models.Cluster{
