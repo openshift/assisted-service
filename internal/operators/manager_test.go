@@ -13,7 +13,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -214,30 +214,28 @@ var _ = Describe("Operators manager", func() {
 		})
 	})
 
-	Context("AnyOLMOperatorEnabled", func() {
-		table.DescribeTable("should report any operator enabled", func(operators []*models.MonitoredOperator, expected bool) {
-			cluster.MonitoredOperators = operators
-			results := manager.AnyOLMOperatorEnabled(cluster)
-			Expect(results).To(Equal(expected))
-		},
-			table.Entry("false for no operators", []*models.MonitoredOperator{}, false),
-			table.Entry("true for lso operator", []*models.MonitoredOperator{
-				&lso.Operator,
-			}, true),
-			table.Entry("true for odf operator", []*models.MonitoredOperator{
-				&odf.Operator,
-			}, true),
-			table.Entry("true for lso and odf operators", []*models.MonitoredOperator{
-				&lso.Operator,
-				&odf.Operator,
-			}, true),
-			table.Entry("true for lso, odf and cnv operators", []*models.MonitoredOperator{
-				&lso.Operator,
-				&odf.Operator,
-				&cnv.Operator,
-			}, true),
-		)
-	})
+	DescribeTable("AnyOLMOperatorEnabled, should report any operator enabled", func(operators []*models.MonitoredOperator, expected bool) {
+		cluster.MonitoredOperators = operators
+		results := manager.AnyOLMOperatorEnabled(cluster)
+		Expect(results).To(Equal(expected))
+	},
+		Entry("false for no operators", []*models.MonitoredOperator{}, false),
+		Entry("true for lso operator", []*models.MonitoredOperator{
+			&lso.Operator,
+		}, true),
+		Entry("true for odf operator", []*models.MonitoredOperator{
+			&odf.Operator,
+		}, true),
+		Entry("true for lso and odf operators", []*models.MonitoredOperator{
+			&lso.Operator,
+			&odf.Operator,
+		}, true),
+		Entry("true for lso, odf and cnv operators", []*models.MonitoredOperator{
+			&lso.Operator,
+			&odf.Operator,
+			&cnv.Operator,
+		}, true),
+	)
 
 	Context("EnsureLVMAndCNVDoNotClash", func() {
 		It("should return error when both cnv and lvm operator enabled before 4.12", func() {
@@ -561,37 +559,35 @@ var _ = Describe("Operators manager", func() {
 		})
 	})
 
-	Context("ResolveDependencies", func() {
-		table.DescribeTable("should resolve dependencies", func(input []*models.MonitoredOperator, expected []*models.MonitoredOperator) {
-			cluster.MonitoredOperators = input
-			resolvedDependencies, err := manager.ResolveDependencies(cluster, cluster.MonitoredOperators)
-			Expect(err).ToNot(HaveOccurred())
+	DescribeTable("ResolveDependencies, should resolve dependencies", func(input []*models.MonitoredOperator, expected []*models.MonitoredOperator) {
+		cluster.MonitoredOperators = input
+		resolvedDependencies, err := manager.ResolveDependencies(cluster, cluster.MonitoredOperators)
+		Expect(err).ToNot(HaveOccurred())
 
-			Expect(resolvedDependencies).To(HaveLen(len(expected)))
-			Expect(resolvedDependencies).To(ContainElements(expected))
-		},
-			table.Entry("when only LSO is specified",
-				[]*models.MonitoredOperator{&lso.Operator},
-				[]*models.MonitoredOperator{&lso.Operator},
-			),
-			table.Entry("when only ODF is specified",
-				[]*models.MonitoredOperator{&odf.Operator},
-				[]*models.MonitoredOperator{&odf.Operator, &lso.Operator},
-			),
-			table.Entry("when both ODF and LSO are specified",
-				[]*models.MonitoredOperator{&odf.Operator, &lso.Operator},
-				[]*models.MonitoredOperator{&odf.Operator, &lso.Operator},
-			),
-			table.Entry("when only CNV is specified",
-				[]*models.MonitoredOperator{&cnv.Operator},
-				[]*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
-			),
-			table.Entry("when CNV, ODF and LSO are specified",
-				[]*models.MonitoredOperator{&cnv.Operator, &odf.Operator, &lso.Operator},
-				[]*models.MonitoredOperator{&cnv.Operator, &odf.Operator, &lso.Operator},
-			),
-		)
-	})
+		Expect(resolvedDependencies).To(HaveLen(len(expected)))
+		Expect(resolvedDependencies).To(ContainElements(expected))
+	},
+		Entry("when only LSO is specified",
+			[]*models.MonitoredOperator{&lso.Operator},
+			[]*models.MonitoredOperator{&lso.Operator},
+		),
+		Entry("when only ODF is specified",
+			[]*models.MonitoredOperator{&odf.Operator},
+			[]*models.MonitoredOperator{&odf.Operator, &lso.Operator},
+		),
+		Entry("when both ODF and LSO are specified",
+			[]*models.MonitoredOperator{&odf.Operator, &lso.Operator},
+			[]*models.MonitoredOperator{&odf.Operator, &lso.Operator},
+		),
+		Entry("when only CNV is specified",
+			[]*models.MonitoredOperator{&cnv.Operator},
+			[]*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
+		),
+		Entry("when CNV, ODF and LSO are specified",
+			[]*models.MonitoredOperator{&cnv.Operator, &odf.Operator, &lso.Operator},
+			[]*models.MonitoredOperator{&cnv.Operator, &odf.Operator, &lso.Operator},
+		),
+	)
 
 	Context("Supported Operators", func() {
 		It("should provide list of supported operators", func() {
