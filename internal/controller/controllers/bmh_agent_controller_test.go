@@ -932,6 +932,67 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
 			})
+
+			It("should set the InstallationDiskID to multipath if the wwn RootDeviceHints were provided and match", func() {
+				priorAgent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, priorAgent)).To(BeNil())
+				priorAgent.Status.Inventory.Disks = append(priorAgent.Status.Inventory.Disks, v1beta1.HostDisk{
+					ID:                      "3",
+					InstallationEligibility: v1beta1.HostInstallationEligibility{Eligible: true},
+					ByID:                    "/dev/disk/by-id/wwn-0x1111111111111111111111",
+					DriveType:               string(models.DriveTypeMultipath),
+					Name:                    "sda",
+					SizeBytes:               int64(120) * (int64(1) << 30),
+					Bootable:                true,
+				})
+
+				for i := range priorAgent.Status.Inventory.Disks {
+					priorAgent.Status.Inventory.Disks[i].Wwn = "0x1111111111111111111111"
+				}
+				Expect(c.Update(ctx, priorAgent)).To(BeNil())
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)).To(BeNil())
+
+				updatedHost.Spec.RootDeviceHints = &bmh_v1alpha1.RootDeviceHints{
+					WWN: "0x1111111111111111111111",
+				}
+				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedAgent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)).To(BeNil())
+				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("3"))
+			})
+
+			It("should set the InstallationDiskID to the first disk if the wwn RootDeviceHints were provided and match and there's no multipath disks", func() {
+				priorAgent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, priorAgent)).To(BeNil())
+				for i := range priorAgent.Status.Inventory.Disks {
+					priorAgent.Status.Inventory.Disks[i].Wwn = "0x1111111111111111111111"
+				}
+				Expect(c.Update(ctx, priorAgent)).To(BeNil())
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)).To(BeNil())
+
+				updatedHost.Spec.RootDeviceHints = &bmh_v1alpha1.RootDeviceHints{
+					WWN: "0x1111111111111111111111",
+				}
+				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedAgent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)).To(BeNil())
+				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
+			})
+
 			It("should not touch InstallationDiskID if the RootDeviceHints were not provided", func() {
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
 				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)

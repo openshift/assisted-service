@@ -1117,7 +1117,7 @@ func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hi
 
 	acceptable := hostutil.GetAcceptableDisksWithHints(disks, hints)
 	if len(acceptable) > 0 {
-		return acceptable[0].ID
+		return getDiskID(acceptable)
 	}
 
 	// If hints are provided but we did not find an eligible disk, we need to raise an error.
@@ -1128,6 +1128,18 @@ func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hi
 	// the Agent Reconciler), we let the assisted installer handle error caused by the incorrect
 	// disk further in the process.
 	return "/dev/not-found-by-hints"
+}
+
+// Given a list of acceptable disks,
+// find the multipath disk ID, if it exists,
+// otherwise return the ID of the first disk in the list.
+func getDiskID(disks []*models.Disk) string {
+	for _, disk := range disks {
+		if strings.EqualFold(string(disk.DriveType), string(models.DriveTypeMultipath)) {
+			return disk.ID
+		}
+	}
+	return disks[0].ID
 }
 
 // Finds the agents related to this ClusterDeployment
