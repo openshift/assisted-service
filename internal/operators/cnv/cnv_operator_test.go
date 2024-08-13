@@ -2,6 +2,7 @@ package cnv_test
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -337,31 +338,46 @@ var _ = Describe("CNV operator", func() {
 		}}),
 	)
 
-	Context("cluster requirements", func() {
-		It("only x86_64 is supported for CNV operator", func() {
-			cluster := common.Cluster{}
-
-			cluster.CPUArchitecture = common.DefaultCPUArchitecture
+	DescribeTable("Validate Cluster", func(ocpVersion []string, cpuArch string, expectedApiStatus api.ValidationStatus, errorMessage string) {
+		cluster := common.Cluster{}
+		cluster.CPUArchitecture = cpuArch
+		for _, v := range ocpVersion {
+			cluster.OpenshiftVersion = v
 			validation, err := operator.ValidateCluster(context.TODO(), &cluster)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(validation.Status).To(Equal(api.Success))
 
-			cluster.CPUArchitecture = "arm64"
-			validation, err = operator.ValidateCluster(context.TODO(), &cluster)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(validation.Status).To(Equal(api.Failure))
-			Expect(validation.Reasons).To(ContainElements(
-				"OpenShift Virtualization is supported only for x86_64 CPU architecture."))
-		})
-		It("multi-arch is supported for CNV operator", func() {
-			cluster := common.Cluster{}
+			Expect(validation.Status).To(Equal(expectedApiStatus),
+				fmt.Sprintf("Validate OCP version %s, in %s validatation should be %s", cluster.OpenshiftVersion, cpuArch, expectedApiStatus))
 
-			cluster.CPUArchitecture = common.MultiCPUArchitecture
-			validation, err := operator.ValidateCluster(context.TODO(), &cluster)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(validation.Status).To(Equal(api.Success))
-		})
-	})
+			if expectedApiStatus == api.Failure {
+				Expect(validation.Reasons).To(ContainElements(errorMessage),
+					fmt.Sprintf("Got Error message: %s", validation.Reasons))
+			}
+		}
+	},
+		Entry("on X86 Support all Versions",
+			[]string{"4.10", "4.12", "4.13", "4.15", "4.16", "4.22"},
+			common.DefaultCPUArchitecture, api.Success, ""),
+		Entry("on ARM Support Versions",
+			[]string{"4.14", "4.15", "4.16", "4.22"},
+			common.ARM64CPUArchitecture, api.Success, ""),
+		Entry("on ARM Not Support Versions",
+			[]string{"4.10", "4.11", "4.12", "4.13"},
+			common.ARM64CPUArchitecture, api.Failure,
+			fmt.Sprintf("OpenShift Virtualization is not supported for %s CPU architecture.", common.ARM64CPUArchitecture)),
+		Entry("on S390 Not Support Versions",
+			[]string{"4.10", "4.12", "4.13", "4.15", "4.16", "4.22"},
+			common.S390xCPUArchitecture, api.Failure,
+			fmt.Sprintf("OpenShift Virtualization is not supported for %s CPU architecture.", common.S390xCPUArchitecture)),
+		Entry("on ppc64le Not Support Versions",
+			[]string{"4.10", "4.12", "4.13", "4.15", "4.16", "4.22"},
+			common.PowerCPUArchitecture, api.Failure,
+			fmt.Sprintf("OpenShift Virtualization is not supported for %s CPU architecture.", common.PowerCPUArchitecture)),
+		Entry("on MultiArch Support Versions",
+			[]string{"4.14", "4.15", "4.16", "4.22"},
+			common.MultiCPUArchitecture, api.Success, ""),
+	)
+
 })
 
 func getInventoryWithCpuFlagsAndDisks(flags []string, disks []*models.Disk) string {

@@ -358,23 +358,39 @@ var _ = Describe("Operators manager", func() {
 			err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
 			Expect(err).To(BeNil())
 		})
-		It("error on LVM with LSO architecture", func() {
+		It("error on LSO with ARM architecture", func() {
 			monitoredOperators := []*models.MonitoredOperator{{Name: "lso"}}
 			cluster.CPUArchitecture = common.ARM64CPUArchitecture
 			err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
 			Expect(err).To(Not(BeNil()))
 		})
-		It("error on LVM with ODF architecture", func() {
+		It("error on ODF with ARM architecture", func() {
 			monitoredOperators := []*models.MonitoredOperator{{Name: "odf"}}
 			cluster.CPUArchitecture = common.ARM64CPUArchitecture
 			err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
 			Expect(err).To(Not(BeNil()))
 		})
-		It("error on LVM with CNV architecture", func() {
+		It("error on CNV with ARM architecture below version 4.14", func() {
 			monitoredOperators := []*models.MonitoredOperator{{Name: "cnv"}}
 			cluster.CPUArchitecture = common.ARM64CPUArchitecture
-			err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
-			Expect(err).To(Not(BeNil()))
+			for _, version := range []string{"4.8", "4.11", "4.12", "4.13"} {
+				v := version
+				cluster.OpenshiftVersion = v
+				err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
+				Expect(err).To(Not(BeNil()),
+					fmt.Sprintf("ocpVersion: %v, with error: %v", cluster.OpenshiftVersion, err))
+			}
+		})
+		It("no error on CNV with ARM architecture above version 4.14", func() {
+			monitoredOperators := []*models.MonitoredOperator{{Name: "cnv"}}
+			cluster.CPUArchitecture = common.ARM64CPUArchitecture
+			for _, version := range []string{"4.14", "4.15", "4.16", "4.17", "4.31"} {
+				v := version
+				cluster.OpenshiftVersion = v
+				err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
+				Expect(err).To(BeNil(),
+					fmt.Sprintf("ocpVersion: %v, with error: %v", cluster.OpenshiftVersion, err))
+			}
 		})
 		It("no on operators supports both ARM and x86 while cluster supports multi cpu architecture", func() {
 			monitoredOperators := []*models.MonitoredOperator{
@@ -388,23 +404,40 @@ var _ = Describe("Operators manager", func() {
 
 			Expect(err).To(BeNil())
 		})
-		It("error on operators supports both ARM and x86 while ARM architecture", func() {
+
+		DescribeTable("Validate CNV with ARM on architecture", func(ocpVersion string, shouldSupport string) {
+			cluster.OpenshiftVersion = ocpVersion
 			monitoredOperators := []*models.MonitoredOperator{
 				{Name: "lvm"},
 				{Name: "lso"},
 				{Name: "odf"},
 				{Name: "cnv"},
 			}
-			cluster.CPUArchitecture = common.ARM64CPUArchitecture
-			err := manager.EnsureOperatorArchCapability(cluster, cluster.CPUArchitecture, monitoredOperators)
 
-			Expect(err).To(Not(BeNil()))
-			ExpectWithOffset(1, err.Error()).To(ContainSubstring("Local Storage Operator"))
-			ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Data Foundation"))
-			ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Virtualization"))
-			ExpectWithOffset(1, err.Error()).To(Not(ContainSubstring("Logical Volume Management")))
-		})
+			err := manager.EnsureOperatorArchCapability(cluster, common.ARM64CPUArchitecture, monitoredOperators)
+			Expect(err).To(Not(BeNil()),
+				fmt.Sprintf("OCPversion: %s, Got error: %s", common.ARM64CPUArchitecture, err))
 
+			ExpectWithOffset(1, err.Error()).To(ContainSubstring("Local Storage Operator"),
+				fmt.Sprintf("OCPversion: %s, Got error: %s", common.ARM64CPUArchitecture, err))
+			ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Data Foundation"),
+				fmt.Sprintf("OCPversion: %s, Got error: %s", common.ARM64CPUArchitecture, err))
+			ExpectWithOffset(1, err.Error()).To(Not(ContainSubstring("Logical Volume Management")),
+				fmt.Sprintf("OCPversion: %s, Got error: %s", common.ARM64CPUArchitecture, err))
+			if shouldSupport == "Supported" {
+				ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Virtualization"),
+					fmt.Sprintf("OCPversion: %s, Got error: %s", common.ARM64CPUArchitecture, err))
+			} else {
+				ExpectWithOffset(1, err.Error()).To(Not(ContainSubstring("OpenShift Virtualization")),
+					fmt.Sprintf("OCPversion: %s, Got error: %s", common.ARM64CPUArchitecture, err))
+			}
+
+		},
+			Entry("ArchCapability version 4.11", "4.11", "Supported"),
+			Entry("ArchCapability version 4.13", "4.13", "Supported"),
+			Entry("ArchCapability version 4.14", "4.14", "Not Supported"),
+			Entry("ArchCapability version 4.21", "4.21", "Not Supported"),
+		)
 	})
 
 	Context("ValidateCluster", func() {

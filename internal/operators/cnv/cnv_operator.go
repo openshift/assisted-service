@@ -99,7 +99,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
 	if !featuresupport.IsFeatureCompatibleWithArchitecture(models.FeatureSupportLevelIDCNV, cluster.OpenshiftVersion, cluster.CPUArchitecture) {
 		return api.Failure, fmt.Sprintf(
-			"%s is supported only for %s CPU architecture.", o.GetFullName(), common.DefaultCPUArchitecture)
+			"%s is not supported for %s CPU architecture.", o.GetFullName(), cluster.CPUArchitecture)
 	}
 	return api.Success, ""
 }
