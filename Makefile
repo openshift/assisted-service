@@ -228,10 +228,7 @@ update-minimal:
 	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 update-debug-minimal:
-	export DEBUG_SERVICE=True && $(MAKE) build-minimal
-	mkdir -p build/debug-image && cp Dockerfile.assisted-service-debug $(BUILD_FOLDER)/assisted-service $(BUILD_FOLDER)/assisted-service-operator build/debug-image
-	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) --build-arg DEBUG_SERVICE_PORT=$(DEBUG_SERVICE_PORT) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
-	rm -r build/debug-image
+	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) --build-arg DEBUG_SERVICE_PORT=$(DEBUG_SERVICE_PORT) -f Dockerfile.assisted-service-debug -t $(SERVICE)
 
 update-image: $(UPDATE_IMAGE)
 
