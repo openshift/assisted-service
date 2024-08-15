@@ -129,7 +129,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		It("IsFeatureAvailable", func() {
 			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitecturePpc64le))).To(Equal(true))
 			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureX8664))).To(Equal(true))
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureS390x))).To(Equal(false))
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureS390x))).To(Equal(true))
 			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureArm64))).To(Equal(true))
 		})
 		It("GetSupportLevel on architecture", func() {
@@ -137,7 +137,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
 
 			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitectureS390x)
-			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
 
 			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitecturePpc64le)
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
@@ -154,7 +154,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Entry(models.ClusterCPUArchitectureX8664, models.ClusterCPUArchitectureX8664, true),
 			Entry(models.ClusterCPUArchitectureArm64, models.ClusterCPUArchitectureArm64, true),
 			Entry(models.ClusterCPUArchitectureAarch64, models.ClusterCPUArchitectureAarch64, true),
-			Entry(models.ClusterCPUArchitectureS390x, models.ClusterCPUArchitectureS390x, false),
+			Entry(models.ClusterCPUArchitectureS390x, models.ClusterCPUArchitectureS390x, true),
 			Entry(models.ClusterCPUArchitecturePpc64le, models.ClusterCPUArchitecturePpc64le, true),
 		)
 		DescribeTable("feature active level",
@@ -173,7 +173,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Entry("4.15/ppc64le", "4.15", models.ClusterCPUArchitecturePpc64le, activeLevelActive),
 			Entry("4.15/aarch64", "4.15", models.ClusterCPUArchitectureAarch64, activeLevelActive),
 			Entry("4.15/arm64", "4.15", models.ClusterCPUArchitectureArm64, activeLevelActive),
-			Entry("4.15/s390x", "4.15", models.ClusterCPUArchitectureS390x, activeLevelNotActive),
+			Entry("4.15/s390x", "4.15", models.ClusterCPUArchitectureS390x, activeLevelActive),
 		)
 	})
 

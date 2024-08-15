@@ -128,7 +128,7 @@ var _ = Describe("installcmd", func() {
 		Entry("Enbale MCO reboot is true. Higher version - aarch64", true, "4.16.0", models.ClusterCPUArchitectureAarch64, true),
 		Entry("Enbale MCO reboot is true. Higher version - arm64", true, "4.16.0", models.ClusterCPUArchitectureArm64, true),
 		Entry("Enbale MCO reboot is true. Higher version - ppc64le", true, "4.16.0", models.ClusterCPUArchitecturePpc64le, true),
-		Entry("Enbale MCO reboot is true. Higher version - s390x", true, "4.16.0", models.ClusterCPUArchitectureS390x, false),
+		Entry("Enbale MCO reboot is true. Higher version - s390x", true, "4.16.0", models.ClusterCPUArchitectureS390x, true),
 	)
 
 	DescribeTable("notify num reboots",
