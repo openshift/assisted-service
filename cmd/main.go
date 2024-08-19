@@ -161,6 +161,7 @@ var Options struct {
 	ApproveCsrsRequeueDuration           time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
 	HTTPListenPort                       string        `envconfig:"HTTP_LISTEN_PORT" default:""`
 	AllowConvergedFlow                   bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"true"`
+	PauseProvisionedBMHs                 bool          `envconfig:"PAUSE_PROVISIONED_BMHS" default:"true"`
 	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
 	BMACConfig                           controllers.BMACConfig
 
@@ -618,6 +619,7 @@ func main() {
 				Scheme:                ctrlMgr.GetScheme(),
 				SpokeK8sClientFactory: spoke_k8s_client.NewSpokeK8sClientFactory(log),
 				ConvergedFlowEnabled:  useConvergedFlow,
+				PauseProvisionedBMHs:  Options.PauseProvisionedBMHs,
 				Drainer:               &controllers.KubectlDrainer{},
 				Config:                &Options.BMACConfig,
 			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
