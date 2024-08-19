@@ -5,7 +5,7 @@
   - [OpenShift Virtualization (CNV)](../../internal/operators/cnv)
   - [OpenShift Data Foundation (ODF)](../../internal/operators/odf)
   - [Logical Volume Manager (LVM)](../../internal/operators/lvm)
-  - [Multi-Cluster Enginer (MCE)](../../internal/operators/mce)
+  - [Multi-Cluster Engine (MCE)](../../internal/operators/mce)
 
 ## How to implement a new OLM operator plugin
 
