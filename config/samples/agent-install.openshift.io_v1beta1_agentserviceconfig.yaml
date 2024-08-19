@@ -124,3 +124,19 @@ spec:
     openshiftVersion: '4.15'
     url: https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/4.15/4.15.23/rhcos-4.15.23-s390x-live.s390x.iso
     version: 415.92.202407091355-0
+  - cpuArchitecture: x86_64
+    openshiftVersion: '4.16'
+    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.16/4.16.3/rhcos-4.16.3-x86_64-live.x86_64.iso
+    version: 416.94.202406251923-0
+  - cpuArchitecture: arm64
+    openshiftVersion: '4.16'
+    url: https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.16/4.16.3/rhcos-4.16.3-aarch64-live.aarch64.iso
+    version: 416.94.202406251923-0
+  - cpuArchitecture: ppc64le
+    openshiftVersion: '4.16'
+    url: https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/4.16/4.16.3/rhcos-4.16.3-ppc64le-live.ppc64le.iso
+    version: 416.94.202406251923-0
+  - cpuArchitecture: s390x
+    openshiftVersion: '4.16'
+    url: https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/4.16/4.16.3/rhcos-4.16.3-s390x-live.s390x.iso
+    version: 416.94.202406251923-0
