@@ -104,7 +104,7 @@ func main() {
 	token := setAuthToken() // if all the cases uses userAuth, then we just need to set one
 
 	if token != "" {
-		clientConfig.AuthInfo = auth.UserAuthHeaderWriter(token)
+		clientConfig.AuthInfo = auth.UserAuthHeaderWriter(token) // here only userAuth needs to be set becausethis will be called by systemd services from agent installer
 	} else {
 		log.Fatalf("No authentication token provided")
 	}

@@ -52,10 +52,10 @@ func (a *AgentLocalAuthzHandler) authorizerMiddleware(request *http.Request) err
 	route := middleware.MatchedRouteFrom(request)
 	switch authScheme := route.Authenticator.Schemes[0]; authScheme {
 
-	case "agentAuth", "userAuth":
+	case "agentAuth", "userAuth", "watcherAuth":
 		return a.agentInstallerAuthorizer(request, authScheme)
 	default:
-		return nil
+		return errors.New("unsupported auth scheme")
 	}
 }
 
@@ -69,6 +69,8 @@ func JWTMiddleware(request *http.Request, authScheme string) (jwt.MapClaims, err
 		authHeader = request.Header.Get("X-Secret-Key")
 	case "userAuth":
 		authHeader = request.Header.Get("Authorization")
+	case "watcherAuth":
+		authHeader = request.Header.Get("Watcher-Authorization")
 	default:
 		authHeader = ""
 	}

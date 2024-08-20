@@ -105,6 +105,7 @@ func (a *AgentLocalAuthenticator) AuthImageAuth(_ string) (interface{}, error) {
 }
 
 func (a *AgentLocalAuthenticator) AuthWatcherAuth(token string) (interface{}, error) {
+	logrus.Info("****** I am in AuthWatcherAuth and token =%s", token)
 	return a.AuthAgentAuth(token)
 }
 
