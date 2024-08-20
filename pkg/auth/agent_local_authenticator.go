@@ -104,6 +104,10 @@ func (a *AgentLocalAuthenticator) AuthImageAuth(_ string) (interface{}, error) {
 	return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("Image Authentication not allowed for agent local auth"))
 }
 
+func (a *AgentLocalAuthenticator) AuthWatcherAuth(token string) (interface{}, error) {
+	return a.AuthAgentAuth(token)
+}
+
 func (a *AgentLocalAuthenticator) CreateAuthenticator() func(_, _ string, _ security.TokenAuthentication) runtime.Authenticator {
 	return security.APIKeyAuth
 }

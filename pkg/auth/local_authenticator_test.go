@@ -102,6 +102,11 @@ var _ = Describe("AuthAgentAuth", func() {
 		validateErrorResponse(err)
 	})
 
+	It("Fails with watcher auth", func() {
+		_, err := a.AuthWatcherAuth(token)
+		Expect(err).To(HaveOccurred())
+	})
+
 	It("Fails a token with invalid signing method", func() {
 		newTok := fakeTokenAlg(token)
 		_, err := a.AuthAgentAuth(newTok)
