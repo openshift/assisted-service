@@ -365,7 +365,7 @@ var _ = Describe("areVipsValid", func() {
 
 				status, message := lcontext.function(preprocessContext)
 				Expect(status).Should(Equal(ValidationFailure))
-				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1.2.3.[56]> are not verified yet", strings.ToLower(lcontext.name))))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s-vip <1.2.3.[56]> is not verified yet", strings.ToLower(lcontext.name))))
 			})
 			It("ipv4 vips verified", func() {
 				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
@@ -379,7 +379,7 @@ var _ = Describe("areVipsValid", func() {
 
 				status, message := lcontext.function(preprocessContext)
 				Expect(status).Should(Equal(ValidationFailure))
-				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1001:db8::6[45]> are not verified yet", strings.ToLower(lcontext.name))))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s-vip <1001:db8::6[45]> is not verified yet", strings.ToLower(lcontext.name))))
 			})
 			It("ipv4 vips verified", func() {
 				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
@@ -393,7 +393,7 @@ var _ = Describe("areVipsValid", func() {
 
 				status, message := lcontext.function(preprocessContext)
 				Expect(status).Should(Equal(ValidationFailure))
-				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1001:db8::6[45]> are not verified yet", strings.ToLower(lcontext.name))))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s-vip <1001:db8::6[45]> is not verified yet", strings.ToLower(lcontext.name))))
 			})
 			It("all successful", func() {
 				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
@@ -422,7 +422,7 @@ var _ = Describe("areVipsValid", func() {
 				preprocessContext.cluster.IngressVips[0].Verification = common.VipVerificationPtr(models.VipVerificationFailed)
 				status, message := lcontext.function(preprocessContext)
 				Expect(status).Should(Equal(ValidationFailure))
-				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1.2.3.[56]> is already in use in cidr 1.2.3.0/24", strings.ToLower(lcontext.name))))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s-vip <1.2.3.[56]> is already in use in cidr 1.2.3.0/24", strings.ToLower(lcontext.name))))
 			})
 		})
 	}
@@ -515,7 +515,7 @@ var _ = Describe("Validator tests", func() {
 		}}
 		status, message := validator.areApiVipsValid(preprocessContext)
 		Expect(status).To(Equal(ValidationFailure))
-		Expect(message).To(Equal("api vips <1.2.3.255> is the broadcast address of machine-network-cidr <1.2.3.0/24>"))
+		Expect(message).To(Equal("api-vip <1.2.3.255> is the broadcast address of machine-network-cidr <1.2.3.0/24>"))
 
 		// Now try with an API VIP that is not a broadcast address, this should pass validation.
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
@@ -542,7 +542,7 @@ var _ = Describe("Validator tests", func() {
 		}}
 		status, message := validator.areIngressVipsValid(preprocessContext)
 		Expect(status).To(Equal(ValidationFailure))
-		Expect(message).To(Equal("ingress vips <1.2.3.255> is the broadcast address of machine-network-cidr <1.2.3.0/24>"))
+		Expect(message).To(Equal("ingress-vip <1.2.3.255> is the broadcast address of machine-network-cidr <1.2.3.0/24>"))
 
 		// Now try with an Ingress VIP that is not a broadcast address, this should pass validation.
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{

@@ -17,6 +17,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type VipType string
+
+const (
+	VipTypeAPI     VipType = "api-vip"
+	VipTypeIngress VipType = "ingress-vip"
+)
+
 func getVIPInterfaceNetwork(vip net.IP, addresses []string) *net.IPNet {
 	for _, addr := range addresses {
 		_, ipnet, err := net.ParseCIDR(addr)
@@ -116,7 +123,7 @@ func VerifyVipFree(hosts []*models.Host, vip string, machineNetworkCidr string, 
 	return IpInFreeList(hosts, vip, machineNetworkCidr, log)
 }
 
-func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, verification *models.VipVerification, log logrus.FieldLogger) (models.VipVerification, error) {
+func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName VipType, verification *models.VipVerification, log logrus.FieldLogger) (models.VipVerification, error) {
 	if machineNetworkCidr == "" {
 		return models.VipVerificationUnverified, errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty", vipName, vip)
 	}
@@ -139,7 +146,7 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 			msg = fmt.Sprintf("%s. The machine network range is too small for the cluster. Please redefine the network.", msg)
 		}
 	case models.VipVerificationUnverified:
-		msg = fmt.Sprintf("%s <%s> are not verified yet.", vipName, vip)
+		msg = fmt.Sprintf("%s <%s> is not verified yet.", vipName, vip)
 	}
 	return ret, errors.New(msg)
 }
@@ -195,10 +202,10 @@ func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*m
 // The assumption is that VIPs are eventually verified by cluster validation
 // (i.e api-vips-valid, ingress-vips-valid)
 func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, log logrus.FieldLogger) error {
-	verification, err := VerifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", nil, log)
+	verification, err := VerifyVip(hosts, machineNetworkCidr, apiVip, VipTypeAPI, nil, log)
 	// Error is ignored if the verification didn't fail
 	if verification != models.VipVerificationFailed {
-		verification, err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", nil, log)
+		verification, err = VerifyVip(hosts, machineNetworkCidr, ingressVip, VipTypeIngress, nil, log)
 	}
 	if verification != models.VipVerificationFailed {
 		return ValidateNoVIPAddressesDuplicates([]*models.APIVip{{IP: models.IP(apiVip)}}, []*models.IngressVip{{IP: models.IP(ingressVip)}})
