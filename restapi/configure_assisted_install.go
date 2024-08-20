@@ -321,7 +321,7 @@ type Config struct {
 	// AuthUserAuth Applies when the "Authorization" header is set
 	AuthUserAuth func(token string) (interface{}, error)
 
-	// AuthWatcherAuth Applies when the "Watcher_Authorization" header is set
+	// AuthWatcherAuth Applies when the "Watcher-Authorization" header is set
 	AuthWatcherAuth func(token string) (interface{}, error)
 
 	// Authenticator to use for all APIKey authentication

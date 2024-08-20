@@ -303,9 +303,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		UserAuthAuth: func(token string) (interface{}, error) {
 			return nil, errors.NotImplemented("api key auth (userAuth) Authorization from header param [Authorization] has not yet been implemented")
 		},
-		// Applies when the "Watcher_Authorization" header is set
+		// Applies when the "Watcher-Authorization" header is set
 		WatcherAuthAuth: func(token string) (interface{}, error) {
-			return nil, errors.NotImplemented("api key auth (watcherAuth) Watcher_Authorization from header param [Watcher_Authorization] has not yet been implemented")
+			return nil, errors.NotImplemented("api key auth (watcherAuth) Watcher-Authorization from header param [Watcher-Authorization] has not yet been implemented")
 		},
 		// default authorizer is authorized meaning no requests are blocked
 		APIAuthorizer: security.Authorized(),
@@ -372,7 +372,7 @@ type AssistedInstallAPI struct {
 	UserAuthAuth func(string) (interface{}, error)
 
 	// WatcherAuthAuth registers a function that takes a token and returns a principal
-	// it performs authentication based on an api key Watcher_Authorization provided in the header
+	// it performs authentication based on an api key Watcher-Authorization provided in the header
 	WatcherAuthAuth func(string) (interface{}, error)
 
 	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal

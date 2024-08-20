@@ -56,7 +56,7 @@ securityDefinitions:
   watcherAuth:
     type: apiKey
     in: header
-    name: Watcher_Authorization
+    name: Watcher-Authorization
 
 security:
   - userAuth: [admin, user]

@@ -10687,7 +10687,7 @@ func init() {
     },
     "watcherAuth": {
       "type": "apiKey",
-      "name": "Watcher_Authorization",
+      "name": "Watcher-Authorization",
       "in": "header"
     }
   },
@@ -21455,7 +21455,7 @@ func init() {
     },
     "watcherAuth": {
       "type": "apiKey",
-      "name": "Watcher_Authorization",
+      "name": "Watcher-Authorization",
       "in": "header"
     }
   },
