@@ -26,6 +26,7 @@ type Authenticator interface {
 	AuthAgentAuth(token string) (interface{}, error)
 	AuthURLAuth(token string) (interface{}, error)
 	AuthImageAuth(token string) (interface{}, error)
+	AuthWatcherAuth(token string) (interface{}, error)
 	AuthType() AuthType
 	EnableOrgTenancy() bool
 	EnableOrgBasedFeatureGates() bool
