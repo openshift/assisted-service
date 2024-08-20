@@ -154,15 +154,17 @@ type VipsWrapper interface {
 	IP(index int) string
 	Verification(index int) *models.VipVerification
 	GetVips() []string
+	Type() network.VipType
 }
 
 type ApiVipsWrapper struct {
 	c *clusterPreprocessContext
 }
 
-func (a *ApiVipsWrapper) Name() string        { return "API" }
-func (a *ApiVipsWrapper) Len() int            { return len(a.c.cluster.APIVips) }
-func (a *ApiVipsWrapper) IP(index int) string { return string(a.c.cluster.APIVips[index].IP) }
+func (a *ApiVipsWrapper) Name() string          { return "API" }
+func (a *ApiVipsWrapper) Type() network.VipType { return network.VipTypeAPI }
+func (a *ApiVipsWrapper) Len() int              { return len(a.c.cluster.APIVips) }
+func (a *ApiVipsWrapper) IP(index int) string   { return string(a.c.cluster.APIVips[index].IP) }
 func (a *ApiVipsWrapper) Verification(index int) *models.VipVerification {
 	return a.c.cluster.APIVips[index].Verification
 }
@@ -174,9 +176,10 @@ type IngressVipsWrapper struct {
 	c *clusterPreprocessContext
 }
 
-func (i *IngressVipsWrapper) Name() string        { return "Ingress" }
-func (i *IngressVipsWrapper) Len() int            { return len(i.c.cluster.IngressVips) }
-func (i *IngressVipsWrapper) IP(index int) string { return string(i.c.cluster.IngressVips[index].IP) }
+func (i *IngressVipsWrapper) Name() string          { return "Ingress" }
+func (i *IngressVipsWrapper) Type() network.VipType { return network.VipTypeIngress }
+func (i *IngressVipsWrapper) Len() int              { return len(i.c.cluster.IngressVips) }
+func (i *IngressVipsWrapper) IP(index int) string   { return string(i.c.cluster.IngressVips[index].IP) }
 func (i *IngressVipsWrapper) Verification(index int) *models.VipVerification {
 	return i.c.cluster.IngressVips[index].Verification
 }
@@ -238,7 +241,7 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 
 	failed := false
 	for i := 0; i != vipsWrapper.Len(); i++ {
-		verification, err := network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, i), vipsWrapper.IP(i), name,
+		verification, err := network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, i), vipsWrapper.IP(i), vipsWrapper.Type(),
 			vipsWrapper.Verification(i), v.log)
 		failed = failed || verification != models.VipVerificationSucceeded
 		if err != nil {
