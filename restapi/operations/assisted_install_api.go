@@ -303,6 +303,10 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		UserAuthAuth: func(token string) (interface{}, error) {
 			return nil, errors.NotImplemented("api key auth (userAuth) Authorization from header param [Authorization] has not yet been implemented")
 		},
+		// Applies when the "Watcher_Authorization" header is set
+		WatcherAuthAuth: func(token string) (interface{}, error) {
+			return nil, errors.NotImplemented("api key auth (watcherAuth) Watcher_Authorization from header param [Watcher_Authorization] has not yet been implemented")
+		},
 		// default authorizer is authorized meaning no requests are blocked
 		APIAuthorizer: security.Authorized(),
 	}
@@ -366,6 +370,10 @@ type AssistedInstallAPI struct {
 	// UserAuthAuth registers a function that takes a token and returns a principal
 	// it performs authentication based on an api key Authorization provided in the header
 	UserAuthAuth func(string) (interface{}, error)
+
+	// WatcherAuthAuth registers a function that takes a token and returns a principal
+	// it performs authentication based on an api key Watcher_Authorization provided in the header
+	WatcherAuthAuth func(string) (interface{}, error)
 
 	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
 	APIAuthorizer runtime.Authorizer
@@ -621,6 +629,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.UserAuthAuth == nil {
 		unregistered = append(unregistered, "AuthorizationAuth")
+	}
+	if o.WatcherAuthAuth == nil {
+		unregistered = append(unregistered, "WatcherAuthorizationAuth")
 	}
 
 	if o.InstallerBindHostHandler == nil {
@@ -891,6 +902,10 @@ func (o *AssistedInstallAPI) AuthenticatorsFor(schemes map[string]spec.SecurityS
 		case "userAuth":
 			scheme := schemes[name]
 			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.UserAuthAuth)
+
+		case "watcherAuth":
+			scheme := schemes[name]
+			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.WatcherAuthAuth)
 
 		}
 	}

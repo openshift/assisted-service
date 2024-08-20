@@ -117,6 +117,11 @@ var _ = Describe("AuthAgentAuth", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
+	It("Works with Watcher auth", func() {
+		_, err := a.AuthWatcherAuth(token)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
 	It("Validates an unexpired token correctly", func() {
 		expiry := time.Now().UTC().Add(30 * time.Second)
 		unexpiredToken, err := generateToken(privateKey, &expiry)

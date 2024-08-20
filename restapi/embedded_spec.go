@@ -50,6 +50,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "watcherAuth": []
           }
         ],
         "description": "Retrieves the list of OpenShift clusters.",
@@ -300,6 +303,9 @@ func init() {
           },
           {
             "agentAuth": []
+          },
+          {
+            "watcherAuth": []
           }
         ],
         "description": "Retrieves the details of the OpenShift cluster.",
@@ -3054,6 +3060,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "watcherAuth": []
           }
         ],
         "description": "Lists events for a cluster.",
@@ -3404,6 +3413,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "watcherAuth": []
           }
         ],
         "description": "Retrieves the list of infra-envs.",
@@ -10672,6 +10684,11 @@ func init() {
       "type": "apiKey",
       "name": "Authorization",
       "in": "header"
+    },
+    "watcherAuth": {
+      "type": "apiKey",
+      "name": "Watcher_Authorization",
+      "in": "header"
     }
   },
   "security": [
@@ -10746,6 +10763,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "watcherAuth": []
           }
         ],
         "description": "Retrieves the list of OpenShift clusters.",
@@ -10996,6 +11016,9 @@ func init() {
           },
           {
             "agentAuth": []
+          },
+          {
+            "watcherAuth": []
           }
         ],
         "description": "Retrieves the details of the OpenShift cluster.",
@@ -13750,6 +13773,9 @@ func init() {
           },
           {
             "urlAuth": []
+          },
+          {
+            "watcherAuth": []
           }
         ],
         "description": "Lists events for a cluster.",
@@ -14105,6 +14131,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "watcherAuth": []
           }
         ],
         "description": "Retrieves the list of infra-envs.",
@@ -21422,6 +21451,11 @@ func init() {
     "userAuth": {
       "type": "apiKey",
       "name": "Authorization",
+      "in": "header"
+    },
+    "watcherAuth": {
+      "type": "apiKey",
+      "name": "Watcher_Authorization",
       "in": "header"
     }
   },
