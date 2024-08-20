@@ -103,36 +103,6 @@ var _ = Describe("inventory", func() {
 			Expect(cidr).To(Equal(""))
 		})
 	})
-	Context("GetMachineCIDRHosts", func() {
-		It("No Machine CIDR", func() {
-			cluster := createCluster("1.2.5.6", "",
-				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
-				createInventory(createInterface("127.0.0.1/17")))
-			_, err := GetPrimaryMachineCIDRHosts(logrus.New(), cluster)
-			Expect(err).To(HaveOccurred())
-		})
-		It("No matching Machine CIDR", func() {
-			cluster := createCluster("1.2.5.6", "1.1.0.0/16",
-				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
-				createInventory(createInterface("127.0.0.1/17")))
-			hosts, err := GetPrimaryMachineCIDRHosts(logrus.New(), cluster)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(hosts).To(BeEmpty())
-		})
-		It("Some matched", func() {
-			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
-				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
-				createInventory(createInterface("127.0.0.1/17")),
-				createInventory(createInterface("1.2.4.79/23")))
-			hosts, err := GetPrimaryMachineCIDRHosts(logrus.New(), cluster)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(hosts).To(Equal([]*models.Host{
-				cluster.Hosts[0],
-				cluster.Hosts[2],
-			}))
-
-		})
-	})
 	Context("ValidateVipInHostNetworks", func() {
 		var (
 			log                  logrus.FieldLogger

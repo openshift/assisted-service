@@ -355,23 +355,6 @@ func belongsToNetwork(log logrus.FieldLogger, h *models.Host, machineIpnet *net.
 	return false
 }
 
-func GetPrimaryMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster) ([]*models.Host, error) {
-	if !IsMachineCidrAvailable(cluster) {
-		return nil, errors.New("Machine network CIDR was not set in cluster")
-	}
-	_, machineIpnet, err := net.ParseCIDR(GetMachineCidrById(cluster, 0))
-	if err != nil {
-		return nil, err
-	}
-	ret := make([]*models.Host, 0)
-	for _, h := range cluster.Hosts {
-		if belongsToNetwork(log, h, machineIpnet) {
-			ret = append(ret, h)
-		}
-	}
-	return ret, nil
-}
-
 // GetPrimaryMachineCidrForUserManagedNetwork used to get the primary machine cidr in case of none platform and sno
 func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.FieldLogger) string {
 	if IsMachineCidrAvailable(cluster) {
