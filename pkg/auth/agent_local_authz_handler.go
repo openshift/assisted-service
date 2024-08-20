@@ -2,13 +2,14 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/restapi"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -51,40 +52,61 @@ func (a *AgentLocalAuthzHandler) authorizerMiddleware(request *http.Request) err
 	route := middleware.MatchedRouteFrom(request)
 	switch authScheme := route.Authenticator.Schemes[0]; authScheme {
 
-	case "agentAuth":
-		logrus.Infof("********** AgentLocalAuthzHandler authScheme=%s", authScheme)
-		return a.agentInstallerAuthorizer(request.Context(), authScheme)
+	case "agentAuth", "userAuth":
+		return a.agentInstallerAuthorizer(request, authScheme)
 	default:
 		return nil
 	}
 }
 
-func (a *AgentLocalAuthzHandler) agentInstallerAuthorizer(ctx context.Context, authScheme string) error {
-	logrus.Infof("********** restapi.AuthKey=%s", restapi.AuthKey)
-	payload := ctx.Value(restapi.AuthKey)
-	if payload == nil {
-		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("******* payload missing from authenticated context"))
+func JWTMiddleware(request *http.Request, authScheme string) (jwt.MapClaims, error) {
+	// if authScheme is userAuth then you get the Authorization header
+	// else get different
+	logrus.Infof("******** authScheme = %s", authScheme)
+	var authHeader string
+	switch authScheme {
+	case "agentAuth":
+		authHeader = request.Header.Get("X-Secret-Key")
+	case "userAuth":
+		authHeader = request.Header.Get("Authorization")
+	default:
+		authHeader = ""
+	}
+	logrus.Infof("******** authHeader = %s", authHeader)
+	if authHeader == "" {
+		return nil, errors.New("**** missing Authorization header")
 	}
 
-	claims, ok := payload.(jwt.MapClaims)
-	if !ok {
-		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("******* malformed claims payload"))
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	logrus.Infof("***** tokenString=%s", tokenString)
+
+	// Parse the JWT token without validating it
+	claims := jwt.MapClaims{}
+	// use public key
+	_, _, err := new(jwt.Parser).ParseUnverified(tokenString, claims)
+
+	return claims, err
+
+}
+
+func (a *AgentLocalAuthzHandler) agentInstallerAuthorizer(request *http.Request, authScheme string) error {
+	claims, err := JWTMiddleware(request, authScheme)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("******* claims error: %s", err))
 	}
 
 	authClaim, ok := claims["sub"].(string)
-	logrus.Infof("********** authClaim=%s. expected is agentAuth", authClaim)
 	if !ok {
 		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("******* malformed sub claim"))
 	}
 
-	// requestID := params.GetParam(ctx, params.InfraEnvId)
 	if authClaim == "" || authScheme == "" {
 		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("******* token missing authClaim or endpoint is missing authScheme"))
 	}
 	if authClaim != authScheme {
-		return common.NewInfraError(http.StatusForbidden, fmt.Errorf("******* authClaim %s is unauthorized to access", authClaim))
+		return common.NewInfraError(http.StatusForbidden, fmt.Errorf("******* authClaim %s is unauthorized to access. authScheme =%s", authClaim, authScheme))
 	}
-	logrus.Infof("********** AUTHZN PASSED! authClaim=%s. expected is agentAuth", authClaim)
+	logrus.Infof("********** AUTHZN PASSED! authClaim=%s ", authClaim)
 
 	return nil
 }

@@ -42,8 +42,10 @@ import (
 const failureOutputPath = "/var/run/agent-installer/host-config-failures"
 
 var Options struct {
-	ServiceBaseUrl string `envconfig:"SERVICE_BASE_URL" default:""`
-	Token          string `envconfig:"AGENT_AUTH_TOKEN" default:""`
+	ServiceBaseUrl   string `envconfig:"SERVICE_BASE_URL" default:""`
+	AgentAuthToken   string `envconfig:"AGENT_AUTH_TOKEN" default:""`
+	UserAuthToken    string `envconfig:"USER_AUTH_TOKEN" default:""`
+	WatcherAuthToken string `envconfig:"WATCHER_AUTH_TOKEN" default:""`
 }
 
 var RegisterOptions struct {
@@ -71,6 +73,19 @@ var ImportOptions struct {
 	ClusterConfigDir     string `envconfig:"CLUSTER_CONFIG_DIR" default:"/clusterconfig"`
 }
 
+func setAuthToken() string {
+	if Options.AgentAuthToken != "" {
+		return Options.AgentAuthToken
+	}
+	if Options.UserAuthToken != "" {
+		return Options.UserAuthToken
+	}
+	if Options.WatcherAuthToken != "" {
+		return Options.WatcherAuthToken
+	}
+	return ""
+}
+
 func main() {
 	err := envconfig.Process("", &Options)
 	log := log.New()
@@ -86,8 +101,13 @@ func main() {
 	u.Path = path.Join(u.Path, client.DefaultBasePath)
 	clientConfig.URL = u
 
-	userToken := Options.Token
-	clientConfig.AuthInfo = auth.UserAuthHeaderWriter(userToken)
+	token := setAuthToken() // if all the cases uses userAuth, then we just need to set one
+
+	if token != "" {
+		clientConfig.AuthInfo = auth.UserAuthHeaderWriter(token)
+	} else {
+		log.Fatalf("No authentication token provided")
+	}
 
 	bmInventory := client.New(clientConfig)
 	ctx := context.Background()
@@ -98,25 +118,25 @@ func main() {
 	if path.Base(os.Args[0]) == "agent-based-installer-register-cluster-and-infraenv" {
 		register(ctx, log, bmInventory)
 		return
-	}
+	} // maybe this needs to be removed? as register is not being used?
 
 	if len(os.Args) < 2 {
 		log.Fatal("No subcommand specified")
 	}
 	switch os.Args[1] {
-	case "register":
+	case "register": // seems unused? non one calls /usr/local/bin/agent-installer-client register
 		// registers both cluster and infraenv
 		infraEnvID := register(ctx, log, bmInventory)
 		os.WriteFile("/etc/assisted/client_config", []byte("INFRA_ENV_ID="+infraEnvID), 0644)
-	case "registerCluster":
+	case "registerCluster": // passed userAuth
 		clusterID := registerCluster(ctx, log, bmInventory)
 		os.WriteFile("/etc/assisted/client_config", []byte("CLUSTER_ID="+clusterID), 0644)
-	case "registerInfraEnv":
+	case "registerInfraEnv": //passed userAuth
 		infraEnvID := registerInfraEnv(ctx, log, bmInventory)
 		os.WriteFile("/etc/assisted/client_config", []byte("INFRA_ENV_ID="+infraEnvID), 0644)
-	case "configure":
+	case "configure": // passed USER_AUTH_TOKEN
 		configure(ctx, log, bmInventory)
-	case "importCluster":
+	case "importCluster": // passed USER_AUTH_TOKEN
 		importCluster(ctx, log, bmInventory)
 	default:
 		log.Fatalf("Unknown subcommand %s", os.Args[1])
