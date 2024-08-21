@@ -4,16 +4,17 @@ set -o nounset
 set -o errexit
 set -o pipefail
 
-KIND_VERSION="0.23.0"
+KIND_VERSION=${KIND_VERSION:-"0.23.0"}
+HUB_CLUSTER_NAME=${HUB_CLUSTER_NAME:-assisted-hub-cluster}
 
 __dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 function check() {
 	if command -v kind > /dev/null 2>&1; then
-		echo "'Kind' is installed. '$(kind --version)' will be used"
+		echo "'kind' is installed. '$(kind --version)' will be used"
 		return 0
 	else
-		echo "'Kind' executable is not avialable in PATH"
+		echo "'kind' executable is not avialable in PATH"
 		return 1
 	fi
 }
@@ -32,7 +33,7 @@ function install() {
 function create() {
 	check
 
-	if ! kind get clusters | grep assisted-installer-kind ; then
+	if ! kind get clusters | grep $HUB_CLUSTER_NAME; then
 		kind create cluster --config $__dir/kind-config.yaml
 	else
 		echo "Cluster already existing. Skipping creation"
@@ -42,17 +43,17 @@ function create() {
 function delete() {
 	check
 
-	kind delete cluster --name=assisted-installer-kind
+	kind delete cluster --name=$HUB_CLUSTER_NAME
 }
 
-function load_kind_image() {
+function load_image() {
 	check
 	
     local image_path=$1
     local cluster_name=$2
 
     if [ -z "$image_path" ] || [ -z "$cluster_name" ]; then
-        echo "Usage: load_kind_image <image_path> <cluster_name>"
+        echo "Usage: load_image <image_path> <cluster_name>"
         return 1
     fi
 
@@ -60,7 +61,7 @@ function load_kind_image() {
 }
 
 if [ $# -eq 0 ]; then
-	echo "Usage: $__dir/kind.sh (install|check|create)"
+	echo "Usage: $__dir/kind.sh (install|check|create|load_image)"
 	exit 1
 else
 	$@

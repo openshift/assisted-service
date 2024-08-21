@@ -56,9 +56,7 @@ def main():
             file=dst_file
         )
 
-    if deploy_options.target == "kind":
-        hostname = None
-    elif deploy_options.target == "oc-ingress":
+    if deploy_options.target == "oc-ingress":
         hostname = utils.get_service_host(
             'assisted-installer-ui',
             deploy_options.target,
@@ -68,7 +66,7 @@ def main():
     else:
         hostname = None
 
-    # in case of openshift or kind - deploy ingress as well
+    # in case of openshift - deploy ingress as well
     if hostname is not None:
         src_file = os.path.join(os.getcwd(), 'deploy/ui/ui_ingress.yaml')
         with open(src_file, "r") as src:
