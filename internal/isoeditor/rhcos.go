@@ -30,7 +30,7 @@ func (i *ClusterProxyInfo) Empty() bool {
 	return i == nil || (i.HTTPProxy == "" && i.HTTPSProxy == "" && i.NoProxy == "")
 }
 
-func RamdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) ([]byte, error) {
+func RamdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo, scriptContent, serviceContent string) ([]byte, error) {
 	if len(netFiles) == 0 && clusterProxyInfo.Empty() {
 		return nil, nil
 	}
@@ -43,15 +43,17 @@ func RamdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData,
 				return nil, err
 			}
 		}
-
 		scriptPath := "/usr/local/bin/pre-network-manager-config.sh"
-		scriptContent := constants.PreNetworkConfigScript
 		if err := addFileToArchive(w, scriptPath, scriptContent, 0o755); err != nil {
 			return nil, err
 		}
 
+		commonScriptFunctionsPath := "/usr/local/bin/common_network_script.sh"
+		if err := addFileToArchive(w, commonScriptFunctionsPath, constants.CommonNetworkScript, 0o755); err != nil {
+			return nil, err
+		}
+
 		servicePath := "/etc/systemd/system/pre-network-manager-config.service"
-		serviceContent := constants.MinimalISONetworkConfigService
 		if err := addFileToArchive(w, servicePath, serviceContent, 0o644); err != nil {
 			return nil, err
 		}

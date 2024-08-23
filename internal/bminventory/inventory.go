@@ -3700,8 +3700,26 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 	}
 
 	var netFiles []staticnetworkconfig.StaticNetworkConfigData
+	var scriptContent, serviceContent string
 	if infraEnv.StaticNetworkConfig != "" {
-		netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
+		// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
+		var ok bool
+		ok, err = staticnetworkconfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, common.X86CPUArchitecture)
+		if err != nil {
+			return common.GenerateErrorResponder(err)
+		}
+
+		if ok {
+			b.log.Info("Static network configuration using the nmstatectl service")
+			netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigDataYAML(infraEnv.StaticNetworkConfig)
+			scriptContent = constants.PreNetworkConfigScriptWithNmstatectl
+			serviceContent = constants.MinimalISONetworkConfigServiceNmstatectl
+		} else {
+			b.log.Info("Static network configuration using generated keyfiles")
+			netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
+			scriptContent = constants.PreNetworkConfigScript
+			serviceContent = constants.MinimalISONetworkConfigService
+		}
 		if err != nil {
 			log.WithError(err).Errorf("Failed to create static network config data")
 			return common.GenerateErrorResponder(err)
@@ -3715,7 +3733,7 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 		NoProxy:    noProxy,
 	}
 
-	minimalInitrd, err := isoeditor.RamdiskImageArchive(netFiles, &infraEnvProxyInfo)
+	minimalInitrd, err := isoeditor.RamdiskImageArchive(netFiles, &infraEnvProxyInfo, scriptContent, serviceContent)
 	if err != nil {
 		log.WithError(err).Error("Failed to create ramdisk image archive")
 		return common.GenerateErrorResponder(err)
