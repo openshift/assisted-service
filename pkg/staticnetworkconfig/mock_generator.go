@@ -59,10 +59,25 @@ func (m *MockStaticNetworkConfig) GenerateStaticNetworkConfigData(ctx context.Co
 	return ret0, ret1
 }
 
+// GenerateStaticNetworkConfigDataYAML mocks base method.
+func (m *MockStaticNetworkConfig) GenerateStaticNetworkConfigDataYAML(hostsYAMLS string) ([]StaticNetworkConfigData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateStaticNetworkConfigDataYAML", hostsYAMLS)
+	ret0, _ := ret[0].([]StaticNetworkConfigData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
 // GenerateStaticNetworkConfigData indicates an expected call of GenerateStaticNetworkConfigData.
 func (mr *MockStaticNetworkConfigMockRecorder) GenerateStaticNetworkConfigData(ctx, hostsYAMLS interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateStaticNetworkConfigData", reflect.TypeOf((*MockStaticNetworkConfig)(nil).GenerateStaticNetworkConfigData), ctx, hostsYAMLS)
+}
+
+// GenerateStaticNetworkConfigDataYAML indicates an expected call of GenerateStaticNetworkConfigDataYAML.
+func (mr *MockStaticNetworkConfigMockRecorder) GenerateStaticNetworkConfigDataYAML(hostsYAMLS interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateStaticNetworkConfigDataYAML", reflect.TypeOf((*MockStaticNetworkConfig)(nil).GenerateStaticNetworkConfigDataYAML), hostsYAMLS)
 }
 
 // ValidateStaticConfigParams mocks base method.

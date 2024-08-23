@@ -297,13 +297,33 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		isoType = string(common.ImageTypeValue(infraEnv.Type))
 	}
 	if infraEnv.StaticNetworkConfig != "" && models.ImageType(isoType) == models.ImageTypeFullIso {
-		filesList, newErr := ib.prepareStaticNetworkConfigForIgnition(ctx, infraEnv)
+		var filesList []staticnetworkconfig.StaticNetworkConfigData
+		var newErr error
+
+		// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
+		var ok bool
+		ok, err = staticnetworkconfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, common.X86CPUArchitecture)
+		if err != nil {
+			return "", err
+		}
+
+		if ok {
+			ib.log.Info("Static network configuration using the nmstatectl service")
+			filesList, newErr = ib.prepareStaticNetworkConfigYAMLForIgnition(infraEnv)
+			ignitionParams["StaticNetworkConfigWithNmstatectl"] = filesList
+			ignitionParams["PreNetworkConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.PreNetworkConfigScriptWithNmstatectl))
+			ignitionParams["CommonScriptFunctions"] = base64.StdEncoding.EncodeToString([]byte(constants.CommonNetworkScript))
+		} else {
+			ib.log.Info("Static network configuration using generated keyfiles")
+			filesList, newErr = ib.prepareStaticNetworkConfigForIgnition(ctx, infraEnv)
+			ignitionParams["StaticNetworkConfig"] = filesList
+			ignitionParams["PreNetworkConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.PreNetworkConfigScript))
+		}
+
 		if newErr != nil {
 			ib.log.WithError(newErr).Errorf("Failed to add static network config to ignition for infra env  %s", infraEnv.ID)
 			return "", newErr
 		}
-		ignitionParams["StaticNetworkConfig"] = filesList
-		ignitionParams["PreNetworkConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.PreNetworkConfigScript))
 	}
 
 	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
@@ -351,6 +371,20 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 	}
 
 	return res, nil
+}
+
+func (ib *ignitionBuilder) prepareStaticNetworkConfigYAMLForIgnition(infraEnv *common.InfraEnv) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
+	filesList, err := ib.staticNetworkConfig.GenerateStaticNetworkConfigDataYAML(infraEnv.StaticNetworkConfig)
+	if err != nil {
+		ib.log.WithError(err).Errorf("staticNetworkGenerator failed to produce the nmpolicy files for cluster %s", infraEnv.ID)
+		return nil, err
+	}
+	for i := range filesList {
+		filesList[i].FilePath = filepath.Join(tempNMConnectionsDir, filesList[i].FilePath)
+		filesList[i].FileContents = base64.StdEncoding.EncodeToString([]byte(filesList[i].FileContents))
+	}
+
+	return filesList, nil
 }
 
 func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(ctx context.Context, infraEnv *common.InfraEnv) ([]staticnetworkconfig.StaticNetworkConfigData, error) {

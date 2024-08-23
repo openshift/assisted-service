@@ -38,6 +38,11 @@
         "name": "pre-network-manager-config.service",
         "enabled": true,
         "contents": {{ executeTemplate "pre-network-manager-config.service" . | toString | toJson }}
+    }{{end}}{{if .StaticNetworkConfigWithNmstatectl}},
+    {
+        "name": "pre-network-manager-config.service",
+        "enabled": true,
+        "contents": {{ executeTemplate "pre-network-manager-config-with-nmstatectl.service" . | toString | toJson }}
     }{{end}}{{if .OKDBinaries}},
     {
         "name": "okd-overlay.service",
@@ -176,6 +181,33 @@
         },
         "contents": { "source": "data:text/plain;base64,{{.PreNetworkConfigScript}}"}
     }{{end}}{{range .StaticNetworkConfig}},
+    {
+      "path": "{{.FilePath}}",
+      "mode": 384,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.FileContents}}"}
+    }{{end}}{{if .StaticNetworkConfigWithNmstatectl}},
+    {
+        "path": "/usr/local/bin/pre-network-manager-config.sh",
+        "mode": 493,
+        "overwrite": true,
+        "user": {
+            "name": "root"
+        },
+        "contents": { "source": "data:text/plain;base64,{{.PreNetworkConfigScript}}"}
+    },
+    {
+        "path": "/usr/local/bin/common_network_script.sh",
+        "mode": 493,
+        "overwrite": true,
+        "user": {
+             "name": "root"
+        },
+        "contents": { "source": "data:text/plain;base64,{{.CommonScriptFunctions}}"}
+    }{{end}}{{range .StaticNetworkConfigWithNmstatectl}},
     {
       "path": "{{.FilePath}}",
       "mode": 384,

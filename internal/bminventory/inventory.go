@@ -5856,8 +5856,22 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		}
 		filename = fmt.Sprintf("%s-%s", params.InfraEnvID, params.FileName)
 	case "static-network-config":
+		var netFiles []staticnetworkconfig.StaticNetworkConfigData
 		if infraEnv.StaticNetworkConfig != "" {
-			netFiles, err := b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
+			// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
+			var ok bool
+			ok, err = staticnetworkconfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, common.X86CPUArchitecture)
+			if err != nil {
+				return common.GenerateErrorResponder(err)
+			}
+
+			if ok {
+				b.log.Info("Static network configuration using the nmstatectl service")
+				netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigDataYAML(infraEnv.StaticNetworkConfig)
+			} else {
+				b.log.Info("Static network configuration using generated keyfiles")
+				netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
+			}
 			if err != nil {
 				b.log.WithError(err).Errorf("Failed to create static network config data")
 				return common.GenerateErrorResponder(err)
