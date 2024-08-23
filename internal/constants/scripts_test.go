@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,10 +29,21 @@ var _ = Describe("Pre Network Config Script", func() {
 	BeforeEach(func() {
 		root, err = os.MkdirTemp("", "test_root")
 		Expect(err).ToNot(HaveOccurred())
+
+		var commonFuncsFile *os.File
+		var n int
+		commonFuncsFile, err = os.CreateTemp("", "common_network_script.sh")
+		Expect(err).ToNot(HaveOccurred())
+		n, err = commonFuncsFile.WriteString(CommonNetworkScript)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(n).To(Equal(len(CommonNetworkScript)))
+		Expect(commonFuncsFile.Chmod(0o755)).ToNot(HaveOccurred())
+		os.Setenv("COMMON_SCRIPT_PATH", commonFuncsFile.Name())
+		commonFuncsFile.Close()
+
 		var f *os.File
 		f, err = os.CreateTemp("", "script.sh")
 		Expect(err).ToNot(HaveOccurred())
-		var n int
 		n, err = f.WriteString(PreNetworkConfigScript)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(n).To(Equal(len(PreNetworkConfigScript)))
@@ -153,13 +163,9 @@ var _ = Describe("Pre Network Config Script", func() {
 		copySys()
 		copyUnmatchingDir()
 		_, err := exec.Command("bash", "-c", fmt.Sprintf("PATH_PREFIX=%s %s", root, scriptPath)).CombinedOutput()
+
 		Expect(err).ToNot(HaveOccurred())
 		_, err = os.Stat(systemConnections)
 		Expect(os.IsNotExist(err)).To(BeTrue())
 	})
 })
-
-func TestScripts(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Scripts Tests")
-}
