@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -21,38 +20,26 @@ func TestStaticNetworkConfig(t *testing.T) {
 	RunSpecs(t, "StaticNetworkConfig Suite")
 }
 
-var _ = Describe("generateConfiguration", func() {
+var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - generateConfiguration", func() {
 	var (
 		staticNetworkGenerator = snc.New(logrus.New())
 	)
 
 	It("Fail with an empty host YAML", func() {
-		_, err := staticNetworkGenerator.GenerateStaticNetworkConfigData(context.Background(), `[
-    {
-        "network_yaml": ""
-    }
-]`)
+		_, err := staticNetworkGenerator.GenerateStaticNetworkConfigData(context.Background(), `[{"network_yaml": ""}]`)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("Fail with an invalid host YAML", func() {
-		_, err := staticNetworkGenerator.GenerateStaticNetworkConfigData(context.Background(), `[
-    {
-        "network_yaml": "interfaces:\n    - foo: badConfig"
-    }
-]`)
+		_, err := staticNetworkGenerator.GenerateStaticNetworkConfigData(context.Background(), `[{"network_yaml": "interfaces:\n    - foo: badConfig"}]`)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("InvalidArgument"))
 	})
 
 	It("Success", func() {
 		var (
-			hostsYAML = `[
-	{
-		"network_yaml": "%s"
-	}
-]`
-			hostYAML = `interfaces:
+			hostsYAML = `[{ "network_yaml": "%s" }]`
+			hostYAML  = `interfaces:
 - name: eth0
   type: ethernet
   state: up
@@ -61,10 +48,9 @@ var _ = Describe("generateConfiguration", func() {
     address:
       - ip: 192.0.2.1
         prefix-length: 24`
-
-			escapedYamlContent = escapeYAMLForJSON(hostYAML)
 		)
-
+		escapedYamlContent, err := escapeYAMLForJSON(hostYAML)
+		Expect(err).NotTo(HaveOccurred())
 		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigData(context.Background(), fmt.Sprintf(hostsYAML, escapedYamlContent))
 		fileContent := config[0].FileContents
 		Expect(err).NotTo(HaveOccurred())
@@ -72,7 +58,7 @@ var _ = Describe("generateConfiguration", func() {
 	})
 })
 
-var _ = Describe("validate mac interface mapping", func() {
+var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate mac interface mapping", func() {
 	var (
 		staticNetworkGenerator = snc.New(logrus.New())
 		singleInterfaceYAML    = `interfaces:
@@ -492,6 +478,63 @@ var _ = Describe("StaticNetworkConfig", func() {
 	})
 })
 
+var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigDataYAML - generate nmpolicy", func() {
+	var (
+		staticNetworkGenerator = snc.New(logrus.New())
+
+		hostsYAML, hostsYAMLAndIni = `[{ "network_yaml": "%s" }]`, `[{ "network_yaml": "%s", "mac_interface_map": %s }]`
+
+		hostYAML = `interfaces:
+- name: eth0
+  type: ethernet
+  state: up
+  ipv4:
+    enabled: true
+    address:
+      - ip: 192.0.2.1
+        prefix-length: 24`
+
+		macInterfaceMap = `[
+        {
+          "mac_address": "02:00:00:80:12:14",
+          "logical_nic_name": "eth0"
+        }
+      ]`
+	)
+	escapedYamlContent, err := escapeYAMLForJSON(hostYAML)
+	Expect(err).NotTo(HaveOccurred())
+
+	It("Fail with an empty host YAML", func() {
+		_, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(`[{"network_yaml": ""}]`)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("Fail with an invalid host YAML", func() {
+		_, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(`[{"network_yaml": "interfaces:\n    - foo: badConfig"}]`)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("InvalidArgument"))
+	})
+
+	It("Success - without ini file", func() {
+
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAML, escapedYamlContent))
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(ContainSubstring("capture"))
+		Expect(err).NotTo(HaveOccurred())
+	})
+	It("Success - with ini file", func() {
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macInterfaceMap))
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(ContainSubstring("name: \"{{ capture.iface0.interfaces.0.name }}\""))
+		Expect(err).NotTo(HaveOccurred())
+	})
+})
+
+// TODO: Implement this once a new Validator method is created that is appropriate for the nmstate service flow
+var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigDataYAML - validate mac interface mapping", func() {
+
+})
+
 var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigArchive", func() {
 	It("successfully produces an archive with one host data", func() {
 		data := []snc.StaticNetworkConfigData{
@@ -532,6 +575,7 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigArchive", func(
 		Expect(archiveBytes).ToNot(BeNil())
 		checkArchiveString(archiveBytes.String(), data)
 	})
+
 })
 
 func checkArchiveString(archiveString string, allData []snc.StaticNetworkConfigData) {
@@ -543,8 +587,14 @@ func checkArchiveString(archiveString string, allData []snc.StaticNetworkConfigD
 }
 
 // escapeYAMLForJSON takes a YAML content string and escapes necessary characters to ensure it can be safely embedded within a JSON string.
-func escapeYAMLForJSON(yamlContent string) string {
-	escapedContent := strings.ReplaceAll(yamlContent, "\n", "\\n")
-	escapedContent = strings.ReplaceAll(escapedContent, "\"", "\\\"")
-	return escapedContent
+func escapeYAMLForJSON(yamlContent string) (string, error) {
+	// Use json.Marshal to escape the string
+	escaped, err := json.Marshal(yamlContent)
+	if err != nil {
+		return "", err
+	}
+
+	// json.Marshal returns a byte slice with double quotes around the string,
+	// so we need to trim the double quotes
+	return string(escaped[1 : len(escaped)-1]), nil
 }

@@ -27,9 +27,24 @@ type StaticNetworkConfigData struct {
 	FileContents string
 }
 
+type networkInterface struct {
+	Name          string `yaml:"name"`
+	InterfaceType string `yaml:"type"`
+	Vlan          *vlan  `yaml:"vlan,omitempty"`
+	Identifier    string `yaml:"identifier,omitempty"`
+}
+
+type vlan struct {
+	BaseIface string `yaml:"base-iface"`
+}
+type interfaceConfig struct {
+	Interfaces []networkInterface `yaml:"interfaces"`
+}
+
 //go:generate mockgen -source=generator.go -package=staticnetworkconfig -destination=mock_generator.go
 type StaticNetworkConfig interface {
 	GenerateStaticNetworkConfigData(ctx context.Context, hostsYAMLS string) ([]StaticNetworkConfigData, error)
+	GenerateStaticNetworkConfigDataYAML(staticNetworkConfigStr string) ([]StaticNetworkConfigData, error)
 	FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error)
 	ValidateStaticConfigParams(staticNetworkConfig []*models.HostStaticNetworkConfig) error
 }
@@ -44,6 +59,100 @@ func New(log logrus.FieldLogger) StaticNetworkConfig {
 		log:     log,
 		nmstate: nmstate.New(),
 	}
+}
+
+func (s *StaticNetworkConfigGenerator) injectNMPolicyCaptures(hostConfig *models.HostStaticNetworkConfig) (string, error) {
+	interfacesWithCaptures := hostConfig.NetworkYaml
+	var config interfaceConfig
+
+	err := yaml.Unmarshal([]byte(interfacesWithCaptures), &config)
+	if err != nil {
+		s.log.WithError(err).Errorf("error unmarshalling JSON: %v", err)
+		return "", err
+	}
+
+	nameToType := make(map[string]string)
+	for _, iface := range config.Interfaces {
+		if iface.InterfaceType == "vlan" {
+			nameToType[iface.Vlan.BaseIface] = iface.InterfaceType
+		} else {
+			nameToType[iface.Name] = iface.InterfaceType
+		}
+	}
+
+	var captureSection []string
+
+	for j, mac := range hostConfig.MacInterfaceMap {
+		macAddress := mac.MacAddress
+		interfaceName := mac.LogicalNicName
+
+		// Generate capture section
+		captureSection = append(captureSection, fmt.Sprintf("  iface%d: interfaces.mac-address == \"%s\"", j, strings.ToUpper(macAddress)))
+
+		// Replace logical names with capture values.
+		var modifiedInterfaceConfig string
+		// VLAN is a special case where the base-iface refers to the logical name rather than the VLAN's name.
+		if val, exists := nameToType[mac.LogicalNicName]; exists && val == "vlan" {
+			re := regexp.MustCompile(fmt.Sprintf("base-iface: %s", interfaceName))
+			modifiedInterfaceConfig = re.ReplaceAllString(interfacesWithCaptures, fmt.Sprintf(`base-iface: "{{ capture.iface%d.interfaces.0.name }}"`, j))
+		} else {
+			re := regexp.MustCompile(interfaceName)
+			modifiedInterfaceConfig = re.ReplaceAllString(interfacesWithCaptures, fmt.Sprintf(`"{{ capture.iface%d.interfaces.0.name }}"`, j))
+
+		}
+
+		// Add indentation
+		var indentedConfig []string
+		for _, line := range strings.Split(modifiedInterfaceConfig, "\n") {
+			// Check if line is non-empty and add indentation
+			if strings.TrimSpace(line) != "" {
+				indentedConfig = append(indentedConfig, "  "+line)
+			}
+		}
+		interfacesWithCaptures = strings.Join(indentedConfig, "\n")
+	}
+	// Generate desiredState section
+	desiredStateSection := "\ndesiredState:\n"
+
+	// Combine the sections
+	finalOutput := "capture:\n" + strings.Join(captureSection, "\n") + desiredStateSection + interfacesWithCaptures
+	return finalOutput, nil
+}
+
+func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigDataYAML(staticNetworkConfigStr string) ([]StaticNetworkConfigData, error) {
+	var filesList []StaticNetworkConfigData
+	staticNetworkConfig, err := s.decodeStaticNetworkConfig(staticNetworkConfigStr)
+	if err != nil {
+		s.log.WithError(err).Errorf("Failed to decode static network config")
+		return nil, err
+	}
+
+	for i, hostConfig := range staticNetworkConfig {
+		// We currently use this to validate the YAML file only
+		_, err = s.generateConfiguration(hostConfig.NetworkYaml)
+		if err != nil {
+			return nil, err
+		}
+
+		nmpolicy, err := s.injectNMPolicyCaptures(hostConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		macInterfaceMapping := s.formatMacInterfaceMap(hostConfig.MacInterfaceMap)
+		mapConfigData := StaticNetworkConfigData{
+			FilePath:     filepath.Join(fmt.Sprintf("host%d", i), "mac_interface.ini"),
+			FileContents: macInterfaceMapping,
+		}
+		filesList = append(filesList, mapConfigData)
+
+		newFile := StaticNetworkConfigData{
+			FilePath:     filepath.Join(filepath.Join(fmt.Sprintf("host%d", i), fmt.Sprintf("ymlFile%d.yml", i))),
+			FileContents: nmpolicy,
+		}
+		filesList = append(filesList, newFile)
+	}
+	return filesList, nil
 }
 
 func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigData(ctx context.Context, staticNetworkConfigStr string) ([]StaticNetworkConfigData, error) {
