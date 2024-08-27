@@ -1299,12 +1299,16 @@ var _ = Describe("agent reconcile", func() {
 				StatusInfo: swag.String("Some status info"),
 			},
 		}
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
-			ID: &sId,
-			Hosts: []*models.Host{
-				&commonHost.Host,
-			},
-		}}
+		previousClusterName := "oldClusterDeployment"
+		backEndCluster = &common.Cluster{
+			KubeKeyName:      previousClusterName,
+			KubeKeyNamespace: testNamespace,
+			Cluster: models.Cluster{
+				ID: &sId,
+				Hosts: []*models.Host{
+					&commonHost.Host,
+				},
+			}}
 		targetId := strfmt.UUID(uuid.New().String())
 		targetClusterName := "clusterDeployment"
 		targetBECluster := &common.Cluster{
@@ -1314,7 +1318,10 @@ var _ = Describe("agent reconcile", func() {
 				ID: &targetId,
 			},
 		}
-		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{
+			ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			Hostname:              "agent.example.com",
+		})
 		clusterDeployment := newClusterDeployment(targetClusterName, testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 
@@ -1339,6 +1346,189 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+
+		By("unbind sets the DeprovisionInfo")
+		Expect(agent.Status.DeprovisionInfo).NotTo(BeNil())
+		Expect(agent.Status.DeprovisionInfo.ClusterName).To(Equal(previousClusterName))
+		Expect(agent.Status.DeprovisionInfo.ClusterNamespace).To(Equal(testNamespace))
+		Expect(agent.Status.DeprovisionInfo.NodeName).To(Equal("agent.example.com"))
+		Expect(agent.Status.DeprovisionInfo.Message).To(Equal(AgentDeprovisionMessage))
+	})
+
+	Context("spoke resource removal", func() {
+		var (
+			clusterDeploymentName = "test-cluster"
+			agent                 *v1beta1.Agent
+			agentHostname         = "agent.example.com"
+			spokeClient           spoke_k8s_client.SpokeK8sClient
+			host                  *common.Host
+		)
+
+		BeforeEach(func() {
+			secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeploymentName)
+			cdSpec := getDefaultClusterDeploymentSpec(clusterDeploymentName, "test-cluster-aci", "pull-secret")
+			cdSpec.ClusterMetadata = &hivev1.ClusterMetadata{AdminKubeconfigSecretRef: corev1.LocalObjectReference{Name: secretName}}
+			clusterDeployment := newClusterDeployment(clusterDeploymentName, testNamespace, cdSpec)
+			Expect(c.Create(ctx, clusterDeployment)).To(Succeed())
+
+			infraEnvId := strfmt.UUID(uuid.New().String())
+			allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+
+			hostId := strfmt.UUID(uuid.New().String())
+			host = &common.Host{
+				Host: models.Host{
+					ID:         &hostId,
+					ClusterID:  &sId,
+					InfraEnvID: infraEnvId,
+					Inventory:  common.GenerateTestDefaultInventory(),
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
+				},
+			}
+			mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Return(host, nil).AnyTimes()
+
+			cluster := &common.Cluster{
+				KubeKeyName:      clusterDeploymentName,
+				KubeKeyNamespace: testNamespace,
+				Cluster: models.Cluster{
+					ID: &sId,
+					Hosts: []*models.Host{
+						&host.Host,
+					},
+				}}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(types.NamespacedName{Name: clusterDeploymentName, Namespace: testNamespace}).Return(cluster, nil).AnyTimes()
+
+			adminKubeconfigSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: testNamespace,
+				},
+				Data: map[string][]byte{
+					"kubeconfig": []byte("somekubeconfig"),
+				},
+			}
+			Expect(c.Create(ctx, adminKubeconfigSecret)).To(Succeed())
+
+			agent = newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{
+				ClusterDeploymentName: &v1beta1.ClusterReference{Name: clusterDeploymentName, Namespace: testNamespace},
+				Hostname:              agentHostname,
+			})
+
+			mockInstallerInternal.EXPECT().GetHostByKubeKey(types.NamespacedName{
+				Name:      agent.ObjectMeta.Name,
+				Namespace: agent.ObjectMeta.Namespace,
+			}).Return(host, nil).AnyTimes()
+		})
+
+		setFakeClientWithNode := func() {
+			schemes := GetKubeClientSchemes()
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(schemes).Build()
+			spokeClient = fakeSpokeK8sClient{Client: fakeClient}
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(spokeClient, nil).AnyTimes()
+			node := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: agentHostname}}
+			Expect(spokeClient.Create(ctx, node)).To(Succeed())
+		}
+
+		It("does not remove the resources when DeprovisionInfo is set and the host is still unbinding", func() {
+			agent.Status.DeprovisionInfo = &v1beta1.AgentDeprovisionInfo{
+				ClusterName:      clusterDeploymentName,
+				ClusterNamespace: testNamespace,
+				NodeName:         agentHostname,
+				Message:          AgentDeprovisionMessage,
+			}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+			host.Status = swag.String(models.HostStatusUnbindingPendingUserAction)
+			setFakeClientWithNode()
+
+			result, err := hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			Expect(spokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})).To(Succeed())
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      agent.Name,
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.Status.DeprovisionInfo).ToNot(BeNil())
+		})
+
+		It("does not remove the resources and clears DeprovisionInfo when the skip annotation is set", func() {
+			agent.Status.DeprovisionInfo = &v1beta1.AgentDeprovisionInfo{
+				ClusterName:      clusterDeploymentName,
+				ClusterNamespace: testNamespace,
+				NodeName:         agentHostname,
+				Message:          AgentDeprovisionMessage,
+			}
+			metav1.SetMetaDataAnnotation(&agent.ObjectMeta, AgentSkipSpokeCleanupAnnotation, "true")
+			Expect(c.Create(ctx, agent)).To(Succeed())
+			setFakeClientWithNode()
+
+			result, err := hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			Expect(spokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})).To(Succeed())
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      agent.Name,
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.Status.DeprovisionInfo).To(BeNil())
+		})
+
+		It("sets a message when the removal fails", func() {
+			agent.Status.DeprovisionInfo = &v1beta1.AgentDeprovisionInfo{
+				ClusterName:      clusterDeploymentName,
+				ClusterNamespace: testNamespace,
+				NodeName:         agentHostname,
+				Message:          AgentDeprovisionMessage,
+			}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+
+			mockSpokeClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockSpokeClient, nil).AnyTimes()
+			mockSpokeClient.EXPECT().Get(gomock.Any(), client.ObjectKey{Name: agentHostname}, gomock.Any()).Return(fmt.Errorf("get-failed"))
+
+			result, err := hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).ToNot(BeNil())
+			Expect(result.RequeueAfter).To(Equal(defaultRequeueAfterOnError))
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      agent.Name,
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.Status.DeprovisionInfo).ToNot(BeNil())
+			Expect(agent.Status.DeprovisionInfo.Message).To(ContainSubstring("get-failed"))
+		})
+
+		It("removes the resources when DeprovisionInfo is set", func() {
+			agent.Status.DeprovisionInfo = &v1beta1.AgentDeprovisionInfo{
+				ClusterName:      clusterDeploymentName,
+				ClusterNamespace: testNamespace,
+				NodeName:         agentHostname,
+				Message:          AgentDeprovisionMessage,
+			}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+			setFakeClientWithNode()
+
+			result, err := hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			err = spokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      agent.Name,
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.Status.DeprovisionInfo).To(BeNil())
+		})
 	})
 
 	It("validate Event URL", func() {

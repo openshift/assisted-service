@@ -74,6 +74,7 @@ const (
 	AgentLabelHostProductName            = InventoryLabelPrefix + "host-productname"
 	AgentLabelHostIsVirtual              = InventoryLabelPrefix + "host-isvirtual"
 	AgentLabelClusterDeploymentNamespace = BaseLabelPrefix + "clusterdeployment-namespace"
+	AgentDeprovisionMessage              = "Waiting for host to unbind to do spoke cleanup"
 )
 
 // AgentReconciler reconciles a Agent object
@@ -151,6 +152,14 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		}
 	}
 
+	if shouldCleanUnboundSpokeNode(agent, h) {
+		log.Infof("Cleaning spoke node for host in status %s", *h.Status)
+		if cleanErr := r.cleanUnboundSpokeNode(ctx, log, agent); cleanErr != nil {
+			log.WithError(cleanErr).Errorf("failed to clean spoke node resources")
+			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, cleanErr
+		}
+	}
+
 	if err = r.setInfraEnvNameLabel(ctx, log, h, agent); err != nil {
 		log.WithError(err).Warnf("failed to set infraEnv name label on agent %s/%s", agent.Namespace, agent.Name)
 	}
@@ -223,6 +232,57 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	}
 
 	return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, nil, false)
+}
+
+// shouldCleanUnboundSpokeNode returns true if the agent has deprovision info set and the host is not in the process of unbinding
+func shouldCleanUnboundSpokeNode(agent *aiv1beta1.Agent, host *common.Host) bool {
+	if host.Status == nil {
+		return false
+	}
+
+	unbindingInProgressStatuses := []string{
+		models.HostStatusUnbinding,
+		models.HostStatusUnbindingPendingUserAction,
+		models.HostStatusReclaiming,
+		models.HostStatusReclaimingRebooting,
+	}
+	return agent.Status.DeprovisionInfo != nil && !funk.Contains(unbindingInProgressStatuses, *host.Status)
+}
+
+func (r *AgentReconciler) cleanUnboundSpokeNode(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) error {
+	removeDeprovisionInfo := func() error {
+		patch := client.MergeFrom(agent.DeepCopy())
+		agent.Status.DeprovisionInfo = nil
+		return r.Status().Patch(ctx, agent, patch)
+	}
+
+	if _, skip := agent.GetAnnotations()[AgentSkipSpokeCleanupAnnotation]; skip {
+		log.Info("skipping spoke node cleaning for annotated agent")
+		return removeDeprovisionInfo()
+	}
+	clusterRef := &aiv1beta1.ClusterReference{
+		Name:      agent.Status.DeprovisionInfo.ClusterName,
+		Namespace: agent.Status.DeprovisionInfo.ClusterNamespace,
+	}
+	c, err := r.spokeKubeClient(ctx, clusterRef)
+	if k8serrors.IsNotFound(err) {
+		log.WithError(err).Warnf("failed to clean spoke node resources in previous cluster %s/%s", clusterRef.Namespace, clusterRef.Name)
+		return removeDeprovisionInfo()
+	}
+
+	log.Infof("Removing spoke resources for agent node %s", agent.Status.DeprovisionInfo.NodeName)
+
+	if err := removeSpokeResources(ctx, log, c, agent.Status.DeprovisionInfo.NodeName); err != nil {
+		log.WithError(err).Error("failed to remove spoke cluster resources")
+		patch := client.MergeFrom(agent.DeepCopy())
+		agent.Status.DeprovisionInfo.Message = err.Error()
+		if patchErr := r.Status().Patch(ctx, agent, patch); patchErr != nil {
+			log.WithError(patchErr).Error("failed to update agent deprovision info message")
+		}
+		return err
+	}
+
+	return removeDeprovisionInfo()
 }
 
 func splitNamespacedName(nsName string) (string, string, error) {
@@ -582,6 +642,13 @@ func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger
 				log.WithError(err).Warn("failed to start agent on spoke cluster to reclaim")
 				reclaim = false
 			}
+		}
+
+		agent.Status.DeprovisionInfo = &aiv1beta1.AgentDeprovisionInfo{
+			ClusterName:      cluster.KubeKeyName,
+			ClusterNamespace: cluster.KubeKeyNamespace,
+			NodeName:         getAgentHostname(agent),
+			Message:          AgentDeprovisionMessage,
 		}
 	}
 
