@@ -475,6 +475,29 @@ func deployNMStateConfigCRD(ctx context.Context, client k8sclient.Client, name s
 	Expect(err).To(BeNil())
 }
 
+func deployAgentCRD(ctx context.Context, client k8sclient.Client,
+	name string, spec *v1beta1.AgentSpec,
+	infraNsName types.NamespacedName, agentState string) {
+	err := client.Create(ctx, &v1beta1.Agent{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Agent",
+			APIVersion: getAPIVersion(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      name,
+			Labels: map[string]string{
+				controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name,
+			},
+			Annotations: map[string]string{
+				controllers.AgentStateAnnotation: agentState,
+			},
+		},
+		Spec: *spec,
+	})
+	Expect(err).To(BeNil())
+}
+
 func getAPIVersion() string {
 	return fmt.Sprintf("%s/%s", v1beta1.GroupVersion.Group, v1beta1.GroupVersion.Version)
 }
@@ -860,6 +883,18 @@ func getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecond
 	}
 }
 
+func getDefaultAgentSpec(clusterDeployment *hivev1.ClusterDeploymentSpec,
+	role models.HostRole) *v1beta1.AgentSpec {
+	return &v1beta1.AgentSpec{
+		ClusterDeploymentName: &v1beta1.ClusterReference{
+			Name:      clusterDeployment.ClusterName,
+			Namespace: Options.Namespace,
+		},
+		Approved: true,
+		Role:     role,
+	}
+}
+
 func getAgentMac(ctx context.Context, client k8sclient.Client, key types.NamespacedName) string {
 	mac := ""
 	Eventually(func() bool {
@@ -941,6 +976,9 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 	}, "1m", "2s").Should(BeNil())
 	Eventually(func() error {
 		return client.DeleteAllOf(ctx, &v1beta1.AgentClassification{}, k8sclient.InNamespace(Options.Namespace))
+	}, "1m", "2s").Should(BeNil())
+	Eventually(func() error {
+		return client.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))
 	}, "1m", "2s").Should(BeNil())
 	Eventually(func() error {
 		return client.DeleteAllOf(ctx, &metal3_v1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))
@@ -5550,6 +5588,200 @@ var _ = Describe("PreprovisioningImage reconcile flow", func() {
 				return readyCondition.Status == metav1.ConditionTrue
 			}, "30s", "10s").Should(Equal(true))
 		})
+	})
+})
+
+var _ = Describe("restore Host by Agent flow", func() {
+	if !Options.EnableKubeAPI {
+		return
+	}
+
+	ctx := context.Background()
+
+	var (
+		clusterDeploymentSpec *hivev1.ClusterDeploymentSpec
+		infraEnvSpec          *v1beta1.InfraEnvSpec
+		agentSpec             *v1beta1.AgentSpec
+		infraNsName           types.NamespacedName
+		agentNsName           types.NamespacedName
+		clusterNsName         types.NamespacedName
+		aciSNOSpec            *hiveext.AgentClusterInstallSpec
+		secretRef             *corev1.LocalObjectReference
+	)
+
+	BeforeEach(func() {
+		secretRef = deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec = getDefaultClusterDeploymentSpec(secretRef)
+		aciSNOSpec = getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		infraEnvSpec = getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+		agentSpec = getDefaultAgentSpec(clusterDeploymentSpec, models.HostRoleMaster)
+		deployClusterImageSetCRD(ctx, kubeClient, aciSNOSpec.ImageSetRef)
+
+		clusterNsName = types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		infraNsName = types.NamespacedName{
+			Name:      "infraenv" + randomNameSuffix(),
+			Namespace: Options.Namespace,
+		}
+		agentNsName = types.NamespacedName{
+			Name:      "agent" + randomNameSuffix(),
+			Namespace: Options.Namespace,
+		}
+	})
+
+	It("Should restore a bound Host if missing", func() {
+		By("Create an Agent without an associated Host")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraNsName, waitForReconcileTimeout)
+		deployAgentCRD(ctx, kubeClient, agentNsName.Name, agentSpec, infraNsName, models.HostStatusInstalled)
+		configureLocalAgentClient(infraEnv.ID.String())
+
+		By("Wait for the Host to get restored")
+		Eventually(func() bool {
+			host := GetHostByKubeKey(ctx, db, agentNsName, waitForReconcileTimeout)
+			agent := getAgentCRD(ctx, kubeClient, agentNsName)
+			cluster := getClusterFromDB(ctx, kubeClient, db, clusterNsName, waitForReconcileTimeout)
+			Expect(host.RegisteredAt).To(Equal(strfmt.DateTime(agent.CreationTimestamp.Time)))
+			Expect(host.CheckedInAt).To(Equal(strfmt.DateTime(agent.CreationTimestamp.Time)))
+			Expect(host.Role).To(Equal(agent.Spec.Role))
+			Expect(host.SuggestedRole).To(Equal(agent.Spec.Role))
+			Expect(host.Status).To(Equal(swag.String(models.HostStatusInstalled)))
+			Expect(host.ClusterID).To(Equal(cluster.ID))
+			Expect(host.InfraEnvID).To(Equal(*infraEnv.ID))
+			return true
+		}, "30s", "1s").Should(BeTrue())
+	})
+
+	It("Should restore an unbound Host if missing", func() {
+		By("Create an Agent without an associated Host")
+		infraEnvSpec.ClusterRef = nil
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraNsName, waitForReconcileTimeout)
+		agentSpec.ClusterDeploymentName = nil
+		deployAgentCRD(ctx, kubeClient, agentNsName.Name, agentSpec, infraNsName, models.HostStatusInstalled)
+		configureLocalAgentClient(infraEnv.ID.String())
+
+		By("Wait for the Host to get restored")
+		Eventually(func() bool {
+			host := GetHostByKubeKey(ctx, db, agentNsName, waitForReconcileTimeout)
+			agent := getAgentCRD(ctx, kubeClient, agentNsName)
+			Expect(host.RegisteredAt).To(Equal(strfmt.DateTime(agent.CreationTimestamp.Time)))
+			Expect(host.CheckedInAt).To(Equal(strfmt.DateTime(agent.CreationTimestamp.Time)))
+			Expect(host.Role).To(Equal(agent.Spec.Role))
+			Expect(host.SuggestedRole).To(Equal(agent.Spec.Role))
+			Expect(host.Status).To(Equal(swag.String(models.HostStatusInstalled)))
+			Expect(host.InfraEnvID).To(Equal(*infraEnv.ID))
+			Expect(host.ClusterID).To(BeNil())
+			return true
+		}, "30s", "1s").Should(BeTrue())
+	})
+
+	It("Should be able to bind a restored unbound host to an installed cluster", func() {
+		By("Create an Agent without an associated Host")
+		infraEnvSpec.ClusterRef = nil
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraNsName, waitForReconcileTimeout)
+		agentSpec.ClusterDeploymentName = nil
+		deployAgentCRD(ctx, kubeClient, agentNsName.Name, agentSpec, infraNsName, models.HostStatusKnownUnbound)
+		configureLocalAgentClient(infraEnv.ID.String())
+
+		By("Wait for the Host to get restored")
+		Eventually(func() bool {
+			host := GetHostByKubeKey(ctx, db, agentNsName, waitForReconcileTimeout)
+			agent := getAgentCRD(ctx, kubeClient, agentNsName)
+			return host.ID.String() == agent.Name
+		}, "30s", "1s").Should(BeTrue())
+
+		By("Create cluster")
+		clusterDeploymentSpec.Installed = true
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		By("Bind Agent")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, agentNsName)
+			agent.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{
+				Namespace: Options.Namespace,
+				Name:      clusterDeploymentSpec.ClusterName,
+			}
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, agentNsName)
+			return agent.Spec.ClusterDeploymentName != nil
+		}, "30s", "1s").Should(BeTrue())
+		Eventually(func() bool {
+			host := GetHostByKubeKey(ctx, db, agentNsName, waitForReconcileTimeout)
+			return host.ClusterID != nil
+		}, "30s", "1s").Should(BeTrue())
+	})
+
+	It("Clusters with restored Hosts should support adding day2 Hosts", func() {
+		By("Create a cluster in 'installed' state")
+		clusterDeploymentSpec.Installed = true
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		By("Create an Agent without an associated Host")
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraNsName, waitForReconcileTimeout)
+		deployAgentCRD(ctx, kubeClient, agentNsName.Name, agentSpec, infraNsName, models.HostStatusInstalled)
+		configureLocalAgentClient(infraEnv.ID.String())
+
+		By("Wait for the Host to get restored")
+		Eventually(func() bool {
+			host := GetHostByKubeKey(ctx, db, agentNsName, waitForReconcileTimeout)
+			agent := getAgentCRD(ctx, kubeClient, agentNsName)
+			cluster := getClusterFromDB(ctx, kubeClient, db, clusterNsName, waitForReconcileTimeout)
+			Expect(host.RegisteredAt).To(Equal(strfmt.DateTime(agent.CreationTimestamp.Time)))
+			Expect(host.CheckedInAt).To(Equal(strfmt.DateTime(agent.CreationTimestamp.Time)))
+			Expect(host.Role).To(Equal(agent.Spec.Role))
+			Expect(host.SuggestedRole).To(Equal(agent.Spec.Role))
+			Expect(host.Status).To(Equal(swag.String(models.HostStatusInstalled)))
+			Expect(host.ClusterID).To(Equal(cluster.ID))
+			Expect(host.InfraEnvID).To(Equal(*infraEnv.ID))
+			return true
+		}, "30s", "1s").Should(BeTrue())
+
+		By("Verify cluster is in 'adding-hosts' status")
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
+		Expect(*cluster.Status).Should(Equal(models.ClusterStatusAddingHosts))
+
+		By("Add Day 2 host")
+		ips := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)
+		configureLocalAgentClient(infraEnv.ID.String())
+		day2Host1 := registerNode(ctx, *infraEnv.ID, "firsthostnameday2", ips[0])
+		generateApiVipPostStepReply(ctx, day2Host1, &cluster.Cluster, true)
+		generateFullMeshConnectivity(ctx, ips[0], day2Host1)
+		generateDomainResolution(ctx, day2Host1, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		generateCommonDomainReply(ctx, day2Host1, clusterDeploymentSpec.ClusterName, clusterDeploymentSpec.BaseDomain)
+
+		By("Approve Day 2 agents")
+		k1 := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      day2Host1.ID.String(),
+		}
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, k1)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		By("Verify Day 2 agent conditions")
+		checkAgentCondition(ctx, day2Host1.ID.String(), v1beta1.InstalledCondition, v1beta1.InstallationInProgressReason)
+		checkAgentCondition(ctx, day2Host1.ID.String(), v1beta1.RequirementsMetCondition, v1beta1.AgentAlreadyInstallingReason)
+		checkAgentCondition(ctx, day2Host1.ID.String(), v1beta1.SpecSyncedCondition, v1beta1.SyncedOkReason)
+		checkAgentCondition(ctx, day2Host1.ID.String(), v1beta1.ConnectedCondition, v1beta1.AgentConnectedReason)
+		checkAgentCondition(ctx, day2Host1.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsPassingReason)
 	})
 })
 

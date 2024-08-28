@@ -32,6 +32,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	. "github.com/openshift/assisted-service/api/common"
+	"github.com/openshift/assisted-service/api/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
@@ -65,6 +66,7 @@ import (
 const (
 	AgentFinalizerName                   = "agent." + aiv1beta1.Group + "/ai-deprovision"
 	AgentSkipSpokeCleanupAnnotation      = "agent." + aiv1beta1.Group + "/skip-spoke-cleanup"
+	AgentStateAnnotation                 = "agent." + aiv1beta1.Group + "/state"
 	BaseLabelPrefix                      = aiv1beta1.Group + "/"
 	InventoryLabelPrefix                 = "inventory." + BaseLabelPrefix
 	AgentLabelHasNonrotationalDisk       = InventoryLabelPrefix + "storage-hasnonrotationaldisk"
@@ -145,7 +147,14 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	h, err := r.Installer.GetHostByKubeKey(req.NamespacedName)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return r.deleteAgent(ctx, log, req.NamespacedName)
+			// Restoring the Host according to values from Agent
+			if err = r.restoreHostByAgent(ctx, agent); err != nil {
+				log.WithError(err).Errorf("failed to restore Host %s according to the Agent", agent.Name)
+				return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+			}
+			// Requeuing as the associated Host should exist now
+			log.Infof("Restored a Host for agent %s", agent.Name)
+			return ctrl.Result{Requeue: true}, nil
 		} else {
 			log.WithError(err).Errorf("failed to retrieve Host %s from backend", agent.Name)
 			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
@@ -162,6 +171,13 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 
 	if err = r.setInfraEnvNameLabel(ctx, log, h, agent); err != nil {
 		log.WithError(err).Warnf("failed to set infraEnv name label on agent %s/%s", agent.Namespace, agent.Name)
+	}
+
+	// Add/Update 'state' annotation (with host's status)
+	if setAgentAnnotation(log, agent, AgentStateAnnotation, swag.StringValue(h.Status)) {
+		if err = r.updateAndReplaceAgent(ctx, agent); err != nil {
+			log.WithError(err).Warnf("failed to set state annotation on agent %s/%s", agent.Namespace, agent.Name)
+		}
 	}
 
 	if agent.Spec.ClusterDeploymentName == nil && h.ClusterID != nil {
@@ -662,20 +678,6 @@ func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger
 	}
 
 	return r.updateStatus(ctx, log, agent, origAgent, &host.Host, h.ClusterID, nil, true)
-}
-
-func (r *AgentReconciler) deleteAgent(ctx context.Context, log logrus.FieldLogger, agent types.NamespacedName) (ctrl.Result, error) {
-	agentToDelete := &aiv1beta1.Agent{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      agent.Name,
-			Namespace: agent.Namespace,
-		},
-	}
-	if delErr := r.Client.Delete(ctx, agentToDelete); delErr != nil {
-		log.WithError(delErr).Errorf("Failed to delete resource %s %s", agent.Name, agent.Namespace)
-		return ctrl.Result{Requeue: true}, delErr
-	}
-	return ctrl.Result{}, nil
 }
 
 func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) (ctrl.Result, error) {
@@ -1760,4 +1762,94 @@ func (r *AgentReconciler) updateHostInstallProgress(ctx context.Context, host *m
 			CurrentStage: stage},
 	})
 	return err
+}
+
+func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, agent *aiv1beta1.Agent) error {
+	// Get InfraEnv
+	infraEnvName, exist := agent.Labels[aiv1beta1.InfraEnvNameLabel]
+	if !exist {
+		r.Log.Errorf("Failed to find infraEnv name for agent %s in namespace %s", agent.Name, agent.Namespace)
+		return errors.New("Missing InfraEnv name label")
+	}
+	key := types.NamespacedName{
+		Name:      infraEnvName,
+		Namespace: agent.Namespace,
+	}
+	infraEnv, err := r.Installer.GetInfraEnvByKubeKey(key)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			r.Log.WithError(err).Errorf("InfraEnv with name '%s' is missing", infraEnvName)
+			return err
+		}
+		r.Log.WithError(err).Errorf("Failed to get InfraEnv with name '%s'", infraEnvName)
+		return err
+	}
+
+	// Get associated cluster if available
+	var clusterID *strfmt.UUID
+	var cluster *common.Cluster
+	if agent.Spec.ClusterDeploymentName != nil {
+		clusterKey := types.NamespacedName{
+			Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+			Name:      agent.Spec.ClusterDeploymentName.Name,
+		}
+		cluster, err = r.Installer.GetClusterByKubeKey(clusterKey)
+		if err != nil {
+			r.Log.WithError(err).Errorf("Failed to get cluster (name: %s namespace: %s)",
+				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+			return err
+		}
+		clusterID = cluster.ID
+	}
+
+	host, err := createNewHost(agent, clusterID, *infraEnv.ID)
+	if err != nil {
+		r.Log.WithError(err).Errorf("Failed to create Host with name '%s'", agent.Name)
+		return err
+	}
+
+	return r.Installer.CreateHostInKubeKeyNamespace(ctx, key, host)
+}
+
+func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strfmt.UUID) (*models.Host, error) {
+	// Create Intentory
+	hostInventory := models.Inventory{}
+	manufacturer, exist := agent.Labels[AgentLabelHostManufacturer]
+	if exist {
+		hostInventory.SystemVendor = &models.SystemVendor{}
+		hostInventory.SystemVendor.Manufacturer = manufacturer
+	}
+	inventory, err := json.Marshal(hostInventory)
+	if err != nil {
+		return nil, errors.New("Failed to marshal agent's inventory")
+	}
+
+	// Fetch State
+	var hostStatus string
+	if state, has_annotation := agent.GetAnnotations()[AgentStateAnnotation]; has_annotation {
+		hostStatus = state
+	} else {
+		if clusterID != nil {
+			hostStatus = models.HostStatusKnown
+		} else {
+			hostStatus = models.HostStatusKnownUnbound
+		}
+	}
+
+	// Create Host model
+	hostID := strfmt.UUID(agent.Name)
+	host := &models.Host{
+		ID:            &hostID,
+		Kind:          swag.String(models.HostKindHost),
+		RegisteredAt:  strfmt.DateTime(agent.CreationTimestamp.Time),
+		CheckedInAt:   strfmt.DateTime(agent.CreationTimestamp.Time),
+		Role:          agent.Spec.Role,
+		SuggestedRole: agent.Spec.Role,
+		ClusterID:     clusterID,
+		InfraEnvID:    infraEnvID,
+		Status:        &hostStatus,
+		Inventory:     string(inventory),
+	}
+
+	return host, nil
 }
