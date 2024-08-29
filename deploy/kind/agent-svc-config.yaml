@@ -1,0 +1,43 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: assisted-service-config
+  namespace: assisted-installer
+data:
+---
+apiVersion: agent-install.openshift.io/v1beta1
+kind: AgentServiceConfig
+metadata:
+  name: agent
+  namespace: assisted-installer
+  annotations:
+    unsupported.agent-install.openshift.io/assisted-service-configmap: assisted-service-config
+spec:
+  ingress:
+    className: nginx
+    assistedServiceHostname: assisted-service.example.com
+    imageServiceHostname: image-service.example.com
+  databaseStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 8Gi
+  filesystemStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 8Gi
+  imageStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  osImages:
+  - openshiftVersion: "4.15"
+    cpuArchitecture: "x86_64"
+    url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.15/4.15.0/rhcos-4.15.0-x86_64-live.x86_64.iso"
+    version: "415.92.202402130021-0"

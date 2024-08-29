@@ -14,7 +14,7 @@ function check() {
 		echo "'kind' is installed. '$(kind --version)' will be used"
 		return 0
 	else
-		echo "'kind' executable is not avialable in PATH"
+		echo "'kind' executable is not available in PATH"
 		return 1
 	fi
 }
