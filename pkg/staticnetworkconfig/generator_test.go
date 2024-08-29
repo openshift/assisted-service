@@ -58,7 +58,7 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - generate
 	})
 })
 
-var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate mac interface mapping", func() {
+var _ = Describe("validate mac interface mapping", func() {
 	var (
 		staticNetworkGenerator = snc.New(logrus.New())
 		singleInterfaceYAML    = `interfaces:
@@ -93,17 +93,18 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
           prefix-length: 24`
 	)
 	It("one interface without mac-interface mapping", func() {
-		err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			{
 				MacInterfaceMap: []*models.MacInterfaceMapItems0{},
 				NetworkYaml:     singleInterfaceYAML,
 			},
-		})
+		}
+		err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
 	})
 	It("one interface with mac-interface mapping", func() {
-		err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			{
 				MacInterfaceMap: []*models.MacInterfaceMapItems0{
 					{
@@ -113,12 +114,13 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
 				},
 				NetworkYaml: singleInterfaceYAML,
 			},
-		})
+		}
+		err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("two interfaces. only one mac-interface mapping", func() {
-		err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			{
 				MacInterfaceMap: []*models.MacInterfaceMapItems0{
 					{
@@ -128,12 +130,13 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
 				},
 				NetworkYaml: multipleInterfacesYAML,
 			},
-		})
+		}
+		err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
 	})
 	It("two interfaces. with mac-interface mapping", func() {
-		err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			{
 				MacInterfaceMap: []*models.MacInterfaceMapItems0{
 					{
@@ -147,7 +150,8 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
 				},
 				NetworkYaml: multipleInterfacesYAML,
 			},
-		})
+		}
+		err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -169,7 +173,7 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
     - eth3
     - eth2`
 		It("wrong interface names mapping", func() {
-			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{
 						{
@@ -183,12 +187,13 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
 					},
 					NetworkYaml: bondYAML,
 				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
 		})
 		It("correct interface names mapping", func() {
-			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{
 						{
@@ -202,7 +207,8 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
 					},
 					NetworkYaml: bondYAML,
 				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -225,17 +231,19 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
       base-iface: eth1
       id: 101`
 		It("vlan with underlying interface - no mapping", func() {
-			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+
 				{
 					MacInterfaceMap: nil,
 					NetworkYaml:     withUnderlyingInterface,
 				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
 		})
 		It("vlan with underlying interface - with mapping", func() {
-			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
 					MacInterfaceMap: models.MacInterfaceMap{
 						{
@@ -245,11 +253,12 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
 					},
 					NetworkYaml: withUnderlyingInterface,
 				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("vlan without underlying interface - with mapping", func() {
-			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
 					MacInterfaceMap: models.MacInterfaceMap{
 						{
@@ -259,7 +268,8 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
 					},
 					NetworkYaml: withoutUnderlyingInterface,
 				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -304,7 +314,7 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
       enabled: false
       dhcp: false`
 		It("no mapping needed for physical interface", func() {
-			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{
 						{
@@ -314,21 +324,23 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
 					},
 					NetworkYaml: withPhysicalInterface,
 				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("at least one mapped interface is required", func() {
-			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{},
 					NetworkYaml:     withNoMappedInterfaces,
 				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("at least one interface for host"))
 		})
-		It("mac-identifier field is allowed", func() {
-			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+		It("mac-identifier field is allowed for ABI in ocp-version >= 4.14", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{
 						{
@@ -338,7 +350,83 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - validate
 					},
 					NetworkYaml: withMacIdentifier,
 				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "agent-installer")
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("The mac-identifier field is temporarily not supported for flows other than ABI in OCP versions >= 4.14", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
+			Expect(err).To(HaveOccurred())
+		})
+		It("mac-identifier field is supported in ocp-versions < 4.14", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.13", common.X86CPUArchitecture, "")
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("mac-identifier field in the YAML, along with a differing MAC in the mac-map, is temporarily not supported for flows other than ABI in OCP versions >= 4.14", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth1",
+							MacAddress:     "f8:75:a4:a4:00:14",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
+			Expect(err).To(HaveOccurred())
+		})
+		It("mac-identifier field in the YAML, along with a differing MAC in the mac-map, is allowed for ABI in OCP versions >= 4.14", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth1",
+							MacAddress:     "f8:75:a4:a4:00:14",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "agent-installer")
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("mac-identifier field in the YAML, along with a differing MAC in the mac-map, is supported in ocp-versions < 4.14", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth1",
+							MacAddress:     "f8:75:a4:a4:00:14",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.13", common.X86CPUArchitecture, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -390,7 +478,7 @@ var _ = Describe("StaticNetworkConfig", func() {
 			},
 		}
 
-		err := staticNetworkGenerator.ValidateStaticConfigParams(staticNetworkConfig)
+		err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).ToNot(HaveOccurred())
 
 		input = models.MacInterfaceMap{
@@ -404,7 +492,7 @@ var _ = Describe("StaticNetworkConfig", func() {
 				NetworkYaml:     multipleInterfacesYAML,
 			},
 		}
-		err = staticNetworkGenerator.ValidateStaticConfigParams(staticNetworkConfig)
+		err = staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).To(HaveOccurred())
 
 		input = models.MacInterfaceMap{
@@ -418,7 +506,7 @@ var _ = Describe("StaticNetworkConfig", func() {
 				NetworkYaml:     multipleInterfacesYAML,
 			},
 		}
-		err = staticNetworkGenerator.ValidateStaticConfigParams(staticNetworkConfig)
+		err = staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -528,11 +616,6 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigDataYAML - gene
 		Expect(fileContent).To(ContainSubstring("name: \"{{ capture.iface0.interfaces.0.name }}\""))
 		Expect(err).NotTo(HaveOccurred())
 	})
-})
-
-// TODO: Implement this once a new Validator method is created that is appropriate for the nmstate service flow
-var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigDataYAML - validate mac interface mapping", func() {
-
 })
 
 var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigArchive", func() {

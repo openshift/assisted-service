@@ -46,7 +46,7 @@ type StaticNetworkConfig interface {
 	GenerateStaticNetworkConfigData(ctx context.Context, hostsYAMLS string) ([]StaticNetworkConfigData, error)
 	GenerateStaticNetworkConfigDataYAML(staticNetworkConfigStr string) ([]StaticNetworkConfigData, error)
 	FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error)
-	ValidateStaticConfigParams(staticNetworkConfig []*models.HostStaticNetworkConfig) error
+	ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, arch, installerInvoker string) error
 }
 
 type StaticNetworkConfigGenerator struct {
@@ -275,33 +275,81 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 	return buf.String(), nil
 }
 
-func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistence(macInterfaceMap models.MacInterfaceMap, networksConfig []StaticNetworkConfigData) error {
+func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macInterfaceMap models.MacInterfaceMap, networksYaml, ocpVersion, arch, installerInvoker string) error {
 	interfaceNames := lo.Map(macInterfaceMap, func(m *models.MacInterfaceMapItems0, _ int) string { return m.LogicalNicName })
+
+	var config map[string]interface{}
+
+	// Unmarshal the JSON string into the config struct
+	err := yaml.Unmarshal([]byte(networksYaml), &config)
+	if err != nil {
+		s.log.WithError(err).Errorf("Error unmarshalling JSON")
+		return err
+	}
+
 	// See 'man systemd.net-naming-scheme' for interface naming protocol
 	predicatableIfaceNamePattern := regexp.MustCompile("^en[PsvxXbucaipod]")
-	for _, nc := range networksConfig {
-		cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, []byte(nc.FileContents))
+	Interfaces := config["interfaces"].([]interface{})
+	interfaceWithmacIdentifier := make(map[string]struct{})
+
+	for _, iface := range Interfaces {
+		nic := iface.(map[interface{}]interface{})
+		interfaceName, exists := nic["name"]
+		if !exists {
+			return errors.Errorf("interface name not found in networks configuration")
+		}
+
+		identifier, exists := nic["identifier"]
+		if exists && identifier == "mac-address" {
+			interfaceWithmacIdentifier[interfaceName.(string)] = struct{}{}
+		}
+	}
+
+	for _, iface := range Interfaces {
+		nic := iface.(map[interface{}]interface{})
+		interfaceName, exists := nic["name"]
+		if !exists {
+			return errors.Errorf("interface name not found in networks configuration")
+		}
+
+		identifier, exists := nic["identifier"]
+		isMacAddressIdentifier := exists && identifier == "mac-address"
+		isVersionOK, err := NMStatectlServiceSupported(ocpVersion, arch)
 		if err != nil {
-			s.log.WithError(err).Errorf("Failed to load the ini format string %s", nc.FileContents)
 			return err
 		}
-		connectionSection := cfg.Section("connection")
-		interfaceName, err := connectionSection.GetKey("interface-name")
-		if err != nil {
-			// When the id field is provided the interface-name will not be present
-			continue
+
+		// TODO: This is a temporary validation. It should be removed once the mac-identifier bug in nmstate is resolved in version 2.2.35.
+		if installerInvoker != "agent-installer" && isVersionOK && isMacAddressIdentifier {
+			return errors.Errorf("Mac-address identifier is not supported")
 		}
-		interfaceType, err := connectionSection.GetKey("type")
-		if err != nil {
-			return errors.Wrapf(err, "failed to get interface type for interface %s", interfaceName.String())
-		}
-		switch interfaceType.String() {
+
+		interfaceType := nic["type"]
+		switch interfaceType {
 		case "802-3-ethernet", "ethernet":
-			if !lo.Contains(interfaceNames, interfaceName.String()) {
-				if !predicatableIfaceNamePattern.MatchString(interfaceName.String()) {
-					return errors.Errorf("mac-interface mapping for interface %s is missing and not a physical interface", interfaceName.String())
+			if !lo.Contains(interfaceNames, interfaceName.(string)) {
+				if isMacAddressIdentifier {
+					s.log.Infof("Interface %s has no mac-interface mapping but has a mac-identifier", interfaceName)
+				} else if !predicatableIfaceNamePattern.MatchString(interfaceName.(string)) {
+					return errors.Errorf("mac-interface mapping for interface %s is missing and not a physical interface", interfaceName)
 				} else {
-					s.log.Infof("Interface %s has no mac-interface mapping but matches a physical interface", interfaceName.String())
+					s.log.Infof("Interface %s has no mac-interface mapping but matches a physical interface", interfaceName)
+				}
+			}
+		case "bond":
+			if val, exists := nic["link-aggregation"].(map[interface{}]interface{}); exists {
+				if ports, exists := val["port"].([]interface{}); exists {
+					for _, port := range ports {
+						if !lo.Contains(interfaceNames, port.(string)) {
+							if _, exists := interfaceWithmacIdentifier[port.(string)]; exists {
+								continue
+							} else if !predicatableIfaceNamePattern.MatchString(port.(string)) {
+								return errors.Errorf("mac-interface mapping for interface %s is missing and not a physical interface", interfaceName)
+							} else {
+								s.log.Infof("Interface %s has no mac-interface mapping but matches a physical interface", interfaceName)
+							}
+						}
+					}
 				}
 			}
 		}
@@ -309,15 +357,15 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistence(macInterf
 	return nil
 }
 
-func (s *StaticNetworkConfigGenerator) ValidateStaticConfigParams(staticNetworkConfig []*models.HostStaticNetworkConfig) error {
+func (s *StaticNetworkConfigGenerator) ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, arch, installInvoker string) error {
 	var err *multierror.Error
 	for i, hostConfig := range staticNetworkConfig {
 		err = multierror.Append(err, s.validateMacInterfaceName(i, hostConfig.MacInterfaceMap))
-		networkConfigs, validateErr := s.createConnectionFilesFromNMStateYaml(hostConfig.NetworkYaml)
+		_, validateErr := s.generateConfiguration(hostConfig.NetworkYaml)
 		if validateErr != nil {
 			err = multierror.Append(err, fmt.Errorf("failed to validate network yaml for host %d, %s", i, validateErr))
 		}
-		err = multierror.Append(err, s.validateInterfaceNamesExistence(hostConfig.MacInterfaceMap, networkConfigs))
+		err = multierror.Append(err, s.validateInterfaceNamesExistenceYAML(hostConfig.MacInterfaceMap, hostConfig.NetworkYaml, ocpVersion, arch, installInvoker))
 	}
 	return err.ErrorOrNil()
 }
@@ -336,17 +384,6 @@ func (s *StaticNetworkConfigGenerator) validateMacInterfaceName(hostIdx int, mac
 		return fmt.Errorf("MACs and Interfaces for host %d must be unique", hostIdx)
 	}
 	return nil
-}
-
-func (s *StaticNetworkConfigGenerator) createConnectionFilesFromNMStateYaml(networkYaml string) ([]StaticNetworkConfigData, error) {
-	result, err := s.generateConfiguration(networkYaml)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check that the file content can be created
-	// This doesn't write anything to the local filesystem
-	return s.createNMConnectionFiles(result, "temphostdir")
 }
 
 func compareMapInterfaces(intf1, intf2 *models.MacInterfaceMapItems0) bool {

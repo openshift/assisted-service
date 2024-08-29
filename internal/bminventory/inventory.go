@@ -216,6 +216,7 @@ type bareMetalInventory struct {
 	gcConfig             garbagecollector.Config
 	providerRegistry     registry.ProviderRegistry
 	insecureIPXEURLs     bool
+	installerInvoker     string
 }
 
 func NewBareMetalInventory(
@@ -249,6 +250,7 @@ func NewBareMetalInventory(
 	gcConfig garbagecollector.Config,
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
+	installerInvoker string,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -281,6 +283,7 @@ func NewBareMetalInventory(
 		gcConfig:             gcConfig,
 		providerRegistry:     providerRegistry,
 		insecureIPXEURLs:     insecureIPXEURLs,
+		installerInvoker:     installerInvoker,
 	}
 }
 
@@ -4774,7 +4777,7 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 	}
 
 	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraenvCreateParams.StaticNetworkConfig, params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture, b.installerInvoker); err != nil {
 			return err
 		}
 	}
@@ -4956,7 +4959,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 
 		if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
-			if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
+			if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraEnvUpdateParams.StaticNetworkConfig, infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, b.installerInvoker); err != nil {
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 		}
