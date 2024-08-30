@@ -6899,6 +6899,7 @@ func init() {
         "cnv-requirements-satisfied",
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
+        "mtv-requirements-satisfied",
         "network-type-valid",
         "platform-requirements-satisfied"
       ]
@@ -7721,6 +7722,7 @@ func init() {
         "LSO",
         "CNV",
         "MCE",
+        "MTV",
         "NUTANIX_INTEGRATION",
         "BAREMETAL_PLATFORM",
         "NONE_PLATFORM",
@@ -8333,6 +8335,7 @@ func init() {
         "odf-requirements-satisfied",
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
+        "mtv-requirements-satisfied",
         "sufficient-installation-disk-speed",
         "cnv-requirements-satisfied",
         "sufficient-network-latency-requirement-for-role",
@@ -17718,6 +17721,7 @@ func init() {
         "cnv-requirements-satisfied",
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
+        "mtv-requirements-satisfied",
         "network-type-valid",
         "platform-requirements-satisfied"
       ]
@@ -18507,6 +18511,7 @@ func init() {
         "LSO",
         "CNV",
         "MCE",
+        "MTV",
         "NUTANIX_INTEGRATION",
         "BAREMETAL_PLATFORM",
         "NONE_PLATFORM",
@@ -19119,6 +19124,7 @@ func init() {
         "odf-requirements-satisfied",
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
+        "mtv-requirements-satisfied",
         "sufficient-installation-disk-speed",
         "cnv-requirements-satisfied",
         "sufficient-network-latency-requirement-for-role",
