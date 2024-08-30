@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
@@ -29,7 +30,9 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const localClusterName = "local-cluster"
+const localClusterName = "arbitrary-cluster-name"
+
+var localClusterID string
 
 func newLocalClusterImportTestReconciler(scheme *runtime.Scheme, initObjs ...client.Object) *LocalClusterImportReconciler {
 
@@ -43,7 +46,6 @@ func newLocalClusterImportTestReconciler(scheme *runtime.Scheme, initObjs ...cli
 	return &LocalClusterImportReconciler{
 		log:                    logrus.New(),
 		client:                 c,
-		localClusterName:       localClusterName,
 		agentServiceConfigName: "agent",
 	}
 }
@@ -51,13 +53,16 @@ func newLocalClusterImportTestReconciler(scheme *runtime.Scheme, initObjs ...cli
 var _ = Describe("Reconcile", func() {
 
 	var (
-		ctx                context.Context
-		client             clnt.Client
-		agentServiceConfig *aiv1beta1.AgentServiceConfig
-		managedCluster     *clusterv1.ManagedCluster
-		key                clnt.ObjectKey
-		request            ctrl.Request
-		reconciler         *LocalClusterImportReconciler
+		ctx                           context.Context
+		client                        clnt.Client
+		agentServiceConfig            *aiv1beta1.AgentServiceConfig
+		managedCluster                *clusterv1.ManagedCluster
+		key                           clnt.ObjectKey
+		request                       ctrl.Request
+		reconciler                    *LocalClusterImportReconciler
+		localClusterNamespacedName    types.NamespacedName
+		adminKubeConfigNamespacedName types.NamespacedName
+		localClusterPullSecretName    types.NamespacedName
 	)
 
 	var awaitReconcile = func(conditionType conditionsv1.ConditionType, reason string, status corev1.ConditionStatus, message *string) {
@@ -82,6 +87,7 @@ var _ = Describe("Reconcile", func() {
 	}
 
 	BeforeEach(func() {
+		localClusterID = uuid.NewString()
 		// Create a context for the test:
 		ctx = context.Background()
 		scheme := runtime.NewScheme()
@@ -137,6 +143,10 @@ var _ = Describe("Reconcile", func() {
 		managedCluster = &clusterv1.ManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: localClusterName,
+				Labels: map[string]string{
+					"local-cluster": "true",
+					clusterIDLabel:  localClusterID,
+				},
 			},
 			Spec: clusterv1.ManagedClusterSpec{
 				HubAcceptsClient:     true,
@@ -209,6 +219,9 @@ var _ = Describe("Reconcile", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "version",
 			},
+			Spec: configv1.ClusterVersionSpec{
+				ClusterID: configv1.ClusterID(localClusterID),
+			},
 			Status: configv1.ClusterVersionStatus{
 				Desired: configv1.Release{
 					Image:   "registry.ci.openshift.org/ocp/release@sha256:3512c62a8c5bb232b018153e7d5bfac9bbc047f83e5ea645a41c33144df6c735",
@@ -233,6 +246,19 @@ var _ = Describe("Reconcile", func() {
 		}
 		reconciler = newLocalClusterImportTestReconciler(scheme, managedCluster, agentServiceConfig, node1, node2, node3, proxy, dns, kubeConfigSecret, clusterVersion, machineApiPullSecret, namespace)
 		client = reconciler.client
+
+		localClusterNamespacedName = types.NamespacedName{
+			Namespace: localClusterName,
+			Name:      localClusterName,
+		}
+		adminKubeConfigNamespacedName = types.NamespacedName{
+			Namespace: localClusterName,
+			Name:      fmt.Sprintf(adminKubeConfigStringTemplate, localClusterName),
+		}
+		localClusterPullSecretName = types.NamespacedName{
+			Namespace: localClusterName,
+			Name:      hubPullSecretName,
+		}
 	})
 
 	It("should create cluster import CRs when ManagedCluster and AgentServiceConfig are present", func() {
@@ -241,35 +267,40 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedName := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
-		err = client.Get(ctx, namespacedName, clusterDeployment)
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
+		err = client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedName, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedName, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
 		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
+		Expect(err).ToNot(HaveOccurred())
+
 	})
 
 	It("cluster import CR's should not be present after reconcile if AgentServiceConfig is not present", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedname := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
 		err := client.Delete(ctx, agentServiceConfig)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = reconciler.Reconcile(ctx, request)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, clusterDeployment)
+		err = client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
@@ -278,21 +309,24 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		nameSpacedName := types.NamespacedName{
-			Name: "agent",
-		}
-		err := client.Get(ctx, nameSpacedName, asc)
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
+		err := client.Get(ctx, types.NamespacedName{Name: "agent"}, asc)
 		Expect(err).To(BeNil())
 		asc.ObjectMeta.Annotations = nil
 		err = client.Update(ctx, asc)
 		Expect(err).To(BeNil())
 		_, err = reconciler.Reconcile(ctx, request)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, nameSpacedName, clusterDeployment)
+		err = client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		err = client.Get(ctx, nameSpacedName, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		err = client.Get(ctx, nameSpacedName, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
@@ -300,18 +334,20 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedname := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
 		err := client.Delete(ctx, managedCluster)
 		Expect(err).ToNot(HaveOccurred())
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterNotManaged, corev1.ConditionFalse, nil)
-		err = client.Get(ctx, namespacedname, clusterDeployment)
+		err = client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
@@ -319,26 +355,32 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedname := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err := client.Get(ctx, namespacedname, clusterDeployment)
+		err := client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Delete(ctx, agentServiceConfig)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = reconciler.Reconcile(ctx, request)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, clusterDeployment)
+		err = client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
@@ -346,25 +388,31 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedname := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err := client.Get(ctx, namespacedname, clusterDeployment)
+		err := client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 		err = client.Delete(ctx, managedCluster)
 		Expect(err).ToNot(HaveOccurred())
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterNotManaged, corev1.ConditionFalse, nil)
-		err = client.Get(ctx, namespacedname, clusterDeployment)
+		err = client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 
@@ -372,16 +420,18 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedname := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err := client.Get(ctx, namespacedname, clusterDeployment)
+		err := client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		asc := &aiv1beta1.AgentServiceConfig{}
@@ -395,11 +445,15 @@ var _ = Describe("Reconcile", func() {
 		Expect(err).To(BeNil())
 
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterImportNotEnabled, corev1.ConditionFalse, nil)
-		err = client.Get(ctx, namespacedname, clusterDeployment)
+		err = client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -407,16 +461,18 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedname := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err := client.Get(ctx, namespacedname, clusterDeployment)
+		err := client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		//Test a change of proxy settings
@@ -432,7 +488,7 @@ var _ = Describe("Reconcile", func() {
 		Expect(agentClusterInstall.Spec.Proxy.HTTPProxy).ToNot(Equal("some.http.uri"))
 		Expect(agentClusterInstall.Spec.Proxy.HTTPSProxy).ToNot(Equal("some.https.uri"))
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(agentClusterInstall.Spec.Proxy.HTTPProxy).To(Equal("some.http.uri"))
 		Expect(agentClusterInstall.Spec.Proxy.HTTPSProxy).To(Equal("some.https.uri"))
@@ -442,16 +498,18 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedname := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err := client.Get(ctx, namespacedname, clusterDeployment)
+		err := client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		//Test a change of DNS settings
@@ -466,7 +524,7 @@ var _ = Describe("Reconcile", func() {
 		err = client.Update(ctx, dns)
 		Expect(err).ToNot(HaveOccurred())
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err = client.Get(ctx, namespacedname, clusterDeployment)
+		err = client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(clusterDeployment.Spec.ClusterName).To(Equal("some-new-cluster"))
 		Expect(clusterDeployment.Spec.BaseDomain).To(Equal("new.base.domain"))
@@ -476,16 +534,18 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedname := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err := client.Get(ctx, namespacedname, clusterDeployment)
+		err := client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		//Test that a change to ClusterVersion changes the cluster image set correctly.
@@ -529,16 +589,15 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedname := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
+		adminKubeConfigSecret := &v1.Secret{}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err := client.Get(ctx, namespacedname, clusterDeployment)
+		err := client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Verify content of pull secret against local-cluster pull-secret before we change it.
@@ -548,14 +607,8 @@ var _ = Describe("Reconcile", func() {
 			Namespace: "openshift-config",
 		}, &pullSecret)
 		Expect(err).ToNot(HaveOccurred())
-
-		Expect(err).ToNot(HaveOccurred())
-
 		localClusterPullSecret := corev1.Secret{}
-		err = client.Get(ctx, types.NamespacedName{
-			Name:      "pull-secret",
-			Namespace: localClusterName,
-		}, &localClusterPullSecret)
+		err = client.Get(ctx, localClusterPullSecretName, &localClusterPullSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(localClusterPullSecret.Data[".dockerconfigjson"]).To(Equal(pullSecret.Data[".dockerconfigjson"]))
 
@@ -569,10 +622,7 @@ var _ = Describe("Reconcile", func() {
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
 
 		// Check local cluster pull secret after reconcile.
-		err = client.Get(ctx, types.NamespacedName{
-			Name:      "pull-secret",
-			Namespace: localClusterName,
-		}, &localClusterPullSecret)
+		err = client.Get(ctx, localClusterPullSecretName, &localClusterPullSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(localClusterPullSecret.Data[".dockerconfigjson"]).To(Equal(pullSecret.Data[".dockerconfigjson"]))
@@ -582,16 +632,18 @@ var _ = Describe("Reconcile", func() {
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		agentClusterInstall := &hiveext.AgentClusterInstall{}
 		infraEnv := &aiv1beta1.InfraEnv{}
-		namespacedname := types.NamespacedName{
-			Namespace: localClusterName,
-			Name:      localClusterName,
-		}
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err := client.Get(ctx, namespacedname, clusterDeployment)
+		err := client.Get(ctx, localClusterNamespacedName, clusterDeployment)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, agentClusterInstall)
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
 		Expect(err).ToNot(HaveOccurred())
-		err = client.Get(ctx, namespacedname, infraEnv)
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(err).ToNot(HaveOccurred())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Verify content of pull secret against local-cluster pull-secret before we change it.
@@ -602,10 +654,7 @@ var _ = Describe("Reconcile", func() {
 		}, &nodeKubeConfigsSecret)
 		Expect(err).ToNot(HaveOccurred())
 		localClusterAdminKubeConfigSecret := corev1.Secret{}
-		err = client.Get(ctx, types.NamespacedName{
-			Name:      fmt.Sprintf("%s-admin-kubeconfig", localClusterName),
-			Namespace: localClusterName,
-		}, &localClusterAdminKubeConfigSecret)
+		err = client.Get(ctx, adminKubeConfigNamespacedName, &localClusterAdminKubeConfigSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(localClusterAdminKubeConfigSecret.Data["kubeconfig"]).To(Equal(nodeKubeConfigsSecret.Data["lb-ext.kubeconfig"]))
 
@@ -614,11 +663,30 @@ var _ = Describe("Reconcile", func() {
 		err = client.Status().Update(ctx, &nodeKubeConfigsSecret)
 		Expect(err).ToNot(HaveOccurred())
 		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterManaged, corev1.ConditionTrue, nil)
-		err = client.Get(ctx, types.NamespacedName{
-			Name:      fmt.Sprintf("%s-admin-kubeconfig", localClusterName),
-			Namespace: localClusterName,
-		}, &localClusterAdminKubeConfigSecret)
+		err = client.Get(ctx, adminKubeConfigNamespacedName, &localClusterAdminKubeConfigSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(localClusterAdminKubeConfigSecret.Data["kubeconfig"]).To(Equal(nodeKubeConfigsSecret.Data["lb-ext.kubeconfig"]))
+	})
+
+	It("cluster import CR's should not be present after reconcile if no matching ManagedCluster could be found", func() {
+		clusterDeployment := &hivev1.ClusterDeployment{}
+		agentClusterInstall := &hiveext.AgentClusterInstall{}
+		infraEnv := &aiv1beta1.InfraEnv{}
+		adminKubeConfigSecret := &v1.Secret{}
+		pullSecret := &v1.Secret{}
+		managedCluster.GetLabels()[clusterIDLabel] = uuid.NewString() // Generate a new cluster UUID for ManagedCluster to force it to mismatch
+		err := client.Update(ctx, managedCluster)
+		Expect(err).ToNot(HaveOccurred())
+		awaitReconcile(aiv1beta1.ConditionLocalClusterManaged, aiv1beta1.ReasonLocalClusterNotManaged, corev1.ConditionFalse, nil)
+		err = client.Get(ctx, localClusterNamespacedName, clusterDeployment)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, localClusterNamespacedName, agentClusterInstall)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, localClusterNamespacedName, infraEnv)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, adminKubeConfigNamespacedName, adminKubeConfigSecret)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		err = client.Get(ctx, localClusterPullSecretName, pullSecret)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 })
