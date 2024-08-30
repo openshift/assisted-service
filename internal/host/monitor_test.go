@@ -92,6 +92,7 @@ var _ = Describe("monitor_disconnection", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDMtvRequirementsSatisfied)},
 		}, nil)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
 	})
@@ -212,6 +213,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDMtvRequirementsSatisfied)},
 		}, nil)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
 	})
@@ -367,6 +369,7 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDMtvRequirementsSatisfied)},
 		}, nil)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
 	})

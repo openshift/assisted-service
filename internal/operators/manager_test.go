@@ -447,13 +447,14 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(5))
+			Expect(results).To(HaveLen(6))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
 			))
 		})
 
@@ -466,7 +467,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(5))
+			Expect(results).To(HaveLen(6))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
@@ -474,6 +475,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
 			))
 		})
 	})
@@ -485,13 +487,14 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(5))
+			Expect(results).To(HaveLen(6))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
 			))
 		})
 
@@ -503,7 +506,7 @@ var _ = Describe("Operators manager", func() {
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(5))
+			Expect(results).To(HaveLen(6))
 
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
@@ -511,6 +514,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
 			))
 		})
 
@@ -531,6 +535,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: nil},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
 			))
 		})
 
@@ -551,6 +556,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: nil},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
 			))
 		})
 
@@ -571,6 +577,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: nil},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
 			))
 
 			clusterHost = getMockHostWithDisks(int64(20), int64(30))
@@ -588,6 +595,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
 			))
 		})
 	})
@@ -626,7 +634,7 @@ var _ = Describe("Operators manager", func() {
 		It("should provide list of supported operators", func() {
 			supportedOperators := manager.GetSupportedOperators()
 
-			Expect(supportedOperators).To(ConsistOf("odf", "lso", "cnv", "lvm", "mce"))
+			Expect(supportedOperators).To(ConsistOf("odf", "lso", "cnv", "lvm", "mce", "mtv"))
 		})
 
 		It("should provide properties of an operator", func() {
