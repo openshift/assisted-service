@@ -330,6 +330,10 @@ func (r *LocalClusterImportReconciler) hasLocalManagedCluster(ctx context.Contex
 // If they are present, they will be deleted
 // No error will be returned if these are not found as this is the desired state.
 func (r *LocalClusterImportReconciler) ensureLocalClusterCRsDeleted(ctx context.Context) error {
+	if r.localClusterName == "" {
+		r.log.Infof("skipping local cluster import cleanup as feature has not previously been enabled")
+		return nil
+	}
 	err := r.deleteClusterDeployment(ctx, r.localClusterName, r.localClusterName)
 	if err != nil && !k8serrors.IsNotFound(err) {
 		r.log.Errorf("could not delete local cluster ClusterDeployment due to error %s", err.Error())
