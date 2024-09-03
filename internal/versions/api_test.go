@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/go-openapi/swag"
 	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -122,6 +124,11 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 		defaultExists := false
+
+		fmt.Println("Release image from data")
+		spew.Println(versionsHandler.releaseImages)
+		fmt.Println("Release image from response")
+		spew.Println(val)
 
 		for _, releaseImage := range versionsHandler.releaseImages {
 			key := *releaseImage.OpenshiftVersion
