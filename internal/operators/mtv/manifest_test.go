@@ -42,7 +42,7 @@ var _ = Describe("MTV manifest generation", func() {
 		})
 
 		It("Check Subscription manifest", func() {
-			subscriptionData, err := subscription(Namespace, Subscription, Source, SourceName)
+			subscriptionData, err := getSubscription(Namespace, Subscription, Source, SourceName)
 			Expect(err).To(BeNil())
 
 			Expect(extractData(subscriptionData, "metadata.name")).To(Equal(Subscription))
@@ -53,21 +53,21 @@ var _ = Describe("MTV manifest generation", func() {
 		})
 
 		It("Check namespace manifest", func() {
-			nsData, err := namespace(Namespace)
+			nsData, err := getNamespace(Namespace)
 			Expect(err).To(BeNil())
 
 			Expect(extractData(nsData, "metadata.name")).To(Equal(Namespace))
 		})
 
 		It("Check operator group manifest", func() {
-			opData, err := group(Namespace)
+			opData, err := getOperatorGroup(Namespace)
 			Expect(err).To(BeNil())
 
 			Expect(extractData(opData, "metadata.namespace")).To(Equal(Namespace))
 		})
 
 		It("Check controller manifest", func() {
-			controllerData, err := controller(Namespace)
+			controllerData, err := getController(Namespace)
 			Expect(err).To(BeNil())
 
 			Expect(extractData(controllerData, "metadata.namespace")).To(Equal(Namespace))

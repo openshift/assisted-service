@@ -6,22 +6,22 @@ import (
 )
 
 func Manifests() (map[string][]byte, []byte, error) {
-	mtvSubscription, err := subscription(Namespace, Subscription, Source, SourceName)
+	mtvSubscription, err := getSubscription(Namespace, Subscription, Source, SourceName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	mtvNamespace, err := namespace(Namespace)
+	mtvNamespace, err := getNamespace(Namespace)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	mtvOperatorGroup, err := group(Namespace)
+	mtvOperatorGroup, err := getOperatorGroup(Namespace)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	forklistController, err := controller(Namespace)
+	forklistController, err := getController(Namespace)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -48,7 +48,7 @@ func executeTemplate(data map[string]string, contentName, content string) ([]byt
 	return buf.Bytes(), nil
 }
 
-func subscription(namespace, subscription, source, sourceName string) ([]byte, error) {
+func getSubscription(namespace, subscription, source, sourceName string) ([]byte, error) {
 	data := map[string]string{
 		"OPERATOR_NAMESPACE":         namespace,
 		"OPERATOR_SUBSCRIPTION_NAME": subscription,
@@ -58,21 +58,21 @@ func subscription(namespace, subscription, source, sourceName string) ([]byte, e
 	return executeTemplate(data, "mtvSubscription", mtvSubscription)
 }
 
-func namespace(namespace string) ([]byte, error) {
+func getNamespace(namespace string) ([]byte, error) {
 	data := map[string]string{
 		"OPERATOR_NAMESPACE": namespace,
 	}
 	return executeTemplate(data, "mtvNamespace", mtvNamespace)
 }
 
-func group(namespace string) ([]byte, error) {
+func getOperatorGroup(namespace string) ([]byte, error) {
 	data := map[string]string{
 		"OPERATOR_NAMESPACE": namespace,
 	}
 	return executeTemplate(data, "mtvGroup", mtvGroup)
 }
 
-func controller(namespace string) ([]byte, error) {
+func getController(namespace string) ([]byte, error) {
 	data := map[string]string{
 		"OPERATOR_NAMESPACE": namespace,
 	}
