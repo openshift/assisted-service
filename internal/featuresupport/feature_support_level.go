@@ -34,6 +34,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDLSO: (&LsoFeature{}).New(),
 	models.FeatureSupportLevelIDMCE: (&MceFeature{}).New(),
 	models.FeatureSupportLevelIDODF: (&OdfFeature{}).New(),
+	models.FeatureSupportLevelIDMTV: (&MtvFeature{}).New(),
 
 	// Platform features
 	models.FeatureSupportLevelIDNUTANIXINTEGRATION:  (&NutanixIntegrationFeature{}).New(),
