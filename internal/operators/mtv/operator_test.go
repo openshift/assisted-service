@@ -16,9 +16,8 @@ import (
 
 var _ = Describe("MTV Operator", func() {
 	const (
-		openshiftVersion = "4.10.0"
-		minCpu           = 1
-		minRamMib        = 400
+		minCpu    = 1
+		minRamMib = 1024
 	)
 
 	var (
@@ -56,7 +55,7 @@ var _ = Describe("MTV Operator", func() {
 		BeforeEach(func() {
 			mode := models.ClusterHighAvailabilityModeFull
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &mode, OpenshiftVersion: openshiftVersion},
+				Cluster: models.Cluster{HighAvailabilityMode: &mode},
 			}
 		})
 
@@ -90,12 +89,12 @@ var _ = Describe("MTV Operator", func() {
 		BeforeEach(func() {
 			mode := models.ClusterHighAvailabilityModeFull
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &mode, OpenshiftVersion: openshiftVersion},
+				Cluster: models.Cluster{HighAvailabilityMode: &mode},
 			}
 		})
 
 		It("host should be valid", func() {
-			host := models.Host{Role: models.HostRoleMaster, Inventory: getInventory(int64(400))}
+			host := models.Host{Role: models.HostRoleMaster, Inventory: getInventory(int64(1024))}
 
 			result, err := operator.ValidateHost(context.TODO(), &cluster, &host, nil)
 			Expect(err).To(BeNil())
@@ -125,7 +124,7 @@ func newRequirements(cpuCores int64, ramMib int64) *models.ClusterHostRequiremen
 }
 
 func getInventory(memMiB int64) string {
-	inventory := models.Inventory{CPU: &models.CPU{Architecture: "x86", Count: 1}, Memory: &models.Memory{UsableBytes: conversions.MibToBytes(memMiB)}}
+	inventory := models.Inventory{CPU: &models.CPU{Architecture: "x86_64", Count: 1}, Memory: &models.Memory{UsableBytes: conversions.MibToBytes(memMiB)}}
 	inventoryJSON, err := common.MarshalInventory(&inventory)
 	Expect(err).ToNot(HaveOccurred())
 	return inventoryJSON

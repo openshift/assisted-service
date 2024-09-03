@@ -146,7 +146,14 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 				},
 			},
 			Worker: &models.HostTypeHardwareRequirements{
-				Quantitative: &models.ClusterHostRequirementsDetails{},
+				Qualitative: []string{
+					fmt.Sprintf("%d MiB of additional RAM", o.config.MtvMemoryPerHostMiB),
+					fmt.Sprintf("%d additional CPUs", o.config.MtvCPUPerHost),
+				},
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores: o.config.MtvCPUPerHost,
+					RAMMib:   o.config.MtvMemoryPerHostMiB,
+				},
 			},
 		},
 	}, nil
@@ -157,7 +164,7 @@ func (l *operator) GetProperties() models.OperatorProperties {
 	return models.OperatorProperties{}
 }
 
-// GetMonitoredOperator returns MonitoredOperator corresponding to the LSO
+// GetMonitoredOperator returns MonitoredOperator corresponding to the MTV
 func (l *operator) GetMonitoredOperator() *models.MonitoredOperator {
 	return &Operator
 }
