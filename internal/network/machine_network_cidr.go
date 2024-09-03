@@ -167,6 +167,40 @@ func VerifyVip(hosts []*models.Host, machineNetworks []*models.MachineNetwork, v
 	return ret, errors.New(msg)
 }
 
+func ValidateVipInHostNetworks(hosts []*models.Host, machineNetworks []*models.MachineNetwork, vip string, vipName VipType, log logrus.FieldLogger) (models.VipVerification, error) {
+	_, machineNetworkCidr := findMachineNetworkForVip(vip, machineNetworks)
+	_, machineIpnet, err := net.ParseCIDR(machineNetworkCidr)
+	if err != nil {
+		log.WithError(err).Errorf("can't parse machine cidr %s", machineNetworkCidr)
+		return models.VipVerificationFailed, fmt.Errorf("can't parse machine cidr %s", machineNetworkCidr)
+	}
+	for _, h := range hosts {
+		switch common.GetEffectiveRole(h) {
+		case models.HostRoleWorker:
+			if vipName != VipTypeIngress {
+				continue
+			}
+		case models.HostRoleMaster, models.HostRoleBootstrap:
+			// When there are fewer than 2 workers, control plane nodes are
+			// schedulable and Ingress will run on the control plane nodes
+			if vipName != VipTypeAPI && len(hosts) > 4 {
+				continue
+			}
+		default:
+			continue
+		}
+		if h.Inventory == "" {
+			continue
+		}
+		if !belongsToNetwork(log, h, machineIpnet) {
+			return models.VipVerificationFailed, fmt.Errorf(
+				"%s host %s not in the Machine Network containing the %s <%s>",
+				h.Role, h.ID, vipName, machineNetworkCidr)
+		}
+	}
+	return models.VipVerificationSucceeded, nil
+}
+
 func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*models.IngressVip) error {
 	var (
 		err                     error

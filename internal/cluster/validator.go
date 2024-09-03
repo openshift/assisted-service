@@ -243,7 +243,12 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 	for i := 0; i != vipsWrapper.Len(); i++ {
 		verification, err := network.VerifyVip(c.cluster.Hosts, c.cluster.MachineNetworks, vipsWrapper.IP(i), vipsWrapper.Type(),
 			vipsWrapper.Verification(i), v.log)
-		failed = failed || verification != models.VipVerificationSucceeded
+		if verification == models.VipVerificationSucceeded {
+			verification, err = network.ValidateVipInHostNetworks(c.cluster.Hosts, c.cluster.MachineNetworks, vipsWrapper.IP(i), vipsWrapper.Type(), v.log)
+			failed = failed || verification != models.VipVerificationSucceeded
+		} else {
+			failed = true
+		}
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 		}
