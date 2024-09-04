@@ -76,7 +76,7 @@
         "default": true
     },
     {
-        "openshift_version": "4.12",
+        "openshift_version": "4.12.61",
         "cpu_architecture": "arm64",
         "cpu_architectures": [
             "arm64"
