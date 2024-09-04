@@ -29,9 +29,9 @@
         "contents": {{ executeTemplate "iscsistart.service" . | toString | toJson }}
     },
     {
-        "name": "iscsi-oci-configure-secondary-nic.service",
+        "name": "oci-eval-user-data.service",
         "enabled": true,
-        "contents": {{ executeTemplate "iscsi-oci-configure-secondary-nic.service" . | toString | toJson }}
+        "contents": {{ executeTemplate "oci-eval-user-data.service" . | toString | toJson }}
     }
     {{end}}{{if .StaticNetworkConfig}},
     {
@@ -87,13 +87,14 @@
       "contents": { "source": "data:text/plain;charset=utf-8;base64,{{ executeTemplate "multipath.conf" . | toBase64 }}" }
     },
     {
-      "path": "/usr/local/bin/iscsi-oci-configure-secondary-nic.sh",
+      "path": "/usr/local/bin/oci-eval-user-data.sh",
       "mode": 493,
       "user": {
         "name": "root"
       },
-      "contents": { "source": "data:text/plain;charset=utf-8;base64,{{ executeTemplate "iscsi-oci-configure-secondary-nic.sh" . | toBase64 }}" }
+      "contents": { "source": "data:text/plain;charset=utf-8;base64,{{ executeTemplate "oci-eval-user-data.sh" . | toBase64 }}" }
     }
+
     {{end}},
     {
       "overwrite": true,
