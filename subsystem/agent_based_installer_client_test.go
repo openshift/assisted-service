@@ -37,7 +37,6 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		Expect(registerInfraEnvErr).NotTo(HaveOccurred())
 		Expect(*modelInfraEnv.Name).To(Equal("myinfraenv"))
 		Expect(modelInfraEnv.ClusterID).To(Equal(*modelCluster.ID))
-		Expect(len(modelInfraEnv.StaticNetworkConfig)).ToNot(BeZero())
 	})
 
 	It("InstallConfig override good flow", func() {
@@ -60,7 +59,6 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		Expect(registerInfraEnvErr).NotTo(HaveOccurred())
 		Expect(*modelInfraEnv.Name).To(Equal("myinfraenv"))
 		Expect(modelInfraEnv.ClusterID).To(Equal(*modelCluster.ID))
-		Expect(len(modelInfraEnv.StaticNetworkConfig)).ToNot(BeZero())
 	})
 
 	It("missing one of the ZTP manifests", func() {

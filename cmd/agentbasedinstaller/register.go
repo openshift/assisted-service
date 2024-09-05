@@ -154,14 +154,9 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 			return nil, nmStateErr
 		}
 
-		staticNetworkConfig, processErr := processNMStateConfig(log, infraEnv, nmStateConfig)
+		_, processErr := processNMStateConfig(log, infraEnv, nmStateConfig)
 		if processErr != nil {
 			return nil, processErr
-		}
-
-		if len(staticNetworkConfig) > 0 {
-			log.Infof("Added %d nmstateconfigs", len(staticNetworkConfig))
-			infraEnvParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
 		}
 	}
 
