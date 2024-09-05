@@ -306,6 +306,15 @@ var _ = Describe("validate mac interface mapping", func() {
     ipv4:
       enabled: false
       dhcp: false`
+		withMacIdentifier := `interfaces:
+  - name: eth0
+    type: ethernet
+    state: up
+    identifier: mac-address
+    mac-address: f8:75:a4:a4:00:fe
+    ipv4:
+      enabled: false
+      dhcp: false`
 		It("no mapping needed for physical interface", func() {
 			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
 				{
@@ -316,6 +325,20 @@ var _ = Describe("validate mac interface mapping", func() {
 						},
 					},
 					NetworkYaml: withPhysicalInterface,
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("mac-identifier field is allowed", func() {
+			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
 				},
 			})
 			Expect(err).ToNot(HaveOccurred())
