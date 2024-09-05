@@ -180,7 +180,8 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistence(macInterf
 		connectionSection := cfg.Section("connection")
 		interfaceName, err := connectionSection.GetKey("interface-name")
 		if err != nil {
-			return errors.Wrapf(err, "failed to get interface-name for file %s", nc.FilePath)
+			// When the id field is provided the interface-name will not be present
+			continue
 		}
 		interfaceType, err := connectionSection.GetKey("type")
 		if err != nil {
