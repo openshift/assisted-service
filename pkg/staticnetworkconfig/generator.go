@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -167,6 +168,8 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 
 func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistence(macInterfaceMap models.MacInterfaceMap, networksConfig []StaticNetworkConfigData) error {
 	interfaceNames := lo.Map(macInterfaceMap, func(m *models.MacInterfaceMapItems0, _ int) string { return m.LogicalNicName })
+	// See 'man systemd.net-naming-scheme' for interface naming protocol
+	predicatableIfaceNamePattern := regexp.MustCompile("^en[PsvxXbucaipod]")
 	var matched bool
 	for _, nc := range networksConfig {
 		cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, []byte(nc.FileContents))
@@ -186,7 +189,11 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistence(macInterf
 		switch interfaceType.String() {
 		case "802-3-ethernet", "ethernet":
 			if !lo.Contains(interfaceNames, interfaceName.String()) {
-				return errors.Errorf("mac-interface mapping for interface %s is missing", interfaceName.String())
+				if !predicatableIfaceNamePattern.MatchString(interfaceName.String()) {
+					return errors.Errorf("mac-interface mapping for interface %s is missing and not a physical interface", interfaceName.String())
+				} else {
+					s.log.Infof("Interface %s has no mac-interface mapping but matches a physical interface", interfaceName.String())
+				}
 			}
 			matched = true
 		case "vlan":
