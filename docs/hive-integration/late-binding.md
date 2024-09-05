@@ -26,6 +26,9 @@ With BareMetalOperator integration, the host will be rebooted automatically.
 
 Note that the Pull Secret of the InfraEnv can be different from the one specified in the Cluster Deployment.
 
+Once the host is rebooted into the discovery image (whether through the BareMetalOperator or manually) the related resources (Node, Machine, BMH, etc) will be removed assuming the cluster API is still accessible.
+This process can be skipped or aborted by setting the annotation `agent.agent-install.openshift.io/skip-spoke-cleanup=true` on the Agent resource.
+
 
 ## Add IgnitionToken reference
 In order for the agent to be able to pull the ignition, it need a reference to a token that will allow it to do so.
