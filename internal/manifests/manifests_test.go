@@ -400,6 +400,49 @@ spec:
 				Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
 			})
 
+			It("fails for manifest with empty content", func() {
+				clusterID := registerCluster().ID
+				fileNames := []string{"99-test.yaml", "99-test.json", "99-test.yaml.patch_foobar"}
+				for i := range fileNames {
+					invalidContent := "   "
+					mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileNames[i])).Return(false, nil).AnyTimes()
+					response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+						ClusterID: *clusterID,
+						CreateManifestParams: &models.CreateManifestParams{
+							Content:  &invalidContent,
+							FileName: &fileNames[i],
+						},
+					})
+					Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+					err := response.(*common.ApiErrorResponse)
+					Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					Expect(err.Error()).To(ContainSubstring(
+						fmt.Sprintf("Manifest content of file manifests/%s for cluster ID %s is empty", fileNames[i], clusterID.String()),
+					))
+				}
+			})
+
+			It("fails gracefully for nil manifest", func() {
+				clusterID := registerCluster().ID
+				fileNames := []string{"99-test.yaml", "99-test.json", "99-test.yaml.patch_foobar"}
+				for i := range fileNames {
+					mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileNames[i])).Return(false, nil).AnyTimes()
+					response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+						ClusterID: *clusterID,
+						CreateManifestParams: &models.CreateManifestParams{
+							Content:  nil,
+							FileName: &fileNames[i],
+						},
+					})
+					Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+					err := response.(*common.ApiErrorResponse)
+					Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					Expect(err.Error()).To(ContainSubstring(
+						fmt.Sprintf("Manifest content of file manifests/%s for cluster ID %s is nil", fileNames[i], clusterID.String()),
+					))
+				}
+			})
+
 			It("fails for manifest with invalid json format", func() {
 				clusterID := registerCluster().ID
 				fileName := "99-test.json"
@@ -959,6 +1002,25 @@ invalid YAML content: {
 	})
 
 	Context("UpdateClusterManifest", func() {
+		It("fails for manifest with empty content", func() {
+			clusterID := registerCluster().ID
+			mockUpload(1)
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					UpdatedContent: swag.String("  "),
+					FileName:       fileNameYaml,
+					Folder:         defaultFolder,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+			err := response.(*common.ApiErrorResponse)
+			Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			Expect(err.Error()).To(ContainSubstring(
+				fmt.Sprintf("Manifest content of file manifests/%s for cluster ID %s is empty", fileNameYaml, clusterID.String()),
+			))
+		})
+
 		It("Does not accept a filename that contains spaces", func() {
 			clusterID := registerCluster().ID
 			destFolder := "manifests"
