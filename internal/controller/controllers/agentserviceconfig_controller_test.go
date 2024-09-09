@@ -820,6 +820,19 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		Expect(cm.Data[caBundleKey]).To(Equal(testClusterCert + "\n" + testUserCert))
 	})
 
+	It("should fail if the cluster trusted CA does not have the CA bundle key", func() {
+		clusterCACM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterCAConfigMapName,
+				Namespace: ascr.Namespace,
+			},
+		}
+		ascr = newTestReconciler(asc, ingressCM, route, imageRoute, clusterCACM)
+		_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).NotTo(BeNil())
+		Expect(err.Error()).To(Equal(fmt.Sprintf("waiting for cluster trusted CA bundle to be injected in config map %s", clusterCAConfigMapName)))
+	})
+
 	Context("IPXE routes", func() {
 		var (
 			imageServiceStatefulSet *appsv1.StatefulSet

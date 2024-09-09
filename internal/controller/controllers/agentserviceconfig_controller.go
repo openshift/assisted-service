@@ -375,8 +375,6 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool) []c
 		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, newAgentRoute},
 		// needs to be created after the route to pull the hostname into the configmap
 		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM},
-		// needs to be created after the configmap to calculate the config hash
-		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment},
 	}
 	if isOpenshift {
 		components = append(components,
@@ -397,6 +395,9 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool) []c
 	} else {
 		components = append(components, certManagerComponents()...)
 	}
+	components = append(components,
+		// needs to be created after all of the configmaps to calculate the config hash and ensure the correct data exists
+		component{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment})
 	return components
 
 }
@@ -1070,7 +1071,11 @@ func newAssistedTrustedCACM(ctx context.Context, log logrus.FieldLogger, asc ASC
 		log.WithError(err).Error("Failed to get cluster trusted CA config map")
 		return nil, nil, err
 	}
-	if _, err := b.WriteString(clusterTrustedCACM.Data[caBundleKey]); err != nil {
+	trustedCABundle := clusterTrustedCACM.Data[caBundleKey]
+	if trustedCABundle == "" {
+		return nil, nil, fmt.Errorf("waiting for cluster trusted CA bundle to be injected in config map %s", clusterCAConfigMapName)
+	}
+	if _, err := b.WriteString(trustedCABundle); err != nil {
 		log.WithError(err).Error("Failed to get ca-bundle from cluster CA ConfigMap")
 		return nil, nil, err
 	}
@@ -1800,6 +1805,15 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 	}
 	var healthCheckScheme corev1.URIScheme
 	if asc.rec.IsOpenShift {
+		// Require the assisted trusted ca bundle configmap is ready before continuing
+		cm := &corev1.ConfigMap{}
+		namespacedName := types.NamespacedName{Name: assistedCAConfigMapName, Namespace: asc.namespace}
+		if err = asc.Client.Get(ctx, namespacedName, cm); err != nil {
+			return nil, nil, err
+		}
+		if _, ok := cm.Data[caBundleKey]; !ok {
+			return nil, nil, fmt.Errorf("%s doesn't contain ca bundle yet", assistedCAConfigMapName)
+		}
 		volumes = append(volumes,
 			corev1.Volume{
 				Name: "tls-certs",
