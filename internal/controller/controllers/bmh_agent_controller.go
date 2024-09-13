@@ -269,6 +269,10 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	}
 
 	if agent != nil && agentIsUnbindingPendingUserAction(agent) {
+		if detached := agent.Annotations[AgentDetachedAnnotation]; detached == "true" {
+			log.Info("Not unbinding Agent and BMH because detached annotation is set")
+			return ctrl.Result{}, nil
+		}
 		result = reconcileUnboundAgent(log, bmh, r.ConvergedFlowEnabled)
 		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
 			return res.Result()

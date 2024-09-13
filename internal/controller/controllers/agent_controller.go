@@ -65,6 +65,7 @@ import (
 const (
 	AgentFinalizerName                   = "agent." + aiv1beta1.Group + "/ai-deprovision"
 	AgentSkipSpokeCleanupAnnotation      = "agent." + aiv1beta1.Group + "/skip-spoke-cleanup"
+	AgentDetachedAnnotation              = "agent." + aiv1beta1.Group + "/detached-agent"
 	BaseLabelPrefix                      = aiv1beta1.Group + "/"
 	InventoryLabelPrefix                 = "inventory." + BaseLabelPrefix
 	AgentLabelHasNonrotationalDisk       = InventoryLabelPrefix + "storage-hasnonrotationaldisk"
@@ -624,6 +625,10 @@ func (r *AgentReconciler) runReclaimAgent(ctx context.Context, log logrus.FieldL
 }
 
 func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
+	if detached := origAgent.Annotations[AgentDetachedAnnotation]; detached == "true" {
+		log.Info("Not unbinding Agent since detached annotation is set")
+		return ctrl.Result{}, nil
+	}
 	var reclaim bool
 
 	// log and don't reclaim if anything fails here
