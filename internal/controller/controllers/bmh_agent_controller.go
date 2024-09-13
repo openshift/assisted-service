@@ -69,6 +69,7 @@ type BMACReconciler struct {
 	SpokeK8sClientFactory spoke_k8s_client.SpokeK8sClientFactory
 	spokeClient           client.Client
 	ConvergedFlowEnabled  bool
+	PauseProvisionedBMHs  bool
 	Drainer               Drainer
 	Config                *BMACConfig
 }
@@ -83,6 +84,8 @@ const (
 	BMH_ANNOTATION                      = "metal3.io/BareMetalHost"
 	BMH_API_VERSION                     = "baremetal.cluster.k8s.io/v1alpha1"
 	BMH_DETACHED_ANNOTATION             = "baremetalhost.metal3.io/detached"
+	BMH_PAUSED_ANNOTATION               = "baremetalhost.metal3.io/paused"
+	BMH_STATUS_ANNOTATION               = "baremetalhost.metal3.io/status"
 	BMH_INSPECT_ANNOTATION              = "inspect.metal3.io"
 	BMH_HARDWARE_DETAILS_ANNOTATION     = "inspect.metal3.io/hardwaredetails"
 	BMH_AGENT_IGNITION_CONFIG_OVERRIDES = "bmac.agent-install.openshift.io/ignition-config-overrides"
@@ -346,9 +349,9 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 		return reconcileComplete{}
 	}
 
-	// BMH is being deleted and finalizer is gone, ensure detached is gone and return
+	// BMH is being deleted and finalizer is gone, ensure detached and paused are gone and return
 	if !bmhHasFinalizer {
-		dirty := removeBMHDetachedAnnotation(log, bmh)
+		dirty := removeBMHDetachedAndPausedAnnotations(log, bmh)
 		return reconcileComplete{stop: true, dirty: dirty}
 	}
 
@@ -356,7 +359,7 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 	// agent could be nil here if it wasn't created yet, or if we deleted it, then failed to remove the finalizer for some reason
 	// if the agent is missing, just allow the BMH to be removed
 	if agent == nil {
-		removeBMHDetachedAnnotation(log, bmh)
+		removeBMHDetachedAndPausedAnnotations(log, bmh)
 		controllerutil.RemoveFinalizer(bmh, BMH_FINALIZER_NAME)
 		return reconcileComplete{stop: true, dirty: true}
 	}
@@ -776,6 +779,7 @@ func reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHo
 		// in case. They will be regenerated in the reconciles following the agent's
 		// reboot
 		delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
+		delete(bmh.ObjectMeta.Annotations, BMH_PAUSED_ANNOTATION)
 		delete(bmh.ObjectMeta.Annotations, BMH_HARDWARE_DETAILS_ANNOTATION)
 		bmh.Spec.Image = nil
 
@@ -801,8 +805,9 @@ func reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHo
 
 	// always want the host attached if it's still unbinding pending user action
 	if _, ok := bmh.GetAnnotations()[BMH_DETACHED_ANNOTATION]; ok {
-		log.Info("removing BMH detached annotation")
+		log.Info("removing BMH detached and paused annotations")
 		delete(bmh.Annotations, BMH_DETACHED_ANNOTATION)
+		delete(bmh.Annotations, BMH_PAUSED_ANNOTATION)
 		dirty = true
 	}
 	if _, ok := bmh.GetAnnotations()[BMH_HARDWARE_DETAILS_ANNOTATION]; ok {
@@ -906,6 +911,23 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	// Stop `Reconcile` if BMH does not have an InfraEnv.
 	if infraEnv == nil {
 		return reconcileComplete{stop: true}
+	}
+
+	if r.PauseProvisionedBMHs {
+		// Add 'status' and 'paused' annotations for provisioned BMHs
+		if bmh.Status.Provisioning.State == bmh_v1alpha1.StateProvisioned {
+			result := r.addBMHStatusAndPausedAnnotations(log, bmh)
+			if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+				return res
+			}
+		}
+		// Remove 'paused' annotation if BMH's provisioning state is missing
+		if bmh.Status.Provisioning.State == bmh_v1alpha1.StateNone {
+			result := r.removePausedAnnotation(log, bmh)
+			if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+				return res
+			}
+		}
 	}
 
 	// A detached BMH is considered to be unmanaged by the hub
@@ -1669,17 +1691,22 @@ func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Con
 	return clusterDeployment, true, err
 }
 
-func removeBMHDetachedAnnotation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
+func removeBMHDetachedAndPausedAnnotations(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
 	if _, ok := bmh.GetAnnotations()[BMH_DETACHED_ANNOTATION]; ok {
 		log.Info("removing BMH detached annotation")
 		delete(bmh.Annotations, BMH_DETACHED_ANNOTATION)
+		dirty = true
+	}
+	if _, ok := bmh.GetAnnotations()[BMH_PAUSED_ANNOTATION]; ok {
+		log.Info("removing BMH paused annotation")
+		delete(bmh.Annotations, BMH_PAUSED_ANNOTATION)
 		dirty = true
 	}
 	return
 }
 
 func configureBMHForCleaning(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
-	dirty = removeBMHDetachedAnnotation(log, bmh)
+	dirty = removeBMHDetachedAndPausedAnnotations(log, bmh)
 
 	if bmh.Spec.AutomatedCleaningMode != bmh_v1alpha1.CleaningModeMetadata {
 		log.Infof("setting BMH cleaning mode to %s", bmh_v1alpha1.CleaningModeMetadata)
@@ -1834,4 +1861,55 @@ func (r *BMACReconciler) drainAgentNode(ctx context.Context, log logrus.FieldLog
 	}
 
 	return false, nil
+}
+
+// Adding 'status' and 'paused' annotations to the BMH.
+// This is required to ensure that the BMH is keeping its status
+// (when moving the BMH to another hub).
+// I.e. when the BMH is applied on another hub without we need
+// the 'status' annotation to restore it by BMO.
+// See BMO docs for more details: https://github.com/metal3-io/metal3-docs/blob/6a656b3eb195c1b09ba35fcad4d011c6cb02dbc2/docs/user-guide/src/bmo/status_annotation.md
+func (r *BMACReconciler) addBMHStatusAndPausedAnnotations(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
+	if bmh.ObjectMeta.Annotations == nil {
+		bmh.ObjectMeta.Annotations = make(map[string]string)
+	}
+
+	// Convert BMH status to a JSON string
+	statusJson, err := json.Marshal(bmh.Status)
+	if err != nil {
+		return reconcileError{err: err}
+	}
+	desiredValue := string(statusJson)
+
+	// Add 'status' annotation if missing
+	dirty := false
+	currentValue, hasAnnotation := bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]
+	if !hasAnnotation || currentValue != desiredValue {
+		bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION] = desiredValue
+		log.Info("Added status annotation to BMH")
+		dirty = true
+	}
+
+	// Add 'paused' annotation if missing
+	desiredValue = "assisted-service-controller"
+	currentValue, hasAnnotation = bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION]
+	if !hasAnnotation || currentValue != desiredValue {
+		bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION] = desiredValue
+		log.Info("Added paused annotation to BMH")
+		return reconcileComplete{dirty: true}
+	}
+
+	return reconcileComplete{dirty: dirty, stop: true}
+}
+
+// Removes 'paused' annotation for letting BMO to restore BMH's status (using the 'status' annotation).
+func (r *BMACReconciler) removePausedAnnotation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
+	_, hasPausedAnnotation := bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION]
+	_, hasStatusAnnotation := bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]
+	if hasPausedAnnotation && hasStatusAnnotation {
+		delete(bmh.ObjectMeta.Annotations, BMH_PAUSED_ANNOTATION)
+		log.Info("Removed paused annotation from BMH")
+		return reconcileComplete{dirty: true, stop: true}
+	}
+	return reconcileComplete{}
 }
