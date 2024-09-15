@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -177,6 +178,8 @@ var _ = Describe("Events library", func() {
 		infraEnv2 = strfmt.UUID("705c994b-eaa0-4b77-880b-66d4cd34cb4e")
 		host      = strfmt.UUID("1e45d128-4a69-4e71-9b50-a0c627217f3e")
 		host2     = strfmt.UUID("ad647798-a7af-4b1d-b96e-69f1beb9b4c3")
+		i1        common.InfraEnv
+		i2        common.InfraEnv
 	)
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
@@ -186,9 +189,9 @@ var _ = Describe("Events library", func() {
 		Expect(db.Create(&c1).Error).ShouldNot(HaveOccurred())
 		c2 := common.Cluster{Cluster: models.Cluster{ID: &cluster2, OpenshiftClusterID: strfmt.UUID(uuid.New().String()), UserName: "user2", OrgID: "org1"}}
 		Expect(db.Create(&c2).Error).ShouldNot(HaveOccurred())
-		i1 := common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnv1, UserName: "user1", OrgID: "org1"}}
+		i1 = common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnv1, UserName: "user1", OrgID: "org1"}}
 		Expect(db.Create(&i1).Error).ShouldNot(HaveOccurred())
-		i2 := common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnv2, UserName: "user2", OrgID: "org1"}}
+		i2 = common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnv2, UserName: "user2", OrgID: "org1"}}
 		Expect(db.Create(&i2).Error).ShouldNot(HaveOccurred())
 	})
 	numOfEventsRetrieved := func(clusterID *strfmt.UUID, HostIds []strfmt.UUID, infraEnvID *strfmt.UUID) int {
@@ -272,6 +275,35 @@ var _ = Describe("Events library", func() {
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
 
 			Expect(numOfEventsRetrieved(&cluster2, nil, nil)).Should(Equal(0))
+		})
+
+		It("Should only list host specific events if infraenv for that host is present", func() {
+			// Create a host and link it to an infraEnv
+			h := models.Host{InfraEnvID: infraEnv1, ID: &host}
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			// Generate some events for this host and infraenv combination
+			for i := 1; i <= 10; i++ {
+				theEvents.V2AddEvent(context.TODO(), nil, &host, &infraEnv1,
+					eventgen.HostRegistrationFailedEventName, models.EventSeverityInfo, fmt.Sprintf("Registration failed event %d:", i), time.Now())
+			}
+			Expect(numOfEventsRetrieved(nil, []strfmt.UUID{host}, nil)).Should(Equal(10))
+
+			// Delete the infraenv
+			Expect(db.Delete(&i1).Error).ShouldNot(HaveOccurred())
+			// Delete the host
+			Expect(db.Delete(&h).Error).ShouldNot(HaveOccurred())
+			// Recreate the host with a different infraenv
+			h = models.Host{InfraEnvID: infraEnv2, ID: &host}
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			// Generate some events for the same host under the new infraenv
+			for i := 1; i <= 9; i++ {
+				theEvents.V2AddEvent(context.TODO(), nil, &host, &infraEnv2,
+					eventgen.HostRegistrationFailedEventName, models.EventSeverityInfo, fmt.Sprintf("Registration failed event %d:", i), time.Now())
+			}
+			// We should expect only the events for the new infraenv under the same host id
+			Expect(numOfEventsRetrieved(nil, []strfmt.UUID{host}, nil)).Should(Equal(9))
 		})
 	})
 
