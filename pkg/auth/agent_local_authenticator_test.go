@@ -14,19 +14,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func generateToken(privateKkeyPem string, expiry ...time.Time) (string, error) {
+func generateToken(privateKeyPem string, expiry *time.Time) (string, error) {
 	// Create the JWT claims
 	claims := jwt.MapClaims{}
 
 	// Set the expiry time if provided
-	if len(expiry) > 0 {
-		claims["exp"] = expiry[0].Unix()
+	if expiry != nil {
+		claims["exp"] = expiry.Unix()
 	}
 
 	// Create the token using the ES256 signing method and the claims
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
 
-	priv, err := jwt.ParseECPrivateKeyFromPEM([]byte(privateKkeyPem))
+	priv, err := jwt.ParseECPrivateKeyFromPEM([]byte(privateKeyPem))
 	if err != nil {
 		return "", err
 	}
@@ -57,7 +57,7 @@ var _ = Describe("AuthAgentAuth", func() {
 			ECPublicKeyPEM: encodedPubKey,
 		}
 
-		token, err = generateToken(privKey)
+		token, err = generateToken(privKey, nil)
 		Expect(err).ToNot(HaveOccurred())
 
 		a, err = NewAgentLocalAuthenticator(cfg, logrus.New())
@@ -119,18 +119,19 @@ var _ = Describe("AuthAgentAuth", func() {
 
 	It("Validates an unexpired token correctly", func() {
 		expiry := time.Now().UTC().Add(30 * time.Second)
-		unexpiredToken, err := generateToken(privateKey, expiry)
+		unexpiredToken, err := generateToken(privateKey, &expiry)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = a.AuthAgentAuth(unexpiredToken)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("Fails an expired token", func() {
-		expiry := time.Now().UTC().Add(30 * time.Second)
-		expiredToken, err := generateToken(privateKey, expiry)
+		expiry := time.Now().UTC().Add(-30 * time.Second)
+		expiredToken, err := generateToken(privateKey, &expiry)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = a.AuthAgentAuth(expiredToken)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(err).To(HaveOccurred())
+		validateErrorResponse(err)
 	})
 
 	It("Fails a token with invalid signing method", func() {
