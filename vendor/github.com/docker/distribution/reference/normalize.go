@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/docker/distribution/digestset"
 	"github.com/opencontainers/go-digest"
 )
 
@@ -175,6 +176,23 @@ func ParseAnyReference(ref string) (Reference, error) {
 	}
 	if dgst, err := digest.Parse(ref); err == nil {
 		return digestReference(dgst), nil
+	}
+
+	return ParseNormalizedNamed(ref)
+}
+
+// ParseAnyReferenceWithSet parses a reference string as a possible short
+// identifier to be matched in a digest set, a full digest, or familiar name.
+func ParseAnyReferenceWithSet(ref string, ds *digestset.Set) (Reference, error) {
+	if ok := anchoredShortIdentifierRegexp.MatchString(ref); ok {
+		dgst, err := ds.Lookup(ref)
+		if err == nil {
+			return digestReference(dgst), nil
+		}
+	} else {
+		if dgst, err := digest.Parse(ref); err == nil {
+			return digestReference(dgst), nil
+		}
 	}
 
 	return ParseNormalizedNamed(ref)
