@@ -1,96 +1,18 @@
----
 version: 2
 updates:
   - package-ecosystem: gomod
-    directory: /api
+    directories: [ "/", "/api", "/client", "/models" ]
     schedule:
-      interval: daily
-    labels:
-      - approved
-      - lgtm
-      - dependabot
-      - go
-    commit-message:
-      prefix: NO-ISSUE
+      interval: "daily"
     groups:
-      go-minor-api-dependencies:
+      go-security-dependencies:
+        applies-to: security-updates
         patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      go-major-api-dependencies:
-        patterns:
-          - "*"
-        update-types:
-          - major
-
-  - package-ecosystem: gomod
-    directory: /client
-    schedule:
-      interval: daily
+          - "*"  
     labels:
-      - approved
-      - lgtm
-      - dependabot
-      - go
+      - "approved"
+      - "lgtm"
+      - "go"
+      - "dependabot"
     commit-message:
-      prefix: NO-ISSUE
-    groups:
-      go-minor-client-dependencies:
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      go-major-client-dependencies:
-        patterns:
-          - "*"
-        update-types:
-          - major
-          
-  - package-ecosystem: gomod
-    directory: /models
-    schedule:
-      interval: daily
-    labels:
-      - approved
-      - lgtm
-      - dependabot
-      - go
-    commit-message:
-      prefix: NO-ISSUE
-    groups:
-      go-minor-models-dependencies:
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      go-major-models-dependencies:
-        patterns:
-          - "*"
-
-  - package-ecosystem: gomod
-    directory: /
-    schedule:
-      interval: daily
-    labels:
-      - approved
-      - lgtm
-      - dependabot
-      - go
-    commit-message:
-      prefix: NO-ISSUE
-    groups:
-      go-minor-dependencies:
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      go-major-dependencies:
-        patterns:
-          - "*"
-        update-types:
-          - major
+      prefix: "NO-ISSUE"
