@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/go-openapi/errors v0.20.3
 	github.com/go-openapi/strfmt v0.21.3
-	github.com/go-openapi/swag v0.22.3
+	github.com/go-openapi/swag v0.23.0
 	github.com/go-openapi/validate v0.22.0
 	github.com/lib/pq v1.10.9
 	github.com/openshift/assisted-service v1.0.10-0.20230830164851-6573b5d7021d
