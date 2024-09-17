@@ -1,0 +1,13 @@
+capture:
+  iface1: interfaces.mac-address == "00:00:5E:00:00:02"
+desiredState:
+  interfaces:
+    - name: "{{ capture.iface1.interfaces.0.name }}"
+      type: ethernet
+      state: up
+      ipv4:
+        dhcp: false
+        enabled: true
+        address:
+        - ip: 192.168.127.30
+          prefix-length: 24

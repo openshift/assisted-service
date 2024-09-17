@@ -65,16 +65,31 @@ func (mr *MockStaticNetworkConfigMockRecorder) GenerateStaticNetworkConfigData(c
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateStaticNetworkConfigData", reflect.TypeOf((*MockStaticNetworkConfig)(nil).GenerateStaticNetworkConfigData), ctx, hostsYAMLS)
 }
 
-// ValidateStaticConfigParams mocks base method.
-func (m *MockStaticNetworkConfig) ValidateStaticConfigParams(staticNetworkConfig []*models.HostStaticNetworkConfig) error {
+// GenerateStaticNetworkConfigDataYAML mocks base method.
+func (m *MockStaticNetworkConfig) GenerateStaticNetworkConfigDataYAML(staticNetworkConfigStr string) ([]StaticNetworkConfigData, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateStaticConfigParams", staticNetworkConfig)
+	ret := m.ctrl.Call(m, "GenerateStaticNetworkConfigDataYAML", staticNetworkConfigStr)
+	ret0, _ := ret[0].([]StaticNetworkConfigData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateStaticNetworkConfigDataYAML indicates an expected call of GenerateStaticNetworkConfigDataYAML.
+func (mr *MockStaticNetworkConfigMockRecorder) GenerateStaticNetworkConfigDataYAML(staticNetworkConfigStr interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateStaticNetworkConfigDataYAML", reflect.TypeOf((*MockStaticNetworkConfig)(nil).GenerateStaticNetworkConfigDataYAML), staticNetworkConfigStr)
+}
+
+// ValidateStaticConfigParamsYAML mocks base method.
+func (m *MockStaticNetworkConfig) ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, arch, installerInvoker string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateStaticConfigParamsYAML", staticNetworkConfig, ocpVersion, arch, installerInvoker)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ValidateStaticConfigParams indicates an expected call of ValidateStaticConfigParams.
-func (mr *MockStaticNetworkConfigMockRecorder) ValidateStaticConfigParams(staticNetworkConfig interface{}) *gomock.Call {
+// ValidateStaticConfigParamsYAML indicates an expected call of ValidateStaticConfigParamsYAML.
+func (mr *MockStaticNetworkConfigMockRecorder) ValidateStaticConfigParamsYAML(staticNetworkConfig, ocpVersion, arch, installerInvoker interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateStaticConfigParams", reflect.TypeOf((*MockStaticNetworkConfig)(nil).ValidateStaticConfigParams), staticNetworkConfig)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateStaticConfigParamsYAML", reflect.TypeOf((*MockStaticNetworkConfig)(nil).ValidateStaticConfigParamsYAML), staticNetworkConfig, ocpVersion, arch, installerInvoker)
 }

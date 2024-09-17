@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 )
 
 var registerInfraEnv = func(clusterID *strfmt.UUID, imageType models.ImageType) *models.InfraEnv {
@@ -312,7 +313,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(s.Size()).ShouldNot(Equal(0))
 	})
 
-	It("download infra-env files static network config file", func() {
+	DescribeTable("download infra-env files static network config file", func(ocpVersion string) {
 		By("Patching the infra env with a static network config")
 		netYaml := `interfaces:
 - ipv4:
@@ -333,6 +334,8 @@ var _ = Describe("Infra_Env", func() {
 				},
 			},
 		}
+		infraEnv = internalRegisterInfraEnv(nil, models.ImageTypeFullIso, "", ocpVersion)
+		infraEnvID = *infraEnv.ID
 		staticNetworkConfigs := []*models.HostStaticNetworkConfig{&staticNetworkConfig}
 		updateParams := &installer.UpdateInfraEnvParams{
 			InfraEnvID: infraEnvID,
@@ -350,9 +353,14 @@ var _ = Describe("Infra_Env", func() {
 		contents := buf.String()
 		Expect(len(contents)).ShouldNot(Equal(0))
 		Expect(contents).To(ContainSubstring("/etc/assisted/network/host0"))
-		Expect(contents).To(ContainSubstring("192.0.2.1/24"))
+		if ocpVersion < staticnetworkconfig.MinimalVersionForNmstatectl {
+			Expect(contents).To(ContainSubstring("192.0.2.1/24"))
+		}
 		Expect(contents).To(ContainSubstring("eth0"))
-	})
+	},
+		Entry("ocp versions greater than/ equal to 4.14", staticnetworkconfig.MinimalVersionForNmstatectl),
+		Entry("ocp versions less than 4.14", "4.12"),
+	)
 
 	It("download infra-env files invalid filename option", func() {
 		file, err := os.CreateTemp("", "tmp")

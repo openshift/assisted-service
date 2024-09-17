@@ -1,0 +1,16 @@
+[Unit]
+Description=Prepare network manager config content
+Before=nmstate.service
+Requires=nmstate.service
+DefaultDependencies=no
+
+[Service]
+User=root
+Type=oneshot
+TimeoutSec=60
+ExecStart=/bin/bash /usr/local/bin/pre-network-manager-config.sh
+PrivateTmp=true
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target
