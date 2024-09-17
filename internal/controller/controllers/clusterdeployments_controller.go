@@ -1531,7 +1531,7 @@ func (r *ClusterDeploymentsReconciler) deleteClusterInstall(ctx context.Context,
 	return buildReply(err)
 }
 
-func (r *ClusterDeploymentsReconciler) shouldDeleteAgentOnUnbind(ctx context.Context, agent aiv1beta1.Agent, clusterDeployment types.NamespacedName) bool {
+func (r *ClusterDeploymentsReconciler) shouldDeleteAgentOnUnbind(ctx context.Context, agent aiv1beta1.Agent, clusterDeployment types.NamespacedName) (bool, error) {
 	log := logutil.FromContext(ctx, r.Log).WithFields(logrus.Fields{
 		"cluster_deployment":           clusterDeployment.Name,
 		"cluster_deployment_namespace": clusterDeployment.Namespace,
@@ -1539,23 +1539,36 @@ func (r *ClusterDeploymentsReconciler) shouldDeleteAgentOnUnbind(ctx context.Con
 	infraEnvName, ok := agent.Labels[aiv1beta1.InfraEnvNameLabel]
 	if !ok {
 		log.Errorf("Failed to find infraEnv name for agent %s in namespace %s", agent.Name, agent.Namespace)
-		return false
+		return false, nil
 	}
 
 	infraEnv := &aiv1beta1.InfraEnv{}
 	if err := r.Get(ctx, types.NamespacedName{Name: infraEnvName, Namespace: agent.Namespace}, infraEnv); err != nil {
 		log.Errorf("Failed to get infraEnv %s in namespace %s", infraEnvName, agent.Namespace)
-		return false
+		return false, nil
 	}
 
 	if infraEnv.Spec.ClusterRef != nil &&
 		infraEnv.Spec.ClusterRef.Name == clusterDeployment.Name &&
 		infraEnv.Spec.ClusterRef.Namespace == clusterDeployment.Namespace {
 
-		return true
+		return true, nil
 	}
 
-	return false
+	// If the agent came from a late binding pool (the infrastructure environment has no cluster
+	// reference) then we want to delete it only if the cluster deployment is marked to preserve
+	// on delete. This is necessary because otherwise the host will go back to the pool, and it
+	// will be provisioned again, effectively destroying the cluster.
+	if infraEnv.Spec.ClusterRef == nil {
+		clusterDeploymentObject := &hivev1.ClusterDeployment{}
+		err := r.Get(ctx, clusterDeployment, clusterDeploymentObject)
+		if err != nil {
+			return false, err
+		}
+		return clusterDeploymentObject.Spec.PreserveOnDelete, nil
+	}
+
+	return false, nil
 }
 
 func (r *ClusterDeploymentsReconciler) unbindAgents(ctx context.Context, log logrus.FieldLogger, clusterDeployment types.NamespacedName) error {
@@ -1568,7 +1581,11 @@ func (r *ClusterDeploymentsReconciler) unbindAgents(ctx context.Context, log log
 		if clusterAgent.Spec.ClusterDeploymentName != nil &&
 			clusterAgent.Spec.ClusterDeploymentName.Name == clusterDeployment.Name &&
 			clusterAgent.Spec.ClusterDeploymentName.Namespace == clusterDeployment.Namespace {
-			if r.shouldDeleteAgentOnUnbind(ctx, clusterAgent, clusterDeployment) {
+			shouldDeleteAgent, err := r.shouldDeleteAgentOnUnbind(ctx, clusterAgent, clusterDeployment)
+			if err != nil {
+				return err
+			}
+			if shouldDeleteAgent {
 				log.Infof("deleting agent %s in namespace %s", clusterAgent.Name, clusterAgent.Namespace)
 				if err := r.Delete(ctx, &agents.Items[i]); err != nil {
 					log.WithError(err).Errorf("failed to delete agent %s in namespace %s", clusterAgent.Name, clusterAgent.Namespace)
