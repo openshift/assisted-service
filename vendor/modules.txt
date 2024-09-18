@@ -498,8 +498,8 @@ github.com/jackc/pgservicefile
 # github.com/jackc/pgtype v1.14.0
 ## explicit; go 1.13
 github.com/jackc/pgtype
-# github.com/jackc/pgx/v4 v4.16.0
-## explicit; go 1.13
+# github.com/jackc/pgx/v4 v4.16.0 => github.com/jackc/pgx/v4 v4.18.3
+## explicit; go 1.17
 github.com/jackc/pgx/v4
 github.com/jackc/pgx/v4/internal/sanitize
 github.com/jackc/pgx/v4/stdlib
@@ -2234,7 +2234,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
-# github.com/jackc/pgx => github.com/jackc/pgx/v4 v4.18.3
+# github.com/jackc/pgx/v4 => github.com/jackc/pgx/v4 v4.18.3
 # github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20231019133159-8643f32fea3e
 # github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis v0.0.0-20231019133159-8643f32fea3e
 # github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20231019133159-8643f32fea3e
