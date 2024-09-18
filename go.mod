@@ -18,7 +18,7 @@ require (
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a
-	github.com/go-gormigrate/gormigrate/v2 v2.0.1
+	github.com/go-gormigrate/gormigrate/v2 v2.1.2
 	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/go-logr/logr v1.4.1
 	github.com/go-openapi/errors v0.22.0
@@ -80,7 +80,7 @@ require (
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.3.5
-	gorm.io/gorm v1.25.7
+	gorm.io/gorm v1.25.8
 	k8s.io/api v0.29.9
 	k8s.io/apiextensions-apiserver v0.29.5
 	k8s.io/apimachinery v0.29.9
