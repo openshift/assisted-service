@@ -15,7 +15,6 @@ def handle_arguments():
     parser.add_argument("--base-dns-domains")
     parser.add_argument("--auth-type", default="none")
     parser.add_argument("--subsystem-test", action='store_true')
-    parser.add_argument("--jwks-url", default="https://api.openshift.com/.well-known/jwks.json")
     parser.add_argument("--ocm-url", default="https://api-integration.6943.hive-integration.openshiftapps.com")
     parser.add_argument("--ocp-versions")
     parser.add_argument("--os-images")
@@ -51,6 +50,7 @@ IMAGE_SERVICE = "assisted-image-service"
 RELEASE_SOURCES = os.environ.get("RELEASE_SOURCES", "")
 OPENSHIFT_RELEASE_SYNCER_INTERVAL = os.environ.get("OPENSHIFT_RELEASE_SYNCER_INTERVAL", "30m")
 IGNORED_OPENSHIFT_VERSIONS = os.environ.get("IGNORED_OPENSHIFT_VERSIONS", "")
+JWKS_URL = os.environ.get("JWKS_URL", "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/certs")
 
 def get_deployment_tag(args):
     if args.deploy_manifest_tag:
@@ -96,7 +96,6 @@ def main():
     data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
     data = data.replace('REPLACE_AUTH_TYPE_FLAG', '"{}"'.format(deploy_options.auth_type))
     data = data.replace('REPLACE_CHECK_CLUSTER_VERSION_FLAG', '"{}"'.format(deploy_options.check_cvo))
-    data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
     data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))
     data = data.replace('REPLACE_OPENSHIFT_VERSIONS', '"{}"'.format(deploy_options.ocp_versions))
     data = data.replace('REPLACE_OS_IMAGES', '"{}"'.format(deploy_options.os_images))
@@ -111,6 +110,7 @@ def main():
     data = data.replace('REPLACE_RELEASE_SOURCES', "'{}'".format(RELEASE_SOURCES))
     data = data.replace('REPLACE_OPENSHIFT_RELEASE_SYNCER_INTERVAL', '"{}"'.format(OPENSHIFT_RELEASE_SYNCER_INTERVAL))
     data = data.replace('REPLACE_IGNORED_OPENSHIFT_VERSIONS', '"{}"'.format(IGNORED_OPENSHIFT_VERSIONS))
+    data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(JWKS_URL))
 
     versions = {"INSTALLER_IMAGE": "assisted-installer",
                 "CONTROLLER_IMAGE": "assisted-installer-controller",
