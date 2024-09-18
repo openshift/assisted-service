@@ -81,13 +81,13 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.3.5
 	gorm.io/gorm v1.25.7
-	k8s.io/api v0.29.5
+	k8s.io/api v0.29.9
 	k8s.io/apiextensions-apiserver v0.29.5
-	k8s.io/apimachinery v0.29.5
-	k8s.io/client-go v0.29.5
+	k8s.io/apimachinery v0.29.9
+	k8s.io/client-go v0.29.9
 	k8s.io/klog/v2 v2.110.1
 	k8s.io/kube-aggregator v0.29.5
-	k8s.io/kubectl v0.29.5
+	k8s.io/kubectl v0.29.9
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 	open-cluster-management.io/api v0.12.0
 	sigs.k8s.io/controller-runtime v0.16.3
@@ -152,8 +152,8 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20240102182953-50ed04b92917 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240102182953-50ed04b92917 // indirect
 	k8s.io/apiserver v0.29.5 // indirect
-	k8s.io/cli-runtime v0.29.5 // indirect
-	k8s.io/component-base v0.29.5 // indirect
+	k8s.io/cli-runtime v0.29.9 // indirect
+	k8s.io/component-base v0.29.9 // indirect
 	k8s.io/kms v0.29.5 // indirect
 	sigs.k8s.io/gateway-api v1.0.0 // indirect
 	sigs.k8s.io/kustomize/api v0.13.5-0.20230601165947-6ce0bf390ce3 // indirect
