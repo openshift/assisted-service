@@ -137,11 +137,46 @@ Make sure there is a Machine object referencing the newly added node. If you are
 
 ### Add BareMetalHost object
 
-[...]
+Either copy a current BMH and edit the required items.  Those using ZTP the BMH should just get created.
 
 ### Add Machine object
 
-[...]
+You will need to manually create a machine object. An example is here with the items to be edited commented in the line preceding.
+```
+---
+apiVersion: machine.openshift.io/v1beta1
+kind: Machine
+metadata:
+  annotations:
+    machine.openshift.io/instance-state: unmanaged
+    ## CHANGE the hostname
+    metal3.io/BareMetalHost: openshift-machine-api/host1.example.com
+  labels:
+    ## Change to the cluster name used see with machines for reference.
+    machine.openshift.io/cluster-api-cluster: prod-example
+    machine.openshift.io/cluster-api-machine-role: master
+    machine.openshift.io/cluster-api-machine-type: master
+  ## Change the name - see other machines for reference
+  name: prod-abcde-master-1
+  namespace: openshift-machine-api
+spec:
+  metadata: {}
+  providerSpec:
+    value:
+      apiVersion: baremetal.cluster.k8s.io/v1alpha1
+      customDeploy:
+        method: install_coreos
+      hostSelector: {}
+      image:
+        checksum: ""
+        url: ""
+      kind: BareMetalMachineProviderSpec
+      metadata:
+        creationTimestamp: null
+      userData:
+        name: master-user-data-managed
+
+```
 
 ### Link BMH and Machine and Node using the magic script
 
