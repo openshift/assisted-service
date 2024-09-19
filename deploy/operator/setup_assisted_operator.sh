@@ -278,13 +278,28 @@ data:
     $(registry_config "$(get_image_without_tag ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(registry_config "$(get_image_without_tag ${cli_image})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(registry_config "$(get_image_without_tag ${ironic_agent_image})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE})")
-    $(for row in $(kubectl get imagecontentsourcepolicy -o json |
-        jq -rc ".items[] | select(.metadata.name | test(\"${assisted_index_image}\")).spec.repositoryDigestMirrors[] | [.mirrors[0], .source]"); do
-      row=$(echo ${row} | tr -d '[]"');
-      source=$(echo ${row} | cut -d',' -f2);
-      mirror=$(echo ${row} | cut -d',' -f1);
-      registry_config ${source} ${mirror};
-    done)
+    $(
+      if kubectl get crd imagedigestmirrorsets.config.openshift.io &>/dev/null; then
+        for row in $(kubectl get imagedigestmirrorset -o json |
+          jq -rc ".items[] | select(.metadata.name | test(\"${assisted_index_image}\")).spec.imageDigestMirrors[] | [.mirrors[0], .source]"); do
+          row=$(echo ${row} | tr -d '[]"');
+          source=$(echo ${row} | cut -d',' -f2);
+          mirror=$(echo ${row} | cut -d',' -f1);
+          registry_config ${source} ${mirror};
+        done
+      fi
+    )
+    $(
+      if kubectl get crd imagecontentsourcepolicies.operator.openshift.io &>/dev/null; then
+        for row in $(kubectl get imagecontentsourcepolicy -o json |
+          jq -rc ".items[] | select(.metadata.name | test(\"${assisted_index_image}\")).spec.repositoryDigestMirrors[] | [.mirrors[0], .source]"); do
+          row=$(echo ${row} | tr -d '[]"');
+          source=$(echo ${row} | cut -d',' -f2);
+          mirror=$(echo ${row} | cut -d',' -f1);
+          registry_config ${source} ${mirror};
+        done
+      fi
+    )
 EOCR
 
   python ${__dir}/set_ca_bundle.py "${WORKING_DIR}/registry/certs/registry.2.crt" "./assisted-mirror-config"

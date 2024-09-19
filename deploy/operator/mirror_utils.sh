@@ -46,10 +46,17 @@ function mirror_package() {
         --registry-config="${authfile}" \
         --to-manifests="${manifests_dir}"
 
-  echo "Applyed image-content-source-policy:"
-  cat "${manifests_dir}/imageContentSourcePolicy.yaml"
-
-  oc apply -f "${manifests_dir}/imageContentSourcePolicy.yaml"
+  # Starting with version 4.14 of OpenShift the ImageContentSourcePolicy object is deprecated, and
+  # replaced by ImageDigestMirrorSet. The 'oc adm catalog mirror' command generates both, so we
+  # check and use the new one if possible.
+  if [ -f "${manifests_dir}/imageDigestMirrorSet.yaml" ]; then
+    mirrors_config_file="${manifests_dir}/imageDigestMirrorSet.yaml"
+  else
+    mirrors_config_file="${manifests_dir}/imageContentSourcePolicy.yaml"
+  fi
+  echo "Applied mirrors configuration:"
+  cat "${mirrors_config_file}"
+  oc apply -f "${mirrors_config_file}"
 
   # Modify openshift-marketplace namespace in order to allow workaround the new pod security
   # admissions. Details are described in https://access.redhat.com/articles/6977554 and they
@@ -88,7 +95,7 @@ spec:
       interval: 30m
 EOF
 
-  echo "Applyed catalog source:"
+  echo "Applied catalog source:"
   cat "${manifests_dir}/catalogSource.yaml"
 
   oc apply -f "${manifests_dir}/catalogSource.yaml"
