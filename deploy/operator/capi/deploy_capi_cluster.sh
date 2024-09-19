@@ -87,13 +87,32 @@ if [ "${DISCONNECTED}" = "true" ]; then
       oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
       export PROVIDER_IMAGE="${PROVIDER_LOCAL_IMAGE}"
     fi
-    # 5. ImageContentPolicy for local mirror registry (prerequisite is the openshift release is mirrored to the local registry)
+    # 5. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
+    # registry). Note that older versions of OpenShift, before OpenShift 4.14, don't support this ImageDigestMirrorSet
+    # object, instead they use the now deprecated ImageContentSourcePolicy. So we need to check which one is supported
+    # by the server.
     export OCP_MIRROR_REGISTRY="${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
-    cat << EOM >> icsp.yaml
+    if oc get crd imagedigestmirrorsets.config.openshift.io &>/dev/null; then
+      cat << EOM > mirrors-config.yaml
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  name: mirrors-config
+spec:
+  imageDigestMirrors:
+  - mirrors:
+    - ${OCP_MIRROR_REGISTRY}
+    source: quay.io/openshift-release-dev/ocp-release
+  - mirrors:
+    - ${OCP_MIRROR_REGISTRY}
+    source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+EOM
+    else
+      cat << EOM > mirrors-config.yaml
 apiVersion: operator.openshift.io/v1alpha1
 kind: ImageContentSourcePolicy
 metadata:
-  name: example
+  name: mirrors-config
 spec:
   repositoryDigestMirrors:
   - mirrors:
@@ -103,9 +122,10 @@ spec:
     - ${OCP_MIRROR_REGISTRY}
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
-    oc apply -f icsp.yaml
+    fi
+    oc apply -f mirrors-config.yaml
     # 6. Image content source for hosted cluster to be passed in through the hypershift create command
-  cat << EOM >> /tmp/icsp-hc.yaml
+  cat << EOM >> /tmp/ics-hc.yaml
 - mirrors:
   - ${OCP_MIRROR_REGISTRY}
   source: quay.io/openshift-release-dev/ocp-release
@@ -113,8 +133,8 @@ EOM
   - ${OCP_MIRROR_REGISTRY}
   source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
-    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources /tmp/icsp-hc.yaml"
-    export EXTRA_HYPERSHIFT_CLI_MOUNTS="$EXTRA_HYPERSHIFT_CLI_MOUNTS -v /tmp/icsp-hc.yaml:/tmp/icsp-hc.yaml"
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources /tmp/ics-hc.yaml"
+    export EXTRA_HYPERSHIFT_CLI_MOUNTS="$EXTRA_HYPERSHIFT_CLI_MOUNTS -v /tmp/ics-hc.yaml:/tmp/ics-hc.yaml"
     # 7. Machine config operator image must be added to hypershift operator's pod's arguments
     export MCO_IMAGE=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for machine-config-operator)
     export LOCAL_MCO_IMAGE="${OCP_MIRROR_REGISTRY}@$(oc image info $MCO_IMAGE -ojson | jq -r '.digest')"
