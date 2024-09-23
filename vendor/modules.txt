@@ -131,9 +131,6 @@ github.com/containerd/containerd/platforms
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/containers/image/v5 v5.21.1
-## explicit; go 1.16
-github.com/containers/image/v5/docker/reference
 # github.com/coreos/go-json v0.0.0-20211020211907-c63f628265de
 ## explicit; go 1.15
 github.com/coreos/go-json
@@ -193,6 +190,10 @@ github.com/diskfs/go-diskfs/util
 # github.com/distribution/reference v0.5.0
 ## explicit; go 1.20
 github.com/distribution/reference
+# github.com/docker/distribution v2.8.1+incompatible
+## explicit
+github.com/docker/distribution/digestset
+github.com/docker/distribution/reference
 # github.com/docker/docker v25.0.3+incompatible
 ## explicit
 github.com/docker/docker/api
@@ -941,6 +942,8 @@ github.com/segmentio/kafka-go/protocol/txnoffsetcommit
 github.com/segmentio/kafka-go/sasl
 github.com/segmentio/kafka-go/sasl/plain
 github.com/segmentio/kafka-go/sasl/scram
+# github.com/sergi/go-diff v1.2.0
+## explicit; go 1.12
 # github.com/shirou/gopsutil/v3 v3.23.12
 ## explicit; go 1.15
 github.com/shirou/gopsutil/v3/common
