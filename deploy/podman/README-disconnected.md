@@ -161,7 +161,10 @@ You will apply this file as a part of the [Build/Deploy a Cluster](#builddeploy-
 
 ## Build/Deploy a Cluster
 
-At this point, you can now follow standard Assisted Installer workflows to create a cluster. Keep in mind that you will need to add your mirror registry certificate to the install_config as and _additionalTrustBundle_ well as add the _imageContentSources_ that define your mirror registry. The process that you use to do this will vary based on if you are using the Assisted Installer Web UI, via all api calls, or using [aicli](https://github.com/karmab/aicli).
+At this point, you can now follow standard Assisted Installer workflows to create a cluster. Keep in mind that you will need to add your mirror registry certificate to the install_config as and _additionalTrustBundle_ well as add the _imageDigestSources_[^icsp_deprecated] that define your mirror registry. The process that you use to do this will vary based on if you are using the Assisted Installer Web UI, via all api calls, or using [aicli](https://github.com/karmab/aicli).
+
+[^icsp_deprecated]: For older versions of OpenShift, before 4.14, the name of the field for the mirror registry is
+    _imageContentSources_ instead of _imageDigestSources_.
 
 ### Using the Assisted Installer GUI
 
@@ -178,12 +181,15 @@ installconfig:
       -----BEGIN CERTIFICATE-----
       <contents of your signing certificate>
       -----END CERTIFICATE-----
-    imageContentSources:
+    imageDigestSources:
       <the values here are based on the output from the OpenShift mirror command>
 ignition_config_override: <contents of the discovery-ignition.json file created earlier>
 ```
 
-The values for the imageContentSources will be based on the output of the OpenShift mirror command that you used. See the "imageContentSourcePolicy.yaml" file that is generated after the successful creation of a mirror for the exact information that should go here.
+The values for the imageDigestSources[^icsp_deprecated] will be based on the output of the OpenShift mirror command that you used. See the "imageMirrorDigestSet.yaml"[^icsp_deprecated_2] file that is generated after the successful creation of a mirror for the exact information that should go here.
+
+[^icsp_deprecated_2]: Forolder versions of OpenShift, before 4.14, the name of the file is
+    `imageContentSourcePolicy.yaml` instead of `imageMirrorDigestSet.yaml`.
 
 ### Using the API
 
@@ -195,7 +201,7 @@ Follow the instructions [rest api getting started](https://github.com/openshift/
 
 Then use the instructions [Install Customization - Discovery Ignition](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/install-customization.md#discovery-ignition) to apply the discovery-ignition.json file created in the [Ignition Config Override](#ignition-config-override)
 
-Then use the instructions [Install Customization - Install Config](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/install-customization.md#install-config) to apply the _additionalTrustBundle_ and _imageContentSources_ to the OpenShift install_config.yaml.
+Then use the instructions [Install Customization - Install Config](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/install-customization.md#install-config) to apply the _additionalTrustBundle_ and _imageDigestSources_[^icsp_deprecated] to the OpenShift install_config.yaml.
 
 ## Appendix
 

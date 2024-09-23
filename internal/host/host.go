@@ -1264,7 +1264,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		return autoSelectedRole, err
 	}
 
-	if len(masters) < common.MinMasterHostsNeededForInstallation {
+	if len(masters) < common.MinMasterHostsNeededForInstallationInHaMode {
 		h.Role = models.HostRoleMaster
 		vc, err = newValidationContext(ctx, h, nil, nil, db, make(InventoryCache), m.hwValidator, m.kubeApiEnabled, m.objectHandler, m.softTimeoutsEnabled)
 		if err != nil {

@@ -183,7 +183,7 @@ $ jq -n --arg BUNDLE "$(cat tls-ca-bundle-registry.pem)" --arg SECRET "$(cat pul
 '{
     "pullSecret": $SECRET,
     "additionalTrustBundle": $BUNDLE,
-    "imageContentSources": [
+    "imageDigestSources": [
         {
             "mirrors": [
                 "<mirror_host_name>:<mirror_host_port>/ocp4/openshift4"
@@ -199,6 +199,9 @@ $ jq -n --arg BUNDLE "$(cat tls-ca-bundle-registry.pem)" --arg SECRET "$(cat pul
     ]
 }| tojson' > $install_config_patch
 ```
+
+> **NOTE:** For older versions of OpenShift, before 4.14, the name of the fields for image mirrors is
+> `imageContentSources` instead of `imageDigestSources`.
 
 > **NOTE:** Make sure to update the "mirror_host_name" and "mirror_host_port" to reflect your local registry mirror
 ​

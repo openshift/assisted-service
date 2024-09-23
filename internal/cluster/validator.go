@@ -305,25 +305,21 @@ func (v *clusterValidator) areIngressVipsValid(c *clusterPreprocessContext) (Val
 	return v.areVipsValid(c, &IngressVipsWrapper{c: c})
 }
 
+// SufficientMastersAndWorkersCount validates the number of masters.
 // conditions to have a valid number of masters
-// 1. have exactly three masters
-// 2. have less then 3 masters but enough to auto-assign hosts that can become masters
-// 3. have at least 2 workers or auto-assign hosts that can become workers, if workers configured
-// 4. having more then 3 known masters is illegal
-func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) (ValidationStatus, string) {
+// 1. Have between 3-5 masters or nodes which can become masters in HA mode
+// 2. Have 1 master or one node that can become master in none HA mode
+// 3. Have any number of workers in HA mode
+// 4. Have no workers in none HA mode
+func (v *clusterValidator) SufficientMastersAndWorkersCount(c *clusterPreprocessContext) (ValidationStatus, string) {
 	status := ValidationSuccess
 	var message string
-
-	minMastersNeededForInstallation := common.MinMasterHostsNeededForInstallation
-	nonHAMode := swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
-	if nonHAMode {
-		minMastersNeededForInstallation = common.AllowedNumberOfMasterHostsInNoneHaMode
-	}
 
 	hosts := make([]*models.Host, 0)
 	for _, h := range MapHostsByStatus(c.cluster) {
 		hosts = append(hosts, h...)
 	}
+
 	masters := make([]*models.Host, 0)
 	workers := make([]*models.Host, 0)
 	candidates := make([]*models.Host, 0)
@@ -342,9 +338,22 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) (
 		}
 	}
 
+	var (
+		minMastersNeededForInstallation int
+		maxMastersNeededForInstallation int
+	)
+
+	nonHAMode := swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
+	if nonHAMode {
+		minMastersNeededForInstallation = common.AllowedNumberOfMasterHostsInNoneHaMode
+		maxMastersNeededForInstallation = common.AllowedNumberOfMasterHostsInNoneHaMode
+	} else {
+		minMastersNeededForInstallation = common.MinMasterHostsNeededForInstallationInHaMode
+		maxMastersNeededForInstallation = common.MaxMasterHostsNeededForInstallationInHaMode
+	}
+
+	// Try to find mor nodes suitable for being masters
 	for _, h := range candidates {
-		//if allocated masters count is less than the desired count, find eligible hosts
-		//from the candidate pool to match the master count criteria, up to 3
 		if len(masters) < minMastersNeededForInstallation {
 			candidate := *h
 			if isValid, err := v.hostAPI.IsValidMasterCandidate(&candidate, c.cluster, c.db, v.log); isValid && err == nil {
@@ -352,21 +361,30 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) (
 				continue
 			}
 		}
-		//otherwise, add the host candidate to the worker count
-		workers = append(workers, h)
 	}
 
-	numWorkers := len(workers)
-	if len(masters) != minMastersNeededForInstallation ||
-		nonHAMode && numWorkers != common.AllowedNumberOfWorkersInNoneHaMode {
+	numMasters := len(masters)
+
+	if numMasters < minMastersNeededForInstallation || numMasters > maxMastersNeededForInstallation {
 		status = ValidationFailure
 	}
+
+	// There should be no workers in non HA mode
+	if nonHAMode && len(workers) != common.AllowedNumberOfWorkersInNoneHaMode {
+		status = ValidationFailure
+	}
+
+	status = ValidationSuccess
 
 	switch status {
 	case ValidationSuccess:
 		message = "The cluster has the exact amount of dedicated control plane nodes."
 	case ValidationFailure:
-		message = fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallation)
+		message = fmt.Sprintf(
+			"Clusters must have between %d to %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
+			common.MinMasterHostsNeededForInstallationInHaMode,
+			common.MaxMasterHostsNeededForInstallationInHaMode,
+		)
 		if nonHAMode {
 			message = "Single-node clusters must have a single control plane node and no workers."
 		}

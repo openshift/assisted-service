@@ -979,7 +979,7 @@ var _ = Describe("Metrics tests", func() {
 			}
 
 			removeHost(hosts[0])
-			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersCount)
+			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersAndWorkersCount)
 
 			// create a validation success
 			h1 := registerNode(ctx, *infraEnvID, "h1-new", ips[0])
@@ -995,36 +995,36 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation success
 			hosts, _ := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
-			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDSufficientMastersCount)
+			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDSufficientMastersAndWorkersCount)
 
-			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationChangedMetric)
-			oldFailedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationFailedMetric)
+			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersAndWorkersCount), clusterValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersAndWorkersCount), clusterValidationFailedMetric)
 
 			// create a validation failure
 			removeHost(hosts[0])
-			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersCount)
+			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersAndWorkersCount)
 
 			// check generated events
-			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDSufficientMastersCount, true)
+			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDSufficientMastersAndWorkersCount, true)
 
 			// check generated metrics
 			// Check for ranged increment +1 or +2. There can be a race between the cluster monitor and the api for deregister host
-			Expect(getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationChangedMetric)).To(BeElementOf([]int{oldChangedMetricCounter + 1, oldChangedMetricCounter + 2}))
+			Expect(getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersAndWorkersCount), clusterValidationChangedMetric)).To(BeElementOf([]int{oldChangedMetricCounter + 1, oldChangedMetricCounter + 2}))
 			metricsDeregisterCluster(ctx, clusterID)
-			Expect(getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationFailedMetric)).To(BeElementOf([]int{oldFailedMetricCounter + 1, oldFailedMetricCounter + 2}))
+			Expect(getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersAndWorkersCount), clusterValidationFailedMetric)).To(BeElementOf([]int{oldFailedMetricCounter + 1, oldFailedMetricCounter + 2}))
 		})
 
 		It("'sufficient-masters-count' got fixed", func() {
 
 			// create a validation failure
-			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersCount)
+			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersAndWorkersCount)
 
 			// create a validation success
 			register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
-			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDSufficientMastersCount)
+			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDSufficientMastersAndWorkersCount)
 
 			// check generated events
-			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDSufficientMastersCount, false)
+			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDSufficientMastersAndWorkersCount, false)
 		})
 
 		It("'ntp-server-configured' failed", func() {

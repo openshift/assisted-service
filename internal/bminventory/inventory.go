@@ -1322,7 +1322,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		//usage for auto role selection is measured only for day1 clusters with more than
 		//3 hosts (which would automatically be assigned as masters if the hw is sufficient)
 		if usages, u_err := usage.Unmarshal(cluster.Cluster.FeatureUsage); u_err == nil {
-			report := cluster.Cluster.TotalHostCount > common.MinMasterHostsNeededForInstallation && autoAssigned
+			report := cluster.Cluster.TotalHostCount > common.MinMasterHostsNeededForInstallationInHaMode && autoAssigned
 			if hasIgnoredValidations {
 				b.setUsage(true, usage.ValidationsIgnored, nil, usages)
 			}
