@@ -184,5 +184,29 @@
         "cpu_architecture": "s390x",
         "url": "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/4.17.0-ec.3/rhcos-4.17.0-ec.3-s390x-live.s390x.iso",
         "version": "417.94.202407010929-0"
-    }
+    },
+    {
+        "openshift_version": "4.18",
+        "cpu_architecture": "x86_64",
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/4.18.0-ec.1/rhcos-4.18.0-ec.1-x86_64-live.x86_64.iso",
+        "version": "418.94.202409050217-0"
+      },
+      {
+        "openshift_version": "4.18",
+        "cpu_architecture": "arm64",
+        "url": "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/4.18.0-ec.1/rhcos-4.18.0-ec.1-aarch64-live.aarch64.iso",
+        "version": "418.94.202409050217-0"
+      },
+      {
+        "openshift_version": "4.18",
+        "cpu_architecture": "ppc64le",
+        "url": "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/pre-release/4.18.0-ec.1/rhcos-4.18.0-ec.1-ppc64le-live.ppc64le.iso",
+        "version": "418.94.202409050217-0"
+      },
+      {
+        "openshift_version": "4.18",
+        "cpu_architecture": "s390x",
+        "url": "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/4.18.0-ec.1/rhcos-4.18.0-ec.1-s390x-live.s390x.iso",
+        "version": "418.94.202409050217-0"
+      }
 ]
