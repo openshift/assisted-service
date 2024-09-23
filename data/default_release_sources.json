@@ -93,36 +93,31 @@
       {
         "cpu_architecture": "x86_64",
         "channels": [
-          "stable",
-          "candidate"
+          "stable"
         ]
       },
       {
         "cpu_architecture": "arm64",
         "channels": [
-          "stable",
-          "candidate"
+          "stable"
         ]
       },
       {
         "cpu_architecture": "ppc64le",
         "channels": [
-          "stable",
-          "candidate"
+          "stable"
         ]
       },
       {
         "cpu_architecture": "s390x",
         "channels": [
-          "stable",
-          "candidate"
+          "stable"
         ]
       },
       {
         "cpu_architecture": "multi",
         "channels": [
-          "stable",
-          "candidate"
+          "stable"
         ]
       }
     ]
@@ -185,37 +180,83 @@
       {
         "cpu_architecture": "x86_64",
         "channels": [
-          "stable"
+          "stable",
+          "candidate"
         ]
       },
       {
         "cpu_architecture": "arm64",
         "channels": [
-          "stable"
+          "stable",
+          "candidate"
         ]
       },
       {
         "cpu_architecture": "ppc64le",
         "channels": [
-          "stable"
+          "stable",
+          "candidate"
         ]
       },
       {
         "cpu_architecture": "s390x",
         "channels": [
-          "stable"
+          "stable",
+          "candidate"
         ]
       },
       {
         "cpu_architecture": "multi",
         "channels": [
-          "stable"
+          "stable",
+          "candidate"
         ]
       }
     ]
   },
   {
     "openshift_version": "4.17",
+    "multi_cpu_architectures": [
+      "x86_64",
+      "arm64",
+      "s390x",
+      "ppc64le"
+    ],
+    "upgrade_channels": [
+      {
+        "cpu_architecture": "x86_64",
+        "channels": [
+          "candidate"
+        ]
+      },
+      {
+        "cpu_architecture": "arm64",
+        "channels": [
+          "candidate"
+        ]
+      },
+      {
+        "cpu_architecture": "ppc64le",
+        "channels": [
+          "candidate"
+        ]
+      },
+      {
+        "cpu_architecture": "s390x",
+        "channels": [
+          "candidate"
+        ]
+      },
+      {
+        "cpu_architecture": "multi",
+        "channels": [
+          "candidate"
+        ]
+      }
+    ]
+  },
+  {
+    "openshift_version": "4.18",
     "multi_cpu_architectures": [
       "x86_64",
       "arm64",
