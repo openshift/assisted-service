@@ -313,7 +313,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(s.Size()).ShouldNot(Equal(0))
 	})
 
-	DescribeTable("download infra-env files static network config file", func(ocpVersion string) {
+	DescribeTable("download infra-env files static network config file", func(ocpVersion, arch string) {
 		By("Patching the infra env with a static network config")
 		netYaml := `interfaces:
 - ipv4:
@@ -334,7 +334,7 @@ var _ = Describe("Infra_Env", func() {
 				},
 			},
 		}
-		infraEnv = internalRegisterInfraEnv(nil, models.ImageTypeFullIso, "", ocpVersion)
+		infraEnv = internalRegisterInfraEnv(nil, models.ImageTypeFullIso, arch, ocpVersion)
 		infraEnvID = *infraEnv.ID
 		staticNetworkConfigs := []*models.HostStaticNetworkConfig{&staticNetworkConfig}
 		updateParams := &installer.UpdateInfraEnvParams{
@@ -353,13 +353,15 @@ var _ = Describe("Infra_Env", func() {
 		contents := buf.String()
 		Expect(len(contents)).ShouldNot(Equal(0))
 		Expect(contents).To(ContainSubstring("/etc/assisted/network/host0"))
-		if ocpVersion < staticnetworkconfig.MinimalVersionForNmstatectl {
+		if ocpVersion < staticnetworkconfig.MinimalVersionForNmstatectl || arch == common.ARM64CPUArchitecture {
 			Expect(contents).To(ContainSubstring("192.0.2.1/24"))
 		}
 		Expect(contents).To(ContainSubstring("eth0"))
 	},
-		Entry("ocp versions greater than/ equal to 4.14", staticnetworkconfig.MinimalVersionForNmstatectl),
-		Entry("ocp versions less than 4.14", "4.12"),
+		Entry("ocp versions greater than/ equal to 4.14, x86 arch", staticnetworkconfig.MinimalVersionForNmstatectl, common.X86CPUArchitecture),
+		Entry("ocp versions greater than/ equal to 4.14, arm arch", staticnetworkconfig.MinimalVersionForNmstatectl, common.ARM64CPUArchitecture),
+		Entry("ocp versions less than 4.14, x86 arch", "4.12", common.X86CPUArchitecture),
+		Entry("ocp versions less than 4.14, arm arch", "4.12", common.ARM64CPUArchitecture),
 	)
 
 	It("download infra-env files invalid filename option", func() {

@@ -553,12 +553,33 @@ var _ = Describe("IgnitionBuilder", func() {
 			}
 			Expect(count).Should(Equal(3))
 		})
-		It("produces a valid ignition v3.1 spec with static ips paramters - ocp versions greater than/ equal to 4.14", func() {
+		It("produces a valid ignition v3.1 spec with static ips paramters - ocp versions greater than/ equal to 4.14, x86 arch", func() {
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigDataYAML(formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingNmstateService
 			infraEnv.CPUArchitecture = common.X86CPUArchitecture
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "yml") || strings.HasSuffix(f.Path, "mac_interface.ini") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(3))
+		})
+		It("produces a valid ignition v3.1 spec with static ips paramters - ocp versions greater than/ equal to 4.14, arm arch", func() {
+			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
+			infraEnv.StaticNetworkConfig = formattedInput
+			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
+			infraEnv.OpenshiftVersion = ocpVersionInvolvingNmstateService
+			infraEnv.CPUArchitecture = common.ARM64CPUArchitecture
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
@@ -613,14 +634,34 @@ var _ = Describe("IgnitionBuilder", func() {
 			}
 			Expect(count).Should(Equal(3))
 		})
-
-		It("Will include static network config for minimal iso type in infraenv if overridden in call to FormatDiscoveryIgnitionFile - ocp versions greater than/ equal to 4.14", func() {
+		It("Will include static network config for minimal iso type in infraenv if overridden in call to FormatDiscoveryIgnitionFile - ocp versions greater than/ equal to 4.14, x86 arch", func() {
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigDataYAML(formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeMinimalIso)
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingNmstateService
 			infraEnv.CPUArchitecture = common.X86CPUArchitecture
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, string(models.ImageTypeFullIso))
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "yml") || strings.HasSuffix(f.Path, "mac_interface.ini") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(3))
+		})
+		It("Will include static network config for minimal iso type in infraenv if overridden in call to FormatDiscoveryIgnitionFile - ocp versions greater than/ equal to 4.14, arm arch", func() {
+			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+			infraEnv.StaticNetworkConfig = formattedInput
+			infraEnv.Type = common.ImageTypePtr(models.ImageTypeMinimalIso)
+			infraEnv.OpenshiftVersion = ocpVersionInvolvingNmstateService
+			infraEnv.CPUArchitecture = common.ARM64CPUArchitecture
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, string(models.ImageTypeFullIso))
 			Expect(err).NotTo(HaveOccurred())
