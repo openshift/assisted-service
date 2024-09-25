@@ -754,21 +754,21 @@ func newHypershiftWebHookAPIService(ctx context.Context, log logrus.FieldLogger,
 	data, ok := asc.properties["ca"]
 	if !ok {
 		err := pkgerror.Errorf("no ca data on context %v on namespace %s", asc.properties, asc.namespace)
-		log.WithError(err)
+		log.WithError(err).Error("Failed to create webhook API service")
 		return nil, nil, err
 	}
 
 	cmdata, ok := data.(map[string]string)
 	if !ok {
 		err := pkgerror.Errorf("bad format of ca context %v on namespace %s", asc.properties, asc.namespace)
-		log.WithError(err)
+		log.WithError(err).Error("Failed to create webhook API service")
 		return nil, nil, err
 	}
 
 	ca, ok := cmdata["service-ca.crt"]
 	if !ok {
 		err := pkgerror.Errorf("Missing ca certificate for API service on namespace %s", asc.namespace)
-		log.WithError(err)
+		log.WithError(err).Error("Failed to create webhook API service")
 		return nil, nil, err
 	}
 
@@ -785,7 +785,7 @@ func newKonnectivityAgentDeployment(ctx context.Context, log logrus.FieldLogger,
 	ka := &appsv1.Deployment{}
 	if e := asc.Client.Get(ctx, types.NamespacedName{Name: "konnectivity-agent", Namespace: asc.namespace}, ka); e != nil {
 		err := pkgerror.Wrap(e, fmt.Sprintf("Failed to retrieve konnectivity-agent Deployment from namespace %s", asc.namespace))
-		log.WithError(err)
+		log.WithError(err).Error("Failed to create konnectivity agent deployment")
 		return nil, nil, err
 	}
 	ka.ObjectMeta = metav1.ObjectMeta{

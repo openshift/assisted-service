@@ -2684,7 +2684,7 @@ func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterPa
 
 		if additionalNtpSourcesDefined && !pkgvalidations.ValidateAdditionalNTPSource(ntpSource) {
 			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
-			log.WithError(err)
+			log.WithError(err).Error("Failed to validate additional NTP sources")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 		updates["additional_ntp_source"] = ntpSource
@@ -2698,7 +2698,7 @@ func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterPa
 
 func validateUserManagedNetworkConflicts(params *models.V2ClusterUpdateParams, log logrus.FieldLogger) error {
 	if err := validations.ValidateVIPsWereNotSetUserManagedNetworking(params.APIVips, params.IngressVips, swag.BoolValue(params.VipDhcpAllocation)); err != nil {
-		log.WithError(err)
+		log.WithError(err).Error("Failed to validate VIPs")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	return nil
@@ -2800,7 +2800,7 @@ func (b *bareMetalInventory) updateClusterTags(params installer.V2UpdateClusterP
 	if params.ClusterUpdateParams.Tags != nil {
 		tags := swag.StringValue(params.ClusterUpdateParams.Tags)
 		if err := pkgvalidations.ValidateTags(tags); err != nil {
-			log.WithError(err)
+			log.WithError(err).Error("Failed to validate tags")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 		updates["tags"] = tags
@@ -3900,7 +3900,7 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 	if operatorscommon.HasOperator(cluster.Cluster.MonitoredOperators, operators.OperatorConsole.Name) {
 		if !b.clusterApi.IsOperatorAvailable(&cluster, operators.OperatorConsole.Name) {
 			err := errors.New("console-url isn't available yet, it will be once console operator is ready as part of cluster finalizing stage")
-			log.WithError(err)
+			log.WithError(err).Error("Failed to validate if operator is available")
 			return nil, common.NewApiError(http.StatusConflict, err)
 		}
 		consoleURL = common.GetConsoleUrl(cluster.Name, cluster.BaseDNSDomain)
@@ -5215,7 +5215,7 @@ func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInf
 
 		if additionalNtpSourcesDefined && !pkgvalidations.ValidateAdditionalNTPSource(ntpSource) {
 			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
-			log.WithError(err)
+			log.WithError(err).Error("Failed to validate additional NTP sources")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 		if ntpSource != infraEnv.AdditionalNtpSources {
