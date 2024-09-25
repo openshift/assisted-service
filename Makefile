@@ -49,7 +49,7 @@ else
 	EVENT_STREAMING_OPTIONS=
 endif
 
-ifdef DEBUG_SERVICE
+ifeq ("${DEBUG_SERVICE}", "true")
 	DEBUG_ARGS=-gcflags "all=-N -l"
 	DEBUG_PORT_OPTIONS= --port ${DEBUG_SERVICE_PORT} debug-port
 	UPDATE_IMAGE=update-debug-minimal
@@ -67,6 +67,7 @@ APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
 OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
+JWKS_URL := $(or ${JWKS_URL},https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/certs)
 AUTH_TYPE := $(or ${AUTH_TYPE},none)
 CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
 ENABLE_SINGLE_NODE_DNSMASQ := $(or ${ENABLE_SINGLE_NODE_DNSMASQ},True)
@@ -274,7 +275,7 @@ patch-service: load-image
 	$(KUBECTL) patch deployment assisted-service \
 		--type json \
 		-p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value": "$(LOCAL_ASSISTED_SERVICE_IMAGE)"},{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "Never"}]'
-	if [ -n "${DEBUG_SERVICE}" ]; then \
+	if [ "${DEBUG_SERVICE}" == "true" ]; then \
 		$(MAKE) remove_assisted_service_deployment_liveness_probe set_assisted_service_deployment_replicas_to_one; \
 	fi
 	$(MAKE) restart_service_pods
@@ -409,7 +410,7 @@ deploy-service-for-subsystem-test: create-hub-cluster load-image
 		echo "Deploying assisted-service for subsystem tests in kube-api mode..."; \
 		skipper make enable-kube-api-for-subsystem; \
 	fi
-	if [ -n "${DEBUG_SERVICE}" ]; then \
+	if [ "${DEBUG_SERVICE}" == "true" ]; then \
 		$(MAKE) prepare_assisted_service_for_debug; \
 	fi
 	echo "assited service deployment for subsystem tests is ready"
@@ -431,7 +432,7 @@ deploy-on-openshift-ci:
 
 deploy-on-k8s: create-hub-cluster
 	skipper $(MAKE) deploy-all IP=$(shell ip route get 1 | sed 's/^.*src \([^ ]*\).*$$/\1/;q')
-	if [ "$(USE_LOCAL_SERVICE)" == "true" ] || [ -n "${DEBUG_SERVICE}" ]; then \
+	if [ "$(USE_LOCAL_SERVICE)" == "true" ] || [ "${DEBUG_SERVICE}" == "true" ]; then \
 		$(MAKE) patch-service; \
 	fi
 	skipper $(MAKE) deploy-ui

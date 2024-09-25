@@ -179,6 +179,7 @@ type InstallerInternals interface {
 	ValidatePullSecret(secret string, username string, releaseImageURL string) error
 	GetInfraEnvInternal(ctx context.Context, params installer.GetInfraEnvParams) (*common.InfraEnv, error)
 	V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) error
+	CreateHostInKubeKeyNamespace(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -5230,6 +5231,20 @@ func (b *bareMetalInventory) GetInfraEnvByKubeKey(key types.NamespacedName) (*co
 		return nil, err
 	}
 	return infraEnv, nil
+}
+
+func (b *bareMetalInventory) CreateHostInKubeKeyNamespace(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error {
+	log := logutil.FromContext(ctx, b.log)
+	hostToCreate := &common.Host{
+		Host:                    *host,
+		KubeKeyNamespace:        kubeKey.Namespace,
+		TriggerMonitorTimestamp: time.Now(),
+	}
+	log.Infof("Create host %s infra env %s", host.ID.String(), host.InfraEnvID)
+	if err := b.db.Create(hostToCreate).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder {

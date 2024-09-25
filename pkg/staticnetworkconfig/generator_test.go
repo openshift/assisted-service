@@ -592,17 +592,6 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigDataYAML - gene
 	escapedYamlContent, err := escapeYAMLForJSON(hostYAML)
 	Expect(err).NotTo(HaveOccurred())
 
-	It("Fail with an empty host YAML", func() {
-		_, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(`[{"network_yaml": ""}]`)
-		Expect(err).To(HaveOccurred())
-	})
-
-	It("Fail with an invalid host YAML", func() {
-		_, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(`[{"network_yaml": "interfaces:\n    - foo: badConfig"}]`)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("InvalidArgument"))
-	})
-
 	It("Success - without ini file", func() {
 
 		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAML, escapedYamlContent))

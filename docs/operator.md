@@ -251,9 +251,16 @@ A ConfigMap can be used to configure assisted service to create installations us
 
 Supplying this ConfigMap makes several changes to the installation flow and assisted-service deployment:
 - Changes the discovery image's ignition config such that `ca-bundle.crt` is written out to `/etc/pki/ca-trust/source/anchors/domain.crt` and `registries.conf` is written out to `/etc/containers/registries.conf`.
-- Changes the `install-config.yaml` file used to install a new cluster, with the contents of `ca-bundle.crt` added to `additionalTrustBundle` and with the registries defined `registries.conf` added to `imageContentSources` as mirrors.
-- The assisted-service pod converts the registries.conf into an imageContentSourcesPolicy file, and use it with the --icsp flag in a few `oc adm` commands run against the release image (executed from within the assisted-service pod itself).
+- Changes the `install-config.yaml` file used to install a new cluster, with the contents of `ca-bundle.crt` added to `additionalTrustBundle` and with the registries defined `registries.conf` added to `imageDigestSources`[^icsp_deprecated] as mirrors.
+- The assisted-service pod converts the registries.conf into an `ImageDigestMirrorSet` file, and use it with the `--idms-file`[^icsp_deprecated_2] flag in a few `oc adm` commands run against the release image (executed from within the assisted-service pod itself).
 - The certificate bundle is added to the list of trusted certs provided by the cluster. A combined ConfigMap is created which includes the provided bundle. This is mounted into the assisted-service pod at path `/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem`
+
+[^icsp_deprecated]: For older versions of OpenShift, before 4.14, the name of the field for the mirror registry is
+    _imageContentSources_ instead of _imageDigestSources_,
+
+[^icsp_deprecated_2]: For older versions of OpenShift, before 4.14, assisted service generates an
+    `ImageContentSourcePolicy` instead of an `ImageDigestMirrorSet`, and the flag is `--icsp-file` instead of
+    `--idms-file`.
 
 The ca-bundle.crt and registries.conf keys can be added individually or together.
 

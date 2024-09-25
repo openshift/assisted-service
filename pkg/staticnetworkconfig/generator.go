@@ -128,12 +128,6 @@ func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigDataYAML(stati
 	}
 
 	for i, hostConfig := range staticNetworkConfig {
-		// We currently use this to validate the YAML file only
-		_, err = s.generateConfiguration(hostConfig.NetworkYaml)
-		if err != nil {
-			return nil, err
-		}
-
 		nmpolicy, err := s.injectNMPolicyCaptures(hostConfig)
 		if err != nil {
 			return nil, err
