@@ -5278,6 +5278,33 @@ spec:
 			hiveext.ClusterSpecSyncedCondition)
 		Expect(condition.Message).To(ContainSubstring("User Managed Networking cannot be set with API VIP"))
 	})
+
+	It("updating infraenv OSImageVersion updates the image URL", func() {
+		infraEnvSpec.ClusterRef = nil
+		infraEnvSpec.OSImageVersion = "4.14"
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		var url string
+		Eventually(func() string {
+			url = getInfraEnvCRD(ctx, kubeClient, infraNsName).Status.ISODownloadURL
+			return url
+		}, "15s", "1s").Should(Not(BeEmpty()))
+
+		Eventually(func() error {
+			infraEnv := getInfraEnvCRD(ctx, kubeClient, infraNsName)
+			infraEnv.Spec.OSImageVersion = "4.16"
+			return kubeClient.Update(ctx, infraEnv)
+		}, "1m", "20s").Should(BeNil())
+
+		var newURL string
+		Eventually(func() string {
+			newURL = getInfraEnvCRD(ctx, kubeClient, infraNsName).Status.ISODownloadURL
+			return newURL
+		}, "15s", "1s").Should(Not(Equal(url)))
+
+		updatedInfraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraNsName, waitForReconcileTimeout)
+		Expect(updatedInfraEnv.OpenshiftVersion).To(Equal("4.16"))
+	})
 })
 
 var _ = Describe("bmac reconcile flow", func() {
