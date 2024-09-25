@@ -51,8 +51,8 @@ var _ = Describe("CNV operator", func() {
 	},
 
 		Entry("LVM, Single node 4.12", "4.12", models.ClusterHighAvailabilityModeNone, lvm.Operator.Name),
-		Entry("LVM, Multi node 4.15", "4.15", models.ClusterHighAvailabilityModeFull, lvm.Operator.Name),
-		Entry("LVM, Multi node 4.21", "4.21", models.ClusterHighAvailabilityModeFull, lvm.Operator.Name),
+		Entry("LSO, Multi node 4.15", "4.15", models.ClusterHighAvailabilityModeFull, lso.Operator.Name),
+		Entry("LSO, Multi node 4.21", "4.21", models.ClusterHighAvailabilityModeFull, lso.Operator.Name),
 		Entry("LSO, Multi node 4.12", "4.12", models.ClusterHighAvailabilityModeFull, lso.Operator.Name),
 		Entry("LSO, Single node 4.11", "4.11", models.ClusterHighAvailabilityModeNone, lso.Operator.Name),
 	)
