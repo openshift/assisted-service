@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	ClusterSpecSyncedCondition string = "SpecSynced"
+	ClusterSpecSyncedCondition hivev1.ClusterInstallConditionType = "SpecSynced"
 
-	ClusterCompletedCondition string = hivev1.ClusterInstallCompleted
+	ClusterCompletedCondition = hivev1.ClusterInstallCompleted
 
-	ClusterRequirementsMetCondition  string = hivev1.ClusterInstallRequirementsMet
+	ClusterRequirementsMetCondition         = hivev1.ClusterInstallRequirementsMet
 	ClusterReadyReason               string = "ClusterIsReady"
 	ClusterReadyMsg                  string = "The cluster is ready to begin the installation"
 	ClusterNotReadyReason            string = "ClusterNotReady"
@@ -30,19 +30,19 @@ const (
 	ClusterAdditionalAgentsReason    string = "AdditionalAgents"
 	ClusterAdditionalAgentsMsg       string = "The cluster currently requires exactly %d agents but have %d registered"
 
-	ClusterValidatedCondition        string = "Validated"
-	ClusterValidationsOKMsg          string = "The cluster's validations are passing"
-	ClusterValidationsUnknownMsg     string = "The cluster's validations have not yet been calculated"
-	ClusterValidationsFailingMsg     string = "The cluster's validations are failing:"
-	ClusterValidationsUserPendingMsg string = "The cluster's validations are pending for user:"
+	ClusterValidatedCondition        hivev1.ClusterInstallConditionType = "Validated"
+	ClusterValidationsOKMsg          string                             = "The cluster's validations are passing"
+	ClusterValidationsUnknownMsg     string                             = "The cluster's validations have not yet been calculated"
+	ClusterValidationsFailingMsg     string                             = "The cluster's validations are failing:"
+	ClusterValidationsUserPendingMsg string                             = "The cluster's validations are pending for user:"
 
-	ClusterFailedCondition string = hivev1.ClusterInstallFailed
+	ClusterFailedCondition        = hivev1.ClusterInstallFailed
 	ClusterFailedReason    string = "InstallationFailed"
 	ClusterFailedMsg       string = "The installation failed:"
 	ClusterNotFailedReason string = "InstallationNotFailed"
 	ClusterNotFailedMsg    string = "The installation has not failed"
 
-	ClusterStoppedCondition       string = hivev1.ClusterInstallStopped
+	ClusterStoppedCondition              = hivev1.ClusterInstallStopped
 	ClusterStoppedFailedReason    string = "InstallationFailed"
 	ClusterStoppedFailedMsg       string = "The installation has stopped due to error"
 	ClusterStoppedCanceledReason  string = "InstallationCancelled"
@@ -80,10 +80,10 @@ const (
 	ClusterInputErrorReason   string = "InputError"
 	ClusterInputErrorMsg      string = "The Spec could not be synced due to an input error:"
 
-	ClusterLastInstallationPreparationFailedOKReason    string = "There is no failing prior preparation attempt"
-	ClusterLastInstallationPreparationFailedErrorReason string = "The last installation preparation failed"
-	ClusterLastInstallationPreparationPending           string = "Cluster preparation has never been performed for this cluster"
-	ClusterLastInstallationPreparationFailedCondition   string = "LastInstallationPreparationFailed"
+	ClusterLastInstallationPreparationFailedOKReason    string                             = "There is no failing prior preparation attempt"
+	ClusterLastInstallationPreparationFailedErrorReason string                             = "The last installation preparation failed"
+	ClusterLastInstallationPreparationPending           string                             = "Cluster preparation has never been performed for this cluster"
+	ClusterLastInstallationPreparationFailedCondition   hivev1.ClusterInstallConditionType = "LastInstallationPreparationFailed"
 )
 
 // +genclient
