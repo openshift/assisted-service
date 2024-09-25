@@ -5088,6 +5088,11 @@ func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, param
 		updates["ssh_authorized_key"] = inputSSHKey
 	}
 
+	inputVersion := swag.StringValue(params.InfraEnvUpdateParams.OpenshiftVersion)
+	if inputVersion != "" && inputVersion != infraEnv.OpenshiftVersion {
+		updates["openshift_version"] = inputVersion
+	}
+
 	if err := b.updateInfraEnvNtpSources(params, infraEnv, updates, log); err != nil {
 		return err
 	}

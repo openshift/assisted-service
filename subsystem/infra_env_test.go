@@ -266,6 +266,7 @@ var _ = Describe("Infra_Env", func() {
 				IgnitionConfigOverride: `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
 				SSHAuthorizedKey:       swag.String(newSshKey),
 				Proxy:                  &models.Proxy{HTTPProxy: swag.String("http://proxy.proxy"), HTTPSProxy: nil, NoProxy: swag.String("proxy.proxy")},
+				OpenshiftVersion:       swag.String("4.16"),
 			},
 		}
 
@@ -277,6 +278,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(swag.StringValue(updateInfraEnv.Proxy.HTTPSProxy)).To(BeEmpty())
 		Expect(swag.StringValue(updateInfraEnv.Proxy.NoProxy)).To(Equal("proxy.proxy"))
 		Expect(common.ImageTypeValue(updateInfraEnv.Type)).To(Equal(models.ImageTypeMinimalIso))
+		Expect(updateInfraEnv.OpenshiftVersion).To(Equal("4.16"))
 	})
 
 	It("download minimal-iso image success", func() {
@@ -520,6 +522,17 @@ var _ = Describe("Infra_Env", func() {
 			InfraEnvID: infraEnvID,
 			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 				StaticNetworkConfig: staticNetworkConfigs,
+			},
+		}
+		_, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("fails when given invalid version", func() {
+		updateParams := &installer.UpdateInfraEnvParams{
+			InfraEnvID: infraEnvID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+				OpenshiftVersion: swag.String("5.99"),
 			},
 		}
 		_, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)

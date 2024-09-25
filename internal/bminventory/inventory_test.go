@@ -8909,6 +8909,22 @@ var _ = Describe("infraEnvs", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.IgnitionConfigOverride).To(Equal(override))
 			})
+			It("Update OpenshiftVersion", func() {
+				mockInfraEnvUpdateSuccess()
+				updateOCPVersion := "4.18"
+				Expect(i.OpenshiftVersion).ToNot(Equal(updateOCPVersion))
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: *i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						OpenshiftVersion: swag.String(updateOCPVersion),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				var err error
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.OpenshiftVersion).To(HaveValue(Equal(updateOCPVersion)))
+			})
 			It("Update Image type", func() {
 				var err error
 				mockInfraEnvUpdateSuccess()
