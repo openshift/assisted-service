@@ -7420,6 +7420,10 @@ definitions:
         description: Allows users to change the additional_trust_bundle infra-env field
         x-nullable: true
         maxLength: 65535
+      openshift_version:
+        type: string
+        description: Version of the OS image
+        x-nullable: true
 
   ip:
     type: string
