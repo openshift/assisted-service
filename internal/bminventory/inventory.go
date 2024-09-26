@@ -5054,33 +5054,12 @@ func (b *bareMetalInventory) validateDiscoveryIgnitionImageSize(ctx context.Cont
 
 func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, db *gorm.DB, log logrus.FieldLogger) error {
 	updates := map[string]interface{}{}
-	if params.InfraEnvUpdateParams.Proxy != nil {
-		proxyHash, err := computeProxyHash(params.InfraEnvUpdateParams.Proxy)
-		if err != nil {
-			return err
-		}
-		if proxyHash != infraEnv.ProxyHash {
-			optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPProxy, "proxy_http_proxy", updates)
-			optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPSProxy, "proxy_https_proxy", updates)
-			optionalParam(params.InfraEnvUpdateParams.Proxy.NoProxy, "proxy_no_proxy", updates)
-			updates["proxy_hash"] = proxyHash
-		}
+	if err := b.updateInfraEnvProxy(params, infraEnv, updates); err != nil {
+		return err
 	}
-	if params.InfraEnvUpdateParams.KernelArguments != nil {
-		if len(params.InfraEnvUpdateParams.KernelArguments) > 0 {
-			b, err := json.Marshal(&params.InfraEnvUpdateParams.KernelArguments)
-			if err != nil {
-				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
-			}
-			updates["kernel_arguments"] = string(b)
-		} else {
-			updates["kernel_arguments"] = gorm.Expr("NULL")
-		}
-		if infraEnv.ClusterID != "" {
-			if err := b.setDiscoveryKernelArgumentsUsage(db, infraEnv.ClusterID, params.InfraEnvUpdateParams.KernelArguments); err != nil {
-				log.WithError(err).Warnf("failed to set discovery kernel arguments usage for cluster %s", infraEnv.ClusterID)
-			}
-		}
+
+	if err := b.updateInfraEnvKernelArguments(params, infraEnv, updates, log, db); err != nil {
+		return err
 	}
 
 	inputSSHKey := swag.StringValue(params.InfraEnvUpdateParams.SSHAuthorizedKey)
@@ -5227,6 +5206,49 @@ func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInf
 			updates["additional_ntp_sources"] = ntpSource
 		}
 	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateInfraEnvProxy(params installer.UpdateInfraEnvParams, infraEnv *common.InfraEnv, updates map[string]interface{}) error {
+	if params.InfraEnvUpdateParams.Proxy == nil {
+		return nil
+	}
+
+	proxyHash, err := computeProxyHash(params.InfraEnvUpdateParams.Proxy)
+	if err != nil {
+		return err
+	}
+
+	if proxyHash != infraEnv.ProxyHash {
+		optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPProxy, "proxy_http_proxy", updates)
+		optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPSProxy, "proxy_https_proxy", updates)
+		optionalParam(params.InfraEnvUpdateParams.Proxy.NoProxy, "proxy_no_proxy", updates)
+		updates["proxy_hash"] = proxyHash
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) updateInfraEnvKernelArguments(params installer.UpdateInfraEnvParams, infraEnv *common.InfraEnv, updates map[string]interface{}, log logrus.FieldLogger, db *gorm.DB) error {
+	if params.InfraEnvUpdateParams.KernelArguments == nil {
+		return nil
+	}
+
+	if len(params.InfraEnvUpdateParams.KernelArguments) > 0 {
+		b, err := json.Marshal(&params.InfraEnvUpdateParams.KernelArguments)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
+		}
+		updates["kernel_arguments"] = string(b)
+	} else {
+		updates["kernel_arguments"] = gorm.Expr("NULL")
+	}
+	if infraEnv.ClusterID != "" {
+		if err := b.setDiscoveryKernelArgumentsUsage(db, infraEnv.ClusterID, params.InfraEnvUpdateParams.KernelArguments); err != nil {
+			log.WithError(err).Warnf("failed to set discovery kernel arguments usage for cluster %s", infraEnv.ClusterID)
+		}
+	}
+
 	return nil
 }
 
