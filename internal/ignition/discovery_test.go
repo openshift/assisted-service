@@ -3,6 +3,7 @@ package ignition
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -500,7 +501,8 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	Context("static network config", func() {
-		formattedInput := "some formated input"
+		formattedInput := `[{"network_yaml":"","mac_interface_map":[]}]`
+
 		// output for flow involving generating nmconnection files
 		staticnetworkConfigOutput := []staticnetworkconfig.StaticNetworkConfigData{
 			{
@@ -539,6 +541,12 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingGenerateKeyfiles
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+
+			var staticNetworkConfig []*models.HostStaticNetworkConfig
+			err := json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfig)
+			Expect(err).NotTo(HaveOccurred())
+			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, staticNetworkConfig).Return(false, nil).Times(1)
+
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
 			Expect(err).NotTo(HaveOccurred())
@@ -559,6 +567,12 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingNmstateService
 			infraEnv.CPUArchitecture = common.X86CPUArchitecture
+
+			var staticNetworkConfig []*models.HostStaticNetworkConfig
+			err := json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfig)
+			Expect(err).NotTo(HaveOccurred())
+			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, staticNetworkConfig).Return(true, nil).Times(1)
+
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
@@ -580,6 +594,12 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingNmstateService
 			infraEnv.CPUArchitecture = common.ARM64CPUArchitecture
+
+			var staticNetworkConfig []*models.HostStaticNetworkConfig
+			err := json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfig)
+			Expect(err).NotTo(HaveOccurred())
+			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, staticNetworkConfig).Return(false, nil).Times(1)
+
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
@@ -620,6 +640,12 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.StaticNetworkConfig = formattedInput
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeMinimalIso)
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingGenerateKeyfiles
+
+			var staticNetworkConfig []*models.HostStaticNetworkConfig
+			err := json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfig)
+			Expect(err).NotTo(HaveOccurred())
+			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, staticNetworkConfig).Return(false, nil).Times(1)
+
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, string(models.ImageTypeFullIso))
 			Expect(err).NotTo(HaveOccurred())
@@ -641,6 +667,12 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeMinimalIso)
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingNmstateService
 			infraEnv.CPUArchitecture = common.X86CPUArchitecture
+
+			var staticNetworkConfig []*models.HostStaticNetworkConfig
+			err := json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfig)
+			Expect(err).NotTo(HaveOccurred())
+			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, staticNetworkConfig).Return(true, nil).Times(1)
+
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, string(models.ImageTypeFullIso))
 			Expect(err).NotTo(HaveOccurred())
@@ -662,6 +694,12 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeMinimalIso)
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingNmstateService
 			infraEnv.CPUArchitecture = common.ARM64CPUArchitecture
+
+			var staticNetworkConfig []*models.HostStaticNetworkConfig
+			err := json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfig)
+			Expect(err).NotTo(HaveOccurred())
+			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, staticNetworkConfig).Return(false, nil).Times(1)
+
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, string(models.ImageTypeFullIso))
 			Expect(err).NotTo(HaveOccurred())

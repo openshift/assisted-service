@@ -93,3 +93,16 @@ func (mr *MockStaticNetworkConfigMockRecorder) ValidateStaticConfigParamsYAML(st
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateStaticConfigParamsYAML", reflect.TypeOf((*MockStaticNetworkConfig)(nil).ValidateStaticConfigParamsYAML), staticNetworkConfig, ocpVersion, arch, installerInvoker)
 }
+
+func (m *MockStaticNetworkConfig) NMStatectlServiceSupported(version, arch string, staticNetworkConfig []*models.HostStaticNetworkConfig) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NMStatectlServiceSupported", version, arch, staticNetworkConfig)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func(mr *MockStaticNetworkConfigMockRecorder) NMStatectlServiceSupported(version, arch string, staticNetworkConfig []*models.HostStaticNetworkConfig) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NMStatectlServiceSupported", reflect.TypeOf((*MockStaticNetworkConfig)(nil).NMStatectlServiceSupported), version, arch, staticNetworkConfig)
+}

@@ -302,7 +302,13 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 
 		// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
 		var ok bool
-		ok, err = staticnetworkconfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+		var staticNetworkConfig []*models.HostStaticNetworkConfig
+		err = json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfig)
+		if err != nil {
+			return "", errors.Wrapf(err, "Failed to JSON Unmarshal static network config %s", infraEnv.StaticNetworkConfig)
+		}
+
+		ok, err = ib.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, staticNetworkConfig)
 		if err != nil {
 			return "", err
 		}

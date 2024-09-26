@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/nmstate/nmstate/rust/src/go/nmstate"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
@@ -47,6 +48,7 @@ type StaticNetworkConfig interface {
 	GenerateStaticNetworkConfigDataYAML(staticNetworkConfigStr string) ([]StaticNetworkConfigData, error)
 	FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error)
 	ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, arch, installerInvoker string) error
+	NMStatectlServiceSupported(version, arch string, staticNetworkConfig []*models.HostStaticNetworkConfig) (bool, error)
 }
 
 type StaticNetworkConfigGenerator struct {
@@ -65,7 +67,7 @@ func New(log logrus.FieldLogger) StaticNetworkConfig {
 func (s *StaticNetworkConfigGenerator) injectIPV4V6FieldsIfNeeded(networkYaml string) (string, error) {
 	var config map[string]interface{}
 
-	// Unmarshal the JSON string into the config struct
+	// Unmarshal the YAML string into the config struct
 	err := yaml.Unmarshal([]byte(networkYaml), &config)
 	if err != nil {
 		s.log.WithError(err).Errorf("Error unmarshalling yaml")
@@ -153,6 +155,59 @@ func (s *StaticNetworkConfigGenerator) injectNMPolicyCaptures(hostConfig *models
 	// Combine the sections
 	finalOutput := "capture:\n" + strings.Join(captureSection, "\n") + desiredStateSection + interfacesWithCaptures
 	return finalOutput, nil
+}
+
+func (s *StaticNetworkConfigGenerator) checkHostYAMLForVLAN(networkYaml string) (bool, error) {
+	var config map[string]interface{}
+
+	// Unmarshal the YAML string into the config struct
+	err := yaml.Unmarshal([]byte(networkYaml), &config)
+	if err != nil {
+		s.log.WithError(err).Errorf("Error unmarshalling yaml")
+		return false, err
+	}
+
+	Interfaces := config["interfaces"].([]interface{})
+	for _, iface := range Interfaces {
+		nic := iface.(map[interface{}]interface{})
+		interfaceType, exists := nic["type"]
+		if !exists {
+			return false, errors.Errorf("interface type not found in network configuration")
+		}
+		if interfaceType.(string) == "vlan" {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (s *StaticNetworkConfigGenerator) checkAllHostsForVLAN(staticNetworkConfig []*models.HostStaticNetworkConfig) (bool, error) {
+	for _, hostConfig := range staticNetworkConfig {
+		isVlan, err := s.checkHostYAMLForVLAN(hostConfig.NetworkYaml)
+		if err != nil {
+			return false, err
+		}
+
+		if isVlan {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (s *StaticNetworkConfigGenerator) NMStatectlServiceSupported(version, arch string, staticNetworkConfig []*models.HostStaticNetworkConfig) (bool, error) {
+	// TODO: Remove the isVlan check when nmstate version is 2.2.30+ for OCP versions 4.14 and above.
+	isVlan, err := s.checkAllHostsForVLAN(staticNetworkConfig)
+	if err != nil {
+		s.log.WithError(err)
+		return false, err
+	}
+	versionOK, err := common.VersionGreaterOrEqual(version, MinimalVersionForNmstatectl)
+	if err != nil {
+		return false, err
+	}
+	// TODO: Remove the architecture condition after fetching the nmstatectl binary from rootfs.
+	return versionOK && arch == common.X86CPUArchitecture && !isVlan, nil
 }
 
 func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigDataYAML(staticNetworkConfigStr string) ([]StaticNetworkConfigData, error) {
@@ -311,12 +366,12 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 	return buf.String(), nil
 }
 
-func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macInterfaceMap models.MacInterfaceMap, networksYaml, ocpVersion, arch, installerInvoker string) error {
+func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macInterfaceMap models.MacInterfaceMap, networksYaml, ocpVersion, arch, installerInvoker string, staticNetworkConfig []*models.HostStaticNetworkConfig) error {
 	interfaceNames := lo.Map(macInterfaceMap, func(m *models.MacInterfaceMapItems0, _ int) string { return m.LogicalNicName })
 
 	var config map[string]interface{}
 
-	// Unmarshal the JSON string into the config struct
+	// Unmarshal the YAML string into the config struct
 	err := yaml.Unmarshal([]byte(networksYaml), &config)
 	if err != nil {
 		s.log.WithError(err).Errorf("Error unmarshalling yaml")
@@ -350,7 +405,7 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macIn
 
 		identifier, exists := nic["identifier"]
 		isMacAddressIdentifier := exists && identifier == "mac-address"
-		isVersionOK, err := NMStatectlServiceSupported(ocpVersion, arch)
+		isVersionOK, err := s.NMStatectlServiceSupported(ocpVersion, arch, staticNetworkConfig)
 		if err != nil {
 			return err
 		}
@@ -401,7 +456,7 @@ func (s *StaticNetworkConfigGenerator) ValidateStaticConfigParamsYAML(staticNetw
 		if validateErr != nil {
 			err = multierror.Append(err, fmt.Errorf("failed to validate network yaml for host %d, %s", i, validateErr))
 		}
-		err = multierror.Append(err, s.validateInterfaceNamesExistenceYAML(hostConfig.MacInterfaceMap, hostConfig.NetworkYaml, ocpVersion, arch, installInvoker))
+		err = multierror.Append(err, s.validateInterfaceNamesExistenceYAML(hostConfig.MacInterfaceMap, hostConfig.NetworkYaml, ocpVersion, arch, installInvoker, staticNetworkConfig))
 	}
 	return err.ErrorOrNil()
 }
