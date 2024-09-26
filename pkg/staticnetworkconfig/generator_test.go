@@ -597,12 +597,14 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigDataYAML - gene
 		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAML, escapedYamlContent))
 		fileContent := config[1].FileContents
 		Expect(fileContent).To(ContainSubstring("capture"))
+		Expect(fileContent).To(ContainSubstring("dhcp: false"))
 		Expect(err).NotTo(HaveOccurred())
 	})
 	It("Success - with ini file", func() {
 		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macInterfaceMap))
 		fileContent := config[1].FileContents
 		Expect(fileContent).To(ContainSubstring("name: \"{{ capture.iface0.interfaces.0.name }}\""))
+		Expect(fileContent).To(ContainSubstring("dhcp: false"))
 		Expect(err).NotTo(HaveOccurred())
 	})
 })

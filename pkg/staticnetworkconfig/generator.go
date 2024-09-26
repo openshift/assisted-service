@@ -61,6 +61,42 @@ func New(log logrus.FieldLogger) StaticNetworkConfig {
 	}
 }
 
+// TODO: Temporary workaround until the nmstate team resolves and deploys the following issue - https://issues.redhat.com/browse/RHEL-59935
+func (s *StaticNetworkConfigGenerator) injectIPV4V6FieldsIfNeeded(networkYaml string) (string, error) {
+	var config map[string]interface{}
+
+	// Unmarshal the JSON string into the config struct
+	err := yaml.Unmarshal([]byte(networkYaml), &config)
+	if err != nil {
+		s.log.WithError(err).Errorf("Error unmarshalling yaml")
+		return "", err
+	}
+	Interfaces := config["interfaces"].([]interface{})
+	for _, iface := range Interfaces {
+		nic := iface.(map[interface{}]interface{})
+		if val, exists := nic["ipv4"].(map[interface{}]interface{}); exists {
+			if _, exists := val["dhcp"]; !exists {
+				val["dhcp"] = false
+			}
+		}
+		if val, exists := nic["ipv6"].(map[interface{}]interface{}); exists {
+			if _, exists := val["dhcp"]; !exists {
+				val["dhcp"] = false
+			}
+			if _, exists := val["autoconf"]; !exists {
+				val["autoconf"] = false
+			}
+		}
+	}
+	// Marshal the updated config back into YAML format
+	updatedYaml, err := yaml.Marshal(&config)
+	if err != nil {
+		s.log.WithError(err).Errorf("Error marshalling yaml")
+		return "", err
+	}
+	return string(updatedYaml), nil
+}
+
 func (s *StaticNetworkConfigGenerator) injectNMPolicyCaptures(hostConfig *models.HostStaticNetworkConfig) (string, error) {
 	interfacesWithCaptures := hostConfig.NetworkYaml
 	var config interfaceConfig
@@ -128,6 +164,12 @@ func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigDataYAML(stati
 	}
 
 	for i, hostConfig := range staticNetworkConfig {
+		modifiedYaml, err := s.injectIPV4V6FieldsIfNeeded(hostConfig.NetworkYaml)
+		if err != nil {
+			return nil, err
+		}
+		hostConfig.NetworkYaml = modifiedYaml
+
 		nmpolicy, err := s.injectNMPolicyCaptures(hostConfig)
 		if err != nil {
 			return nil, err
@@ -277,7 +319,7 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macIn
 	// Unmarshal the JSON string into the config struct
 	err := yaml.Unmarshal([]byte(networksYaml), &config)
 	if err != nil {
-		s.log.WithError(err).Errorf("Error unmarshalling JSON")
+		s.log.WithError(err).Errorf("Error unmarshalling yaml")
 		return err
 	}
 
