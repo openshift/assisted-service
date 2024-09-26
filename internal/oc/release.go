@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"slices"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/buger/jsonparser"
 	"github.com/hashicorp/go-version"
-	configv1 "github.com/openshift/api/config/v1"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/system"
@@ -37,14 +33,6 @@ const (
 	DefaltRetryDelay               = time.Second * 5
 	staticInstallerRequiredVersion = "4.16.0-0.alpha"
 )
-
-// icspFileFlagName is the name of the command line flag used to indicate a file containg an ImageContentSourcePolicy
-// object. Note that this is deprecated since OpenShift 4.14.
-const icspFileFlagName = "icsp-file"
-
-// idmsFileFlagName is the name of the command line flag used to indicate a file containg an ImageDigestMirrorSet
-// object, which is the recommended way to configure image mirrors since OpenShift 4.14.
-const idmsFileFlagName = "idms-file"
 
 type Config struct {
 	MaxTries   uint
@@ -91,11 +79,14 @@ func NewRelease(executer executer.Executer, config Config, mirrorRegistriesBuild
 }
 
 const (
-	templateReleaseInfo           = "oc adm release info"
-	templateGetImage              = "oc adm release info --image-for=%s --insecure=%t %s %s"
-	templateGetVersion            = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s %s"
-	templateExtract               = "oc adm release extract --command=%s --to=%s --insecure=%t %s %s"
-	templateImageInfo             = "oc image info --output json %s %s"
+	templateGetImage              = "oc adm release info --image-for=%s --insecure=%t %s"
+	templateGetImageWithIcsp      = "oc adm release info --image-for=%s --insecure=%t --icsp-file=%s %s"
+	templateGetVersion            = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s"
+	templateGetVersionWithIcsp    = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t --icsp-file=%s %s"
+	templateExtract               = "oc adm release extract --command=%s --to=%s --insecure=%t %s"
+	templateExtractWithIcsp       = "oc adm release extract --command=%s --to=%s --insecure=%t --icsp-file=%s %s"
+	templateImageInfo             = "oc image info --output json %s"
+	templateImageInfoWithIcsp     = "oc image info --output json --icsp-file=%s %s"
 	templateSkopeoDetectMultiarch = "skopeo inspect --raw --no-tags docker://%s"
 	ocAuthArgument                = " --registry-config="
 	skopeoAuthArgument            = " --authfile "
@@ -130,21 +121,21 @@ func (r *release) getImageByName(log logrus.FieldLogger, imageName, releaseImage
 		return "", errors.New("neither releaseImage, nor releaseImageMirror are provided")
 	}
 
-	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log)
+	icspFile, err := r.getIcspFileFromRegistriesConfig(log)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get mirrors info from registries config")
+		return "", errors.Wrap(err, "failed to create file ICSP file from registries config")
 	}
-	defer mirrorsFlag.Delete()
+	defer removeIcspFile(icspFile)
 
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
-		image, err = r.getImageFromRelease(log, imageName, releaseImageMirror, pullSecret, mirrorsFlag, true)
+		image, err = r.getImageFromRelease(log, imageName, releaseImageMirror, pullSecret, icspFile, true)
 		if err != nil {
 			log.WithError(err).Errorf("failed to get %s image from mirror release image %s", imageName, releaseImageMirror)
 			return "", err
 		}
 	} else {
-		image, err = r.getImageFromRelease(log, imageName, releaseImage, pullSecret, mirrorsFlag, false)
+		image, err = r.getImageFromRelease(log, imageName, releaseImage, pullSecret, icspFile, false)
 		if err != nil {
 			log.WithError(err).Errorf("failed to get %s image from release image %s", imageName, releaseImage)
 			return "", err
@@ -160,21 +151,21 @@ func (r *release) GetOpenshiftVersion(log logrus.FieldLogger, releaseImage strin
 		return "", errors.New("no releaseImage nor releaseImageMirror provided")
 	}
 
-	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log)
+	icspFile, err := r.getIcspFileFromRegistriesConfig(log)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create file mirrors file from registries config")
+		return "", errors.Wrap(err, "failed to create file ICSP file from registries config")
 	}
-	defer mirrorsFlag.Delete()
+	defer removeIcspFile(icspFile)
 
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
-		openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImageMirror, pullSecret, mirrorsFlag, true)
+		openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImageMirror, pullSecret, icspFile, true)
 		if err != nil {
 			log.WithError(err).Errorf("failed to get image openshift version from mirror release image %s", releaseImageMirror)
 			return "", err
 		}
 	} else {
-		openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImage, pullSecret, mirrorsFlag, false)
+		openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImage, pullSecret, icspFile, false)
 		if err != nil {
 			log.WithError(err).Errorf("failed to get image openshift version from release image %s", releaseImage)
 			return "", err
@@ -211,13 +202,18 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 }
 
 func (r *release) GetImageArchitecture(log logrus.FieldLogger, image string, pullSecret string) ([]string, error) {
-	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log)
+	icspFile, err := r.getIcspFileFromRegistriesConfig(log)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create file mirrors file from registries config")
+		return nil, errors.Wrap(err, "failed to create file ICSP file from registries config")
 	}
-	defer mirrorsFlag.Delete()
+	defer removeIcspFile(icspFile)
 
-	cmd := fmt.Sprintf(templateImageInfo, mirrorsFlag, image)
+	var cmd string
+	if icspFile == "" {
+		cmd = fmt.Sprintf(templateImageInfo, image)
+	} else {
+		cmd = fmt.Sprintf(templateImageInfoWithIcsp, icspFile, image)
+	}
 
 	cmdMultiarch := fmt.Sprintf(templateSkopeoDetectMultiarch, image)
 
@@ -279,8 +275,7 @@ func (r *release) getImageValue(imageName, releaseImage string) (*imageValue, er
 	return value, nil
 }
 
-func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, pullSecret string,
-	mirrorsFlag *mirrorsFlagInfo, insecure bool) (string, error) {
+func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, pullSecret, icspFile string, insecure bool) (string, error) {
 	// Fetch image URL from cache
 	actualImageValue, err := r.getImageValue(imageName, releaseImage)
 	if err != nil {
@@ -295,7 +290,12 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 		return actualImageValue.value, nil
 	}
 
-	cmd := fmt.Sprintf(templateGetImage, imageName, insecure, mirrorsFlag, releaseImage)
+	var cmd string
+	if icspFile == "" {
+		cmd = fmt.Sprintf(templateGetImage, imageName, insecure, releaseImage)
+	} else {
+		cmd = fmt.Sprintf(templateGetImageWithIcsp, imageName, insecure, icspFile, releaseImage)
+	}
 
 	log.Infof("Fetching image from OCP release (%s)", cmd)
 	image, err := execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
@@ -309,9 +309,13 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 	return image, nil
 }
 
-func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, releaseImage, pullSecret string,
-	mirrorsFlag *mirrorsFlagInfo, insecure bool) (string, error) {
-	cmd := fmt.Sprintf(templateGetVersion, insecure, mirrorsFlag, releaseImage)
+func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, releaseImage, pullSecret, icspFile string, insecure bool) (string, error) {
+	var cmd string
+	if icspFile == "" {
+		cmd = fmt.Sprintf(templateGetVersion, insecure, releaseImage)
+	} else {
+		cmd = fmt.Sprintf(templateGetVersionWithIcsp, insecure, icspFile, releaseImage)
+	}
 	version, err := execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
 	if err != nil {
 		return "", err
@@ -329,21 +333,21 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 		return "", errors.New("no releaseImage or releaseImageMirror provided")
 	}
 
-	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log)
+	icspFile, err := r.getIcspFileFromRegistriesConfig(log)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create file ICSP file from registries config")
 	}
-	defer mirrorsFlag.Delete()
+	defer removeIcspFile(icspFile)
 
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
-		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, mirrorsFlag, ocpVersion)
+		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, icspFile, ocpVersion)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from mirror release image %s", releaseImageMirror)
 			return "", err
 		}
 	} else {
-		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, mirrorsFlag, ocpVersion)
+		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, icspFile, ocpVersion)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from release image %s", releaseImage)
 			return "", err
@@ -381,8 +385,7 @@ func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string, ocp
 
 // extractFromRelease returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image.
-func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool,
-	mirrorsFlag *mirrorsFlagInfo, ocpVersion string) (string, error) {
+func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, icspFile string, ocpVersion string) (string, error) {
 	workdir, binary, path, err := r.GetReleaseBinaryPath(releaseImage, cacheDir, ocpVersion)
 	if err != nil {
 		return "", err
@@ -393,7 +396,12 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 		return "", err
 	}
 
-	cmd := fmt.Sprintf(templateExtract, binary, workdir, insecure, mirrorsFlag, releaseImage)
+	var cmd string
+	if icspFile == "" {
+		cmd = fmt.Sprintf(templateExtract, binary, workdir, insecure, releaseImage)
+	} else {
+		cmd = fmt.Sprintf(templateExtractWithIcsp, binary, workdir, insecure, icspFile, releaseImage)
+	}
 
 	_, err = retry.Do(r.config.MaxTries, r.config.RetryDelay, execute, log, r.executer, pullSecret, cmd, ocAuthArgument)
 	if err != nil {
@@ -402,16 +410,6 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 
 	log.Infof("Successfully extracted %s binary from the release to: %s", binary, path)
 	return path, nil
-}
-
-// supportsIdmsFileFlag checks if the given command supports the '--idms-file' flag.
-func (r *release) supportsIdmsFileFlag(log logrus.FieldLogger, command string) (result bool, err error) {
-	flagsFromHelp, err := getFlagsFromHelp(log, r.executer, command)
-	if err != nil {
-		return
-	}
-	_, result = slices.BinarySearch(flagsFromHelp, idmsFileFlagName)
-	return
 }
 
 func execute(log logrus.FieldLogger, executer executer.Executer, pullSecret string, command string, authArgument string) (string, error) {
@@ -431,7 +429,7 @@ func execute(log logrus.FieldLogger, executer executer.Executer, pullSecret stri
 	// flush the buffer to ensure the file can be read
 	ps.Close()
 	executeCommand := command[:] + authArgument + ps.Name()
-	args := whiteSpaceRE.Split(executeCommand, -1)
+	args := strings.Split(executeCommand, " ")
 
 	stdout, stderr, exitCode := executer.Execute(args[0], args[1:]...)
 
@@ -444,158 +442,21 @@ func execute(log logrus.FieldLogger, executer executer.Executer, pullSecret stri
 	}
 }
 
-// whiteSpaceRE is the regular expression used to split commands into arguments, taking into account that the separator
-// can be one or multiple whilte spaces.
-var whiteSpaceRE = regexp.MustCompile(`\s+`)
+// Create a temporary file containing the ImageContentPolicySources
+func (r *release) getIcspFileFromRegistriesConfig(log logrus.FieldLogger) (string, error) {
 
-// getMirrorsFlagFromRegistriesConfig returns the information needed to generate the command line flag that specifies
-// the mirrors configuration used by the 'oc' command.
-func (r *release) getMirrorsFlagFromRegistriesConfig(log logrus.FieldLogger) (result *mirrorsFlagInfo, err error) {
 	if !r.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
-		log.Debugf("No mirrors configured to build mirrors file")
-		return
-	}
-
-	mirrorsRegistriesConfig, err := r.mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries()
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get the mirror registries needed for mirrors file")
-		return
-	}
-
-	// Check if we should use the deprecated ImageContentPolicySource object or the new ImageDigestMirrorSet. To do
-	// so we check if the 'oc adm release info' command supports the '--idms-file' flag.
-	suportsIdmsFileFlag, err := r.supportsIdmsFileFlag(log, templateReleaseInfo)
-	if err != nil {
-		return
-	}
-	var (
-		name string
-		file string
-	)
-	if suportsIdmsFileFlag {
-		name = idmsFileFlagName
-		file, err = r.getIdmsFileFromRegistriesConfig(log, mirrorsRegistriesConfig)
-	} else {
-		name = icspFileFlagName
-		file, err = r.getIcspFileFromRegistriesConfig(log, mirrorsRegistriesConfig)
-	}
-	if err != nil {
-		return
-	}
-	result = &mirrorsFlagInfo{
-		logger: log,
-		name:   name,
-		file:   file,
-	}
-	return
-}
-
-// mirrorsFlagInfo contains the information needed to populate the '--idms-file' or '--icsp-file' command line flag that
-// is used by the 'oc' command to specify the mirrors configuration.
-type mirrorsFlagInfo struct {
-	// logger is the logger used by the methods of this type.
-	logger logrus.FieldLogger
-
-	// name is the name of the command line flag, 'idms-file' or 'icsp-file'.
-	name string
-
-	// file is the name of a temporary file containing the serialized ImageDigestMirrorSet or
-	// ImageContentSourcePolicy.
-	file string
-}
-
-// String returns the complete text of the flag, something like '--idms-file=/tmp/my-idms.yaml'.
-func (i *mirrorsFlagInfo) String() string {
-	if i == nil || i.name == "" || i.file == "" {
-		return ""
-	}
-	return fmt.Sprintf("--%s=%s", i.name, i.file)
-}
-
-// Delete deletes the temporary file.
-func (i *mirrorsFlagInfo) Delete() {
-	if i == nil {
-		return
-	}
-	err := os.Remove(i.file)
-	if err != nil {
-		i.logger.WithError(err).WithFields(logrus.Fields{
-			"file": i.file,
-		}).Error("Failed to delete temporary file")
-	}
-}
-
-// Create a temporary file containing the ImageDigestMirrorSet
-func (r *release) getIdmsFileFromRegistriesConfig(log logrus.FieldLogger,
-	mirrorRegistriesConfig []mirrorregistries.RegistriesConf) (result string, err error) {
-	contents, err := getIdmsContents(mirrorRegistriesConfig)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to create the IDMS file from registries.conf")
-		return "", err
-	}
-	if contents == nil {
-		log.Debugf("No registry entries to build IDMS file")
+		log.Debugf("No mirrors configured to build ICSP file")
 		return "", nil
 	}
 
-	idmsFile, err := os.CreateTemp("", "idms-file")
+	mirrorRegistriesConfig, err := r.mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries()
 	if err != nil {
+		log.WithError(err).Errorf("Failed to get the mirror registries needed for ImageContentSources")
 		return "", err
 	}
-	log.Debugf("Building IDMS file from registries.conf with contents %s", contents)
-	if _, err := idmsFile.Write(contents); err != nil {
-		idmsFile.Close()
-		os.Remove(idmsFile.Name())
-		return "", err
-	}
-	idmsFile.Close()
 
-	return idmsFile.Name(), nil
-}
-
-// Convert the data in registries.conf into IDMS format
-func getIdmsContents(mirrorConfig []mirrorregistries.RegistriesConf) ([]byte, error) {
-
-	idms := configv1.ImageDigestMirrorSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: configv1.SchemeGroupVersion.String(),
-			Kind:       "ImageDigestMirrorSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "image-mirror-set",
-			// not namespaced
-		},
-	}
-
-	idms.Spec.ImageDigestMirrors = make([]configv1.ImageDigestMirrors, len(mirrorConfig))
-	for i, mirrorRegistries := range mirrorConfig {
-		mirrors := make([]configv1.ImageMirror, len(mirrorRegistries.Mirror))
-		for j, mirror := range mirrorRegistries.Mirror {
-			mirrors[j] = configv1.ImageMirror(mirror)
-		}
-		idms.Spec.ImageDigestMirrors[i] = configv1.ImageDigestMirrors{
-			Source:  mirrorRegistries.Location,
-			Mirrors: mirrors,
-		}
-	}
-
-	// Convert to json first so json tags are handled
-	jsonData, err := json.Marshal(&idms)
-	if err != nil {
-		return nil, err
-	}
-	contents, err := k8syaml.JSONToYAML(jsonData)
-	if err != nil {
-		return nil, err
-	}
-
-	return contents, nil
-}
-
-// Create a temporary file containing the ImageContentPolicySources
-func (r *release) getIcspFileFromRegistriesConfig(log logrus.FieldLogger,
-	mirrorsRegistriesConfig []mirrorregistries.RegistriesConf) (result string, err error) {
-	contents, err := getIcspContents(mirrorsRegistriesConfig)
+	contents, err := getIcspContents(mirrorRegistriesConfig)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to create the ICSP file from registries.conf")
 		return "", err
@@ -652,72 +513,8 @@ func getIcspContents(mirrorConfig []mirrorregistries.RegistriesConf) ([]byte, er
 	return contents, nil
 }
 
-// getFlagsFromHelp gets the names of the flags of the given command. To do so it removes all the flags from the
-// command, executes it with the '--help' flag and parses the output, assuming that it has the format used by the 'oc'
-// command. It returns an array with the names of the flags in alphabetical order.
-func getFlagsFromHelp(log logrus.FieldLogger, executer executer.Executer, command string) (result []string, err error) {
-	// Remove all the flags from the command, so that we can then add the '--help' flag:
-	index := strings.Index(command, " -")
-	if index != -1 {
-		command = command[0:index]
+func removeIcspFile(filename string) {
+	if filename != "" {
+		os.Remove(filename)
 	}
-	command = fmt.Sprintf("%s --help", command)
-
-	// Execute the command with the '--help' flag:
-	args := strings.Split(command, " ")
-	stdout, stderr, code := executer.Execute(args[0], args[1:]...)
-	if code == -1 {
-		log.WithFields(logrus.Fields{
-			"command": command,
-		}).Error("Binary of command doesn't exist")
-		err = fmt.Errorf(
-			"binary of command '%s' doesn't exist",
-			command,
-		)
-		return
-	}
-	if code != 0 {
-		log.WithFields(logrus.Fields{
-			"command": command,
-			"stdout":  stdout,
-			"stderr":  stderr,
-			"code":    code,
-		}).Error("Command failed")
-		err = fmt.Errorf(
-			"command '%s' finished with exit code %d",
-			command, code,
-		)
-		return
-	}
-
-	// Find the flags and put them in a set:
-	matches := flagsFromHelpRE.FindAllStringSubmatch(stdout, -1)
-	flags := map[string]bool{}
-	for _, match := range matches {
-		flags[match[1]] = true
-	}
-
-	// If there are no flags at all (including the '--help' flag) then we are probably parsing the help text
-	// incorrectly:
-	if len(flags) == 0 {
-		log.WithFields(logrus.Fields{
-			"command": command,
-			"stdout":  stdout,
-			"stderr":  stderr,
-		}).Warning("Help text doesn't contain any flag, that is probably a bug in the code that parses it")
-	}
-
-	// Copy the flags from the set to a sorted slice:
-	result = make([]string, len(flags))
-	i := 0
-	for flag := range flags {
-		result[i] = flag
-		i++
-	}
-	sort.Strings(result)
-	return
 }
-
-// flagsFromHelpRE is the regular expression used to extract the names of flags from the output of the '--help' option
-// of commands like 'oc'.
-var flagsFromHelpRE = regexp.MustCompile(`(?m)^\s*(?:-\w,\s+)?--(\w+(?:-\w+)*)=.*:\s*$`)
