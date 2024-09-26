@@ -3708,7 +3708,7 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 	if infraEnv.StaticNetworkConfig != "" {
 		// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
 		var ok bool
-		ok, err = staticnetworkconfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, common.X86CPUArchitecture)
+		ok, err = staticnetworkconfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
@@ -5878,7 +5878,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		if infraEnv.StaticNetworkConfig != "" {
 			// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
 			var ok bool
-			ok, err = staticnetworkconfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, common.X86CPUArchitecture)
+			ok, err = staticnetworkconfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 			if err != nil {
 				return common.GenerateErrorResponder(err)
 			}
