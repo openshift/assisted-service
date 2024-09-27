@@ -4977,6 +4977,16 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
+		openshiftVersion := infraEnv.OpenshiftVersion
+		if params.InfraEnvUpdateParams.OpenshiftVersion != nil {
+			openshiftVersion = *params.InfraEnvUpdateParams.OpenshiftVersion
+		}
+
+		_, err = b.osImages.GetOsImageOrLatest(openshiftVersion, infraEnv.CPUArchitecture)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
 		var cluster *common.Cluster
 		clusterId := infraEnv.ClusterID
 		if clusterId != "" {
@@ -4988,11 +4998,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 				cluster = nil
 			}
 		}
-		version := infraEnv.OpenshiftVersion
-		if params.InfraEnvUpdateParams.OpenshiftVersion != nil {
-			version = *params.InfraEnvUpdateParams.OpenshiftVersion
-		}
-		if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, version); err != nil {
+		if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, openshiftVersion); err != nil {
 			return err
 		}
 		if err = featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, params.InfraEnvUpdateParams); err != nil {
