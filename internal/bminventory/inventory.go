@@ -4309,12 +4309,12 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy, ocpVersion *string) e
 	return nil
 }
 
-// validateArchitectureAndVersion validates if architecture specified inside Infraenv matches one
+// validateClusterArchitectureAndVersion validates if architecture specified inside Infraenv matches one
 // specified for the cluster. For single-arch clusters the validation needs to only compare values
 // of the params. For multiarch cluster we want to see if the multiarch release image contains the
 // the architecture specifically requested by the InfraEnv. We don't need to explicitly validate if
 // the OS image exists because if not, this will be detected by the function generating the ISO.
-func validateArchitectureAndVersion(v versions.Handler, c *common.Cluster, cpuArch, ocpVersion string) error {
+func validateClusterArchitectureAndVersion(v versions.Handler, c *common.Cluster, cpuArch, ocpVersion string) error {
 	// For late-binding we don't know the cluster yet
 	if c == nil {
 		return nil
@@ -4752,7 +4752,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, params installer.RegisterInfraEnvParams, cluster *common.Cluster) error {
 	var err error
 
-	if err = validateArchitectureAndVersion(b.versionsHandler, cluster, params.InfraenvCreateParams.CPUArchitecture, params.InfraenvCreateParams.OpenshiftVersion); err != nil {
+	if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, params.InfraenvCreateParams.CPUArchitecture, params.InfraenvCreateParams.OpenshiftVersion); err != nil {
 		return err
 	}
 
@@ -4988,7 +4988,11 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 				cluster = nil
 			}
 		}
-		if err = validateArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion); err != nil {
+		version := infraEnv.OpenshiftVersion
+		if params.InfraEnvUpdateParams.OpenshiftVersion != nil {
+			version = *params.InfraEnvUpdateParams.OpenshiftVersion
+		}
+		if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, version); err != nil {
 			return err
 		}
 		if err = featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, params.InfraEnvUpdateParams); err != nil {
