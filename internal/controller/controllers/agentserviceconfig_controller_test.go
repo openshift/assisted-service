@@ -2876,7 +2876,7 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		Expect(cm.Data["SERVICE_CA_CERT_PATH"]).To(Equal("/etc/assisted-ingress-cert/ca.crt"))
 	})
 
-	It("creates the assisted deployment without serving https, but with ingress https config", func() {
+	It("creates the assisted deployment correctly", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
@@ -2909,9 +2909,12 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		By("ensure probe scheme is http")
 		Expect(container.ReadinessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
 		Expect(container.LivenessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+
+		By("ensure fs group is set")
+		Expect(deploy.Spec.Template.Spec.SecurityContext.FSGroup).To(HaveValue(Equal(int64(0))))
 	})
 
-	It("creates the image service statefulset without https config", func() {
+	It("creates the image service statefulset correctly", func() {
 		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
@@ -2939,6 +2942,9 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		By("ensure probe scheme is http")
 		Expect(container.ReadinessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
 		Expect(container.LivenessProbe.ProbeHandler.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTP))
+
+		By("ensure fs group is set")
+		Expect(ss.Spec.Template.Spec.SecurityContext.FSGroup).To(HaveValue(Equal(int64(0))))
 	})
 
 	validateIngress := func(ingress *netv1.Ingress, host string, service string, port int32) {
