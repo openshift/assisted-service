@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -168,8 +167,7 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 
 func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistence(macInterfaceMap models.MacInterfaceMap, networksConfig []StaticNetworkConfigData) error {
 	interfaceNames := lo.Map(macInterfaceMap, func(m *models.MacInterfaceMapItems0, _ int) string { return m.LogicalNicName })
-	// See 'man systemd.net-naming-scheme' for interface naming protocol
-	predicatableIfaceNamePattern := regexp.MustCompile("^en[PsvxXbucaipod]")
+	var matched bool
 	for _, nc := range networksConfig {
 		cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, []byte(nc.FileContents))
 		if err != nil {
@@ -179,8 +177,7 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistence(macInterf
 		connectionSection := cfg.Section("connection")
 		interfaceName, err := connectionSection.GetKey("interface-name")
 		if err != nil {
-			// When the id field is provided the interface-name will not be present
-			continue
+			return errors.Wrapf(err, "failed to get interface-name for file %s", nc.FilePath)
 		}
 		interfaceType, err := connectionSection.GetKey("type")
 		if err != nil {
@@ -189,13 +186,22 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistence(macInterf
 		switch interfaceType.String() {
 		case "802-3-ethernet", "ethernet":
 			if !lo.Contains(interfaceNames, interfaceName.String()) {
-				if !predicatableIfaceNamePattern.MatchString(interfaceName.String()) {
-					return errors.Errorf("mac-interface mapping for interface %s is missing and not a physical interface", interfaceName.String())
-				} else {
-					s.log.Infof("Interface %s has no mac-interface mapping but matches a physical interface", interfaceName.String())
-				}
+				return errors.Errorf("mac-interface mapping for interface %s is missing", interfaceName.String())
+			}
+			matched = true
+		case "vlan":
+			vlanSection := cfg.Section("vlan")
+			parent, err := vlanSection.GetKey("parent")
+			if err != nil {
+				return errors.Wrapf(err, "failed to get parent of vlan %s", interfaceName.Name())
+			}
+			if lo.Contains(interfaceNames, parent.String()) {
+				matched = true
 			}
 		}
+	}
+	if !matched {
+		return errors.Errorf("no mac address mapping can be associated with the available network interfaces %v", interfaceNames)
 	}
 	return nil
 }
@@ -214,9 +220,6 @@ func (s *StaticNetworkConfigGenerator) ValidateStaticConfigParams(staticNetworkC
 }
 
 func (s *StaticNetworkConfigGenerator) validateMacInterfaceName(hostIdx int, macInterfaceMap models.MacInterfaceMap) error {
-	if len(macInterfaceMap) == 0 {
-		return fmt.Errorf("at least one interface for host %d must be provided", hostIdx)
-	}
 	interfaceCheck := make(map[string]struct{}, len(macInterfaceMap))
 	macCheck := make(map[string]struct{}, len(macInterfaceMap))
 	for _, macInterface := range macInterfaceMap {
