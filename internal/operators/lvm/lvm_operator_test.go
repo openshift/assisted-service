@@ -48,7 +48,7 @@ var _ = Describe("Lvm Operator", func() {
 		diskID1 = "/dev/disk/by-id/test-disk-1"
 		diskID2 = "/dev/disk/by-id/test-disk-2"
 
-		operator         = NewLvmOperator(common.GetTestLog())
+		operator         = NewLvmOperator(common.GetTestLog(), nil)
 		lvmMemMB         = conversions.MibToBytes(operator.Config.LvmMemoryPerHostMiB)
 		lvmMemMB_pre4_13 = conversions.MibToBytes(operator.Config.LvmMemoryPerHostMiBBefore4_13)
 
@@ -145,7 +145,7 @@ var _ = Describe("Lvm Operator", func() {
 			infraEnvID = strfmt.UUID(uuid.New().String())
 			mockEvents = eventsapi.NewMockHandler(mockCtrl)
 			mockMetric = metrics.NewMockAPI(mockCtrl)
-			mockOperators = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
+			mockOperators = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 			mockProviderRegistry = registry.NewMockProviderRegistry(mockCtrl)
 			mockProviderRegistry.EXPECT().IsHostSupported(testing.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
 			mockVersions = versions.NewMockHandler(mockCtrl)

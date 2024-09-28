@@ -9,7 +9,7 @@ import (
 )
 
 var _ = Describe("OCS manifest generation", func() {
-	operator := NewOdfOperator(common.GetTestLog())
+	operator := NewOdfOperator(common.GetTestLog(), nil)
 
 	Context("Create OCS Manifests for all deployment modes with openshiftVersion as 4.8.X", func() {
 		It("Check YAMLs of OCS in Compact Mode", func() {
