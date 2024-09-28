@@ -1,1 +1,1 @@
-quay.io,registry.ci.openshift.org
+quay.io
