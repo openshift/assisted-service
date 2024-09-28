@@ -11,15 +11,14 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
-	"golang.org/x/sys/unix"
+	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
 
 func IsDefaultRoute(r *models.Route) (bool, error) {
 	gw := net.ParseIP(r.Gateway)
 	if gw == nil {
-		return false, nil // gateway is empty for non default routes
+		return false, nil //gateway is empty for non default routes
 	}
 
 	dst := net.ParseIP(r.Destination)
@@ -28,36 +27,6 @@ func IsDefaultRoute(r *models.Route) (bool, error) {
 	}
 
 	return dst.IsUnspecified() && !gw.IsUnspecified(), nil
-}
-
-// Returns the IPv4 or the IPv6 default route
-func GetDefaultRouteByFamily(routes []*models.Route, ipv6 bool) *models.Route {
-	family := unix.AF_INET
-	if ipv6 {
-		family = unix.AF_INET6
-	}
-
-	defaultRoutes := lo.Filter(routes, func(r *models.Route, index int) bool {
-		if int(r.Family) == family {
-			isDefault, _ := IsDefaultRoute(r)
-			return isDefault
-		}
-		return false
-	})
-
-	// keep the route with the lowest metric
-	var metric *int32
-	var defaultRoute *models.Route
-	for _, r := range defaultRoutes {
-		if metric != nil && *metric < r.Metric {
-			continue
-		}
-
-		metric = &r.Metric
-		defaultRoute = r
-	}
-
-	return defaultRoute
 }
 
 // Obtains the IP addresses used by a host
@@ -114,6 +83,7 @@ func GetClusterAddressStack(hosts []*models.Host) (bool, bool, error) {
 // Get configured address families from cluster configuration based on the CIDRs (machine-network-cidr, cluster-network-cidr,
 // service-network-cidr)
 func GetConfiguredAddressFamilies(cluster *common.Cluster) (ipv4 bool, ipv6 bool, err error) {
+
 	for _, cidr := range common.GetNetworksCidrs(cluster) {
 		if cidr == nil || *cidr == "" {
 			continue
@@ -232,7 +202,7 @@ func GetApiVips(cluster *common.Cluster) (ret []string) {
 	if cluster.APIVips == nil {
 		return nil
 	}
-	ret = lo.Map(cluster.APIVips, func(x *models.APIVip, index int) string { return string(x.IP) })
+	ret = funk.Map(cluster.APIVips, func(x *models.APIVip) string { return string(x.IP) }).([]string)
 	return
 }
 
@@ -240,7 +210,7 @@ func GetIngressVips(cluster *common.Cluster) (ret []string) {
 	if cluster.IngressVips == nil {
 		return nil
 	}
-	ret = lo.Map(cluster.IngressVips, func(x *models.IngressVip, index int) string { return string(x.IP) })
+	ret = funk.Map(cluster.IngressVips, func(x *models.IngressVip) string { return string(x.IP) }).([]string)
 	return
 }
 
@@ -365,7 +335,7 @@ func areListsEquivalent(len1, len2 int, areItemsEquivalent func(int, int) bool) 
 	var usedIndexes []int
 	containsEquivalentItem := func(index, length int) bool {
 		for i := 0; i != length; i++ {
-			if !lo.Contains(usedIndexes, i) && areItemsEquivalent(index, i) {
+			if !funk.ContainsInt(usedIndexes, i) && areItemsEquivalent(index, i) {
 				usedIndexes = append(usedIndexes, i)
 				return true
 			}
