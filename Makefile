@@ -449,8 +449,8 @@ test-kube-api:
 # Alias for test
 subsystem-test: test
 
-subsystem-test-kube-api:
-	$(MAKE) test-kube-api ENABLE_KUBE_API=true
+# Alias for test-kube-api
+subsystem-test-kube-api: test-kube-api
 
 _run_subsystem_test:
 	@if [ $(TARGET) == "kind" ]; then \
