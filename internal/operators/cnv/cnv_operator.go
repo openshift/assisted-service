@@ -66,12 +66,17 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 		return lsoOperator, nil
 	}
 
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); isGreaterOrEqual {
+		return lvmOperator, nil
+	}
+
 	// SNO
 	if common.IsSingleNodeCluster(cluster) {
 		if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion); isGreaterOrEqual {
 			return lvmOperator, nil
 		}
 	}
+
 	return lsoOperator, nil
 }
 
