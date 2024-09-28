@@ -2955,7 +2955,6 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		manifestsGenerator.EXPECT().AddDnsmasqForSingleNode(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 		manifestsGenerator.EXPECT().AddDiskEncryptionManifest(ctx, gomock.Any(), &c).Return(nil)
-		manifestsGenerator.EXPECT().AddNicReapply(ctx, gomock.Any(), &c).Return(nil)
 		mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 		err := capi.GenerateAdditionalManifests(ctx, &c)
@@ -2978,7 +2977,6 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		manifestsGenerator.EXPECT().IsSNODNSMasqEnabled().Return(false).Times(1)
 		manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 		manifestsGenerator.EXPECT().AddDiskEncryptionManifest(ctx, gomock.Any(), &c).Return(nil)
-		manifestsGenerator.EXPECT().AddNicReapply(ctx, gomock.Any(), &c).Return(nil)
 		mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 		err := capi.GenerateAdditionalManifests(ctx, &c)
@@ -3003,7 +3001,6 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 			mockOperatorMgr.EXPECT().GenerateManifests(ctx, &c).Return(nil)
 			manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 			manifestsGenerator.EXPECT().AddDiskEncryptionManifest(ctx, gomock.Any(), &c).Return(nil)
-			manifestsGenerator.EXPECT().AddNicReapply(ctx, gomock.Any(), &c).Return(nil)
 
 			err := capi.GenerateAdditionalManifests(ctx, &c)
 			Expect(err).To(Not(HaveOccurred()))
