@@ -450,7 +450,7 @@ test-kube-api:
 subsystem-test: test
 
 # Alias for test-kube-api
-subsystem-test-kube-api: test-kube-api
+subsystem-test-kube-api: test-kube-api ENABLE_KUBE_API=true
 
 _run_subsystem_test:
 	@if [ $(TARGET) == "kind" ]; then \
