@@ -25,7 +25,6 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
-	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -95,7 +94,6 @@ type installerGenerator struct {
 	clusterTLSCertOverrideDir     string
 	installerCache                *installercache.Installers
 	nodeIpAllocations             map[strfmt.UUID]*network.NodeIpAllocation
-	manifestApi                   manifestsapi.ManifestsAPI
 }
 
 var fileNames = [...]string{
@@ -111,7 +109,7 @@ var fileNames = [...]string{
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, providerRegistry registry.ProviderRegistry,
-	installerReleaseImageOverride, clusterTLSCertOverrideDir string, storageCapacityLimit int64, manifestApi manifestsapi.ManifestsAPI) Generator {
+	installerReleaseImageOverride, clusterTLSCertOverrideDir string, storageCapacityLimit int64) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
@@ -127,7 +125,6 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		installerReleaseImageOverride: installerReleaseImageOverride,
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
 		installerCache:                installercache.New(installerDir, storageCapacityLimit, log),
-		manifestApi:                   manifestApi,
 	}
 }
 
@@ -248,10 +245,10 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 
 	// download manifests files to working directory
 	for _, manifest := range manifestFiles {
-		log.Infof("adding manifest %s to working dir for cluster %s", manifest.Path, g.cluster.ID)
-		err = g.downloadManifest(ctx, manifest.Path)
+		log.Infof("adding manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
+		err = g.downloadManifest(ctx, manifest)
 		if err != nil {
-			log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest.Path, g.cluster.ID)
+			log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
 			return err
 		}
 	}
@@ -551,44 +548,30 @@ func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(ctx context.Context
 func (g *installerGenerator) expandUserMultiDocYamls(ctx context.Context) error {
 	log := logutil.FromContext(ctx, g.log)
 
-	manifestObjects, err := manifests.GetClusterManifests(ctx, g.cluster.ID, g.s3Client)
+	metadata, err := manifests.GetManifestMetadata(ctx, g.cluster.ID, g.s3Client)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to retrieve cluster manifests for cluster id %s", g.cluster.ID)
+		return errors.Wrapf(err, "Failed to retrieve manifest matadata")
 	}
-
-	legacyUserManifestPaths, err := g.manifestApi.FindUserManifestPathsByLegacyMetadata(ctx, *g.cluster.ID)
+	userManifests, err := manifests.ResolveManifestNamesFromMetadata(
+		manifests.FilterMetadataOnManifestSource(metadata, constants.ManifestSourceUserSupplied),
+	)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to retrieve legacy user manifest paths for cluster id %s", g.cluster.ID)
+		return errors.Wrapf(err, "Failed to resolve manifest names from metadata")
 	}
 
 	// pass a random token to expandMultiDocYaml in order to prevent name
 	// clashes when spliting one file into several ones
 	randomToken := uuid.NewString()[:7]
 
-	for _, manifestObject := range manifestObjects {
+	for _, manifest := range userManifests {
+		log.Debugf("Looking at expanding manifest file %s", manifest)
 
-		// Make sure we account for any metadata that is stored using the legacy filesystem method.
-		hasLegacyUserSuppliedMetadata := swag.ContainsStrings(legacyUserManifestPaths, manifestObject.Path)
-
-		// Skip any files that are not user supplied
-		metadata := manifestObject.Metadata[constants.ManifestSourceAttribute]
-		if metadata != constants.ManifestSourceUserSupplied && !hasLegacyUserSuppliedMetadata {
-			continue
-		}
-
-		log.Debugf("Looking at expanding manifest file %s", manifestObject)
-
-		extension := filepath.Ext(manifestObject.Path)
+		extension := filepath.Ext(manifest)
 		if !(extension == ".yaml" || extension == ".yml") {
 			continue
 		}
 
-		pathElements := strings.Split(manifestObject.Path, "/")
-		if len(pathElements) != 4 {
-			return errors.Wrapf(err, "File path %s is not in the expected format for a manifest file path", manifestObject.Path)
-		}
-
-		manifestPath := filepath.Join(g.workDir, pathElements[2], pathElements[3])
+		manifestPath := filepath.Join(g.workDir, manifest)
 		err := g.expandMultiDocYaml(ctx, manifestPath, randomToken)
 		if err != nil {
 			return err
@@ -1019,11 +1002,11 @@ func (g *installerGenerator) clusterHasMCP(poolName string, clusterId *strfmt.UU
 		return false, err
 	}
 	for _, manifest := range manifestList {
-		content, err := g.getManifestContent(ctx, manifest.Path)
+		content, err := g.getManifestContent(ctx, manifest)
 		if err != nil {
 			return false, err
 		}
-		exists, err := machineConfilePoolExists(manifest.Path, content, poolName)
+		exists, err := machineConfilePoolExists(manifest, content, poolName)
 		if err != nil {
 			return false, err
 		}

@@ -33,11 +33,6 @@ const (
 	awsEndpointSuffix = ".amazonaws.com"
 )
 
-type ObjectInfo struct {
-	Path     string
-	Metadata map[string]string
-}
-
 //go:generate mockgen --build_flags=--mod=mod -package=s3wrapper -destination=mock_s3wrapper.go . API
 //go:generate mockgen --build_flags=--mod=mod -package s3wrapper -destination mock_s3iface.go github.com/aws/aws-sdk-go/service/s3/s3iface S3API
 //go:generate mockgen --build_flags=--mod=mod -package s3wrapper -destination mock_s3manageriface.go github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface UploaderAPI
@@ -47,9 +42,6 @@ type API interface {
 	Upload(ctx context.Context, data []byte, objectName string) error
 	UploadStream(ctx context.Context, reader io.Reader, objectName string) error
 	UploadFile(ctx context.Context, filePath, objectName string) error
-	UploadWithMetadata(ctx context.Context, data []byte, objectName string, metadata map[string]string) error
-	UploadStreamWithMetadata(ctx context.Context, reader io.Reader, objectName string, metadata map[string]string) error
-	UploadFileWithMetadata(ctx context.Context, filePath, objectName string, metadata map[string]string) error
 	Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
 	DeleteObject(ctx context.Context, objectName string) (bool, error)
@@ -58,7 +50,6 @@ type API interface {
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
-	ListObjectsByPrefixWithMetadata(ctx context.Context, prefix string) ([]ObjectInfo, error)
 }
 
 var _ API = &S3Client{}
@@ -120,7 +111,6 @@ func newS3Session(accessKeyID, secretAccessKey, region, endpointURL string) (*se
 		S3ForcePathStyle:     aws.Bool(true),
 		S3Disable100Continue: aws.Bool(true),
 		HTTPClient:           &http.Client{Transport: HTTPTransport},
-		LowerCaseHeaderMaps:  aws.Bool(true),
 	}
 	awsSession, err := session.NewSession(awsConfig)
 	if err != nil {
@@ -158,7 +148,7 @@ func (c *S3Client) CreateBucket() error {
 	return c.createBucket(c.client, c.cfg.S3Bucket)
 }
 
-func (c *S3Client) uploadStream(ctx context.Context, reader io.Reader, objectName, bucket string, uploader s3manageriface.UploaderAPI, metadata map[string]string) error {
+func (c *S3Client) uploadStream(ctx context.Context, reader io.Reader, objectName, bucket string, uploader s3manageriface.UploaderAPI) error {
 	log := logutil.FromContext(ctx, c.log)
 	if reader == nil {
 		err := errors.Errorf("Upfile log may not be nil. Cannot upload %s to bucket %s", objectName, bucket)
@@ -173,7 +163,6 @@ func (c *S3Client) uploadStream(ctx context.Context, reader io.Reader, objectNam
 		Key:          aws.String(objectName),
 		Body:         reader,
 		CacheControl: &cacheControl,
-		Metadata:     swag.StringMap(metadata),
 	})
 	if err != nil {
 		err = errors.Wrapf(err, "Unable to upload %s to bucket %s", objectName, bucket)
@@ -185,14 +174,10 @@ func (c *S3Client) uploadStream(ctx context.Context, reader io.Reader, objectNam
 }
 
 func (c *S3Client) UploadStream(ctx context.Context, reader io.Reader, objectName string) error {
-	return c.uploadStream(ctx, reader, objectName, c.cfg.S3Bucket, c.uploader, nil)
+	return c.uploadStream(ctx, reader, objectName, c.cfg.S3Bucket, c.uploader)
 }
 
-func (c *S3Client) UploadStreamWithMetadata(ctx context.Context, reader io.Reader, objectName string, metadata map[string]string) error {
-	return c.uploadStream(ctx, reader, objectName, c.cfg.S3Bucket, c.uploader, metadata)
-}
-
-func (c *S3Client) uploadFile(ctx context.Context, filePath, objectName, bucket string, uploader s3manageriface.UploaderAPI, metadata map[string]string) error {
+func (c *S3Client) uploadFile(ctx context.Context, filePath, objectName, bucket string, uploader s3manageriface.UploaderAPI) error {
 	log := logutil.FromContext(ctx, c.log)
 	log.Infof("Uploading file %s as object %s to bucket %s", filePath, objectName, bucket)
 	file, err := os.Open(filePath)
@@ -204,25 +189,16 @@ func (c *S3Client) uploadFile(ctx context.Context, filePath, objectName, bucket 
 	defer file.Close()
 
 	reader := bufio.NewReader(file)
-	return c.uploadStream(ctx, reader, objectName, bucket, uploader, metadata)
+	return c.uploadStream(ctx, reader, objectName, bucket, uploader)
 }
 
 func (c *S3Client) UploadFile(ctx context.Context, filePath, objectName string) error {
-	return c.uploadFile(ctx, filePath, objectName, c.cfg.S3Bucket, c.uploader, nil)
-}
-
-func (c *S3Client) UploadFileWithMetadata(ctx context.Context, filePath, objectName string, metadata map[string]string) error {
-	return c.uploadFile(ctx, filePath, objectName, c.cfg.S3Bucket, c.uploader, metadata)
+	return c.uploadFile(ctx, filePath, objectName, c.cfg.S3Bucket, c.uploader)
 }
 
 func (c *S3Client) Upload(ctx context.Context, data []byte, objectName string) error {
 	reader := bytes.NewReader(data)
 	return c.UploadStream(ctx, reader, objectName)
-}
-
-func (c *S3Client) UploadWithMetadata(ctx context.Context, data []byte, objectName string, metadata map[string]string) error {
-	reader := bytes.NewReader(data)
-	return c.UploadStreamWithMetadata(ctx, reader, objectName, metadata)
 }
 
 func (c *S3Client) download(ctx context.Context, objectName, bucket string, client s3iface.S3API) (io.ReadCloser, int64, error) {
@@ -439,32 +415,6 @@ func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	}
 	for _, key := range resp.Contents {
 		objects = append(objects, *key.Key)
-	}
-	return objects, nil
-}
-
-func (c *S3Client) ListObjectsByPrefixWithMetadata(ctx context.Context, prefix string) ([]ObjectInfo, error) {
-	log := logutil.FromContext(ctx, c.log)
-	objects := []ObjectInfo{}
-	log.Infof("Listing objects by with prefix %s", prefix)
-	resp, err := c.client.ListObjects(&s3.ListObjectsInput{
-		Bucket: aws.String(c.cfg.S3Bucket),
-		Prefix: aws.String(prefix),
-	})
-	if err != nil {
-		err = errors.Wrapf(err, "Error listing objects for prefix %s", prefix)
-		log.Error(err)
-		return nil, err
-	}
-	for _, key := range resp.Contents {
-		// We need to find the metadata for each object
-		headObjectOutput, err := c.client.HeadObject(&s3.HeadObjectInput{Bucket: aws.String(c.cfg.S3Bucket), Key: key.Key})
-		if err != nil {
-			err = errors.Wrapf(err, "Failed to retrieve metadata for %s", *key.Key)
-			log.Error(err)
-			return nil, err
-		}
-		objects = append(objects, ObjectInfo{Path: *key.Key, Metadata: swag.StringValueMap(headObjectOutput.Metadata)})
 	}
 	return objects, nil
 }

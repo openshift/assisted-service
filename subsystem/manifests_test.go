@@ -15,7 +15,6 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 )
@@ -51,15 +50,13 @@ spec:
 
 	BeforeEach(func() {
 		manifestFile = models.Manifest{
-			FileName:       "99-openshift-machineconfig-master-kargs.yaml",
-			Folder:         "openshift",
-			ManifestSource: constants.ManifestSourceUserSupplied,
+			FileName: "99-openshift-machineconfig-master-kargs.yaml",
+			Folder:   "openshift",
 		}
 
 		renamedManifestFile = models.Manifest{
-			FileName:       "99-openshift-machineconfig-master-renamed-kargs.yaml",
-			Folder:         "openshift",
-			ManifestSource: constants.ManifestSourceUserSupplied,
+			FileName: "99-openshift-machineconfig-master-renamed-kargs.yaml",
+			Folder:   "openshift",
 		}
 
 		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
