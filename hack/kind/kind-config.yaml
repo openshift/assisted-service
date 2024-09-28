@@ -24,7 +24,3 @@ nodes:
   - containerPort: 30004
     hostPort: 8060
     protocol: TCP
-  # debugger
-  - containerPort: 30005
-    hostPort: 40000
-    protocol: TCP
