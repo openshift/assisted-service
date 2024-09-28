@@ -1,8 +1,6 @@
 package lo
 
-import (
-	"github.com/samber/lo/internal/constraints"
-)
+import "golang.org/x/exp/constraints"
 
 // Range creates an array of numbers (positive and/or negative) with given length.
 // Play: https://go.dev/play/p/0r6VimXAi9H
@@ -69,8 +67,8 @@ func Clamp[T constraints.Ordered](value T, min T, max T) T {
 // Play: https://go.dev/play/p/upfeJVqs4Bt
 func Sum[T constraints.Float | constraints.Integer | constraints.Complex](collection []T) T {
 	var sum T = 0
-	for i := range collection {
-		sum += collection[i]
+	for _, val := range collection {
+		sum += val
 	}
 	return sum
 }
@@ -79,28 +77,8 @@ func Sum[T constraints.Float | constraints.Integer | constraints.Complex](collec
 // Play: https://go.dev/play/p/Dz_a_7jN_ca
 func SumBy[T any, R constraints.Float | constraints.Integer | constraints.Complex](collection []T, iteratee func(item T) R) R {
 	var sum R = 0
-	for i := range collection {
-		sum = sum + iteratee(collection[i])
+	for _, item := range collection {
+		sum = sum + iteratee(item)
 	}
 	return sum
-}
-
-// Mean calculates the mean of a collection of numbers.
-func Mean[T constraints.Float | constraints.Integer](collection []T) T {
-	var length T = T(len(collection))
-	if length == 0 {
-		return 0
-	}
-	var sum T = Sum(collection)
-	return sum / length
-}
-
-// MeanBy calculates the mean of a collection of numbers using the given return value from the iteration function.
-func MeanBy[T any, R constraints.Float | constraints.Integer](collection []T, iteratee func(item T) R) R {
-	var length R = R(len(collection))
-	if length == 0 {
-		return 0
-	}
-	var sum R = SumBy(collection, iteratee)
-	return sum / length
 }
