@@ -2003,17 +2003,35 @@ var _ = Describe("bmac reconcile", func() {
 	Describe("Handle status annotation for BMHs", func() {
 		var bmh, updatedBMH *bmh_v1alpha1.BareMetalHost
 		var infraEnv *v1beta1.InfraEnv
+		var agent *v1beta1.Agent
 
 		BeforeEach(func() {
 			// Create test InfraEnv
 			infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+			isoImageURL := "http://buzz.lightyear.io/discovery-image.iso"
+			infraEnv.Status = v1beta1.InfraEnvStatus{
+				ISODownloadURL: isoImageURL,
+				CreatedTime:    &metav1.Time{Time: time.Now()},
+			}
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 
 			// Initialize test BMH
-			bmh = newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{})
+			macStr := "12-34-56-78-9A-BC"
+			bmh = newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{
+				BootMACAddress: macStr,
+				Image:          &bmh_v1alpha1.Image{URL: isoImageURL},
+			})
 			labels := make(map[string]string)
 			labels[BMH_INFRA_ENV_LABEL] = "testInfraEnv"
 			bmh.ObjectMeta.Labels = labels
+
+			// Create test agent
+			agentSpec := v1beta1.AgentSpec{Approved: false}
+			agent = newAgent("bmac-agent", testNamespace, agentSpec)
+			agent.Status.Inventory = v1beta1.HostInventory{
+				Interfaces: []v1beta1.HostInterface{{MacAddress: macStr}},
+			}
+			Expect(c.Create(ctx, agent)).To(BeNil())
 		})
 
 		Context("when BMH is in provisioned state", func() {
@@ -2049,6 +2067,12 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_STATUS_ANNOTATION))
 				Expect(updatedBMH.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]).To(Equal(string(statusJson)))
+
+				// Ensure the agent gets approved
+				updatedAgent := &v1beta1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				Expect(updatedAgent.Spec.Approved).To(BeTrue())
 			})
 
 			It("should update status annotation if stale", func() {
@@ -2085,6 +2109,12 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(updatedStatusJson).To(Not(Equal(originalStatusJson)))
 				Expect(updatedBMH.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]).To(Equal(string(updatedStatusJson)))
+
+				// Ensure the agent gets approved
+				updatedAgent := &v1beta1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				Expect(updatedAgent.Spec.Approved).To(BeTrue())
 			})
 
 			It("should keep paused and status annotations if already exist", func() {
@@ -2114,6 +2144,12 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_STATUS_ANNOTATION))
 				Expect(updatedBMH.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]).To(Equal(string(statusJson)))
+
+				// Ensure the agent gets approved
+				updatedAgent := &v1beta1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				Expect(updatedAgent.Spec.Approved).To(BeTrue())
 			})
 
 			It("should keep provisioned state when adding cluster-reference annotation", func() {

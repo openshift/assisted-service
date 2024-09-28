@@ -1899,7 +1899,7 @@ func (r *BMACReconciler) addBMHStatusAndPausedAnnotations(log logrus.FieldLogger
 		return reconcileComplete{dirty: true}
 	}
 
-	return reconcileComplete{dirty: dirty, stop: true}
+	return reconcileComplete{dirty: dirty}
 }
 
 // Removes 'paused' annotation for letting BMO to restore BMH's status (using the 'status' annotation).
