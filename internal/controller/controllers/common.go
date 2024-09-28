@@ -44,8 +44,7 @@ import (
 )
 
 const (
-	caBundleKey                      = "ca-bundle.crt"
-	mirrorRegistryRefCertKey         = caBundleKey
+	mirrorRegistryRefCertKey         = "ca-bundle.crt"
 	mirrorRegistryRefRegistryConfKey = "registries.conf"
 	mirrorRegistryConfigVolume       = "mirror-registry-config"
 	WatchResourceLabel               = "agent-install.openshift.io/watch"
