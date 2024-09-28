@@ -60,21 +60,12 @@ func (o *operator) GetFullName() string {
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	lsoOperator := []string{lso.Operator.Name}
-	lvmOperator := []string{lvm.Operator.Name}
-
-	if cluster.OpenshiftVersion == "" {
+	if !common.IsSingleNodeCluster(cluster) || cluster.OpenshiftVersion == "" {
 		return lsoOperator, nil
 	}
 
-	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); isGreaterOrEqual {
-		return lvmOperator, nil
-	}
-
-	// SNO
-	if common.IsSingleNodeCluster(cluster) {
-		if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion); isGreaterOrEqual {
-			return lvmOperator, nil
-		}
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion); isGreaterOrEqual {
+		return []string{lvm.Operator.Name}, nil
 	}
 
 	return lsoOperator, nil
@@ -99,7 +90,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
 	if !featuresupport.IsFeatureCompatibleWithArchitecture(models.FeatureSupportLevelIDCNV, cluster.OpenshiftVersion, cluster.CPUArchitecture) {
 		return api.Failure, fmt.Sprintf(
-			"%s is not supported for %s CPU architecture.", o.GetFullName(), cluster.CPUArchitecture)
+			"%s is supported only for %s CPU architecture.", o.GetFullName(), common.DefaultCPUArchitecture)
 	}
 	return api.Success, ""
 }
