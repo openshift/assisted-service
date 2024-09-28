@@ -436,12 +436,6 @@ deploy-on-k8s: create-hub-cluster
 	fi
 	skipper $(MAKE) deploy-ui
 
-deploy-sylva: create-hub-cluster
-	./hack/kind/dev-env-sylva.sh
-
-deploy-dev-infra: create-hub-cluster
-	./hack/kind/dev-env-infra.sh
-
 ########
 # Test #
 ########
