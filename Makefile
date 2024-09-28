@@ -435,7 +435,7 @@ subsystem-test:
 	$(MAKE) test TARGET=kind
 
 subsystem-test-kube-api:
-	$(MAKE) test-kube-api TARGET=kind
+	$(MAKE) test-kube-api TARGET=kind ENABLE_KUBE_API=true
 
 _run_subsystem_test:
 	@if [ $(TARGET) == "kind" ]; then \
