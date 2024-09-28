@@ -26,7 +26,6 @@ def main():
             if deploy_options.port:
                 for port_number_str, port_name in deploy_options.port:
                     port = {"name": port_name,
-                            "nodePort": 30005,
                             "port": int(port_number_str),
                             "protocol": "TCP",
                             "targetPort": int(port_number_str)}
