@@ -216,7 +216,6 @@ type bareMetalInventory struct {
 	gcConfig             garbagecollector.Config
 	providerRegistry     registry.ProviderRegistry
 	insecureIPXEURLs     bool
-	installerInvoker     string
 }
 
 func NewBareMetalInventory(
@@ -250,7 +249,6 @@ func NewBareMetalInventory(
 	gcConfig garbagecollector.Config,
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
-	installerInvoker string,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -283,7 +281,6 @@ func NewBareMetalInventory(
 		gcConfig:             gcConfig,
 		providerRegistry:     providerRegistry,
 		insecureIPXEURLs:     insecureIPXEURLs,
-		installerInvoker:     installerInvoker,
 	}
 }
 
@@ -3703,26 +3700,8 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 	}
 
 	var netFiles []staticnetworkconfig.StaticNetworkConfigData
-	var scriptContent, serviceContent string
 	if infraEnv.StaticNetworkConfig != "" {
-		// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
-		var ok bool
-		ok, err = staticnetworkconfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, common.X86CPUArchitecture)
-		if err != nil {
-			return common.GenerateErrorResponder(err)
-		}
-
-		if ok {
-			b.log.Info("Static network configuration using the nmstatectl service")
-			netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigDataYAML(infraEnv.StaticNetworkConfig)
-			scriptContent = constants.PreNetworkConfigScriptWithNmstatectl
-			serviceContent = constants.MinimalISONetworkConfigServiceNmstatectl
-		} else {
-			b.log.Info("Static network configuration using generated keyfiles")
-			netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
-			scriptContent = constants.PreNetworkConfigScript
-			serviceContent = constants.MinimalISONetworkConfigService
-		}
+		netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to create static network config data")
 			return common.GenerateErrorResponder(err)
@@ -3736,7 +3715,7 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 		NoProxy:    noProxy,
 	}
 
-	minimalInitrd, err := isoeditor.RamdiskImageArchive(netFiles, &infraEnvProxyInfo, scriptContent, serviceContent)
+	minimalInitrd, err := isoeditor.RamdiskImageArchive(netFiles, &infraEnvProxyInfo)
 	if err != nil {
 		log.WithError(err).Error("Failed to create ramdisk image archive")
 		return common.GenerateErrorResponder(err)
@@ -4777,7 +4756,7 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 	}
 
 	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraenvCreateParams.StaticNetworkConfig, params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture, b.installerInvoker); err != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
 			return err
 		}
 	}
@@ -4959,7 +4938,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 
 		if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
-			if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraEnvUpdateParams.StaticNetworkConfig, infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, b.installerInvoker); err != nil {
+			if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 		}
@@ -5859,22 +5838,8 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		}
 		filename = fmt.Sprintf("%s-%s", params.InfraEnvID, params.FileName)
 	case "static-network-config":
-		var netFiles []staticnetworkconfig.StaticNetworkConfigData
 		if infraEnv.StaticNetworkConfig != "" {
-			// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
-			var ok bool
-			ok, err = staticnetworkconfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, common.X86CPUArchitecture)
-			if err != nil {
-				return common.GenerateErrorResponder(err)
-			}
-
-			if ok {
-				b.log.Info("Static network configuration using the nmstatectl service")
-				netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigDataYAML(infraEnv.StaticNetworkConfig)
-			} else {
-				b.log.Info("Static network configuration using generated keyfiles")
-				netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
-			}
+			netFiles, err := b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
 			if err != nil {
 				b.log.WithError(err).Errorf("Failed to create static network config data")
 				return common.GenerateErrorResponder(err)
