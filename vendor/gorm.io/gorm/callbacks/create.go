@@ -293,15 +293,13 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 				}
 			}
 
-			for _, field := range stmt.Schema.FieldsWithDefaultDBValue {
-				if vs, ok := defaultValueFieldsHavingValue[field]; ok {
-					values.Columns = append(values.Columns, clause.Column{Name: field.DBName})
-					for idx := range values.Values {
-						if vs[idx] == nil {
-							values.Values[idx] = append(values.Values[idx], stmt.Dialector.DefaultValueOf(field))
-						} else {
-							values.Values[idx] = append(values.Values[idx], vs[idx])
-						}
+			for field, vs := range defaultValueFieldsHavingValue {
+				values.Columns = append(values.Columns, clause.Column{Name: field.DBName})
+				for idx := range values.Values {
+					if vs[idx] == nil {
+						values.Values[idx] = append(values.Values[idx], stmt.Dialector.DefaultValueOf(field))
+					} else {
+						values.Values[idx] = append(values.Values[idx], vs[idx])
 					}
 				}
 			}
@@ -353,7 +351,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 									case schema.UnixNanosecond:
 										assignment.Value = curTime.UnixNano()
 									case schema.UnixMillisecond:
-										assignment.Value = curTime.UnixMilli()
+										assignment.Value = curTime.UnixNano() / 1e6
 									case schema.UnixSecond:
 										assignment.Value = curTime.Unix()
 									}
