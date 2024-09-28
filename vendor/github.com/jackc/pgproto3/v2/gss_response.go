@@ -2,6 +2,7 @@ package pgproto3
 
 import (
 	"encoding/json"
+	"github.com/jackc/pgio"
 )
 
 type GSSResponse struct {
@@ -16,10 +17,11 @@ func (g *GSSResponse) Decode(data []byte) error {
 	return nil
 }
 
-func (g *GSSResponse) Encode(dst []byte) ([]byte, error) {
-	dst, sp := beginMessage(dst, 'p')
+func (g *GSSResponse) Encode(dst []byte) []byte {
+	dst = append(dst, 'p')
+	dst = pgio.AppendInt32(dst, int32(4+len(g.Data)))
 	dst = append(dst, g.Data...)
-	return finishMessage(dst, sp)
+	return dst
 }
 
 // MarshalJSON implements encoding/json.Marshaler.
