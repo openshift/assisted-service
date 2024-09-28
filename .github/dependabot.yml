@@ -8,10 +8,7 @@ updates:
       go-security-dependencies:
         applies-to: security-updates
         patterns:
-          - "*"
-      go-dependencies:
-        patterns:
-          - "*"
+          - "*"  
     labels:
       - "approved"
       - "lgtm"
