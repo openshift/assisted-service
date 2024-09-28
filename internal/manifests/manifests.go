@@ -74,7 +74,7 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 	}
 
 	var manifestContent []byte
-	manifestContent, err = m.decodeUserSuppliedManifest(ctx, params.ClusterID, params.CreateManifestParams.Content, path)
+	manifestContent, err = m.decodeUserSuppliedManifest(ctx, params.ClusterID, *params.CreateManifestParams.Content)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +251,7 @@ func (m *Manifests) UpdateClusterManifestInternal(ctx context.Context, params op
 
 	var content []byte
 	if params.UpdateManifestParams.UpdatedContent != nil {
-		content, err = m.decodeUserSuppliedManifest(ctx, params.ClusterID, params.UpdateManifestParams.UpdatedContent, srcPath)
+		content, err = m.decodeUserSuppliedManifest(ctx, params.ClusterID, *params.UpdateManifestParams.UpdatedContent)
 		if err != nil {
 			return nil, err
 		}
@@ -521,14 +521,8 @@ func isValidYaml(manifestContent []byte) error {
 	return nil
 }
 
-func (m *Manifests) decodeUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, manifest *string, filename string) ([]byte, error) {
-	if manifest == nil {
-		return nil, m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s is nil", filename, string(clusterID)))
-	}
-	if strings.Trim(swag.StringValue(manifest), " ") == "" {
-		return nil, m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s is empty", filename, string(clusterID)))
-	}
-	manifestContent, err := base64.StdEncoding.DecodeString(swag.StringValue(manifest))
+func (m *Manifests) decodeUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, manifest string) ([]byte, error) {
+	manifestContent, err := base64.StdEncoding.DecodeString(manifest)
 	if err != nil {
 		return nil, m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("failed to base64-decode cluster manifest content for cluster %s", string(clusterID)))
 	}
