@@ -187,8 +187,6 @@ const (
 
 	// UnusedResponseWarning ...
 	UnusedResponseWarning = "response %q is not used anywhere"
-
-	InvalidObject = "expected an object in %q.%s"
 )
 
 // Additional error codes
@@ -349,15 +347,11 @@ func invalidParameterDefinitionAsSchemaMsg(path, method, operationID string) err
 func parameterValidationTypeMismatchMsg(param, path, typ string) errors.Error {
 	return errors.New(errors.CompositeErrorCode, ParamValidationTypeMismatch, param, path, typ)
 }
-func invalidObjectMsg(path, in string) errors.Error {
-	return errors.New(errors.CompositeErrorCode, InvalidObject, path, in)
-}
 
 // disabled
-//
-//	func invalidResponseDefinitionAsSchemaMsg(path, method string) errors.Error {
-//		return errors.New(errors.CompositeErrorCode, InvalidResponseDefinitionAsSchemaError, path, method)
-//	}
+// func invalidResponseDefinitionAsSchemaMsg(path, method string) errors.Error {
+//	return errors.New(errors.CompositeErrorCode, InvalidResponseDefinitionAsSchemaError, path, method)
+// }
 func someParametersBrokenMsg(path, method, operationID string) errors.Error {
 	return errors.New(errors.CompositeErrorCode, SomeParametersBrokenError, path, method, operationID)
 }
