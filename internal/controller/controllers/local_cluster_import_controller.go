@@ -35,7 +35,6 @@ const (
 	hubKubeConfigName                                 = "node-kubeconfigs"
 	hubPullSecretNamespace                            = "openshift-config" // #nosec G101
 	hubPullSecretName                                 = "pull-secret"      // #nosec G101
-	importLocalClusterEnabledAnnotation               = "agent-install.openshift.io/enable-local-cluster-import"
 )
 
 type LocalClusterImportReconciler struct {
@@ -124,16 +123,6 @@ func (r *LocalClusterImportReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 		// Stop reconciliation as the item is being deleted
 		r.log.Infof("Finalizer removed by local cluster import controller (local cluster CRs are cleared)")
-		return ctrl.Result{}, nil
-	}
-
-	// Enable local cluster import if annotation allows this.
-	_, importLocalClusterEnabled := instance.GetAnnotations()[importLocalClusterEnabledAnnotation]
-	if !importLocalClusterEnabled {
-		err := r.setReconciliationStatus(ctx, false, aiv1beta1.ReasonLocalClusterImportNotEnabled, "Local cluster import is not enabled")
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Unable to set reconciliation status of LocalClusterImport on AgentServiceConfig")
-		}
 		return ctrl.Result{}, nil
 	}
 
