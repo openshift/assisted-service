@@ -287,14 +287,16 @@ func (f *skipMcoReboot) getIncompatibleFeatures(openshiftVersion string) *[]mode
 }
 
 func (f *skipMcoReboot) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
-	return nil
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+	}
 }
 
 func (f *skipMcoReboot) getFeatureActiveLevel(cluster *common.Cluster, infraEnv *models.InfraEnv,
 	clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
 	if cluster != nil {
 		activeForVersion, err := common.BaseVersionGreaterOrEqual("4.15.0", cluster.OpenshiftVersion)
-		if err != nil || !activeForVersion {
+		if err != nil || !activeForVersion || cluster.CPUArchitecture == models.ClusterCPUArchitectureS390x {
 			return activeLevelNotActive
 		}
 	}
