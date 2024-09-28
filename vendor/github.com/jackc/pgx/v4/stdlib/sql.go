@@ -84,13 +84,7 @@ func init() {
 		configs: make(map[string]*pgx.ConnConfig),
 	}
 	fakeTxConns = make(map[*pgx.Conn]*sql.Tx)
-
-	// if pgx driver was already registered by different pgx major version then we
-	// skip registration under the default name.
-	if !contains(sql.Drivers(), "pgx") {
-		sql.Register("pgx", pgxDriver)
-	}
-	sql.Register("pgx/v4", pgxDriver)
+	sql.Register("pgx", pgxDriver)
 
 	databaseSQLResultFormats = pgx.QueryResultFormatsByOID{
 		pgtype.BoolOID:        1,
@@ -107,17 +101,6 @@ func init() {
 		pgtype.TimestamptzOID: 1,
 		pgtype.XIDOID:         1,
 	}
-}
-
-// TODO replace by slices.Contains when experimental package will be merged to stdlib
-// https://pkg.go.dev/golang.org/x/exp/slices#Contains
-func contains(list []string, y string) bool {
-	for _, x := range list {
-		if x == y {
-			return true
-		}
-	}
-	return false
 }
 
 var (
