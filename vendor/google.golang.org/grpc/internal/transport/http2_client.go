@@ -36,7 +36,6 @@ import (
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/internal"
 	"google.golang.org/grpc/internal/channelz"
 	icredentials "google.golang.org/grpc/internal/credentials"
 	"google.golang.org/grpc/internal/grpclog"
@@ -44,7 +43,7 @@ import (
 	"google.golang.org/grpc/internal/grpcutil"
 	imetadata "google.golang.org/grpc/internal/metadata"
 	istatus "google.golang.org/grpc/internal/status"
-	isyscall "google.golang.org/grpc/internal/syscall"
+	"google.golang.org/grpc/internal/syscall"
 	"google.golang.org/grpc/internal/transport/networktype"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
@@ -177,7 +176,7 @@ func dial(ctx context.Context, fn func(context.Context, string) (net.Conn, error
 	if networkType == "tcp" && useProxy {
 		return proxyDial(ctx, address, grpcUA)
 	}
-	return internal.NetDialerWithTCPKeepalive().DialContext(ctx, networkType, address)
+	return (&net.Dialer{}).DialContext(ctx, networkType, address)
 }
 
 func isTemporary(err error) bool {
@@ -263,7 +262,7 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 	}
 	keepaliveEnabled := false
 	if kp.Time != infinity {
-		if err = isyscall.SetTCPUserTimeout(conn, kp.Timeout); err != nil {
+		if err = syscall.SetTCPUserTimeout(conn, kp.Timeout); err != nil {
 			return nil, connectionErrorf(false, err, "transport: failed to set TCP_USER_TIMEOUT: %v", err)
 		}
 		keepaliveEnabled = true
@@ -494,9 +493,8 @@ func (t *http2Client) newStream(ctx context.Context, callHdr *CallHdr) *Stream {
 
 func (t *http2Client) getPeer() *peer.Peer {
 	return &peer.Peer{
-		Addr:      t.remoteAddr,
-		AuthInfo:  t.authInfo, // Can be nil
-		LocalAddr: t.localAddr,
+		Addr:     t.remoteAddr,
+		AuthInfo: t.authInfo, // Can be nil
 	}
 }
 
@@ -1401,6 +1399,7 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 		mdata          = make(map[string][]string)
 		contentTypeErr = "malformed header: missing HTTP content-type"
 		grpcMessage    string
+		statusGen      *status.Status
 		recvCompress   string
 		httpStatusCode *int
 		httpStatusErr  string
@@ -1435,6 +1434,12 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 			rawStatusCode = codes.Code(uint32(code))
 		case "grpc-message":
 			grpcMessage = decodeGrpcMessage(hf.Value)
+		case "grpc-status-details-bin":
+			var err error
+			statusGen, err = decodeGRPCStatusDetails(hf.Value)
+			if err != nil {
+				headerError = fmt.Sprintf("transport: malformed grpc-status-details-bin: %v", err)
+			}
 		case ":status":
 			if hf.Value == "200" {
 				httpStatusErr = ""
@@ -1543,12 +1548,14 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 		return
 	}
 
-	status := istatus.NewWithProto(rawStatusCode, grpcMessage, mdata[grpcStatusDetailsBinHeader])
+	if statusGen == nil {
+		statusGen = status.New(rawStatusCode, grpcMessage)
+	}
 
 	// If client received END_STREAM from server while stream was still active,
 	// send RST_STREAM.
 	rstStream := s.getState() == streamActive
-	t.closeStream(s, io.EOF, rstStream, http2.ErrCodeNo, status, mdata, true)
+	t.closeStream(s, io.EOF, rstStream, http2.ErrCodeNo, statusGen, mdata, true)
 }
 
 // readServerPreface reads and handles the initial settings frame from the

@@ -174,7 +174,7 @@ func (s byInitialism) Less(i, j int) bool {
 
 // Removes leading whitespaces
 func trim(str string) string {
-	return strings.TrimSpace(str)
+	return strings.Trim(str, " ")
 }
 
 // Shortcut to strings.ToUpper()
@@ -231,7 +231,7 @@ func ToHumanNameLower(name string) string {
 		if !w.IsInitialism() {
 			out = append(out, lower(w.GetOriginal()))
 		} else {
-			out = append(out, trim(w.GetOriginal()))
+			out = append(out, w.GetOriginal())
 		}
 	}
 
@@ -244,7 +244,7 @@ func ToHumanNameTitle(name string) string {
 
 	out := make([]string, 0, len(in))
 	for _, w := range in {
-		original := trim(w.GetOriginal())
+		original := w.GetOriginal()
 		if !w.IsInitialism() {
 			out = append(out, Camelize(original))
 		} else {
@@ -264,7 +264,7 @@ func ToJSONName(name string) string {
 			out = append(out, lower(w))
 			continue
 		}
-		out = append(out, Camelize(trim(w)))
+		out = append(out, Camelize(w))
 	}
 	return strings.Join(out, "")
 }
@@ -341,22 +341,13 @@ type zeroable interface {
 // IsZero returns true when the value passed into the function is a zero value.
 // This allows for safer checking of interface values.
 func IsZero(data interface{}) bool {
-	v := reflect.ValueOf(data)
-	// check for nil data
-	switch v.Kind() { //nolint:exhaustive
-	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
-		if v.IsNil() {
-			return true
-		}
-	}
-
 	// check for things that have an IsZero method instead
 	if vv, ok := data.(zeroable); ok {
 		return vv.IsZero()
 	}
-
 	// continue with slightly more complex reflection
-	switch v.Kind() { //nolint:exhaustive
+	v := reflect.ValueOf(data)
+	switch v.Kind() {
 	case reflect.String:
 		return v.Len() == 0
 	case reflect.Bool:
@@ -367,13 +358,14 @@ func IsZero(data interface{}) bool {
 		return v.Uint() == 0
 	case reflect.Float32, reflect.Float64:
 		return v.Float() == 0
+	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		return v.IsNil()
 	case reflect.Struct, reflect.Array:
 		return reflect.DeepEqual(data, reflect.Zero(v.Type()).Interface())
 	case reflect.Invalid:
 		return true
-	default:
-		return false
 	}
+	return false
 }
 
 // AddInitialisms add additional initialisms

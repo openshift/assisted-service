@@ -138,20 +138,21 @@ func (p *Printer) Printf(key Reference, a ...interface{}) (n int, err error) {
 
 func lookupAndFormat(p *printer, r Reference, a []interface{}) {
 	p.fmt.Reset(a)
+	var id, msg string
 	switch v := r.(type) {
 	case string:
-		if p.catContext.Execute(v) == catalog.ErrNotFound {
-			p.Render(v)
-			return
-		}
+		id, msg = v, v
 	case key:
-		if p.catContext.Execute(v.id) == catalog.ErrNotFound &&
-			p.catContext.Execute(v.fallback) == catalog.ErrNotFound {
-			p.Render(v.fallback)
-			return
-		}
+		id, msg = v.id, v.fallback
 	default:
 		panic("key argument is not a Reference")
+	}
+
+	if p.catContext.Execute(id) == catalog.ErrNotFound {
+		if p.catContext.Execute(msg) == catalog.ErrNotFound {
+			p.Render(msg)
+			return
+		}
 	}
 }
 

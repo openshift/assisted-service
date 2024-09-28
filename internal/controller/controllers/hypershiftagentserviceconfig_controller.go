@@ -189,18 +189,8 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return ctrl.Result{}, nil
 	}
 
-	supportsCertManager := false
-	if !asc.rec.IsOpenShift {
-		var certErr error
-		supportsCertManager, certErr = serverSupportsCertManager(ctx, asc.Client)
-		if certErr != nil {
-			log.WithError(certErr).Error("failed to check if server supports cert-manager")
-			return ctrl.Result{}, certErr
-		}
-	}
-
 	// Invoke validation funcs
-	valid, err = validate(ctx, log, asc, supportsCertManager)
+	valid, err = validate(ctx, log, asc)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}

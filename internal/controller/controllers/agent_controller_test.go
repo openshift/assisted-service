@@ -366,8 +366,6 @@ var _ = Describe("agent reconcile", func() {
 				StatusInfo:         swag.String("I am known"),
 				InfraEnvID:         infraEnvId,
 				InstallationDiskID: newInstallDiskPath,
-				RequestedHostname:  newHostName,
-				Role:               models.HostRole(newRole),
 			},
 		}
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{
@@ -385,45 +383,42 @@ var _ = Describe("agent reconcile", func() {
 		host.ObjectMeta.Labels[v1beta1.InfraEnvNameLabel] = "infraEnvName"
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
-		getHostBeforeUpdate := mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(beforeUpdateHost, nil).Times(1)
-		getHostAfterUpdate := mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(afterUpdateHost, nil).AnyTimes()
-		gomock.InOrder(getHostBeforeUpdate, getHostAfterUpdate)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(beforeUpdateHost, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(afterUpdateHost, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).
 			Do(func(ctx context.Context, param installer.V2UpdateHostParams, interactive bminventory.Interactivity) {
 				Expect(swag.StringValue(param.HostUpdateParams.HostName)).To(Equal(newHostName))
 				Expect(param.HostID).To(Equal(hostId))
 				Expect(param.InfraEnvID).To(Equal(infraEnvId))
 				Expect(param.HostUpdateParams.HostRole).To(Equal(&newRole))
-			}).Return(afterUpdateHost, nil).Times(1)
+			}).Return(afterUpdateHost, nil).Times(2)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, name types.NamespacedName, agent *v1beta1.Agent, opts ...client.GetOption) error {
 				return c.Get(ctx, name, agent, opts...)
 			},
-		).AnyTimes()
+		).Times(3)
 		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
 			func(ctx context.Context, name types.NamespacedName, cd *hivev1.ClusterDeployment, opts ...client.GetOption) error {
 				return c.Get(ctx, name, cd, opts...)
 			},
-		).AnyTimes()
+		).Times(2)
 		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 				return c.Update(ctx, agent)
 			},
 		).Times(1)
-		mockClient.EXPECT().Status().Return(mockSubResourceWriter).AnyTimes()
+		mockClient.EXPECT().Status().Return(mockSubResourceWriter).Times(1)
 		mockSubResourceWriter.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 				return c.Status().Update(ctx, agent)
 			},
-		).Times(2)
+		).Times(1)
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 
-		// We test 4 times to verify that agent is only updated twice
-		// This happens because the agent labels are updated then the agent is requeried
-		// This process overwrites changes to the status because status is only updateable with the status client
-		for i := 0; i != 4; i++ {
+		// We test 2 times to verify that agent is not updated the second time
+		for i := 0; i != 2; i++ {
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -1740,18 +1735,12 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 		Expect(c.Create(ctx, host)).To(BeNil())
-
-		// Reconcile twice here to get all the updates
-		// The first does not update inventory in status because it requeries the agent after updating labels
-		// The second reconcile will update status including inventory because no labels will need to be added
-		for i := 0; i < 2; i++ {
-			result, err := hr.Reconcile(ctx, newHostRequest(host))
-			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{}))
-		}
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
@@ -1771,7 +1760,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(agent.GetLabels()[InventoryLabelPrefix+"host-productname"]).To(Equal(""))
 		Expect(agent.GetLabels()[InventoryLabelPrefix+"host-isvirtual"]).To(Equal("true"))
 
-		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		result, err = hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 	})
