@@ -2,20 +2,15 @@ package lo
 
 import "reflect"
 
-// IsNil checks if a value is nil or if it's a reference type with a nil underlying value.
-func IsNil(x any) bool {
-	defer func() { recover() }() // nolint:errcheck
-	return x == nil || reflect.ValueOf(x).IsNil()
-}
-
 // ToPtr returns a pointer copy of value.
 func ToPtr[T any](x T) *T {
 	return &x
 }
 
-// Nil returns a nil pointer of type.
-func Nil[T any]() *T {
-	return nil
+// IsNil checks if a value is nil or if it's a reference type with a nil underlying value.
+func IsNil(x any) bool {
+	defer func() { recover() }()
+	return x == nil || reflect.ValueOf(x).IsNil()
 }
 
 // EmptyableToPtr returns a pointer copy of value if it's nonzero.
@@ -50,40 +45,16 @@ func FromPtrOr[T any](x *T, fallback T) T {
 
 // ToSlicePtr returns a slice of pointer copy of value.
 func ToSlicePtr[T any](collection []T) []*T {
-	result := make([]*T, len(collection))
-
-	for i := range collection {
-		result[i] = &collection[i]
-	}
-	return result
-}
-
-// FromSlicePtr returns a slice with the pointer values.
-// Returns a zero value in case of a nil pointer element.
-func FromSlicePtr[T any](collection []*T) []T {
-	return Map(collection, func(x *T, _ int) T {
-		if x == nil {
-			return Empty[T]()
-		}
-		return *x
-	})
-}
-
-// FromSlicePtr returns a slice with the pointer values or the fallback value.
-func FromSlicePtrOr[T any](collection []*T, fallback T) []T {
-	return Map(collection, func(x *T, _ int) T {
-		if x == nil {
-			return fallback
-		}
-		return *x
+	return Map(collection, func(x T, _ int) *T {
+		return &x
 	})
 }
 
 // ToAnySlice returns a slice with all elements mapped to `any` type
 func ToAnySlice[T any](collection []T) []any {
 	result := make([]any, len(collection))
-	for i := range collection {
-		result[i] = collection[i]
+	for i, item := range collection {
+		result[i] = item
 	}
 	return result
 }
@@ -99,8 +70,8 @@ func FromAnySlice[T any](in []any) (out []T, ok bool) {
 	}()
 
 	result := make([]T, len(in))
-	for i := range in {
-		result[i] = in[i].(T)
+	for i, item := range in {
+		result[i] = item.(T)
 	}
 	return result, true
 }
@@ -124,20 +95,14 @@ func IsNotEmpty[T comparable](v T) bool {
 }
 
 // Coalesce returns the first non-empty arguments. Arguments must be comparable.
-func Coalesce[T comparable](values ...T) (result T, ok bool) {
-	for i := range values {
-		if values[i] != result {
-			result = values[i]
+func Coalesce[T comparable](v ...T) (result T, ok bool) {
+	for _, e := range v {
+		if e != result {
+			result = e
 			ok = true
 			return
 		}
 	}
 
 	return
-}
-
-// CoalesceOrEmpty returns the first non-empty arguments. Arguments must be comparable.
-func CoalesceOrEmpty[T comparable](v ...T) T {
-	result, _ := Coalesce(v...)
-	return result
 }
