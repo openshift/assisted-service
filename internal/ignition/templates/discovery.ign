@@ -22,18 +22,7 @@
     {
         "name": "multipathd.service",
         "enabled": true
-    },
-    {
-        "name": "iscsistart.service",
-        "enabled": true,
-        "contents": {{ executeTemplate "iscsistart.service" . | toString | toJson }}
-    },
-    {
-        "name": "iscsi-oci-configure-secondary-nic.service",
-        "enabled": true,
-        "contents": {{ executeTemplate "iscsi-oci-configure-secondary-nic.service" . | toString | toJson }}
-    }
-    {{end}}{{if .StaticNetworkConfig}},
+    }{{end}}{{if .StaticNetworkConfig}},
     {
         "name": "pre-network-manager-config.service",
         "enabled": true,
@@ -48,8 +37,12 @@
         "name": "systemd-journal-gatewayd.socket",
         "enabled": true,
         "contents": {{ executeTemplate "systemd-journal-gatewayd.socket" . | toString | toJson }}
-    }
-    {{end}}{{if .AdditionalNtpSources}},
+    }{{end}}{{if .OKDBinaries | not}},
+    {
+        "name": "iscsistart.service",
+        "enabled": true,
+        "contents": {{ executeTemplate "iscsistart.service" . | toString | toJson }}
+    }{{end}}{{if .AdditionalNtpSources}},
     {
         "name": "add-ntp-sources.service",
         "enabled": true,
@@ -85,16 +78,7 @@
           "name": "root"
       },
       "contents": { "source": "data:text/plain;charset=utf-8;base64,{{ executeTemplate "multipath.conf" . | toBase64 }}" }
-    },
-    {
-      "path": "/usr/local/bin/iscsi-oci-configure-secondary-nic.sh",
-      "mode": 493,
-      "user": {
-        "name": "root"
-      },
-      "contents": { "source": "data:text/plain;charset=utf-8;base64,{{ executeTemplate "iscsi-oci-configure-secondary-nic.sh" . | toBase64 }}" }
-    }
-    {{end}},
+    }{{end}},
     {
       "overwrite": true,
       "path": "/etc/NetworkManager/conf.d/01-ipv6.conf",
