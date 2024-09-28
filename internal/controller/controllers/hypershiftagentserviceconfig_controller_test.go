@@ -208,16 +208,6 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		},
 	}
 
-	clusterTrustedCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterCAConfigMapName,
-			Namespace: testNamespace,
-		},
-		Data: map[string]string{
-			caBundleKey: "example-cluster-trusted-bundle",
-		},
-	}
-
 	konnectivity := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "konnectivity-agent",
@@ -280,7 +270,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		crd = newAgentInstallCRD()
 		imageServiceStatefulSet = newImageServiceStatefulSet(*hsc.Spec.ImageStorage)
 		hr = newHSCTestReconciler(mockSpokeClientCache, hsc,
-			kubeconfigSecret, crd, ingressCM, route, imageRoute, imageServiceStatefulSet, service, konnectivity, openshift_service_ca, clusterTrustedCM)
+			kubeconfigSecret, crd, ingressCM, route, imageRoute, imageServiceStatefulSet, service, konnectivity, openshift_service_ca)
 	})
 
 	AfterEach(func() {

@@ -96,14 +96,6 @@ var _ = Describe("Agent service config controller storage validation", func() {
 			Client:    client,
 			Namespace: "assisted-installer",
 		}
-		clusterTrustedCM := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterCAConfigMapName,
-				Namespace: reconciler.Namespace,
-			},
-			Data: map[string]string{caBundleKey: "example-cluster-trusted-bundle"},
-		}
-		Expect(client.Create(ctx, clusterTrustedCM)).To(Succeed())
 	})
 
 	AfterEach(func() {
