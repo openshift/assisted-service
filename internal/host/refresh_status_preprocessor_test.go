@@ -45,7 +45,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 	)
 
 	BeforeEach(func() {
-		ctx = context.TODO()
+		ctx = context.Background()
 		ctrl = gomock.NewController(GinkgoT())
 		inventoryCache = make(InventoryCache)
 		mockHardwareValidator = hardware.NewMockValidator(ctrl)
