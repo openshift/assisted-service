@@ -15,10 +15,8 @@ It will deploy assisted-service in a debug mode together with its components. To
         {
             "name": "Remote - debug",
             "type": "go",
-            "debugAdapter": "dlv-dap",
             "request": "attach",
             "mode": "remote",
-            "remotePath": "",
             "port": 40000,
             "host": "127.0.0.1"
         },
