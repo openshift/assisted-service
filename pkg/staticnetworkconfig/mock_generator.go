@@ -80,6 +80,21 @@ func (mr *MockStaticNetworkConfigMockRecorder) GenerateStaticNetworkConfigDataYA
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateStaticNetworkConfigDataYAML", reflect.TypeOf((*MockStaticNetworkConfig)(nil).GenerateStaticNetworkConfigDataYAML), staticNetworkConfigStr)
 }
 
+// NMStatectlServiceSupported mocks base method.
+func (m *MockStaticNetworkConfig) NMStatectlServiceSupported(version, arch string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NMStatectlServiceSupported", version, arch)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NMStatectlServiceSupported indicates an expected call of NMStatectlServiceSupported.
+func (mr *MockStaticNetworkConfigMockRecorder) NMStatectlServiceSupported(version, arch interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NMStatectlServiceSupported", reflect.TypeOf((*MockStaticNetworkConfig)(nil).NMStatectlServiceSupported), version, arch)
+}
+
 // ValidateStaticConfigParamsYAML mocks base method.
 func (m *MockStaticNetworkConfig) ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, arch, installerInvoker string) error {
 	m.ctrl.T.Helper()
