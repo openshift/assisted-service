@@ -55,6 +55,7 @@ function wait_for_pod() {
 }
 
 function wait_for_pods(){
+
   while [[ $(oc get pods -n $1 -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}'| tr ' ' '\n'  | sort -u) != "True" ]]; do
     echo "Waiting for pods in namespace $1 to be ready"
     oc get pods -n $1 -o 'jsonpath={..status.containerStatuses}' | jq "."
@@ -72,9 +73,15 @@ function wait_for_deployment() {
     for i in {1..40}; do
         oc get deployment "${deployment}" --namespace="${namespace}" |& grep -ivE "(no resources found|not found)" && break || sleep 10
     done
+    if [ $i -eq 40 ]; then
+      echo "ERROR: failed Waiting for (deployment) on namespace (${namespace}) with name (${deployment}) to be created..."
+      exit 1
+    fi
 
     echo "Waiting for (deployment) on namespace (${namespace}) with name (${deployment}) to rollout..."
-    oc rollout status "deploy/${deployment}" -n "${namespace}" --timeout="${timeout}"
+    REPLICAS=$(oc get deployments.apps -n assisted-installer assisted-service  -o json | jq .status.replicas)
+    oc --namespace "${namespace}" wait --for=jsonpath='{.status.availableReplicas}'=$REPLICAS  \
+      --timeout=5m "deployment.apps/${deployment}"
 }
 
 function hash() {
