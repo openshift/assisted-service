@@ -2202,6 +2202,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			}
 			Eventually(func() error {
 				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				annotations := agent.GetAnnotations()
+				annotations[controllers.AgentSkipSpokeCleanupAnnotation] = "true"
+				agent.SetAnnotations(annotations)
 				agent.Spec.Approved = true
 				return kubeClient.Update(ctx, agent)
 			}, "30s", "10s").Should(BeNil())
@@ -5082,8 +5085,15 @@ spec:
 			return len(getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout).Hosts)
 		}, "2m", "2s").Should(Equal(1))
 
-		By("Delete agent CR and validate")
+		By("Add skip-spoke-cleanup annotiaion")
 		agent := getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items[0]
+		annotations := agent.GetAnnotations()
+		annotations[controllers.AgentSkipSpokeCleanupAnnotation] = "true"
+		agent.SetAnnotations(annotations)
+		Expect(kubeClient.Update(ctx, &agent)).To(BeNil())
+
+		By("Delete agent CR and validate")
+		agent = getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items[0]
 		Expect(kubeClient.Delete(ctx, &agent)).To(BeNil())
 		Eventually(func() int {
 			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
