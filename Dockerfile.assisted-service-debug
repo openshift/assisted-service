@@ -9,6 +9,8 @@ RUN dnf install --enablerepo=crb -y gcc git nmstate-devel openssl-devel make && 
 ENV GOROOT=/usr/lib/golang
 ENV GOPATH=/opt/app-root/src/go
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+# For build-minimal target
+ENV DEBUG_SERVICE=true
 
 COPY --from=golang $GOPATH $GOPATH
 COPY --from=golang $GOROOT $GOROOT
