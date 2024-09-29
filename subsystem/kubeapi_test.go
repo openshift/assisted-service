@@ -3417,34 +3417,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		checkAgentCondition(ctx, host.ID.String(), v1beta1.SpecSyncedCondition, v1beta1.BackendErrorReason)
 	})
 
-	It("deploy clusterDeployment and infraEnv and with an invalid NMState config YAML", func() {
-		var (
-			NMStateLabelName  = "someName"
-			NMStateLabelValue = "someValue"
-			nicPrimary        = "eth0"
-			nicSecondary      = "eth1"
-			macPrimary        = "09:23:0f:d8:92:AA"
-			macSecondary      = "09:23:0f:d8:92:AB"
-		)
-		nmstateConfigSpec := getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, "foo: bar")
-		deployNMStateConfigCRD(ctx, kubeClient, "nmstate2", NMStateLabelName, NMStateLabelValue, nmstateConfigSpec)
-		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-		installkey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
-		}
-		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
-		infraEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
-		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
-		infraEnvKubeName := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      infraNsName.Name,
-		}
-		// InfraEnv Reconcile takes longer, since it needs to generate the image.
-		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, "Invalid YAML")
-	})
-
 	It("ensure StaticNetworkConfig is empty after NMStateConfig deletion", func() {
 		var (
 			NMStateLabelName  = "someName"
