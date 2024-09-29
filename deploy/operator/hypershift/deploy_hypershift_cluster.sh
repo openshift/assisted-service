@@ -53,7 +53,7 @@ oc patch storageclass assisted-service -p '{"metadata": {"annotations":{"storage
 
 echo "Installing HyperShift using upstream image"
 hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift $EXTRA_HYPERSHIFT_INSTALL_FLAGS
-wait_for_pods "hypershift"
+wait_for_pod pod "hypershift" 
 
 echo "Creating HostedCluster"
 oc get hostedcluster ${ASSISTED_CLUSTER_NAME} -n ${HYPERSHIFT_AGENT_NS} || \
@@ -61,9 +61,9 @@ oc get hostedcluster ${ASSISTED_CLUSTER_NAME} -n ${HYPERSHIFT_AGENT_NS} || \
         --ssh-key /root/.ssh/id_rsa.pub --agent-namespace $HYPERSHIFT_AGENT_NS --namespace $HYPERSHIFT_AGENT_NS
 
 echo "Wait for a running hypershift cluster with no worker nodes"
-wait_for_pods "$SPOKE_NAMESPACE"
-wait_for_condition "nodepool/$ASSISTED_CLUSTER_NAME" "Ready" "10m" "$HYPERSHIFT_AGENT_NS"
-wait_for_condition "hostedcluster/$ASSISTED_CLUSTER_NAME" "Available" "10m" "$HYPERSHIFT_AGENT_NS"
+wait_for_pod  pod "$SPOKE_NAMESPACE"
+wait_for_condition "nodepool/$ASSISTED_CLUSTER_NAME" "condition=Ready" "10m" "$HYPERSHIFT_AGENT_NS"
+wait_for_condition "hostedcluster/$ASSISTED_CLUSTER_NAME" "condition=Available" "10m" "$HYPERSHIFT_AGENT_NS"
 
 echo "Extract spoke kubeconfig"
 oc extract -n $HYPERSHIFT_AGENT_NS secret/$ASSISTED_CLUSTER_NAME-admin-kubeconfig --to=- > /tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
@@ -79,7 +79,7 @@ oc --kubeconfig $SPOKE_KUBECONFIG apply -f ${__root}/hack/crds
 echo "Apply HypershiftAgentServiceConfig on hub"
 ansible-playbook "${playbooks_dir}/hasc-playbook.yaml"
 oc apply -f ${playbooks_dir}/generated/hasc.yaml -n $SPOKE_NAMESPACE
-wait_for_condition "hypershiftagentserviceconfigs/hypershift-agent" "DeploymentsHealthy" "20m" "$SPOKE_NAMESPACE"
+wait_for_condition "hypershiftagentserviceconfigs/hypershift-agent" "condition=DeploymentsHealthy" "20m" "$SPOKE_NAMESPACE"
 
 echo "Create assisted secrets"
 oc --kubeconfig $SPOKE_KUBECONFIG get secret "${ASSISTED_PULLSECRET_NAME}" -n "${SPOKE_NAMESPACE}" || \
@@ -95,7 +95,7 @@ oc --kubeconfig $SPOKE_KUBECONFIG apply -f ${playbooks_dir}/generated/agentClust
 oc --kubeconfig $SPOKE_KUBECONFIG apply -f ${playbooks_dir}/generated/infraEnv.yaml -n $SPOKE_NAMESPACE
 
 echo "Wait for InfraEnv ImageCreated"
-KUBECONFIG=$SPOKE_KUBECONFIG wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${SPOKE_NAMESPACE}"
+KUBECONFIG=$SPOKE_KUBECONFIG wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "condition=ImageCreated" "5m" "${SPOKE_NAMESPACE}"
 export ISO_DOWNLOAD_URL=$(oc get --kubeconfig $SPOKE_KUBECONFIG -n $SPOKE_NAMESPACE infraenv $ASSISTED_INFRAENV_NAME -o jsonpath='{.status.isoDownloadURL}')
 
 echo "Apply BareMetalHost on hub"
@@ -113,10 +113,10 @@ oc --kubeconfig $SPOKE_KUBECONFIG -n $SPOKE_NAMESPACE patch agent $agent_name -p
 
 echo "Waiting until cluster is installed"
 
-KUBECONFIG=$SPOKE_KUBECONFIG wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Stopped" "90m" "${SPOKE_NAMESPACE}"
+KUBECONFIG=$SPOKE_KUBECONFIG wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "condition=Stopped" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster installation has been stopped (either for good or bad reasons)"
 
-KUBECONFIG=$SPOKE_KUBECONFIG wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "90m" "${SPOKE_NAMESPACE}"
+KUBECONFIG=$SPOKE_KUBECONFIG wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "condition=Completed" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster has been installed successfully!"
 
 

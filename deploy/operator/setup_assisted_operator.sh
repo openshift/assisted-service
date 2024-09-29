@@ -110,7 +110,7 @@ function install_from_catalog_source() {
 
   if [ "${DISCONNECTED}" != "true" ]; then
     # In disconnected mode it should be applied already with a different image
-  tee << EOCR >(oc apply -f -)
+  tee << EOCR >(oc apply --wait=true -f -)
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -124,7 +124,7 @@ spec:
 EOCR
   fi
 
-  tee << EOCR >(oc apply -f -)
+  tee << EOCR >(oc apply --wait=true -f -)
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -159,7 +159,7 @@ EOCR
 
   wait_for_crd "agentserviceconfigs.agent-install.openshift.io"
 
-  tee << EOCR >(oc apply -f -)
+  tee << EOCR >(oc apply --wait=true -f -)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -174,7 +174,7 @@ EOCR
     deploy_mirror_config_map
   fi
 
-  tee << EOCR >(oc apply -f -)
+  tee << EOCR >(oc apply --wait=true -f -)
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:
@@ -215,7 +215,7 @@ EOCR
   oc patch -n ${ASSISTED_NAMESPACE} agentserviceconfig agent --type merge -p '{"spec":{"osImages":'"${OS_IMAGES_CAMELCASE}"'}}'
 
   wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
-  wait_for_condition "agentserviceconfigs/agent" "ReconcileCompleted" "5m"
+  wait_for_condition "agentserviceconfigs/agent" "condition=ReconcileCompleted" "5m"
   wait_for_deployment "assisted-service" "${ASSISTED_NAMESPACE}" "5m"
   wait_for_pod "assisted-image-service" "${ASSISTED_NAMESPACE}" "app=assisted-image-service"
 
@@ -303,7 +303,7 @@ data:
 EOCR
 
   python ${__dir}/set_ca_bundle.py "${WORKING_DIR}/registry/certs/registry.2.crt" "./assisted-mirror-config"
-  tee < ./assisted-mirror-config >(oc apply -f -)
+  tee < ./assisted-mirror-config >(oc apply --wait=true -f -)
 }
 
 function from_index_image() {

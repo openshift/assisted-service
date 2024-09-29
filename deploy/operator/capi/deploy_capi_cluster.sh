@@ -123,7 +123,7 @@ spec:
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
     fi
-    oc apply -f mirrors-config.yaml
+    oc apply --wait=true -f mirrors-config.yaml
     # 6. Image content source for hosted cluster to be passed in through the hypershift create command
   cat << EOM >> /tmp/ics-hc.yaml
 - mirrors:
@@ -163,10 +163,10 @@ oc get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${SPOKE_NAMESPACE}" || \
     oc create secret generic "${ASSISTED_PRIVATEKEY_NAME}" --from-file=ssh-privatekey=/root/.ssh/id_rsa --type=kubernetes.io/ssh-auth -n "${SPOKE_NAMESPACE}"
 
 for manifest in $(find ${__dir}/generated -type f); do
-    tee < "${manifest}" >(oc apply -f -)
+    tee < "${manifest}" >(oc apply --wait=true -f -)
 done
 
-wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${SPOKE_NAMESPACE}"
+wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "condition=ImageCreated" "5m" "${SPOKE_NAMESPACE}"
 
 echo "Waiting until at least ${SPOKE_CONTROLPLANE_AGENTS} agents are available..."
 
@@ -202,7 +202,7 @@ if [ "${DISCONNECTED}" = "true" ]; then
   # delete all rs since patching the deployment doesn't actually remove the running rs
   oc delete rs --all -n hypershift
 fi
-wait_for_pods "hypershift"
+wait_for_pod pod "hypershift"
 
 if [ -z "$PROVIDER_IMAGE" ]
 then
@@ -233,8 +233,8 @@ hypershift_cli hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --b
 # Wait for a hypershift hostedcontrolplane to report ready status
 wait_for_resource "hostedcontrolplane/${ASSISTED_CLUSTER_NAME}" "${SPOKE_NAMESPACE}-${ASSISTED_CLUSTER_NAME}"
 wait_for_boolean_field "hostedcontrolplane/${ASSISTED_CLUSTER_NAME}" status.ready "${SPOKE_NAMESPACE}-${ASSISTED_CLUSTER_NAME}"
-wait_for_condition "nodepool/$ASSISTED_CLUSTER_NAME" "Ready" "10m" "$SPOKE_NAMESPACE"
-wait_for_condition "hostedcluster/$ASSISTED_CLUSTER_NAME" "Available" "10m" "$SPOKE_NAMESPACE"
+wait_for_condition "nodepool/$ASSISTED_CLUSTER_NAME" "condition=Ready" "10m" "$SPOKE_NAMESPACE"
+wait_for_condition "hostedcluster/$ASSISTED_CLUSTER_NAME" "condition=Available" "10m" "$SPOKE_NAMESPACE"
 
 # Scale up
 echo "Scaling the hosted cluster up to contain ${SPOKE_CONTROLPLANE_AGENTS} worker nodes"
