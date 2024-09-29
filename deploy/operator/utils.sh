@@ -6,8 +6,9 @@ function wait_for_crd() {
     crd="$1"
     namespace="${2:-}"
 
-    wait_for_condition "crd/${crd}" "Established" "60s" "${namespace}"
+    wait_for_condition "crd/${crd}" "condition=Established" "60s" "${namespace}"
 }
+
 
 function remote_agents() {
 	namespace="$1"
@@ -26,41 +27,64 @@ function installed_remote_agents() {
 export -f installed_remote_agents
 
 function wait_for_operator() {
-    subscription="$1"
-    namespace="${2:-}"
-    echo "Waiting for operator ${subscription} to get installed on namespace ${namespace}..."
+   subscription="$1"
+   namespace="${2:-}"
+   set -x
+   
+   timeout=10m
+   wait_for_resource "subscriptions.operators.coreos.com/${subscription}" "${namespace}"
+   
+    
+   wait_for_field "subscriptions.operators.coreos.com/${subscription}" "${namespace}" '{..status.state}'
+   oc wait -n "${namespace}" --for=jsonpath='{..status.state}'=AtLatestKnown "subscriptions.operators.coreos.com/${subscription}" --timeout=${timeout} -o json
 
-    for _ in $(seq 1 60); do
-        csv=$(oc -n "${namespace}" get subscription "${subscription}" -o jsonpath='{.status.installedCSV}' || true)
-        if [[ -n "${csv}" ]]; then
-            if [[ "$(oc -n "${namespace}" get csv "${csv}" -o jsonpath='{.status.phase}')" == "Succeeded" ]]; then
-                echo "ClusterServiceVersion (${csv}) is ready"
-                return 0
-            fi
-        fi
 
-        sleep 10
-    done
+   wait_for_field "subscriptions.operators.coreos.com/${subscription}" "${namespace}" '{..status.installedCSV}'
+   csv=$(oc get subscriptions.operators.coreos.com/${subscription} --namespace=${namespace} -o jsonpath='{..status.installedCSV}')
+   wait_for_condition "clusterserviceversions.operators.coreos.com/${csv}"  jsonpath='{.status.phase}'="Succeeded" "5m" "${namespace}"
+ }
 
-    echo "Timed out waiting for csv to become ready!"
-    return 1
-}
+ function wait_for_field() {
+   object="$1"
+   namespace="$2"
+   jsonPath="$3"
+   retry="${4:-120}"
+  
+  counter=1
+  echo "Waiting for ${object} in namespace ${namespace} with field ${jsonPath}"
+  until [[ $(oc get "${object}"  --namespace="${namespace}" -o jsonpath="${jsonPath}" 2> /dev/null ) ]]
+  do
+    if [[ "${counter}" -eq "${retry}" ]]
+    then
+      echo "$(date --rfc-3339=seconds) ERROR: failed Waiting for ${object} in namespace ${namespace} with field ${jsonPath}"
+      oc get ${object}  --namespace="${namespace}" -o json
+      exit 1
+      break 
+    fi
+    ((counter++)) && sleep 5
+  done
+ }
+
 
 function wait_for_pod() {
     pod="$1"
     namespace="${2:-}"
     selector="${3:-}"
 
-    wait_for_condition "pod" "Ready" "30m" "${namespace}" "${selector}"
+    oc wait -n "${namespace}" --all --for=condition=Ready pod --timeout=15m --output json --selector="${selector}"
 }
 
 function wait_for_pods(){
-  while [[ $(oc get pods -n $1 -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}'| tr ' ' '\n'  | sort -u) != "True" ]]; do
-    echo "Waiting for pods in namespace $1 to be ready"
-    oc get pods -n $1 -o 'jsonpath={..status.containerStatuses}' | jq "."
-    sleep 5;
-  done
-  echo "Pods in namespace $1 are ready"
+  namespace=$1
+
+  if [[ $(oc wait --namespace "${namespace}" --all --for=condition=Ready pod --timeout 1m) ]]; then
+    echo "All Pods in namespace ${namespace} are ready"}
+  else
+    echo "ERROR: Failed waiting for pods"
+    # debug output
+    oc get pods --namespace  "${namespace}"
+    exit 1
+  fi
 }
 
 function wait_for_deployment() {
@@ -70,11 +94,18 @@ function wait_for_deployment() {
 
     echo "Waiting for (deployment) on namespace (${namespace}) with name (${deployment}) to be created..."
     for i in {1..40}; do
-        oc get deployment "${deployment}" --namespace="${namespace}" |& grep -ivE "(no resources found|not found)" && break || sleep 10
+        oc get deployments.apps "${deployment}" --namespace="${namespace}" |& grep -ivE "(no resources found|not found)" && break || sleep 10
     done
+    if [ $i -eq 40 ]; then
+   echo "ERROR: failed Waiting for (deployment) on namespace (${namespace}) with name (${deployment}) to be created..."
+      exit 1
+    fi
 
     echo "Waiting for (deployment) on namespace (${namespace}) with name (${deployment}) to rollout..."
-    oc rollout status "deploy/${deployment}" -n "${namespace}" --timeout="${timeout}"
+
+    wait_for_field "deployments.apps/${deployment}" "${namespace}" '{..status.availableReplicas}' "600" 
+    REPLICAS=$(oc get deployments.apps --namespace="${namespace}" "${deployment}"  -o jsonpath='{..status.replicas}')
+    wait_for_condition "deployments.apps/${deployment}"  jsonpath='{..status.availableReplicas}'="${REPLICAS}" "5m" "${namespace}"
 }
 
 function hash() {
@@ -96,14 +127,11 @@ function wait_for_condition() {
     timeout="$3"
     namespace="${4:-}"
     selector="${5:-}"
-
-    echo "Waiting for (${object}) on namespace (${namespace}) with labels (${selector}) to be created..."
-    for i in {1..40}; do
-        oc get ${object} --selector="${selector}" --namespace=${namespace} |& grep -ivE "(no resources found|not found)" && break || sleep 10
-    done
+    
+    wait_for_resource "${object}" "${namespace}"
 
     echo "Waiting for (${object}) on namespace (${namespace}) with labels (${selector}) to become (${condition})..."
-    oc wait -n "${namespace}" --for=condition=${condition} --selector "${selector}" ${object} --timeout=${timeout}
+    oc wait -n "${namespace}" --for="${condition}"  "${object}" --timeout="${timeout}" --selector "${selector}" -o json
 }
 
 function wait_for_object_amount() {
@@ -153,20 +181,21 @@ function wait_for_boolean_field() {
 function wait_for_resource() {
     object="$1"
     namespace="$2"
-    interval="${4:-10}"
     set +e
-    for i in {1..50}; do
-        date --rfc-3339=seconds
-        value=$(oc get -n ${namespace} ${object} --no-headers | wc -l)
-        if [ "${value}" -ne 0 ]; then
-            return 0
-        fi
-        sleep ${interval}
-    done
-    set -e
 
-    echo "The object ${object} under namespace ${namespace} not found!"
-    return 1
+    counter=1
+    echo "$(date --rfc-3339=seconds) Waiting for resource ${object} to be create in namespace ${namespace}"
+    until [[ $(oc get "${object}"  --namespace="${namespace}" 2> /dev/null ) ]]
+    do
+      if [[ "${counter}" -eq 30 ]];
+      then
+        echo "$(date --rfc-3339=seconds) ERROR: failed Waiting for ${object} on namespace ${namespace}"
+        oc get ${object}  --namespace="${namespace}" -o json
+        exit 1
+        break 
+      fi
+      ((counter++)) && sleep 2
+    done
 }
 
 function get_image_without_tag() {

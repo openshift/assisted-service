@@ -215,7 +215,7 @@ EOCR
   oc patch -n ${ASSISTED_NAMESPACE} agentserviceconfig agent --type merge -p '{"spec":{"osImages":'"${OS_IMAGES_CAMELCASE}"'}}'
 
   wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
-  wait_for_condition "agentserviceconfigs/agent" "ReconcileCompleted" "5m"
+  wait_for_condition "agentserviceconfigs/agent" "condition=ReconcileCompleted" "5m"
   wait_for_deployment "assisted-service" "${ASSISTED_NAMESPACE}" "5m"
   wait_for_pod "assisted-image-service" "${ASSISTED_NAMESPACE}" "app=assisted-image-service"
 

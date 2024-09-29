@@ -16,6 +16,7 @@ function print_help() {
 }
 
 function install_lso() {
+  set -x
   oc adm new-project openshift-local-storage || true
 
   retry -- oc annotate namespace openshift-local-storage openshift.io/node-selector='' --overwrite=true

@@ -166,7 +166,7 @@ for manifest in $(find ${__dir}/generated -type f); do
     tee < "${manifest}" >(oc apply -f -)
 done
 
-wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${SPOKE_NAMESPACE}"
+wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "condition=ImageCreated" "5m" "${SPOKE_NAMESPACE}"
 
 echo "Waiting until at least ${SPOKE_CONTROLPLANE_AGENTS} agents are available..."
 
@@ -233,8 +233,8 @@ hypershift_cli hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --b
 # Wait for a hypershift hostedcontrolplane to report ready status
 wait_for_resource "hostedcontrolplane/${ASSISTED_CLUSTER_NAME}" "${SPOKE_NAMESPACE}-${ASSISTED_CLUSTER_NAME}"
 wait_for_boolean_field "hostedcontrolplane/${ASSISTED_CLUSTER_NAME}" status.ready "${SPOKE_NAMESPACE}-${ASSISTED_CLUSTER_NAME}"
-wait_for_condition "nodepool/$ASSISTED_CLUSTER_NAME" "Ready" "10m" "$SPOKE_NAMESPACE"
-wait_for_condition "hostedcluster/$ASSISTED_CLUSTER_NAME" "Available" "10m" "$SPOKE_NAMESPACE"
+wait_for_condition "nodepool/$ASSISTED_CLUSTER_NAME" "condition=Ready" "10m" "$SPOKE_NAMESPACE"
+wait_for_condition "hostedcluster/$ASSISTED_CLUSTER_NAME" "condition=Available" "10m" "$SPOKE_NAMESPACE"
 
 # Scale up
 echo "Scaling the hosted cluster up to contain ${SPOKE_CONTROLPLANE_AGENTS} worker nodes"

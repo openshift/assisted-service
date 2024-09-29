@@ -99,7 +99,7 @@ for manifest in $(find ${__dir}/generated -type f); do
     oc apply -f "${manifest}"
 done
 
-wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${SPOKE_NAMESPACE}"
+wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "condition=ImageCreated" "5m" "${SPOKE_NAMESPACE}"
 
 echo "Waiting until at least ${SPOKE_CONTROLPLANE_AGENTS} agents are available..."
 
@@ -130,10 +130,10 @@ if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ] && [ "${USER_MANAGED_NETWORKING}" == "
     fi
 fi
 
-wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Stopped" "90m" "${SPOKE_NAMESPACE}"
+wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "condition=Stopped" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster installation has been stopped (either for good or bad reasons)"
 
-wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "1m" "${SPOKE_NAMESPACE}"
+wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "condition=Completed" "1m" "${SPOKE_NAMESPACE}"
 echo "Cluster has been installed successfully!"
 
 wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${SPOKE_NAMESPACE}"

@@ -112,7 +112,7 @@ spec:
     featureSet: Custom
 EOF
 
-    wait_for_condition "hiveconfig.hive.openshift.io/hive" "Ready" "10m"
+    wait_for_condition "hiveconfig.hive.openshift.io/hive" "condition=Ready" "10m"
 }
 
 if [ -z "$@" ] || ! declare -F "$@"; then
