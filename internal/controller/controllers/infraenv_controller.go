@@ -184,6 +184,9 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	if strings.TrimSpace(infraEnv.Spec.AdditionalTrustBundle) != internalInfraEnv.AdditionalTrustBundle {
 		updateParams.InfraEnvUpdateParams.AdditionalTrustBundle = &infraEnv.Spec.AdditionalTrustBundle
 	}
+	if infraEnv.Spec.OSImageVersion != "" && infraEnv.Spec.OSImageVersion != internalInfraEnv.OpenshiftVersion {
+		updateParams.InfraEnvUpdateParams.OpenshiftVersion = &infraEnv.Spec.OSImageVersion
+	}
 
 	pullSecretKey := getPullSecretKey(infraEnv.Namespace, infraEnv.Spec.PullSecretRef)
 	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, pullSecretKey)
