@@ -5058,14 +5058,16 @@ spec:
 		}, "2m", "2s").Should(Equal(1))
 
 		By("Add skip-spoke-cleanup annotiaion")
-		agent := getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items[0]
-		annotations := agent.GetAnnotations()
-		annotations[controllers.AgentSkipSpokeCleanupAnnotation] = "true"
-		agent.SetAnnotations(annotations)
-		Expect(kubeClient.Update(ctx, &agent)).To(BeNil())
+		Eventually(func() error {
+			agent := getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items[0]
+			annotations := agent.GetAnnotations()
+			annotations[controllers.AgentSkipSpokeCleanupAnnotation] = "true"
+			agent.SetAnnotations(annotations)
+			return kubeClient.Update(ctx, &agent)
+		}, "2m", "2s").Should(BeNil())
 
 		By("Delete agent CR and validate")
-		agent = getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items[0]
+		agent := getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items[0]
 		Expect(kubeClient.Delete(ctx, &agent)).To(BeNil())
 		Eventually(func() int {
 			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
