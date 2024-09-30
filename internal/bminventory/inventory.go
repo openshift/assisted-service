@@ -984,6 +984,11 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		KubeKeyNamespace: kubeKey.Namespace,
 	}
 
+	if params.NewImportClusterParams.OpenshiftVersion != "" {
+		log.Infof("Import add-hosts-cluster: %s, version %s", clusterName, params.NewImportClusterParams.OpenshiftVersion)
+		newCluster.OpenshiftVersion = params.NewImportClusterParams.OpenshiftVersion
+	}
+
 	err := validations.ValidateClusterNameFormat(clusterName, getPlatformType(newCluster.Platform))
 	if err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)

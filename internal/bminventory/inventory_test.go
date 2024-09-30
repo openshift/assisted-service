@@ -12641,7 +12641,6 @@ var _ = Describe("Register AddHostsCluster test", func() {
 			NewImportClusterParams: &models.ImportClusterParams{
 				APIVipDnsname:      &apiVIPDnsname,
 				Name:               &clusterName,
-				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		}
@@ -12653,6 +12652,33 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
 		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
 		Expect(actual.Payload.OpenshiftVersion).To(BeEmpty())
+		Expect(actual.Payload.OcpReleaseImage).To(BeEmpty())
+		Expect(actual.Payload.OpenshiftClusterID).To(Equal(openshiftClusterID))
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ImportClusterCreated()))
+	})
+
+	It("Create V2 AddHosts cluster (with version)", func() {
+		defaultHostNetworks := make([]*models.HostNetwork, 0)
+		defaultHosts := make([]*models.Host, 0)
+		openshiftClusterID := strfmt.UUID(uuid.New().String())
+
+		params := installer.V2ImportClusterParams{
+			HTTPRequest: request,
+			NewImportClusterParams: &models.ImportClusterParams{
+				APIVipDnsname:      &apiVIPDnsname,
+				Name:               &clusterName,
+				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
+				OpenshiftClusterID: &openshiftClusterID,
+			},
+		}
+		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockMetric.EXPECT().ClusterRegistered().Times(1)
+		res := bm.V2ImportCluster(ctx, params)
+		actual := res.(*installer.V2ImportClusterCreated)
+
+		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
+		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
+		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 		Expect(actual.Payload.OcpReleaseImage).To(BeEmpty())
 		Expect(actual.Payload.OpenshiftClusterID).To(Equal(openshiftClusterID))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ImportClusterCreated()))
