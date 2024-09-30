@@ -1,8 +1,9 @@
 package virt
 
 import (
+	"slices"
+
 	"github.com/openshift/assisted-service/models"
-	"github.com/thoas/go-funk"
 )
 
 const (
@@ -10,6 +11,7 @@ const (
 	amdVirtCpuFlag   = "svm"
 )
 
+// TODO: check ARM feature flag when it's available.
 func IsVirtSupported(inventory *models.Inventory) bool {
-	return funk.Contains(inventory.CPU.Flags, intelVirtCpuFlag) || funk.Contains(inventory.CPU.Flags, amdVirtCpuFlag)
+	return slices.Contains(inventory.CPU.Flags, intelVirtCpuFlag) || slices.Contains(inventory.CPU.Flags, amdVirtCpuFlag) || inventory.CPU.Architecture == models.ClusterCPUArchitectureAarch64
 }
