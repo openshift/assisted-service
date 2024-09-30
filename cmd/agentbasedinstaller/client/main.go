@@ -256,7 +256,11 @@ func configure(ctx context.Context, log *log.Logger, bmInventory *client.Assiste
 }
 
 func importCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) {
-	err := envconfig.Process("", &ImportOptions)
+	err := envconfig.Process("", &RegisterOptions)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	err = envconfig.Process("", &ImportOptions)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -271,8 +275,13 @@ func importCluster(ctx context.Context, log *log.Logger, bmInventory *client.Ass
 		log.Fatal("No Cluster_API_VIP_DNS_Name specified")
 	}
 
+	pullSecret, err := agentbasedinstaller.GetPullSecret(RegisterOptions.PullSecretFile)
+	if err != nil {
+		log.Fatal("Failed to get pull secret: ", err.Error())
+	}
+
 	clusterID := strfmt.UUID(ImportOptions.ClusterID)
-	_, err = agentbasedinstaller.ImportCluster(ctx, log, bmInventory, clusterID, ImportOptions.ClusterName, ImportOptions.ClusterAPIVIPDNSName, ImportOptions.ClusterConfigDir)
+	_, err = agentbasedinstaller.ImportCluster(ctx, log, bmInventory, pullSecret, clusterID, ImportOptions.ClusterName, ImportOptions.ClusterAPIVIPDNSName, ImportOptions.ClusterConfigDir, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror)
 	if err != nil {
 		log.Fatal("Failed to import cluster with assisted-service: ", err)
 	}

@@ -15,13 +15,20 @@ import (
 )
 
 func ImportCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall,
-	clusterID strfmt.UUID, clusterName string, clusterAPIVIPDNSName string, clusterConfigDir string) (*models.Cluster, error) {
+	pullSecret string, clusterID strfmt.UUID, clusterName string, clusterAPIVIPDNSName string, clusterConfigDir string, clusterImageSetPath string, releaseImageMirror string) (*models.Cluster, error) {
 
+	ocpVersion, err := getOpenShiftVersion(log, pullSecret, clusterImageSetPath, releaseImageMirror)
+	if err != nil {
+		return nil, err
+	}
 	importClusterParams := &models.ImportClusterParams{
 		Name:               &clusterName,
 		APIVipDnsname:      &clusterAPIVIPDNSName,
 		OpenshiftClusterID: &clusterID,
+		OpenshiftVersion:   ocpVersion,
 	}
+	log.Infof("Import cluster params: {%s, %s,%s, %s}", *importClusterParams.Name, *importClusterParams.APIVipDnsname, *importClusterParams.OpenshiftClusterID, importClusterParams.OpenshiftVersion)
+
 	importParams := &installer.V2ImportClusterParams{
 		NewImportClusterParams: importClusterParams,
 	}
@@ -36,6 +43,18 @@ func ImportCluster(ctx context.Context, log *log.Logger, bmInventory *client.Ass
 	}
 
 	return clusterResult.GetPayload(), nil
+}
+
+func getOpenShiftVersion(log *log.Logger, pullSecret string, clusterImageSetPath string, releaseImageMirror string) (string, error) {
+	releaseImage, releaseError := getReleaseVersion(clusterImageSetPath)
+	if releaseError != nil {
+		return "", releaseError
+	}
+	releaseImageVersion, _, versionArchError := getReleaseVersionAndCpuArch(log, releaseImage, releaseImageMirror, pullSecret)
+	if versionArchError != nil {
+		return "", versionArchError
+	}
+	return releaseImageVersion, nil
 }
 
 func configureClusterIgnitionEndpoint(ctx context.Context, bmInventory *client.AssistedInstall, clusterConfigDir string, clusterID *strfmt.UUID) error {
