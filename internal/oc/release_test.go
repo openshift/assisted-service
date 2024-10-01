@@ -11,6 +11,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/system"
@@ -67,7 +68,7 @@ var _ = Describe("oc", func() {
 	Context("GetMCOImage", func() {
 		It("mco image from release image", func() {
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mcoImageName, false, releaseImage, tempFilePath)
+				mcoImageName, false, releaseImage, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mcoImage, "", 0).Times(1)
 
@@ -78,7 +79,7 @@ var _ = Describe("oc", func() {
 
 		It("mco image from release image mirror", func() {
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mcoImageName, true, releaseImageMirror, tempFilePath)
+				mcoImageName, true, releaseImageMirror, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mcoImage, "", 0).Times(1)
 
@@ -89,7 +90,7 @@ var _ = Describe("oc", func() {
 
 		It("mco image exists in cache", func() {
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mcoImageName, true, releaseImageMirror, tempFilePath)
+				mcoImageName, true, releaseImageMirror, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mcoImage, "", 0).Times(1)
 
@@ -113,7 +114,7 @@ var _ = Describe("oc", func() {
 			stdout := fmt.Sprintf("\n%s\n", mcoImage)
 
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mcoImageName, false, releaseImage, tempFilePath)
+				mcoImageName, false, releaseImage, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(stdout, "", 0).Times(1)
 
@@ -126,7 +127,7 @@ var _ = Describe("oc", func() {
 	Context("GetMustGatherImage", func() {
 		It("must-gather image from release image", func() {
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mustGatherImageName, false, releaseImage, tempFilePath)
+				mustGatherImageName, false, releaseImage, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mustGatherImage, "", 0).Times(1)
 
@@ -137,7 +138,7 @@ var _ = Describe("oc", func() {
 
 		It("must-gather image from release image mirror", func() {
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mustGatherImageName, true, releaseImageMirror, tempFilePath)
+				mustGatherImageName, true, releaseImageMirror, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mustGatherImage, "", 0).Times(1)
 
@@ -148,7 +149,7 @@ var _ = Describe("oc", func() {
 
 		It("must-gather image exists in cache", func() {
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mustGatherImageName, true, releaseImageMirror, tempFilePath)
+				mustGatherImageName, true, releaseImageMirror, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mustGatherImage, "", 0).Times(1)
 
@@ -172,7 +173,7 @@ var _ = Describe("oc", func() {
 			stdout := fmt.Sprintf("\n%s\n", mustGatherImage)
 
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mustGatherImageName, false, releaseImage, tempFilePath)
+				mustGatherImageName, false, releaseImage, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(stdout, "", 0).Times(1)
 
@@ -185,7 +186,7 @@ var _ = Describe("oc", func() {
 	Context("GetOpenshiftVersion", func() {
 		It("image version from release image", func() {
 			command := fmt.Sprintf(templateGetVersion+" --registry-config=%s",
-				false, releaseImage, tempFilePath)
+				false, releaseImage, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(fullVersion, "", 0).Times(1)
 
@@ -196,7 +197,7 @@ var _ = Describe("oc", func() {
 
 		It("image version from release image mirror", func() {
 			command := fmt.Sprintf(templateGetVersion+" --registry-config=%s",
-				true, releaseImageMirror, tempFilePath)
+				true, releaseImageMirror, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(fullVersion, "", 0).Times(1)
 
@@ -248,7 +249,7 @@ var _ = Describe("oc", func() {
 			t := tests[i]
 			It(t.fullVersion, func() {
 				command := fmt.Sprintf(templateGetVersion+" --registry-config=%s",
-					false, releaseImage, tempFilePath)
+					false, releaseImage, "", tempFilePath)
 				args := splitStringToInterfacesArray(command)
 				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(t.fullVersion, "", 0).Times(1)
 
@@ -268,7 +269,7 @@ var _ = Describe("oc", func() {
 	Context("GetReleaseArchitecture", func() {
 		Context("for single-arch release image", func() {
 			It("fetch cpu architecture", func() {
-				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
 				args := splitStringToInterfacesArray(command)
 				imageInfoStr := fmt.Sprintf("{ \"config\": { \"architecture\": \"%s\" }}", common.TestDefaultConfig.CPUArchitecture)
 				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(imageInfoStr, "", 0).Times(1)
@@ -279,7 +280,7 @@ var _ = Describe("oc", func() {
 			})
 
 			It("fail with malformed cpu architecture", func() {
-				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
 				args := splitStringToInterfacesArray(command)
 				imageInfoStr := fmt.Sprintf("{ \"config\": { \"not-an-architecture\": \"%s\" }}", common.TestDefaultConfig.CPUArchitecture)
 				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(imageInfoStr, "", 0).Times(1)
@@ -292,7 +293,7 @@ var _ = Describe("oc", func() {
 
 		Context("for multi-arch release image", func() {
 			It("fetch cpu architecture", func() {
-				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
 				command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
 				args := splitStringToInterfacesArray(command)
 				args2 := splitStringToInterfacesArray(command2)
@@ -305,7 +306,7 @@ var _ = Describe("oc", func() {
 			})
 
 			It("fail with malformed manifests - not a list", func() {
-				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
 				command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
 				args := splitStringToInterfacesArray(command)
 				args2 := splitStringToInterfacesArray(command2)
@@ -320,7 +321,7 @@ var _ = Describe("oc", func() {
 			})
 
 			It("fail with malformed manifests - no architecture", func() {
-				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
 				command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
 				args := splitStringToInterfacesArray(command)
 				args2 := splitStringToInterfacesArray(command2)
@@ -335,7 +336,7 @@ var _ = Describe("oc", func() {
 			})
 
 			It("fail with malformed manifests - empty architecture", func() {
-				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
 				command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
 				args := splitStringToInterfacesArray(command)
 				args2 := splitStringToInterfacesArray(command2)
@@ -351,7 +352,7 @@ var _ = Describe("oc", func() {
 		})
 
 		It("broken release image", func() {
-			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
 			command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			args2 := splitStringToInterfacesArray(command2)
@@ -377,7 +378,7 @@ var _ = Describe("oc", func() {
 
 		It("extract baremetal-install from release image", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
+				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
@@ -389,7 +390,7 @@ var _ = Describe("oc", func() {
 
 		It("extract baremetal-install from release image mirror", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				baremetalInstallBinary, filepath.Join(cacheDir, releaseImageMirror), true, releaseImageMirror, tempFilePath)
+				baremetalInstallBinary, filepath.Join(cacheDir, releaseImageMirror), true, releaseImageMirror, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
@@ -406,7 +407,7 @@ var _ = Describe("oc", func() {
 		})
 		It("extract baremetal-install from release image with retry", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
+				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "Failed to extract the installer", 1).Times(1)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
@@ -419,7 +420,7 @@ var _ = Describe("oc", func() {
 
 		It("extract baremetal-install from release image retry exhausted", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
+				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "Failed to extract the installer", 1).Times(5)
 
@@ -432,18 +433,26 @@ var _ = Describe("oc", func() {
 
 var _ = Describe("getImageFromRelease", func() {
 	var (
-		oc           *release
-		tempFilePath string
-		ctrl         *gomock.Controller
-		mockExecuter *executer.MockExecuter
-		log          logrus.FieldLogger
+		oc                                *release
+		tempFilePath                      string
+		ctrl                              *gomock.Controller
+		mockExecuter                      *executer.MockExecuter
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		log                               logrus.FieldLogger
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockExecuter = executer.NewMockExecuter(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).AnyTimes()
 		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
-		oc = &release{executer: mockExecuter, config: config, imagesMap: common.NewExpiringCache(time.Hour, time.Hour)}
+		oc = &release{
+			executer:                mockExecuter,
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			config:                  config,
+			imagesMap:               common.NewExpiringCache(time.Hour, time.Hour),
+		}
 		log = logrus.New()
 		tempFilePath = "/tmp/pull-secret"
 		mockExecuter.EXPECT().TempFile(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -454,6 +463,7 @@ var _ = Describe("getImageFromRelease", func() {
 			},
 		).AnyTimes()
 	})
+
 	type requester struct {
 		imageName      string
 		releaseName    string
@@ -530,7 +540,7 @@ var _ = Describe("getImageFromRelease", func() {
 							}
 							doneChan <- true
 						}()
-						ret, err := oc.getImageFromRelease(log, r.imageName, r.releaseName, "pull", "", false)
+						ret, err := oc.getImageFromRelease(log, r.imageName, r.releaseName, "pull", false)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(ret).To(Equal(r.expectedResult))
 					}()
@@ -552,7 +562,7 @@ var _ = Describe("getImageFromRelease", func() {
 	})
 })
 
-var _ = Describe("getIcspFileFromRegistriesConfig", func() {
+var _ = Describe("Mirrors configuration generation", func() {
 	var (
 		oc                                *release
 		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
@@ -570,45 +580,341 @@ var _ = Describe("getIcspFileFromRegistriesConfig", func() {
 		log = logrus.New()
 	})
 
-	It("valid_mirror_registries", func() {
-		regData := []mirrorregistries.RegistriesConf{{Location: "registry.ci.org", Mirror: []string{"host1.example.org:5000/localimages"}}, {Location: "quay.io", Mirror: []string{"host1.example.org:5000/localimages"}}}
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
-		expected := "apiVersion: operator.openshift.io/v1alpha1\nkind: ImageContentSourcePolicy\nmetadata:\n  creationTimestamp: null\n  name: image-policy\nspec:\n  repositoryDigestMirrors:\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: registry.ci.org\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: quay.io\n"
-		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(icspFile).ShouldNot(Equal(""))
-		data, err := os.ReadFile(icspFile)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(string(data)).Should(Equal(expected))
-	})
-	It("valid_multiple_mirror_registries", func() {
-		regData := []mirrorregistries.RegistriesConf{{Location: "registry.ci.org", Mirror: []string{"host1.example.org:5000/localimages", "host1.example.org:5000/openshift"}}, {Location: "quay.io", Mirror: []string{"host1.example.org:5000/localimages"}}}
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
-		expected := "apiVersion: operator.openshift.io/v1alpha1\nkind: ImageContentSourcePolicy\nmetadata:\n  creationTimestamp: null\n  name: image-policy\nspec:\n  repositoryDigestMirrors:\n  - mirrors:\n    - host1.example.org:5000/localimages\n    - host1.example.org:5000/openshift\n    source: registry.ci.org\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: quay.io\n"
-		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(icspFile).ShouldNot(Equal(""))
-		data, err := os.ReadFile(icspFile)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(string(data)).Should(Equal(expected))
+	DescribeTable(
+		"Uses '--idms-file' if supported, for all commands",
+		func(commandTemplate, helpCommand string) {
+			helpArgs := whiteSpaceRE.Split(helpCommand, -1)
+			mockExecuter.EXPECT().Execute(helpArgs[0], helpArgs[1:]).
+				Return(`--idms-file='':`, "", 0).
+				Times(1)
+			regData := []mirrorregistries.RegistriesConf{
+				{
+					Location: "registry.ci.org",
+					Mirror: []string{
+						"host1.example.org:5000/localimages",
+					},
+				},
+			}
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, commandTemplate)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer mirrorsFlag.Delete()
+			Expect(mirrorsFlag).ShouldNot(BeNil())
+			Expect(mirrorsFlag.file).ShouldNot(BeEmpty())
+			data, err := os.ReadFile(mirrorsFlag.file)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(data).To(MatchYAML(common.Dedent(`
+				apiVersion: config.openshift.io/v1
+				kind: ImageDigestMirrorSet
+				metadata:
+				  creationTimestamp: null
+				  name: image-mirror-set
+				spec:
+				  imageDigestMirrors:
+				  - mirrors:
+				    - host1.example.org:5000/localimages
+				    source: registry.ci.org
+				status: {}
+			`)))
+		},
+		Entry(
+			"Get image",
+			templateGetImage,
+			"oc adm release info --help",
+		),
+		Entry(
+			"Get version",
+			templateGetVersion,
+			"oc adm release info --help",
+		),
+		Entry(
+			"Extract",
+			templateExtract,
+			"oc adm release extract --help",
+		),
+		Entry(
+			"Image info",
+			templateImageInfo,
+			"oc image info --help",
+		),
+	)
+
+	DescribeTable(
+		"Uses '--icsp-file' if '--idms-file' isn't supported, for all commands",
+		func(commandTemplate, helpCommand string) {
+			helpArgs := whiteSpaceRE.Split(helpCommand, -1)
+			mockExecuter.EXPECT().Execute(helpArgs[0], helpArgs[1:]).
+				Return(`--icsp-file='':`, "", 0).
+				Times(1)
+			regData := []mirrorregistries.RegistriesConf{
+				{
+					Location: "registry.ci.org",
+					Mirror: []string{
+						"host1.example.org:5000/localimages",
+					},
+				},
+			}
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, commandTemplate)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer mirrorsFlag.Delete()
+			Expect(mirrorsFlag).ShouldNot(BeNil())
+			Expect(mirrorsFlag.file).ShouldNot(BeEmpty())
+			data, err := os.ReadFile(mirrorsFlag.file)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(data).To(MatchYAML(common.Dedent(`
+				apiVersion: operator.openshift.io/v1alpha1
+				kind: ImageContentSourcePolicy
+				metadata:
+				  creationTimestamp: null
+				  name: image-policy
+				spec:
+				  repositoryDigestMirrors:
+				  - mirrors:
+				    - host1.example.org:5000/localimages
+				    source: registry.ci.org
+			`)))
+		},
+		Entry(
+			"Get image",
+			templateGetImage,
+			"oc adm release info --help",
+		),
+		Entry(
+			"Get version",
+			templateGetVersion,
+			"oc adm release info --help",
+		),
+		Entry(
+			"Extract",
+			templateExtract,
+			"oc adm release extract --help",
+		),
+		Entry(
+			"Image info",
+			templateImageInfo,
+			"oc image info --help",
+		),
+	)
+
+	Context("With IDMS support", func() {
+		BeforeEach(func() {
+			mockExecuter.EXPECT().Execute("oc", []string{"adm", "release", "info", "--help"}).
+				Return(`--idms-file='':`, "", 0).
+				Times(1)
+		})
+
+		It("One valid mirror registry", func() {
+			regData := []mirrorregistries.RegistriesConf{
+				{
+					Location: "registry.ci.org",
+					Mirror: []string{
+						"host1.example.org:5000/localimages",
+					},
+				},
+				{
+					Location: "quay.io",
+					Mirror: []string{
+						"host1.example.org:5000/localimages",
+					},
+				},
+			}
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer mirrorsFlag.Delete()
+			Expect(mirrorsFlag).ShouldNot(BeNil())
+			Expect(mirrorsFlag.file).ShouldNot(BeEmpty())
+			data, err := os.ReadFile(mirrorsFlag.file)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(data).To(MatchYAML(common.Dedent(`
+				apiVersion: config.openshift.io/v1
+				kind: ImageDigestMirrorSet
+				metadata:
+				  creationTimestamp: null
+				  name: image-mirror-set
+				spec:
+				  imageDigestMirrors:
+				  - mirrors:
+				    - host1.example.org:5000/localimages
+				    source: registry.ci.org
+				  - mirrors:
+				    - host1.example.org:5000/localimages
+				    source: quay.io
+				status: {}
+			`)))
+		})
+
+		It("Multiple valid mirror registries", func() {
+			regData := []mirrorregistries.RegistriesConf{
+				{
+					Location: "registry.ci.org",
+					Mirror: []string{
+						"host1.example.org:5000/localimages",
+						"host1.example.org:5000/openshift",
+					},
+				},
+				{
+					Location: "quay.io",
+					Mirror: []string{
+						"host1.example.org:5000/localimages",
+					},
+				},
+			}
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer mirrorsFlag.Delete()
+			Expect(mirrorsFlag).ShouldNot(BeNil())
+			Expect(mirrorsFlag.file).ShouldNot(BeEmpty())
+			data, err := os.ReadFile(mirrorsFlag.file)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(data).Should(MatchYAML(common.Dedent(`
+				apiVersion: config.openshift.io/v1
+				kind: ImageDigestMirrorSet
+				metadata:
+				  creationTimestamp: null
+				  name: image-mirror-set
+				spec:
+				  imageDigestMirrors:
+				  - mirrors:
+				    - host1.example.org:5000/localimages
+				    - host1.example.org:5000/openshift
+				    source: registry.ci.org
+				  - mirrors:
+				    - host1.example.org:5000/localimages
+				    source: quay.io
+				status: {}
+			`)))
+		})
+
+		It("No registries", func() {
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(mirrorsFlag).Should(BeNil())
+		})
+
+		It("Invalid mirror registries", func() {
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(nil, fmt.Errorf("extract failed")).Times(1)
+			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
+			Expect(err).Should(HaveOccurred())
+			Expect(err).Should(MatchError("extract failed"))
+			Expect(mirrorsFlag).Should(BeNil())
+		})
 	})
 
-	It("no_registries", func() {
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(icspFile).Should(Equal(""))
-	})
+	Context("Without IDMS support, but with deprecated ICSP support", func() {
+		BeforeEach(func() {
+			mockExecuter.EXPECT().Execute("oc", []string{"adm", "release", "info", "--help"}).Return(
+				`--icsp-file='':`, "", 0,
+			).AnyTimes()
+		})
 
-	It("mirror_registries_invalid", func() {
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(nil, fmt.Errorf("extract failed")).Times(1)
-		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
-		Expect(err).Should(HaveOccurred())
-		Expect(err).Should(MatchError("extract failed"))
-		Expect(icspFile).Should(Equal(""))
+		It("One valid mirror registry", func() {
+			regData := []mirrorregistries.RegistriesConf{
+				{
+					Location: "registry.ci.org",
+					Mirror: []string{
+						"host1.example.org:5000/localimages",
+					},
+				},
+				{
+					Location: "quay.io",
+					Mirror: []string{
+						"host1.example.org:5000/localimages",
+					},
+				},
+			}
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer mirrorsFlag.Delete()
+			Expect(mirrorsFlag).ShouldNot(BeNil())
+			Expect(mirrorsFlag.file).ShouldNot(BeEmpty())
+			data, err := os.ReadFile(mirrorsFlag.file)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(data).To(MatchYAML(common.Dedent(`
+				apiVersion: operator.openshift.io/v1alpha1
+				kind: ImageContentSourcePolicy
+				metadata:
+				  creationTimestamp: null
+				  name: image-policy
+				spec:
+				  repositoryDigestMirrors:
+				  - mirrors:
+				    - host1.example.org:5000/localimages
+				    source: registry.ci.org
+				  - mirrors:
+				    - host1.example.org:5000/localimages
+				    source: quay.io
+			`)))
+		})
+
+		It("Multiple valid mirror registries", func() {
+			regData := []mirrorregistries.RegistriesConf{
+				{
+					Location: "registry.ci.org",
+					Mirror: []string{
+						"host1.example.org:5000/localimages",
+						"host1.example.org:5000/openshift",
+					},
+				},
+				{
+					Location: "quay.io",
+					Mirror: []string{
+						"host1.example.org:5000/localimages",
+					},
+				},
+			}
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer mirrorsFlag.Delete()
+			Expect(mirrorsFlag).ShouldNot(BeNil())
+			Expect(mirrorsFlag.file).ShouldNot(BeEmpty())
+			data, err := os.ReadFile(mirrorsFlag.file)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(data).Should(MatchYAML(common.Dedent(`
+				apiVersion: operator.openshift.io/v1alpha1
+				kind: ImageContentSourcePolicy
+				metadata:
+				  creationTimestamp: null
+				  name: image-policy
+				spec:
+				  repositoryDigestMirrors:
+				  - mirrors:
+				    - host1.example.org:5000/localimages
+				    - host1.example.org:5000/openshift
+				    source: registry.ci.org
+				  - mirrors:
+				    - host1.example.org:5000/localimages
+				    source: quay.io
+			`)))
+		})
+
+		It("No registries", func() {
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(mirrorsFlag).Should(BeNil())
+		})
+
+		It("Invalid mirror registries", func() {
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(nil, fmt.Errorf("extract failed")).Times(1)
+			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
+			Expect(err).Should(HaveOccurred())
+			Expect(err).Should(MatchError("extract failed"))
+			Expect(mirrorsFlag).Should(BeNil())
+		})
 	})
 })
 
@@ -711,8 +1017,207 @@ var _ = Describe("GetReleaseBinaryPath", func() {
 	})
 })
 
+var _ = Describe("Get flags from help", func() {
+	var (
+		ctrl         *gomock.Controller
+		mockExecuter *executer.MockExecuter
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockExecuter = executer.NewMockExecuter(ctrl)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	DescribeTable(
+		"With correct help text",
+		func(command string, helpCommand string, helpText string, expectedFlags []string) {
+			args := strings.Split(helpCommand, " ")
+			mockExecuter.EXPECT().Execute(args[0], args[1:]).Return(helpText, "", 0).AnyTimes()
+			actualFlags, err := getFlagsFromHelp(log, mockExecuter, command)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(actualFlags).To(Equal(expectedFlags))
+		},
+		Entry(
+			"Simple command without flags",
+			"my",
+			"my --help",
+			`
+			--my-flag='':
+				Does something.
+			--your-flag=true:
+				Does something else.
+			`,
+			[]string{
+				"my-flag",
+				"your-flag",
+			},
+		),
+		Entry(
+			"Simple command with flags",
+			"my --my-flag=my-value --your-flag=false",
+			"my --help",
+			`
+			--my-flag='':
+				Does something.
+			--your-flag=true:
+				Does something else.
+			`,
+			[]string{
+				"my-flag",
+				"your-flag",
+			},
+		),
+		Entry(
+			"Sub-command without flags",
+			"my sub",
+			"my sub --help",
+			`
+			--my-flag='':
+				Does something.
+			--your-flag=true:
+				Does something else.
+			`,
+			[]string{
+				"my-flag",
+				"your-flag",
+			},
+		),
+		Entry(
+			"Sub-command with flags",
+			"my sub --my-flag=my-value --your-flag=false",
+			"my sub --help",
+			`
+			--my-flag='':
+				Does something.
+			--your-flag=true:
+				Does something else.
+			`,
+			[]string{
+				"my-flag",
+				"your-flag",
+			},
+		),
+		Entry(
+			"Sorted results",
+			"my",
+			"my --help",
+			`
+			--flag-c='':
+				Flag C.
+			--flag-a=true:
+				Flag A.
+			--flag-b=123:
+				Flag B.
+			`,
+			[]string{
+				"flag-a",
+				"flag-b",
+				"flag-c",
+			},
+		),
+		Entry(
+			"Command with short option",
+			"my",
+			"my --help",
+			`
+			-a, --flag-a='':
+				A command with a short option.
+			`,
+			[]string{
+				"flag-a",
+			},
+		),
+		Entry(
+			"Ignores flag mentioned in another flag",
+			"my",
+			"my --help",
+			`
+			--my-flag='':
+				Do not confuse with --your-flag.
+			`,
+			[]string{
+				"my-flag",
+			},
+		),
+		Entry(
+			"Ignores flag starting help text",
+			"my",
+			"my --help",
+			`
+			--my-flag='':
+				--your-flag='' should be ignored.
+			`,
+			[]string{
+				"my-flag",
+			},
+		),
+		Entry(
+			"Ignores apparently correct flags inside help text",
+			"my",
+			"my --help",
+			`
+			--my-flag='':
+				Ignore the --your-flag='': flag.
+			`,
+			[]string{
+				"my-flag",
+			},
+		),
+		Entry(
+			"Respects case",
+			"my",
+			"my --help",
+			`
+			--MY-FLAG='':
+				Does something.
+			`,
+			[]string{
+				"MY-FLAG",
+			},
+		),
+		Entry(
+			"Ignores flags inside text",
+			"my",
+			"my --help",
+			`
+			--MY-FLAG='':
+				Does something.
+			`,
+			[]string{
+				"MY-FLAG",
+			},
+		),
+	)
+
+	It("Fails if command returns non zero exit code", func() {
+		mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any()).Return("", "", 1).AnyTimes()
+		flags, err := getFlagsFromHelp(log, mockExecuter, "my")
+		Expect(err).To(HaveOccurred())
+		message := err.Error()
+		Expect(message).To(Equal("command 'my --help' finished with exit code 1"))
+		Expect(flags).To(BeNil())
+	})
+
+	It("Fails if command doesn't exist", func() {
+		// This is the contract of the executer.Executer interface: if the command doesn't exist it returns
+		// -1 as the exit code and the error converted to string as the standard output.
+		mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(
+			"", `exec: "my" executalbe fine not found in $PATH`, -1,
+		).AnyTimes()
+		flags, err := getFlagsFromHelp(log, mockExecuter, "my")
+		Expect(err).To(HaveOccurred())
+		message := err.Error()
+		Expect(message).To(Equal("binary of command 'my --help' doesn't exist"))
+		Expect(flags).To(BeNil())
+	})
+})
+
 func splitStringToInterfacesArray(str string) []interface{} {
-	argsAsString := strings.Split(str, " ")
+	argsAsString := whiteSpaceRE.Split(str, -1)
 	argsAsInterface := make([]interface{}, len(argsAsString))
 	for i, v := range argsAsString {
 		argsAsInterface[i] = v
