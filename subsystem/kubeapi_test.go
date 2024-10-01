@@ -696,7 +696,7 @@ func checkPlatformStatus(ctx context.Context, key types.NamespacedName, specPlat
 	ExpectWithOffset(1, aci.Status.UserManagedNetworking).To(Equal(umn))
 }
 
-func checkAgentClusterInstallCondition(ctx context.Context, key types.NamespacedName, conditionType string, reason string) {
+func checkAgentClusterInstallCondition(ctx context.Context, key types.NamespacedName, conditionType hivev1.ClusterInstallConditionType, reason string) {
 	Eventually(func() string {
 		condition := controllers.FindStatusCondition(getAgentClusterInstallCRD(ctx, kubeClient, key).Status.Conditions, conditionType)
 		if condition != nil {
@@ -706,7 +706,7 @@ func checkAgentClusterInstallCondition(ctx context.Context, key types.Namespaced
 	}, "2m", "2s").Should(Equal(reason))
 }
 
-func checkAgentClusterInstallConditionConsistency(ctx context.Context, key types.NamespacedName, conditionType string, reason string) {
+func checkAgentClusterInstallConditionConsistency(ctx context.Context, key types.NamespacedName, conditionType hivev1.ClusterInstallConditionType, reason string) {
 	Consistently(func() string {
 		condition := controllers.FindStatusCondition(getAgentClusterInstallCRD(ctx, kubeClient, key).Status.Conditions, conditionType)
 		if condition != nil {

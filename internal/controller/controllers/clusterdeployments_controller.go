@@ -2239,7 +2239,7 @@ func isConditionEqual(existingCond hivev1.ClusterInstallCondition, newCondition 
 }
 
 // FindStatusCondition finds the conditionType in conditions.
-func FindStatusCondition(conditions []hivev1.ClusterInstallCondition, conditionType string) *hivev1.ClusterInstallCondition {
+func FindStatusCondition(conditions []hivev1.ClusterInstallCondition, conditionType hivev1.ClusterInstallConditionType) *hivev1.ClusterInstallCondition {
 	for i := range conditions {
 		if conditions[i].Type == conditionType {
 			return &conditions[i]
