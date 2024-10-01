@@ -5,16 +5,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const MinimalVersionForNmstatectl = "4.14"
+type Config struct {
+	// MinVersionForNmstateService is a flag that enables the static networking flow using the nmstate service for specific OCP versions.
+	MinVersionForNmstateService string `envconfig:"MIN_VERSION_FOR_NMSTATE_SERVICE" default:"4.18"`
+}
 
-func NMStatectlServiceSupported(version, arch string) (bool, error) {
+func (s *StaticNetworkConfigGenerator) NMStatectlServiceSupported(version, arch string) (bool, error) {
 	// When a cluster is imported, the OpenshiftVersion isn't stored in the database.
 	// Consequently, a bound InfraEnv with static networking uses the Cluster's OpenshiftVersion, which is empty.
 	if version == "" {
 		log.Info("ocp version is empty")
 		return false, nil
 	}
-	versionOK, err := common.VersionGreaterOrEqual(version, MinimalVersionForNmstatectl)
+	versionOK, err := common.VersionGreaterOrEqual(version, s.config.MinVersionForNmstateService)
 	if err != nil {
 		return false, err
 	}
