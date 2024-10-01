@@ -74,8 +74,15 @@ func (s *StaticNetworkConfigGenerator) injectIPV4V6FieldsIfNeeded(networkYaml st
 		s.log.WithError(err).Errorf("Error unmarshalling yaml")
 		return "", err
 	}
-	Interfaces := config["interfaces"].([]interface{})
-	for _, iface := range Interfaces {
+	interfaces, exists := config["interfaces"]
+	if !exists || interfaces == nil {
+		return "", nil
+	}
+	interfacesSlice, ok := interfaces.([]interface{})
+	if !ok {
+		return "", nil
+	}
+	for _, iface := range interfacesSlice {
 		nic := iface.(map[interface{}]interface{})
 		if val, exists := nic["ipv4"].(map[interface{}]interface{}); exists {
 			if _, exists := val["dhcp"]; !exists {
@@ -328,10 +335,18 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macIn
 
 	// See 'man systemd.net-naming-scheme' for interface naming protocol
 	predicatableIfaceNamePattern := regexp.MustCompile("^en[PsvxXbucaipod]")
-	Interfaces := config["interfaces"].([]interface{})
 	interfaceWithmacIdentifier := make(map[string]struct{})
 
-	for _, iface := range Interfaces {
+	interfaces, exists := config["interfaces"]
+	if !exists || interfaces == nil {
+		return nil
+	}
+	interfacesSlice, ok := interfaces.([]interface{})
+	if !ok {
+		return nil
+	}
+
+	for _, iface := range interfacesSlice {
 		nic := iface.(map[interface{}]interface{})
 		interfaceName, exists := nic["name"]
 		if !exists {
@@ -343,8 +358,7 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macIn
 			interfaceWithmacIdentifier[interfaceName.(string)] = struct{}{}
 		}
 	}
-
-	for _, iface := range Interfaces {
+	for _, iface := range interfacesSlice {
 		nic := iface.(map[interface{}]interface{})
 		interfaceName, exists := nic["name"]
 		if !exists {
@@ -403,6 +417,7 @@ func (s *StaticNetworkConfigGenerator) ValidateStaticConfigParamsYAML(staticNetw
 		_, validateErr := s.generateConfiguration(hostConfig.NetworkYaml)
 		if validateErr != nil {
 			err = multierror.Append(err, fmt.Errorf("failed to validate network yaml for host %d, %s", i, validateErr))
+			return err.ErrorOrNil()
 		}
 		err = multierror.Append(err, s.validateInterfaceNamesExistenceYAML(hostConfig.MacInterfaceMap, hostConfig.NetworkYaml, ocpVersion, arch, installInvoker))
 	}
