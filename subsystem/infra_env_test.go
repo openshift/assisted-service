@@ -21,7 +21,6 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 )
 
 var registerInfraEnv = func(clusterID *strfmt.UUID, imageType models.ImageType) *models.InfraEnv {
@@ -355,15 +354,15 @@ var _ = Describe("Infra_Env", func() {
 		contents := buf.String()
 		Expect(len(contents)).ShouldNot(Equal(0))
 		Expect(contents).To(ContainSubstring("/etc/assisted/network/host0"))
-		if ocpVersion < staticnetworkconfig.MinimalVersionForNmstatectl || arch == common.ARM64CPUArchitecture {
+		if ocpVersion < common.MinimalVersionForNmstatectl || arch == common.ARM64CPUArchitecture {
 			Expect(contents).To(ContainSubstring("192.0.2.1/24"))
 		}
 		Expect(contents).To(ContainSubstring("eth0"))
 	},
-		Entry("ocp versions greater than/ equal to 4.14, x86 arch", staticnetworkconfig.MinimalVersionForNmstatectl, common.X86CPUArchitecture),
-		Entry("ocp versions greater than/ equal to 4.14, arm arch", staticnetworkconfig.MinimalVersionForNmstatectl, common.ARM64CPUArchitecture),
-		Entry("ocp versions less than 4.14, x86 arch", "4.12", common.X86CPUArchitecture),
-		Entry("ocp versions less than 4.14, arm arch", "4.12", common.ARM64CPUArchitecture),
+		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl, x86 arch", common.MinimalVersionForNmstatectl, common.X86CPUArchitecture),
+		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl, arm arch", common.MinimalVersionForNmstatectl, common.ARM64CPUArchitecture),
+		Entry("ocp versions less than MinimalVersionForNmstatectl, x86 arch", "4.12", common.X86CPUArchitecture),
+		Entry("ocp versions less than MinimalVersionForNmstatectl, arm arch", "4.12", common.ARM64CPUArchitecture),
 	)
 
 	It("download infra-env files invalid filename option", func() {

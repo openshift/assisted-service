@@ -20,7 +20,7 @@ func TestIsoEditor(t *testing.T) {
 }
 
 var _ = Describe("RamdiskImageArchive", func() {
-	It("adds a new archive correctly - ocp versions less than 4.14", func() {
+	It("adds a new archive correctly - ocp versions less than MinimalVersionForNmstatectl", func() {
 
 		clusterProxyInfo := ClusterProxyInfo{
 			HTTPProxy:  "http://10.10.1.1:3128",
@@ -90,7 +90,7 @@ var _ = Describe("RamdiskImageArchive", func() {
 			clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy)
 		Expect(rootfsServiceConfigContent).To(Equal(rootfsServiceConfig))
 	})
-	It("returns nothing when given nothing - ocp versions less than 4.14", func() {
+	It("returns nothing when given nothing - ocp versions less than MinimalVersionForNmstatectl", func() {
 		archive, err := RamdiskImageArchive(
 			[]staticnetworkconfig.StaticNetworkConfigData{},
 			&ClusterProxyInfo{},
@@ -99,7 +99,7 @@ var _ = Describe("RamdiskImageArchive", func() {
 		Expect(archive).To(BeNil())
 	})
 
-	It("adds a new archive correctly - ocp versions greater than/ equal to 4.14", func() {
+	It("adds a new archive correctly - ocp versions greater than/ equal to MinimalVersionForNmstatectl", func() {
 
 		clusterProxyInfo := ClusterProxyInfo{
 			HTTPProxy:  "http://10.10.1.1:3128",
@@ -169,7 +169,7 @@ var _ = Describe("RamdiskImageArchive", func() {
 			clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy)
 		Expect(rootfsServiceConfigContent).To(Equal(rootfsServiceConfig))
 	})
-	It("returns nothing when given nothing - ocp versions greater than/ equal to 4.14", func() {
+	It("returns nothing when given nothing - ocp versions greater than/ equal to MinimalVersionForNmstatectl", func() {
 		archive, err := RamdiskImageArchive(
 			[]staticnetworkconfig.StaticNetworkConfigData{},
 			&ClusterProxyInfo{},
