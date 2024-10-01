@@ -2,6 +2,9 @@
 parameters:
 - name: ASSISTED_SERVICE_IMAGE
   value: quay.io/app-sre/assisted-service
+- name: MIN_VERSION_FOR_NMSTATE_SERVICE
+  value: '4.18'
+  required: false
 - name: IMAGE_TAG
   value: ''
   required: true
@@ -330,6 +333,8 @@ objects:
                 value: ${ENABLE_SKIP_MCO_REBOOT}
               - name: ENABLE_SOFT_TIMEOUTS
                 value: ${ENABLE_SOFT_TIMEOUTS}
+              - name: MIN_VERSION_FOR_NMSTATE_SERVICE
+                value: ${MIN_VERSION_FOR_NMSTATE_SERVICE}
               - name: DB_HOST
                 valueFrom:
                   secretKeyRef:
