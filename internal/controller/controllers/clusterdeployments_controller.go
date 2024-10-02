@@ -1367,7 +1367,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	releaseImage, err := r.getReleaseImage(ctx, log, clusterInstall.Spec, pullSecret)
 	if err != nil {
-		log.WithError(err)
+		log.WithError(err).Error("Failed to get release image")
 		_, _ = r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
 		// The controller will requeue after one minute, giving the user a chance to fix releaseImage
 		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
