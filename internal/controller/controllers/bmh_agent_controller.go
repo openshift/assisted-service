@@ -334,12 +334,16 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 
 // handleBMHFinalizer adds a finalizer to the BMH if it isn't being deleted and the finalizer isn't already present
 // If the BMH is being deleted, the associated node is drained and the agent (if any) is annotated and deleted before the BMH is allowed to be removed
-// Finalizer handling is only run if the user has annotated the BMH and converged flow is enabled
+// Finalizer handling is only run if the user has annotated the BMH and converged flow is enabled,
+// or, when the BMH is annotated with 'paused' annotation.
 func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; !has_annotation || !r.ConvergedFlowEnabled {
-		return reconcileComplete{}
+	var removeAgentOnDelete bool
+	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; has_annotation && r.ConvergedFlowEnabled {
+		removeAgentOnDelete = true
 	}
+	_, bmhPaused := bmh.GetAnnotations()[BMH_PAUSED_ANNOTATION]
 
+	// Register a finalizer if it's absent
 	bmhHasFinalizer := funk.ContainsString(bmh.GetFinalizers(), BMH_FINALIZER_NAME)
 	if bmh.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !bmhHasFinalizer {
@@ -351,7 +355,11 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 
 	// BMH is being deleted and finalizer is gone, ensure detached and paused are gone and return
 	if !bmhHasFinalizer {
-		dirty := removeBMHDetachedAndPausedAnnotations(log, bmh)
+		if removeAgentOnDelete {
+			removeBMHDetachedAnnotation(log, bmh)
+		}
+		removeBMHPausedAnnotation(log, bmh)
+		dirty := removeAgentOnDelete || bmhPaused
 		return reconcileComplete{stop: true, dirty: dirty}
 	}
 
@@ -359,32 +367,38 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 	// agent could be nil here if it wasn't created yet, or if we deleted it, then failed to remove the finalizer for some reason
 	// if the agent is missing, just allow the BMH to be removed
 	if agent == nil {
-		removeBMHDetachedAndPausedAnnotations(log, bmh)
+		if removeAgentOnDelete {
+			removeBMHDetachedAnnotation(log, bmh)
+		}
+		removeBMHPausedAnnotation(log, bmh)
 		controllerutil.RemoveFinalizer(bmh, BMH_FINALIZER_NAME)
-		return reconcileComplete{stop: true, dirty: true}
+		dirty := removeAgentOnDelete || bmhPaused
+		return reconcileComplete{stop: true, dirty: dirty}
 	}
 
-	dirty := false
-	if agent.Spec.ClusterDeploymentName != nil {
-		var res reconcileResult
-		dirty, res = r.handleDrain(ctx, log, agent, bmh)
-		if res.Stop(ctx) {
-			return res
+	if removeAgentOnDelete {
+		dirty := false
+		if agent.Spec.ClusterDeploymentName != nil {
+			var res reconcileResult
+			dirty, res = r.handleDrain(ctx, log, agent, bmh)
+			if res.Stop(ctx) {
+				return res
+			}
+
+			if updated := configureBMHForCleaning(log, bmh); updated {
+				return reconcileComplete{stop: true, dirty: true}
+			}
+
+			if bmh.Status.Provisioning.State != bmh_v1alpha1.StateDeleting {
+				log.Info("Waiting for BMH to deprovision")
+				return reconcileRequeue{requeueAfter: defaultRequeueAfterOnError}
+			}
 		}
 
-		if updated := configureBMHForCleaning(log, bmh); updated {
-			return reconcileComplete{stop: true, dirty: true}
+		if err := r.Delete(ctx, agent); err != nil {
+			log.WithError(err).Errorf("Failed to delete agent as a part of BMH removal")
+			return reconcileError{err: err, dirty: dirty}
 		}
-
-		if bmh.Status.Provisioning.State != bmh_v1alpha1.StateDeleting {
-			log.Info("Waiting for BMH to deprovision")
-			return reconcileRequeue{requeueAfter: defaultRequeueAfterOnError}
-		}
-	}
-
-	if err := r.Delete(ctx, agent); err != nil {
-		log.WithError(err).Errorf("Failed to delete agent as a part of BMH removal")
-		return reconcileError{err: err, dirty: dirty}
 	}
 
 	log.Infof("Removing BMH finalizer %s", BMH_FINALIZER_NAME)
@@ -1691,12 +1705,16 @@ func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Con
 	return clusterDeployment, true, err
 }
 
-func removeBMHDetachedAndPausedAnnotations(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
+func removeBMHDetachedAnnotation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
 	if _, ok := bmh.GetAnnotations()[BMH_DETACHED_ANNOTATION]; ok {
 		log.Info("removing BMH detached annotation")
 		delete(bmh.Annotations, BMH_DETACHED_ANNOTATION)
 		dirty = true
 	}
+	return
+}
+
+func removeBMHPausedAnnotation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
 	if _, ok := bmh.GetAnnotations()[BMH_PAUSED_ANNOTATION]; ok {
 		log.Info("removing BMH paused annotation")
 		delete(bmh.Annotations, BMH_PAUSED_ANNOTATION)
@@ -1706,7 +1724,8 @@ func removeBMHDetachedAndPausedAnnotations(log logrus.FieldLogger, bmh *bmh_v1al
 }
 
 func configureBMHForCleaning(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
-	dirty = removeBMHDetachedAndPausedAnnotations(log, bmh)
+	dirty = removeBMHDetachedAnnotation(log, bmh)
+	dirty = removeBMHPausedAnnotation(log, bmh) || dirty
 
 	if bmh.Spec.AutomatedCleaningMode != bmh_v1alpha1.CleaningModeMetadata {
 		log.Infof("setting BMH cleaning mode to %s", bmh_v1alpha1.CleaningModeMetadata)

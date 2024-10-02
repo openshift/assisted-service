@@ -86,19 +86,6 @@ var _ = Describe("bmac reconcile", func() {
 		Expect(host.GetFinalizers()).To(ContainElement(BMH_FINALIZER_NAME))
 	})
 
-	It("doesn't add a finalizer to the BMH when it does not have the management annotation", func() {
-		host := newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{})
-		Expect(c.Create(ctx, host)).To(BeNil())
-
-		result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
-		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{}))
-
-		key := types.NamespacedName{Name: host.Name, Namespace: host.Namespace}
-		Expect(c.Get(ctx, key, host)).To(Succeed())
-		Expect(host.GetFinalizers()).ToNot(ContainElement(BMH_FINALIZER_NAME))
-	})
-
 	Describe("queue bmh request for agent", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		var agent *v1beta1.Agent
@@ -1064,7 +1051,7 @@ var _ = Describe("bmac reconcile", func() {
 					func(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, opts ...client.UpdateOption) error {
 						return c.Update(ctx, bmh)
 					},
-				).Times(2)
+				).Times(3)
 				mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 					func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 						return c.Update(ctx, agent)
@@ -2669,6 +2656,28 @@ var _ = Describe("handleBMHFinalizer", func() {
 			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
 			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
 			_, err = res.Result()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("removes the finalizer and paused", func() {
+			setAnnotation(&bmh.ObjectMeta, BMH_PAUSED_ANNOTATION, "assisted-service-controller")
+
+			res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
+			Expect(res.Dirty()).To(BeTrue())
+			Expect(bmh.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
+			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
+			_, err := res.Result()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("removes paused if the finalizer is already gone", func() {
+			setAnnotation(&bmh.ObjectMeta, BMH_PAUSED_ANNOTATION, "assisted-service-controller")
+			bmh.ObjectMeta.Finalizers = nil
+
+			res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
+			Expect(res.Dirty()).To(BeTrue())
+			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
+			_, err := res.Result()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
