@@ -43,7 +43,6 @@ spec:
       - mountPath: /etc/containers
         name: mirror-registry-config
       - mountPath: /etc/pki/ca-trust/extracted/pem
-        subPath: tls-ca-bundle.pem
         name: mirror-registry-config
   restartPolicy: Never
   volumes:
