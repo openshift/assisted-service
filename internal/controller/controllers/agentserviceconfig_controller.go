@@ -1485,6 +1485,12 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 		statefulSet.Spec.Replicas = &replicas
 		statefulSet.Spec.Template.Spec.ServiceAccountName = imageServiceName
 
+		if !asc.rec.IsOpenShift {
+			statefulSet.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
+				FSGroup: swag.Int64(0),
+			}
+		}
+
 		volumes := statefulSet.Spec.Template.Spec.Volumes
 		if asc.rec.IsOpenShift {
 			volumes = ensureVolume(volumes, corev1.Volume{
@@ -2041,6 +2047,12 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{serviceContainer, postgresContainer}
 		deployment.Spec.Template.Spec.Volumes = volumes
 		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
+
+		if !asc.rec.IsOpenShift {
+			deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{
+				FSGroup: swag.Int64(0),
+			}
+		}
 
 		if asc.rec.NodeSelector != nil {
 			deployment.Spec.Template.Spec.NodeSelector = asc.rec.NodeSelector
