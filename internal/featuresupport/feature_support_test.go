@@ -382,12 +382,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil, nil, nil)
-			Expect(len(list)).To(Equal(32))
+			Expect(len(list)).To(Equal(33))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil, nil, nil)
-			Expect(len(list)).To(Equal(32))
+			Expect(len(list)).To(Equal(33))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
@@ -928,6 +928,39 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 		})
 	})
+
+	DescribeTable(
+		"External load balancer support",
+		func(version string, expected bool) {
+			arch := "x86_64"
+			actual := IsFeatureAvailable(
+				models.FeatureSupportLevelIDEXTERNALLOADBALANCER,
+				version,
+				&arch,
+			)
+			Expect(actual).To(Equal(expected))
+		},
+		Entry(
+			"Not in 4.14",
+			"4.14",
+			false,
+		),
+		Entry(
+			"Not in 4.15",
+			"4.14",
+			false,
+		),
+		Entry(
+			"Yes in 4.16",
+			"4.16",
+			true,
+		),
+		Entry(
+			"Yes in 4.17",
+			"4.17",
+			true,
+		),
+	)
 })
 
 func TestOperators(t *testing.T) {

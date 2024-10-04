@@ -86,8 +86,12 @@ type clusterValidator struct {
 func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) {
 		return ValidationSuccess, "No Machine Network CIDR needed: User Managed Networking"
-	} else if network.IsMachineCidrAvailable(c.cluster) {
+	}
+	if network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationSuccess, "The Machine Network CIDR is defined."
+	}
+	if network.IsLoadBalancerUserManaged(c.cluster) {
+		return ValidationPending, "The Machine Network CIDR is not defined yet"
 	}
 	if !c.hasHostsWithInventories {
 		return ValidationPending, "Hosts have not been discovered yet"
@@ -188,6 +192,9 @@ func (v *clusterValidator) areVipsDefined(c *clusterPreprocessContext, vipsWrapp
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: User Managed Networking", vipsWrapper.Name())
 	}
+	if network.IsLoadBalancerUserManaged(c.cluster) {
+		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not needed because the load balancer is managed by the user", vipsWrapper.Name())
+	}
 	if swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: SNO", vipsWrapper.Name())
 	}
@@ -222,6 +229,9 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 	name := strings.ToLower(vipsWrapper.Name()) + " vips"
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: User Managed Networking", vipsWrapper.Name())
+	}
+	if network.IsLoadBalancerUserManaged(c.cluster) {
+		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required because the load balancer is managed by the user", vipsWrapper.Name())
 	}
 	if swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: SNO", vipsWrapper.Name())

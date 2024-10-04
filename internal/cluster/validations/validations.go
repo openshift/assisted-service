@@ -208,6 +208,7 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
+	targetConfiguration.LoadBalancer = params.LoadBalancer
 
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
@@ -451,6 +452,26 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 	var allAddresses []*string
 	var multiErr error
 	var err error
+
+	// When the load balancer is managed by the user the API and ingress virtual IP addreses shouldn't be provided
+	// neither explicitly nor via DHCP allocation.
+	if network.IsLoadBalancerUserManaged(&targetConfiguration) {
+		hasApiVips := len(targetConfiguration.APIVips) > 0
+		hasIngressVips := len(targetConfiguration.IngressVips) > 0
+		switch {
+		case !hasApiVips && !hasIngressVips:
+			// This is fine, no VIPs have been specified.
+		case hasApiVips && !hasIngressVips:
+			return errors.New("apiVips shouldn't be specified when the load balancer is managed by the user")
+		case !hasApiVips && hasIngressVips:
+			return errors.New("ingressVips sholdn't be specified when the load balancer is managed by the user")
+		case hasApiVips && hasIngressVips:
+			return errors.New("apiVips and ingressVips shouldn't be specified when the load balancer is managed by the user")
+		}
+		if targetConfiguration.VipDhcpAllocation != nil && *targetConfiguration.VipDhcpAllocation {
+			return errors.New("vipDhcpAllocation shouldn't be enabled when the load balancer is managed by the user")
+		}
+	}
 
 	// Basic input validations
 	if err = validateIPAddressesInput(targetConfiguration.APIVips, targetConfiguration.IngressVips); err != nil {

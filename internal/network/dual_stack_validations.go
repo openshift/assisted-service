@@ -112,3 +112,7 @@ func CheckIfClusterModelIsDualStack(c *models.Cluster) bool {
 	}
 	return CheckIfClusterIsDualStack(&cluster)
 }
+
+func IsLoadBalancerUserManaged(c *common.Cluster) bool {
+	return c.LoadBalancer != nil && c.LoadBalancer.Type == models.LoadBalancerTypeUserManaged
+}

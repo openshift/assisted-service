@@ -1428,6 +1428,16 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		clusterParams.IgnitionEndpoint = ignitionEndpoint
 	}
 
+	if clusterInstall.Spec.LoadBalancer != nil {
+		clusterParams.LoadBalancer = &models.LoadBalancer{}
+		switch clusterInstall.Spec.LoadBalancer.Type {
+		case hiveext.LoadBalancerTypeClusterManaged:
+			clusterParams.LoadBalancer.Type = models.LoadBalancerTypeClusterManaged
+		case hiveext.LoadBalancerTypeUserManaged:
+			clusterParams.LoadBalancer.Type = models.LoadBalancerTypeUserManaged
+		}
+	}
+
 	return clusterParams
 }
 
