@@ -131,6 +131,22 @@ spec:
                       type: string
                   type: object
                 type: array
+              mirrorRegistryRef:
+                description: MirrorRegistryRef is a reference to ClusterMirrorRegistry
+                  ConfigMap that holds the registries toml data Set per cluster mirror
+                  registry
+                properties:
+                  name:
+                    description: Name is the name of the ConfigMap that this refers
+                      to
+                    type: string
+                  namespace:
+                    description: Namespace of the ConfigMap
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
               nmStateConfigLabelSelector:
                 description: |-
                   NmstateConfigLabelSelector associates NMStateConfigs for hosts that are considered part
