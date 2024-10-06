@@ -4272,12 +4272,12 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy, ocpVersion *string) e
 	return nil
 }
 
-// validateArchitectureAndVersion validates if architecture specified inside Infraenv matches one
+// validateClusterArchitectureAndVersion validates if architecture specified inside Infraenv matches one
 // specified for the cluster. For single-arch clusters the validation needs to only compare values
 // of the params. For multiarch cluster we want to see if the multiarch release image contains the
 // the architecture specifically requested by the InfraEnv. We don't need to explicitly validate if
 // the OS image exists because if not, this will be detected by the function generating the ISO.
-func validateArchitectureAndVersion(v versions.Handler, c *common.Cluster, cpuArch, ocpVersion string) error {
+func validateClusterArchitectureAndVersion(v versions.Handler, c *common.Cluster, cpuArch, ocpVersion string) error {
 	// For late-binding we don't know the cluster yet
 	if c == nil {
 		return nil
@@ -4715,7 +4715,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, params installer.RegisterInfraEnvParams, cluster *common.Cluster) error {
 	var err error
 
-	if err = validateArchitectureAndVersion(b.versionsHandler, cluster, params.InfraenvCreateParams.CPUArchitecture, params.InfraenvCreateParams.OpenshiftVersion); err != nil {
+	if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, params.InfraenvCreateParams.CPUArchitecture, params.InfraenvCreateParams.OpenshiftVersion); err != nil {
 		return err
 	}
 
@@ -4940,6 +4940,16 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
+		openshiftVersion := infraEnv.OpenshiftVersion
+		if params.InfraEnvUpdateParams.OpenshiftVersion != nil {
+			openshiftVersion = *params.InfraEnvUpdateParams.OpenshiftVersion
+		}
+
+		_, err = b.osImages.GetOsImageOrLatest(openshiftVersion, infraEnv.CPUArchitecture)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
 		var cluster *common.Cluster
 		clusterId := infraEnv.ClusterID
 		if clusterId != "" {
@@ -4951,7 +4961,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 				cluster = nil
 			}
 		}
-		if err = validateArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion); err != nil {
+		if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, openshiftVersion); err != nil {
 			return err
 		}
 		if err = featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, params.InfraEnvUpdateParams); err != nil {
@@ -5017,38 +5027,22 @@ func (b *bareMetalInventory) validateDiscoveryIgnitionImageSize(ctx context.Cont
 
 func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, db *gorm.DB, log logrus.FieldLogger) error {
 	updates := map[string]interface{}{}
-	if params.InfraEnvUpdateParams.Proxy != nil {
-		proxyHash, err := computeProxyHash(params.InfraEnvUpdateParams.Proxy)
-		if err != nil {
-			return err
-		}
-		if proxyHash != infraEnv.ProxyHash {
-			optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPProxy, "proxy_http_proxy", updates)
-			optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPSProxy, "proxy_https_proxy", updates)
-			optionalParam(params.InfraEnvUpdateParams.Proxy.NoProxy, "proxy_no_proxy", updates)
-			updates["proxy_hash"] = proxyHash
-		}
+	if err := b.updateInfraEnvProxy(params, infraEnv, updates); err != nil {
+		return err
 	}
-	if params.InfraEnvUpdateParams.KernelArguments != nil {
-		if len(params.InfraEnvUpdateParams.KernelArguments) > 0 {
-			b, err := json.Marshal(&params.InfraEnvUpdateParams.KernelArguments)
-			if err != nil {
-				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
-			}
-			updates["kernel_arguments"] = string(b)
-		} else {
-			updates["kernel_arguments"] = gorm.Expr("NULL")
-		}
-		if infraEnv.ClusterID != "" {
-			if err := b.setDiscoveryKernelArgumentsUsage(db, infraEnv.ClusterID, params.InfraEnvUpdateParams.KernelArguments); err != nil {
-				log.WithError(err).Warnf("failed to set discovery kernel arguments usage for cluster %s", infraEnv.ClusterID)
-			}
-		}
+
+	if err := b.updateInfraEnvKernelArguments(params, infraEnv, updates, log, db); err != nil {
+		return err
 	}
 
 	inputSSHKey := swag.StringValue(params.InfraEnvUpdateParams.SSHAuthorizedKey)
 	if inputSSHKey != "" && inputSSHKey != infraEnv.SSHAuthorizedKey {
 		updates["ssh_authorized_key"] = inputSSHKey
+	}
+
+	inputVersion := swag.StringValue(params.InfraEnvUpdateParams.OpenshiftVersion)
+	if inputVersion != "" && inputVersion != infraEnv.OpenshiftVersion {
+		updates["openshift_version"] = inputVersion
 	}
 
 	if err := b.updateInfraEnvNtpSources(params, infraEnv, updates, log); err != nil {
@@ -5185,6 +5179,49 @@ func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInf
 			updates["additional_ntp_sources"] = ntpSource
 		}
 	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateInfraEnvProxy(params installer.UpdateInfraEnvParams, infraEnv *common.InfraEnv, updates map[string]interface{}) error {
+	if params.InfraEnvUpdateParams.Proxy == nil {
+		return nil
+	}
+
+	proxyHash, err := computeProxyHash(params.InfraEnvUpdateParams.Proxy)
+	if err != nil {
+		return err
+	}
+
+	if proxyHash != infraEnv.ProxyHash {
+		optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPProxy, "proxy_http_proxy", updates)
+		optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPSProxy, "proxy_https_proxy", updates)
+		optionalParam(params.InfraEnvUpdateParams.Proxy.NoProxy, "proxy_no_proxy", updates)
+		updates["proxy_hash"] = proxyHash
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) updateInfraEnvKernelArguments(params installer.UpdateInfraEnvParams, infraEnv *common.InfraEnv, updates map[string]interface{}, log logrus.FieldLogger, db *gorm.DB) error {
+	if params.InfraEnvUpdateParams.KernelArguments == nil {
+		return nil
+	}
+
+	if len(params.InfraEnvUpdateParams.KernelArguments) > 0 {
+		b, err := json.Marshal(&params.InfraEnvUpdateParams.KernelArguments)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
+		}
+		updates["kernel_arguments"] = string(b)
+	} else {
+		updates["kernel_arguments"] = gorm.Expr("NULL")
+	}
+	if infraEnv.ClusterID != "" {
+		if err := b.setDiscoveryKernelArgumentsUsage(db, infraEnv.ClusterID, params.InfraEnvUpdateParams.KernelArguments); err != nil {
+			log.WithError(err).Warnf("failed to set discovery kernel arguments usage for cluster %s", infraEnv.ClusterID)
+		}
+	}
+
 	return nil
 }
 
