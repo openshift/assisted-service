@@ -6125,7 +6125,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 					var result installcfg.InstallerConfigBaremetal
 					installConfig := createInstallConfigBuilder()
-					mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+					mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(2)
 					data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "")
 					Expect(err).ShouldNot(HaveOccurred())
 					err = json.Unmarshal(data, &result)
@@ -13467,7 +13467,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				var result installcfg.InstallerConfigBaremetal
 				installConfig := createInstallConfigBuilder()
-				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(2)
 
 				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "")
 				Expect(err).ShouldNot(HaveOccurred())
@@ -13493,7 +13493,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				var result installcfg.InstallerConfigBaremetal
 				installConfig := createInstallConfigBuilder()
-				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(2)
 				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "")
 				Expect(err).ShouldNot(HaveOccurred())
 				err = json.Unmarshal(data, &result)
@@ -13528,7 +13528,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				var result installcfg.InstallerConfigBaremetal
 				installConfig := createInstallConfigBuilder()
-				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(2)
 				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "")
 				Expect(err).ShouldNot(HaveOccurred())
 				err = json.Unmarshal(data, &result)

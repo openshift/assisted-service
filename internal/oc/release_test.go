@@ -445,7 +445,7 @@ var _ = Describe("getImageFromRelease", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockExecuter = executer.NewMockExecuter(ctrl)
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).AnyTimes()
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).AnyTimes()
 		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
 		oc = &release{
 			executer:                mockExecuter,
@@ -595,7 +595,7 @@ var _ = Describe("Mirrors configuration generation", func() {
 					},
 				},
 			}
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
 			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, commandTemplate)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -655,7 +655,7 @@ var _ = Describe("Mirrors configuration generation", func() {
 					},
 				},
 			}
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
 			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, commandTemplate)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -721,7 +721,7 @@ var _ = Describe("Mirrors configuration generation", func() {
 					},
 				},
 			}
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
 			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -764,7 +764,7 @@ var _ = Describe("Mirrors configuration generation", func() {
 					},
 				},
 			}
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
 			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -793,14 +793,14 @@ var _ = Describe("Mirrors configuration generation", func() {
 		})
 
 		It("No registries", func() {
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
 			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(mirrorsFlag).Should(BeNil())
 		})
 
 		It("Invalid mirror registries", func() {
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(nil, fmt.Errorf("extract failed")).Times(1)
 			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
 			Expect(err).Should(HaveOccurred())
@@ -831,7 +831,7 @@ var _ = Describe("Mirrors configuration generation", func() {
 					},
 				},
 			}
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
 			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -873,7 +873,7 @@ var _ = Describe("Mirrors configuration generation", func() {
 					},
 				},
 			}
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
 			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -901,14 +901,14 @@ var _ = Describe("Mirrors configuration generation", func() {
 		})
 
 		It("No registries", func() {
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
 			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(mirrorsFlag).Should(BeNil())
 		})
 
 		It("Invalid mirror registries", func() {
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(nil, fmt.Errorf("extract failed")).Times(1)
 			mirrorsFlag, err := oc.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
 			Expect(err).Should(HaveOccurred())

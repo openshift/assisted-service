@@ -326,8 +326,8 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		}
 	}
 
-	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
-		caContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorCA()
+	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType) {
+		caContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorCA(mirrorregistries.ServiceMirrorRegistryType)
 		if mirrorsErr != nil {
 			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries CA contents")
 			return "", mirrorsErr

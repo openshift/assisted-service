@@ -132,7 +132,7 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 		}
 	}
 
-	if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+	if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType) {
 		isOpenShiftVersionRecentEnough, err := common.BaseVersionGreaterOrEqual(minimalOpenShiftVersionForImageDigestSupport, cluster.OpenshiftVersion)
 		if err != nil {
 			return nil, err
@@ -277,8 +277,8 @@ func (i *installConfigBuilder) mergeAllCASources(cluster *common.Cluster,
 		certs = append(certs, rhRootCA)
 	}
 
-	if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
-		caContents, err := i.mirrorRegistriesBuilder.GetMirrorCA()
+	if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType) {
+		caContents, err := i.mirrorRegistriesBuilder.GetMirrorCA(mirrorregistries.ServiceMirrorRegistryType)
 		if err == nil {
 			certs = append(certs, string(caContents))
 		}

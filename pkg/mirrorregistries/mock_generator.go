@@ -49,18 +49,18 @@ func (mr *MockMirrorRegistriesConfigBuilderMockRecorder) ExtractLocationMirrorDa
 }
 
 // GetMirrorCA mocks base method.
-func (m *MockMirrorRegistriesConfigBuilder) GetMirrorCA() ([]byte, error) {
+func (m *MockMirrorRegistriesConfigBuilder) GetMirrorCA(mirrorType MirrorType) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMirrorCA")
+	ret := m.ctrl.Call(m, "GetMirrorCA", mirrorType)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetMirrorCA indicates an expected call of GetMirrorCA.
-func (mr *MockMirrorRegistriesConfigBuilderMockRecorder) GetMirrorCA() *gomock.Call {
+func (mr *MockMirrorRegistriesConfigBuilderMockRecorder) GetMirrorCA(mirrorType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMirrorCA", reflect.TypeOf((*MockMirrorRegistriesConfigBuilder)(nil).GetMirrorCA))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMirrorCA", reflect.TypeOf((*MockMirrorRegistriesConfigBuilder)(nil).GetMirrorCA), mirrorType)
 }
 
 // GetMirrorRegistries mocks base method.
@@ -79,15 +79,15 @@ func (mr *MockMirrorRegistriesConfigBuilderMockRecorder) GetMirrorRegistries() *
 }
 
 // IsMirrorRegistriesConfigured mocks base method.
-func (m *MockMirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
+func (m *MockMirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured(mirrorType MirrorType) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsMirrorRegistriesConfigured")
+	ret := m.ctrl.Call(m, "IsMirrorRegistriesConfigured", mirrorType)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // IsMirrorRegistriesConfigured indicates an expected call of IsMirrorRegistriesConfigured.
-func (mr *MockMirrorRegistriesConfigBuilderMockRecorder) IsMirrorRegistriesConfigured() *gomock.Call {
+func (mr *MockMirrorRegistriesConfigBuilderMockRecorder) IsMirrorRegistriesConfigured(mirrorType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMirrorRegistriesConfigured", reflect.TypeOf((*MockMirrorRegistriesConfigBuilder)(nil).IsMirrorRegistriesConfigured))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMirrorRegistriesConfigured", reflect.TypeOf((*MockMirrorRegistriesConfigBuilder)(nil).IsMirrorRegistriesConfigured), mirrorType)
 }

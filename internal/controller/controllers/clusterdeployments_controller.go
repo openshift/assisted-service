@@ -1456,7 +1456,7 @@ func (r *ClusterDeploymentsReconciler) getReleaseImage(
 	releaseImage, err := r.VersionsHandler.GetReleaseImageByURL(ctx, clusterImageSet.Spec.ReleaseImage, pullSecret)
 	if err != nil {
 		errMsgSuffix := ""
-		if r.MirrorRegistriesConfigBuilder.IsMirrorRegistriesConfigured() {
+		if r.MirrorRegistriesConfigBuilder.IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType) {
 			// There is a special error case where we should check to see if the supplied image is tag based
 			// if so then we need to provide the user with a hint as to what might be happening.
 			ref, err2 := imageReference.Parse(clusterImageSet.Spec.ReleaseImage)
