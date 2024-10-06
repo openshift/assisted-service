@@ -351,7 +351,7 @@ func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockInstallConfig
 }
 
 func mockGetInstallConfigSuccess(mockInstallConfigBuilder *installcfg_builder.MockInstallConfigBuilder) {
-	mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("{}"), nil).AnyTimes()
+	mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("{}"), nil).AnyTimes()
 }
 
 func addVMToCluster(cluster *common.Cluster, db *gorm.DB) {
@@ -6126,7 +6126,8 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					var result installcfg.InstallerConfigBaremetal
 					installConfig := createInstallConfigBuilder()
 					mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(2)
-					data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "")
+					mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
+					data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "", nil)
 					Expect(err).ShouldNot(HaveOccurred())
 					err = json.Unmarshal(data, &result)
 					Expect(err).ShouldNot(HaveOccurred())
@@ -11529,7 +11530,7 @@ var _ = Describe("GetClusterInstallConfig", func() {
 
 	It("check get install config flow", func() {
 		params := installer.V2GetClusterInstallConfigParams{ClusterID: clusterID}
-		mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), "").Return([]byte("some string"), nil).Times(1)
+		mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), "", nil).Return([]byte("some string"), nil).Times(1)
 		response := bm.V2GetClusterInstallConfig(ctx, params)
 		_, ok := response.(*installer.V2GetClusterInstallConfigOK)
 		Expect(ok).To(BeTrue())
@@ -11670,7 +11671,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			Expect(err).ToNot(HaveOccurred())
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
+			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
 			params := installer.V2UpdateClusterInstallConfigParams{
 				ClusterID:           clusterID,
 				InstallConfigParams: "{}",
@@ -11707,7 +11708,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			Expect(err).ToNot(HaveOccurred())
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
+			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
 			params := installer.V2UpdateClusterInstallConfigParams{
 				ClusterID:           clusterID,
 				InstallConfigParams: "{}",
@@ -11742,7 +11743,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		Expect(err).ToNot(HaveOccurred())
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
+		mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
 		params := installer.V2UpdateClusterInstallConfigParams{
 			ClusterID:           clusterID,
 			InstallConfigParams: "{}",
@@ -13468,8 +13469,9 @@ var _ = Describe("TestRegisterCluster", func() {
 				var result installcfg.InstallerConfigBaremetal
 				installConfig := createInstallConfigBuilder()
 				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(2)
+				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 
-				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "")
+				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "", nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				err = json.Unmarshal(data, &result)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -13494,7 +13496,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				var result installcfg.InstallerConfigBaremetal
 				installConfig := createInstallConfigBuilder()
 				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(2)
-				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "")
+				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
+				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "", nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				err = json.Unmarshal(data, &result)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -13528,8 +13531,8 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				var result installcfg.InstallerConfigBaremetal
 				installConfig := createInstallConfigBuilder()
-				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(2)
-				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "")
+				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(gomock.Any()).Return(false).Times(3)
+				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "", nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				err = json.Unmarshal(data, &result)
 				Expect(err).ShouldNot(HaveOccurred())
