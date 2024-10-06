@@ -30,21 +30,11 @@ package constants
 //     '/etc/NetworkManager/system-connections' when the script is part of the full ISO and
 //     '/etc/coreos-firstboot-network' when the script is part of the minimal ISO.
 const PreNetworkConfigScript = `#!/bin/bash
-
-PATH_PREFIX=${PATH_PREFIX:=''}
-
-# The directory that contains nmconnection files of all nodes
-NMCONNECTIONS_DIR=${PATH_PREFIX}/etc/assisted/network
-MAC_NIC_MAPPING_FILE=mac_interface.ini
-
-if [[ ! -d "$NMCONNECTIONS_DIR" ]]
-then
-  echo "Error (exiting): Expected to find the directory $NMCONNECTIONS_DIR on the host but this was not present."
-  exit 0
+if [ -f "$COMMON_SCRIPT_PATH" ]; then
+  source "$COMMON_SCRIPT_PATH"
+else
+  source /usr/local/bin/common_network_script.sh
 fi
-
-# A map of host mac addresses to interface names
-declare -A host_macs_to_hw_iface
 
 # A mac-to-nic map created from the mapping file associated with the host
 declare -A logical_mac_nic_map
@@ -54,24 +44,6 @@ declare -A vlan_replacements
 
 # Working directory used for storage of processed files before installation in the target directory
 work_dir=$(mktemp -d)
-
-# Find destination directory based on ISO mode
-if [[ -f ${PATH_PREFIX}/etc/initrd-release ]]; then
-  ETC_NETWORK_MANAGER="${PATH_PREFIX}/etc/coreos-firstboot-network"
-else
-  ETC_NETWORK_MANAGER="${PATH_PREFIX}/etc/NetworkManager/system-connections"
-fi
-echo "Info: ETC_NETWORK_MANAGER was set to $ETC_NETWORK_MANAGER"
-
-# Create a map of host mac addresses to their network interfaces
-function map_host_macs_to_interfaces() {
-  SYS_CLASS_NET_DIR="${PATH_PREFIX}/sys/class/net"
-  for nic in $( ls $SYS_CLASS_NET_DIR )
-  do
-    mac=$(cat $SYS_CLASS_NET_DIR/$nic/address | tr '[:lower:]' '[:upper:]')
-    [[ -n "$mac" ]] && host_macs_to_hw_iface[$mac]=$nic
-  done
-}
 
 # Copy all nmstate files representing a host nic.  All these files have the host nic as filename prefix.
 function copy_physical_nics_files() {
@@ -169,7 +141,7 @@ function process_host_directories_by_mac_address() {
     return
   fi
   src_dir=$(mktemp -d)
-  cp -r ${NMCONNECTIONS_DIR}/host* $src_dir || /bin/true
+  cp -r ${NM_CONFIG_DIR}/host* $src_dir || /bin/true
   for host_src_dir in $(ls -1 -d $src_dir/host* || echo)
   do
     mapping_file="${host_src_dir}/${MAC_NIC_MAPPING_FILE}"
@@ -211,7 +183,7 @@ function process_host_directories_by_mac_address() {
 function map_mac_logical_nic_mapping() {
   echo "Info: Checking all '${MAC_NIC_MAPPING_FILE}' for mac to logical nic mappings"
   # initialize logical_mac_nic_map with mapping file entries
-  for f in $(echo ${NMCONNECTIONS_DIR}/host*/${MAC_NIC_MAPPING_FILE} || echo) ; do
+  for f in $(echo ${NM_CONFIG_DIR}/host*/${MAC_NIC_MAPPING_FILE} || echo) ; do
     readarray -t lines < "${f}"
     for line in "${lines[@]}"
     do

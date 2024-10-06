@@ -119,7 +119,7 @@ function mirror_file() {
 
   local url_path="$(echo ${remote_url} | cut -d / -f 4-)"
   mkdir -p "$(dirname ${httpd_path}/${url_path})"
-  curl --retry 5 --connect-timeout 30 "${remote_url}" -o "${httpd_path}/${url_path}"
+  curl -L --retry 5 --connect-timeout 30 "${remote_url}" -o "${httpd_path}/${url_path}"
 
   echo "${base_mirror_url}/${url_path}"
 }
@@ -138,7 +138,7 @@ function merge_authfiles() {
 }
 
 function install_opm() {
-  curl --retry 5 --connect-timeout 30 -s https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.7/opm-linux.tar.gz | tar xvz -C /usr/local/bin/
+  curl -L --retry 5 --connect-timeout 30 -s https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.7/opm-linux.tar.gz | tar xvz -C /usr/local/bin/
 }
 
 function ocp_mirror_release() {

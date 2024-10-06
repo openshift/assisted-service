@@ -54,6 +54,7 @@ var _ = Describe("bmac reconcile", func() {
 			Log:                  common.GetTestLog(),
 			spokeClient:          fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
 			ConvergedFlowEnabled: false,
+			PauseProvisionedBMHs: true,
 		}
 	})
 
@@ -348,22 +349,22 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
 				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
 
-				// Test that cleaning mode stays the same
+				// Test that cleaning mode is set to disabled
 				host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
 				host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
 
 				result = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil, infraEnv)
-				Expect(result).To(Equal(reconcileComplete{dirty: false, stop: true}))
+				Expect(result).To(Equal(reconcileComplete{dirty: true, stop: true}))
 				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
-				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeMetadata))
+				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
 
 				// This should not return a dirty result because label is already set
 				result = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil, infraEnv)
 				Expect(result).To(Equal(reconcileComplete{dirty: false, stop: true}))
 				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
-				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeMetadata))
+				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
 			})
 
 			It("should set the ISODownloadURL in the BMH", func() {
@@ -377,7 +378,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.Spec.Image.URL).To(Equal(isoImageURL))
 			})
 
-			It("should not disable cleaning and set online true in the BMH", func() {
+			It("should disable cleaning and set online true in the BMH", func() {
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
@@ -386,8 +387,22 @@ var _ = Describe("bmac reconcile", func() {
 				err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.Spec.Online).To(Equal(true))
-				Expect(updatedHost.Spec.AutomatedCleaningMode).NotTo(Equal(bmh_v1alpha1.CleaningModeDisabled))
+				Expect(updatedHost.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
 			})
+
+			It("should disable cleaning when set to metadata by user in the BMH", func() {
+				host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.Spec.Online).To(Equal(true))
+				Expect(updatedHost.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
+			})
+
 			It("should not reconcile BMH if the updated image has not been around longer than the grace period", func() {
 				// Reconcile with the original ISO
 				_ = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil, infraEnv)
@@ -918,6 +933,67 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
 			})
+
+			It("should set the InstallationDiskID to multipath if the wwn RootDeviceHints were provided and match", func() {
+				priorAgent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, priorAgent)).To(BeNil())
+				priorAgent.Status.Inventory.Disks = append(priorAgent.Status.Inventory.Disks, v1beta1.HostDisk{
+					ID:                      "3",
+					InstallationEligibility: v1beta1.HostInstallationEligibility{Eligible: true},
+					ByID:                    "/dev/disk/by-id/wwn-0x1111111111111111111111",
+					DriveType:               string(models.DriveTypeMultipath),
+					Name:                    "sda",
+					SizeBytes:               int64(120) * (int64(1) << 30),
+					Bootable:                true,
+				})
+
+				for i := range priorAgent.Status.Inventory.Disks {
+					priorAgent.Status.Inventory.Disks[i].Wwn = "0x1111111111111111111111"
+				}
+				Expect(c.Update(ctx, priorAgent)).To(BeNil())
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)).To(BeNil())
+
+				updatedHost.Spec.RootDeviceHints = &bmh_v1alpha1.RootDeviceHints{
+					WWN: "0x1111111111111111111111",
+				}
+				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedAgent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)).To(BeNil())
+				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("3"))
+			})
+
+			It("should set the InstallationDiskID to the first disk if the wwn RootDeviceHints were provided and match and there's no multipath disks", func() {
+				priorAgent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, priorAgent)).To(BeNil())
+				for i := range priorAgent.Status.Inventory.Disks {
+					priorAgent.Status.Inventory.Disks[i].Wwn = "0x1111111111111111111111"
+				}
+				Expect(c.Update(ctx, priorAgent)).To(BeNil())
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)).To(BeNil())
+
+				updatedHost.Spec.RootDeviceHints = &bmh_v1alpha1.RootDeviceHints{
+					WWN: "0x1111111111111111111111",
+				}
+				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedAgent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)).To(BeNil())
+				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
+			})
+
 			It("should not touch InstallationDiskID if the RootDeviceHints were not provided", func() {
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
 				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
@@ -1349,6 +1425,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(spokeBMH.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(spokeBMH.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]).To(Equal(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]))
 				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_PAUSED_ANNOTATION))
 				Expect(spokeBMH.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
 				Expect(spokeBMH.Spec.Image).To(Equal(updatedHost.Spec.Image))
 				Expect(spokeBMH.Spec.ConsumerRef.Kind).To(Equal("Machine"))
@@ -1417,6 +1494,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(spokeBMH.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(spokeBMH.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]).To(Equal(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]))
 				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_PAUSED_ANNOTATION))
 				Expect(spokeBMH.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
 				Expect(spokeBMH.Spec.Image).To(Equal(updatedHost.Spec.Image))
 				Expect(spokeBMH.Spec.ConsumerRef.Kind).To(Equal("Machine"))
@@ -1451,6 +1529,7 @@ var _ = Describe("bmac reconcile", func() {
 				err := c.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_PAUSED_ANNOTATION))
 
 				By("Checking the spoke BMH does not exist")
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
@@ -1481,6 +1560,7 @@ var _ = Describe("bmac reconcile", func() {
 				err := c.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_PAUSED_ANNOTATION))
 
 				By("Checking the spoke BMH does not exist")
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
@@ -1519,6 +1599,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
@@ -1572,6 +1653,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(spokeBMH.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(spokeBMH.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]).To(Equal(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]))
 				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_PAUSED_ANNOTATION))
 				Expect(spokeBMH.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
 				Expect(spokeBMH.Spec.Image).To(Equal(updatedHost.Spec.Image))
 				Expect(spokeBMH.Spec.ConsumerRef.Kind).To(Equal("Machine"))
@@ -1743,6 +1825,7 @@ var _ = Describe("bmac reconcile", func() {
 				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).NotTo(Equal("assisted-service-controller"))
 			})
 			It("should not set the detached annotation value for BMHs not labeled with an infraenv", func() {
@@ -1823,6 +1906,7 @@ var _ = Describe("bmac reconcile", func() {
 				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_PAUSED_ANNOTATION))
 			})
 
 			It("should not set the detached annotation if installation has not started", func() {
@@ -1843,6 +1927,7 @@ var _ = Describe("bmac reconcile", func() {
 				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_PAUSED_ANNOTATION))
 			})
 		})
 
@@ -1908,8 +1993,210 @@ var _ = Describe("bmac reconcile", func() {
 				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(updatedHost.Spec.Image).To(BeNil())
+			})
+		})
+	})
+
+	Describe("Handle status annotation for BMHs", func() {
+		var bmh, updatedBMH *bmh_v1alpha1.BareMetalHost
+		var infraEnv *v1beta1.InfraEnv
+
+		BeforeEach(func() {
+			// Create test InfraEnv
+			infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			// Initialize test BMH
+			bmh = newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{})
+			labels := make(map[string]string)
+			labels[BMH_INFRA_ENV_LABEL] = "testInfraEnv"
+			bmh.ObjectMeta.Labels = labels
+		})
+
+		Context("when BMH is in provisioned state", func() {
+			BeforeEach(func() {
+				bmh.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+				bmh.ObjectMeta.Annotations = make(map[string]string)
+			})
+
+			It("should add paused and status annotations if missing", func() {
+				// Create BMH
+				Expect(c.Create(ctx, bmh)).To(Succeed())
+
+				// Reconcile BMH
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				// Get updated BMH
+				updatedBMH = &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, updatedBMH)
+				Expect(err).To(BeNil())
+
+				// Ensure 'paused' and 'status' annotations are missing
+				Expect(bmh.ObjectMeta.Annotations).To(Not(HaveKey(BMH_PAUSED_ANNOTATION)))
+				Expect(bmh.ObjectMeta.Annotations).To(Not(HaveKey(BMH_STATUS_ANNOTATION)))
+
+				// Ensure 'paused' annotation is added
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_PAUSED_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION]).To(Equal("assisted-service-controller"))
+
+				// Ensure 'status' annotation is added
+				statusJson, err := json.Marshal(updatedBMH.Status)
+				Expect(err).To(BeNil())
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_STATUS_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]).To(Equal(string(statusJson)))
+			})
+
+			It("should update status annotation if stale", func() {
+				// Create BMH
+				bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION] = "assisted-service-controller"
+				originalStatusJson, err := json.Marshal(bmh.Status)
+				Expect(err).To(BeNil())
+				bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION] = string(originalStatusJson)
+				Expect(c.Create(ctx, bmh)).To(Succeed())
+
+				// Reconcile BMH
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				// Update BMH
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, bmh)
+				Expect(err).To(BeNil())
+				bmh.Status.OperationalStatus = "discovered"
+				Expect(c.Update(ctx, bmh)).To(BeNil())
+
+				// Reconcile updated BMH
+				result, err = bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				// Get updated BMH
+				updatedBMH = &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, updatedBMH)
+				Expect(err).To(BeNil())
+
+				// Ensure 'status' annotation is updated
+				updatedStatusJson, err := json.Marshal(updatedBMH.Status)
+				Expect(err).To(BeNil())
+				Expect(updatedStatusJson).To(Not(Equal(originalStatusJson)))
+				Expect(updatedBMH.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]).To(Equal(string(updatedStatusJson)))
+			})
+
+			It("should keep paused and status annotations if already exist", func() {
+				// Create BMH
+				bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION] = "assisted-service-controller"
+				statusJson, err := json.Marshal(bmh.Status)
+				Expect(err).To(BeNil())
+				bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION] = string(statusJson)
+				Expect(c.Create(ctx, bmh)).To(Succeed())
+
+				// Reconcile BMH
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				// Get updated BMH
+				updatedBMH = &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, updatedBMH)
+				Expect(err).To(BeNil())
+
+				// Ensure 'paused' annotation exists
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_PAUSED_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION]).To(Equal("assisted-service-controller"))
+
+				// Ensure 'status' annotation exists
+				statusJson, err = json.Marshal(updatedBMH.Status)
+				Expect(err).To(BeNil())
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_STATUS_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]).To(Equal(string(statusJson)))
+			})
+
+			It("should keep provisioned state when adding cluster-reference annotation", func() {
+				// Add 'cluster-reference' annotation
+				clusterRef := fmt.Sprintf("%s/%s", testNamespace, "testCluster")
+				bmh.ObjectMeta.Annotations[BMH_CLUSTER_REFERENCE] = clusterRef
+
+				// Add 'paused' annotation
+				bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION] = "assisted-service-controller"
+
+				// Add 'status' annotation
+				originalStatusJson, err := json.Marshal(bmh.Status)
+				Expect(err).To(BeNil())
+				bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION] = string(originalStatusJson)
+
+				// Create BMH
+				Expect(c.Create(ctx, bmh)).To(Succeed())
+
+				// Reconcile BMH
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				// Get updated BMH
+				updatedBMH = &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, updatedBMH)
+				Expect(err).To(BeNil())
+
+				// Ensure annotations exist
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_CLUSTER_REFERENCE))
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_PAUSED_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_STATUS_ANNOTATION))
+
+				// Ensure BMH is in 'provisioned' state
+				Expect(updatedBMH.Status.Provisioning.State).To(Equal(bmh_v1alpha1.StateProvisioned))
+			})
+		})
+
+		Context("when BMH's provisioning state is missing", func() {
+			BeforeEach(func() {
+				bmh.Status.Provisioning.State = bmh_v1alpha1.StateNone
+				bmh.ObjectMeta.Annotations = make(map[string]string)
+			})
+
+			It("should remove paused annotation if also status annotation exists", func() {
+				// Create BMH
+				bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION] = "assisted-service-controller"
+				statusJson, err := json.Marshal(bmh.Status)
+				Expect(err).To(BeNil())
+				bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION] = string(statusJson)
+				Expect(c.Create(ctx, bmh)).To(Succeed())
+
+				// Reconcile BMH
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				// Get updated BMH
+				updatedBMH = &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, updatedBMH)
+				Expect(err).To(BeNil())
+
+				// Ensure 'paused' annotation is removed
+				Expect(updatedBMH.ObjectMeta.Annotations).To(Not(HaveKey(BMH_PAUSED_ANNOTATION)))
+			})
+
+			It("should not remove paused annotation if status annotation doesn't exist", func() {
+				// Create BMH
+				bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION] = "assisted-service-controller"
+				Expect(c.Create(ctx, bmh)).To(Succeed())
+
+				// Reconcile BMH
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				// Get updated BMH
+				updatedBMH = &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, updatedBMH)
+				Expect(err).To(BeNil())
+
+				// Ensure 'paused' annotation exists
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_PAUSED_ANNOTATION))
 			})
 		})
 	})
@@ -1934,6 +2221,7 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			Log:                  common.GetTestLog(),
 			spokeClient:          fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
 			ConvergedFlowEnabled: true,
+			PauseProvisionedBMHs: true,
 		}
 	})
 
@@ -2126,6 +2414,7 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 					updatedHost := &bmh_v1alpha1.BareMetalHost{}
 					Expect(c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)).To(BeNil())
 					Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+					Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_PAUSED_ANNOTATION))
 					Expect(updatedHost.Spec.CustomDeploy).To(BeNil())
 				})
 				It("resets customDeploy when the BMH is available", func() {
@@ -2258,6 +2547,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 			Scheme:                scheme.Scheme,
 			Log:                   common.GetTestLog(),
 			ConvergedFlowEnabled:  true,
+			PauseProvisionedBMHs:  true,
 			Drainer:               mockDrainer,
 			SpokeK8sClientFactory: mockClientFactory,
 		}
@@ -2317,11 +2607,13 @@ var _ = Describe("handleBMHFinalizer", func() {
 			data, err := json.Marshal(args)
 			Expect(err).To(BeNil())
 			setAnnotation(&bmh.ObjectMeta, BMH_DETACHED_ANNOTATION, string(data))
+			setAnnotation(&bmh.ObjectMeta, BMH_PAUSED_ANNOTATION, "assisted-service-controller")
 
 			res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
 			Expect(res.Dirty()).To(BeTrue())
 			Expect(bmh.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
 			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
 			_, err = res.Result()
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -2333,11 +2625,13 @@ var _ = Describe("handleBMHFinalizer", func() {
 			data, err := json.Marshal(args)
 			Expect(err).To(BeNil())
 			setAnnotation(&bmh.ObjectMeta, BMH_DETACHED_ANNOTATION, string(data))
+			setAnnotation(&bmh.ObjectMeta, BMH_PAUSED_ANNOTATION, "assisted-service-controller")
 			bmh.ObjectMeta.Finalizers = nil
 
 			res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
 			Expect(res.Dirty()).To(BeTrue())
 			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
 			_, err = res.Result()
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -2485,12 +2779,14 @@ var _ = Describe("handleBMHFinalizer", func() {
 
 				It("sets the BMH to clean and deprovisions", func() {
 					setAnnotation(&bmh.ObjectMeta, BMH_DETACHED_ANNOTATION, "assisted-service-controller")
+					setAnnotation(&bmh.ObjectMeta, BMH_PAUSED_ANNOTATION, "assisted-service-controller")
 					bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
 					bmh.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
 
 					res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
 					Expect(res.Dirty()).To(BeTrue())
 					Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+					Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
 					Expect(bmh.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeMetadata))
 					_, err := res.Result()
 					Expect(err).NotTo(HaveOccurred())
@@ -2501,32 +2797,37 @@ var _ = Describe("handleBMHFinalizer", func() {
 						bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
 					})
 
-					It("annotates and deletes the agent", func() {
-						mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-							func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
-								Expect(updatedAgent.GetAnnotations()).To(HaveKey(BMH_FINALIZER_NAME))
-								return nil
-							},
-						)
-						mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(nil)
+					It("waits for the BMH to be deprovisioned", func() {
+						mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Times(0)
+						mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Times(0)
 
 						res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
-						Expect(bmh.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
-						_, err := res.Result()
+						Expect(bmh.GetFinalizers()).To(ContainElement(BMH_FINALIZER_NAME))
+						Expect(res.Stop(ctx)).To(BeTrue())
+						recResult, err := res.Result()
 						Expect(err).NotTo(HaveOccurred())
+						Expect(recResult.RequeueAfter).To(Equal(defaultRequeueAfterOnError))
 					})
 
-					It("fails when annotating the agent fails", func() {
-						mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(fmt.Errorf("failed to update agent"))
-						_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()
-						Expect(err).To(HaveOccurred())
-					})
+					Context("BMH is deleting", func() {
+						BeforeEach(func() {
+							bmh.Status.Provisioning.State = bmh_v1alpha1.StateDeleting
+						})
+						It("deletes the agent", func() {
+							mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(nil)
 
-					It("fails when deleting the agent fails", func() {
-						mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(fmt.Errorf("agent delete failed"))
-						setAnnotation(&agent.ObjectMeta, BMH_FINALIZER_NAME, "true")
-						_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()
-						Expect(err).To(HaveOccurred())
+							res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
+							Expect(bmh.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
+							_, err := res.Result()
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("fails when deleting the agent fails", func() {
+							mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(fmt.Errorf("agent delete failed"))
+							setAnnotation(&agent.ObjectMeta, BMH_FINALIZER_NAME, "true")
+							_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()
+							Expect(err).To(HaveOccurred())
+						})
 					})
 				})
 			})

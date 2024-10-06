@@ -16,7 +16,7 @@ function generate_python_client() {
         "${__root}"/tools/generate_python_client.sh
     cd "${dest}"/assisted-service-client/ && \
         python3 "${__root}"/tools/client_package_initializer.py "${dest}"/assisted-service-client/ https://github.com/openshift/assisted-service
-    cp "${dest}"/assisted-service-client/dist/assisted-service-client-*.tar.gz "${dest}"
+    cp "${dest}"/assisted-service-client/dist/assisted_service_client-*.tar.gz "${dest}"
 }
 
 function validate_swagger_file() {

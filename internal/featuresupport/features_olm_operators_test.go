@@ -5,12 +5,14 @@ import (
 
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("V2ListFeatureSupportLevels API", func() {
+	featureCNV := models.FeatureSupportLevelIDCNV
 	lVMavailableVersions := []string{"4.11", "4.12", "4.13", "4.14", "4.15"}
 	unspportedLVMVersions := []string{"4.10", "4.9", "4.8", "4.7", "4.6"}
 
@@ -218,4 +220,20 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable))
 		})
 	})
+
+	DescribeTable("Validate CNV on Architecture", func(ocpVersion []string, cpuArch string, expectedResult bool) {
+		for _, v := range ocpVersion {
+			version := v
+			result := IsFeatureAvailable(featureCNV, version, swag.String(cpuArch))
+			Expect(result).Should(Equal(expectedResult),
+				fmt.Sprintf("Feature: %s, OCP version: %s, CpuArch: %s, should be %v", featureCNV, v, cpuArch, expectedResult))
+		}
+	},
+
+		Entry("on X86	is supported", []string{"4.8", "4.11", "4.14", "4.21"}, models.ClusterCPUArchitectureX8664, true),
+		Entry("on arm64 is supported", []string{"4.14", "4.15", "4.21"}, models.ClusterCPUArchitectureArm64, true),
+		Entry("on arm64 is    NOT supported", []string{"4.11", "4.12", "4.13"}, models.ClusterCPUArchitectureArm64, false),
+		Entry("on S390x is    NOT supported", []string{"4.11", "4.13", "4.14", "4.21"}, models.ClusterCPUArchitectureS390x, false),
+		Entry("on ppc64le is	NOT supported", []string{"4.11", "4.13", "4.14", "4.21"}, models.ClusterCPUArchitecturePpc64le, false),
+	)
 })

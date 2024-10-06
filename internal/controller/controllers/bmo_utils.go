@@ -120,11 +120,6 @@ func (r *bmoUtils) getICCConfig(ctx context.Context) (*ICCConfig, error) {
 		return nil, fmt.Errorf(configKeyNotFoundError, ironicBaseURLKey, secret.Name, secret.Namespace)
 	}
 
-	ironicInspectorBaseURL, ok := secret.Data[ironicInspectorBaseURLKey]
-	if !ok {
-		return nil, fmt.Errorf(configKeyNotFoundError, ironicInspectorBaseURLKey, secret.Name, secret.Namespace)
-	}
-
 	ironicAgentImage, ok := secret.Data[ironicAgentImageKey]
 	if !ok {
 		return nil, fmt.Errorf(configKeyNotFoundError, ironicAgentImageKey, secret.Name, secret.Namespace)
@@ -132,7 +127,7 @@ func (r *bmoUtils) getICCConfig(ctx context.Context) (*ICCConfig, error) {
 
 	return &ICCConfig{
 		IronicBaseURL:          string(ironicBaseURL),
-		IronicInspectorBaseUrl: string(ironicInspectorBaseURL),
+		IronicInspectorBaseUrl: string(secret.Data[ironicInspectorBaseURLKey]),
 		IronicAgentImage:       string(ironicAgentImage),
 	}, nil
 }

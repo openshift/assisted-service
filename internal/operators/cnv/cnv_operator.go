@@ -8,7 +8,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
-	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
@@ -28,9 +27,8 @@ const (
 )
 
 type operator struct {
-	log       logrus.FieldLogger
-	config    Config
-	extracter oc.Extracter
+	log    logrus.FieldLogger
+	config Config
 }
 
 var Operator = models.MonitoredOperator{
@@ -42,12 +40,11 @@ var Operator = models.MonitoredOperator{
 }
 
 // NewCNVOperator creates new instance of a Container Native Virtualization installation plugin
-func NewCNVOperator(log logrus.FieldLogger, cfg Config, extracter oc.Extracter) *operator {
+func NewCNVOperator(log logrus.FieldLogger, cfg Config) *operator {
 	log.WithField("config", cfg).Infof("Configuring CNV Operator plugin")
 	return &operator{
-		log:       log,
-		config:    cfg,
-		extracter: extracter,
+		log:    log,
+		config: cfg,
 	}
 }
 
@@ -63,14 +60,18 @@ func (o *operator) GetFullName() string {
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	lsoOperator := []string{lso.Operator.Name}
-	if !common.IsSingleNodeCluster(cluster) || cluster.OpenshiftVersion == "" {
+	lvmOperator := []string{lvm.Operator.Name}
+
+	if cluster.OpenshiftVersion == "" {
 		return lsoOperator, nil
 	}
 
-	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion); isGreaterOrEqual {
-		return []string{lvm.Operator.Name}, nil
+	// SNO
+	if common.IsSingleNodeCluster(cluster) {
+		if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion); isGreaterOrEqual {
+			return lvmOperator, nil
+		}
 	}
-
 	return lsoOperator, nil
 }
 
@@ -93,7 +94,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
 	if !featuresupport.IsFeatureCompatibleWithArchitecture(models.FeatureSupportLevelIDCNV, cluster.OpenshiftVersion, cluster.CPUArchitecture) {
 		return api.Failure, fmt.Sprintf(
-			"%s is supported only for %s CPU architecture.", o.GetFullName(), common.DefaultCPUArchitecture)
+			"%s is not supported for %s CPU architecture.", o.GetFullName(), cluster.CPUArchitecture)
 	}
 	return api.Success, ""
 }

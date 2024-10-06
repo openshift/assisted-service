@@ -3,6 +3,7 @@ package versions
 import (
 	context "context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/go-openapi/swag"
@@ -176,6 +177,26 @@ var _ = Describe("validateReleaseImageForRHCOS", func() {
 	})
 	It("fails validation using invalid version", func() {
 		Expect(validateReleaseImageForRHCOS(log, "invalid", common.X86CPUArchitecture, releaseImages)).NotTo(Succeed())
+	})
+
+	It("advises on suitable Openshift versions if unable to find release image for architecture", func() {
+		err := validateReleaseImageForRHCOS(log, "9.9.9-chocobomb", common.X86CPUArchitecture, releaseImages)
+		Expect(err).ToNot(BeNil())
+		errorMessage := err.Error()
+		Expect(errorMessage).To(ContainSubstring(fmt.Sprintf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image.", "9.9", common.X86CPUArchitecture)))
+		Expect(errorMessage).To(ContainSubstring(fmt.Sprintf("These are the OCP versions for which a matching release image has been found for arch %s", common.X86CPUArchitecture)))
+		splitErrorMessage := strings.Split(errorMessage, ":")
+		Expect(len(splitErrorMessage)).To(Equal(3))
+		versionsSplit := strings.Split(strings.Trim(splitErrorMessage[2], " "), ",")
+		Expect(versionsSplit).To(ContainElement("4.11.1"))
+		Expect(versionsSplit).To(ContainElement("4.12"))
+
+	})
+
+	It("advises that no Openshift versions are available in release images if none found for architecture", func() {
+		err := validateReleaseImageForRHCOS(log, "9.9.9-chocobomb", common.PowerCPUArchitecture, releaseImages)
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("There are no OCP versions available in release images for arch %s", common.PowerCPUArchitecture)))
 	})
 })
 

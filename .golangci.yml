@@ -61,7 +61,7 @@ linters:
     - unconvert
     - gci
     - goimports
-    - scopelint
+    - exportloopref
 
 linters-settings:
   govet:

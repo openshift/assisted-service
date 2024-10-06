@@ -234,6 +234,19 @@ This can be found using the following command:
 oc adm release info --image-for=ironic-agent <hub-release-image>
 ```
 
+### Ironic Agent callback IP family
+
+If the hub cluster is a dual stack cluster the preprovisioning image controller needs to pick which IP family to provide to the ironic agent for callback purposes.
+
+This is done using the following priority system:
+
+1. Use the IP family from the `infraenv.agent-install.openshift.io/ip-family` annotation
+  - This can be `v4`, `v6`, or `v4,v6` depending on what the hosts in this infraenv support
+  - Use this option when using late binding or when the following behavior doesn't work for your use case
+2. IP family of the cluster associated with the InfraEnv
+  - If the InfraEnv has a cluster associated with it that cluster's networking will be checked to determine the correct IP family to use
+3. Default to the primary IP family of the hub cluster
+
 [ZTP converged flow](ZTP_converged_flow.png)
 
 ## Working with mirror registry

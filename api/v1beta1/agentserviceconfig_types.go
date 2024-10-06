@@ -156,7 +156,8 @@ const (
 	ConditionReconcileCompleted conditionsv1.ConditionType = "ReconcileCompleted"
 	// ConditionDeploymentsHealthy reports whether deployments are healthy.
 	ConditionDeploymentsHealthy conditionsv1.ConditionType = "DeploymentsHealthy"
-
+	// ReasonLocalClusterImportNotEnabled when the import of local cluster is not enabled.
+	ReasonLocalClusterImportNotEnabled string = "Local cluster import is not enabled"
 	// ReasonLocalClusterEntitiesCreated when the local cluster is managed.
 	ReasonLocalClusterManaged string = "Local cluster is managed."
 	// ReasonLocalClusterEntitiesRemoved when the local cluster is not managed.

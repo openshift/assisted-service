@@ -252,26 +252,6 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 	})
 
-	It("host not found ", func() {
-		host := newAgent("host", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
-		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
-		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
-		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(0)
-		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(ctx, newHostRequest(host))
-		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{}))
-		agent := &v1beta1.Agent{}
-
-		key := types.NamespacedName{
-			Namespace: testNamespace,
-			Name:      "host",
-		}
-		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(agent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
-	})
-
 	It("Agent ValidationInfo update", func() {
 		hostId := strfmt.UUID(uuid.New().String())
 		infraEnvId := strfmt.UUID(uuid.New().String())
@@ -411,7 +391,7 @@ var _ = Describe("agent reconcile", func() {
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 				return c.Update(ctx, agent)
 			},
-		).Times(1)
+		).Times(3)
 		mockClient.EXPECT().Status().Return(mockSubResourceWriter).AnyTimes()
 		mockSubResourceWriter.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
@@ -1299,12 +1279,16 @@ var _ = Describe("agent reconcile", func() {
 				StatusInfo: swag.String("Some status info"),
 			},
 		}
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
-			ID: &sId,
-			Hosts: []*models.Host{
-				&commonHost.Host,
-			},
-		}}
+		previousClusterName := "oldClusterDeployment"
+		backEndCluster = &common.Cluster{
+			KubeKeyName:      previousClusterName,
+			KubeKeyNamespace: testNamespace,
+			Cluster: models.Cluster{
+				ID: &sId,
+				Hosts: []*models.Host{
+					&commonHost.Host,
+				},
+			}}
 		targetId := strfmt.UUID(uuid.New().String())
 		targetClusterName := "clusterDeployment"
 		targetBECluster := &common.Cluster{
@@ -1314,7 +1298,10 @@ var _ = Describe("agent reconcile", func() {
 				ID: &targetId,
 			},
 		}
-		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{
+			ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			Hostname:              "agent.example.com",
+		})
 		clusterDeployment := newClusterDeployment(targetClusterName, testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 
@@ -1339,6 +1326,189 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+
+		By("unbind sets the DeprovisionInfo")
+		Expect(agent.Status.DeprovisionInfo).NotTo(BeNil())
+		Expect(agent.Status.DeprovisionInfo.ClusterName).To(Equal(previousClusterName))
+		Expect(agent.Status.DeprovisionInfo.ClusterNamespace).To(Equal(testNamespace))
+		Expect(agent.Status.DeprovisionInfo.NodeName).To(Equal("agent.example.com"))
+		Expect(agent.Status.DeprovisionInfo.Message).To(Equal(AgentDeprovisionMessage))
+	})
+
+	Context("spoke resource removal", func() {
+		var (
+			clusterDeploymentName = "test-cluster"
+			agent                 *v1beta1.Agent
+			agentHostname         = "agent.example.com"
+			spokeClient           spoke_k8s_client.SpokeK8sClient
+			host                  *common.Host
+		)
+
+		BeforeEach(func() {
+			secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeploymentName)
+			cdSpec := getDefaultClusterDeploymentSpec(clusterDeploymentName, "test-cluster-aci", "pull-secret")
+			cdSpec.ClusterMetadata = &hivev1.ClusterMetadata{AdminKubeconfigSecretRef: corev1.LocalObjectReference{Name: secretName}}
+			clusterDeployment := newClusterDeployment(clusterDeploymentName, testNamespace, cdSpec)
+			Expect(c.Create(ctx, clusterDeployment)).To(Succeed())
+
+			infraEnvId := strfmt.UUID(uuid.New().String())
+			allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+
+			hostId := strfmt.UUID(uuid.New().String())
+			host = &common.Host{
+				Host: models.Host{
+					ID:         &hostId,
+					ClusterID:  &sId,
+					InfraEnvID: infraEnvId,
+					Inventory:  common.GenerateTestDefaultInventory(),
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
+				},
+			}
+			mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Return(host, nil).AnyTimes()
+
+			cluster := &common.Cluster{
+				KubeKeyName:      clusterDeploymentName,
+				KubeKeyNamespace: testNamespace,
+				Cluster: models.Cluster{
+					ID: &sId,
+					Hosts: []*models.Host{
+						&host.Host,
+					},
+				}}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(types.NamespacedName{Name: clusterDeploymentName, Namespace: testNamespace}).Return(cluster, nil).AnyTimes()
+
+			adminKubeconfigSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: testNamespace,
+				},
+				Data: map[string][]byte{
+					"kubeconfig": []byte("somekubeconfig"),
+				},
+			}
+			Expect(c.Create(ctx, adminKubeconfigSecret)).To(Succeed())
+
+			agent = newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{
+				ClusterDeploymentName: &v1beta1.ClusterReference{Name: clusterDeploymentName, Namespace: testNamespace},
+				Hostname:              agentHostname,
+			})
+
+			mockInstallerInternal.EXPECT().GetHostByKubeKey(types.NamespacedName{
+				Name:      agent.ObjectMeta.Name,
+				Namespace: agent.ObjectMeta.Namespace,
+			}).Return(host, nil).AnyTimes()
+		})
+
+		setFakeClientWithNode := func() {
+			schemes := GetKubeClientSchemes()
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(schemes).Build()
+			spokeClient = fakeSpokeK8sClient{Client: fakeClient}
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(spokeClient, nil).AnyTimes()
+			node := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: agentHostname}}
+			Expect(spokeClient.Create(ctx, node)).To(Succeed())
+		}
+
+		It("does not remove the resources when DeprovisionInfo is set and the host is still unbinding", func() {
+			agent.Status.DeprovisionInfo = &v1beta1.AgentDeprovisionInfo{
+				ClusterName:      clusterDeploymentName,
+				ClusterNamespace: testNamespace,
+				NodeName:         agentHostname,
+				Message:          AgentDeprovisionMessage,
+			}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+			host.Status = swag.String(models.HostStatusUnbindingPendingUserAction)
+			setFakeClientWithNode()
+
+			result, err := hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			Expect(spokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})).To(Succeed())
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      agent.Name,
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.Status.DeprovisionInfo).ToNot(BeNil())
+		})
+
+		It("does not remove the resources and clears DeprovisionInfo when the skip annotation is set", func() {
+			agent.Status.DeprovisionInfo = &v1beta1.AgentDeprovisionInfo{
+				ClusterName:      clusterDeploymentName,
+				ClusterNamespace: testNamespace,
+				NodeName:         agentHostname,
+				Message:          AgentDeprovisionMessage,
+			}
+			metav1.SetMetaDataAnnotation(&agent.ObjectMeta, AgentSkipSpokeCleanupAnnotation, "true")
+			Expect(c.Create(ctx, agent)).To(Succeed())
+			setFakeClientWithNode()
+
+			result, err := hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			Expect(spokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})).To(Succeed())
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      agent.Name,
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.Status.DeprovisionInfo).To(BeNil())
+		})
+
+		It("sets a message when the removal fails", func() {
+			agent.Status.DeprovisionInfo = &v1beta1.AgentDeprovisionInfo{
+				ClusterName:      clusterDeploymentName,
+				ClusterNamespace: testNamespace,
+				NodeName:         agentHostname,
+				Message:          AgentDeprovisionMessage,
+			}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+
+			mockSpokeClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockSpokeClient, nil).AnyTimes()
+			mockSpokeClient.EXPECT().Get(gomock.Any(), client.ObjectKey{Name: agentHostname}, gomock.Any()).Return(fmt.Errorf("get-failed"))
+
+			result, err := hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).ToNot(BeNil())
+			Expect(result.RequeueAfter).To(Equal(defaultRequeueAfterOnError))
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      agent.Name,
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.Status.DeprovisionInfo).ToNot(BeNil())
+			Expect(agent.Status.DeprovisionInfo.Message).To(ContainSubstring("get-failed"))
+		})
+
+		It("removes the resources when DeprovisionInfo is set", func() {
+			agent.Status.DeprovisionInfo = &v1beta1.AgentDeprovisionInfo{
+				ClusterName:      clusterDeploymentName,
+				ClusterNamespace: testNamespace,
+				NodeName:         agentHostname,
+				Message:          AgentDeprovisionMessage,
+			}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+			setFakeClientWithNode()
+
+			result, err := hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			err = spokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      agent.Name,
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.Status.DeprovisionInfo).To(BeNil())
+		})
 	})
 
 	It("validate Event URL", func() {
@@ -1982,6 +2152,54 @@ var _ = Describe("agent reconcile", func() {
 		newAgent = &v1beta1.Agent{}
 		Expect(c.Get(ctx, key, newAgent)).To(Succeed())
 		Expect(newAgent.GetLabels()[v1beta1.InfraEnvNameLabel]).To(Equal(infraEnvName))
+	})
+
+	It("sets 'state' annotation in the agent", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvName := "infraEnvName"
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvId,
+				Status:     swag.String(models.HostStatusKnown),
+			},
+		}
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, infraEnvName)
+
+		agent := newAgent(hostID.String(), testNamespace, v1beta1.AgentSpec{})
+		Expect(c.Create(ctx, agent)).To(Succeed())
+
+		// Reconcile Agent
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		updatedAgent := &v1beta1.Agent{}
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostID.String(),
+		}
+
+		By("sets 'state' annoation when it isn't set")
+		Expect(c.Get(ctx, key, updatedAgent)).To(Succeed())
+		Expect(updatedAgent.ObjectMeta.Annotations).To(HaveKey(AgentStateAnnotation))
+		Expect(updatedAgent.ObjectMeta.Annotations[AgentStateAnnotation]).To(Equal(models.HostStatusKnown))
+
+		By("updates 'state' annoation if changed")
+		// Update Host's status
+		commonHost.Host.Status = swag.String(models.HostStatusInstalled)
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+
+		// Reconcile Agent
+		result, err = hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		updatedAgent = &v1beta1.Agent{}
+		Expect(c.Get(ctx, key, updatedAgent)).To(Succeed())
+
+		// Ensure 'state' annotation is updated
+		Expect(updatedAgent.ObjectMeta.Annotations[AgentStateAnnotation]).To(Equal(models.HostStatusInstalled))
 	})
 })
 
@@ -3811,21 +4029,29 @@ var _ = Describe("handleAgentFinalizer", func() {
 		Expect(err).To(BeNil())
 	})
 
-	Context("agent is being deleted", func() {
-		BeforeEach(func() {
-			now := metav1.Now()
-			agent.ObjectMeta.DeletionTimestamp = &now
-			agent.ObjectMeta.Finalizers = []string{AgentFinalizerName}
-		})
+	It("returns an empty result if the finalizer is not set and the agent is being deleted", func() {
+		now := metav1.Now()
+		agent.ObjectMeta.DeletionTimestamp = &now
+		res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+		Expect(err).To(BeNil())
+		Expect(res).NotTo(BeNil())
+	})
 
-		It("returns an empty result if the finalizer is not set", func() {
-			agent.ObjectMeta.Finalizers = nil
-			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-			Expect(err).To(BeNil())
-			Expect(res).NotTo(BeNil())
-		})
+	Context("agent is being deleted with the finalizer set", func() {
+		var (
+			fakeSpokeClient spoke_k8s_client.SpokeK8sClient
+		)
 
-		It("deregisters the host and removes the finalizer", func() {
+		expectAgentFinalizerRemoved := func() {
+			mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+				func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
+					Expect(updatedAgent.GetFinalizers()).NotTo(ContainElement(AgentFinalizerName))
+					return nil
+				},
+			)
+		}
+
+		expectHostRemoved := func() {
 			hostID := strfmt.UUID(uuid.New().String())
 			infraEnvID := strfmt.UUID(uuid.New().String())
 			host := &common.Host{
@@ -3838,284 +4064,528 @@ var _ = Describe("handleAgentFinalizer", func() {
 			mockInstallerInternal.EXPECT().GetHostByKubeKey(key).Return(host, nil)
 			params := installer.V2DeregisterHostParams{InfraEnvID: infraEnvID, HostID: hostID}
 			mockInstallerInternal.EXPECT().V2DeregisterHostInternal(ctx, params, bminventory.NonInteractive).Return(nil)
-			mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-				func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
-					Expect(updatedAgent.GetFinalizers()).NotTo(ContainElement(AgentFinalizerName))
+		}
+
+		mockSpokeClient := func() {
+			cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
+				func(_ context.Context, key client.ObjectKey, cd *hivev1.ClusterDeployment, _ ...client.GetOption) error {
+					cd.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
+						AdminKubeconfigSecretRef: corev1.LocalObjectReference{Name: "clusterKubeConfig"},
+					}
 					return nil
 				},
-			)
+			).AnyTimes()
+
+			secretKey := types.NamespacedName{Name: "clusterKubeConfig", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, secretKey, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				func(_ context.Context, key client.ObjectKey, secret *corev1.Secret, _ ...client.GetOption) error {
+					secret.ObjectMeta.Labels = map[string]string{
+						BackupLabel:        "true",
+						WatchResourceLabel: "true",
+					}
+					secret.Data = map[string][]byte{"kubeconfig": []byte("definitely_a_kubeconfig")}
+					return nil
+				},
+			).AnyTimes()
+
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				func(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+					Expect(secret.Data["kubeconfig"]).To(Equal([]byte("definitely_a_kubeconfig")))
+					return fakeSpokeClient, nil
+				},
+			).AnyTimes()
+		}
+
+		BeforeEach(func() {
+			now := metav1.Now()
+			agent.ObjectMeta.DeletionTimestamp = &now
+			agent.ObjectMeta.Finalizers = []string{AgentFinalizerName}
+			schemes := GetKubeClientSchemes()
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(schemes).Build()
+			fakeSpokeClient = fakeSpokeK8sClient{Client: fakeClient}
+			mockSpokeClient()
+			expectHostRemoved()
+			expectAgentFinalizerRemoved()
+		})
+
+		It("doesn't fail when the agent is not bound", func() {
+			agent.Spec.ClusterDeploymentName = nil
+
 			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
 			Expect(err).To(BeNil())
 			Expect(res).NotTo(BeNil())
 		})
 
-		Context("with the BMH annotation", func() {
-			var (
-				bmhName         = "mybmh"
-				fakeSpokeClient spoke_k8s_client.SpokeK8sClient
-			)
+		It("removes a node with no machine", func() {
+			node := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: agentHostname}}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
 
-			BeforeEach(func() {
-				agent.ObjectMeta.Annotations = map[string]string{BMH_FINALIZER_NAME: "true"}
-				agent.ObjectMeta.Labels = map[string]string{AGENT_BMH_LABEL: bmhName}
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
 
-				schemes := GetKubeClientSchemes()
-				fakeClient := fakeclient.NewClientBuilder().WithScheme(schemes).Build()
-				fakeSpokeClient = fakeSpokeK8sClient{Client: fakeClient}
-			})
-
-			It("requeues if the BMH still exists", func() {
-				bmhKey := types.NamespacedName{Name: bmhName, Namespace: agent.Namespace}
-				mockClient.EXPECT().Get(ctx, bmhKey, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).Return(nil)
-				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-				Expect(err).To(BeNil())
-				Expect(res).NotTo(BeNil())
-				Expect(res.RequeueAfter).To(Equal(defaultRequeueAfterOnError))
-			})
-
-			Context("with a removed BMH", func() {
-				expectAgentFinalizerRemoved := func() {
-					mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-						func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
-							Expect(updatedAgent.GetFinalizers()).NotTo(ContainElement(AgentFinalizerName))
-							return nil
-						},
-					)
-				}
-
-				expectHostRemoved := func() {
-					hostID := strfmt.UUID(uuid.New().String())
-					infraEnvID := strfmt.UUID(uuid.New().String())
-					host := &common.Host{
-						Host: models.Host{
-							ID:         &hostID,
-							InfraEnvID: infraEnvID,
-						},
-					}
-					key := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Name}
-					mockInstallerInternal.EXPECT().GetHostByKubeKey(key).Return(host, nil)
-					params := installer.V2DeregisterHostParams{InfraEnvID: infraEnvID, HostID: hostID}
-					mockInstallerInternal.EXPECT().V2DeregisterHostInternal(ctx, params, bminventory.NonInteractive).Return(nil)
-				}
-
-				mockSpokeClient := func() {
-					cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
-					mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
-						func(_ context.Context, key client.ObjectKey, cd *hivev1.ClusterDeployment, _ ...client.GetOption) error {
-							cd.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
-								AdminKubeconfigSecretRef: corev1.LocalObjectReference{Name: "clusterKubeConfig"},
-							}
-							return nil
-						},
-					).AnyTimes()
-
-					secretKey := types.NamespacedName{Name: "clusterKubeConfig", Namespace: testNamespace}
-					mockClient.EXPECT().Get(ctx, secretKey, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
-						func(_ context.Context, key client.ObjectKey, secret *corev1.Secret, _ ...client.GetOption) error {
-							secret.ObjectMeta.Labels = map[string]string{
-								BackupLabel:        "true",
-								WatchResourceLabel: "true",
-							}
-							secret.Data = map[string][]byte{"kubeconfig": []byte("definitely_a_kubeconfig")}
-							return nil
-						},
-					).AnyTimes()
-
-					mockClientFactory.EXPECT().CreateFromSecret(gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
-						func(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
-							Expect(secret.Data["kubeconfig"]).To(Equal([]byte("definitely_a_kubeconfig")))
-							return fakeSpokeClient, nil
-						},
-					).AnyTimes()
-				}
-
-				BeforeEach(func() {
-					bmhKey := types.NamespacedName{Name: bmhName, Namespace: agent.Namespace}
-					notFoundError := k8serrors.NewNotFound(schema.GroupResource{Group: "v1alpha1", Resource: "BareMetalHost"}, bmhName)
-					mockClient.EXPECT().Get(ctx, bmhKey, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).Return(notFoundError).AnyTimes()
-					mockSpokeClient()
-					expectHostRemoved()
-					expectAgentFinalizerRemoved()
-				})
-
-				It("doesn't fail when the agent is not bound", func() {
-					agent.Spec.ClusterDeploymentName = nil
-
-					res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-					Expect(err).To(BeNil())
-					Expect(res).NotTo(BeNil())
-				})
-
-				It("removes a node with no machine", func() {
-					node := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: agentHostname}}
-					Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-					res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-					Expect(err).To(BeNil())
-					Expect(res).NotTo(BeNil())
-
-					err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
-					Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-				})
-
-				It("removes a node with an invalid machine annotation", func() {
-					node := &corev1.Node{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        agentHostname,
-							Annotations: map[string]string{"machine.openshift.io/machine": "namewithoutaslash"},
-						},
-					}
-					Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-					res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-					Expect(err).To(BeNil())
-					Expect(res).NotTo(BeNil())
-
-					err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
-					Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-				})
-
-				It("removes a node referencing a missing machine", func() {
-					node := &corev1.Node{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        agentHostname,
-							Annotations: map[string]string{"machine.openshift.io/machine": "openshift-machine-api/machine0"},
-						},
-					}
-					Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-					res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-					Expect(err).To(BeNil())
-					Expect(res).NotTo(BeNil())
-
-					err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
-					Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-				})
-
-				It("removes a machine without a machineset label", func() {
-					machineNSName := client.ObjectKey{
-						Name:      "machine0",
-						Namespace: "openshift-machine-api",
-					}
-					node := &corev1.Node{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        agentHostname,
-							Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
-						},
-					}
-					Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-					machine := &machinev1beta1.Machine{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      machineNSName.Name,
-							Namespace: machineNSName.Namespace,
-						},
-					}
-					Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
-
-					res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-					Expect(err).To(BeNil())
-					Expect(res).NotTo(BeNil())
-
-					err = fakeSpokeClient.Get(ctx, machineNSName, &machinev1beta1.Machine{})
-					Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-				})
-
-				It("removes a machine referencing a missing machineset", func() {
-					machineNSName := client.ObjectKey{
-						Name:      "machine0",
-						Namespace: "openshift-machine-api",
-					}
-					node := &corev1.Node{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        agentHostname,
-							Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
-						},
-					}
-					Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-					machine := &machinev1beta1.Machine{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      machineNSName.Name,
-							Namespace: machineNSName.Namespace,
-							Labels:    map[string]string{"machine.openshift.io/cluster-api-machineset": "machineset0"},
-						},
-					}
-					Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
-
-					res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-					Expect(err).To(BeNil())
-					Expect(res).NotTo(BeNil())
-
-					err = fakeSpokeClient.Get(ctx, machineNSName, &machinev1beta1.Machine{})
-					Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-				})
-
-				It("annotates a machine and machineset for autoscaling and removes the BMH", func() {
-					bmhNSName := client.ObjectKey{
-						Name:      "host0",
-						Namespace: "openshift-machine-api",
-					}
-					bmh := &bmh_v1alpha1.BareMetalHost{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      bmhNSName.Name,
-							Namespace: bmhNSName.Namespace,
-						},
-					}
-					Expect(fakeSpokeClient.Create(ctx, bmh)).To(Succeed())
-
-					machineNSName := client.ObjectKey{
-						Name:      "machine0",
-						Namespace: "openshift-machine-api",
-					}
-					node := &corev1.Node{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        agentHostname,
-							Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
-						},
-					}
-					Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-					machineSetNSName := client.ObjectKey{
-						Name:      "machineset0",
-						Namespace: machineNSName.Namespace,
-					}
-					machine := &machinev1beta1.Machine{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        machineNSName.Name,
-							Namespace:   machineNSName.Namespace,
-							Labels:      map[string]string{"machine.openshift.io/cluster-api-machineset": machineSetNSName.Name},
-							Annotations: map[string]string{"metal3.io/BareMetalHost": bmhNSName.String()},
-						},
-					}
-					Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
-
-					machineSet := &machinev1beta1.MachineSet{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      machineSetNSName.Name,
-							Namespace: machineSetNSName.Namespace,
-						},
-						Spec: machinev1beta1.MachineSetSpec{
-							Selector: metav1.LabelSelector{MatchLabels: machine.Labels},
-						},
-					}
-					Expect(fakeSpokeClient.Create(ctx, machineSet)).To(Succeed())
-
-					res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-					Expect(err).To(BeNil())
-					Expect(res).NotTo(BeNil())
-
-					Expect(fakeSpokeClient.Get(ctx, machineNSName, machine)).To(Succeed())
-					Expect(fakeSpokeClient.Get(ctx, machineSetNSName, machineSet)).To(Succeed())
-
-					Expect(machine.Annotations).To(HaveKey("machine.openshift.io/delete-machine"))
-					Expect(machine.Annotations).To(HaveKey("machine.openshift.io/exclude-node-draining"))
-					Expect(machineSet.Annotations).To(HaveKey("metal3.io/autoscale-to-hosts"))
-
-					err = fakeSpokeClient.Get(ctx, bmhNSName, &bmh_v1alpha1.BareMetalHost{})
-					Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-				})
-			})
+			err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 		})
+
+		It("removes a node with an invalid machine annotation", func() {
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        agentHostname,
+					Annotations: map[string]string{"machine.openshift.io/machine": "namewithoutaslash"},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
+
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+
+			err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("removes a node referencing a missing machine", func() {
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        agentHostname,
+					Annotations: map[string]string{"machine.openshift.io/machine": "openshift-machine-api/machine0"},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
+
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+
+			err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("removes a machine without a machineset label", func() {
+			machineNSName := client.ObjectKey{
+				Name:      "machine0",
+				Namespace: "openshift-machine-api",
+			}
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        agentHostname,
+					Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
+
+			machine := &machinev1beta1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineNSName.Name,
+					Namespace: machineNSName.Namespace,
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
+
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+
+			err = fakeSpokeClient.Get(ctx, machineNSName, &machinev1beta1.Machine{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("removes a machine referencing a missing machineset", func() {
+			machineNSName := client.ObjectKey{
+				Name:      "machine0",
+				Namespace: "openshift-machine-api",
+			}
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        agentHostname,
+					Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
+
+			machine := &machinev1beta1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineNSName.Name,
+					Namespace: machineNSName.Namespace,
+					Labels:    map[string]string{"machine.openshift.io/cluster-api-machineset": "machineset0"},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
+
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+
+			err = fakeSpokeClient.Get(ctx, machineNSName, &machinev1beta1.Machine{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("annotates a machine and machineset for autoscaling and removes the BMH", func() {
+			bmhNSName := client.ObjectKey{
+				Name:      "host0",
+				Namespace: "openshift-machine-api",
+			}
+			bmh := &bmh_v1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bmhNSName.Name,
+					Namespace: bmhNSName.Namespace,
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, bmh)).To(Succeed())
+
+			machineNSName := client.ObjectKey{
+				Name:      "machine0",
+				Namespace: "openshift-machine-api",
+			}
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        agentHostname,
+					Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
+
+			machineSetNSName := client.ObjectKey{
+				Name:      "machineset0",
+				Namespace: machineNSName.Namespace,
+			}
+			machine := &machinev1beta1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        machineNSName.Name,
+					Namespace:   machineNSName.Namespace,
+					Labels:      map[string]string{"machine.openshift.io/cluster-api-machineset": machineSetNSName.Name},
+					Annotations: map[string]string{"metal3.io/BareMetalHost": bmhNSName.String()},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
+
+			machineSet := &machinev1beta1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineSetNSName.Name,
+					Namespace: machineSetNSName.Namespace,
+				},
+				Spec: machinev1beta1.MachineSetSpec{
+					Selector: metav1.LabelSelector{MatchLabels: machine.Labels},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, machineSet)).To(Succeed())
+
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+
+			Expect(fakeSpokeClient.Get(ctx, machineNSName, machine)).To(Succeed())
+			Expect(fakeSpokeClient.Get(ctx, machineSetNSName, machineSet)).To(Succeed())
+
+			Expect(machine.Annotations).To(HaveKey("machine.openshift.io/delete-machine"))
+			Expect(machine.Annotations).To(HaveKey("machine.openshift.io/exclude-node-draining"))
+			Expect(machineSet.Annotations).To(HaveKey("metal3.io/autoscale-to-hosts"))
+
+			err = fakeSpokeClient.Get(ctx, bmhNSName, &bmh_v1alpha1.BareMetalHost{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		})
+	})
+})
+
+var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
+	var (
+		c                     client.Client
+		hr                    *AgentReconciler
+		ctx                   = context.Background()
+		mockCtrl              *gomock.Controller
+		mockInstallerInternal *bminventory.MockInstallerInternals
+		sId                   strfmt.UUID
+		backEndCluster        *common.Cluster
+		mockClientFactory     *spoke_k8s_client.MockSpokeK8sClientFactory
+		agentImage            = "registry.example.com/assisted-installer/agent:latest"
+	)
+
+	BeforeEach(func() {
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&v1beta1.Agent{}).Build()
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		mockClientFactory = spoke_k8s_client.NewMockSpokeK8sClientFactory(mockCtrl)
+
+		hr = &AgentReconciler{
+			Client:                c,
+			APIReader:             c,
+			Scheme:                scheme.Scheme,
+			Log:                   common.GetTestLog(),
+			Installer:             mockInstallerInternal,
+			SpokeK8sClientFactory: mockClientFactory,
+			AgentContainerImage:   agentImage,
+		}
+		sId = strfmt.UUID(uuid.New().String())
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	It("should restore Host by bound Agent", func() {
+		// Create ClusterDeployment
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+
+		// Create Agent
+		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		agent.ObjectMeta.Labels = map[string]string{
+			v1beta1.InfraEnvNameLabel:  "infraEnvName",
+			AgentLabelHostManufacturer: "RedHat",
+		}
+		agent.ObjectMeta.Annotations = map[string]string{
+			AgentStateAnnotation: models.HostStatusInstalled,
+		}
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		// Mock InfraEnv
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvName",
+		}
+		clusterId := *backEndCluster.ID
+		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+		// Create Host
+		host, err := createNewHost(agent, &clusterId, infraEnvId)
+		Expect(err).To(BeNil())
+		mockInstallerInternal.EXPECT().CreateHostInKubeKeyNamespace(gomock.Any(), infraEnvKey, host).Return(nil).Times(1)
+
+		// Reconcile Agent
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+
+		// Ensure the Agent exists
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "agent",
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+	})
+
+	It("should restore Host by unbound Agent", func() {
+		// Create Agent
+		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{})
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		agent.ObjectMeta.Labels = map[string]string{
+			v1beta1.InfraEnvNameLabel:  "infraEnvName",
+			AgentLabelHostManufacturer: "RedHat",
+		}
+		agent.ObjectMeta.Annotations = map[string]string{
+			AgentStateAnnotation: models.HostStatusInstalled,
+		}
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		// Mock InfraEnv
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvName",
+		}
+		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvId}}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+		// Create Host
+		host, err := createNewHost(agent, nil, infraEnvId)
+		Expect(err).To(BeNil())
+		mockInstallerInternal.EXPECT().CreateHostInKubeKeyNamespace(gomock.Any(), infraEnvKey, host).Return(nil).Times(1)
+
+		// Reconcile Agent
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+
+		// Ensure the Agent exists
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "agent",
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+	})
+
+	It("should restore Host with missing state", func() {
+		// Create ClusterDeployment
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+
+		// Create Agent
+		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		agent.ObjectMeta.Labels = map[string]string{
+			v1beta1.InfraEnvNameLabel:  "infraEnvName",
+			AgentLabelHostManufacturer: "RedHat",
+		}
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		// Mock InfraEnv
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvName",
+		}
+		clusterId := *backEndCluster.ID
+		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+		// Create Host
+		host, err := createNewHost(agent, &clusterId, infraEnvId)
+		Expect(err).To(BeNil())
+		Expect(host.Status).To(Equal(swag.String(models.HostStatusKnown)))
+		mockInstallerInternal.EXPECT().CreateHostInKubeKeyNamespace(gomock.Any(), infraEnvKey, host).Return(nil).Times(1)
+
+		// Reconcile Agent
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+
+		// Ensure the Agent exists
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "agent",
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+	})
+
+	It("should fail if the associated Cluster is missing", func() {
+		// Create Agent
+		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		agent.ObjectMeta.Labels = map[string]string{
+			v1beta1.InfraEnvNameLabel: "infraEnvName",
+		}
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		// Mock InfraEnv
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvName",
+		}
+		clusterId := *backEndCluster.ID
+		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+		// Reconcile Agent
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).ToNot(BeNil())
+		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+		Expect(errors.Is(err, gorm.ErrRecordNotFound)).Should(Equal(true))
+	})
+
+	It("should fail if the InfraEnv is missing", func() {
+		// Create Agent
+		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{})
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		agent.ObjectMeta.Labels = map[string]string{
+			v1beta1.InfraEnvNameLabel: "infraEnvName",
+		}
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		// Mock missing InfraEnv
+		infraEnvKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvName",
+		}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(nil, gorm.ErrRecordNotFound).Times(1)
+
+		// Reconcile Agent
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).ToNot(BeNil())
+		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+		Expect(errors.Is(err, gorm.ErrRecordNotFound)).Should(Equal(true))
+	})
+
+	It("should fail if the InfraEnv label is missing from Agent", func() {
+		// Create Agent
+		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{})
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		// Reconcile Agent
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).ToNot(BeNil())
+		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+	})
+})
+
+var _ = Describe("createNewHost", func() {
+	var (
+		agent                 *v1beta1.Agent
+		clusterID, infraEnvID strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		agent = newAgent("agent", testNamespace, v1beta1.AgentSpec{})
+		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+	})
+
+	It("all properties exist", func() {
+		agent.ObjectMeta.Annotations = map[string]string{
+			AgentStateAnnotation: models.HostStatusInstalled,
+		}
+		agent.ObjectMeta.Labels = map[string]string{
+			AgentLabelHostManufacturer: "RedHat",
+		}
+
+		host, err := createNewHost(agent, &clusterID, infraEnvID)
+		Expect(err).To(BeNil())
+
+		Expect(host.RegisteredAt).To(Equal(strfmt.DateTime(agent.CreationTimestamp.Time)))
+		Expect(host.CheckedInAt).To(Equal(strfmt.DateTime(agent.CreationTimestamp.Time)))
+		Expect(host.Role).To(Equal(agent.Spec.Role))
+		Expect(host.SuggestedRole).To(Equal(agent.Spec.Role))
+		Expect(host.ClusterID).To(Equal(&clusterID))
+		Expect(host.InfraEnvID).To(Equal(infraEnvID))
+		Expect(host.Status).To(Equal(swag.String(models.HostStatusInstalled)))
+
+		hostInventory := models.Inventory{}
+		hostInventory.SystemVendor = &models.SystemVendor{}
+		hostInventory.SystemVendor.Manufacturer = "RedHat"
+		inventory, err := json.Marshal(hostInventory)
+		Expect(err).To(BeNil())
+		Expect(host.Inventory).To(Equal(string(inventory)))
+	})
+
+	It("missing host-manufacturer label", func() {
+		host, err := createNewHost(agent, &clusterID, infraEnvID)
+		Expect(err).To(BeNil())
+
+		hostInventory := models.Inventory{}
+		inventory, err := json.Marshal(hostInventory)
+		Expect(err).To(BeNil())
+		Expect(host.Inventory).To(Equal(string(inventory)))
+	})
+
+	It("missing state annotation - bound", func() {
+		host, err := createNewHost(agent, &clusterID, infraEnvID)
+		Expect(err).To(BeNil())
+		Expect(host.Status).To(Equal(swag.String(models.HostStatusKnown)))
+	})
+
+	It("missing state annotation - unbound", func() {
+		host, err := createNewHost(agent, nil, infraEnvID)
+		Expect(err).To(BeNil())
+		Expect(host.Status).To(Equal(swag.String(models.HostStatusKnownUnbound)))
+	})
+
+	It("missing clusterID", func() {
+		host, err := createNewHost(agent, nil, infraEnvID)
+		Expect(err).To(BeNil())
+		Expect(host.ClusterID).To(BeNil())
 	})
 })

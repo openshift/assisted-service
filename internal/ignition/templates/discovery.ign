@@ -22,11 +22,27 @@
     {
         "name": "multipathd.service",
         "enabled": true
-    }{{end}}{{if .StaticNetworkConfig}},
+    },
+    {
+        "name": "iscsistart.service",
+        "enabled": true,
+        "contents": {{ executeTemplate "iscsistart.service" . | toString | toJson }}
+    },
+    {
+        "name": "iscsi-oci-configure-secondary-nic.service",
+        "enabled": true,
+        "contents": {{ executeTemplate "iscsi-oci-configure-secondary-nic.service" . | toString | toJson }}
+    }
+    {{end}}{{if .StaticNetworkConfig}},
     {
         "name": "pre-network-manager-config.service",
         "enabled": true,
         "contents": {{ executeTemplate "pre-network-manager-config.service" . | toString | toJson }}
+    }{{end}}{{if .StaticNetworkConfigWithNmstatectl}},
+    {
+        "name": "pre-network-manager-config.service",
+        "enabled": true,
+        "contents": {{ executeTemplate "pre-network-manager-config-with-nmstatectl.service" . | toString | toJson }}
     }{{end}}{{if .OKDBinaries}},
     {
         "name": "okd-overlay.service",
@@ -37,12 +53,14 @@
         "name": "systemd-journal-gatewayd.socket",
         "enabled": true,
         "contents": {{ executeTemplate "systemd-journal-gatewayd.socket" . | toString | toJson }}
-    }{{end}}{{if .OKDBinaries | not}},
+    }
+    {{end}}{{if .AdditionalNtpSources}},
     {
-        "name": "iscsistart.service",
+        "name": "add-ntp-sources.service",
         "enabled": true,
-        "contents": {{ executeTemplate "iscsistart.service" . | toString | toJson }}
-    }{{end}}
+        "contents": {{ executeTemplate "add-ntp-sources.service" . | toString | toJson }}
+    }
+    {{end}}
     ]
   },
   "storage": {
@@ -72,7 +90,16 @@
           "name": "root"
       },
       "contents": { "source": "data:text/plain;charset=utf-8;base64,{{ executeTemplate "multipath.conf" . | toBase64 }}" }
-    }{{end}},
+    },
+    {
+      "path": "/usr/local/bin/iscsi-oci-configure-secondary-nic.sh",
+      "mode": 493,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;charset=utf-8;base64,{{ executeTemplate "iscsi-oci-configure-secondary-nic.sh" . | toBase64 }}" }
+    }
+    {{end}},
     {
       "overwrite": true,
       "path": "/etc/NetworkManager/conf.d/01-ipv6.conf",
@@ -162,6 +189,33 @@
         "name": "root"
       },
       "contents": { "source": "data:text/plain;base64,{{.FileContents}}"}
+    }{{end}}{{if .StaticNetworkConfigWithNmstatectl}},
+    {
+        "path": "/usr/local/bin/pre-network-manager-config.sh",
+        "mode": 493,
+        "overwrite": true,
+        "user": {
+            "name": "root"
+        },
+        "contents": { "source": "data:text/plain;base64,{{.PreNetworkConfigScript}}"}
+    },
+    {
+        "path": "/usr/local/bin/common_network_script.sh",
+        "mode": 493,
+        "overwrite": true,
+        "user": {
+             "name": "root"
+        },
+        "contents": { "source": "data:text/plain;base64,{{.CommonScriptFunctions}}"}
+    }{{end}}{{range .StaticNetworkConfigWithNmstatectl}},
+    {
+      "path": "{{.FilePath}}",
+      "mode": 384,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.FileContents}}"}
     }{{end}}{{if .OKDBinaries}},
     {
       "path": "/usr/local/bin/okd-binaries.sh",
@@ -196,6 +250,14 @@
         "name": "root"
       },
       "contents": { "source": "{{.ProfileProxyExports}}" }
+    }{{end}}{{if .AdditionalNtpSources}},
+    {
+      "path": "/usr/local/bin/add-ntp-sources.sh",
+      "mode": 493,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;charset=utf-8;base64,{{ executeTemplate "add-ntp-sources.sh" . | toBase64 }}" }
     }{{end}}]
   }
 }

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-tag=${1}
+rhel_version=${1}
 
-if [ "$tag" = "stream8" ]; then
+if [ "$rhel_version" = "8" ]; then
     source ./utils.sh
     replace_dnf_repositories_ref
 fi

@@ -66,13 +66,17 @@ the assisted-service API that agents will connect to.
 
 Additionally, make sure to change the following:
 ```yaml
-ASSISTED_SERVICE_URL: https://127.0.0.1:8090  
+ASSISTED_SERVICE_URL: https://127.0.0.1:8090
 HTTPS_CERT_FILE: "/etc/certs/tls.crt" # Need to match certs-configmap-volume mountPath
 HTTPS_KEY_FILE: "/etc/certs/tls.key"  # Need to match certs-configmap-volume mountPath
 HTTPS_CA_FILE: "/etc/certs/tls.crt"   # Need to match certs-configmap-volume mountPath. Needed if the certificate is not signed by a CA in RHEL's default trust bundle.
 ASSISTED_SERVICE_HOST: 127.0.0.1:8090
 ASSISTED_SERVICE_SCHEME: https # A must for the UI nginx to be configured with TLS
 ```
+
+If you are using a `RELEASE_IMAGE` hosted on a different registry than quay.io, add
+the host name to the `PUBLIC_CONTAINER_REGISTRIES` environment variable. You have an
+example in [okd-configmap.yml](./okd-configmap.yml).
 
 ## Optional Configuration
 

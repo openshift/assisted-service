@@ -8521,7 +8521,7 @@ var _ = Describe("infraEnvs", func() {
 			mockInfraEnvRegisterSuccess()
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
-			mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(gomock.Any())
+			mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParamsYAML(gomock.Any(), "4.8.0-fc.0", "x86_64", "")
 			mockUsage.EXPECT().Add(gomock.Any(), gomock.Not(usage.StaticNetworkConfigUsage), gomock.Any()).AnyTimes()
 			mockUsage.EXPECT().Remove(gomock.Any(), usage.StaticNetworkConfigUsage).Times(1)
 			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Not(usage.StaticNetworkConfigUsage)).AnyTimes()
@@ -8552,7 +8552,7 @@ var _ = Describe("infraEnvs", func() {
 				eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
-			mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(gomock.Any())
+			mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParamsYAML(gomock.Any(), "4.8.0-fc.0", "x86_64", "")
 
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("static network format result", nil).Times(1)
 			mockUsage.EXPECT().Add(gomock.Any(), usage.StaticNetworkConfigUsage, nil)
@@ -9149,7 +9149,7 @@ var _ = Describe("infraEnvs", func() {
 					common.FormatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.40", "192.168.141.40", "192.168.126.1", map2),
 					common.FormatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.42", "192.168.141.42", "192.168.126.1", map3),
 				}
-				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(1)
+				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.6", "x86_64", "").Return(nil).Times(1)
 				mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes, nil).Times(1)
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID: *i.ID,
@@ -9163,6 +9163,7 @@ var _ = Describe("infraEnvs", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.StaticNetworkConfig).To(Equal(staticNetworkFormatRes))
 			})
+
 			It("Update StaticNetwork same", func() {
 				var err error
 				err = db.Model(&common.InfraEnv{}).Where("id = ?", *i.ID).Update("static_network_config", "static network format result").Error
@@ -9185,7 +9186,7 @@ var _ = Describe("infraEnvs", func() {
 					common.FormatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.40", "192.168.141.40", "192.168.126.1", map2),
 					common.FormatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.42", "192.168.141.42", "192.168.126.1", map3),
 				}
-				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(1)
+				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.6", "x86_64", "").Return(nil).Times(1)
 				mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes, nil).Times(1)
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID: *i.ID,
@@ -9215,7 +9216,7 @@ var _ = Describe("infraEnvs", func() {
 				}
 
 				mockInfraEnvUpdateSuccess()
-				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(1)
+				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.6", "x86_64", "").Return(nil).Times(1)
 				mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes, nil).Times(1)
 				mockUsage.EXPECT().Add(gomock.Any(), usage.StaticNetworkConfigUsage, nil).Times(1)
 				mockUsage.EXPECT().Save(gomock.Any(), *cluster.ID, gomock.Any()).Times(1)
@@ -9242,7 +9243,7 @@ var _ = Describe("infraEnvs", func() {
 				staticNetworkConfig := []*models.HostStaticNetworkConfig{}
 
 				mockInfraEnvUpdateSuccess()
-				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(1)
+				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.6", "x86_64", "").Return(nil).Times(1)
 				mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes, nil).Times(1)
 				mockUsage.EXPECT().Remove(gomock.Any(), usage.StaticNetworkConfigUsage).Times(1)
 				mockUsage.EXPECT().Save(gomock.Any(), *cluster.ID, gomock.Any()).Times(1)
@@ -9661,7 +9662,7 @@ var _ = Describe("infraEnvs", func() {
 						common.FormatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.40", "192.168.141.40", "192.168.126.1", map2),
 						common.FormatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.42", "192.168.141.42", "192.168.126.1", map3),
 					}
-					mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(2)
+					mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.6", "", "").Return(nil).Times(2)
 					mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes, nil).Times(2)
 					params.StaticNetworkConfig = staticNetworkConfig
 					newURL = updateInfraEnv(params)
@@ -17118,7 +17119,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockOSImages, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder,
-		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true)
+		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, "")
 
 	bm.ImageServiceBaseURL = imageServiceBaseURL
 	bm.ServiceBaseURL = serviceBaseURL

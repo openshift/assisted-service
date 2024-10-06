@@ -1,16 +1,17 @@
-package staticnetworkconfig
+package staticnetworkconfig_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"testing"
 
-	"github.com/nmstate/nmstate/rust/src/go/nmstate"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	snc "github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,276 +20,413 @@ func TestStaticNetworkConfig(t *testing.T) {
 	RunSpecs(t, "StaticNetworkConfig Suite")
 }
 
-var _ = Describe("generateConfiguration", func() {
+var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - generateConfiguration", func() {
 	var (
-		staticNetworkGenerator = StaticNetworkConfigGenerator{log: logrus.New(), nmstate: nmstate.New()}
+		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: "4.18"})
 	)
 
 	It("Fail with an empty host YAML", func() {
-		_, err := staticNetworkGenerator.generateConfiguration("")
+		_, err := staticNetworkGenerator.GenerateStaticNetworkConfigData(context.Background(), `[{"network_yaml": ""}]`)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("Fail with an invalid host YAML", func() {
-		_, err := staticNetworkGenerator.generateConfiguration("interfaces:\n    - foo: badConfig")
+		_, err := staticNetworkGenerator.GenerateStaticNetworkConfigData(context.Background(), `[{"network_yaml": "interfaces:\n    - foo: badConfig"}]`)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("InvalidArgument"))
 	})
 
 	It("Success", func() {
-		hostYaml := `interfaces:
-- ipv4:
-    address:
-    - ip: 192.0.2.1
-      prefix-length: 24
-    dhcp: false
-    enabled: true
-  name: eth0
+		var (
+			hostsYAML = `[{ "network_yaml": "%s" }]`
+			hostYAML  = `interfaces:
+- name: eth0
+  type: ethernet
   state: up
-  type: ethernet`
-		config, err := staticNetworkGenerator.generateConfiguration(hostYaml)
+  ipv4:
+    enabled: true
+    address:
+      - ip: 192.0.2.1
+        prefix-length: 24`
+		)
+		escapedYamlContent, err := escapeYAMLForJSON(hostYAML)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(config).To(ContainSubstring("address0=192.0.2.1/24"))
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigData(context.Background(), fmt.Sprintf(hostsYAML, escapedYamlContent))
+		fileContent := config[0].FileContents
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fileContent).To(ContainSubstring("address0=192.0.2.1/24"))
 	})
 })
 
 var _ = Describe("validate mac interface mapping", func() {
 	var (
-		staticNetworkGenerator = StaticNetworkConfigGenerator{log: logrus.New(), nmstate: nmstate.New()}
-		ethTemplate            = `[connection]
-autoconnect=true
-autoconnect-slaves=-1
-id=%s
-interface-name=%s
-type=802-3-ethernet
-uuid=dfd202f5-562f-5f07-8f2a-a7717756fb70
+		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: "4.18"})
+		singleInterfaceYAML    = `interfaces:
+  - name: eth0
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: true
+      dhcp: false
+      address:
+        - ip: 192.0.2.1
+          prefix-length: 24`
 
-[ipv4]
-address0=192.168.122.250/24
-method=manual
-
-[ipv6]
-addr-gen-mode=0
-address0=2001:db8::1:1/64
-method=manual
-`
-		eth0Ini = fmt.Sprintf(ethTemplate, "eth0", "eth0")
-		eth1Ini = fmt.Sprintf(ethTemplate, "eth1", "eth1")
+		multipleInterfacesYAML = `interfaces:
+  - name: eth0
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: true
+      dhcp: false
+      address:
+        - ip: 192.0.2.1
+          prefix-length: 24
+  - name: eth1
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: true
+      dhcp: false
+      address:
+        - ip: 192.0.2.2
+          prefix-length: 24`
 	)
 	It("one interface without mac-interface mapping", func() {
-		err := staticNetworkGenerator.validateInterfaceNamesExistence(nil, []StaticNetworkConfigData{
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			{
-				FileContents: eth0Ini,
+				MacInterfaceMap: []*models.MacInterfaceMapItems0{},
+				NetworkYaml:     singleInterfaceYAML,
 			},
-		})
+		}
+		err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
 	})
 	It("one interface with mac-interface mapping", func() {
-		err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			{
-				LogicalNicName: "eth0",
-				MacAddress:     "f8:75:a4:a4:00:fe",
+				MacInterfaceMap: []*models.MacInterfaceMapItems0{
+					{
+						LogicalNicName: "eth0",
+						MacAddress:     "f8:75:a4:a4:00:fe",
+					},
+				},
+				NetworkYaml: singleInterfaceYAML,
 			},
-		}, []StaticNetworkConfigData{
-			{
-				FileContents: eth0Ini,
-			},
-		})
+		}
+		err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).ToNot(HaveOccurred())
 	})
+
 	It("two interfaces. only one mac-interface mapping", func() {
-		err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			{
-				LogicalNicName: "eth0",
-				MacAddress:     "f8:75:a4:a4:00:fe",
+				MacInterfaceMap: []*models.MacInterfaceMapItems0{
+					{
+						LogicalNicName: "eth0",
+						MacAddress:     "f8:75:a4:a4:00:fe",
+					},
+				},
+				NetworkYaml: multipleInterfacesYAML,
 			},
-		}, []StaticNetworkConfigData{
-			{
-				FileContents: eth0Ini,
-			},
-			{
-				FileContents: eth1Ini,
-			},
-		})
+		}
+		err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
 	})
 	It("two interfaces. with mac-interface mapping", func() {
-		err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			{
-				LogicalNicName: "eth0",
-				MacAddress:     "f8:75:a4:a4:00:fe",
+				MacInterfaceMap: []*models.MacInterfaceMapItems0{
+					{
+						LogicalNicName: "eth0",
+						MacAddress:     "f8:75:a4:a4:00:fe",
+					},
+					{
+						LogicalNicName: "eth1",
+						MacAddress:     "f8:75:a4:a4:00:ff",
+					},
+				},
+				NetworkYaml: multipleInterfacesYAML,
 			},
-			{
-				LogicalNicName: "eth1",
-				MacAddress:     "f8:75:a4:a4:00:ff",
-			},
-		}, []StaticNetworkConfigData{
-			{
-				FileContents: eth0Ini,
-			},
-			{
-				FileContents: eth1Ini,
-			},
-		})
+		}
+		err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).ToNot(HaveOccurred())
 	})
+
 	Context("bond with 2 ports", func() {
-		bondConnection := `[connection]
-autoconnect=true
-autoconnect-slaves=1
-id=bond99
-interface-name=bond99
-type=bond
-uuid=4a920503-4862-5505-80fd-4738d07f44c6
-
-[bond]
-miimon=140
-mode=balance-rr
-
-[ipv4]
-address0=192.0.2.0/24
-method=manual
-
-[ipv6]
-method=disabled
-`
-		eth2Connection := `[connection]
-autoconnect=true
-autoconnect-slaves=-1
-id=eth2
-interface-name=eth2
-master=4a920503-4862-5505-80fd-4738d07f44c6
-slave-type=bond
-type=802-3-ethernet
-uuid=21373057-f376-5091-afb6-64de925c23ed
-`
-		eth3Connection := `[connection]
-autoconnect=true
-autoconnect-slaves=-1
-id=eth3
-interface-name=eth3
-master=4a920503-4862-5505-80fd-4738d07f44c6
-slave-type=bond
-type=802-3-ethernet
-uuid=7e211aea-3d14-59cf-a4fa-be91dac5dbba
-`
+		bondYAML := `interfaces:
+- name: bond99
+  type: bond
+  state: up
+  ipv4:
+    address:
+    - ip: 192.0.2.0
+      prefix-length: 24
+    enabled: true
+  link-aggregation:
+    mode: balance-rr
+    options:
+      miimon: '140'
+    port:
+    - eth3
+    - eth2`
 		It("wrong interface names mapping", func() {
-			err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
-					LogicalNicName: "eth0",
-					MacAddress:     "f8:75:a4:a4:00:fe",
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+						{
+							LogicalNicName: "eth1",
+							MacAddress:     "f8:75:a4:a4:00:ff",
+						},
+					},
+					NetworkYaml: bondYAML,
 				},
-				{
-					LogicalNicName: "eth1",
-					MacAddress:     "f8:75:a4:a4:00:ff",
-				},
-			}, []StaticNetworkConfigData{
-				{
-					FileContents: bondConnection,
-				},
-				{
-					FileContents: eth2Connection,
-				},
-				{
-					FileContents: eth3Connection,
-				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
 		})
 		It("correct interface names mapping", func() {
-			err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
-					LogicalNicName: "eth2",
-					MacAddress:     "f8:75:a4:a4:00:fe",
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth2",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+						{
+							LogicalNicName: "eth3",
+							MacAddress:     "f8:75:a4:a4:00:ff",
+						},
+					},
+					NetworkYaml: bondYAML,
 				},
-				{
-					LogicalNicName: "eth3",
-					MacAddress:     "f8:75:a4:a4:00:ff",
-				},
-			}, []StaticNetworkConfigData{
-				{
-					FileContents: bondConnection,
-				},
-				{
-					FileContents: eth2Connection,
-				},
-				{
-					FileContents: eth3Connection,
-				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 	Context("vlan", func() {
-		vlanConnection := `[connection]
-autoconnect=true
-autoconnect-slaves=-1
-id=eth1.101
-interface-name=eth1.101
-type=vlan
-uuid=6d0f1528-fd9c-52a9-9aa5-b825aa883bc3
-
-[ipv4]
-method=disabled
-
-[ipv6]
-method=disabled
-
-[vlan]
-id=101
-parent=eth1
-`
-		It("vlan only - no underlying interface", func() {
-			err := staticNetworkGenerator.validateInterfaceNamesExistence(nil, []StaticNetworkConfigData{
-				{
-					FileContents: vlanConnection,
-				},
-			})
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("no mac address mapping can be associated with the available network interfaces"))
-		})
+		withoutUnderlyingInterface := `interfaces:
+  - name: eth1.101
+    type: vlan
+    state: up
+    vlan:
+      base-iface: eth1
+      id: 101`
+		withUnderlyingInterface := `interfaces:
+  - name: eth1
+    type: ethernet
+    state: up
+  - name: eth1.101
+    type: vlan
+    state: up
+    vlan:
+      base-iface: eth1
+      id: 101`
 		It("vlan with underlying interface - no mapping", func() {
-			err := staticNetworkGenerator.validateInterfaceNamesExistence(nil, []StaticNetworkConfigData{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+
 				{
-					FileContents: vlanConnection,
+					MacInterfaceMap: nil,
+					NetworkYaml:     withUnderlyingInterface,
 				},
-				{
-					FileContents: eth1Ini,
-				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("mac-interface mapping for interface"))
 		})
 		It("vlan with underlying interface - with mapping", func() {
-			err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
-					LogicalNicName: "eth1",
-					MacAddress:     "f8:75:a4:a4:00:fe",
+					MacInterfaceMap: models.MacInterfaceMap{
+						{
+							LogicalNicName: "eth1",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withUnderlyingInterface,
 				},
-			}, []StaticNetworkConfigData{
-				{
-					FileContents: vlanConnection,
-				},
-				{
-					FileContents: eth1Ini,
-				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
-		It("vlan with underlying interface - with mapping without parent", func() {
-			err := staticNetworkGenerator.validateInterfaceNamesExistence(models.MacInterfaceMap{
+		It("vlan without underlying interface - with mapping", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
-					LogicalNicName: "eth1",
-					MacAddress:     "f8:75:a4:a4:00:fe",
+					MacInterfaceMap: models.MacInterfaceMap{
+						{
+							LogicalNicName: "eth1",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withoutUnderlyingInterface,
 				},
-			}, []StaticNetworkConfigData{
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("no mapping for physical interfaces", func() {
+		withPhysicalInterface := `interfaces:
+  - name: eth0
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: true
+      dhcp: false
+      address:
+        - ip: 192.0.2.1
+          prefix-length: 24
+  - name: eno12399np0
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: false
+      dhcp: false`
+		withNoMappedInterfaces := `interfaces:
+  - name: eno12345
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: false
+      dhcp: false
+  - name: eno12399np0
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: false
+      dhcp: false`
+		withMacIdentifier := `interfaces:
+  - name: eth0
+    type: ethernet
+    state: up
+    identifier: mac-address
+    mac-address: f8:75:a4:a4:00:fe
+    ipv4:
+      enabled: false
+      dhcp: false`
+		It("no mapping needed for physical interface", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
-					FileContents: vlanConnection,
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withPhysicalInterface,
 				},
-			})
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("at least one mapped interface is required", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{},
+					NetworkYaml:     withNoMappedInterfaces,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("at least one interface for host"))
+		})
+		It("mac-identifier field is allowed for ABI in ocp-version >= 4.14", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "agent-installer")
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("The mac-identifier field is temporarily not supported for flows other than ABI in OCP versions >= 4.18", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.18", common.X86CPUArchitecture, "")
+			Expect(err).To(HaveOccurred())
+		})
+		It("mac-identifier field is supported in ocp-versions < 4.14", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.13", common.X86CPUArchitecture, "")
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("mac-identifier field in the YAML, along with a differing MAC in the mac-map, is temporarily not supported for flows other than ABI in OCP versions >= 4.18", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth1",
+							MacAddress:     "f8:75:a4:a4:00:14",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.18", common.X86CPUArchitecture, "")
+			Expect(err).To(HaveOccurred())
+		})
+		It("mac-identifier field in the YAML, along with a differing MAC in the mac-map, is allowed for ABI in OCP versions >= 4.14", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth1",
+							MacAddress:     "f8:75:a4:a4:00:14",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "agent-installer")
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("mac-identifier field in the YAML, along with a differing MAC in the mac-map, is supported in ocp-versions < 4.14", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth1",
+							MacAddress:     "f8:75:a4:a4:00:14",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.13", common.X86CPUArchitecture, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -296,7 +434,35 @@ parent=eth1
 
 var _ = Describe("StaticNetworkConfig", func() {
 	var (
-		staticNetworkGenerator = StaticNetworkConfigGenerator{log: logrus.New()}
+		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: "4.18"})
+		multipleInterfacesYAML = `interfaces:
+  - name: eth0
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: true
+      dhcp: false
+      address:
+        - ip: 192.0.2.1
+          prefix-length: 24
+  - name: eth1
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: true
+      dhcp: false
+      address:
+        - ip: 192.0.2.2
+          prefix-length: 24
+  - name: eth2
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: true
+      dhcp: false
+      address:
+        - ip: 192.0.2.3
+          prefix-length: 24`
 	)
 
 	It("validate mac interface", func() {
@@ -305,7 +471,14 @@ var _ = Describe("StaticNetworkConfig", func() {
 			{LogicalNicName: "eth1", MacAddress: "macaddress1"},
 			{LogicalNicName: "eth2", MacAddress: "macaddress2"},
 		}
-		err := staticNetworkGenerator.validateMacInterfaceName(0, input)
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
+			{
+				MacInterfaceMap: input,
+				NetworkYaml:     multipleInterfacesYAML,
+			},
+		}
+
+		err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).ToNot(HaveOccurred())
 
 		input = models.MacInterfaceMap{
@@ -313,7 +486,13 @@ var _ = Describe("StaticNetworkConfig", func() {
 			{LogicalNicName: "eth1", MacAddress: "macaddress1"},
 			{LogicalNicName: "eth0", MacAddress: "macaddress2"},
 		}
-		err = staticNetworkGenerator.validateMacInterfaceName(0, input)
+		staticNetworkConfig = []*models.HostStaticNetworkConfig{
+			{
+				MacInterfaceMap: input,
+				NetworkYaml:     multipleInterfacesYAML,
+			},
+		}
+		err = staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).To(HaveOccurred())
 
 		input = models.MacInterfaceMap{
@@ -321,7 +500,13 @@ var _ = Describe("StaticNetworkConfig", func() {
 			{LogicalNicName: "eth1", MacAddress: "macaddress1"},
 			{LogicalNicName: "eth2", MacAddress: "macaddress0"},
 		}
-		err = staticNetworkGenerator.validateMacInterfaceName(0, input)
+		staticNetworkConfig = []*models.HostStaticNetworkConfig{
+			{
+				MacInterfaceMap: input,
+				NetworkYaml:     multipleInterfacesYAML,
+			},
+		}
+		err = staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "")
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -381,32 +566,75 @@ var _ = Describe("StaticNetworkConfig", func() {
 	})
 })
 
+var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigDataYAML - generate nmpolicy", func() {
+	var (
+		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: "4.18"})
+
+		hostsYAML, hostsYAMLAndIni = `[{ "network_yaml": "%s" }]`, `[{ "network_yaml": "%s", "mac_interface_map": %s }]`
+
+		hostYAML = `interfaces:
+- name: eth0
+  type: ethernet
+  state: up
+  ipv4:
+    enabled: true
+    address:
+      - ip: 192.0.2.1
+        prefix-length: 24`
+
+		macInterfaceMap = `[
+        {
+          "mac_address": "02:00:00:80:12:14",
+          "logical_nic_name": "eth0"
+        }
+      ]`
+	)
+	escapedYamlContent, err := escapeYAMLForJSON(hostYAML)
+	Expect(err).NotTo(HaveOccurred())
+
+	It("Success - without ini file", func() {
+
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAML, escapedYamlContent))
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(ContainSubstring("capture"))
+		Expect(fileContent).To(ContainSubstring("dhcp: false"))
+		Expect(err).NotTo(HaveOccurred())
+	})
+	It("Success - with ini file", func() {
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macInterfaceMap))
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(ContainSubstring("name: \"{{ capture.iface0.interfaces.0.name }}\""))
+		Expect(fileContent).To(ContainSubstring("dhcp: false"))
+		Expect(err).NotTo(HaveOccurred())
+	})
+})
+
 var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigArchive", func() {
 	It("successfully produces an archive with one host data", func() {
-		data := []StaticNetworkConfigData{
+		data := []snc.StaticNetworkConfigData{
 			{
 				FilePath:     "host1",
 				FileContents: "static network config data of first host",
 			},
 		}
-		archiveBytes, err := GenerateStaticNetworkConfigArchive(data)
+		archiveBytes, err := snc.GenerateStaticNetworkConfigArchive(data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(archiveBytes).ToNot(BeNil())
 		checkArchiveString(archiveBytes.String(), data)
 	})
 	It("successfully produces an archive when file contents is empty", func() {
-		data := []StaticNetworkConfigData{
+		data := []snc.StaticNetworkConfigData{
 			{
 				FilePath: "host1",
 			},
 		}
-		archiveBytes, err := GenerateStaticNetworkConfigArchive(data)
+		archiveBytes, err := snc.GenerateStaticNetworkConfigArchive(data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(archiveBytes).ToNot(BeNil())
 		checkArchiveString(archiveBytes.String(), data)
 	})
 	It("successfully produces an archive with multiple hosts' data", func() {
-		data := []StaticNetworkConfigData{
+		data := []snc.StaticNetworkConfigData{
 			{
 				FilePath:     "host1",
 				FileContents: "static network config data of first host",
@@ -416,17 +644,31 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigArchive", func(
 				FileContents: "static network config data of second host",
 			},
 		}
-		archiveBytes, err := GenerateStaticNetworkConfigArchive(data)
+		archiveBytes, err := snc.GenerateStaticNetworkConfigArchive(data)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(archiveBytes).ToNot(BeNil())
 		checkArchiveString(archiveBytes.String(), data)
 	})
+
 })
 
-func checkArchiveString(archiveString string, allData []StaticNetworkConfigData) {
+func checkArchiveString(archiveString string, allData []snc.StaticNetworkConfigData) {
 	for _, data := range allData {
 		Expect(archiveString).To(ContainSubstring("tar"))
 		Expect(archiveString).To(ContainSubstring(filepath.Join("/etc/assisted/network", data.FilePath)))
 		Expect(archiveString).To(ContainSubstring(data.FileContents))
 	}
+}
+
+// escapeYAMLForJSON takes a YAML content string and escapes necessary characters to ensure it can be safely embedded within a JSON string.
+func escapeYAMLForJSON(yamlContent string) (string, error) {
+	// Use json.Marshal to escape the string
+	escaped, err := json.Marshal(yamlContent)
+	if err != nil {
+		return "", err
+	}
+
+	// json.Marshal returns a byte slice with double quotes around the string,
+	// so we need to trim the double quotes
+	return string(escaped[1 : len(escaped)-1]), nil
 }

@@ -208,7 +208,7 @@ func main() {
 
 	// local cluster import is only relevant if assisted installer can manage/scale the local cluster and this is only the case for OpenShift
 	if isOpenShift {
-		if err = (controllers.NewLocalClusterImportReconciler(mgr.GetClient(), "local-cluster", controllers.AgentServiceConfigName, log)).SetupWithManager(mgr); err != nil {
+		if err = (controllers.NewLocalClusterImportReconciler(mgr.GetClient(), controllers.AgentServiceConfigName, log)).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "LocalClusterImportReconciler")
 			os.Exit(1)
 		}

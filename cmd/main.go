@@ -118,6 +118,7 @@ var Options struct {
 	OperatorsConfig                      operators.Options
 	GCConfig                             garbagecollector.Config
 	ReleaseSourcesConfig                 releasesources.Config
+	StaticNetworkConfig                  staticnetworkconfig.Config
 	IgnoredOpenshiftVersions             string        `envconfig:"IGNORED_OPENSHIFT_VERSIONS" default:""`
 	ClusterStateMonitorInterval          time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	ClusterEventsUploaderInterval        time.Duration `envconfig:"CLUSTER_EVENTS_UPLOADER_INTERVAL" default:"15m"`
@@ -161,6 +162,7 @@ var Options struct {
 	ApproveCsrsRequeueDuration           time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
 	HTTPListenPort                       string        `envconfig:"HTTP_LISTEN_PORT" default:""`
 	AllowConvergedFlow                   bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"true"`
+	PauseProvisionedBMHs                 bool          `envconfig:"PAUSE_PROVISIONED_BMHS" default:"true"`
 	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
 	BMACConfig                           controllers.BMACConfig
 
@@ -304,8 +306,6 @@ func main() {
 		mirrorRegistriesBuilder,
 		system.NewLocalSystemInfo(),
 	)
-	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
-		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 
 	versionHandler, versionsAPIHandler, err := createVersionHandlers(
 		log,
@@ -320,7 +320,7 @@ func main() {
 	)
 	failOnError(err, "failed to create Versions handlers")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
-	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
+	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
 	ignitionBuilder, err := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, releaseHandler, versionHandler)
 	failOnError(err, "failed to create ignition builder")
 	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
@@ -330,7 +330,7 @@ func main() {
 	createS3Bucket(objectHandler, log)
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler, usageManager)
-	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler, extracterHandler)
+	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler)
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager, providerRegistry)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	Options.InstructionConfig.HostFSMountDir = hostFSMountDir
@@ -492,8 +492,7 @@ func main() {
 	bm := bminventory.NewBareMetalInventory(db, notificationStream, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, authzHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, osImages, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
-		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs)
-
+		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs, Options.GeneratorConfig.InstallInvoker)
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
 	//Set inner handler chain. Inner handlers requires access to the Route
@@ -620,6 +619,7 @@ func main() {
 				Scheme:                ctrlMgr.GetScheme(),
 				SpokeK8sClientFactory: spoke_k8s_client.NewSpokeK8sClientFactory(log),
 				ConvergedFlowEnabled:  useConvergedFlow,
+				PauseProvisionedBMHs:  Options.PauseProvisionedBMHs,
 				Drainer:               &controllers.KubectlDrainer{},
 				Config:                &Options.BMACConfig,
 			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")

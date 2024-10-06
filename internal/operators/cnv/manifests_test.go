@@ -13,11 +13,11 @@ import (
 var _ = Describe("CNV manifest generation", func() {
 	fullHaMode := models.ClusterHighAvailabilityModeFull
 	noneHaMode := models.ClusterHighAvailabilityModeNone
-	operator := NewCNVOperator(common.GetTestLog(), Config{Mode: true, SNOInstallHPP: true}, nil)
+	operator := NewCNVOperator(common.GetTestLog(), Config{Mode: true, SNOInstallHPP: true})
 
 	Context("CNV Manifest", func() {
 		table.DescribeTable("Should create manifestes", func(cluster common.Cluster, isSno bool, cfg Config) {
-			cnvOperator := NewCNVOperator(common.GetTestLog(), cfg, nil)
+			cnvOperator := NewCNVOperator(common.GetTestLog(), cfg)
 			openshiftManifests, manifest, err := cnvOperator.GenerateManifests(&cluster)
 			numManifests := 3
 			if isSno && cfg.SNOInstallHPP {

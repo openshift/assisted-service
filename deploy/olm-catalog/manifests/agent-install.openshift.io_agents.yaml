@@ -178,6 +178,19 @@ spec:
                       the Agent
                     type: string
                 type: object
+              deprovision_info:
+                description: DeprovisionInfo stores data related to the agent's previous
+                  cluster binding in order to clean up when the agent re-registers
+                properties:
+                  cluster_name:
+                    type: string
+                  cluster_namespace:
+                    type: string
+                  message:
+                    type: string
+                  node_name:
+                    type: string
+                type: object
               installation_disk_id:
                 description: InstallationDiskID is the disk that will be used for
                   the installation.

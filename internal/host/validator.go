@@ -47,6 +47,11 @@ const (
 	maxHostAheadOfServiceTimeDiff                    = 1 * time.Hour
 	maxHostTimingMetrics                             = 4
 	maxPingCommandExamples                           = 4
+
+	// How much we allow the user to deviate from our official
+	// minimum. Some setups (e.g. VMs) might give just a bit less
+	// than requested, so we shouldn't be too strict about it
+	HostMemoryRequirementToleranceMiB int64 = 100
 )
 
 const FailedToFindAction = "failed to find action for step"
@@ -347,7 +352,7 @@ func (v *validator) hasMinMemory(c *validationContext) (ValidationStatus, string
 	if c.inventory == nil {
 		return status, "Missing inventory"
 	}
-	status = boolValue(c.inventory.Memory.PhysicalBytes >= conversions.MibToBytes(c.minRAMMibRequirement))
+	status = boolValue(c.inventory.Memory.PhysicalBytes >= conversions.MibToBytes(c.minRAMMibRequirement-HostMemoryRequirementToleranceMiB))
 	if status == ValidationSuccess {
 		return status, "Sufficient minimum RAM"
 	}
@@ -530,7 +535,7 @@ func (v *validator) hasMemoryForRole(c *validationContext) (ValidationStatus, st
 		return ValidationPending, "Missing inventory or role"
 	}
 	requiredBytes := conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)
-	if c.inventory.Memory.PhysicalBytes >= requiredBytes {
+	if c.inventory.Memory.PhysicalBytes >= requiredBytes-conversions.MibToBytes(HostMemoryRequirementToleranceMiB) {
 		return ValidationSuccess, fmt.Sprintf("Sufficient RAM for role %s", common.GetEffectiveRole(c.host))
 	}
 	return ValidationFailure, fmt.Sprintf("Require at least %s RAM for role %s, found only %s",

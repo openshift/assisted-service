@@ -10,7 +10,7 @@ import (
 
 var _ = Describe("LVM manifest generation", func() {
 	noneHighAvailabilityMode := models.ClusterHighAvailabilityModeNone
-	operator := NewLvmOperator(common.GetTestLog(), nil)
+	operator := NewLvmOperator(common.GetTestLog())
 	var cluster *common.Cluster
 
 	getCluster := func(openshiftVersion string) *common.Cluster {

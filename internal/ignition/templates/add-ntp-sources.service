@@ -1,0 +1,9 @@
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/add-ntp-sources.sh
+
+[Unit]
+Before=chronyd.service
+
+[Install]
+WantedBy=multi-user.target

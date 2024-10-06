@@ -70,6 +70,20 @@ func (mr *MockInstallerInternalsMockRecorder) CancelInstallationInternal(arg0, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInstallationInternal", reflect.TypeOf((*MockInstallerInternals)(nil).CancelInstallationInternal), arg0, arg1)
 }
 
+// CreateHostInKubeKeyNamespace mocks base method.
+func (m *MockInstallerInternals) CreateHostInKubeKeyNamespace(arg0 context.Context, arg1 types.NamespacedName, arg2 *models.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateHostInKubeKeyNamespace", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateHostInKubeKeyNamespace indicates an expected call of CreateHostInKubeKeyNamespace.
+func (mr *MockInstallerInternalsMockRecorder) CreateHostInKubeKeyNamespace(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateHostInKubeKeyNamespace", reflect.TypeOf((*MockInstallerInternals)(nil).CreateHostInKubeKeyNamespace), arg0, arg1, arg2)
+}
+
 // DeregisterClusterInternal mocks base method.
 func (m *MockInstallerInternals) DeregisterClusterInternal(arg0 context.Context, arg1 *common.Cluster) error {
 	m.ctrl.T.Helper()

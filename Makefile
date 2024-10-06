@@ -17,7 +17,7 @@ ifeq ($(CONTAINER_COMMAND), docker)
 	CONTAINER_COMMAND = $(shell docker -v 2>/dev/null | cut -f1 -d' ' | tr '[:upper:]' '[:lower:]')
 endif
 
-TARGET := $(or ${TARGET},minikube)
+TARGET := $(or ${TARGET},kind)
 KUBECTL=kubectl -n $(NAMESPACE)
 
 define get_service_host_port
@@ -67,6 +67,7 @@ APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
 OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
+JWKS_URL := $(or ${JWKS_URL},https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/certs)
 AUTH_TYPE := $(or ${AUTH_TYPE},none)
 CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
 ENABLE_SINGLE_NODE_DNSMASQ := $(or ${ENABLE_SINGLE_NODE_DNSMASQ},True)
@@ -92,8 +93,11 @@ ENABLE_ORG_TENANCY := $(or ${ENABLE_ORG_TENANCY},False)
 ALLOW_CONVERGED_FLOW := $(or ${ALLOW_CONVERGED_FLOW}, false)
 ENABLE_ORG_BASED_FEATURE_GATES := $(or ${ENABLE_ORG_BASED_FEATURE_GATES},False)
 KIND_EXPERIMENTAL_PROVIDER=podman
-SUBSYSTEM_LOCAL_SERVICE=localhost/assisted-service:latest
-SUBSYSTEM_LOCAL_IMAGE_ARCHIVE=build/assisted_service_image.tar
+USE_LOCAL_SERVICE := $(or ${USE_LOCAL_SERVICE}, false)
+LOCAL_ASSISTED_SERVICE_IMAGE=localhost/assisted-service:latest
+LOCAL_IMAGE_ARCHIVE=build/assisted_service_image.tar
+HUB_CLUSTER_NAME := $(or ${HUB_CLUSTER_NAME}, assisted-hub-cluster)
+
 
 ifeq ($(DISABLE_TLS),true)
 	DISABLE_TLS_CMD := --disable-tls
@@ -224,26 +228,23 @@ update-minimal:
 	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 update-debug-minimal:
-	export DEBUG_SERVICE=True && $(MAKE) build-minimal
-	mkdir -p build/debug-image && cp Dockerfile.assisted-service-debug $(BUILD_FOLDER)/assisted-service $(BUILD_FOLDER)/assisted-service-operator build/debug-image
-	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) --build-arg DEBUG_SERVICE_PORT=$(DEBUG_SERVICE_PORT) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
-	rm -r build/debug-image
+	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) --build-arg DEBUG_SERVICE_PORT=$(DEBUG_SERVICE_PORT) -f Dockerfile.assisted-service-debug -t $(SERVICE)
 
 update-image: $(UPDATE_IMAGE)
 
-load-image: create-hub-cluster
-	rm -f $(SUBSYSTEM_LOCAL_IMAGE_ARCHIVE) || true
+load-image:
+	rm -f $(LOCAL_IMAGE_ARCHIVE) || true
 	mkdir -p build
-	@if [ -z ${SUBSYSTEM_SERVICE_IMAGE} ]; then \
+	if [ -z ${SERVICE_IMAGE} ]; then \
 		echo "Building and using local assisted-service image..."; \
-		$(MAKE) update-image SERVICE=$(SUBSYSTEM_LOCAL_SERVICE); \
+		skipper $(MAKE) update-image SERVICE=$(LOCAL_ASSISTED_SERVICE_IMAGE); \
 	else \
-		echo "Using image from ${SUBSYSTEM_SERVICE_IMAGE}..."; \
-		$(CONTAINER_COMMAND) pull ${SUBSYSTEM_SERVICE_IMAGE}; \
-		$(CONTAINER_COMMAND) tag ${SUBSYSTEM_SERVICE_IMAGE} $(SUBSYSTEM_LOCAL_SERVICE); \
+		echo "Using image from ${SERVICE_IMAGE}..."; \
+		$(CONTAINER_COMMAND) pull ${SERVICE_IMAGE}; \
+		$(CONTAINER_COMMAND) tag ${SERVICE_IMAGE} $(LOCAL_ASSISTED_SERVICE_IMAGE); \
 	fi
-	$(CONTAINER_COMMAND) save -o $(SUBSYSTEM_LOCAL_IMAGE_ARCHIVE) $(SUBSYSTEM_LOCAL_SERVICE)
-	./hack/kind/kind.sh load_kind_image $(SUBSYSTEM_LOCAL_IMAGE_ARCHIVE) assisted-installer-kind
+	$(CONTAINER_COMMAND) save -o $(LOCAL_IMAGE_ARCHIVE) $(LOCAL_ASSISTED_SERVICE_IMAGE)
+	./hack/hub_cluster.sh load_image $(LOCAL_IMAGE_ARCHIVE) $(HUB_CLUSTER_NAME)
 
 build-image: update-minimal
 
@@ -258,6 +259,27 @@ publish-client: generate-python-client
 
 build-openshift-ci-test-bin: init
 
+remove_assisted_service_deployment_liveness_probe:
+	$(KUBECTL) patch deployment assisted-service --type json -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}]' || true
+
+set_assisted_service_deployment_replicas_to_one:
+	$(KUBECTL) patch deployment assisted-service --type='json' -p='[{"op": "replace", "path": "/spec/replicas", "value": 1}]'
+
+restart_service_pods:
+	$(KUBECTL) rollout restart deployment assisted-service
+	$(KUBECTL) rollout status  deployment assisted-service
+
+prepare_assisted_service_for_debug: remove_assisted_service_deployment_liveness_probe set_assisted_service_deployment_replicas_to_one restart_service_pods
+
+patch-service: load-image
+	$(KUBECTL) patch deployment assisted-service \
+		--type json \
+		-p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value": "$(LOCAL_ASSISTED_SERVICE_IMAGE)"},{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "Never"}]'
+	if [ -n "${DEBUG_SERVICE}" ]; then \
+		$(MAKE) remove_assisted_service_deployment_liveness_probe set_assisted_service_deployment_replicas_to_one; \
+	fi
+	$(MAKE) restart_service_pods
+
 ##########
 # Deploy #
 ##########
@@ -268,11 +290,6 @@ else ifdef DEPLOY_MANIFEST_PATH
 else ifdef DEPLOY_MANIFEST_TAG
   DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
 endif
-
-define restart_service_pods
-$(KUBECTL) rollout restart deployment assisted-service
-$(KUBECTL) rollout status  deployment assisted-service
-endef
 
 _verify_cluster:
 	python3 ./tools/wait_for_cluster_info.py --namespace "$(NAMESPACE)"
@@ -340,7 +357,7 @@ deploy-converged-flow-requirements:
 deploy-service: deploy-service-requirements
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
 		$(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
-		--apply-manifest $(APPLY_MANIFEST) $(EVENT_STREAMING_OPTIONS) $(DEBUG_PORT_OPTIONS) $(IMAGE_PULL_POLICY)
+		--apply-manifest $(APPLY_MANIFEST) $(EVENT_STREAMING_OPTIONS) $(DEBUG_PORT_OPTIONS)
 	$(MAKE) wait-for-service
 
 wait-for-service:
@@ -378,15 +395,6 @@ create-ocp-manifests:
 
 ci-deploy-for-subsystem: deploy-test
 
-patch-service: _verify_cluster
-	$(MAKE) load-image
-ifdef DEBUG_SERVICE
-	$(KUBECTL) patch deployment assisted-service --type json -p='[{"op": "add", "path": "/spec/template/spec/containers/0/ports/-", "value": {"containerPort": 40000}}]'
-	$(KUBECTL) patch service assisted-service --type json -p='[{"op": "add", "path": "/spec/ports/-", value: {"name": "assisted-service-debug", "port": 40000, "protocol": "TCP", "targetPort": 40000}}]'
-	$(KUBECTL) patch deployment assisted-service --type json -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}]'
-endif
-	$(call restart_service_pods)
-
 deploy-test: _verify_cluster generate-keys
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
 	export TEST_FLAGS=--subsystem-test && \
@@ -397,14 +405,15 @@ deploy-test: _verify_cluster generate-keys
 
 # execute on the host, without skipper
 deploy-service-for-subsystem-test: create-hub-cluster load-image
-	skipper $(MAKE) deploy-test TARGET=kind SERVICE=$(SUBSYSTEM_LOCAL_SERVICE) IP=$(shell ip route get 1 | sed 's/^.*src \([^ ]*\).*$$/\1/;q')
-	@if [ $(ENABLE_KUBE_API) == "true" ]; then \
+	skipper $(MAKE) deploy-test SERVICE=$(LOCAL_ASSISTED_SERVICE_IMAGE) IP=$(shell ip route get 1 | sed 's/^.*src \([^ ]*\).*$$/\1/;q')
+	if [ "$(ENABLE_KUBE_API)" == "true" ]; then \
 		echo "Deploying assisted-service for subsystem tests in kube-api mode..."; \
-		TARGET=kind skipper make enable-kube-api-for-subsystem; \
+		skipper make enable-kube-api-for-subsystem; \
 	fi
-
-destroy-kind-cluster:
-	./hack/kind/kind.sh delete
+	if [ -n "${DEBUG_SERVICE}" ]; then \
+		$(MAKE) prepare_assisted_service_for_debug; \
+	fi
+	echo "assited service deployment for subsystem tests is ready"
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
 # we need to pull it from the docker daemon before deploy-onprem.
@@ -421,6 +430,19 @@ deploy-on-openshift-ci:
 	$(MAKE) deploy-test
 	oc get pods
 
+deploy-on-k8s: create-hub-cluster
+	skipper $(MAKE) deploy-all IP=$(shell ip route get 1 | sed 's/^.*src \([^ ]*\).*$$/\1/;q')
+	if [ "$(USE_LOCAL_SERVICE)" == "true" ] || [ -n "${DEBUG_SERVICE}" ]; then \
+		$(MAKE) patch-service; \
+	fi
+	skipper $(MAKE) deploy-ui
+
+deploy-sylva: create-hub-cluster
+	./hack/kind/dev-env-sylva.sh
+
+deploy-dev-infra: create-hub-cluster
+	./hack/kind/dev-env-infra.sh
+
 ########
 # Test #
 ########
@@ -431,11 +453,11 @@ test:
 test-kube-api:
 	$(MAKE) _run_subsystem_test AUTH_TYPE=local FOCUS="$(or ${FOCUS},kube-api)"
 
-subsystem-test:
-	$(MAKE) test TARGET=kind
+# Alias for test
+subsystem-test: test
 
 subsystem-test-kube-api:
-	$(MAKE) test-kube-api TARGET=kind
+	$(MAKE) test-kube-api ENABLE_KUBE_API=true
 
 _run_subsystem_test:
 	@if [ $(TARGET) == "kind" ]; then \
@@ -449,6 +471,15 @@ _run_subsystem_test:
 		db_port="$(shell $(call get_service_host_port,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2)"; \
 		ocm_host="$(shell $(call get_service_host_port,wiremock) | sed 's/http:\/\///g')"; \
 	fi; \
+	echo "INVENTORY=$$assisted_service_url\n"; \
+	echo "DB_HOST=$$db_host\n"; \
+	echo "DB_PORT=$$db_port\n"; \
+	echo "OCM_HOST=$$ocm_host\n"; \
+	echo "TEST_TOKEN=$(shell cat $(BUILD_FOLDER)/auth-tokenString)"; \
+	echo "TEST_TOKEN_2=$(shell cat $(BUILD_FOLDER)/auth-tokenString2)"; \
+	echo "TEST_TOKEN_ADMIN=$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)"; \
+	echo "TEST_TOKEN_UNALLOWED=$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)"; \
+	echo "TEST_TOKEN_EDITOR=$(shell cat $(BUILD_FOLDER)/auth-tokenClusterEditor)"; \
 	INVENTORY=$$assisted_service_url \
 	DB_HOST=$$db_host \
 	DB_PORT=$$db_port \
@@ -464,8 +495,7 @@ _run_subsystem_test:
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
 	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true ALLOW_CONVERGED_FLOW=true ISO_IMAGE_TYPE=minimal-iso
 	$(MAKE) deploy-converged-flow-requirements  ENABLE_KUBE_API=true  ALLOW_CONVERGED_FLOW=true
-	$(call restart_service_pods)
-	$(MAKE) wait-for-service
+	$(MAKE) restart_service_pods wait-for-service
 
 deploy-wiremock: deploy-namespace
 	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)"
@@ -543,11 +573,11 @@ test-on-openshift-ci:
 install-kind-if-needed:
 	./hack/kind/kind.sh install
 
-delete-kind-cluster:
-	kind delete cluster
-
 create-hub-cluster:
-	./hack/kind/kind.sh create
+	./hack/hub_cluster.sh create
+
+destroy-hub-cluster:
+	./hack/hub_cluster.sh delete
 
 #########
 # Clean #

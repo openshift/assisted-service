@@ -106,7 +106,7 @@ var _ = Describe("RegisterHost", func() {
 		db, dbName = common.PrepareTestDB()
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -640,7 +640,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -686,7 +686,7 @@ var _ = Describe("Cancel host installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
 	})
 
@@ -779,7 +779,7 @@ var _ = Describe("Install", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		pr := registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
 		pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
@@ -932,7 +932,7 @@ var _ = Describe("Unbind", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -1320,7 +1320,7 @@ var _ = Describe("Refresh Host", func() {
 				fmt.Sprintf("%s:%s", supportedGPU.VendorID, supportedGPU.DeviceID): true,
 			}},
 		}
-		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operatorsOptions, nil, nil)
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operatorsOptions, nil)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 		pr = registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
@@ -5668,25 +5668,25 @@ var _ = Describe("Refresh Host", func() {
 	Context("Default route", func() {
 
 		ipv4Routes := []*models.Route{
-			{Family: common.FamilyIPv4, Destination: "0.0.0.0", Gateway: "10.254.0.1"},
-			{Family: common.FamilyIPv4, Destination: "192.168.122.0", Gateway: "0.0.0.0"}}
+			{Family: int32(common.IPv4), Destination: "0.0.0.0", Gateway: "10.254.0.1"},
+			{Family: int32(common.IPv4), Destination: "192.168.122.0", Gateway: "0.0.0.0"}}
 		ipv6Routes := []*models.Route{
-			{Family: common.FamilyIPv6, Destination: net.IPv6zero.String(), Gateway: "2001:1::1"},
-			{Family: common.FamilyIPv6, Destination: "2001:1::1", Gateway: net.IPv6zero.String()},
-			{Family: common.FamilyIPv6, Destination: net.IPv6zero.String(), Gateway: net.IPv6zero.String()}}
+			{Family: int32(common.IPv6), Destination: net.IPv6zero.String(), Gateway: "2001:1::1"},
+			{Family: int32(common.IPv6), Destination: "2001:1::1", Gateway: net.IPv6zero.String()},
+			{Family: int32(common.IPv6), Destination: net.IPv6zero.String(), Gateway: net.IPv6zero.String()}}
 
 		noDefaultRoute := []*models.Route{
-			{Family: common.FamilyIPv4, Destination: "10.254.2.2", Gateway: "10.254.2.1"},
-			{Family: common.FamilyIPv4, Destination: "172.17.0.15", Gateway: "172.17.0.1"},
-			{Family: common.FamilyIPv6, Destination: "2001:1::10", Gateway: "2001:1::1"},
+			{Family: int32(common.IPv4), Destination: "10.254.2.2", Gateway: "10.254.2.1"},
+			{Family: int32(common.IPv4), Destination: "172.17.0.15", Gateway: "172.17.0.1"},
+			{Family: int32(common.IPv6), Destination: "2001:1::10", Gateway: "2001:1::1"},
 		}
 
 		invalidDestination := []*models.Route{
-			{Family: common.FamilyIPv4, Destination: "invalid", Gateway: "10.254.2.1"},
+			{Family: int32(common.IPv4), Destination: "invalid", Gateway: "10.254.2.1"},
 		}
 
 		invalidGateway := []*models.Route{
-			{Family: common.FamilyIPv4, Destination: "0.0.0.0", Gateway: "invalid"},
+			{Family: int32(common.IPv4), Destination: "0.0.0.0", Gateway: "invalid"},
 		}
 		defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
 		domainNameResolutions := common.TestDomainNameResolutionsSuccess
@@ -6241,7 +6241,6 @@ var _ = Describe("Upgrade agent feature", func() {
 			common.GetTestLog(),
 			nil,
 			operators.Options{},
-			nil,
 			nil,
 		)
 		pr = registry.NewMockProviderRegistry(ctrl)

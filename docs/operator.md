@@ -246,18 +246,18 @@ oc annotate --overwrite AgentServiceConfig agent unsupported.agent-install.opens
 
 A ConfigMap can be used to configure assisted service to create installations using mirrored content. The ConfigMap contains two keys:
 
-- *ca-bundle.crt* - This key contains the contents of the certificate for accessing the mirror registry, if necessary. It may be a certificate bundle and is defined as a single string.
-- *registries.conf* - This key contains the contents of the registries.conf file that configures mappings to the mirror registry.
+- `ca-bundle.crt` - This key contains the contents of the certificate for accessing the mirror registry, if necessary. It may be a certificate bundle and is defined as a single string.
+- `registries.conf` - This key contains the contents of the registries.conf file that configures mappings to the mirror registry.
 
-The mirror registry configuration changes the discovery image's ignition config, with *ca-bundle.crt* written out to */etc/pki/ca-trust/source/anchors/domain.crt* and with *registries.conf* written out to */etc/containers/registries.conf*. 
-
-The configuration also changes the *install-config.yaml* file used to install a new cluster, with the contents of *ca-bundle.crt* added to *additionalTrustBundle* and with the registries defined *registries.conf* added to *imageContentSources* as mirrors.
-The assisted service pod also converts the registries.conf into an imageContentSourcesPolicy file, and use it with the --icsp flag in a few oc adm commands run against the release image (executed from within the assisted service pod itself).
+Supplying this ConfigMap makes several changes to the installation flow and assisted-service deployment:
+- Changes the discovery image's ignition config such that `ca-bundle.crt` is written out to `/etc/pki/ca-trust/source/anchors/domain.crt` and `registries.conf` is written out to `/etc/containers/registries.conf`.
+- Changes the `install-config.yaml` file used to install a new cluster, with the contents of `ca-bundle.crt` added to `additionalTrustBundle` and with the registries defined `registries.conf` added to `imageContentSources` as mirrors.
+- The assisted-service pod converts the registries.conf into an imageContentSourcesPolicy file, and use it with the --icsp flag in a few `oc adm` commands run against the release image (executed from within the assisted-service pod itself).
+- The certificate bundle is added to the list of trusted certs provided by the cluster. A combined ConfigMap is created which includes the provided bundle. This is mounted into the assisted-service pod at path `/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem`
 
 The ca-bundle.crt and registries.conf keys can be added individually or together.
 
-
-1. To configure the mirror registry, first create and upload the ConfigMap containing the *ca-bundle.crt* and *registries.conf* keys.
+1. To configure the mirror registry, first create and upload the ConfigMap containing the `ca-bundle.crt` and `registries.conf` keys.
 
 ``` bash
 cat <<EOF | kubectl create -f -

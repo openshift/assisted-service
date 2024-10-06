@@ -4,9 +4,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"strings"
+	"time"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/google/uuid"
+	"github.com/golang-jwt/jwt/v4"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -14,16 +14,40 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func generateToken(privateKeyPem string, expiry *time.Time) (string, error) {
+	// Create the JWT claims
+	claims := jwt.MapClaims{}
+
+	// Set the expiry time if provided
+	if expiry != nil {
+		claims["exp"] = expiry.Unix()
+	}
+
+	// Create the token using the ES256 signing method and the claims
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+
+	priv, err := jwt.ParseECPrivateKeyFromPEM([]byte(privateKeyPem))
+	if err != nil {
+		return "", err
+	}
+	// Sign the token with the provided private key
+	tokenString, err := token.SignedString(priv)
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
+
 var _ = Describe("AuthAgentAuth", func() {
 	var (
-		a     *AgentLocalAuthenticator
-		token string
+		a                 *AgentLocalAuthenticator
+		token, privateKey string
 	)
 
 	BeforeEach(func() {
-		infraEnvID := strfmt.UUID(uuid.New().String())
 
 		pubKey, privKey, err := gencrypto.ECDSAKeyPairPEM()
+		privateKey = privKey
 		Expect(err).ToNot(HaveOccurred())
 
 		// Encode to Base64 (Standard encoding)
@@ -33,7 +57,7 @@ var _ = Describe("AuthAgentAuth", func() {
 			ECPublicKeyPEM: encodedPubKey,
 		}
 
-		token, err = gencrypto.LocalJWTForKey(infraEnvID.String(), privKey, gencrypto.InfraEnvKey)
+		token, err = generateToken(privKey, nil)
 		Expect(err).ToNot(HaveOccurred())
 
 		a, err = NewAgentLocalAuthenticator(cfg, logrus.New())
@@ -83,14 +107,31 @@ var _ = Describe("AuthAgentAuth", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("Works with URL auth", func() {
+	It("Fails with URL auth", func() {
 		_, err := a.AuthURLAuth(token)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(err).To(HaveOccurred())
 	})
 
 	It("Fails with image auth", func() {
 		_, err := a.AuthImageAuth(token)
 		Expect(err).To(HaveOccurred())
+	})
+
+	It("Validates an unexpired token correctly", func() {
+		expiry := time.Now().UTC().Add(30 * time.Second)
+		unexpiredToken, err := generateToken(privateKey, &expiry)
+		Expect(err).ToNot(HaveOccurred())
+		_, err = a.AuthAgentAuth(unexpiredToken)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Fails an expired token", func() {
+		expiry := time.Now().UTC().Add(-30 * time.Second)
+		expiredToken, err := generateToken(privateKey, &expiry)
+		Expect(err).ToNot(HaveOccurred())
+		_, err = a.AuthAgentAuth(expiredToken)
+		Expect(err).To(HaveOccurred())
+		validateErrorResponse(err)
 	})
 
 	It("Fails a token with invalid signing method", func() {

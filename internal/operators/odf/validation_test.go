@@ -109,7 +109,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		var cfg clust.Config
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		clusterApi = clust.NewManager(cfg, common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),

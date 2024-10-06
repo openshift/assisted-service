@@ -69,7 +69,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
-		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		initHwValidator()
 		mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
 		mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()

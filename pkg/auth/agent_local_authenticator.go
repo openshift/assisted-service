@@ -4,12 +4,12 @@ import (
 	"crypto"
 	"encoding/base64"
 	"net/http"
+	"time"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -42,7 +42,6 @@ func NewAgentLocalAuthenticator(cfg *Config, log logrus.FieldLogger) (*AgentLoca
 	if err != nil {
 		return nil, err
 	}
-
 	a := &AgentLocalAuthenticator{
 		log:       log,
 		publicKey: key,
@@ -73,19 +72,23 @@ func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, erro
 	}
 	claims, ok := t.Claims.(jwt.MapClaims)
 	if !ok {
-		err := errors.Errorf("failed to parse JWT token claims")
+		err = errors.Errorf("failed to parse JWT token claims")
 		a.log.Error(err)
 		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
 
-	infraEnvID, infraEnvOk := claims[string(gencrypto.InfraEnvKey)].(string)
-	if !infraEnvOk {
-		err := errors.Errorf("claims are incorrectly formatted")
+	exp, found := claims["exp"].(float64)
+	if !found {
+		// exp claim is not found in the case of install workflow
+		return ocm.AdminPayload(), nil
+	}
+	// in the case of addnodes workflow, check if the token is expired
+	expTime := time.Unix(int64(exp), 0)
+	if expTime.Before(time.Now().UTC()) {
+		err = errors.Errorf("The provided authentication token has expired. Please generate a new token and try again.")
 		a.log.Error(err)
 		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
-	a.log.Infof("Authenticating infraEnv %s JWT", infraEnvID)
-
 	return ocm.AdminPayload(), nil
 }
 
@@ -94,7 +97,7 @@ func (a *AgentLocalAuthenticator) AuthUserAuth(token string) (interface{}, error
 }
 
 func (a *AgentLocalAuthenticator) AuthURLAuth(token string) (interface{}, error) {
-	return a.AuthAgentAuth(token)
+	return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("URL Authentication not allowed for agent local auth"))
 }
 
 func (a *AgentLocalAuthenticator) AuthImageAuth(_ string) (interface{}, error) {

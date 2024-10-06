@@ -507,7 +507,7 @@ func (r *PreprovisioningImageReconciler) getIronicConfig(ctx context.Context, lo
 	}
 
 	if iccConfig.IronicBaseURL == "" && iccConfig.IronicInspectorBaseUrl == "" {
-		err := r.fillIronicServiceURLs(ctx, infraEnvInternal, iccConfig)
+		err := r.fillIronicServiceURLs(ctx, infraEnv, infraEnvInternal, iccConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -566,18 +566,23 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	return updated, nil
 }
 
-func (r *PreprovisioningImageReconciler) getIPFamilyForInfraEnv(ctx context.Context, infraEnv *common.InfraEnv) (v4 bool, v6 bool, err error) {
-	if infraEnv.ClusterID == "" {
+func (r *PreprovisioningImageReconciler) getIPFamilyForInfraEnv(ctx context.Context, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (v4 bool, v6 bool, err error) {
+	ipFamilyAnnotation := infraEnv.GetAnnotations()[infraEnvIPFamilyAnnotation]
+	if ipFamilyAnnotation != "" {
+		families := strings.Split(ipFamilyAnnotation, ",")
+		return funk.Contains(families, ipv4Family), funk.Contains(families, ipv6Family), nil
+	}
+	if internalInfraEnv.ClusterID == "" {
 		return false, false, fmt.Errorf("cannot find address family for non-bound infraEnv")
 	}
-	cluster, err := r.Installer.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: infraEnv.ClusterID})
+	cluster, err := r.Installer.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: internalInfraEnv.ClusterID})
 	if err != nil {
 		return false, false, err
 	}
 	return network.GetConfiguredAddressFamilies(cluster)
 }
 
-func (r *PreprovisioningImageReconciler) fillIronicServiceURLs(ctx context.Context, infraEnv *common.InfraEnv, iccConfig *ICCConfig) error {
+func (r *PreprovisioningImageReconciler) fillIronicServiceURLs(ctx context.Context, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv, iccConfig *ICCConfig) error {
 	ironicIPs, inspectorIPs, err := r.BMOUtils.GetIronicIPs()
 	if err != nil {
 		return err
@@ -589,9 +594,10 @@ func (r *PreprovisioningImageReconciler) fillIronicServiceURLs(ctx context.Conte
 	inspectorURL := getUrlFromIP(inspectorIPs[0])
 
 	if len(ironicIPs) > 1 {
-		v4, v6, err := r.getIPFamilyForInfraEnv(ctx, infraEnv)
+		v4, v6, err := r.getIPFamilyForInfraEnv(ctx, infraEnv, internalInfraEnv)
+		r.Log.Debugf("infraEnv IP families: v4: %t, v6: %t", v4, v6)
 		if err != nil {
-			r.Log.WithError(err).Warnf("failed to determine IP family for infraEnv %s", infraEnv.ID)
+			r.Log.WithError(err).Warnf("failed to determine IP family for infraEnv %s", internalInfraEnv.ID)
 		} else if !v4 && v6 {
 			// spoke is single stack v6 so take v6 hub address
 			ironicURL = getUrlFromIP(ironicIPs[1])

@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/containers/image/v5/docker/reference"
+	"github.com/docker/distribution/reference"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-multierror"

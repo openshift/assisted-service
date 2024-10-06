@@ -64,6 +64,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalling),
+			stateswitch.State(models.HostStatusInstallingPendingUserAction),
 		},
 		DestinationState: stateswitch.State(models.HostStatusAddedToExistingCluster),
 		PostTransition:   th.PostHostProgress,

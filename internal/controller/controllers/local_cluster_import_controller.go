@@ -35,6 +35,9 @@ const (
 	hubKubeConfigName                                 = "node-kubeconfigs"
 	hubPullSecretNamespace                            = "openshift-config" // #nosec G101
 	hubPullSecretName                                 = "pull-secret"      // #nosec G101
+	importLocalClusterEnabledAnnotation               = "agent-install.openshift.io/enable-local-cluster-import"
+	localClusterLabel                                 = "local-cluster"
+	clusterIDLabel                                    = "clusterID"
 )
 
 type LocalClusterImportReconciler struct {
@@ -44,10 +47,9 @@ type LocalClusterImportReconciler struct {
 	agentServiceConfigName string
 }
 
-func NewLocalClusterImportReconciler(client client.Client, localClusterName string, agentServiceConfigName string, log *logrus.Logger) *LocalClusterImportReconciler {
+func NewLocalClusterImportReconciler(client client.Client, agentServiceConfigName string, log *logrus.Logger) *LocalClusterImportReconciler {
 	return &LocalClusterImportReconciler{
 		client:                 client,
-		localClusterName:       localClusterName,
 		log:                    log,
 		agentServiceConfigName: agentServiceConfigName,
 	}
@@ -126,16 +128,39 @@ func (r *LocalClusterImportReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	hasManagedCluster, err := r.hasLocalManagedCluster(ctx)
+	// Enable local cluster import if annotation allows this.
+	_, importLocalClusterEnabled := instance.GetAnnotations()[importLocalClusterEnabledAnnotation]
+	if !importLocalClusterEnabled {
+		err := r.setReconciliationStatus(ctx, false, aiv1beta1.ReasonLocalClusterImportNotEnabled, "Local cluster import is not enabled")
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Unable to set reconciliation status of LocalClusterImport on AgentServiceConfig")
+		}
+		return ctrl.Result{}, nil
+	}
+
+	clusterVersion := &configv1.ClusterVersion{}
+	namespacedName := types.NamespacedName{
+		Name: "version",
+	}
+	err := r.client.Get(ctx, namespacedName, clusterVersion)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "unable to fetch local cluster version")
+	}
+
+	err = r.getLocalManagedClusterName(ctx, clusterVersion)
 	if err != nil {
 		err = r.setReconciliationStatus(ctx, false, aiv1beta1.ReasonUnableToDetermineLocalClusterManagedStatus, err.Error())
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Unable to set reconciliation status of LocalClusterImport on AgentServiceConfig")
 		}
-		return ctrl.Result{}, errors.Wrap(err, "error while attempting to determine presence of managed cluster")
+		return ctrl.Result{}, errors.Wrap(err, "error while attempting to determine local cluster name")
 	}
-	if hasManagedCluster {
-		if err = r.importLocalCluster(ctx, instance); err != nil {
+	hasLocalManagedCluster, err := r.hasLocalManagedCluster(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if hasLocalManagedCluster {
+		if err = r.importLocalCluster(ctx, instance, clusterVersion); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to create managed cluster CRs")
 		}
 		err = r.setReconciliationStatus(ctx, true, aiv1beta1.ReasonLocalClusterManaged, "")
@@ -158,8 +183,9 @@ func (r *LocalClusterImportReconciler) Reconcile(ctx context.Context, req ctrl.R
 	return ctrl.Result{}, nil
 }
 
-func (r *LocalClusterImportReconciler) checkManagedClusterName(obj metav1.Object) bool {
-	return obj.GetName() == r.localClusterName
+func checkIsLocalManagedCluster(obj metav1.Object) bool {
+	value, ok := obj.GetLabels()[localClusterLabel]
+	return strings.ToLower(value) == "true" && ok
 }
 
 func checkSecretName(obj metav1.Object) bool {
@@ -169,10 +195,10 @@ func checkSecretName(obj metav1.Object) bool {
 // SetupWithManager sets up the controller with the Manager.
 func (r *LocalClusterImportReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	managedClusterPredicates := builder.WithPredicates(predicate.Funcs{
-		CreateFunc:  func(e event.CreateEvent) bool { return r.checkManagedClusterName(e.Object) },
-		UpdateFunc:  func(e event.UpdateEvent) bool { return r.checkManagedClusterName(e.ObjectNew) },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return r.checkManagedClusterName(e.Object) },
-		GenericFunc: func(e event.GenericEvent) bool { return r.checkManagedClusterName(e.Object) },
+		CreateFunc:  func(e event.CreateEvent) bool { return checkIsLocalManagedCluster(e.Object) },
+		UpdateFunc:  func(e event.UpdateEvent) bool { return checkIsLocalManagedCluster(e.ObjectNew) },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return checkIsLocalManagedCluster(e.Object) },
+		GenericFunc: func(e event.GenericEvent) bool { return checkIsLocalManagedCluster(e.Object) },
 	})
 	secretPredicates := builder.WithPredicates(predicate.Funcs{
 		CreateFunc:  func(e event.CreateEvent) bool { return checkSecretName(e.Object) },
@@ -252,16 +278,49 @@ func (r *LocalClusterImportReconciler) deleteInfraEnv(ctx context.Context, names
 	return nil
 }
 
+func (r *LocalClusterImportReconciler) deleteSecret(ctx context.Context, namespace string, name string) error {
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	if err := r.client.Delete(ctx, secret); err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to delete Secret %s in namespace %s", name, namespace)
+	}
+	return nil
+}
+
+func (r *LocalClusterImportReconciler) getLocalManagedClusterName(ctx context.Context, clusterVersion *configv1.ClusterVersion) error {
+	if r.localClusterName != "" {
+		return nil
+	}
+	managedClusters := &clusterv1.ManagedClusterList{}
+	// This should result in a single ManagedCluster that matches our clusterID
+	err := r.client.List(ctx, managedClusters, client.MatchingLabels{localClusterLabel: "true", clusterIDLabel: string(clusterVersion.Spec.ClusterID)})
+	if err != nil {
+		return err
+	}
+	count := len(managedClusters.Items)
+	if count == 0 {
+		r.localClusterName = ""
+	}
+	if count > 1 {
+		return errors.Errorf("expectd a single matching local managed cluster and received %d instead", count)
+	}
+	if count == 1 {
+		r.localClusterName = managedClusters.Items[0].Name
+	}
+	return nil
+}
+
 func (r *LocalClusterImportReconciler) hasLocalManagedCluster(ctx context.Context) (bool, error) {
 	managedCluster := &clusterv1.ManagedCluster{}
-	namespacedName := types.NamespacedName{
-		Name: r.localClusterName,
+	err := r.client.Get(ctx, types.NamespacedName{Name: r.localClusterName}, managedCluster)
+	if k8serrors.IsNotFound(err) {
+		return false, nil
 	}
-	err := r.client.Get(ctx, namespacedName, managedCluster)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return false, nil
-		}
 		return false, err
 	}
 	return true, nil
@@ -271,19 +330,34 @@ func (r *LocalClusterImportReconciler) hasLocalManagedCluster(ctx context.Contex
 // If they are present, they will be deleted
 // No error will be returned if these are not found as this is the desired state.
 func (r *LocalClusterImportReconciler) ensureLocalClusterCRsDeleted(ctx context.Context) error {
+	if r.localClusterName == "" {
+		r.log.Infof("skipping local cluster import cleanup as feature has not previously been enabled")
+		return nil
+	}
 	err := r.deleteClusterDeployment(ctx, r.localClusterName, r.localClusterName)
 	if err != nil && !k8serrors.IsNotFound(err) {
-		r.log.Errorf("could not delete local ClusterDeployment due to error %s", err.Error())
+		r.log.Errorf("could not delete local cluster ClusterDeployment due to error %s", err.Error())
 		return err
 	}
 	err = r.deleteAgentClusterInstall(ctx, r.localClusterName, r.localClusterName)
 	if err != nil && !k8serrors.IsNotFound(err) {
-		r.log.Errorf("could not delete local AgentClusterInstall due to error %s", err.Error())
+		r.log.Errorf("could not delete local cluster AgentClusterInstall due to error %s", err.Error())
 		return err
 	}
 	err = r.deleteInfraEnv(ctx, r.localClusterName, r.localClusterName)
 	if err != nil && !k8serrors.IsNotFound(err) {
-		r.log.Errorf("could not delete local InfraEnv due to error %s", err.Error())
+		r.log.Errorf("could not delete local cluster InfraEnv due to error %s", err.Error())
+		return err
+	}
+	adminKubeConfigSecretName := fmt.Sprintf(adminKubeConfigStringTemplate, r.localClusterName)
+	err = r.deleteSecret(ctx, r.localClusterName, adminKubeConfigSecretName)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		r.log.Errorf("could not delete local cluster Secret %s due to error %s", adminKubeConfigSecretName, err.Error())
+		return err
+	}
+	err = r.deleteSecret(ctx, r.localClusterName, hubPullSecretName)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		r.log.Errorf("could not delete local cluster Secret %s due to error %s", hubPullSecretName, err.Error())
 		return err
 	}
 	return nil
@@ -470,17 +544,7 @@ func (r *LocalClusterImportReconciler) createOrUpdateClusterDeployment(ctx conte
 	return nil
 }
 
-func (r *LocalClusterImportReconciler) importLocalCluster(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
-
-	clusterVersion := &configv1.ClusterVersion{}
-	namespacedName := types.NamespacedName{
-		Name: "version",
-	}
-	err := r.client.Get(ctx, namespacedName, clusterVersion)
-	if err != nil {
-		return errors.Wrap(err, "unable to find cluster version")
-	}
-
+func (r *LocalClusterImportReconciler) importLocalCluster(ctx context.Context, instance *aiv1beta1.AgentServiceConfig, clusterVersion *configv1.ClusterVersion) error {
 	kubeConfigSecret, err := r.getSecret(ctx, hubKubeConfigNamespace, hubKubeConfigName)
 	if err != nil {
 		return errors.Wrap(err, "unable to fetch local cluster kubeconfigs")
@@ -492,7 +556,7 @@ func (r *LocalClusterImportReconciler) importLocalCluster(ctx context.Context, i
 	}
 
 	dns := &configv1.DNS{}
-	namespacedName = types.NamespacedName{
+	namespacedName := types.NamespacedName{
 		Name: "cluster",
 	}
 	err = r.client.Get(ctx, namespacedName, dns)

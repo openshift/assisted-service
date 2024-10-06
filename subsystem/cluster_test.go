@@ -1286,6 +1286,7 @@ var _ = Describe("cluster install", func() {
 		for i := 3; i < 6; i++ {
 			minHwInventory := getMinimalMasterInventory(ips[i])
 			minHwInventory.CPU.Flags = []string{"vmx"}
+			minHwInventory.CPU.Count += 1
 			hosts[i] = &registerHost(*infraEnvID).Host
 			generateEssentialHostStepsWithInventory(ctx, hosts[i], fmt.Sprintf("hhh%d", i+1), minHwInventory)
 		}

@@ -12,13 +12,14 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/tang"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
 
@@ -30,6 +31,7 @@ type ManifestsGeneratorAPI interface {
 	AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+	AddNicReapply(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	IsSNODNSMasqEnabled() bool
 }
 
@@ -201,7 +203,7 @@ func (m *ManifestsGenerator) createChronyManifestContent(c *common.Cluster, role
 		}
 
 		for _, source := range ntpSources {
-			if !funk.Contains(sources, source.SourceName) {
+			if !lo.Contains(sources, source.SourceName) {
 				sources = append(sources, source.SourceName)
 			}
 		}
@@ -216,7 +218,7 @@ func (m *ManifestsGenerator) createChronyManifestContent(c *common.Cluster, role
 			if source == "" {
 				continue
 			}
-			if !funk.Contains(sources, source) {
+			if !lo.Contains(sources, source) {
 				sources = append(sources, source)
 			}
 		}
@@ -526,6 +528,78 @@ func (m *ManifestsGenerator) AddTelemeterManifest(ctx context.Context, log logru
 		return err
 	}
 
+	return nil
+}
+
+const nicReapplyManifest = `
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: {{.ROLE}}
+  name: 50-{{.ROLE}}s-iscsi-nic-reapply
+spec:
+  config:
+    ignition:
+      version: 3.1.0
+    systemd:
+      units:
+        - name: iscsi-nic-reapply.service
+          enabled: true
+          contents: |
+            # This service is used to force the reconfiguration of the network interfaces
+            # on first boot when booting from an iSCSI volume because the DNS configuration
+            # is not propagated properly to the real root.
+            # This is a workaround for bug https://issues.redhat.com/browse/OCPBUGS-26580.
+            [Unit]
+            Description=Force reapply of network configuration on first boot when iSCSI boot volume is in use
+            After=NetworkManager.service
+
+            [Service]
+            Type=oneshot
+            ExecStart=-/bin/sh -c '                                                      \
+            lsblk -o NAME,TRAN,MOUNTPOINTS --json | jq -e \'.blockdevices[] | select(.tran == "iscsi") | select(.children) | .children[].mountpoints | select(.) | index("/sysroot") | select(.)\' > /dev/null; \
+            if [ $? = 0 ];                                                               \
+            then                                                                         \
+                echo "iSCSI boot volume detected, force network reconfiguration...";     \
+                nmcli -t -f DEVICE device status | xargs -l nmcli device reapply;        \
+            fi'
+            ExecStartPost=-systemctl disable iscsi-nic-reapply.service
+
+            [Install]
+            WantedBy=multi-user.target
+`
+
+func (m *ManifestsGenerator) AddNicReapply(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+	// Add this manifest only is one of the host is installting on an iSCSI boot drive
+	_, isUsingISCSIBootDrive := lo.Find(c.Cluster.Hosts, func(h *models.Host) bool {
+		installationDisk, err := hostutil.GetHostInstallationDisk(h)
+		if err != nil {
+			return false
+		}
+		return installationDisk.DriveType == models.DriveTypeISCSI
+	})
+
+	if !isUsingISCSIBootDrive {
+		return nil
+	}
+
+	manifestParamsList := []map[string]interface{}{
+		{"ROLE": "master"},
+		{"ROLE": "worker"},
+	}
+	for _, manifestParams := range manifestParamsList {
+		content, err := fillTemplate(manifestParams, nicReapplyManifest, log)
+		if err != nil {
+			log.WithError(err).Error("Failed to parse nic reapply template")
+			return err
+		}
+		manifestFilename := fmt.Sprintf("50-%ss-iscsi-nic-reapply.yaml", manifestParams["ROLE"])
+		if err := m.createManifests(ctx, c, manifestFilename, content); err != nil {
+			log.WithError(err).Error("Failed to create nic reqpply manifest")
+			return err
+		}
+	}
 	return nil
 }
 

@@ -179,6 +179,7 @@ type InstallerInternals interface {
 	ValidatePullSecret(secret string, username string, releaseImageURL string) error
 	GetInfraEnvInternal(ctx context.Context, params installer.GetInfraEnvParams) (*common.InfraEnv, error)
 	V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) error
+	CreateHostInKubeKeyNamespace(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -216,6 +217,7 @@ type bareMetalInventory struct {
 	gcConfig             garbagecollector.Config
 	providerRegistry     registry.ProviderRegistry
 	insecureIPXEURLs     bool
+	installerInvoker     string
 }
 
 func NewBareMetalInventory(
@@ -249,6 +251,7 @@ func NewBareMetalInventory(
 	gcConfig garbagecollector.Config,
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
+	installerInvoker string,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -281,6 +284,7 @@ func NewBareMetalInventory(
 		gcConfig:             gcConfig,
 		providerRegistry:     providerRegistry,
 		insecureIPXEURLs:     insecureIPXEURLs,
+		installerInvoker:     installerInvoker,
 	}
 }
 
@@ -3700,8 +3704,26 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 	}
 
 	var netFiles []staticnetworkconfig.StaticNetworkConfigData
+	var scriptContent, serviceContent string
 	if infraEnv.StaticNetworkConfig != "" {
-		netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
+		// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
+		var ok bool
+		ok, err = b.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+		if err != nil {
+			return common.GenerateErrorResponder(err)
+		}
+
+		if ok {
+			b.log.Info("Static network configuration using the nmstatectl service")
+			netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigDataYAML(infraEnv.StaticNetworkConfig)
+			scriptContent = constants.PreNetworkConfigScriptWithNmstatectl
+			serviceContent = constants.MinimalISONetworkConfigServiceNmstatectl
+		} else {
+			b.log.Info("Static network configuration using generated keyfiles")
+			netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
+			scriptContent = constants.PreNetworkConfigScript
+			serviceContent = constants.MinimalISONetworkConfigService
+		}
 		if err != nil {
 			log.WithError(err).Errorf("Failed to create static network config data")
 			return common.GenerateErrorResponder(err)
@@ -3715,7 +3737,7 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 		NoProxy:    noProxy,
 	}
 
-	minimalInitrd, err := isoeditor.RamdiskImageArchive(netFiles, &infraEnvProxyInfo)
+	minimalInitrd, err := isoeditor.RamdiskImageArchive(netFiles, &infraEnvProxyInfo, scriptContent, serviceContent)
 	if err != nil {
 		log.WithError(err).Error("Failed to create ramdisk image archive")
 		return common.GenerateErrorResponder(err)
@@ -4756,7 +4778,7 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 	}
 
 	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraenvCreateParams.StaticNetworkConfig, params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture, b.installerInvoker); err != nil {
 			return err
 		}
 	}
@@ -4938,7 +4960,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 
 		if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
-			if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
+			if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraEnvUpdateParams.StaticNetworkConfig, infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, b.installerInvoker); err != nil {
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 		}
@@ -5209,6 +5231,20 @@ func (b *bareMetalInventory) GetInfraEnvByKubeKey(key types.NamespacedName) (*co
 		return nil, err
 	}
 	return infraEnv, nil
+}
+
+func (b *bareMetalInventory) CreateHostInKubeKeyNamespace(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error {
+	log := logutil.FromContext(ctx, b.log)
+	hostToCreate := &common.Host{
+		Host:                    *host,
+		KubeKeyNamespace:        kubeKey.Namespace,
+		TriggerMonitorTimestamp: time.Now(),
+	}
+	log.Infof("Create host %s infra env %s", host.ID.String(), host.InfraEnvID)
+	if err := b.db.Create(hostToCreate).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder {
@@ -5838,8 +5874,22 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		}
 		filename = fmt.Sprintf("%s-%s", params.InfraEnvID, params.FileName)
 	case "static-network-config":
+		var netFiles []staticnetworkconfig.StaticNetworkConfigData
 		if infraEnv.StaticNetworkConfig != "" {
-			netFiles, err := b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
+			// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
+			var ok bool
+			ok, err = b.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+			if err != nil {
+				return common.GenerateErrorResponder(err)
+			}
+
+			if ok {
+				b.log.Info("Static network configuration using the nmstatectl service")
+				netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigDataYAML(infraEnv.StaticNetworkConfig)
+			} else {
+				b.log.Info("Static network configuration using generated keyfiles")
+				netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
+			}
 			if err != nil {
 				b.log.WithError(err).Errorf("Failed to create static network config data")
 				return common.GenerateErrorResponder(err)
