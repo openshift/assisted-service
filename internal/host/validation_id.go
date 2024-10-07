@@ -51,6 +51,12 @@ const (
 	NoSkipInstallationDisk                         = validationID(models.HostValidationIDNoSkipInstallationDisk)
 	NoSkipMissingDisk                              = validationID(models.HostValidationIDNoSkipMissingDisk)
 	NoIPCollisionsInNetwork                        = validationID(models.HostValidationIDNoIPCollisionsInNetwork)
+	AreNodeFeatureDiscoveryRequirementsSatisfied   = validationID(models.HostValidationIDNodeFeatureDiscoveryRequirementsSatisfied)
+	AreNvidiaGPURequirementsSatisfied              = validationID(models.HostValidationIDNvidiaGpuRequirementsSatisfied)
+	ArePipelinesRequirementsSatisfied              = validationID(models.HostValidationIDPipelinesRequirementsSatisfied)
+	AreServiceMeshRequirementsSatisfied            = validationID(models.HostValidationIDServicemeshRequirementsSatisfied)
+	AreServerLessRequirementsSatisfied             = validationID(models.HostValidationIDServerlessRequirementsSatisfied)
+	AreOpenShiftAIRequirementsSatisfied            = validationID(models.HostValidationIDOpenshiftAiRequirementsSatisfied)
 )
 
 func (v validationID) category() (string, error) {
@@ -96,7 +102,13 @@ func (v validationID) category() (string, error) {
 		AreOdfRequirementsSatisfied,
 		AreCnvRequirementsSatisfied,
 		AreLvmRequirementsSatisfied,
-		AreMceRequirementsSatisfied:
+		AreMceRequirementsSatisfied,
+		AreNodeFeatureDiscoveryRequirementsSatisfied,
+		AreNvidiaGPURequirementsSatisfied,
+		ArePipelinesRequirementsSatisfied,
+		AreServiceMeshRequirementsSatisfied,
+		AreServerLessRequirementsSatisfied,
+		AreOpenShiftAIRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))
