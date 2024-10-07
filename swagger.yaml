@@ -4144,6 +4144,7 @@ definitions:
       - 'EXTERNAL_PLATFORM'
       - 'OVN_NETWORK_TYPE'
       - 'SDN_NETWORK_TYPE'
+      - 'OAI'
 
   architecture-support-level-id:
     type: string
@@ -6500,6 +6501,7 @@ definitions:
       - 'no-skip-installation-disk'
       - 'no-skip-missing-disk'
       - 'no-ip-collisions-in-network'
+      - 'oai-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -6865,6 +6867,7 @@ definitions:
       - 'mce-requirements-satisfied'
       - 'network-type-valid'
       - 'platform-requirements-satisfied'
+      - 'oai-requirements-satisfied'
 
   logs_type:
     type: string

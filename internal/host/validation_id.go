@@ -51,6 +51,7 @@ const (
 	NoSkipInstallationDisk                         = validationID(models.HostValidationIDNoSkipInstallationDisk)
 	NoSkipMissingDisk                              = validationID(models.HostValidationIDNoSkipMissingDisk)
 	NoIPCollisionsInNetwork                        = validationID(models.HostValidationIDNoIPCollisionsInNetwork)
+	AreOaiRequirementsSatisfied                    = validationID(models.HostValidationIDOAIRequirementsSatisfied)
 )
 
 func (v validationID) category() (string, error) {
@@ -96,7 +97,8 @@ func (v validationID) category() (string, error) {
 		AreOdfRequirementsSatisfied,
 		AreCnvRequirementsSatisfied,
 		AreLvmRequirementsSatisfied,
-		AreMceRequirementsSatisfied:
+		AreMceRequirementsSatisfied,
+		AreOaiRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))

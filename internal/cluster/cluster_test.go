@@ -94,6 +94,7 @@ var _ = Describe("stateMachine", func() {
 				{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 				{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied)},
 				{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied)},
+				{Status: api.Success, ValidationId: string(models.ClusterValidationIDOAIRequirementsSatisfied)},
 			}, nil)
 		})
 
@@ -161,6 +162,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOAIRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -749,6 +751,7 @@ var _ = Describe("lease timeout event", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOAIRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -865,6 +868,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOAIRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -2243,6 +2247,7 @@ var _ = Describe("Majority groups", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOAIRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -2561,6 +2566,7 @@ var _ = Describe("ready_state", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOAIRequirementsSatisfied)},
 		}, nil)
 	})
 
