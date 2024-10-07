@@ -6751,6 +6751,9 @@ definitions:
       notify_num_reboots:
         type: boolean
         description: If true, notify number of reboots by assisted controller
+      coreos_image:
+        type: string
+        description: CoreOS container image to use if installing to the local device
 
   ntp_synchronization_request:
     type: object
