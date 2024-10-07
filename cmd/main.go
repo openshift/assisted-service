@@ -118,6 +118,7 @@ var Options struct {
 	OperatorsConfig                      operators.Options
 	GCConfig                             garbagecollector.Config
 	ReleaseSourcesConfig                 releasesources.Config
+	StaticNetworkConfig                  staticnetworkconfig.Config
 	IgnoredOpenshiftVersions             string        `envconfig:"IGNORED_OPENSHIFT_VERSIONS" default:""`
 	ClusterStateMonitorInterval          time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	ClusterEventsUploaderInterval        time.Duration `envconfig:"CLUSTER_EVENTS_UPLOADER_INTERVAL" default:"15m"`
@@ -319,7 +320,7 @@ func main() {
 	)
 	failOnError(err, "failed to create Versions handlers")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
-	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
+	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
 	ignitionBuilder, err := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, releaseHandler, versionHandler)
 	failOnError(err, "failed to create ignition builder")
 	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)

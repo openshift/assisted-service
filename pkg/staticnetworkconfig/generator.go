@@ -47,17 +47,20 @@ type StaticNetworkConfig interface {
 	GenerateStaticNetworkConfigDataYAML(staticNetworkConfigStr string) ([]StaticNetworkConfigData, error)
 	FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error)
 	ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, arch, installerInvoker string) error
+	NMStatectlServiceSupported(version, arch string) (bool, error)
 }
 
 type StaticNetworkConfigGenerator struct {
 	log     logrus.FieldLogger
 	nmstate *nmstate.Nmstate
+	config  Config
 }
 
-func New(log logrus.FieldLogger) StaticNetworkConfig {
+func New(log logrus.FieldLogger, config Config) StaticNetworkConfig {
 	return &StaticNetworkConfigGenerator{
 		log:     log,
 		nmstate: nmstate.New(),
+		config:  config,
 	}
 }
 
@@ -65,7 +68,7 @@ func New(log logrus.FieldLogger) StaticNetworkConfig {
 func (s *StaticNetworkConfigGenerator) injectIPV4V6FieldsIfNeeded(networkYaml string) (string, error) {
 	var config map[string]interface{}
 
-	// Unmarshal the JSON string into the config struct
+	// Unmarshal the YAML string into the config struct
 	err := yaml.Unmarshal([]byte(networkYaml), &config)
 	if err != nil {
 		s.log.WithError(err).Errorf("Error unmarshalling yaml")
@@ -110,7 +113,7 @@ func (s *StaticNetworkConfigGenerator) injectNMPolicyCaptures(hostConfig *models
 
 	err := yaml.Unmarshal([]byte(interfacesWithCaptures), &config)
 	if err != nil {
-		s.log.WithError(err).Errorf("error unmarshalling JSON: %v", err)
+		s.log.WithError(err).Errorf("error unmarshalling YAML: %v", err)
 		return "", err
 	}
 
@@ -323,7 +326,7 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macIn
 
 	var config map[string]interface{}
 
-	// Unmarshal the JSON string into the config struct
+	// Unmarshal the YAML string into the config struct
 	err := yaml.Unmarshal([]byte(networksYaml), &config)
 	if err != nil {
 		s.log.WithError(err).Errorf("Error unmarshalling yaml")
@@ -364,7 +367,7 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macIn
 
 		identifier, exists := nic["identifier"]
 		isMacAddressIdentifier := exists && identifier == "mac-address"
-		isVersionOK, err := NMStatectlServiceSupported(ocpVersion, arch)
+		isVersionOK, err := s.NMStatectlServiceSupported(ocpVersion, arch)
 		if err != nil {
 			return err
 		}
