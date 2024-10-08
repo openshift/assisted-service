@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
+	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
@@ -23,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/util/wait"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // #nosec
@@ -750,4 +752,20 @@ func waitForLastInstallationCompletionStatus(clusterID strfmt.UUID, status strin
 	}
 	err := wait.PollUntilContextTimeout(context.Background(), pollDefaultInterval, pollDefaultTimeout, false, waitFunc)
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func deleteBMHFinalizers(ctx context.Context) error {
+	hosts := &metal3_v1alpha1.BareMetalHostList{}
+	if err := kubeClient.List(ctx, hosts, k8sclient.InNamespace(namespace)); err != nil {
+		return err
+	}
+
+	for _, host := range hosts.Items {
+		host.SetFinalizers([]string{})
+		if err := kubeClient.Update(ctx, &host); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
