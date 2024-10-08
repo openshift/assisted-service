@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-jose/go-jose/v4/json"
+	"gopkg.in/go-jose/go-jose.v2/json"
 )
 
 // rawJSONWebSignature represents a raw JWS JSON object. Used for parsing/serializing.
@@ -75,41 +75,22 @@ type Signature struct {
 	original  *rawSignatureInfo
 }
 
-// ParseSigned parses a signed message in JWS Compact or JWS JSON Serialization.
-//
-// https://datatracker.ietf.org/doc/html/rfc7515#section-7
-func ParseSigned(
-	signature string,
-	signatureAlgorithms []SignatureAlgorithm,
-) (*JSONWebSignature, error) {
+// ParseSigned parses a signed message in compact or full serialization format.
+func ParseSigned(signature string) (*JSONWebSignature, error) {
 	signature = stripWhitespace(signature)
 	if strings.HasPrefix(signature, "{") {
-		return ParseSignedJSON(signature, signatureAlgorithms)
+		return parseSignedFull(signature)
 	}
 
-	return parseSignedCompact(signature, nil, signatureAlgorithms)
-}
-
-// ParseSignedCompact parses a message in JWS Compact Serialization.
-//
-// https://datatracker.ietf.org/doc/html/rfc7515#section-7.1
-func ParseSignedCompact(
-	signature string,
-	signatureAlgorithms []SignatureAlgorithm,
-) (*JSONWebSignature, error) {
-	return parseSignedCompact(signature, nil, signatureAlgorithms)
+	return parseSignedCompact(signature, nil)
 }
 
 // ParseDetached parses a signed message in compact serialization format with detached payload.
-func ParseDetached(
-	signature string,
-	payload []byte,
-	signatureAlgorithms []SignatureAlgorithm,
-) (*JSONWebSignature, error) {
+func ParseDetached(signature string, payload []byte) (*JSONWebSignature, error) {
 	if payload == nil {
 		return nil, errors.New("go-jose/go-jose: nil payload")
 	}
-	return parseSignedCompact(stripWhitespace(signature), payload, signatureAlgorithms)
+	return parseSignedCompact(stripWhitespace(signature), payload)
 }
 
 // Get a header value
@@ -156,36 +137,19 @@ func (obj JSONWebSignature) computeAuthData(payload []byte, signature *Signature
 	return authData.Bytes(), nil
 }
 
-// ParseSignedJSON parses a message in JWS JSON Serialization.
-//
-// https://datatracker.ietf.org/doc/html/rfc7515#section-7.2
-func ParseSignedJSON(
-	input string,
-	signatureAlgorithms []SignatureAlgorithm,
-) (*JSONWebSignature, error) {
+// parseSignedFull parses a message in full format.
+func parseSignedFull(input string) (*JSONWebSignature, error) {
 	var parsed rawJSONWebSignature
 	err := json.Unmarshal([]byte(input), &parsed)
 	if err != nil {
 		return nil, err
 	}
 
-	return parsed.sanitized(signatureAlgorithms)
-}
-
-func containsSignatureAlgorithm(haystack []SignatureAlgorithm, needle SignatureAlgorithm) bool {
-	for _, algorithm := range haystack {
-		if algorithm == needle {
-			return true
-		}
-	}
-	return false
+	return parsed.sanitized()
 }
 
 // sanitized produces a cleaned-up JWS object from the raw JSON.
-func (parsed *rawJSONWebSignature) sanitized(signatureAlgorithms []SignatureAlgorithm) (*JSONWebSignature, error) {
-	if len(signatureAlgorithms) == 0 {
-		return nil, errors.New("go-jose/go-jose: no signature algorithms specified")
-	}
+func (parsed *rawJSONWebSignature) sanitized() (*JSONWebSignature, error) {
 	if parsed.Payload == nil {
 		return nil, fmt.Errorf("go-jose/go-jose: missing payload in JWS message")
 	}
@@ -234,12 +198,6 @@ func (parsed *rawJSONWebSignature) sanitized(signatureAlgorithms []SignatureAlgo
 			return nil, err
 		}
 
-		alg := SignatureAlgorithm(signature.Header.Algorithm)
-		if !containsSignatureAlgorithm(signatureAlgorithms, alg) {
-			return nil, fmt.Errorf("go-jose/go-jose: unexpected signature algorithm %q; expected %q",
-				alg, signatureAlgorithms)
-		}
-
 		if signature.header != nil {
 			signature.Unprotected, err = signature.header.sanitized()
 			if err != nil {
@@ -283,12 +241,6 @@ func (parsed *rawJSONWebSignature) sanitized(signatureAlgorithms []SignatureAlgo
 			return nil, err
 		}
 
-		alg := SignatureAlgorithm(obj.Signatures[i].Header.Algorithm)
-		if !containsSignatureAlgorithm(signatureAlgorithms, alg) {
-			return nil, fmt.Errorf("go-jose/go-jose: unexpected signature algorithm %q; expected %q",
-				alg, signatureAlgorithms)
-		}
-
 		if obj.Signatures[i].header != nil {
 			obj.Signatures[i].Unprotected, err = obj.Signatures[i].header.sanitized()
 			if err != nil {
@@ -322,11 +274,7 @@ func (parsed *rawJSONWebSignature) sanitized(signatureAlgorithms []SignatureAlgo
 }
 
 // parseSignedCompact parses a message in compact format.
-func parseSignedCompact(
-	input string,
-	payload []byte,
-	signatureAlgorithms []SignatureAlgorithm,
-) (*JSONWebSignature, error) {
+func parseSignedCompact(input string, payload []byte) (*JSONWebSignature, error) {
 	parts := strings.Split(input, ".")
 	if len(parts) != 3 {
 		return nil, fmt.Errorf("go-jose/go-jose: compact JWS format must have three parts")
@@ -358,7 +306,7 @@ func parseSignedCompact(
 		Protected: newBuffer(rawProtected),
 		Signature: newBuffer(signature),
 	}
-	return raw.sanitized(signatureAlgorithms)
+	return raw.sanitized()
 }
 
 func (obj JSONWebSignature) compactSerialize(detached bool) (string, error) {
@@ -366,18 +314,15 @@ func (obj JSONWebSignature) compactSerialize(detached bool) (string, error) {
 		return "", ErrNotSupported
 	}
 
-	serializedProtected := mustSerializeJSON(obj.Signatures[0].protected)
+	serializedProtected := base64.RawURLEncoding.EncodeToString(mustSerializeJSON(obj.Signatures[0].protected))
+	payload := ""
+	signature := base64.RawURLEncoding.EncodeToString(obj.Signatures[0].Signature)
 
-	var payload []byte
 	if !detached {
-		payload = obj.payload
+		payload = base64.RawURLEncoding.EncodeToString(obj.payload)
 	}
 
-	return base64JoinWithDots(
-		serializedProtected,
-		payload,
-		obj.Signatures[0].Signature,
-	), nil
+	return fmt.Sprintf("%s.%s.%s", serializedProtected, payload, signature), nil
 }
 
 // CompactSerialize serializes an object using the compact serialization format.

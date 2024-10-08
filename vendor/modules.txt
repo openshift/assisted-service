@@ -279,11 +279,10 @@ github.com/go-errors/errors
 # github.com/go-gormigrate/gormigrate/v2 v2.1.2
 ## explicit; go 1.18
 github.com/go-gormigrate/gormigrate/v2
-# github.com/go-jose/go-jose/v4 v4.0.4
-## explicit; go 1.21
-github.com/go-jose/go-jose/v4
-github.com/go-jose/go-jose/v4/cipher
-github.com/go-jose/go-jose/v4/json
+# github.com/go-jose/go-jose v2.6.3+incompatible
+## explicit
+github.com/go-jose/go-jose
+github.com/go-jose/go-jose/json
 # github.com/go-logr/logr v1.4.1
 ## explicit; go 1.18
 github.com/go-logr/logr
@@ -1155,6 +1154,7 @@ golang.org/x/crypto/chacha20
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
+golang.org/x/crypto/ed25519
 golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
@@ -1386,6 +1386,10 @@ google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/djherbis/times.v1 v1.3.0
 ## explicit
 gopkg.in/djherbis/times.v1
+# gopkg.in/go-jose/go-jose.v2 v2.6.3
+## explicit
+gopkg.in/go-jose/go-jose.v2/cipher
+gopkg.in/go-jose/go-jose.v2/json
 # gopkg.in/inf.v0 v0.9.1
 ## explicit
 gopkg.in/inf.v0
