@@ -1,0 +1,66 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-agent-install-openshift-io-v1beta1-agent
+  failurePolicy: Fail
+  name: vagent.kb.io
+  rules:
+  - apiGroups:
+    - agent-install.openshift.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - agents
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-agent-install-openshift-io-v1beta1-agentclassification
+  failurePolicy: Fail
+  name: vagentclassification.kb.io
+  rules:
+  - apiGroups:
+    - agent-install.openshift.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - agentclassifications
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-agent-install-openshift-io-v1beta1-infraenv
+  failurePolicy: Fail
+  name: vinfraenv.kb.io
+  rules:
+  - apiGroups:
+    - agent-install.openshift.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - infraenvs
+  sideEffects: None
