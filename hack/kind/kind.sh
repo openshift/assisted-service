@@ -32,9 +32,12 @@ function install() {
 
 function create() {
 	check
+	if ! [ $(id -u) -eq  0 ] -eq 0; then
+	  PREFIX_KIND_COMMAND='systemd-run --scope --user -p "Delegate=yes"'
+	fi
 
 	if ! kind get clusters | grep $HUB_CLUSTER_NAME; then
-		kind create cluster --config $__dir/kind-config.yaml
+		$PREFIX_KIND_COMMAND kind create cluster --config $__dir/kind-config.yaml
 	else
 		echo "Cluster already existing. Skipping creation"
 	fi
