@@ -181,6 +181,15 @@
             "name": "root"
         },
         "contents": { "source": "data:text/plain;base64,{{.PreNetworkConfigScript}}"}
+    },
+    {
+        "path": "/usr/local/bin/common_network_script.sh",
+        "mode": 493,
+        "overwrite": true,
+        "user": {
+             "name": "root"
+        },
+        "contents": { "source": "data:text/plain;base64,{{.CommonScriptFunctions}}"}
     }{{end}}{{range .StaticNetworkConfig}},
     {
       "path": "{{.FilePath}}",
