@@ -312,14 +312,13 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 			filesList, newErr = ib.prepareStaticNetworkConfigYAMLForIgnition(infraEnv)
 			ignitionParams["StaticNetworkConfigWithNmstatectl"] = filesList
 			ignitionParams["PreNetworkConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.PreNetworkConfigScriptWithNmstatectl))
-			ignitionParams["CommonScriptFunctions"] = base64.StdEncoding.EncodeToString([]byte(constants.CommonNetworkScript))
 		} else {
 			ib.log.Info("Static network configuration using generated keyfiles")
 			filesList, newErr = ib.prepareStaticNetworkConfigForIgnition(ctx, infraEnv)
 			ignitionParams["StaticNetworkConfig"] = filesList
 			ignitionParams["PreNetworkConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.PreNetworkConfigScript))
 		}
-
+		ignitionParams["CommonScriptFunctions"] = base64.StdEncoding.EncodeToString([]byte(constants.CommonNetworkScript))
 		if newErr != nil {
 			ib.log.WithError(newErr).Errorf("Failed to add static network config to ignition for infra env  %s", infraEnv.ID)
 			return "", newErr
