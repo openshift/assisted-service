@@ -554,6 +554,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(count).Should(Equal(3))
 		})
 		It("produces a valid ignition v3.1 spec with static ips paramters - ocp versions greater than/ equal to MinimalVersionForNmstatectl, x86 arch", func() {
+			Skip("skip since no ocp 4.19 yet")
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigDataYAML(formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
@@ -576,6 +577,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(count).Should(Equal(3))
 		})
 		It("produces a valid ignition v3.1 spec with static ips paramters - ocp versions greater than/ equal to MinimalVersionForNmstatectl, arm arch", func() {
+			Skip("skip since no ocp 4.19 yet")
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
@@ -638,6 +640,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(count).Should(Equal(3))
 		})
 		It("Will include static network config for minimal iso type in infraenv if overridden in call to FormatDiscoveryIgnitionFile - ocp versions greater than/ equal to MinimalVersionForNmstatectl, x86 arch", func() {
+			Skip("skip since no ocp 4.19 yet")
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigDataYAML(formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput
@@ -660,6 +663,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(count).Should(Equal(3))
 		})
 		It("Will include static network config for minimal iso type in infraenv if overridden in call to FormatDiscoveryIgnitionFile - ocp versions greater than/ equal to MinimalVersionForNmstatectl, arm arch", func() {
+			Skip("skip since no ocp 4.19 yet")
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput

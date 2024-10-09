@@ -312,8 +312,11 @@ var _ = Describe("Infra_Env", func() {
 		Expect(s.Size()).ShouldNot(Equal(0))
 	})
 
-	DescribeTable("download infra-env files static network config file", func(ocpVersion, arch string) {
+	DescribeTable("download infra-env files static network config file", func(ocpVersion, arch string, skip bool) {
 		By("Patching the infra env with a static network config")
+		if skip {
+			Skip("skip since no ocp 4.19 yet")
+		}
 		netYaml := `interfaces:
 - ipv4:
     address:
@@ -357,10 +360,10 @@ var _ = Describe("Infra_Env", func() {
 		}
 		Expect(contents).To(ContainSubstring("eth0"))
 	},
-		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl, x86 arch", common.MinimalVersionForNmstatectl, common.X86CPUArchitecture),
-		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl, arm arch", common.MinimalVersionForNmstatectl, common.ARM64CPUArchitecture),
-		Entry("ocp versions less than MinimalVersionForNmstatectl, x86 arch", "4.12", common.X86CPUArchitecture),
-		Entry("ocp versions less than MinimalVersionForNmstatectl, arm arch", "4.12", common.ARM64CPUArchitecture),
+		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl, x86 arch", common.MinimalVersionForNmstatectl, common.X86CPUArchitecture, true),
+		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl, arm arch", common.MinimalVersionForNmstatectl, common.ARM64CPUArchitecture, true),
+		Entry("ocp versions less than MinimalVersionForNmstatectl, x86 arch", "4.12", common.X86CPUArchitecture, false),
+		Entry("ocp versions less than MinimalVersionForNmstatectl, arm arch", "4.12", common.ARM64CPUArchitecture, false),
 	)
 
 	It("download infra-env files invalid filename option", func() {
