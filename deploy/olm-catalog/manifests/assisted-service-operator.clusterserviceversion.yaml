@@ -281,7 +281,7 @@ metadata:
       for managing the deployment of the Assisted Service.
     olm.skipRange: '>=0.0.1 <99.0.0-unreleased'
     operatorframework.io/suggested-namespace: assisted-installer
-    operators.operatorframework.io/builder: operator-sdk-v1.10.0+git
+    operators.operatorframework.io/builder: operator-sdk-v1.25.2
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/openshift/assisted-service
     support: https://github.com/openshift/assisted-service/issues/new
@@ -290,13 +290,17 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - kind: AgentClassification
+    - description: AgentClassification is the Schema for the AgentClassifications
+        API
+      displayName: Agent Classification
+      kind: AgentClassification
       name: agentclassifications.agent-install.openshift.io
       version: v1beta1
     - kind: AgentClusterInstall
       name: agentclusterinstalls.extensions.hive.openshift.io
       version: v1beta1
-    - displayName: Agent
+    - description: Agent is the Schema for the hosts API
+      displayName: Agent
       kind: Agent
       name: agents.agent-install.openshift.io
       version: v1beta1
@@ -386,7 +390,7 @@ spec:
     - kind: HypershiftAgentServiceConfig
       name: hypershiftagentserviceconfigs.agent-install.openshift.io
       version: v1beta1
-    - displayName: InfraEnv
+    - displayName: Infra Env
       kind: InfraEnv
       name: infraenvs.agent-install.openshift.io
       version: v1beta1
@@ -1070,7 +1074,9 @@ spec:
           - watch
         serviceAccountName: assisted-service
       deployments:
-      - name: infrastructure-operator
+      - label:
+          control-plane: infrastructure-operator
+        name: infrastructure-operator
         spec:
           replicas: 1
           selector:
@@ -1228,17 +1234,4 @@ spec:
   maturity: alpha
   provider:
     name: Red Hat
-  relatedImages:
-  - image: quay.io/edge-infrastructure/assisted-service:latest
-    name: controller
-  - image: quay.io/edge-infrastructure/assisted-image-service:latest
-    name: image-service
-  - image: quay.io/sclorg/postgresql-12-c8s:latest
-    name: postgresql
-  - image: quay.io/edge-infrastructure/assisted-installer:latest
-    name: installer
-  - image: quay.io/edge-infrastructure/assisted-installer-agent:latest
-    name: agent
-  - image: quay.io/edge-infrastructure/assisted-installer-controller:latest
-    name: reporter
   version: 99.0.0-unreleased

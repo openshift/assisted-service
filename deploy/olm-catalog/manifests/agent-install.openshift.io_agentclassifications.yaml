@@ -2,10 +2,20 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.2
+    controller-gen.kubebuilder.io/version: v0.14.0
   creationTimestamp: null
   name: agentclassifications.agent-install.openshift.io
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: webhook-service
+          namespace: assisted-installer
+          path: /convert
+      conversionReviewVersions:
+      - v1
   group: agent-install.openshift.io
   names:
     kind: AgentClassification
@@ -21,14 +31,19 @@ spec:
           API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -44,10 +59,11 @@ spec:
                   Agents
                 type: string
               query:
-                description: Query is in gojq format (https://github.com/itchyny/gojq#difference-to-jq)
-                  and will be invoked on each Agent's inventory. The query should
-                  return a boolean. The operator will apply the label to any Agent
-                  for which "true" is returned.
+                description: |-
+                  Query is in gojq format (https://github.com/itchyny/gojq#difference-to-jq)
+                  and will be invoked on each Agent's inventory. The query should return a
+                  boolean. The operator will apply the label to any Agent for which "true"
+                  is returned.
                 type: string
             required:
             - labelKey
@@ -59,8 +75,9 @@ spec:
             properties:
               conditions:
                 items:
-                  description: Condition represents the state of the operator's reconciliation
-                    functionality.
+                  description: |-
+                    Condition represents the state of the operator's
+                    reconciliation functionality.
                   properties:
                     lastHeartbeatTime:
                       format: date-time
@@ -101,5 +118,5 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: []
-  storedVersions: []
+  conditions: null
+  storedVersions: null
