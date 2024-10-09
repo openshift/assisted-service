@@ -62,6 +62,12 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	lsoOperator := []string{lso.Operator.Name}
 	lvmOperator := []string{lvm.Operator.Name}
 
+	// Disable lso for ARM deployment as it's not supported
+	// to allow CNV ARM operator
+	if cluster.CPUArchitecture == common.ARM64CPUArchitecture || cluster.CPUArchitecture == common.MultiCPUArchitecture {
+		return make([]string, 0), nil
+	}
+
 	if cluster.OpenshiftVersion == "" {
 		return lsoOperator, nil
 	}
