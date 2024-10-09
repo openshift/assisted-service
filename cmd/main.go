@@ -544,7 +544,9 @@ func main() {
 		log.WithField("pkg", "healthcheck"), Options.LivenessValidationTimeout)
 	h = requestid.Middleware(h)
 	h = spec.WithSpecMiddleware(h)
-	go startPPROF(log)
+	if Options.GeneratorConfig.InstallInvoker != "agent-installer" {
+		go startPPROF(log)
+	}
 
 	go func() {
 		if Options.EnableKubeAPI {
