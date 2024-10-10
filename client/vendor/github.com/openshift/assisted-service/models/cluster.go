@@ -202,7 +202,7 @@ type Cluster struct {
 	OpenshiftClusterID strfmt.UUID `json:"openshift_cluster_id,omitempty"`
 
 	// Version of the OpenShift cluster.
-	OpenshiftVersion string `json:"openshift_version,omitempty"`
+	OpenshiftVersion string `json:"openshift_version,omitempty" gorm:"not null;check:openshift_version <> ''"`
 
 	// org id
 	OrgID string `json:"org_id,omitempty"`
