@@ -295,7 +295,7 @@ var _ = Describe("Cluster", func() {
 			HostID:     *hosts[0].ID,
 		})
 		Expect(err).ShouldNot(HaveOccurred())
-		vStatus, err1 := isClusterValidationInStatus(clusterID, models.ClusterValidationIDSufficientMastersCount, "failure")
+		vStatus, err1 := isClusterValidationInStatus(clusterID, models.ClusterValidationIDSufficientMastersAndWorkersCount, "failure")
 		Expect(err1).NotTo(HaveOccurred())
 		Expect(vStatus).To(BeTrue())
 	})
