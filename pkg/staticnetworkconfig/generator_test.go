@@ -22,7 +22,7 @@ func TestStaticNetworkConfig(t *testing.T) {
 
 var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - generateConfiguration", func() {
 	var (
-		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: "4.18"})
+		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: common.MinimalVersionForNmstatectl})
 	)
 
 	It("Fail with an empty host YAML", func() {
@@ -60,7 +60,7 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigData - generate
 
 var _ = Describe("validate mac interface mapping", func() {
 	var (
-		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: "4.18"})
+		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: common.MinimalVersionForNmstatectl})
 		singleInterfaceYAML    = `interfaces:
   - name: eth0
     type: ethernet
@@ -354,7 +354,7 @@ var _ = Describe("validate mac interface mapping", func() {
 			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.14", common.X86CPUArchitecture, "agent-installer")
 			Expect(err).ToNot(HaveOccurred())
 		})
-		It("The mac-identifier field is temporarily not supported for flows other than ABI in OCP versions >= 4.18", func() {
+		It("The mac-identifier field is temporarily not supported for flows other than ABI in OCP versions >= MinimalVersionForNmstatectl", func() {
 			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{
@@ -366,7 +366,7 @@ var _ = Describe("validate mac interface mapping", func() {
 					NetworkYaml: withMacIdentifier,
 				},
 			}
-			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.18", common.X86CPUArchitecture, "")
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, common.MinimalVersionForNmstatectl, common.X86CPUArchitecture, "")
 			Expect(err).To(HaveOccurred())
 		})
 		It("mac-identifier field is supported in ocp-versions < 4.14", func() {
@@ -384,7 +384,7 @@ var _ = Describe("validate mac interface mapping", func() {
 			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.13", common.X86CPUArchitecture, "")
 			Expect(err).ToNot(HaveOccurred())
 		})
-		It("mac-identifier field in the YAML, along with a differing MAC in the mac-map, is temporarily not supported for flows other than ABI in OCP versions >= 4.18", func() {
+		It("mac-identifier field in the YAML, along with a differing MAC in the mac-map, is temporarily not supported for flows other than ABI in OCP versions >= MinimalVersionForNmstatectl", func() {
 			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{
@@ -396,7 +396,7 @@ var _ = Describe("validate mac interface mapping", func() {
 					NetworkYaml: withMacIdentifier,
 				},
 			}
-			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, "4.18", common.X86CPUArchitecture, "")
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig, common.MinimalVersionForNmstatectl, common.X86CPUArchitecture, "")
 			Expect(err).To(HaveOccurred())
 		})
 		It("mac-identifier field in the YAML, along with a differing MAC in the mac-map, is allowed for ABI in OCP versions >= 4.14", func() {
@@ -434,7 +434,7 @@ var _ = Describe("validate mac interface mapping", func() {
 
 var _ = Describe("StaticNetworkConfig", func() {
 	var (
-		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: "4.18"})
+		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: common.MinimalVersionForNmstatectl})
 		multipleInterfacesYAML = `interfaces:
   - name: eth0
     type: ethernet
@@ -568,7 +568,7 @@ var _ = Describe("StaticNetworkConfig", func() {
 
 var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigDataYAML - generate nmpolicy", func() {
 	var (
-		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: "4.18"})
+		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: common.MinimalVersionForNmstatectl})
 
 		hostsYAML, hostsYAMLAndIni = `[{ "network_yaml": "%s" }]`, `[{ "network_yaml": "%s", "mac_interface_map": %s }]`
 
