@@ -83,9 +83,6 @@ func (o *opaqueVerifier) verifyPayload(payload []byte, signature []byte, alg Sig
 }
 
 // OpaqueKeyEncrypter is an interface that supports encrypting keys with an opaque key.
-//
-// Note: this cannot currently be implemented outside this package because of its
-// unexported method.
 type OpaqueKeyEncrypter interface {
 	// KeyID returns the kid
 	KeyID() string
@@ -124,7 +121,7 @@ func (oke *opaqueKeyEncrypter) encryptKey(cek []byte, alg KeyAlgorithm) (recipie
 	return oke.encrypter.encryptKey(cek, alg)
 }
 
-// OpaqueKeyDecrypter is an interface that supports decrypting keys with an opaque key.
+//OpaqueKeyDecrypter is an interface that supports decrypting keys with an opaque key.
 type OpaqueKeyDecrypter interface {
 	DecryptKey(encryptedKey []byte, header Header) ([]byte, error)
 }

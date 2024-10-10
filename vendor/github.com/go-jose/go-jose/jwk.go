@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/sha1"
@@ -35,7 +34,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-jose/go-jose/v4/json"
+	"golang.org/x/crypto/ed25519"
+
+	"gopkg.in/go-jose/go-jose.v2/json"
 )
 
 // rawJSONWebKey represents a public or private key in JWK format, used for parsing/serializing.
@@ -62,26 +63,14 @@ type rawJSONWebKey struct {
 	Qi *byteBuffer `json:"qi,omitempty"`
 	// Certificates
 	X5c       []string `json:"x5c,omitempty"`
-	X5u       string   `json:"x5u,omitempty"`
+	X5u       *url.URL `json:"x5u,omitempty"`
 	X5tSHA1   string   `json:"x5t,omitempty"`
 	X5tSHA256 string   `json:"x5t#S256,omitempty"`
 }
 
-// JSONWebKey represents a public or private key in JWK format. It can be
-// marshaled into JSON and unmarshaled from JSON.
+// JSONWebKey represents a public or private key in JWK format.
 type JSONWebKey struct {
-	// Key is the Go in-memory representation of this key. It must have one
-	// of these types:
-	//  - ed25519.PublicKey
-	//  - ed25519.PrivateKey
-	//  - *ecdsa.PublicKey
-	//  - *ecdsa.PrivateKey
-	//  - *rsa.PublicKey
-	//  - *rsa.PrivateKey
-	//  - []byte (a symmetric key)
-	//
-	// When marshaling this JSONWebKey into JSON, the "kty" header parameter
-	// will be automatically set based on the type of this field.
+	// Cryptographic key, can be a symmetric or asymmetric key.
 	Key interface{}
 	// Key identifier, parsed from `kid` header.
 	KeyID string
@@ -167,9 +156,7 @@ func (k JSONWebKey) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	if k.CertificatesURL != nil {
-		raw.X5u = k.CertificatesURL.String()
-	}
+	raw.X5u = k.CertificatesURL
 
 	return json.Marshal(raw)
 }
@@ -251,18 +238,13 @@ func (k *JSONWebKey) UnmarshalJSON(data []byte) (err error) {
 
 	if certPub != nil && keyPub != nil {
 		if !reflect.DeepEqual(certPub, keyPub) {
-			return errors.New("go-jose/go-jose: invalid JWK, public keys in key and x5c fields do not match")
+			return errors.New("go-jose/go-jose: invalid JWK, public keys in key and x5c fields to not match")
 		}
 	}
 
 	*k = JSONWebKey{Key: key, KeyID: raw.Kid, Algorithm: raw.Alg, Use: raw.Use, Certificates: certs}
 
-	if raw.X5u != "" {
-		k.CertificatesURL, err = url.Parse(raw.X5u)
-		if err != nil {
-			return fmt.Errorf("go-jose/go-jose: invalid JWK, x5u header is invalid URL: %w", err)
-		}
-	}
+	k.CertificatesURL = raw.X5u
 
 	// x5t parameters are base64url-encoded SHA thumbprints
 	// See RFC 7517, Section 4.8, https://tools.ietf.org/html/rfc7517#section-4.8
@@ -401,8 +383,6 @@ func (k *JSONWebKey) Thumbprint(hash crypto.Hash) ([]byte, error) {
 		input, err = rsaThumbprintInput(key.N, key.E)
 	case ed25519.PrivateKey:
 		input, err = edThumbprintInput(ed25519.PublicKey(key[32:]))
-	case OpaqueSigner:
-		return key.Public().Thumbprint(hash)
 	default:
 		return nil, fmt.Errorf("go-jose/go-jose: unknown key type '%s'", reflect.TypeOf(key))
 	}
@@ -412,7 +392,7 @@ func (k *JSONWebKey) Thumbprint(hash crypto.Hash) ([]byte, error) {
 	}
 
 	h := hash.New()
-	_, _ = h.Write([]byte(input))
+	h.Write([]byte(input))
 	return h.Sum(nil), nil
 }
 
@@ -760,7 +740,7 @@ func dSize(curve elliptic.Curve) int {
 	bitLen := order.BitLen()
 	size := bitLen / 8
 	if bitLen%8 != 0 {
-		size++
+		size = size + 1
 	}
 	return size
 }
@@ -777,47 +757,4 @@ func (key rawJSONWebKey) symmetricKey() ([]byte, error) {
 		return nil, fmt.Errorf("go-jose/go-jose: invalid OCT (symmetric) key, missing k value")
 	}
 	return key.K.bytes(), nil
-}
-
-var (
-	// ErrJWKSKidNotFound is returned when a JWKS does not contain a JWK with a
-	// key ID which matches one in the provided tokens headers.
-	ErrJWKSKidNotFound = errors.New("go-jose/go-jose: JWK with matching kid not found in JWK Set")
-)
-
-func tryJWKS(key interface{}, headers ...Header) (interface{}, error) {
-	var jwks JSONWebKeySet
-
-	switch jwksType := key.(type) {
-	case *JSONWebKeySet:
-		jwks = *jwksType
-	case JSONWebKeySet:
-		jwks = jwksType
-	default:
-		// If the specified key is not a JWKS, return as is.
-		return key, nil
-	}
-
-	// Determine the KID to search for from the headers.
-	var kid string
-	for _, header := range headers {
-		if header.KeyID != "" {
-			kid = header.KeyID
-			break
-		}
-	}
-
-	// If no KID is specified in the headers, reject.
-	if kid == "" {
-		return nil, ErrJWKSKidNotFound
-	}
-
-	// Find the JWK with the matching KID. If no JWK with the specified KID is
-	// found, reject.
-	keys := jwks.Key(kid)
-	if len(keys) == 0 {
-		return nil, ErrJWKSKidNotFound
-	}
-
-	return keys[0].Key, nil
 }

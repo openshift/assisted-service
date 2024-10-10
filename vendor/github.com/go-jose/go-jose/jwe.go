@@ -18,11 +18,10 @@ package jose
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/go-jose/go-jose/v4/json"
+	"gopkg.in/go-jose/go-jose.v2/json"
 )
 
 // rawJSONWebEncryption represents a raw JWE JSON object. Used for parsing/serializing.
@@ -87,12 +86,11 @@ func (obj JSONWebEncryption) mergedHeaders(recipient *recipientInfo) rawHeader {
 func (obj JSONWebEncryption) computeAuthData() []byte {
 	var protected string
 
-	switch {
-	case obj.original != nil && obj.original.Protected != nil:
+	if obj.original != nil && obj.original.Protected != nil {
 		protected = obj.original.Protected.base64()
-	case obj.protected != nil:
+	} else if obj.protected != nil {
 		protected = base64.RawURLEncoding.EncodeToString(mustSerializeJSON((obj.protected)))
-	default:
+	} else {
 		protected = ""
 	}
 
@@ -105,75 +103,29 @@ func (obj JSONWebEncryption) computeAuthData() []byte {
 	return output
 }
 
-func containsKeyAlgorithm(haystack []KeyAlgorithm, needle KeyAlgorithm) bool {
-	for _, algorithm := range haystack {
-		if algorithm == needle {
-			return true
-		}
-	}
-	return false
-}
-
-func containsContentEncryption(haystack []ContentEncryption, needle ContentEncryption) bool {
-	for _, algorithm := range haystack {
-		if algorithm == needle {
-			return true
-		}
-	}
-	return false
-}
-
-// ParseEncrypted parses an encrypted message in JWE Compact or JWE JSON Serialization.
-//
-// https://datatracker.ietf.org/doc/html/rfc7516#section-3.1
-// https://datatracker.ietf.org/doc/html/rfc7516#section-3.2
-//
-// The keyAlgorithms and contentEncryption parameters are used to validate the "alg" and "enc"
-// header parameters respectively. They must be nonempty, and each "alg" or "enc" header in
-// parsed data must contain a value that is present in the corresponding parameter. That
-// includes the protected and unprotected headers as well as all recipients. To accept
-// multiple algorithms, pass a slice of all the algorithms you want to accept.
-func ParseEncrypted(input string,
-	keyEncryptionAlgorithms []KeyAlgorithm,
-	contentEncryption []ContentEncryption,
-) (*JSONWebEncryption, error) {
+// ParseEncrypted parses an encrypted message in compact or full serialization format.
+func ParseEncrypted(input string) (*JSONWebEncryption, error) {
 	input = stripWhitespace(input)
 	if strings.HasPrefix(input, "{") {
-		return ParseEncryptedJSON(input, keyEncryptionAlgorithms, contentEncryption)
+		return parseEncryptedFull(input)
 	}
 
-	return ParseEncryptedCompact(input, keyEncryptionAlgorithms, contentEncryption)
+	return parseEncryptedCompact(input)
 }
 
-// ParseEncryptedJSON parses a message in JWE JSON Serialization.
-//
-// https://datatracker.ietf.org/doc/html/rfc7516#section-3.2
-func ParseEncryptedJSON(
-	input string,
-	keyEncryptionAlgorithms []KeyAlgorithm,
-	contentEncryption []ContentEncryption,
-) (*JSONWebEncryption, error) {
+// parseEncryptedFull parses a message in compact format.
+func parseEncryptedFull(input string) (*JSONWebEncryption, error) {
 	var parsed rawJSONWebEncryption
 	err := json.Unmarshal([]byte(input), &parsed)
 	if err != nil {
 		return nil, err
 	}
 
-	return parsed.sanitized(keyEncryptionAlgorithms, contentEncryption)
+	return parsed.sanitized()
 }
 
 // sanitized produces a cleaned-up JWE object from the raw JSON.
-func (parsed *rawJSONWebEncryption) sanitized(
-	keyEncryptionAlgorithms []KeyAlgorithm,
-	contentEncryption []ContentEncryption,
-) (*JSONWebEncryption, error) {
-	if len(keyEncryptionAlgorithms) == 0 {
-		return nil, errors.New("go-jose/go-jose: no key algorithms provided")
-	}
-	if len(contentEncryption) == 0 {
-		return nil, errors.New("go-jose/go-jose: no content encryption algorithms provided")
-	}
-
+func (parsed *rawJSONWebEncryption) sanitized() (*JSONWebEncryption, error) {
 	obj := &JSONWebEncryption{
 		original:    parsed,
 		unprotected: parsed.Unprotected,
@@ -232,31 +184,10 @@ func (parsed *rawJSONWebEncryption) sanitized(
 		}
 	}
 
-	for i, recipient := range obj.recipients {
+	for _, recipient := range obj.recipients {
 		headers := obj.mergedHeaders(&recipient)
-		if headers.getAlgorithm() == "" {
-			return nil, fmt.Errorf(`go-jose/go-jose: recipient %d: missing header "alg"`, i)
-		}
-		if headers.getEncryption() == "" {
-			return nil, fmt.Errorf(`go-jose/go-jose: recipient %d: missing header "enc"`, i)
-		}
-		err := validateAlgEnc(headers, keyEncryptionAlgorithms, contentEncryption)
-		if err != nil {
-			return nil, fmt.Errorf("go-jose/go-jose: recipient %d: %s", i, err)
-		}
-
-	}
-
-	if obj.protected != nil {
-		err := validateAlgEnc(*obj.protected, keyEncryptionAlgorithms, contentEncryption)
-		if err != nil {
-			return nil, fmt.Errorf("go-jose/go-jose: protected header: %s", err)
-		}
-	}
-	if obj.unprotected != nil {
-		err := validateAlgEnc(*obj.unprotected, keyEncryptionAlgorithms, contentEncryption)
-		if err != nil {
-			return nil, fmt.Errorf("go-jose/go-jose: unprotected header: %s", err)
+		if headers.getAlgorithm() == "" || headers.getEncryption() == "" {
+			return nil, fmt.Errorf("go-jose/go-jose: message is missing alg/enc headers")
 		}
 	}
 
@@ -268,26 +199,8 @@ func (parsed *rawJSONWebEncryption) sanitized(
 	return obj, nil
 }
 
-func validateAlgEnc(headers rawHeader, keyAlgorithms []KeyAlgorithm, contentEncryption []ContentEncryption) error {
-	alg := headers.getAlgorithm()
-	enc := headers.getEncryption()
-	if alg != "" && !containsKeyAlgorithm(keyAlgorithms, alg) {
-		return fmt.Errorf("unexpected key algorithm %q; expected %q", alg, keyAlgorithms)
-	}
-	if alg != "" && !containsContentEncryption(contentEncryption, enc) {
-		return fmt.Errorf("unexpected content encryption algorithm %q; expected %q", enc, contentEncryption)
-	}
-	return nil
-}
-
-// ParseEncryptedCompact parses a message in JWE Compact Serialization.
-//
-// https://datatracker.ietf.org/doc/html/rfc7516#section-3.1
-func ParseEncryptedCompact(
-	input string,
-	keyAlgorithms []KeyAlgorithm,
-	contentEncryption []ContentEncryption,
-) (*JSONWebEncryption, error) {
+// parseEncryptedCompact parses a message in compact format.
+func parseEncryptedCompact(input string) (*JSONWebEncryption, error) {
 	parts := strings.Split(input, ".")
 	if len(parts) != 5 {
 		return nil, fmt.Errorf("go-jose/go-jose: compact JWE format must have five parts")
@@ -326,7 +239,7 @@ func ParseEncryptedCompact(
 		Tag:          newBuffer(tag),
 	}
 
-	return raw.sanitized(keyAlgorithms, contentEncryption)
+	return raw.sanitized()
 }
 
 // CompactSerialize serializes an object using the compact serialization format.
@@ -338,13 +251,13 @@ func (obj JSONWebEncryption) CompactSerialize() (string, error) {
 
 	serializedProtected := mustSerializeJSON(obj.protected)
 
-	return base64JoinWithDots(
-		serializedProtected,
-		obj.recipients[0].encryptedKey,
-		obj.iv,
-		obj.ciphertext,
-		obj.tag,
-	), nil
+	return fmt.Sprintf(
+		"%s.%s.%s.%s.%s",
+		base64.RawURLEncoding.EncodeToString(serializedProtected),
+		base64.RawURLEncoding.EncodeToString(obj.recipients[0].encryptedKey),
+		base64.RawURLEncoding.EncodeToString(obj.iv),
+		base64.RawURLEncoding.EncodeToString(obj.ciphertext),
+		base64.RawURLEncoding.EncodeToString(obj.tag)), nil
 }
 
 // FullSerialize serializes an object using the full JSON serialization format.
