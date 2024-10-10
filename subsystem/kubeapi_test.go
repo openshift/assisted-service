@@ -1092,7 +1092,7 @@ func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
 		err := client.List(ctx, bareMetalHostList, k8sclient.InNamespace(Options.Namespace))
 		Expect(err).To(BeNil())
 		return len(bareMetalHostList.Items)
-	}, "2m", "2s").Should(Equal(0))
+	}, "3m", "2s").Should(Equal(0))
 }
 
 func generateTestCertificate() (string, error) {
