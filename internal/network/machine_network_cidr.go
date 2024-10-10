@@ -115,7 +115,14 @@ func VerifyVipFree(hosts []*models.Host, vip string, machineNetworkCidr string, 
 	return IpInFreeList(hosts, vip, machineNetworkCidr, log)
 }
 
-func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, verification *models.VipVerification, log logrus.FieldLogger) (models.VipVerification, error) {
+func VerifyVip(cluster *common.Cluster, machineNetworkCidr string, vip string, vipName string, verification *models.VipVerification, log logrus.FieldLogger) (models.VipVerification, error) {
+	// If the load balancer is managed by the user then the VIPs may be in any network, they don't need to be in the
+	// machine CIDR. In addition the VIPs will most likely be already in use, because they will be assigned to the
+	// load balancer provided by the user. This means that we don't need to do any validation.
+	if cluster.LoadBalancer != nil && cluster.LoadBalancer.Type == models.LoadBalancerTypeUserManaged {
+		return models.VipVerificationSucceeded, nil
+	}
+
 	if machineNetworkCidr == "" {
 		return models.VipVerificationUnverified, errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty", vipName, vip)
 	}
@@ -126,7 +133,7 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 		return models.VipVerificationFailed, errors.Errorf("%s <%s> is the broadcast address of machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
 	}
 	var msg string
-	ret := VerifyVipFree(hosts, vip, machineNetworkCidr, verification, log)
+	ret := VerifyVipFree(cluster.Hosts, vip, machineNetworkCidr, verification, log)
 	switch ret {
 	case models.VipVerificationSucceeded:
 		return ret, nil
@@ -134,7 +141,7 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 		msg = fmt.Sprintf("%s <%s> is already in use in cidr %s", vipName, vip, machineNetworkCidr)
 		//In that particular case verify that the machine network range is big enough
 		//to accommodates hosts and vips
-		if !isMachineNetworkCidrBigEnough(hosts, machineNetworkCidr, log) {
+		if !isMachineNetworkCidrBigEnough(cluster.Hosts, machineNetworkCidr, log) {
 			msg = fmt.Sprintf("%s. The machine network range is too small for the cluster. Please redefine the network.", msg)
 		}
 	case models.VipVerificationUnverified:
@@ -193,11 +200,11 @@ func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*m
 // This function is called from places which assume it is OK for a VIP to be unverified.
 // The assumption is that VIPs are eventually verified by cluster validation
 // (i.e api-vips-valid, ingress-vips-valid)
-func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, log logrus.FieldLogger) error {
-	verification, err := VerifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", nil, log)
+func VerifyVips(cluster *common.Cluster, machineNetworkCidr string, apiVip string, ingressVip string, log logrus.FieldLogger) error {
+	verification, err := VerifyVip(cluster, machineNetworkCidr, apiVip, "api-vip", nil, log)
 	// Error is ignored if the verification didn't fail
 	if verification != models.VipVerificationFailed {
-		verification, err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", nil, log)
+		verification, err = VerifyVip(cluster, machineNetworkCidr, ingressVip, "ingress-vip", nil, log)
 	}
 	if verification != models.VipVerificationFailed {
 		return ValidateNoVIPAddressesDuplicates([]*models.APIVip{{IP: models.IP(apiVip)}}, []*models.IngressVip{{IP: models.IP(ingressVip)}})

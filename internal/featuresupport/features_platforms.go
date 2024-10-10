@@ -350,3 +350,45 @@ func (feature *ExternalPlatformFeature) getFeatureActiveLevel(cluster *common.Cl
 
 	return activeLevelNotActive
 }
+
+// ExternalLoadBalancerFeature
+type ExternalLoadBalancerFeature struct{}
+
+func (feature *ExternalLoadBalancerFeature) New() SupportLevelFeature {
+	return &ExternalLoadBalancerFeature{}
+}
+
+func (feature *ExternalLoadBalancerFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDEXTERNALLOADBALANCER
+}
+
+func (feature *ExternalLoadBalancerFeature) GetName() string {
+	return "External Load Balancer"
+}
+
+func (feature *ExternalLoadBalancerFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if isPlatformSet(filters) {
+		return ""
+	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.16", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *ExternalLoadBalancerFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return nil
+}
+
+func (feature *ExternalLoadBalancerFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (feature *ExternalLoadBalancerFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if cluster != nil && cluster.LoadBalancer != nil && cluster.LoadBalancer.Type == models.LoadBalancerTypeUserManaged {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
