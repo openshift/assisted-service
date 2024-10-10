@@ -321,6 +321,9 @@ type Config struct {
 	// AuthUserAuth Applies when the "Authorization" header is set
 	AuthUserAuth func(token string) (interface{}, error)
 
+	// AuthWatcherAuth Applies when the "Watcher-Authorization" header is set
+	AuthWatcherAuth func(token string) (interface{}, error)
+
 	// Authenticator to use for all APIKey authentication
 	APIKeyAuthenticator func(string, string, security.TokenAuthentication) runtime.Authenticator
 	// Authenticator to use for all Bearer authentication
@@ -408,6 +411,13 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 			return token, nil
 		}
 		return c.AuthUserAuth(token)
+	}
+
+	api.WatcherAuthAuth = func(token string) (interface{}, error) {
+		if c.AuthWatcherAuth == nil {
+			return token, nil
+		}
+		return c.AuthWatcherAuth(token)
 	}
 
 	api.APIAuthorizer = authorizer(c.Authorizer)
