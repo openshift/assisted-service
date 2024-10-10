@@ -236,4 +236,36 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		Entry("on S390x is    NOT supported", []string{"4.11", "4.13", "4.14", "4.21"}, models.ClusterCPUArchitectureS390x, false),
 		Entry("on ppc64le is	NOT supported", []string{"4.11", "4.13", "4.14", "4.21"}, models.ClusterCPUArchitecturePpc64le, false),
 	)
+
+	Context("Test MTV feature", func() {
+		DescribeTable("Validate MTV on Architecture", func(ocpVersion []string, cpuArch string, expectedResult bool) {
+			for _, v := range ocpVersion {
+				version := v
+				result := IsFeatureAvailable(models.FeatureSupportLevelIDMTV, version, swag.String(cpuArch))
+				Expect(result).Should(Equal(expectedResult),
+					fmt.Sprintf("Feature: %s, OCP version: %s, CpuArch: %s, should be %v", models.FeatureSupportLevelIDMTV, v, cpuArch, expectedResult))
+			}
+		},
+			Entry("on X86	is supported above 4.14", []string{"4.14", "4.21"}, models.ClusterCPUArchitectureX8664, true),
+			Entry("on X86	is NOT supported", []string{"4.8", "4.11", "4.13"}, models.ClusterCPUArchitectureX8664, false),
+			Entry("on arm64 is    NOT supported", []string{"4.8", "4.11", "4.14", "4.21"}, models.ClusterCPUArchitectureArm64, false),
+			Entry("on S390x is    NOT supported", []string{"4.11", "4.13", "4.14", "4.21"}, models.ClusterCPUArchitectureS390x, false),
+			Entry("on ppc64le is	NOT supported", []string{"4.11", "4.13", "4.14", "4.21"}, models.ClusterCPUArchitecturePpc64le, false),
+		)
+
+		DescribeTable("Validate MTV on platform", func(ocpVersion string, cpuArch string, platformType models.PlatformType, expectedResult models.SupportLevel) {
+			featureSupportLevels := GetFeatureSupportList(
+				ocpVersion,
+				swag.String(cpuArch),
+				common.PlatformTypePtr(platformType),
+				nil,
+			)
+			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDMTV)]).To(Equal(expectedResult))
+		},
+			Entry("on Vsphere", "4.14", common.X86CPUArchitecture, models.PlatformTypeVsphere, models.SupportLevelUnavailable),
+			Entry("on Nutanix", "4.14", common.X86CPUArchitecture, models.PlatformTypeNutanix, models.SupportLevelUnavailable),
+			Entry("on None", "4.14", common.X86CPUArchitecture, models.PlatformTypeNone, models.SupportLevelUnavailable),
+			Entry("on baremetal", "4.14", common.X86CPUArchitecture, models.PlatformTypeBaremetal, models.SupportLevelSupported),
+		)
+	})
 })
