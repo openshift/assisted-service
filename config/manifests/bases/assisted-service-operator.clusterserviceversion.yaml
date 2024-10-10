@@ -103,17 +103,24 @@ spec:
         displayName: List of container registries without authentication
         path: unauthenticatedRegistries
       version: v1beta1
-    - displayName: Agent
-      kind: Agent
-      name: agents.agent-install.openshift.io
-      version: v1beta1
-    - displayName: InfraEnv
-      kind: InfraEnv
-      name: infraenvs.agent-install.openshift.io
-      version: v1beta1
     - displayName: NMStateConfig
       kind: NMStateConfig
       name: nmstateconfigs.agent-install.openshift.io
+      version: v1beta1
+    - description: AgentClassification is the Schema for the AgentClassifications
+        API
+      displayName: Agent Classification
+      kind: AgentClassification
+      name: agentclassifications.agent-install.openshift.io
+      version: v1beta1
+    - description: Agent is the Schema for the hosts API
+      displayName: Agent
+      kind: Agent
+      name: agents.agent-install.openshift.io
+      version: v1beta1
+    - displayName: Infra Env
+      kind: InfraEnv
+      name: infraenvs.agent-install.openshift.io
       version: v1beta1
   description: |-
     The Infrastructure Operator for Red Hat OpenShift is responsible for managing

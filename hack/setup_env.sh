@@ -55,7 +55,7 @@ function test_tools() {
 function assisted_service() {
   ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
 
-  OPERATOR_SDK_VERSION=v1.10.1
+  OPERATOR_SDK_VERSION=v1.25.2
   curl --retry 5 --connect-timeout 30 -sL "https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk_$(uname)_${ARCH}" --output /usr/local/bin/operator-sdk
   curl --retry 5 --connect-timeout 30 -sL "https://mirror.openshift.com/pub/openshift-v4/multi/clients/ocp/latest/${ARCH}/openshift-client-linux.tar.gz" | tar -C /usr/local/bin -xz
 
@@ -74,7 +74,7 @@ function assisted_service() {
 
 
   go install golang.org/x/tools/cmd/goimports@v0.1.5
-  go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2
+  go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
 
   python3 -m venv ${VIRTUAL_ENV:-/opt/venv}
   python3 -m pip install --upgrade pip
