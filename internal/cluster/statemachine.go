@@ -126,6 +126,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		If(IsMceRequirementsSatisfied),
 		If(isNetworkTypeValid),
 		If(NetworksSameAddressFamilies),
+		If(IsOaiRequirementsSatisfied),
 	)
 
 	// Refresh cluster status conditions - Non DHCP

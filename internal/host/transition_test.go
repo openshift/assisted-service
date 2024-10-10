@@ -6555,6 +6555,7 @@ var allValidationIDs = []validationID{
 	NoSkipMissingDisk,
 	NoIPCollisionsInNetwork,
 	IsReleaseDomainNameResolvedCorrectly,
+	AreOaiRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{

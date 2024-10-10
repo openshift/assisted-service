@@ -6900,7 +6900,8 @@ func init() {
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
         "network-type-valid",
-        "platform-requirements-satisfied"
+        "platform-requirements-satisfied",
+        "oai-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -7736,7 +7737,8 @@ func init() {
         "SKIP_MCO_REBOOT",
         "EXTERNAL_PLATFORM",
         "OVN_NETWORK_TYPE",
-        "SDN_NETWORK_TYPE"
+        "SDN_NETWORK_TYPE",
+        "OAI"
       ]
     },
     "finalizing-stage": {
@@ -8350,7 +8352,8 @@ func init() {
         "compatible-agent",
         "no-skip-installation-disk",
         "no-skip-missing-disk",
-        "no-ip-collisions-in-network"
+        "no-ip-collisions-in-network",
+        "oai-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -17724,7 +17727,8 @@ func init() {
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
         "network-type-valid",
-        "platform-requirements-satisfied"
+        "platform-requirements-satisfied",
+        "oai-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -18527,7 +18531,8 @@ func init() {
         "SKIP_MCO_REBOOT",
         "EXTERNAL_PLATFORM",
         "OVN_NETWORK_TYPE",
-        "SDN_NETWORK_TYPE"
+        "SDN_NETWORK_TYPE",
+        "OAI"
       ]
     },
     "finalizing-stage": {
@@ -19141,7 +19146,8 @@ func init() {
         "compatible-agent",
         "no-skip-installation-disk",
         "no-skip-missing-disk",
-        "no-ip-collisions-in-network"
+        "no-ip-collisions-in-network",
+        "oai-requirements-satisfied"
       ]
     },
     "host_network": {

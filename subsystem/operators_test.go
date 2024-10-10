@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/oai"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/models"
 )
@@ -36,7 +37,14 @@ var _ = Describe("Operators endpoint tests", func() {
 			reply, err := userBMClient.Operators.V2ListSupportedOperators(context.TODO(), opclient.NewV2ListSupportedOperatorsParams())
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(reply.GetPayload()).To(ConsistOf(odf.Operator.Name, lso.Operator.Name, cnv.Operator.Name, lvm.Operator.Name, mce.Operator.Name))
+			Expect(reply.GetPayload()).To(ConsistOf(
+				odf.Operator.Name,
+				lso.Operator.Name,
+				cnv.Operator.Name,
+				lvm.Operator.Name,
+				mce.Operator.Name,
+				oai.OperatorName,
+			))
 		})
 
 		It("should provide operator properties", func() {

@@ -289,3 +289,45 @@ func (feature *MceFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	}
 	return activeLevelNotActive
 }
+
+// OaiFeature
+type OaiFeature struct{}
+
+func (feature *OaiFeature) New() SupportLevelFeature {
+	return &OaiFeature{}
+}
+
+func (feature *OaiFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDOAI
+}
+
+func (feature *OaiFeature) GetName() string {
+	return "OpenShift AI"
+}
+
+func (feature *OaiFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *OaiFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+	}
+}
+
+func (feature *OaiFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (feature *OaiFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("oai", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
