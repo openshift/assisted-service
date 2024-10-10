@@ -1668,7 +1668,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 			return common.NewApiError(http.StatusInternalServerError, errors.New("Failed to get infraenvs for cluster"))
 		}
 
-		if err = b.installConfigBuilder.ValidateInstallConfigPatch(cluster, clusterInfraenvs, params.InstallConfigParams); err != nil {
+		if err = b.installConfigBuilder.ValidateInstallConfigPatch(cluster, clusterInfraenvs, params.InstallConfigParams, mirrorRegistryConfiguration); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 

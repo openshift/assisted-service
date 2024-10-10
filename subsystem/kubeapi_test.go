@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io"
 	"math/big"
 	"net"
@@ -1260,7 +1261,7 @@ location = "%s"
 			})
 
 			When("the user-provided image registry ConfigMap contains correct data", func() {
-				It("Successfully creates the image registry configurations", func() {
+				FIt("Successfully creates the image registry configurations", func() {
 					aciSpec.MirrorRegistryRef = &hiveext.MirrorRegistryConfigMapReference{
 						Name:      providedMirrorRegistryCMName,
 						Namespace: Options.Namespace,
@@ -1270,6 +1271,8 @@ location = "%s"
 
 					deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 					deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+					deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
 					var aci *hiveext.AgentClusterInstall
 					Eventually(func() bool {
 						aci = getAgentClusterInstallCRD(ctx, kubeClient, types.NamespacedName{
@@ -1289,11 +1292,31 @@ location = "%s"
 
 					Expect(len(aci.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(0))
 					Expect(len(aci.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(0))
+
+					clusterID := aci.ObjectMeta.OwnerReferences[0].UID
+
+					file, err := os.CreateTemp("", "tmp")
+					Expect(err).NotTo(HaveOccurred())
+					defer os.Remove(file.Name())
+
+					_, err = agentBMClient.Installer.V2DownloadClusterFiles(ctx,
+						&installer.V2DownloadClusterFilesParams{
+							ClusterID: strfmt.UUID(clusterID),
+							FileName:  "install-config.yaml",
+						}, file)
+					Expect(err).NotTo(HaveOccurred())
+
+					// Read install-config.yaml
+					content, err := os.ReadFile(file.Name())
+					Expect(err).NotTo(HaveOccurred())
+
+					installConfig := make(map[string]interface{})
+					err = yaml.Unmarshal(content, installConfig)
+					Expect(err).NotTo(HaveOccurred())
+
 				})
 			})
-
 		})
-
 	})
 
 	It("Should use full-iso for s390x cpu architecture", func() {

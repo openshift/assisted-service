@@ -143,7 +143,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		It("ignition_file_contains_pull_secret_token", func() {
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 
@@ -156,7 +155,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 			// Try with bundle
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(2)
 			infraEnv.AdditionalTrustBundle = magicString
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
@@ -165,7 +163,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 			// Try also without bundle
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			infraEnv.AdditionalTrustBundle = ""
 			text, err = builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 			Expect(err).Should(BeNil())
@@ -175,7 +172,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("auth_disabled_no_pull_secret_token", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeNone, "", nil)
 
@@ -187,7 +183,6 @@ var _ = Describe("IgnitionBuilder", func() {
 		serviceBaseURL := "file://10.56.20.70:7878"
 		ignitionConfig.ServiceBaseURL = serviceBaseURL
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 
@@ -199,7 +194,6 @@ var _ = Describe("IgnitionBuilder", func() {
 		serviceBaseURL := "file://10.56.20.70:7878"
 		ignitionConfig.ServiceBaseURL = serviceBaseURL
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, true, auth.TypeRHSSO, "", nil)
 
@@ -211,7 +205,6 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("enabled_cert_verification", func() {
 		ignitionConfig.SkipCertVerification = false
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 
@@ -222,7 +215,6 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("disabled_cert_verification", func() {
 		ignitionConfig.SkipCertVerification = true
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 
@@ -232,7 +224,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("cert_verification_enabled_by_default", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 
@@ -246,7 +237,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			serviceBaseURL := "file://10.56.20.70:7878"
 			ignitionConfig.ServiceBaseURL = serviceBaseURL
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error"))
 
 			By("verify ignition file contains only the proxy config entries that are set")
@@ -337,7 +327,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("produces a valid ignition v3.1 spec by default", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -351,7 +340,6 @@ var _ = Describe("IgnitionBuilder", func() {
 	// TODO(deprecate-ignition-3.1.0)
 	It("produces a valid ignition v3.1 spec with overrides", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -363,7 +351,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		infraEnv.IgnitionConfigOverride = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err = builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -377,7 +364,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("produces a valid ignition spec with internal overrides", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -391,7 +377,6 @@ var _ = Describe("IgnitionBuilder", func() {
 		ironicIgn := `{ "ignition": { "version": "3.2.0" }, "storage": { "files": [ { "group": { }, "overwrite": false, "path": "/etc/ironic-python-agent.conf", "user": { }, "contents": { "source": "data:text/plain,%0A%5BDEFAULT%5D%0Aapi_url%20%3D%20https%3A%2F%2Fironic.redhat.com%3A6385%0Ainspection_callback_url%20%3D%20https%3A%2F%2Fironic.redhat.com%3A5050%2Fv1%2Fcontinue%0Ainsecure%20%3D%20True%0A%0Acollect_lldp%20%3D%20True%0Aenable_vlan_interfaces%20%3D%20all%0Ainspection_collectors%20%3D%20default%2Cextra-hardware%2Clogs%0Ainspection_dhcp_all_interfaces%20%3D%20True%0A", "verification": { } }, "mode": 420 } ] }, "systemd": { "units": [ { "contents": "[Unit]\nDescription=Ironic Agent\nAfter=network-online.target\nWants=network-online.target\n[Service]\nEnvironment=\"HTTP_PROXY=\"\nEnvironment=\"HTTPS_PROXY=\"\nEnvironment=\"NO_PROXY=\"\nTimeoutStartSec=0\nExecStartPre=/bin/podman pull some-ironic-image --tls-verify=false --authfile=/etc/authfile.json\nExecStart=/bin/podman run --privileged --network host --mount type=bind,src=/etc/ironic-python-agent.conf,dst=/etc/ironic-python-agent/ignition.conf --mount type=bind,src=/dev,dst=/dev --mount type=bind,src=/sys,dst=/sys --mount type=bind,src=/run/dbus/system_bus_socket,dst=/run/dbus/system_bus_socket --mount type=bind,src=/,dst=/mnt/coreos --env \"IPA_COREOS_IP_OPTIONS=ip=dhcp\" --name ironic-agent somce-ironic-image\n[Install]\nWantedBy=multi-user.target\n", "enabled": true, "name": "ironic-agent.service" } ] } }`
 		infraEnv.IgnitionConfigOverride = ironicIgn
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err = builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -408,7 +393,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("produces a valid ignition spec with v3.2 overrides", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -421,7 +405,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		infraEnv.IgnitionConfigOverride = `{"ignition": {"version": "3.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err = builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -436,7 +419,6 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("fails when given overrides with an incompatible version", func() {
 		infraEnv.IgnitionConfigOverride = `{"ignition": {"version": "2.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		_, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 
@@ -462,7 +444,6 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("no multipath and iscsistart for okd - config setting", func() {
 		ignitionConfig.OKDRPMsImage = "image"
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 
 		Expect(err).Should(BeNil())
@@ -473,7 +454,6 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("okd support disabled", func() {
 		ignitionConfig.EnableOKDSupport = false
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 
 		Expect(err).Should(BeNil())
@@ -482,7 +462,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("no multipath and iscsistart for okd - okd payload", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		okdNewImageVersion := "4.12.0-0.okd-2022-11-20-010424"
 		okdNewImageURL := "registry.ci.openshift.org/origin/release:4.12.0-0.okd-2022-11-20-010424"
 		okdNewImage := &models.ReleaseImage{
@@ -504,7 +483,6 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("multipath configured for non-okd", func() {
 		config := ignitionConfig
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO, "", nil)
 
@@ -515,7 +493,6 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("iscsistart configured for non-okd", func() {
 		config := ignitionConfig
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO, "", nil)
 
@@ -563,7 +540,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingGenerateKeyfiles
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture).Return(false, nil).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
@@ -587,7 +563,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.CPUArchitecture = common.X86CPUArchitecture
 			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture).Return(true, nil).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -610,7 +585,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.CPUArchitecture = common.ARM64CPUArchitecture
 			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture).Return(false, nil).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -629,7 +603,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.StaticNetworkConfig = formattedInput
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeMinimalIso)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "", nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -653,7 +626,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingGenerateKeyfiles
 			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture).Return(false, nil).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, string(models.ImageTypeFullIso), nil)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))
@@ -676,7 +648,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.CPUArchitecture = common.X86CPUArchitecture
 			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture).Return(true, nil).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, string(models.ImageTypeFullIso), nil)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))
@@ -699,7 +670,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.CPUArchitecture = common.ARM64CPUArchitecture
 			mockStaticNetworkConfig.EXPECT().NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture).Return(false, nil).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, string(models.ImageTypeFullIso), nil)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))
@@ -718,7 +688,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			infraEnv.StaticNetworkConfig = formattedInput
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, string(models.ImageTypeMinimalIso), nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -739,7 +708,6 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		It("produce ignition with service mirror registries config", func() {
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(true).Times(1)
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA(mirrorregistries.ServiceMirrorRegistryType).Return([]byte("some ca config"), nil).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorRegistries().Return([]byte("some mirror registries config"), nil).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
@@ -811,7 +779,6 @@ location = "%s"
 		}
 
 		It("produce ignition with secure cluster mirror registries config", func() {
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(true).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 
 			mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
@@ -830,7 +797,6 @@ location = "%s"
 		})
 
 		It("produce ignition with insecure cluster mirror registries config", func() {
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(true).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 
 			mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getInsecureRegistryToml(), mirrorRegistryCertificate)
@@ -852,7 +818,6 @@ location = "%s"
 
 	It("Adds NTP sources script and systemd service when one additional NTP source is given", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 
 		// Generate a ignition config adding one additional NTP source:
@@ -906,7 +871,6 @@ location = "%s"
 
 	It("Adds NTP sources script and systemd service when two additional NTP sources are given", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 
 		// Generate a ignition config adding one additional NTP source:
@@ -961,7 +925,6 @@ location = "%s"
 
 	It("Doesn't add NTP sources script and systemd service when no additional NTP sources are given", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 
 		// Generate a ignition config without additional NTP sources
@@ -999,7 +962,6 @@ location = "%s"
 
 	It("NTP sources script adds entries to existing 'chrony.conf' configuration file", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 
 		// Generate a ignition config with two additional NTP sources:
@@ -1111,7 +1073,6 @@ var _ = Describe("Ignition SSH key building", func() {
 		builder, err = NewBuilder(logrus.New(), mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
 		Expect(err).ToNot(HaveOccurred())
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 	})
 
 	AfterEach(func() {
@@ -1279,7 +1240,6 @@ var _ = Describe("OKD overrides", func() {
 		builder, err = NewBuilder(logrus.New(), mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
 		Expect(err).ToNot(HaveOccurred())
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType).Return(false).Times(1)
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured(mirrorregistries.ClusterMirrorRegistryType).Return(false).Times(1)
 		ocpImage = common.TestDefaultConfig.ReleaseImage
 		okdOldImageVersion := "4.11.0-0.okd-2022-11-19-050030"
 		okdOldImageURL := "quay.io/openshift/okd:4.11.0-0.okd-2022-11-19-050030"

@@ -400,6 +400,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 
 		mirrorRegistryConfiguration := &hiveext.MirrorRegistryConfiguration{}
 		if clusterInstall.Spec.MirrorRegistryRef != nil {
+			log.Infof("Found MirrorRegistry referenace on AgentClusterInstall %s %s", clusterInstall.Name, clusterInstall.Namespace)
 			mirrorRegistryConfiguration, err = r.processMirrorRegistryConfig(ctx, log, clusterInstall)
 			if err != nil {
 				return ctrl.Result{}, err
