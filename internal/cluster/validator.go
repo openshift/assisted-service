@@ -154,15 +154,17 @@ type VipsWrapper interface {
 	IP(index int) string
 	Verification(index int) *models.VipVerification
 	GetVips() []string
+	Type() network.VipType
 }
 
 type ApiVipsWrapper struct {
 	c *clusterPreprocessContext
 }
 
-func (a *ApiVipsWrapper) Name() string        { return "API" }
-func (a *ApiVipsWrapper) Len() int            { return len(a.c.cluster.APIVips) }
-func (a *ApiVipsWrapper) IP(index int) string { return string(a.c.cluster.APIVips[index].IP) }
+func (a *ApiVipsWrapper) Name() string          { return "API" }
+func (a *ApiVipsWrapper) Type() network.VipType { return network.VipTypeAPI }
+func (a *ApiVipsWrapper) Len() int              { return len(a.c.cluster.APIVips) }
+func (a *ApiVipsWrapper) IP(index int) string   { return string(a.c.cluster.APIVips[index].IP) }
 func (a *ApiVipsWrapper) Verification(index int) *models.VipVerification {
 	return a.c.cluster.APIVips[index].Verification
 }
@@ -174,9 +176,10 @@ type IngressVipsWrapper struct {
 	c *clusterPreprocessContext
 }
 
-func (i *IngressVipsWrapper) Name() string        { return "Ingress" }
-func (i *IngressVipsWrapper) Len() int            { return len(i.c.cluster.IngressVips) }
-func (i *IngressVipsWrapper) IP(index int) string { return string(i.c.cluster.IngressVips[index].IP) }
+func (i *IngressVipsWrapper) Name() string          { return "Ingress" }
+func (i *IngressVipsWrapper) Type() network.VipType { return network.VipTypeIngress }
+func (i *IngressVipsWrapper) Len() int              { return len(i.c.cluster.IngressVips) }
+func (i *IngressVipsWrapper) IP(index int) string   { return string(i.c.cluster.IngressVips[index].IP) }
 func (i *IngressVipsWrapper) Verification(index int) *models.VipVerification {
 	return i.c.cluster.IngressVips[index].Verification
 }
@@ -238,9 +241,14 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 
 	failed := false
 	for i := 0; i != vipsWrapper.Len(); i++ {
-		verification, err := network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, i), vipsWrapper.IP(i), name,
+		verification, err := network.VerifyVip(c.cluster.Hosts, c.cluster.MachineNetworks, vipsWrapper.IP(i), vipsWrapper.Type(),
 			vipsWrapper.Verification(i), v.log)
-		failed = failed || verification != models.VipVerificationSucceeded
+		if verification == models.VipVerificationSucceeded {
+			verification, err = network.ValidateVipInHostNetworks(c.cluster.Hosts, c.cluster.MachineNetworks, vipsWrapper.IP(i), vipsWrapper.Type(), v.log)
+			failed = failed || verification != models.VipVerificationSucceeded
+		} else {
+			failed = true
+		}
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 		}
@@ -428,27 +436,6 @@ func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) (Vali
 	return ValidationFailure, "The base domain is undefined and must be provided."
 }
 
-func checkCidrsOverlapping(cluster *common.Cluster) error {
-	//Currently, the networks arrays can hold up to 2 subnets, one for each family
-	//in the same order. If machine networks is defined we assume it follows the
-	//same conversion
-	var machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string
-	for index := range cluster.ClusterNetworks {
-		if index < len(cluster.MachineNetworks) {
-			machineNetworkCidr = string(cluster.MachineNetworks[index].Cidr)
-		}
-		clusterNetworkCidr = string(cluster.ClusterNetworks[index].Cidr)
-		serviceNetworkCidr = string(cluster.ServiceNetworks[index].Cidr)
-
-		if err := network.VerifyClusterCIDRsNotOverlap(machineNetworkCidr,
-			clusterNetworkCidr, serviceNetworkCidr,
-			network.IsMachineNetworkRequired(cluster)); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) (ValidationStatus, string) {
 	clusterCidrDefined, _ := v.isClusterCidrDefined(c)
 	serviceCidrDefined, _ := v.isServiceCidrDefined(c)
@@ -460,13 +447,8 @@ func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) (Vali
 		}
 		return ValidationPending, "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
 	}
-	if len(c.cluster.ClusterNetworks) != len(c.cluster.ServiceNetworks) {
-		// TODO MGMT-7587: Support any number of subnets
-		// Assumes that the number of cluster networks equal to the number of service networks
-		return ValidationError, "A mismatch between the number of Cluster and Service networks"
-	}
-	if err := checkCidrsOverlapping(c.cluster); err != nil {
-		return ValidationFailure, fmt.Sprintf("CIDRS Overlapping: %s.", err.Error())
+	if err := network.VerifyNoNetworkCidrOverlaps(c.cluster.ClusterNetworks, c.cluster.MachineNetworks, c.cluster.ServiceNetworks); err != nil {
+		return ValidationFailure, err.Error()
 	}
 	return ValidationSuccess, "No CIDRS are overlapping."
 }
