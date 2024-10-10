@@ -447,7 +447,7 @@ var whiteSpaceRE = regexp.MustCompile(`\s+`)
 // the mirrors configuration used by the 'oc' command.
 func (r *release) getMirrorsFlagFromRegistriesConfig(log logrus.FieldLogger, command string) (result *mirrorsFlagInfo,
 	err error) {
-	if !r.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+	if !r.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured(mirrorregistries.ServiceMirrorRegistryType) {
 		log.Debugf("No mirrors configured to build mirrors file")
 		return
 	}

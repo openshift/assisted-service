@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io"
 	"math/big"
 	"net"
@@ -1036,7 +1037,7 @@ func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
 		err := client.List(ctx, clusterDeploymentList, k8sclient.InNamespace(Options.Namespace))
 		Expect(err).To(BeNil())
 		return len(clusterDeploymentList.Items)
-	}, "2m", "2s").Should(Equal(0))
+	}, "1m", "20s").Should(Equal(0))
 
 	By("Verify AgentClusterInstall Cleanup")
 	Eventually(func() int {
@@ -1044,7 +1045,7 @@ func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
 		err := client.List(ctx, aciList, k8sclient.InNamespace(Options.Namespace))
 		Expect(err).To(BeNil())
 		return len(aciList.Items)
-	}, "2m", "2s").Should(Equal(0))
+	}, "1m", "20s").Should(Equal(0))
 
 	By("Verify ClusterImageSet Cleanup")
 	Eventually(func() int {
@@ -1145,9 +1146,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		return
 	}
 
-	ctx := context.Background()
-
 	var (
+		ctx                     context.Context
 		clusterDeploymentSpec   *hivev1.ClusterDeploymentSpec
 		infraEnvSpec            *v1beta1.InfraEnvSpec
 		infraNsName             types.NamespacedName
@@ -1160,6 +1160,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	)
 
 	BeforeEach(func() {
+		ctx = context.Background()
 		secretRef = deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec = getDefaultClusterDeploymentSpec(secretRef)
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
@@ -1174,6 +1175,148 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 		}
 		infraEnvSpec = getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+	})
+
+	Context("Cluster mirror registry", func() {
+		const (
+			providedMirrorRegistryCMName = "user-provided-config-map"
+			mirrorRegistryCertificate    = "    -----BEGIN CERTIFICATE-----\n    certificate contents\n    -----END CERTIFICATE------"
+			sourceRegistry               = "quay.io"
+			mirrorRegistry               = "example-user-registry.com"
+			registryConfKey              = "registries.conf"
+			registryCertKey              = "ca-bundle.crt"
+		)
+
+		newUserProvidedRegistryCM := func(registry, certificate string) *corev1.ConfigMap {
+			data := map[string]string{}
+			if registry != "" {
+				data[registryConfKey] = registry
+			}
+			if certificate != "" {
+				data[registryCertKey] = certificate
+			}
+
+			return &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      providedMirrorRegistryCMName,
+					Namespace: Options.Namespace,
+				},
+				Data: data,
+			}
+		}
+
+		createUserMirrorRegistryConfigmap := func(client k8sclient.Client, registryToml string, certificate string) {
+			registryCM := newUserProvidedRegistryCM(registryToml, certificate)
+			Expect(client.Create(ctx, registryCM)).ShouldNot(HaveOccurred())
+		}
+
+		getSecureRegistryToml := func() string {
+			return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+`,
+				sourceRegistry,
+				mirrorRegistry,
+			)
+		}
+
+		When("the user did not provide a valid image registry ConfigMap", func() {
+			It("Failed to create the image registry configurations", func() {
+				aciSpec.MirrorRegistryRef = &hiveext.MirrorRegistryConfigMapReference{
+					Name:      providedMirrorRegistryCMName,
+					Namespace: Options.Namespace,
+				}
+
+				deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+				deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+				var aci *hiveext.AgentClusterInstall
+				Eventually(func() bool {
+					aci = getAgentClusterInstallCRD(ctx, kubeClient, types.NamespacedName{
+						Namespace: Options.Namespace,
+						Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+					})
+					return aci.Status.MirrorRegistryConfigurationInfo == nil
+				}, "1m", "20s").MustPassRepeatedly(3).Should(BeTrue())
+
+				Expect(aci.Spec.MirrorRegistryRef.Name).To(Equal(providedMirrorRegistryCMName))
+				Expect(aci.Status.MirrorRegistryConfigurationInfo).To(BeNil())
+
+				Expect(controllers.FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
+				Expect(controllers.FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: Failed to get referenced ConfigMap: ConfigMap \"user-provided-config-map\" not found"))
+			})
+		})
+
+		Context("success", func() {
+			AfterEach(func() {
+				cm := corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      providedMirrorRegistryCMName,
+						Namespace: Options.Namespace,
+					},
+				}
+				Expect(kubeClient.Delete(ctx, &cm)).ShouldNot(HaveOccurred())
+			})
+
+			When("the user-provided image registry ConfigMap contains correct data", func() {
+				FIt("Successfully creates the image registry configurations", func() {
+					aciSpec.MirrorRegistryRef = &hiveext.MirrorRegistryConfigMapReference{
+						Name:      providedMirrorRegistryCMName,
+						Namespace: Options.Namespace,
+					}
+
+					createUserMirrorRegistryConfigmap(kubeClient, getSecureRegistryToml(), mirrorRegistryCertificate)
+
+					deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+					deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+					deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+					var aci *hiveext.AgentClusterInstall
+					Eventually(func() bool {
+						aci = getAgentClusterInstallCRD(ctx, kubeClient, types.NamespacedName{
+							Namespace: Options.Namespace,
+							Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+						})
+						return aci.Status.MirrorRegistryConfigurationInfo != nil
+					}, "1m", "20s").Should(BeTrue())
+
+					Expect(aci.Spec.MirrorRegistryRef.Name).To(Equal(providedMirrorRegistryCMName))
+
+					Expect(aci.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
+					Expect(len(aci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors)).To(Equal(1))
+					Expect(aci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Source).To(Equal(sourceRegistry))
+					Expect(len(aci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors)).To(Equal(1))
+					Expect(string(aci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
+
+					Expect(len(aci.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(0))
+					Expect(len(aci.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(0))
+
+					clusterID := aci.ObjectMeta.OwnerReferences[0].UID
+
+					file, err := os.CreateTemp("", "tmp")
+					Expect(err).NotTo(HaveOccurred())
+					defer os.Remove(file.Name())
+
+					_, err = agentBMClient.Installer.V2DownloadClusterFiles(ctx,
+						&installer.V2DownloadClusterFilesParams{
+							ClusterID: strfmt.UUID(clusterID),
+							FileName:  "install-config.yaml",
+						}, file)
+					Expect(err).NotTo(HaveOccurred())
+
+					// Read install-config.yaml
+					content, err := os.ReadFile(file.Name())
+					Expect(err).NotTo(HaveOccurred())
+
+					installConfig := make(map[string]interface{})
+					err = yaml.Unmarshal(content, installConfig)
+					Expect(err).NotTo(HaveOccurred())
+
+				})
+			})
+		})
 	})
 
 	It("Should use full-iso for s390x cpu architecture", func() {
