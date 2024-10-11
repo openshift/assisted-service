@@ -201,6 +201,15 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return ctrl.Result{Requeue: true}, err
 	}
 
+	mirrorRegistryConfiguration := &hiveext.MirrorRegistryConfiguration{}
+	if clusterInstall.Spec.MirrorRegistryRef != nil {
+		log.Infof("Found MirrorRegistry referenace on AgentClusterInstall %s %s", clusterInstall.Name, clusterInstall.Namespace)
+		mirrorRegistryConfiguration, err = r.processMirrorRegistryConfig(ctx, log, clusterInstall)
+		if err != nil {
+			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, newInputError(err.Error()))
+		}
+	}
+
 	cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
 	if err1 := r.validateClusterDeployment(clusterDeployment, clusterInstall); err1 != nil {
 		log.Error(err1)
@@ -208,7 +217,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		if !isInstalled(clusterDeployment, clusterInstall) {
-			return r.createNewCluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
+			return r.createNewCluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall, mirrorRegistryConfiguration)
 		}
 
 		return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
@@ -225,7 +234,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	}
 
 	// check for install config overrides and update if needed
-	err = r.updateInstallConfigOverrides(ctx, log, clusterInstall, cluster)
+	err = r.updateInstallConfigOverrides(ctx, log, clusterInstall, cluster, mirrorRegistryConfiguration)
 	if err != nil {
 		log.WithError(err).Error("failed to update install config overrides")
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
@@ -390,11 +399,21 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 			return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 		}
 
+		mirrorRegistryConfiguration := &hiveext.MirrorRegistryConfiguration{}
+		if clusterInstall.Spec.MirrorRegistryRef != nil {
+			log.Infof("Found MirrorRegistry referenace on AgentClusterInstall %s %s", clusterInstall.Name, clusterInstall.Namespace)
+			mirrorRegistryConfiguration, err = r.processMirrorRegistryConfig(ctx, log, clusterInstall)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
 		log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		var ic *common.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.V2InstallClusterParams{
 			ClusterID: *cluster.ID,
-		})
+		}, mirrorRegistryConfiguration)
+
 		if err != nil {
 			log.WithError(err).Error("failed to start cluster install")
 			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
@@ -1122,8 +1141,9 @@ func selectClusterNetworkType(params *models.V2ClusterUpdateParams, cluster *com
 	}
 }
 
-func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall,
-	cluster *common.Cluster) error {
+func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, log logrus.FieldLogger,
+	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster, mirrorRegistryConfiguration *hiveext.MirrorRegistryConfiguration) error {
+
 	// not relevant for day2 cluster - install config is not used
 	if common.IsDay2Cluster(cluster) {
 		return nil
@@ -1139,7 +1159,7 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 		_, err := r.Installer.UpdateClusterInstallConfigInternal(ctx, installer.V2UpdateClusterInstallConfigParams{
 			ClusterID:           *cluster.ID,
 			InstallConfigParams: cluster.InstallConfigOverrides,
-		})
+		}, mirrorRegistryConfiguration)
 		if err != nil {
 			if IsUserError(err) {
 				apiErr := errors.Wrapf(err, "Failed to parse '%s' annotation", InstallConfigOverrides)
@@ -1354,7 +1374,8 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	log logrus.FieldLogger,
 	key types.NamespacedName,
 	clusterDeployment *hivev1.ClusterDeployment,
-	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
+	clusterInstall *hiveext.AgentClusterInstall,
+	mirrorRegistryConfiguration *hiveext.MirrorRegistryConfiguration) (ctrl.Result, error) {
 
 	log.Infof("Creating a new cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
@@ -1385,7 +1406,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	clusterParams := CreateClusterParams(clusterDeployment, clusterInstall, pullSecret, *releaseImage.Version,
 		*releaseImage.CPUArchitecture, ignitionEndpoint)
 
-	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{
+	c, err := r.Installer.RegisterClusterInternal(ctx, &key, mirrorRegistryConfiguration, installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,
 	})
 
@@ -2324,4 +2345,28 @@ func getClusterDeploymentAdminKubeConfigSecretName(cd *hivev1.ClusterDeployment)
 		return cd.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name
 	}
 	return fmt.Sprintf(adminKubeConfigStringTemplate, cd.Name)
+}
+
+// processMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
+func (r *ClusterDeploymentsReconciler) processMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall) (*hiveext.MirrorRegistryConfiguration, error) {
+	mirrorRegistryConfiguration, err := mirrorregistries.ProcessMirrorRegistryConfig(ctx, log, r.Client, clusterInstall.Spec.MirrorRegistryRef)
+	if err != nil {
+		return nil, err
+	}
+
+	if mirrorRegistryConfiguration == nil {
+		return nil, nil
+	}
+
+	// Store the mirror configuration for later use during install config generation
+	clusterInstall.Status.MirrorRegistryConfigurationInfo = mirrorRegistryConfiguration.MirrorRegistryConfigurationInfo
+
+	// Update the status to reflect that the configuration has been processed
+	err = r.Client.Status().Update(ctx, clusterInstall)
+	if err != nil {
+		log.Error(err, "Failed to update AgentClusterInstall status with mirror registry configuration")
+		return nil, err
+	}
+
+	return mirrorRegistryConfiguration, nil
 }

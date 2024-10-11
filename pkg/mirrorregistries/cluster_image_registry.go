@@ -157,6 +157,7 @@ func getUserTomlConfigMapData(ctx context.Context, log logrus.FieldLogger, c cli
 	// Additional certificate is optional
 	caBundleCrt := userTomlConfigMap.Data[RegistryCertKey]
 
+	log.Infof("Successfully fetched the mirror registry TOML configuration file: %s %s", ref.Namespace, ref.Name)
 	return registriesConf, caBundleCrt, nil
 }
 
@@ -166,18 +167,20 @@ func ProcessMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, c 
 		return nil, nil
 	}
 
+	log.Infof("Getting cluster mirror registry configurations %s %s ", ref.Namespace, ref.Name)
 	registriesConf, caBundleCrt, err := getUserTomlConfigMapData(ctx, log, c, ref)
 	if err != nil {
 		return nil, err
 	}
 
 	if registriesConf == "" && caBundleCrt == "" {
+		log.Infof("No registires.conf ConfigMap %s/%s found", ref.Namespace, ref.Name)
 		return nil, nil
 	}
 
 	mirrorRegistryConfiguration, err := processMirrorRegistryConfig(registriesConf, caBundleCrt)
 	if err != nil {
-		log.Error(err, "Failed to validate and parse registries.conf")
+		log.Error("Failed to validate and parse registries.conf", err)
 		return nil, err
 	}
 
