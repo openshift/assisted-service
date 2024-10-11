@@ -146,6 +146,7 @@ func (i *installConfigBuilder) handleMirrorRegistry(cfg *installcfg.InstallerCon
 		return err
 	}
 
+	i.log.Infof("found OpenShift version %s, setting mirror registry %+v", cluster.OpenshiftVersion, configuration)
 	if isOpenShiftVersionRecentEnough {
 		if err = i.setImageDigestMirrorSet(cfg, configuration); err != nil {
 			return err
