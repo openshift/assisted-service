@@ -25,13 +25,13 @@ type InstallConfigBuilder interface {
 
 type installConfigBuilder struct {
 	log                     logrus.FieldLogger
-	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 	providerRegistry        registry.ProviderRegistry
 }
 
 func NewInstallConfigBuilder(
 	log logrus.FieldLogger,
-	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder,
+	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder,
 	providerRegistry registry.ProviderRegistry) InstallConfigBuilder {
 	return &installConfigBuilder{
 		log:                     log,

@@ -437,14 +437,14 @@ var _ = Describe("getImageFromRelease", func() {
 		tempFilePath                      string
 		ctrl                              *gomock.Controller
 		mockExecuter                      *executer.MockExecuter
-		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		log                               logrus.FieldLogger
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockExecuter = executer.NewMockExecuter(ctrl)
-		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).AnyTimes()
 		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
 		oc = &release{
@@ -565,7 +565,7 @@ var _ = Describe("getImageFromRelease", func() {
 var _ = Describe("Mirrors configuration generation", func() {
 	var (
 		oc                                *release
-		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		ctrl                              *gomock.Controller
 		mockExecuter                      *executer.MockExecuter
 	)
@@ -573,7 +573,7 @@ var _ = Describe("Mirrors configuration generation", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockExecuter = executer.NewMockExecuter(ctrl)
-		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
 		oc = &release{executer: mockExecuter, config: config, imagesMap: common.NewExpiringCache(time.Hour, time.Hour),
 			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder}
