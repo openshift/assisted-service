@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -19,8 +20,8 @@ const minimalOpenShiftVersionForImageDigestSupport = "4.14.0-0.0"
 
 //go:generate mockgen -source=builder.go -package=builder -destination=mock_installcfg.go
 type InstallConfigBuilder interface {
-	GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) ([]byte, error)
-	ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string) error
+	GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string, mrConfiguration *v1beta1.MirrorRegistryConfiguration) ([]byte, error)
+	ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string, mrConfiguration *v1beta1.MirrorRegistryConfiguration) error
 }
 
 type installConfigBuilder struct {
@@ -75,7 +76,7 @@ func (i *installConfigBuilder) generateNoProxy(cluster *common.Cluster) string {
 	return strings.Join(splitNoProxy, ",")
 }
 
-func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*installcfg.InstallerConfigBaremetal, error) {
+func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster, configuration *v1beta1.MirrorRegistryConfiguration) (*installcfg.InstallerConfigBaremetal, error) {
 	networkType := swag.StringValue(cluster.NetworkType)
 	i.log.Infof("Selected network type %s for cluster %s", networkType, cluster.ID.String())
 	cfg := &installcfg.InstallerConfigBaremetal{
@@ -132,52 +133,88 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 		}
 	}
 
-	if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
-		isOpenShiftVersionRecentEnough, err := common.BaseVersionGreaterOrEqual(minimalOpenShiftVersionForImageDigestSupport, cluster.OpenshiftVersion)
-		if err != nil {
-			return nil, err
-		}
-		if isOpenShiftVersionRecentEnough {
-			err := i.setImageDigestMirrorSet(cfg)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			// If version does not support ImageDigestSources, set ImageContent
-			err := i.setImageContentSources(cfg)
-			if err != nil {
-				return nil, err
-			}
-		}
+	if err := i.handleMirrorRegistry(cfg, cluster, configuration); err != nil {
+		return nil, err
 	}
 
 	return cfg, nil
 }
 
-func (i *installConfigBuilder) setImageDigestMirrorSet(cfg *installcfg.InstallerConfigBaremetal) error {
-	mirrorRegistriesConfigs, err := i.mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries()
+func (i *installConfigBuilder) handleMirrorRegistry(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster, configuration *v1beta1.MirrorRegistryConfiguration) error {
+	isOpenShiftVersionRecentEnough, err := common.BaseVersionGreaterOrEqual(minimalOpenShiftVersionForImageDigestSupport, cluster.OpenshiftVersion)
 	if err != nil {
-		i.log.WithError(err).Errorf("Failed to get the mirror registries conf need for ImageDigestSources")
 		return err
 	}
-	imageDigestSourceList := make([]installcfg.ImageDigestSource, len(mirrorRegistriesConfigs))
-	for i, mirrorRegistriesConfig := range mirrorRegistriesConfigs {
-		imageDigestSourceList[i] = installcfg.ImageDigestSource{Source: mirrorRegistriesConfig.Location, Mirrors: mirrorRegistriesConfig.Mirror}
+
+	if isOpenShiftVersionRecentEnough {
+		if err = i.setImageDigestMirrorSet(cfg, configuration); err != nil {
+			return err
+		}
+	} else {
+		// If version does not support ImageDigestSources, set ImageContent
+		if err = i.setImageContentSources(cfg, configuration); err != nil {
+			return err
+		}
 	}
+
+	return nil
+}
+
+func (i *installConfigBuilder) setImageDigestMirrorSet(cfg *installcfg.InstallerConfigBaremetal, configuration *v1beta1.MirrorRegistryConfiguration) error {
+	var imageDigestSourceList []installcfg.ImageDigestSource
+
+	if configuration != nil {
+		i.log.Infof("Found cluster mirror configuration, setting imageDigestSourceList with %+v", configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors)
+		imageDigestSourceList = make([]installcfg.ImageDigestSource, len(configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors))
+		for k, _registry := range configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors {
+			mirrors := make([]string, len(_registry.Mirrors))
+			for j, mirror := range _registry.Mirrors {
+				mirrors[j] = string(mirror)
+			}
+			imageDigestSourceList[k] = installcfg.ImageDigestSource{Source: _registry.Source, Mirrors: mirrors}
+		}
+	} else if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		i.log.Infof("Found service mirror configuration, setting imageDigestSourceList")
+		mirrorRegistriesConfigs, err := i.mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries()
+		if err != nil {
+			i.log.WithError(err).Errorf("Failed to get the mirror registries conf need for ImageDigestSources")
+			return err
+		}
+		imageDigestSourceList = make([]installcfg.ImageDigestSource, len(mirrorRegistriesConfigs))
+		for j, mirrorRegistriesConfig := range mirrorRegistriesConfigs {
+			imageDigestSourceList[j] = installcfg.ImageDigestSource{Source: mirrorRegistriesConfig.Location, Mirrors: mirrorRegistriesConfig.Mirror}
+		}
+	}
+
 	cfg.ImageDigestSources = imageDigestSourceList
 	return nil
 }
 
-func (i *installConfigBuilder) setImageContentSources(cfg *installcfg.InstallerConfigBaremetal) error {
-	mirrorRegistriesConfigs, err := i.mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries()
-	if err != nil {
-		i.log.WithError(err).Errorf("Failed to get the mirror registries conf need for ImageContentSources")
-		return err
+func (i *installConfigBuilder) setImageContentSources(cfg *installcfg.InstallerConfigBaremetal, configuration *v1beta1.MirrorRegistryConfiguration) error {
+	var imageContentSourceList []installcfg.ImageContentSource
+
+	if configuration != nil {
+		i.log.Infof("Found cluster mirror configuration, setting imageContentSourceList with %+v", configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors)
+		imageContentSourceList = make([]installcfg.ImageContentSource, len(configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors))
+		for j, _registry := range configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors {
+			mirrors := make([]string, len(_registry.Mirrors))
+			for k, mirror := range _registry.Mirrors {
+				mirrors[k] = string(mirror)
+			}
+			imageContentSourceList[j] = installcfg.ImageContentSource{Source: _registry.Source, Mirrors: mirrors}
+		}
+	} else if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		mirrorRegistriesConfigs, err := i.mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries()
+		if err != nil {
+			i.log.WithError(err).Errorf("Failed to get the mirror registries conf need for ImageContentSources")
+			return err
+		}
+		imageContentSourceList = make([]installcfg.ImageContentSource, len(mirrorRegistriesConfigs))
+		for j, mirrorRegistriesConfig := range mirrorRegistriesConfigs {
+			imageContentSourceList[j] = installcfg.ImageContentSource{Source: mirrorRegistriesConfig.Location, Mirrors: mirrorRegistriesConfig.Mirror}
+		}
 	}
-	imageContentSourceList := make([]installcfg.ImageContentSource, len(mirrorRegistriesConfigs))
-	for i, mirrorRegistriesConfig := range mirrorRegistriesConfigs {
-		imageContentSourceList[i] = installcfg.ImageContentSource{Source: mirrorRegistriesConfig.Location, Mirrors: mirrorRegistriesConfig.Mirror}
-	}
+
 	cfg.DeprecatedImageContentSources = imageContentSourceList
 	return nil
 }
@@ -197,8 +234,8 @@ func (i *installConfigBuilder) applyConfigOverrides(overrides string, cfg *insta
 	return nil
 }
 
-func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) (*installcfg.InstallerConfigBaremetal, error) {
-	cfg, err := i.getBasicInstallConfig(cluster)
+func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string, mrConfiguration *v1beta1.MirrorRegistryConfiguration) (*installcfg.InstallerConfigBaremetal, error) {
+	cfg, err := i.getBasicInstallConfig(cluster, mrConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +249,7 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, cluster
 	if err != nil {
 		return nil, err
 	}
-	caContent := i.mergeAllCASources(cluster, clusterInfraenvs, rhRootCA, cfg.AdditionalTrustBundle)
+	caContent := i.mergeAllCASources(cluster, clusterInfraenvs, rhRootCA, cfg.AdditionalTrustBundle, mrConfiguration)
 	if caContent != "" {
 		cfg.AdditionalTrustBundle = caContent
 	}
@@ -220,8 +257,8 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, cluster
 	return cfg, nil
 }
 
-func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) ([]byte, error) {
-	cfg, err := i.getInstallConfig(cluster, clusterInfraenvs, rhRootCA)
+func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string, mrConfiguration *v1beta1.MirrorRegistryConfiguration) ([]byte, error) {
+	cfg, err := i.getInstallConfig(cluster, clusterInfraenvs, rhRootCA, mrConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -229,8 +266,8 @@ func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, cluster
 	return json.Marshal(*cfg)
 }
 
-func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string) error {
-	config, err := i.getInstallConfig(cluster, clusterInfraenvs, "")
+func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string, mrConfiguration *v1beta1.MirrorRegistryConfiguration) error {
+	config, err := i.getInstallConfig(cluster, clusterInfraenvs, "", mrConfiguration)
 	if err != nil {
 		return err
 	}
@@ -265,8 +302,7 @@ func (i *installConfigBuilder) getHypethreadingConfiguration(cluster *common.Clu
 // - User configured mirror registry CAs
 // - Additional trust bundle from the cluster's infraenvs
 // - Certs from user-provided install config overrides
-func (i *installConfigBuilder) mergeAllCASources(cluster *common.Cluster,
-	clusterInfraenvs []*common.InfraEnv, rhRootCA string, installConfigOverrideCerts string) string {
+func (i *installConfigBuilder) mergeAllCASources(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string, installConfigOverrideCerts string, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) string {
 	certs := []string{}
 
 	if installConfigOverrideCerts != "" {
@@ -281,6 +317,12 @@ func (i *installConfigBuilder) mergeAllCASources(cluster *common.Cluster,
 		caContents, err := i.mirrorRegistriesBuilder.GetMirrorCA()
 		if err == nil {
 			certs = append(certs, string(caContents))
+		}
+	}
+
+	if mirrorRegistryConfiguration != nil {
+		if mirrorRegistryConfiguration.CaBundleCrt != "" {
+			certs = append(certs, mirrorRegistryConfiguration.CaBundleCrt)
 		}
 	}
 
