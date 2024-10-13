@@ -34,9 +34,9 @@ type RegistriesConf struct {
 }
 
 // IsMirrorRegistriesConfigured We consider mirror registries to be configured if the following conditions are all met
-//   * CA bundle file (e.g. /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem) exists
-//   * registry configuration file (e.g. /etc/containers/registries.conf) exists
-//   * registry configuration contains "[[registry]]" section
+//   - CA bundle file (e.g. /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem) exists
+//   - registry configuration file (e.g. /etc/containers/registries.conf) exists
+//   - registry configuration contains "[[registry]]" section
 func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
 	_, err := m.GetMirrorCA()
 	if err != nil {

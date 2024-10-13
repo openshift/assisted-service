@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//
 type baremetalProvider struct {
 	Log logrus.FieldLogger
 }

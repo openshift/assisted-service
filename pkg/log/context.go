@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//log formats as defined by LOG_FORMAT env variable
+// log formats as defined by LOG_FORMAT env variable
 const (
 	LogFormatText = "text"
 	LogFormatJson = "json"
