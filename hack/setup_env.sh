@@ -61,8 +61,8 @@ function test_tools() {
   go install github.com/golang/mock/mockgen@v1.6.0
   go install github.com/vektra/mockery/v2@v2.12.3
   go install gotest.tools/gotestsum@v1.6.3
-  go install github.com/axw/gocov/gocov@latest
-  go install github.com/AlekSi/gocov-xml@v0.0.0-20190121064608-3a14fb1c4737
+  go install github.com/axw/gocov/gocov@v1.1.0
+  go install github.com/AlekSi/gocov-xml@v1.1.0
 }
 
 function assisted_service() {
