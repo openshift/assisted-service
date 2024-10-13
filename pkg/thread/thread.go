@@ -9,14 +9,14 @@ import (
 // Thread provides a background, periodic thread, which invokes the given function every supplied interval.
 //
 // Sample usage:
-//    monitorFunc := func() {
-//        //do monitoring logic
-//    }
-//    monitor := thread.New(log, "Health Monitor", time.Minute*2, monitorFunc)
-//    monitor.Start()
-//    defer monitor.Stop()
-//    ....
 //
+//	monitorFunc := func() {
+//	    //do monitoring logic
+//	}
+//	monitor := thread.New(log, "Health Monitor", time.Minute*2, monitorFunc)
+//	monitor.Start()
+//	defer monitor.Stop()
+//	....
 type Thread struct {
 	log              logrus.FieldLogger
 	exec             func()

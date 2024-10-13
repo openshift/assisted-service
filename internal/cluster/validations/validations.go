@@ -52,6 +52,7 @@ func init() {
 
 // PullSecretValidator is used run validations on a provided pull secret
 // it verifies the format of the pull secrete and access to required image registries
+//
 //go:generate mockgen -source=validations.go -package=validations -destination=mock_validations.go
 type PullSecretValidator interface {
 	ValidatePullSecret(secret string, username string) error
@@ -326,8 +327,8 @@ func getRegistriesWithAuth(ignoreList string, ignoreSeparator string, images ...
 	return &registries, nil
 }
 
-//ValidateVipDHCPAllocationWithIPv6 returns an error in case of VIP DHCP allocation
-//being used with IPv6 machine network
+// ValidateVipDHCPAllocationWithIPv6 returns an error in case of VIP DHCP allocation
+// being used with IPv6 machine network
 func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCIDR string) error {
 	if !vipDhcpAllocation {
 		return nil
@@ -833,8 +834,8 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool)
 	return nil
 }
 
-//ValidateIPAddressFamily returns an error if the argument contains only IPv6 networks and IPv6
-//support is turned off. Dual-stack setup is supported even if IPv6 support is turned off.
+// ValidateIPAddressFamily returns an error if the argument contains only IPv6 networks and IPv6
+// support is turned off. Dual-stack setup is supported even if IPv6 support is turned off.
 func ValidateIPAddressFamily(ipV6Supported bool, elements ...*string) error {
 	if ipV6Supported {
 		return nil

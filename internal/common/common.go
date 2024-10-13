@@ -196,18 +196,18 @@ func GetNetworkCidrAttr(obj interface{}, fieldName string) []*string {
 // IsSliceNonEmpty checks whether the provided slice is non-empty. The slice is assumed to be
 // non-empty if at least one of its elements contains a non-zero value for its respective type.
 // Examples:
-// - `[]*models.MachineNetwork{{Cidr: "5.5.0.0/24"}, {Cidr: "6.6.0.0/24"}}` - valid, as we are
-//   configuring two machine networks
-// - `[]*models.ClusterNetwork{}` - valid, as it means we are removing all the cluster networks
-//   that may have been currently configured
-// - `[]*models.MachineNetwork{{}}` - invalid, as it means that we are trying to configure
-//    a single machine network that is empty; a valid network contains at least a CIDR which is
-//    missing in this case
-// - `[]*models.MachineNetwork{{Cidr: ""}}` - invalid, as it means we are trying to configure
-//   a single machine network that has empty CIDR; a valid network should contain a non-empty
-//   CIDR
-// - `[]*models.ClusterNetwork{{HostPrefix: 0}}` - invalid, as it means we are trying to configure
-//   a single cluster network with host prefix with a value 0; this is not a valid subnet lenght
+//   - `[]*models.MachineNetwork{{Cidr: "5.5.0.0/24"}, {Cidr: "6.6.0.0/24"}}` - valid, as we are
+//     configuring two machine networks
+//   - `[]*models.ClusterNetwork{}` - valid, as it means we are removing all the cluster networks
+//     that may have been currently configured
+//   - `[]*models.MachineNetwork{{}}` - invalid, as it means that we are trying to configure
+//     a single machine network that is empty; a valid network contains at least a CIDR which is
+//     missing in this case
+//   - `[]*models.MachineNetwork{{Cidr: ""}}` - invalid, as it means we are trying to configure
+//     a single machine network that has empty CIDR; a valid network should contain a non-empty
+//     CIDR
+//   - `[]*models.ClusterNetwork{{HostPrefix: 0}}` - invalid, as it means we are trying to configure
+//     a single cluster network with host prefix with a value 0; this is not a valid subnet lenght
 func IsSliceNonEmpty(arg interface{}) bool {
 	res := false
 	if reflect.ValueOf(arg).Kind() == reflect.Slice {
