@@ -80,7 +80,7 @@ function wait_for_deployment() {
 
     echo "Waiting for (deployment) on namespace (${namespace}) with name (${deployment}) to rollout..."
     REPLICAS=$(oc get deployments.apps -n assisted-installer assisted-service  -o json | jq .status.replicas)
-    oc --namespace "${namespace}" wait --for=jsonpath='{.status.availableReplicas}'=$REPLICAS  \
+    oc --namespace "${namespace}" wait --for=jsonpath='{.status.readyReplicas}'=$REPLICAS  \
       --timeout=5m "deployment.apps/${deployment}"
 }
 
