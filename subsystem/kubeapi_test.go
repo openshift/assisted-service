@@ -397,7 +397,9 @@ func deployBMHCRD(ctx context.Context, client k8sclient.Client, id string, spec 
 	Expect(err).To(BeNil())
 
 	bmh.Status.Provisioning.State = metal3_v1alpha1.StateReady
-	Expect(client.Status().Update(ctx, &bmh)).To(BeNil())
+	Eventually(func() error {
+		return client.Status().Update(ctx, &bmh)
+	}, "30s", "10s").Should(BeNil())
 }
 
 func deployPPICRD(ctx context.Context, client k8sclient.Client, name string, spec *metal3_v1alpha1.PreprovisioningImageSpec) {
@@ -981,6 +983,7 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 		return client.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))
 	}, "1m", "2s").Should(BeNil())
 	Eventually(func() error {
+		deleteBMHFinalizers(ctx)
 		return client.DeleteAllOf(ctx, &metal3_v1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))
 	}, "1m", "2s").Should(BeNil())
 	Eventually(func() error {
