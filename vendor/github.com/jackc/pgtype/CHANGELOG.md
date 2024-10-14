@@ -1,3 +1,31 @@
+# 1.14.0 (February 11, 2023)
+
+* Fix: BC timestamp text format support (jozeflami)
+* Add Scanner and Valuer interfaces to CIDR (Yurii Popivniak)
+* Fix crash when nilifying pointer to sql.Scanner
+
+# 1.13.0 (December 1, 2022)
+
+* Fix: Reset jsonb before unmarshal (Tomas Odinas)
+* Fix: return correct zero value when UUID conversion fails (ndrpnt)
+* Fix: EncodeText for Lseg includes [ and ]
+* Support sql Value and Scan for custom date type (Hubert Krauze)
+* Support Ltree binary encoding (AmineChikhaoui)
+* Fix: dates with "BC" (jozeflami)
+
+# 1.12.0 (August 6, 2022)
+
+* Add JSONArray (Jakob Ackermann)
+* Support Inet from fmt.Stringer and encoding.TextMarshaler (Ville Skyttä)
+* Support UUID from fmt.Stringer interface (Lasse Hyldahl Jensen)
+* Fix: shopspring-numeric extension does not panic on NaN
+* Numeric can be assigned to string
+* Fix: Do not send IPv4 networks as IPv4-mapped IPv6 (William Storey)
+* Fix: PlanScan for interface{}(nil) (James Hartig)
+* Fix: *sql.Scanner for NULL handling (James Hartig)
+* Timestamp[tz].Set() supports string (Harmen)
+* Fix: Hstore AssignTo with map of *string (Diego Becciolini)
+
 # 1.11.0 (April 21, 2022)
 
 * Add multirange for numeric, int4, and int8 (Vu)
