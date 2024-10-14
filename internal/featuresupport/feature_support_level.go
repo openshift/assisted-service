@@ -59,7 +59,7 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string) mod
 }
 
 // IsFeatureAvailable Get the support level of a given feature, cpuArchitecture is optional
-//with default value of x86_64
+// with default value of x86_64
 func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion string, cpuArchitecture *string) bool {
 	filters := SupportLevelFilters{
 		OpenshiftVersion: openshiftVersion,
