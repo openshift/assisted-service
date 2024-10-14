@@ -17,6 +17,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a
 	github.com/go-gormigrate/gormigrate/v2 v2.0.1
+	github.com/go-jose/go-jose v2.6.3+incompatible
 	github.com/go-logr/logr v1.2.3
 	github.com/go-openapi/errors v0.20.3
 	github.com/go-openapi/loads v0.21.1
@@ -64,15 +65,15 @@ require (
 	github.com/rs/cors v1.8.2
 	github.com/sirupsen/logrus v1.9.0
 	github.com/slok/go-http-metrics v0.10.0
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.8.1
 	github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d
 	github.com/thoas/go-funk v0.9.2
 	github.com/vincent-petithory/dataurl v1.0.0
 	go.elastic.co/apm/module/apmhttp v1.15.0
 	go.elastic.co/apm/module/apmlogrus v1.15.0
-	golang.org/x/crypto v0.14.0
+	golang.org/x/crypto v0.20.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.13.0
+	golang.org/x/sys v0.17.0
 	gopkg.in/ini.v1 v1.66.6
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -145,12 +146,12 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/itchyny/timefmt-go v0.1.3 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
-	github.com/jackc/pgconn v1.12.0 // indirect
+	github.com/jackc/pgconn v1.14.3 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgproto3/v2 v2.3.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
-	github.com/jackc/pgtype v1.11.0 // indirect
+	github.com/jackc/pgproto3/v2 v2.3.3 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/pgtype v1.14.0 // indirect
 	github.com/jackc/pgx/v4 v4.16.0 // indirect
 	github.com/jcchavezs/porto v0.1.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -182,7 +183,7 @@ require (
 	github.com/santhosh-tekuri/jsonschema v1.2.4 // indirect
 	github.com/spf13/cobra v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
-	github.com/stretchr/objx v0.2.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
@@ -208,10 +209,10 @@ require (
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
-	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/term v0.17.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	golang.org/x/tools v0.6.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
@@ -219,6 +220,7 @@ require (
 	google.golang.org/genproto v0.0.0-20220107163113-42d7afdf6368 // indirect
 	google.golang.org/grpc v1.43.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
+	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
@@ -235,6 +237,7 @@ require (
 )
 
 replace (
+	github.com/jackc/pgx/v4 => github.com/jackc/pgx/v4 v4.18.3
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20210527161605-4e331bfd4b1d
 	github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis v0.0.0-20220811103841-9875d4b41edf
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20220217140404-6b1ecb71984f

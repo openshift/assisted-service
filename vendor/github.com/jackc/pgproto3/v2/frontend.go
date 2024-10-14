@@ -57,7 +57,11 @@ func NewFrontend(cr ChunkReader, w io.Writer) *Frontend {
 
 // Send sends a message to the backend.
 func (f *Frontend) Send(msg FrontendMessage) error {
-	_, err := f.w.Write(msg.Encode(nil))
+	buf, err := msg.Encode(nil)
+	if err != nil {
+		return err
+	}
+	_, err = f.w.Write(buf)
 	return err
 }
 
@@ -79,6 +83,9 @@ func (f *Frontend) Receive() (BackendMessage, error) {
 		f.msgType = header[0]
 		f.bodyLen = int(binary.BigEndian.Uint32(header[1:])) - 4
 		f.partialMsg = true
+		if f.bodyLen < 0 {
+			return nil, errors.New("invalid message with negative body length received")
+		}
 	}
 
 	msgBody, err := f.cr.Next(f.bodyLen)
