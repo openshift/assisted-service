@@ -1,6 +1,11 @@
 [![](https://godoc.org/github.com/jackc/pgx?status.svg)](https://pkg.go.dev/github.com/jackc/pgx/v4)
 [![Build Status](https://travis-ci.org/jackc/pgx.svg)](https://travis-ci.org/jackc/pgx)
 
+---
+
+This is the previous stable `v4` release. `v5` been released.
+
+---
 # pgx - PostgreSQL Driver and Toolkit
 
 pgx is a pure Go driver and toolkit for PostgreSQL.
@@ -129,7 +134,7 @@ In addition, there are tests specific for PgBouncer that will be executed if `PG
 
 ## Supported Go and PostgreSQL Versions
 
-pgx supports the same versions of Go and PostgreSQL that are supported by their respective teams. For [Go](https://golang.org/doc/devel/release.html#policy) that is the two most recent major releases and for [PostgreSQL](https://www.postgresql.org/support/versioning/) the major releases in the last 5 years. This means pgx supports Go 1.16 and higher and PostgreSQL 10 and higher. pgx also is tested against the latest version of [CockroachDB](https://www.cockroachlabs.com/product/).
+pgx supports the same versions of Go and PostgreSQL that are supported by their respective teams. For [Go](https://golang.org/doc/devel/release.html#policy) that is the two most recent major releases and for [PostgreSQL](https://www.postgresql.org/support/versioning/) the major releases in the last 5 years. This means pgx supports Go 1.17 and higher and PostgreSQL 10 and higher. pgx also is tested against the latest version of [CockroachDB](https://www.cockroachlabs.com/product/).
 
 ## Version Policy
 
@@ -185,3 +190,7 @@ Library for scanning data from a database into Go structs and more.
 ### [https://github.com/otan/gopgkrb5](https://github.com/otan/gopgkrb5)
 
 Adds GSSAPI / Kerberos authentication support.
+
+### [https://github.com/vgarvardt/pgx-google-uuid](https://github.com/vgarvardt/pgx-google-uuid)
+
+Adds support for [`github.com/google/uuid`](https://github.com/google/uuid).
