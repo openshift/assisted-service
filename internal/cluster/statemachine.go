@@ -115,7 +115,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		If(AreApiVipsValid),
 		If(AreIngressVipsValid),
 		If(AllHostsAreReadyToInstall),
-		If(SufficientMastersCount),
+		If(SufficientMastersAndWorkersCount),
 		If(networkPrefixValid),
 		If(noCidrOverlapping),
 		If(IsNtpServerConfigured),
