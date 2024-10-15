@@ -121,7 +121,7 @@ var _ = Describe("installer cache", func() {
 		fname := filepath.Join(workdir, releaseID)
 
 		mockRelease.EXPECT().GetReleaseBinaryPath(
-			releaseMirrorID, gomock.Any(), version).
+			releaseID, gomock.Any(), version).
 			Return(workdir, releaseID, fname, nil)
 		mockRelease.EXPECT().Extract(gomock.Any(), releaseID,
 			gomock.Any(), cacheDir, gomock.Any(), version).
