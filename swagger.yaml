@@ -6853,7 +6853,7 @@ definitions:
       - 'ingress-vips-defined'
       - 'ingress-vips-valid'
       - 'all-hosts-are-ready-to-install'
-      - 'sufficient-masters-count'
+      - 'sufficient-masters-and-workers-count'
       - 'dns-domain-defined'
       - 'pull-secret-set'
       - 'ntp-server-configured'
@@ -6865,6 +6865,7 @@ definitions:
       - 'mce-requirements-satisfied'
       - 'network-type-valid'
       - 'platform-requirements-satisfied'
+      - 'cluster-preparation-succeeded'
 
   logs_type:
     type: string

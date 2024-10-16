@@ -332,7 +332,7 @@ var _ = Describe("Transition tests", func() {
 				}
 				Expect(common.LoadTableFromDB(db, common.MonitoredOperatorsTable).Create(&c).Error).ShouldNot(HaveOccurred())
 				if t.withWorkers {
-					for i := 0; i < MinMastersNeededForInstallation; i++ {
+					for i := 0; i < common.MinMasterHostsNeededForInstallationInHaMode; i++ {
 						createHost(clusterId, models.HostStatusInstalled, db)
 					}
 					for i := 0; i < 2; i++ {
@@ -648,17 +648,17 @@ func makeJsonChecker(expected map[ValidationID]validationCheckResult) *validatio
 
 var _ = Describe("Refresh Cluster - No DHCP", func() {
 	var (
-		ctx                                     = context.Background()
-		db                                      *gorm.DB
-		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
-		cluster                                 common.Cluster
-		clusterApi                              *Manager
-		mockEvents                              *eventsapi.MockHandler
-		mockHostAPI                             *host.MockAPI
-		mockMetric                              *metrics.MockAPI
-		ctrl                                    *gomock.Controller
-		dbName                                  string
-		mockS3Api                               *s3wrapper.MockAPI
+		ctx                                           = context.Background()
+		db                                            *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4, hid5, hid6 strfmt.UUID
+		cluster                                       common.Cluster
+		clusterApi                                    *Manager
+		mockEvents                                    *eventsapi.MockHandler
+		mockHostAPI                                   *host.MockAPI
+		mockMetric                                    *metrics.MockAPI
+		ctrl                                          *gomock.Controller
+		dbName                                        string
+		mockS3Api                                     *s3wrapper.MockAPI
 	)
 
 	type candidateChecker func()
@@ -727,8 +727,6 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -742,9 +740,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
-							common.MinMasterHostsNeededForInstallation)},
+					SufficientMastersAndWorkersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters must have between %d-%d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -759,8 +756,6 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -774,9 +769,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
-							common.MinMasterHostsNeededForInstallation)},
+					SufficientMastersAndWorkersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters must have between %d-%d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -792,8 +786,6 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -807,9 +799,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
-							common.MinMasterHostsNeededForInstallation)},
+					SufficientMastersAndWorkersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters must have between %d-%d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -825,8 +816,6 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -840,9 +829,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
-							common.MinMasterHostsNeededForInstallation)},
+					SufficientMastersAndWorkersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters must have between %d-%d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -857,8 +845,6 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster, Inventory: common.GenerateTestDefaultInventory()},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -872,9 +858,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
-							common.MinMasterHostsNeededForInstallation)},
+					SufficientMastersAndWorkersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters must have between %d-%d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -905,8 +890,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount: {status: ValidationSuccess,
-						messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount: {status: ValidationSuccess,
+						messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -938,13 +923,13 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount: {status: ValidationSuccess,
-						messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount: {status: ValidationSuccess,
+						messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to insufficient - masters > 3",
+				name:            fmt.Sprintf("pending-for-input to insufficient - masters > %d", common.MaxMasterHostsNeededForInstallationInHaMode),
 				srcState:        models.ClusterStatusPendingForInput,
 				dstState:        models.ClusterStatusInsufficient,
 				machineNetworks: common.TestIPv4Networking.MachineNetworks,
@@ -957,6 +942,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -970,9 +957,37 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
-							common.MinMasterHostsNeededForInstallation)},
+					SufficientMastersAndWorkersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters must have between %d-%d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:            fmt.Sprintf("pending-for-input to insufficient - masters < %d", common.MinMasterHostsNeededForInstallationInHaMode),
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusInsufficient,
+				machineNetworks: common.TestIPv4Networking.MachineNetworks,
+				apiVips:         common.TestIPv4Networking.APIVips,
+				ingressVips:     common.TestIPv4Networking.IngressVips,
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster}},
+				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster Machine CIDR is equivalent to the calculated CIDR"},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
+					SufficientMastersAndWorkersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters must have between %d-%d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -1004,7 +1019,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -1035,7 +1050,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -1066,7 +1081,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "The cluster has hosts that are not ready to install."},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected: false,
@@ -1098,7 +1113,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected: false,
@@ -1130,7 +1145,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationFailure, messagePattern: "The base domain is undefined and must be provided"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected: false,
@@ -1162,7 +1177,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationFailure, messagePattern: "The pull secret is not set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected: false,
@@ -1193,7 +1208,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected: false,
@@ -1225,7 +1240,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected: false,
@@ -1255,7 +1270,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected: false,
@@ -1994,7 +2009,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationFailure, messagePattern: "Cluster Network CIDR is undefined"},
 					isServiceCidrDefined:                {status: ValidationFailure, messagePattern: "Service Network CIDR is undefined"},
 					noCidrOverlapping:                   {status: ValidationPending, messagePattern: "At least one of the CIDRs .Machine Network, Cluster Network, Service Network. is undefined"},
@@ -2027,7 +2042,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: User Managed Networking"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: User Managed Networking"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationFailure, messagePattern: "Cluster Network CIDR is undefined"},
 					isServiceCidrDefined:                {status: ValidationFailure, messagePattern: "Service Network CIDR is undefined"},
 					noCidrOverlapping:                   {status: ValidationPending, messagePattern: "At least one of the CIDRs .Cluster Network, Service Network. is undefined"},
@@ -2065,7 +2080,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: User Managed Networking"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: User Managed Networking"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected:         false,
@@ -2106,7 +2121,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: "The cluster has a single dedicated control plane node."},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationFailure, messagePattern: "MachineNetworkCIDR and ClusterNetworkCidr: CIDRS .* and .* overlap"},
@@ -2144,7 +2159,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationFailure, messagePattern: "MachineNetworkCIDR and ServiceNetworkCIDR: CIDRS .* and .* overlap"},
@@ -2181,7 +2196,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2218,7 +2233,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2251,7 +2266,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2288,7 +2303,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2323,7 +2338,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2357,7 +2372,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2390,7 +2405,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: "The cluster has a single dedicated control plane node."},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2504,7 +2519,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationFailure, messagePattern: "Cluster Network CIDR is undefined"},
 					isServiceCidrDefined:                {status: ValidationFailure, messagePattern: "Service Network CIDR is undefined"},
 					noCidrOverlapping:                   {status: ValidationPending, messagePattern: "At least one of the CIDRs .Machine Network, Cluster Network, Service Network. is undefined"},
@@ -2538,7 +2553,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: User Managed Networking"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: User Managed Networking"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationFailure, messagePattern: "Cluster Network CIDR is undefined"},
 					isServiceCidrDefined:                {status: ValidationFailure, messagePattern: "Service Network CIDR is undefined"},
 					noCidrOverlapping:                   {status: ValidationPending, messagePattern: "At least one of the CIDRs .Cluster Network, Service Network. is undefined"},
@@ -2572,7 +2587,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: User Managed Networking"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: User Managed Networking"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationFailure, messagePattern: "Cluster Network CIDR is undefined"},
 					isServiceCidrDefined:                {status: ValidationFailure, messagePattern: "Service Network CIDR is undefined"},
 					noCidrOverlapping:                   {status: ValidationPending, messagePattern: "At least one of the CIDRs .Cluster Network, Service Network. is undefined"},
@@ -2609,7 +2624,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: User Managed Networking"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: User Managed Networking"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
 				}),
 				errorExpected:         false,
@@ -2645,7 +2660,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationFailure, messagePattern: "MachineNetworkCIDR and ServiceNetworkCIDR: CIDRS .* and .* overlap"},
@@ -2682,7 +2697,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2716,7 +2731,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2753,7 +2768,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2786,7 +2801,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2823,7 +2838,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2858,7 +2873,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
 					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
@@ -2926,17 +2941,17 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 
 var _ = Describe("Refresh Cluster - With DHCP", func() {
 	var (
-		ctx                                     = context.Background()
-		db                                      *gorm.DB
-		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
-		cluster                                 common.Cluster
-		clusterApi                              *Manager
-		mockEvents                              *eventsapi.MockHandler
-		mockHostAPI                             *host.MockAPI
-		mockMetric                              *metrics.MockAPI
-		ctrl                                    *gomock.Controller
-		dbName                                  string
-		mockS3Api                               *s3wrapper.MockAPI
+		ctx                                           = context.Background()
+		db                                            *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4, hid5, hid6 strfmt.UUID
+		cluster                                       common.Cluster
+		clusterApi                                    *Manager
+		mockEvents                                    *eventsapi.MockHandler
+		mockHostAPI                                   *host.MockAPI
+		mockMetric                                    *metrics.MockAPI
+		ctrl                                          *gomock.Controller
+		dbName                                        string
+		mockS3Api                                     *s3wrapper.MockAPI
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -2960,6 +2975,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		hid3 = strfmt.UUID(uuid.New().String())
 		hid4 = strfmt.UUID(uuid.New().String())
 		hid5 = strfmt.UUID(uuid.New().String())
+		hid6 = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
@@ -3021,8 +3037,6 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				hosts: []models.Host{
 					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -3035,14 +3049,13 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
-							common.MinMasterHostsNeededForInstallation)},
+					SufficientMastersAndWorkersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters must have between %d-%d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
 			{
-				name:            "pending-for-input to insufficient - masters > 3",
+				name:            fmt.Sprintf("pending-for-input to insufficient - masters > %d", common.MaxMasterHostsNeededForInstallationInHaMode),
 				srcState:        models.ClusterStatusPendingForInput,
 				dstState:        models.ClusterStatusInsufficient,
 				machineNetworks: common.TestIPv4Networking.MachineNetworks,
@@ -3055,6 +3068,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -3067,9 +3082,37 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
-							common.MinMasterHostsNeededForInstallation)},
+					SufficientMastersAndWorkersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters must have between %d-%d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:            fmt.Sprintf("pending-for-input to insufficient - masters < %d", common.MinMasterHostsNeededForInstallationInHaMode),
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusInsufficient,
+				machineNetworks: common.TestIPv4Networking.MachineNetworks,
+				apiVips:         common.TestIPv4Networking.APIVips,
+				ingressVips:     common.TestIPv4Networking.IngressVips,
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster Machine CIDR is equivalent to the calculated CIDR"},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
+					SufficientMastersAndWorkersCount: {status: ValidationFailure,
+						messagePattern: fmt.Sprintf("Clusters must have between %d-%d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -3099,7 +3142,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "The cluster has hosts that are not ready to install."},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -3130,7 +3173,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "The cluster has hosts that are not ready to install."},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -3154,15 +3197,15 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
-					IsMachineCidrDefined:      {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
-					AreApiVipsDefined:         {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:           {status: ValidationFailure, messagePattern: fmt.Sprintf("api vips <10.10.10.12> does not belong to machine-network-cidr <%s>", string(common.TestIPv4Networking.MachineNetworks[0].Cidr))},
-					AreIngressVipsDefined:     {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:       {status: ValidationFailure, messagePattern: fmt.Sprintf("ingress vips <10.10.10.13> does not belong to machine-network-cidr <%s>", string(common.TestIPv4Networking.MachineNetworks[0].Cidr))},
-					AllHostsAreReadyToInstall: {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install."},
-					IsDNSDomainDefined:        {status: ValidationSuccess, messagePattern: "The base domain is defined"},
-					IsPullSecretSet:           {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:    {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					IsMachineCidrDefined:             {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					AreApiVipsDefined:                {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
+					AreApiVipsValid:                  {status: ValidationFailure, messagePattern: fmt.Sprintf("api vips <10.10.10.12> does not belong to machine-network-cidr <%s>", string(common.TestIPv4Networking.MachineNetworks[0].Cidr))},
+					AreIngressVipsDefined:            {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
+					AreIngressVipsValid:              {status: ValidationFailure, messagePattern: fmt.Sprintf("ingress vips <10.10.10.13> does not belong to machine-network-cidr <%s>", string(common.TestIPv4Networking.MachineNetworks[0].Cidr))},
+					AllHostsAreReadyToInstall:        {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install."},
+					IsDNSDomainDefined:               {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+					IsPullSecretSet:                  {status: ValidationSuccess, messagePattern: "The pull secret is set."},
+					SufficientMastersAndWorkersCount: {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -3193,7 +3236,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install."},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -3227,7 +3270,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -3260,7 +3303,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				setMachineCidrUpdatedAt: true,
 				errorExpected:           false,
@@ -3292,7 +3335,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -3323,7 +3366,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -3354,7 +3397,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -3385,7 +3428,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 				}),
 				errorExpected: false,
 			},
@@ -4196,7 +4239,7 @@ var _ = Describe("NTP refresh cluster", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					IsNtpServerConfigured:               {status: ValidationFailure, messagePattern: "please configure an NTP server via DHCP"},
 				}),
 				errorExpected: false,
@@ -4222,7 +4265,7 @@ var _ = Describe("NTP refresh cluster", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					IsNtpServerConfigured:               {status: ValidationSuccess, messagePattern: "No ntp problems found"},
 				}),
 				errorExpected: false,
@@ -4248,7 +4291,7 @@ var _ = Describe("NTP refresh cluster", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					IsNtpServerConfigured:               {status: ValidationSuccess, messagePattern: "No ntp problems found"},
 				}),
 				errorExpected: false,
@@ -4274,7 +4317,7 @@ var _ = Describe("NTP refresh cluster", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					IsNtpServerConfigured:               {status: ValidationSuccess, messagePattern: "No ntp problems found"},
 				}),
 				errorExpected: false,
@@ -4302,7 +4345,7 @@ var _ = Describe("NTP refresh cluster", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "The cluster has hosts that are not ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					IsNtpServerConfigured:               {status: ValidationSuccess, messagePattern: "No ntp problems found"},
 				}),
 				errorExpected: false,
@@ -4331,7 +4374,7 @@ var _ = Describe("NTP refresh cluster", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "The cluster has hosts that are not ready to install."},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined."},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					IsNtpServerConfigured:               {status: ValidationSuccess, messagePattern: "No ntp problems found"},
 				}),
 				errorExpected: false,
@@ -4358,7 +4401,7 @@ var _ = Describe("NTP refresh cluster", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: fmt.Sprintf("The cluster has between %d-%d dedicated control plane nodes.", common.MinMasterHostsNeededForInstallationInHaMode, common.MaxMasterHostsNeededForInstallationInHaMode)},
 					IsNtpServerConfigured:               {status: ValidationFailure, messagePattern: "please configure an NTP server via DHCP"},
 				}),
 				errorExpected: false,
@@ -4495,7 +4538,7 @@ var _ = Describe("Single node", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationFailure, messagePattern: "Single-node clusters must have a single control plane node and no workers."},
+					SufficientMastersAndWorkersCount:    {status: ValidationFailure, messagePattern: "Single-node clusters must have a single control plane node and no workers."},
 				}),
 				errorExpected: false,
 			},
@@ -4519,7 +4562,7 @@ var _ = Describe("Single node", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationFailure, messagePattern: "Single-node clusters must have a single control plane node and no workers."},
+					SufficientMastersAndWorkersCount:    {status: ValidationFailure, messagePattern: "Single-node clusters must have a single control plane node and no workers."},
 				}),
 				errorExpected: false,
 			},
@@ -4545,7 +4588,7 @@ var _ = Describe("Single node", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationFailure, messagePattern: "Single-node clusters must have a single control plane node and no workers."},
+					SufficientMastersAndWorkersCount:    {status: ValidationFailure, messagePattern: "Single-node clusters must have a single control plane node and no workers."},
 				}),
 				errorExpected: false,
 			},
@@ -4569,7 +4612,7 @@ var _ = Describe("Single node", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationFailure, messagePattern: "Single-node clusters must have a single control plane node and no workers."},
+					SufficientMastersAndWorkersCount:    {status: ValidationFailure, messagePattern: "Single-node clusters must have a single control plane node and no workers."},
 				}),
 				errorExpected: false,
 			},
@@ -4593,7 +4636,7 @@ var _ = Describe("Single node", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: "The cluster has a single dedicated control plane node."},
 				}),
 				errorExpected: false,
 			},
@@ -4617,7 +4660,7 @@ var _ = Describe("Single node", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: "The cluster has a single dedicated control plane node."},
 				}),
 				errorExpected: false,
 			},
@@ -4641,7 +4684,7 @@ var _ = Describe("Single node", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
-					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+					SufficientMastersAndWorkersCount:    {status: ValidationSuccess, messagePattern: "The cluster has a single dedicated control plane node."},
 				}),
 				errorExpected: false,
 			},
