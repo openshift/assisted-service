@@ -540,7 +540,7 @@ var _ = Describe("getImageFromRelease", func() {
 							}
 							doneChan <- true
 						}()
-						ret, err := oc.getImageFromRelease(log, r.imageName, r.releaseName, "pull", false)
+						ret, err := oc.getImageFromRelease(log, r.imageName, r.releaseName, "", "pull")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(ret).To(Equal(r.expectedResult))
 					}()

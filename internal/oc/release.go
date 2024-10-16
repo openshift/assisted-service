@@ -129,19 +129,11 @@ func (r *release) getImageByName(log logrus.FieldLogger, imageName, releaseImage
 		return "", errors.New("neither releaseImage, nor releaseImageMirror are provided")
 	}
 
-	if releaseImageMirror != "" {
-		//TODO: Get mirror registry certificate from install-config
-		image, err = r.getImageFromRelease(log, imageName, releaseImageMirror, pullSecret, true)
-		if err != nil {
-			log.WithError(err).Errorf("failed to get %s image from mirror release image %s", imageName, releaseImageMirror)
-			return "", err
-		}
-	} else {
-		image, err = r.getImageFromRelease(log, imageName, releaseImage, pullSecret, false)
-		if err != nil {
-			log.WithError(err).Errorf("failed to get %s image from release image %s", imageName, releaseImage)
-			return "", err
-		}
+	//TODO: Get mirror registry certificate from install-config
+	image, err = r.getImageFromRelease(log, imageName, releaseImage, releaseImageMirror, pullSecret)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get %s image from mirror release image %s or mirror %s", imageName, releaseImage, releaseImageMirror)
+		return "", err
 	}
 	return image, err
 }
@@ -153,19 +145,11 @@ func (r *release) GetOpenshiftVersion(log logrus.FieldLogger, releaseImage strin
 		return "", errors.New("no releaseImage nor releaseImageMirror provided")
 	}
 
-	if releaseImageMirror != "" {
-		//TODO: Get mirror registry certificate from install-config
-		openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImageMirror, pullSecret, true)
-		if err != nil {
-			log.WithError(err).Errorf("failed to get image openshift version from mirror release image %s", releaseImageMirror)
-			return "", err
-		}
-	} else {
-		openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImage, pullSecret, false)
-		if err != nil {
-			log.WithError(err).Errorf("failed to get image openshift version from release image %s", releaseImage)
-			return "", err
-		}
+	//TODO: Get mirror registry certificate from install-config
+	openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImage, releaseImageMirror, pullSecret)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get image openshift version from release image %s or mirror %s", releaseImage, releaseImageMirror)
+		return "", err
 	}
 
 	return openshiftVersion, err
@@ -186,25 +170,28 @@ func (r *release) GetMajorMinorVersion(log logrus.FieldLogger, releaseImage stri
 }
 
 func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) ([]string, error) {
-	image := releaseImageMirror
-	if image == "" {
-		image = releaseImage
-	}
-	if image == "" {
+	if releaseImage == "" && releaseImageMirror == "" {
 		return nil, errors.New("no releaseImage nor releaseImageMirror provided")
 	}
 
-	return r.GetImageArchitecture(log, image, pullSecret)
-}
-
-func (r *release) GetImageArchitecture(log logrus.FieldLogger, image string, pullSecret string) ([]string, error) {
 	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateImageInfo)
 	if err != nil {
 		return nil, err
 	}
 	defer mirrorsFlag.Delete()
-	cmd := fmt.Sprintf(templateImageInfo, mirrorsFlag, image)
 
+	image, _ := r.getReleaseImageToUse(releaseImage, releaseImageMirror, mirrorsFlag)
+	return r.GetImageArchitecture(log, image, pullSecret)
+}
+
+func (r *release) GetImageArchitecture(log logrus.FieldLogger, image, pullSecret string) ([]string, error) {
+	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateImageInfo)
+	if err != nil {
+		return nil, err
+	}
+	defer mirrorsFlag.Delete()
+
+	cmd := fmt.Sprintf(templateImageInfo, mirrorsFlag, image)
 	cmdMultiarch := fmt.Sprintf(templateSkopeoDetectMultiarch, image)
 
 	imageInfoStr, err := execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
@@ -265,10 +252,16 @@ func (r *release) getImageValue(imageName, releaseImage string) (*imageValue, er
 	return value, nil
 }
 
-func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, pullSecret string,
-	insecure bool) (string, error) {
+func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
+	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
+	if err != nil {
+		return "", err
+	}
+	defer mirrorsFlag.Delete()
+	image, insecure := r.getReleaseImageToUse(releaseImage, releaseImageMirror, mirrorsFlag)
+
 	// Fetch image URL from cache
-	actualImageValue, err := r.getImageValue(imageName, releaseImage)
+	actualImageValue, err := r.getImageValue(imageName, image)
 	if err != nil {
 		return "", err
 	}
@@ -281,33 +274,29 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 		return actualImageValue.value, nil
 	}
 
-	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
-	if err != nil {
-		return "", err
-	}
-	defer mirrorsFlag.Delete()
-	cmd := fmt.Sprintf(templateGetImage, imageName, insecure, mirrorsFlag, releaseImage)
+	cmd := fmt.Sprintf(templateGetImage, imageName, insecure, mirrorsFlag, image)
 
 	log.Infof("Fetching image from OCP release (%s)", cmd)
-	image, err := execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
+	imageFromRelease, err := execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
 	if err != nil {
 		return "", err
 	}
 
 	// Update image URL in cache
-	actualImageValue.value = image
+	actualImageValue.value = imageFromRelease
 
-	return image, nil
+	return imageFromRelease, nil
 }
 
-func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, releaseImage, pullSecret string,
-	insecure bool) (string, error) {
+func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
 	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateGetVersion)
 	if err != nil {
 		return "", err
 	}
 	defer mirrorsFlag.Delete()
-	cmd := fmt.Sprintf(templateGetVersion, insecure, mirrorsFlag, releaseImage)
+	image, insecure := r.getReleaseImageToUse(releaseImage, releaseImageMirror, mirrorsFlag)
+
+	cmd := fmt.Sprintf(templateGetVersion, insecure, mirrorsFlag, image)
 	version, err := execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
 	if err != nil {
 		return "", err
@@ -325,19 +314,11 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 		return "", errors.New("no releaseImage or releaseImageMirror provided")
 	}
 
-	if releaseImageMirror != "" {
-		//TODO: Get mirror registry certificate from install-config
-		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, ocpVersion)
-		if err != nil {
-			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from mirror release image %s", releaseImageMirror)
-			return "", err
-		}
-	} else {
-		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, ocpVersion)
-		if err != nil {
-			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from release image %s", releaseImage)
-			return "", err
-		}
+	//TODO: Get mirror registry certificate from install-config
+	path, err = r.extractFromRelease(log, releaseImage, releaseImageMirror, cacheDir, pullSecret, ocpVersion)
+	if err != nil {
+		log.WithError(err).Errorf("failed to extract openshift-baremetal-install from release image %s or mirror %s", releaseImage, releaseImageMirror)
+		return "", err
 	}
 	return path, err
 }
@@ -371,9 +352,16 @@ func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string, ocp
 
 // extractFromRelease returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image.
-func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool,
+func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, releaseImageMirror, cacheDir, pullSecret string,
 	ocpVersion string) (string, error) {
-	workdir, binary, path, err := r.GetReleaseBinaryPath(releaseImage, cacheDir, ocpVersion)
+	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateExtract)
+	if err != nil {
+		return "", err
+	}
+	defer mirrorsFlag.Delete()
+	image, insecure := r.getReleaseImageToUse(releaseImage, releaseImageMirror, mirrorsFlag)
+
+	workdir, binary, path, err := r.GetReleaseBinaryPath(image, cacheDir, ocpVersion)
 	if err != nil {
 		return "", err
 	}
@@ -383,12 +371,7 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 		return "", err
 	}
 
-	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateExtract)
-	if err != nil {
-		return "", err
-	}
-	defer mirrorsFlag.Delete()
-	cmd := fmt.Sprintf(templateExtract, binary, workdir, insecure, mirrorsFlag, releaseImage)
+	cmd := fmt.Sprintf(templateExtract, binary, workdir, insecure, mirrorsFlag, image)
 
 	_, err = retry.Do(r.config.MaxTries, r.config.RetryDelay, execute, log, r.executer, pullSecret, cmd, ocAuthArgument)
 	if err != nil {
@@ -483,6 +466,18 @@ func (r *release) getMirrorsFlagFromRegistriesConfig(log logrus.FieldLogger, com
 		file:   file,
 	}
 	return
+}
+
+// getReleaseImageToUse will return the releaseImageMirror if set only if the mirror info (icsp or idms) has not been
+// configured. Otherwise the releaseImage will be returned.
+func (r *release) getReleaseImageToUse(releaseImage, releaseImageMirror string, mirrorsFlag *mirrorsFlagInfo) (string, bool) {
+	image := releaseImage
+	insecure := false
+	if releaseImageMirror != "" && mirrorsFlag.String() == "" {
+		image = releaseImageMirror
+		insecure = true
+	}
+	return image, insecure
 }
 
 // mirrorsFlagInfo contains the information needed to populate the '--idms-file' or '--icsp-file' command line flag that
