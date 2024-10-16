@@ -355,14 +355,13 @@ func (e Events) prepareEventsTable(ctx context.Context, tx *gorm.DB, clusterID *
 	//host bound to a cluster or registered to a bound infra-env) check the access permission
 	//relative to the cluster ownership
 	if clusterBoundEvents() {
-		tx = tx.Model(&common.Cluster{}).
-			Select("events.*, clusters.user_name, clusters.org_id").
-			Joins("INNER JOIN events ON clusters.id = events.cluster_id")
+		tx = tx.Model(&common.Event{}).Select("events.*, clusters.user_name, clusters.org_id").
+			Joins("INNER JOIN clusters ON clusters.id = events.cluster_id")
 
 		// if deleted hosts flag is true, we need to add 'deleted_at' to know whether events are related to a deleted host
 		if swag.BoolValue(deletedHosts) {
 			tx = tx.Select("events.*, clusters.user_name, clusters.org_id, hosts.deleted_at").
-				Joins("LEFT JOIN hosts ON events.host_id = hosts.id")
+				Joins("LEFT JOIN hosts ON hosts.id = events.host_id")
 		}
 		return tx
 	}
@@ -370,17 +369,17 @@ func (e Events) prepareEventsTable(ctx context.Context, tx *gorm.DB, clusterID *
 	//for unbound events that are searched with infra-env id (whether events on hosts or the
 	//infra-env level itself) check the access permission relative to the infra-env ownership
 	if nonBoundEvents() {
-		return tx.Model(&common.InfraEnv{}).
-			Select("events.*, infra_envs.user_name, infra_envs.org_id").
-			Joins("INNER JOIN events ON infra_envs.id = events.infra_env_id")
+		return tx.Model(&common.Event{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
+			Joins("INNER JOIN infra_envs ON infra_envs.id = events.infra_env_id")
 	}
 
-	//for query made on the host only check the permission relative to it's infra-env. since
-	//host table does not contain an org_id we can not perform a join on that table and has to go
-	//through the infra-env table which is good because authorization is done on the infra-level
+	// Events must be linked to the infra_envs table and then to the hosts table
+	// The hosts table does not hold an org_id, so permissions related fields must be supplied by the infra_env
 	if hostOnlyEvents() {
-		return tx.Model(&common.Host{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
-			Joins("INNER JOIN infra_envs ON hosts.infra_env_id = infra_envs.id").Joins("INNER JOIN events ON events.host_id = hosts.id")
+		return tx.Model(&common.Event{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
+			Joins("INNER JOIN infra_envs ON infra_envs.id = events.infra_env_id").
+			Joins("INNER JOIN hosts ON hosts.id = events.host_id"). // This join is here to ensure that only events for a host that exists are fetched
+			Where("hosts.deleted_at IS NULL")                       // Only interested in active hosts
 	}
 
 	//non supported option
