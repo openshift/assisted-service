@@ -337,21 +337,23 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 // Finalizer handling is only run if the user has annotated the BMH and converged flow is enabled,
 // or, when the BMH is annotated with 'paused' annotation.
 func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	// return immediately and ensure our finalizer doesn't exist if the BMH is not one of ours (has the infraenv label)
+	if _, present := bmh.Labels[BMH_INFRA_ENV_LABEL]; !present {
+		return reconcileComplete{stop: true, dirty: controllerutil.RemoveFinalizer(bmh, BMH_FINALIZER_NAME)}
+	}
+
+	if bmh.ObjectMeta.DeletionTimestamp.IsZero() {
+		return reconcileComplete{dirty: controllerutil.AddFinalizer(bmh, BMH_FINALIZER_NAME)}
+	}
+
 	var removeAgentOnDelete bool
 	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; has_annotation && r.ConvergedFlowEnabled {
 		removeAgentOnDelete = true
 	}
 	_, bmhPaused := bmh.GetAnnotations()[BMH_PAUSED_ANNOTATION]
 
-	// Register a finalizer if it's absent
+	// Register a finalizer if it's absent and should be present, remove the finalizer if it's present and should be absent
 	bmhHasFinalizer := funk.ContainsString(bmh.GetFinalizers(), BMH_FINALIZER_NAME)
-	if bmh.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !bmhHasFinalizer {
-			controllerutil.AddFinalizer(bmh, BMH_FINALIZER_NAME)
-			return reconcileComplete{dirty: true}
-		}
-		return reconcileComplete{}
-	}
 
 	// BMH is being deleted and finalizer is gone, ensure detached and paused are gone and return
 	if !bmhHasFinalizer {
@@ -371,8 +373,8 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 			removeBMHDetachedAnnotation(log, bmh)
 		}
 		removeBMHPausedAnnotation(log, bmh)
-		controllerutil.RemoveFinalizer(bmh, BMH_FINALIZER_NAME)
-		dirty := removeAgentOnDelete || bmhPaused
+		finalizersUpdated := controllerutil.RemoveFinalizer(bmh, BMH_FINALIZER_NAME)
+		dirty := removeAgentOnDelete || bmhPaused || finalizersUpdated
 		return reconcileComplete{stop: true, dirty: dirty}
 	}
 

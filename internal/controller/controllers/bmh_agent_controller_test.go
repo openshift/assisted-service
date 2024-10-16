@@ -62,28 +62,17 @@ var _ = Describe("bmac reconcile", func() {
 		mockCtrl.Finish()
 	})
 
-	It("bmh reconcile: no labels", func() {
+	It("with no labels the finalizer should not be set", func() {
 		host := newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{})
 		Expect(c.Create(ctx, host)).To(BeNil())
 
-		result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
-		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{}))
-	})
-
-	It("adds a finalizer to the BMH when it has the management annotation", func() {
-		host := newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{})
-		host.ObjectMeta.SetAnnotations(map[string]string{BMH_DELETE_ANNOTATION: "true"})
-		Expect(c.Create(ctx, host)).To(BeNil())
-
-		bmhr.ConvergedFlowEnabled = true
 		result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 
 		key := types.NamespacedName{Name: host.Name, Namespace: host.Namespace}
 		Expect(c.Get(ctx, key, host)).To(Succeed())
-		Expect(host.GetFinalizers()).To(ContainElement(BMH_FINALIZER_NAME))
+		Expect(host.GetFinalizers()).ToNot(ContainElement(BMH_FINALIZER_NAME))
 	})
 
 	Describe("queue bmh request for agent", func() {
@@ -273,16 +262,39 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_INSPECT_ANNOTATION))
 			})
-		})
 
-		Context("with an existing infraEnv without ISODownloadURL", func() {
-			It("should requeue the reconcile", func() {
-				infraEnv := newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
-				Expect(c.Create(ctx, infraEnv)).To(BeNil())
-
+			It("should not add a finalizer", func() {
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(host.GetFinalizers()).ToNot(ContainElement(BMH_FINALIZER_NAME))
+			})
+		})
+
+		Context("with an existing infraEnv without ISODownloadURL", func() {
+			BeforeEach(func() {
+				infraEnv := newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+				Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			})
+
+			It("should requeue the reconcile", func() {
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
+
+			It("should add a finalizer", func() {
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				key := types.NamespacedName{Name: host.Name, Namespace: host.Namespace}
+				Expect(c.Get(ctx, key, host)).To(Succeed())
+				Expect(host.GetFinalizers()).To(ContainElement(BMH_FINALIZER_NAME))
 			})
 		})
 
@@ -2575,6 +2587,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 			SpokeK8sClientFactory: mockClientFactory,
 		}
 		bmh = newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{})
+		bmh.Labels = map[string]string{BMH_INFRA_ENV_LABEL: "testInfraEnv"}
 		bmh.Annotations = map[string]string{BMH_DELETE_ANNOTATION: "true"}
 	})
 
@@ -2677,6 +2690,27 @@ var _ = Describe("handleBMHFinalizer", func() {
 			res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
 			Expect(res.Dirty()).To(BeTrue())
 			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
+			_, err := res.Result()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("removes the finalizer without delete annotations or paused", func() {
+			bmh.Annotations = nil
+			bmh.ObjectMeta.Finalizers = []string{BMH_FINALIZER_NAME}
+			res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
+			Expect(res.Dirty()).To(BeTrue())
+			Expect(bmh.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
+			_, err := res.Result()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("removes the finalizer when infraenv is not set", func() {
+			bmh.Annotations = nil
+			bmh.Labels = nil
+			bmh.ObjectMeta.Finalizers = []string{BMH_FINALIZER_NAME}
+			res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
+			Expect(res.Dirty()).To(BeTrue())
+			Expect(bmh.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
 			_, err := res.Result()
 			Expect(err).NotTo(HaveOccurred())
 		})
