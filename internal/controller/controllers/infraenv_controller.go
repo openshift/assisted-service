@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -228,8 +229,13 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 		updateParams.InfraEnvUpdateParams.KernelArguments = internalKernelArgs(infraEnv.Spec.KernelArguments)
 	}
 
-	// UpdateInfraEnvInternal will generate an ISO only if there it was not generated before,
-	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams, nil)
+	mirrorRegistryConfiguration, err := mirrorregistries.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef)
+	if err != nil {
+		return nil, err
+	}
+
+	// UpdateInfraEnvInternal will generate an ISO only if it was not generated before
+	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams, nil, mirrorRegistryConfiguration)
 }
 
 func areKernelArgsIdentical(k1, k2 []aiv1beta1.KernelArgument) bool {
@@ -507,7 +513,12 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 		createParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
 	}
 
-	return r.Installer.RegisterInfraEnvInternal(ctx, key, createParams)
+	mirrorRegistryConfiguration, err := mirrorregistries.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Installer.RegisterInfraEnvInternal(ctx, key, mirrorRegistryConfiguration, createParams)
 }
 
 func (r *InfraEnvReconciler) deregisterInfraEnvIfNeeded(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) (ctrl.Result, error) {

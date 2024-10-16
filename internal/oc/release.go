@@ -73,14 +73,14 @@ type imageValue struct {
 type release struct {
 	executer                executer.Executer
 	config                  Config
-	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 	sys                     system.SystemInfo
 
 	// A map for caching images (image name > release image URL > image)
 	imagesMap common.ExpiringCache
 }
 
-func NewRelease(executer executer.Executer, config Config, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder, sys system.SystemInfo) Release {
+func NewRelease(executer executer.Executer, config Config, mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder, sys system.SystemInfo) Release {
 	return &release{
 		executer:                executer,
 		config:                  config,

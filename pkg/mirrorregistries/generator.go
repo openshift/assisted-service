@@ -9,7 +9,7 @@ import (
 )
 
 //go:generate mockgen -source=generator.go -package=mirrorregistries -destination=mock_generator.go
-type MirrorRegistriesConfigBuilder interface {
+type ServiceMirrorRegistriesConfigBuilder interface {
 	IsMirrorRegistriesConfigured() bool
 	GetMirrorCA() ([]byte, error)
 	GetMirrorRegistries() ([]byte, error)
@@ -21,7 +21,7 @@ type mirrorRegistriesConfigBuilder struct {
 	MirrorRegistriesCertificatePath string
 }
 
-func New() MirrorRegistriesConfigBuilder {
+func New() ServiceMirrorRegistriesConfigBuilder {
 	return &mirrorRegistriesConfigBuilder{
 		MirrorRegistriesConfigPath:      common.MirrorRegistriesConfigPath,
 		MirrorRegistriesCertificatePath: common.MirrorRegistriesCertificatePath,
@@ -56,7 +56,7 @@ func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
 	return ok
 }
 
-// return error if the path is actually an empty dir, which will indicate that
+// GetMirrorCA return error if the path is actually an empty dir, which will indicate that
 // the mirror registries are not configured.
 // empty dir is due to the way we mao configmap in the assisted-service pod
 func (m *mirrorRegistriesConfigBuilder) GetMirrorCA() ([]byte, error) {
