@@ -6439,7 +6439,8 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"not null;check:openshift_version \u003c\u003e ''\""
         },
         "org_id": {
           "type": "string"
@@ -17263,7 +17264,8 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string"
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"not null;check:openshift_version \u003c\u003e ''\""
         },
         "org_id": {
           "type": "string"

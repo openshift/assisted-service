@@ -5150,6 +5150,7 @@ definitions:
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
+        x-go-custom-tag: gorm:"not null;check:openshift_version <> ''"
       ocp_release_image:
         type: string
         description: OpenShift release image URI.
