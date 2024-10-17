@@ -21,7 +21,13 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
+	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
+	"github.com/openshift/assisted-service/internal/operators/openshiftai"
+	"github.com/openshift/assisted-service/internal/operators/pipelines"
+	"github.com/openshift/assisted-service/internal/operators/serverless"
+	"github.com/openshift/assisted-service/internal/operators/servicemesh"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -36,7 +42,19 @@ var _ = Describe("Operators endpoint tests", func() {
 			reply, err := userBMClient.Operators.V2ListSupportedOperators(context.TODO(), opclient.NewV2ListSupportedOperatorsParams())
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(reply.GetPayload()).To(ConsistOf(odf.Operator.Name, lso.Operator.Name, cnv.Operator.Name, lvm.Operator.Name, mce.Operator.Name))
+			Expect(reply.GetPayload()).To(ConsistOf(
+				odf.Operator.Name,
+				lso.Operator.Name,
+				cnv.Operator.Name,
+				lvm.Operator.Name,
+				mce.Operator.Name,
+				nodefeaturediscovery.Operator.Name,
+				nvidiagpu.Operator.Name,
+				pipelines.Operator.Name,
+				servicemesh.Operator.Name,
+				serverless.Operator.Name,
+				openshiftai.Operator.Name,
+			))
 		})
 
 		It("should provide operator properties", func() {

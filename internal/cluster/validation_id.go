@@ -11,29 +11,35 @@ import (
 type ValidationID models.ClusterValidationID
 
 const (
-	isClusterCidrDefined                = ValidationID(models.ClusterValidationIDClusterCidrDefined)
-	isServiceCidrDefined                = ValidationID(models.ClusterValidationIDServiceCidrDefined)
-	noCidrOverlapping                   = ValidationID(models.ClusterValidationIDNoCidrsOverlapping)
-	networkPrefixValid                  = ValidationID(models.ClusterValidationIDNetworkPrefixValid)
-	IsMachineCidrDefined                = ValidationID(models.ClusterValidationIDMachineCidrDefined)
-	IsMachineCidrEqualsToCalculatedCidr = ValidationID(models.ClusterValidationIDMachineCidrEqualsToCalculatedCidr)
-	NetworksSameAddressFamilies         = ValidationID(models.ClusterValidationIDNetworksSameAddressFamilies)
-	AreApiVipsDefined                   = ValidationID(models.ClusterValidationIDAPIVipsDefined)
-	AreApiVipsValid                     = ValidationID(models.ClusterValidationIDAPIVipsValid)
-	isNetworkTypeValid                  = ValidationID(models.ClusterValidationIDNetworkTypeValid)
-	AreIngressVipsDefined               = ValidationID(models.ClusterValidationIDIngressVipsDefined)
-	AreIngressVipsValid                 = ValidationID(models.ClusterValidationIDIngressVipsValid)
-	AllHostsAreReadyToInstall           = ValidationID(models.ClusterValidationIDAllHostsAreReadyToInstall)
-	SufficientMastersCount              = ValidationID(models.ClusterValidationIDSufficientMastersCount)
-	IsDNSDomainDefined                  = ValidationID(models.ClusterValidationIDDNSDomainDefined)
-	IsPullSecretSet                     = ValidationID(models.ClusterValidationIDPullSecretSet)
-	IsNtpServerConfigured               = ValidationID(models.ClusterValidationIDNtpServerConfigured)
-	IsOdfRequirementsSatisfied          = ValidationID(models.ClusterValidationIDOdfRequirementsSatisfied)
-	IsLsoRequirementsSatisfied          = ValidationID(models.ClusterValidationIDLsoRequirementsSatisfied)
-	IsCnvRequirementsSatisfied          = ValidationID(models.ClusterValidationIDCnvRequirementsSatisfied)
-	IsLvmRequirementsSatisfied          = ValidationID(models.ClusterValidationIDLvmRequirementsSatisfied)
-	IsMceRequirementsSatisfied          = ValidationID(models.ClusterValidationIDMceRequirementsSatisfied)
-	PlatformRequirementsSatisfied       = ValidationID(models.ClusterValidationIDPlatformRequirementsSatisfied)
+	isClusterCidrDefined                        = ValidationID(models.ClusterValidationIDClusterCidrDefined)
+	isServiceCidrDefined                        = ValidationID(models.ClusterValidationIDServiceCidrDefined)
+	noCidrOverlapping                           = ValidationID(models.ClusterValidationIDNoCidrsOverlapping)
+	networkPrefixValid                          = ValidationID(models.ClusterValidationIDNetworkPrefixValid)
+	IsMachineCidrDefined                        = ValidationID(models.ClusterValidationIDMachineCidrDefined)
+	IsMachineCidrEqualsToCalculatedCidr         = ValidationID(models.ClusterValidationIDMachineCidrEqualsToCalculatedCidr)
+	NetworksSameAddressFamilies                 = ValidationID(models.ClusterValidationIDNetworksSameAddressFamilies)
+	AreApiVipsDefined                           = ValidationID(models.ClusterValidationIDAPIVipsDefined)
+	AreApiVipsValid                             = ValidationID(models.ClusterValidationIDAPIVipsValid)
+	isNetworkTypeValid                          = ValidationID(models.ClusterValidationIDNetworkTypeValid)
+	AreIngressVipsDefined                       = ValidationID(models.ClusterValidationIDIngressVipsDefined)
+	AreIngressVipsValid                         = ValidationID(models.ClusterValidationIDIngressVipsValid)
+	AllHostsAreReadyToInstall                   = ValidationID(models.ClusterValidationIDAllHostsAreReadyToInstall)
+	SufficientMastersCount                      = ValidationID(models.ClusterValidationIDSufficientMastersCount)
+	IsDNSDomainDefined                          = ValidationID(models.ClusterValidationIDDNSDomainDefined)
+	IsPullSecretSet                             = ValidationID(models.ClusterValidationIDPullSecretSet)
+	IsNtpServerConfigured                       = ValidationID(models.ClusterValidationIDNtpServerConfigured)
+	IsOdfRequirementsSatisfied                  = ValidationID(models.ClusterValidationIDOdfRequirementsSatisfied)
+	IsLsoRequirementsSatisfied                  = ValidationID(models.ClusterValidationIDLsoRequirementsSatisfied)
+	IsCnvRequirementsSatisfied                  = ValidationID(models.ClusterValidationIDCnvRequirementsSatisfied)
+	IsLvmRequirementsSatisfied                  = ValidationID(models.ClusterValidationIDLvmRequirementsSatisfied)
+	IsMceRequirementsSatisfied                  = ValidationID(models.ClusterValidationIDMceRequirementsSatisfied)
+	PlatformRequirementsSatisfied               = ValidationID(models.ClusterValidationIDPlatformRequirementsSatisfied)
+	IsNodeFeatureDiscoveryRequirementsSatisfied = ValidationID(models.ClusterValidationIDNodeFeatureDiscoveryRequirementsSatisfied)
+	IsNvidiaGPURequirementsSatisfied            = ValidationID(models.ClusterValidationIDNvidiaGpuRequirementsSatisfied)
+	IsPipelinesRequirementsSatisfied            = ValidationID(models.ClusterValidationIDPipelinesRequirementsSatisfied)
+	IsServiceMeshRequirementsSatisfied          = ValidationID(models.ClusterValidationIDServicemeshRequirementsSatisfied)
+	IsServerLessRequirementsSatisfied           = ValidationID(models.ClusterValidationIDServerlessRequirementsSatisfied)
+	IsOpenShiftAIRequirementsSatisfied          = ValidationID(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied)
 )
 
 func (v ValidationID) Category() (string, error) {
@@ -46,7 +52,17 @@ func (v ValidationID) Category() (string, error) {
 		return "hosts-data", nil
 	case IsPullSecretSet, PlatformRequirementsSatisfied:
 		return "configuration", nil
-	case IsOdfRequirementsSatisfied, IsLsoRequirementsSatisfied, IsCnvRequirementsSatisfied, IsLvmRequirementsSatisfied, IsMceRequirementsSatisfied:
+	case IsOdfRequirementsSatisfied,
+		IsLsoRequirementsSatisfied,
+		IsCnvRequirementsSatisfied,
+		IsLvmRequirementsSatisfied,
+		IsMceRequirementsSatisfied,
+		IsNodeFeatureDiscoveryRequirementsSatisfied,
+		IsNvidiaGPURequirementsSatisfied,
+		IsPipelinesRequirementsSatisfied,
+		IsServiceMeshRequirementsSatisfied,
+		IsServerLessRequirementsSatisfied,
+		IsOpenShiftAIRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected cluster validation id %s", string(v)))
