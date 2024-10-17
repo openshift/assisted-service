@@ -305,6 +305,10 @@ func (a *RHSSOAuthenticator) AuthImageAuth(token string) (interface{}, error) {
 	return parsedToken.Claims, nil
 }
 
+func (a *RHSSOAuthenticator) AuthWatcherAuth(token string) (interface{}, error) {
+	return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("Watcher Authentication not allowed for RHSSO auth"))
+}
+
 func (a *RHSSOAuthenticator) CreateAuthenticator() func(_, _ string, _ security.TokenAuthentication) runtime.Authenticator {
 	return security.APIKeyAuth
 }

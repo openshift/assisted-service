@@ -53,6 +53,10 @@ securityDefinitions:
     type: apiKey
     in: query
     name: image_token
+  watcherAuth:
+    type: apiKey
+    in: header
+    name: Watcher-Authorization
 
 security:
   - userAuth: [admin, user]
@@ -102,6 +106,7 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
+        - watcherAuth: []
       description: Retrieves the list of OpenShift clusters.
       operationId: v2ListClusters
       parameters:
@@ -168,6 +173,7 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
+        - watcherAuth: []
       description: Retrieves the details of the OpenShift cluster.
       operationId: v2GetCluster
       parameters:
@@ -518,6 +524,7 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
+        - watcherAuth: []
       description: Retrieves the list of infra-envs.
       operationId: ListInfraEnvs
       parameters:
@@ -3515,6 +3522,7 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - urlAuth: []
+        - watcherAuth: []
       description: Lists events for a cluster.
       operationId: v2ListEvents
       parameters:

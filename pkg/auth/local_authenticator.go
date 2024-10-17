@@ -118,6 +118,10 @@ func (a *LocalAuthenticator) AuthImageAuth(_ string) (interface{}, error) {
 	return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("Image Authentication not allowed for local auth"))
 }
 
+func (a *LocalAuthenticator) AuthWatcherAuth(_ string) (interface{}, error) {
+	return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("Watcher Authentication not allowed for local auth"))
+}
+
 func (a *LocalAuthenticator) CreateAuthenticator() func(_, _ string, _ security.TokenAuthentication) runtime.Authenticator {
 	return security.APIKeyAuth
 }
