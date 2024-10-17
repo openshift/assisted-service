@@ -102,40 +102,202 @@ var _ = Describe("inventory", func() {
 			Expect(cidr).To(Equal(""))
 		})
 	})
-	Context("GetMachineCIDRHosts", func() {
-		It("No Machine CIDR", func() {
-			cluster := createCluster("1.2.5.6", "",
-				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
-				createInventory(createInterface("127.0.0.1/17")))
-			_, err := GetPrimaryMachineCIDRHosts(logrus.New(), cluster)
-			Expect(err).To(HaveOccurred())
-		})
-		It("No matching Machine CIDR", func() {
-			cluster := createCluster("1.2.5.6", "1.1.0.0/16",
-				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
-				createInventory(createInterface("127.0.0.1/17")))
-			hosts, err := GetPrimaryMachineCIDRHosts(logrus.New(), cluster)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(hosts).To(BeEmpty())
-		})
-		It("Some matched", func() {
-			cluster := createCluster("1.2.5.6", "1.2.4.0/23",
-				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
-				createInventory(createInterface("127.0.0.1/17")),
-				createInventory(createInterface("1.2.4.79/23")))
-			hosts, err := GetPrimaryMachineCIDRHosts(logrus.New(), cluster)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(hosts).To(Equal([]*models.Host{
-				cluster.Hosts[0],
-				cluster.Hosts[2],
-			}))
+	Context("ValidateVipInHostNetworks", func() {
+		var (
+			log                  logrus.FieldLogger
+			primaryMachineCidr   = "1.2.4.0/23"
+			secondaryMachineCidr = "1.2.8.0/23"
+			machineNetworks      = []*models.MachineNetwork{
+				{Cidr: models.Subnet(primaryMachineCidr)},
+				{Cidr: models.Subnet(secondaryMachineCidr)},
+			}
+		)
 
+		createRoleHost := func(role models.HostRole, cidr string) *models.Host {
+			return &models.Host{
+				Role:      role,
+				Inventory: createInventory(createInterface(cidr)),
+			}
+		}
+
+		BeforeEach(func() {
+			log = logrus.New()
+		})
+		It("succeeds when all hosts are in a single machine network", func() {
+			cluster := createCluster("1.2.5.6", primaryMachineCidr)
+			cluster.Hosts = []*models.Host{
+				createRoleHost(models.HostRoleBootstrap, "1.2.4.101/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.102/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.103/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.4.111/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.4.112/23"),
+			}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("1.2.5.7")}}
+
+			result, err := ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), VipTypeAPI, log)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationSucceeded))
+
+			result, err = ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetIngressVipById(cluster, 0), VipTypeIngress, log)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationSucceeded))
+		})
+		It("detects when VIPs are in the wrong machine network", func() {
+			cluster := createCluster("1.2.9.6", primaryMachineCidr)
+			cluster.Hosts = []*models.Host{
+				createRoleHost(models.HostRoleBootstrap, "1.2.4.101/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.102/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.103/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.4.111/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.4.112/23"),
+			}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("1.2.9.7")}}
+
+			result, err := ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), VipTypeAPI, log)
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationFailed))
+
+			result, err = ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetIngressVipById(cluster, 0), VipTypeIngress, log)
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationFailed))
+		})
+		It("succeeds on a compact cluster with a single machine network", func() {
+			cluster := createCluster("1.2.5.6", primaryMachineCidr)
+			cluster.Hosts = []*models.Host{
+				createRoleHost(models.HostRoleBootstrap, "1.2.4.101/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.102/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.103/23"),
+			}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("1.2.5.7")}}
+
+			result, err := ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), VipTypeAPI, log)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationSucceeded))
+
+			result, err = ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetIngressVipById(cluster, 0), VipTypeIngress, log)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationSucceeded))
+		})
+		It("succeeds when VIPs are on different machine networks", func() {
+			cluster := createCluster("1.2.5.6", primaryMachineCidr)
+			cluster.Hosts = []*models.Host{
+				createRoleHost(models.HostRoleBootstrap, "1.2.4.101/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.102/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.103/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.8.111/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.8.112/23"),
+			}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("1.2.9.7")}}
+
+			result, err := ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), VipTypeAPI, log)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationSucceeded))
+
+			result, err = ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetIngressVipById(cluster, 0), VipTypeIngress, log)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationSucceeded))
+		})
+		It("detects when VIPs are on wrong machine networks", func() {
+			cluster := createCluster("1.2.9.6", primaryMachineCidr)
+			cluster.Hosts = []*models.Host{
+				createRoleHost(models.HostRoleBootstrap, "1.2.4.101/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.102/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.103/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.8.111/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.8.112/23"),
+			}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("1.2.5.7")}}
+
+			result, err := ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), VipTypeAPI, log)
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationFailed))
+
+			result, err = ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetIngressVipById(cluster, 0), VipTypeIngress, log)
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationFailed))
+		})
+		It("detects when Ingress VIP not available to a compact cluster", func() {
+			cluster := createCluster("1.2.5.6", primaryMachineCidr)
+			cluster.Hosts = []*models.Host{
+				createRoleHost(models.HostRoleBootstrap, "1.2.4.101/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.102/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.103/23"),
+			}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("1.2.9.7")}}
+
+			result, err := ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), VipTypeAPI, log)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationSucceeded))
+
+			result, err = ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetIngressVipById(cluster, 0), VipTypeIngress, log)
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationFailed))
+		})
+		It("detects when API VIP not available to bootstrap master", func() {
+			cluster := createCluster("1.2.5.6", primaryMachineCidr)
+			cluster.Hosts = []*models.Host{
+				createRoleHost(models.HostRoleBootstrap, "1.2.8.101/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.102/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.103/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.4.111/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.4.112/23"),
+			}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("1.2.5.7")}}
+
+			result, err := ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), VipTypeAPI, log)
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationFailed))
+
+			result, err = ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetIngressVipById(cluster, 0), VipTypeIngress, log)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationSucceeded))
+		})
+		It("detects when API VIP not available to control plane", func() {
+			cluster := createCluster("1.2.5.6", primaryMachineCidr)
+			cluster.Hosts = []*models.Host{
+				createRoleHost(models.HostRoleBootstrap, "1.2.4.101/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.8.102/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.103/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.4.111/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.4.112/23"),
+			}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("1.2.5.7")}}
+
+			result, err := ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), VipTypeAPI, log)
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationFailed))
+
+			result, err = ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetIngressVipById(cluster, 0), VipTypeIngress, log)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationSucceeded))
+		})
+		It("detects when Ingress VIP not available to worker", func() {
+			cluster := createCluster("1.2.5.6", primaryMachineCidr)
+			cluster.Hosts = []*models.Host{
+				createRoleHost(models.HostRoleBootstrap, "1.2.4.101/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.102/23"),
+				createRoleHost(models.HostRoleMaster, "1.2.4.103/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.4.111/23"),
+				createRoleHost(models.HostRoleWorker, "1.2.8.112/23"),
+			}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("1.2.5.7")}}
+
+			result, err := ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), VipTypeAPI, log)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationSucceeded))
+
+			result, err = ValidateVipInHostNetworks(cluster.Hosts, machineNetworks, GetIngressVipById(cluster, 0), VipTypeIngress, log)
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(Equal(models.VipVerificationFailed))
 		})
 	})
 	Context("VerifyVips", func() {
 		var (
 			log                logrus.FieldLogger
 			primaryMachineCidr = "1.2.4.0/23"
+			machineNetworks    = []*models.MachineNetwork{
+				{Cidr: models.Subnet(primaryMachineCidr)},
+			}
 		)
 
 		BeforeEach(func() {
@@ -150,7 +312,7 @@ var _ = Describe("inventory", func() {
 				},
 			}
 			cluster.IngressVips = []*models.IngressVip{{IP: models.IP(GetApiVipById(cluster, 0))}}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).To(HaveOccurred())
 		})
 		It("Different vips", func() {
@@ -162,7 +324,7 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("Not free", func() {
@@ -174,7 +336,7 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.9\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).To(HaveOccurred())
 		})
 		It("Empty", func() {
@@ -186,7 +348,7 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("Free", func() {
@@ -198,7 +360,7 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\",\"1.2.5.9\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, machineNetworks, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("machine cidr is too small", func() {
@@ -213,7 +375,7 @@ var _ = Describe("inventory", func() {
 			}
 			cluster.Hosts = []*models.Host{h, h, h, h, h}
 			cluster.APIVips = []*models.APIVip{{IP: "1.2.5.2"}}
-			err := VerifyVips(cluster.Hosts, "1.2.5.0/29", GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, []*models.MachineNetwork{{Cidr: "1.2.5.0/29"}}, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("The machine network range is too small for the cluster"))
 		})

@@ -7,21 +7,29 @@ import (
 )
 
 // Verify if the constrains for dual-stack machine networks are met:
-//   - there are exactly two machine networks
-//   - the first one is IPv4 subnet
-//   - the second one is IPv6 subnet
+//   - there are at least two machine networks
+//   - at least one is IPv4 subnet
+//   - at least one is IPv6 subnet
 func VerifyMachineNetworksDualStack(networks []*models.MachineNetwork, isDualStack bool) error {
 	if !isDualStack {
 		return nil
 	}
-	if len(networks) != 2 {
+	if len(networks) < 2 {
 		return errors.Errorf("Expected 2 machine networks, found %d", len(networks))
 	}
-	if !IsIPV4CIDR(string(networks[0].Cidr)) {
-		return errors.Errorf("First machine network has to be IPv4 subnet")
+	var haveIPv4, haveIPv6 bool
+	for _, net := range networks {
+		if IsIPV4CIDR(string(net.Cidr)) {
+			haveIPv4 = true
+		} else if IsIPv6CIDR(string(net.Cidr)) {
+			haveIPv6 = true
+		}
 	}
-	if !IsIPv6CIDR(string(networks[1].Cidr)) {
-		return errors.Errorf("Second machine network has to be IPv6 subnet")
+	if !haveIPv4 {
+		return errors.Errorf("One machine network has to be IPv4 subnet")
+	}
+	if !haveIPv6 {
+		return errors.Errorf("One machine network has to be IPv6 subnet")
 	}
 
 	return nil
