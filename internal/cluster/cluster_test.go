@@ -3069,7 +3069,8 @@ var _ = Describe("Deregister inactive clusters", func() {
 	})
 
 	It("Deregister inactive cluster", func() {
-		Expect(state.DeregisterInactiveCluster(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		lastActive := strfmt.DateTime(time.Now().Add(time.Second))
+		Expect(state.DeregisterInactiveCluster(ctx, 10, lastActive)).ShouldNot(HaveOccurred())
 		Expect(wasDeregisterd(db, *c.ID)).To(BeTrue())
 	})
 

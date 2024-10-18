@@ -3963,11 +3963,16 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 
 					By("Update VIPS in DB cluster to mimic DHCP allocation")
-					cluster, err := common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
-					Expect(err).ToNot(HaveOccurred())
-					cluster.APIVips = []*models.APIVip{{IP: models.IP(apiVip)}}
-					cluster.IngressVips = []*models.IngressVip{{IP: models.IP(ingressVip)}}
-					db.Save(&cluster)
+					db.Save(&models.APIVip{
+						ClusterID: clusterID,
+						IP:        models.IP(apiVip),
+					})
+					Expect(db.Error).ToNot(HaveOccurred())
+					db.Save(&models.IngressVip{
+						ClusterID: clusterID,
+						IP:        models.IP(ingressVip),
+					})
+					Expect(db.Error).ToNot(HaveOccurred())
 
 					By("Verify VIPs updates")
 					replay := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID}).(*installer.V2GetClusterOK)
@@ -12473,8 +12478,10 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 	})
 
 	It("single SNO vsphere host", func() {
-		*c.HighAvailabilityMode = models.ClusterHighAvailabilityModeNone
-		db.Save(c)
+		db.Model(&models.Cluster{}).
+			Where("id = ?", clusterID).
+			Update("high_availability_mode", models.ClusterHighAvailabilityModeNone)
+		Expect(db.Error).ToNot(HaveOccurred())
 
 		addVsphereHost(clusterID, models.HostRoleMaster)
 		validateHostsInventory(1, 0)
@@ -12486,8 +12493,10 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 	})
 
 	It("HighAvailabilityMode is nil with single host", func() {
-		c.HighAvailabilityMode = nil
-		db.Save(c)
+		db.Model(&models.Cluster{}).
+			Where("id = ?", clusterID).
+			Update("high_availability_mode", nil)
+		Expect(db.Error).ToNot(HaveOccurred())
 
 		addVsphereHost(clusterID, models.HostRoleMaster)
 		validateHostsInventory(1, 0)
@@ -12497,8 +12506,10 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 	})
 
 	It("Unsupported platform - nutanix", func() {
-		c.OpenshiftVersion = "4.10"
-		db.Save(c)
+		db.Model(&models.Cluster{}).
+			Where("id = ?", clusterID).
+			Update("openshift_version", "4.10")
+		Expect(db.Error).ToNot(HaveOccurred())
 
 		addNutanixHost(clusterID, models.HostRoleMaster)
 		addNutanixHost(clusterID, models.HostRoleMaster)
@@ -12511,8 +12522,10 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		Expect(platforms).To(Not(ContainElement(models.PlatformTypeNutanix)))
 
 		// Nutanix is supported platform on OCP > 4.11
-		c.OpenshiftVersion = "4.12"
-		db.Save(c)
+		db.Model(&models.Cluster{}).
+			Where("id = ?", clusterID).
+			Update("openshift_version", "4.12")
+		Expect(db.Error).ToNot(HaveOccurred())
 		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return(expectedPlatforms, nil)
 		platformReplay = bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
 		platforms = platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
@@ -12521,8 +12534,10 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 	})
 
 	It("Unsupported platform - external", func() {
-		c.OpenshiftVersion = "4.13"
-		db.Save(c)
+		db.Model(&models.Cluster{}).
+			Where("id = ?", clusterID).
+			Update("openshift_version", "4.13")
+		Expect(db.Error).ToNot(HaveOccurred())
 
 		addNutanixHost(clusterID, models.HostRoleMaster)
 		addNutanixHost(clusterID, models.HostRoleMaster)
@@ -12535,8 +12550,10 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		Expect(platforms).To(Not(ContainElement(models.PlatformTypeExternal)))
 
 		// external is supported platform on OCP > 4.13
-		c.OpenshiftVersion = "4.14"
-		db.Save(c)
+		db.Model(&models.Cluster{}).
+			Where("id = ?", clusterID).
+			Update("openshift_version", "4.14")
+		Expect(db.Error).ToNot(HaveOccurred())
 		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return(expectedPlatforms, nil)
 		platformReplay = bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
 		platforms = platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload

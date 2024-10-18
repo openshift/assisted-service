@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -164,7 +165,7 @@ var _ = Describe("Operators manager", func() {
 
 			Expect(operators[0].StatusInfo).To(Equal(statusInfo))
 			Expect(operators[0].Status).To(Equal(newStatus))
-			Expect(operators[0].StatusUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+			Expect(time.Time(operators[0].StatusUpdatedAt).UTC()).ToNot(Equal(time.Time(lastUpdatedTime).UTC()))
 			Expect(operators[0].Version).To(Equal(operatorVersion))
 		})
 
@@ -182,7 +183,7 @@ var _ = Describe("Operators manager", func() {
 			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, swag.String(""), db)
 			Expect(err).ToNot(HaveOccurred())
 			for _, operator := range operators {
-				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
+				Expect(time.Time(operator.StatusUpdatedAt).UTC()).To(Equal(time.Time(lastUpdatedTime).UTC()))
 			}
 		})
 
@@ -200,7 +201,7 @@ var _ = Describe("Operators manager", func() {
 			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, swag.String(""), db)
 			Expect(err).ToNot(HaveOccurred())
 			for _, operator := range operators {
-				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
+				Expect(time.Time(operator.StatusUpdatedAt).UTC()).To(Equal(time.Time(lastUpdatedTime).UTC()))
 			}
 		})
 	})
