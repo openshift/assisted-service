@@ -124,7 +124,7 @@ function gather_imageset_data() {
 }
 
 function gather_capi_data() {
-  CAPI_CRS=(agentmachine agentcluster cluster machine machinedeployment machineset nodepool hostedcluster hostedcontrolplane)
+  CAPI_CRS=(agentmachine agentmachinetemplate agentcluster cluster machine machinedeployment machineset nodepool hostedcluster hostedcontrolplane)
   capi_dir="${LOGS_DEST}/capi"
   mkdir -p "${capi_dir}"
 
@@ -207,7 +207,7 @@ function gather_hypershift_data() {
 
 # Download Hypershift CLI
 function hypershift_cli() {
-  HYPERSHIFT_IMAGE="${HYPERSHIFT_IMAGE:-quay.io/hypershift/hypershift-operator:4.11}"
+  HYPERSHIFT_IMAGE="${HYPERSHIFT_IMAGE:-quay.io/hypershift/hypershift-operator:latest}"
   id=$(podman create $HYPERSHIFT_IMAGE)
   mkdir -p ./hypershift-cli
   podman cp $id:/usr/bin/hypershift ./hypershift-cli
