@@ -636,6 +636,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			IgnitionEndpoint:             params.NewClusterParams.IgnitionEndpoint,
 			Tags:                         swag.StringValue(params.NewClusterParams.Tags),
 			OrgSoftTimeoutsEnabled:       orgSoftTimeoutsEnabled,
+			LoadBalancer:                 params.NewClusterParams.LoadBalancer,
 		},
 		KubeKeyName:                 kubeKey.Name,
 		KubeKeyNamespace:            kubeKey.Namespace,
@@ -2190,13 +2191,13 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 
-			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
+			if err = network.VerifyVips(cluster, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
 				log.WithError(err).Warnf("Verify VIPs")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 
 			if len(targetConfiguration.IngressVips) == 2 && len(targetConfiguration.APIVips) == 2 { // in case there's a second set of VIPs
-				if err = network.VerifyVips(cluster.Hosts, secondaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), log); err != nil {
+				if err = network.VerifyVips(cluster, secondaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), log); err != nil {
 					log.WithError(err).Warnf("Verify VIPs")
 					return common.NewApiError(http.StatusBadRequest, err)
 				}
@@ -2216,7 +2217,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 				// the assignment below.
 				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
 			}
-			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
+			if err = network.VerifyVips(cluster, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
 				log.WithError(err).Warnf("Verify VIPs")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}

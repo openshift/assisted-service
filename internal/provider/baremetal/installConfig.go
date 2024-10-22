@@ -2,9 +2,11 @@ package baremetal
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 
 	"github.com/go-openapi/swag"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -110,6 +112,47 @@ func (p baremetalProvider) AddPlatformToInstallConfig(
 				Hosts:                hosts,
 			},
 		}
+	}
+
+	err = p.addLoadBalancer(cfg, cluster)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p baremetalProvider) addLoadBalancer(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+	if cluster.LoadBalancer == nil {
+		return nil
+	}
+	switch cluster.LoadBalancer.Type {
+	case models.LoadBalancerTypeClusterManaged:
+		// Nothing, this is the default, we don't even need to check if the feature is available in this version
+		// of OpenShift.
+	case models.LoadBalancerTypeUserManaged:
+		featureAvailable := featuresupport.IsFeatureAvailable(
+			models.FeatureSupportLevelIDEXTERNALLOADBALANCER,
+			cluster.OpenshiftVersion, &cluster.CPUArchitecture,
+		)
+		if !featureAvailable {
+			return fmt.Errorf(
+				"load balancer type is set to '%s', but the external load balancer feature is "+
+					"not available for OpenShift version '%s' and arhitecture '%s'",
+				cluster.LoadBalancer.Type, cluster.OpenshiftVersion, cluster.CPUArchitecture,
+			)
+		}
+		cfg.Platform.Baremetal.LoadBalancer = &configv1.BareMetalPlatformLoadBalancer{
+			Type: configv1.LoadBalancerTypeUserManaged,
+		}
+	default:
+		return fmt.Errorf(
+			"load balancer type is set to unsupported value '%s', supported values are "+
+				"'%s' and '%s'",
+			cluster.LoadBalancer.Type,
+			models.LoadBalancerTypeClusterManaged,
+			models.LoadBalancerTypeUserManaged,
+		)
 	}
 	return nil
 }

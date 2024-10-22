@@ -36,12 +36,13 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDODF: (&OdfFeature{}).New(),
 
 	// Platform features
-	models.FeatureSupportLevelIDNUTANIXINTEGRATION:  (&NutanixIntegrationFeature{}).New(),
-	models.FeatureSupportLevelIDVSPHEREINTEGRATION:  (&VsphereIntegrationFeature{}).New(),
-	models.FeatureSupportLevelIDEXTERNALPLATFORMOCI: (&OciIntegrationFeature{}).New(),
-	models.FeatureSupportLevelIDBAREMETALPLATFORM:   (&BaremetalPlatformFeature{}).New(),
-	models.FeatureSupportLevelIDNONEPLATFORM:        (&NonePlatformFeature{}).New(),
-	models.FeatureSupportLevelIDEXTERNALPLATFORM:    (&ExternalPlatformFeature{}).New(),
+	models.FeatureSupportLevelIDNUTANIXINTEGRATION:   (&NutanixIntegrationFeature{}).New(),
+	models.FeatureSupportLevelIDVSPHEREINTEGRATION:   (&VsphereIntegrationFeature{}).New(),
+	models.FeatureSupportLevelIDEXTERNALPLATFORMOCI:  (&OciIntegrationFeature{}).New(),
+	models.FeatureSupportLevelIDBAREMETALPLATFORM:    (&BaremetalPlatformFeature{}).New(),
+	models.FeatureSupportLevelIDNONEPLATFORM:         (&NonePlatformFeature{}).New(),
+	models.FeatureSupportLevelIDEXTERNALPLATFORM:     (&ExternalPlatformFeature{}).New(),
+	models.FeatureSupportLevelIDEXTERNALLOADBALANCER: (&ExternalLoadBalancerFeature{}).New(),
 }
 
 func GetFeatureByID(featureID models.FeatureSupportLevelID) SupportLevelFeature {
