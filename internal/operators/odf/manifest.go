@@ -72,8 +72,30 @@ func Manifests(odfConfig *Config, openshiftVersion string) (map[string][]byte, [
 	}
 	openshiftManifests["50_openshift-odf_subscription.yaml"] = []byte(odfSubscription)
 	openshiftManifests["50_openshift-odf_operator_group.yaml"] = []byte(odfOperatorGroup)
-	odfSC = append([]byte(odfStorageSystem+"\n---\n"), odfSC...)
-	return openshiftManifests, odfSC, nil
+
+	customManifestsBuffer := &bytes.Buffer{}
+	if odfStorageSystem != "" {
+		customManifestsBuffer.WriteString("---\n")
+		customManifestsBuffer.WriteString(odfStorageSystem)
+		customManifestsBuffer.WriteString("\n")
+	}
+	if len(odfSC) > 0 {
+		customManifestsBuffer.WriteString("---\n")
+		customManifestsBuffer.Write(odfSC)
+		customManifestsBuffer.WriteString("\n")
+	}
+	setDefaultStorageClassManifest, err := getSetDefaultStorageClass()
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(setDefaultStorageClassManifest) > 0 {
+		customManifestsBuffer.WriteString("---\n")
+		customManifestsBuffer.WriteString(setDefaultStorageClassManifest)
+		customManifestsBuffer.WriteString("\n")
+	}
+	customManifests := customManifestsBuffer.Bytes()
+
+	return openshiftManifests, customManifests, nil
 }
 
 func ocsSubscription() (string, error) {
@@ -129,6 +151,19 @@ spec:
 	}
 	buf := &bytes.Buffer{}
 	err = tmpl.Execute(buf, data)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func getSetDefaultStorageClass() (string, error) {
+	tmpl, err := template.New("setDefaultStorageClass").Parse(setDefaultStorageClassTemplate)
+	if err != nil {
+		return "", err
+	}
+	buf := &bytes.Buffer{}
+	err = tmpl.Execute(buf, nil)
 	if err != nil {
 		return "", err
 	}
@@ -339,4 +374,26 @@ spec:
     portable: false
 
     replica: 1
+`
+
+const setDefaultStorageClassTemplate = `
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: assisted-installer
+  name: configure-ods
+spec:
+  template:
+    spec:
+      serviceAccountName: assisted-installer-controller
+      containers:
+      - name: set-default-storage-class
+        image: quay.io/jhernand/assisted-installer-controller:88
+        command:
+        - /usr/bin/oc
+        - annotate
+        - storageclass
+        - ocs-storagecluster-ceph-rbd
+        - storageclass.kubernetes.io/is-default-class=true
+      restartPolicy: Never
 `

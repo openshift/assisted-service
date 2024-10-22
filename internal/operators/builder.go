@@ -7,7 +7,13 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
+	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
+	"github.com/openshift/assisted-service/internal/operators/openshiftai"
+	"github.com/openshift/assisted-service/internal/operators/pipelines"
+	"github.com/openshift/assisted-service/internal/operators/serverless"
+	"github.com/openshift/assisted-service/internal/operators/servicemesh"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -32,7 +38,21 @@ type Options struct {
 
 // NewManager creates new instance of an Operator Manager
 func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, options Options, objectHandler s3wrapper.API) *Manager {
-	return NewManagerWithOperators(log, manifestAPI, options, objectHandler, lso.NewLSOperator(), odf.NewOcsOperator(log), odf.NewOdfOperator(log), cnv.NewCNVOperator(log, options.CNVConfig), lvm.NewLvmOperator(log), mce.NewMceOperator(log))
+	return NewManagerWithOperators(
+		log, manifestAPI, options, objectHandler,
+		lso.NewLSOperator(),
+		odf.NewOcsOperator(log),
+		odf.NewOdfOperator(log),
+		cnv.NewCNVOperator(log, options.CNVConfig),
+		lvm.NewLvmOperator(log),
+		mce.NewMceOperator(log),
+		nodefeaturediscovery.NewNodeFeatureDiscoveryOperator(log),
+		nvidiagpu.NewNvidiaGPUOperator(log),
+		pipelines.NewPipelinesOperator(log),
+		servicemesh.NewServiceMeshOperator(log),
+		serverless.NewServerLessOperator(log),
+		openshiftai.NewOpenShiftAIOperator(log),
+	)
 }
 
 // NewManagerWithOperators creates new instance of an Operator Manager and configures it with given operators

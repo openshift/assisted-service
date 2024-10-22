@@ -6555,6 +6555,12 @@ var allValidationIDs = []validationID{
 	NoSkipMissingDisk,
 	NoIPCollisionsInNetwork,
 	IsReleaseDomainNameResolvedCorrectly,
+	AreNodeFeatureDiscoveryRequirementsSatisfied,
+	AreNvidiaGPURequirementsSatisfied,
+	ArePipelinesRequirementsSatisfied,
+	AreServiceMeshRequirementsSatisfied,
+	AreServerLessRequirementsSatisfied,
+	AreOpenShiftAIRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{
