@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.6.2
   creationTimestamp: null
   name: agents.agent-install.openshift.io
 spec:
@@ -57,19 +57,14 @@ spec:
         description: Agent is the Schema for the hosts API
         properties:
           apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
-              may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
-              Cannot be updated.
-              In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -79,9 +74,8 @@ spec:
               approved:
                 type: boolean
               clusterDeploymentName:
-                description: |-
-                  ClusterReference represents a Cluster Reference. It has enough information to retrieve cluster
-                  in any namespace
+                description: ClusterReference represents a Cluster Reference. It has
+                  enough information to retrieve cluster in any namespace
                 properties:
                   name:
                     description: Name is unique within a namespace to reference a
@@ -137,11 +131,7 @@ spec:
                   with this agent
                 type: object
               role:
-                description: |-
-                  HostRole host role
-
-
-                  swagger:model host-role
+                description: "HostRole host role \n swagger:model host-role"
                 type: string
             required:
             - approved
@@ -154,9 +144,8 @@ spec:
                 type: boolean
               conditions:
                 items:
-                  description: |-
-                    Condition represents the state of the operator's
-                    reconciliation functionality.
+                  description: Condition represents the state of the operator's reconciliation
+                    functionality.
                   properties:
                     lastHeartbeatTime:
                       format: date-time
@@ -375,11 +364,7 @@ spec:
                     sourceName:
                       type: string
                     sourceState:
-                      description: |-
-                        SourceState source state
-
-
-                        swagger:model source_state
+                      description: "SourceState source state \n swagger:model source_state"
                       type: string
                   type: object
                 type: array
@@ -400,11 +385,7 @@ spec:
                     description: All stages (ordered by their appearance) for this
                       agent
                     items:
-                      description: |-
-                        HostStage host stage
-
-
-                        swagger:model host-stage
+                      description: "HostStage host stage \n swagger:model host-stage"
                       type: string
                     type: array
                   stageStartTime:
@@ -417,11 +398,7 @@ spec:
                     type: string
                 type: object
               role:
-                description: |-
-                  HostRole host role
-
-
-                  swagger:model host-role
+                description: "HostRole host role \n swagger:model host-role"
                 type: string
               validationsInfo:
                 additionalProperties:
@@ -453,5 +430,5 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
-  storedVersions: null
+  conditions: []
+  storedVersions: []
