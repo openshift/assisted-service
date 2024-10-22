@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/mtv"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
@@ -3704,6 +3705,14 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			CPUCores: mce.MinimumCPU,
 			RAMMib:   conversions.GibToMib(mce.MinimumMemory),
 		}
+		workerMTVRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: mtv.WorkerCPU,
+			RAMMib:   conversions.GibToMib(mtv.WorkerMemory),
+		}
+		masterMTVRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: mtv.MasterCPU,
+			RAMMib:   conversions.GibToMib(mtv.MasterMemory),
+		}
 	)
 
 	BeforeEach(func() {
@@ -3731,7 +3740,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-		Expect(requirements.Operators).To(HaveLen(5))
+		Expect(requirements.Operators).To(HaveLen(6))
 		for _, op := range requirements.Operators {
 			switch op.OperatorName {
 			case lso.Operator.Name:
@@ -3746,6 +3755,11 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			case mce.Operator.Name:
 				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterMCERequirements))
 				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerMCERequirements))
+			case mtv.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterMTVRequirements),
+					fmt.Sprintf("expected: CPUCores: %d,RAMMib: %d, masterMTVRequirements: CPUCores: %d,RAMMib: %d", op.Requirements.Master.Quantitative.CPUCores, op.Requirements.Master.Quantitative.RAMMib, masterMTVRequirements.CPUCores, masterMTVRequirements.RAMMib))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerMTVRequirements),
+					fmt.Sprintf("expected: CPUCores: %d,RAMMib: %d, workerMTVRequirements: CPUCores: %d,RAMMib: %d", op.Requirements.Worker.Quantitative.CPUCores, op.Requirements.Worker.Quantitative.RAMMib, workerMTVRequirements.CPUCores, workerMTVRequirements.RAMMib))
 			case lvm.Operator.Name:
 				continue // lvm operator is tested separately
 			default:
