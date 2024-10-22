@@ -42,8 +42,10 @@ import (
 const failureOutputPath = "/var/run/agent-installer/host-config-failures"
 
 var Options struct {
-	ServiceBaseUrl string `envconfig:"SERVICE_BASE_URL" default:""`
-	Token          string `envconfig:"AGENT_AUTH_TOKEN" default:""`
+	ServiceBaseUrl   string `envconfig:"SERVICE_BASE_URL" default:""`
+	AgentAuthToken   string `envconfig:"AGENT_AUTH_TOKEN" default:""`
+	UserAuthToken    string `envconfig:"USER_AUTH_TOKEN" default:""`
+	WatcherAuthToken string `envconfig:"WATCHER_AUTH_TOKEN" default:""`
 }
 
 var RegisterOptions struct {
@@ -85,9 +87,7 @@ func main() {
 	}
 	u.Path = path.Join(u.Path, client.DefaultBasePath)
 	clientConfig.URL = u
-
-	userToken := Options.Token
-	clientConfig.AuthInfo = auth.UserAuthHeaderWriter(userToken)
+	clientConfig.AuthInfo = auth.UserAuthHeaderWriter(Options.UserAuthToken)
 
 	bmInventory := client.New(clientConfig)
 	ctx := context.Background()
@@ -99,7 +99,6 @@ func main() {
 		register(ctx, log, bmInventory)
 		return
 	}
-
 	if len(os.Args) < 2 {
 		log.Fatal("No subcommand specified")
 	}
