@@ -2992,7 +2992,7 @@ var _ = Describe("AutoAssignRole", func() {
 	})
 
 	It("cluster already have enough master nodes", func() {
-		for i := 0; i < common.MinMasterHostsNeededForInstallation; i++ {
+		for i := 0; i < common.MinMasterHostsNeededForInstallationInHaMode; i++ {
 			h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvId, clusterId, models.HostStatusKnown)
 			h.Inventory = hostutil.GenerateMasterInventory()
 			h.Role = models.HostRoleAutoAssign

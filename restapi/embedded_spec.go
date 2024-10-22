@@ -6889,7 +6889,7 @@ func init() {
         "ingress-vips-defined",
         "ingress-vips-valid",
         "all-hosts-are-ready-to-install",
-        "sufficient-masters-count",
+        "sufficient-masters-and-workers-count",
         "dns-domain-defined",
         "pull-secret-set",
         "ntp-server-configured",
@@ -6900,7 +6900,8 @@ func init() {
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
         "network-type-valid",
-        "platform-requirements-satisfied"
+        "platform-requirements-satisfied",
+        "cluster-preparation-succeeded"
       ]
     },
     "cluster_default_config": {
@@ -17714,7 +17715,7 @@ func init() {
         "ingress-vips-defined",
         "ingress-vips-valid",
         "all-hosts-are-ready-to-install",
-        "sufficient-masters-count",
+        "sufficient-masters-and-workers-count",
         "dns-domain-defined",
         "pull-secret-set",
         "ntp-server-configured",
@@ -17725,7 +17726,8 @@ func init() {
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
         "network-type-valid",
-        "platform-requirements-satisfied"
+        "platform-requirements-satisfied",
+        "cluster-preparation-succeeded"
       ]
     },
     "cluster_default_config": {

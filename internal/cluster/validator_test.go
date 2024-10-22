@@ -668,3 +668,18 @@ var _ = Describe("skipNetworkHostPrefixCheck", func() {
 		Expect(skipped).Should(Equal(true))
 	})
 })
+
+var _ = Describe("sufficientMastersAndWorkersCount", func() {
+	/* 	var (
+	   		validator         clusterValidator
+	   		preprocessContext *clusterPreprocessContext
+	   		clusterID         strfmt.UUID
+	   	)
+
+	   	BeforeEach(func() {
+	   		validator = clusterValidator{log: logrus.New()}
+	   		preprocessContext = &clusterPreprocessContext{}
+	   		clusterID = strfmt.UUID(uuid.New().String())
+	   	}) */
+
+})
