@@ -66,8 +66,8 @@ const (
 	// ClusterValidationIDAllHostsAreReadyToInstall captures enum value "all-hosts-are-ready-to-install"
 	ClusterValidationIDAllHostsAreReadyToInstall ClusterValidationID = "all-hosts-are-ready-to-install"
 
-	// ClusterValidationIDSufficientMastersCount captures enum value "sufficient-masters-count"
-	ClusterValidationIDSufficientMastersCount ClusterValidationID = "sufficient-masters-count"
+	// ClusterValidationIDSufficientMastersAndWorkersCount captures enum value "sufficient-masters-and-workers-count"
+	ClusterValidationIDSufficientMastersAndWorkersCount ClusterValidationID = "sufficient-masters-and-workers-count"
 
 	// ClusterValidationIDDNSDomainDefined captures enum value "dns-domain-defined"
 	ClusterValidationIDDNSDomainDefined ClusterValidationID = "dns-domain-defined"
