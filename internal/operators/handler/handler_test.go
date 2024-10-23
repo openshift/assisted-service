@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	operatorsHandler "github.com/openshift/assisted-service/internal/operators/handler"
 	"github.com/openshift/assisted-service/internal/operators/lso"
+	. "github.com/openshift/assisted-service/internal/testing"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -164,7 +165,7 @@ var _ = Describe("Operators manager", func() {
 
 			Expect(operators[0].StatusInfo).To(Equal(statusInfo))
 			Expect(operators[0].Status).To(Equal(newStatus))
-			Expect(operators[0].StatusUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+			Expect(operators[0].StatusUpdatedAt).ToNot(EqualTime(lastUpdatedTime))
 			Expect(operators[0].Version).To(Equal(operatorVersion))
 		})
 
@@ -182,7 +183,7 @@ var _ = Describe("Operators manager", func() {
 			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, swag.String(""), db)
 			Expect(err).ToNot(HaveOccurred())
 			for _, operator := range operators {
-				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
+				Expect(operator.StatusUpdatedAt).To(EqualTime(lastUpdatedTime))
 			}
 		})
 
@@ -200,7 +201,7 @@ var _ = Describe("Operators manager", func() {
 			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, swag.String(""), db)
 			Expect(err).ToNot(HaveOccurred())
 			for _, operator := range operators {
-				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
+				Expect(operator.StatusUpdatedAt).To(EqualTime(lastUpdatedTime))
 			}
 		})
 	})
