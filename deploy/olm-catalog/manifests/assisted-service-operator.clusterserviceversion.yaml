@@ -281,7 +281,7 @@ metadata:
       for managing the deployment of the Assisted Service.
     olm.skipRange: '>=0.0.1 <99.0.0-unreleased'
     operatorframework.io/suggested-namespace: assisted-installer
-    operators.operatorframework.io/builder: operator-sdk-v1.25.2
+    operators.operatorframework.io/builder: operator-sdk-v1.10.0+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/openshift/assisted-service
     support: https://github.com/openshift/assisted-service/issues/new
@@ -1074,9 +1074,7 @@ spec:
           - watch
         serviceAccountName: assisted-service
       deployments:
-      - label:
-          control-plane: infrastructure-operator
-        name: infrastructure-operator
+      - name: infrastructure-operator
         spec:
           replicas: 1
           selector:
@@ -1234,4 +1232,17 @@ spec:
   maturity: alpha
   provider:
     name: Red Hat
+  relatedImages:
+  - image: quay.io/edge-infrastructure/assisted-service:latest
+    name: controller
+  - image: quay.io/edge-infrastructure/assisted-image-service:latest
+    name: image-service
+  - image: quay.io/sclorg/postgresql-12-c8s:latest
+    name: postgresql
+  - image: quay.io/edge-infrastructure/assisted-installer:latest
+    name: installer
+  - image: quay.io/edge-infrastructure/assisted-installer-agent:latest
+    name: agent
+  - image: quay.io/edge-infrastructure/assisted-installer-controller:latest
+    name: reporter
   version: 99.0.0-unreleased
