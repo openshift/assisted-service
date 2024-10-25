@@ -64,7 +64,7 @@ func (a *AgentLocalAuthenticator) EnableOrgBasedFeatureGates() bool {
 	return false
 }
 
-func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
+func (a *AgentLocalAuthenticator) authenticateToken(token string) (interface{}, error) {
 	t, err := validateToken(token, a.publicKey)
 	if err != nil {
 		a.log.WithError(err).Error("failed to validate token")
@@ -92,8 +92,12 @@ func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, erro
 	return ocm.AdminPayload(), nil
 }
 
+func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
+	return a.authenticateToken(token)
+}
+
 func (a *AgentLocalAuthenticator) AuthUserAuth(token string) (interface{}, error) {
-	return a.AuthAgentAuth(token)
+	return a.authenticateToken(token)
 }
 
 func (a *AgentLocalAuthenticator) AuthURLAuth(token string) (interface{}, error) {
@@ -105,7 +109,7 @@ func (a *AgentLocalAuthenticator) AuthImageAuth(_ string) (interface{}, error) {
 }
 
 func (a *AgentLocalAuthenticator) AuthWatcherAuth(token string) (interface{}, error) {
-	return a.AuthAgentAuth(token)
+	return a.authenticateToken(token)
 }
 
 func (a *AgentLocalAuthenticator) CreateAuthenticator() func(_, _ string, _ security.TokenAuthentication) runtime.Authenticator {

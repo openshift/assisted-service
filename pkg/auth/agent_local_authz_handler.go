@@ -103,16 +103,16 @@ func (a *AgentLocalAuthzHandler) agentInstallerAuthorizer(request *http.Request,
 		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("claims error: %s", err))
 	}
 
-	authClaim, ok := claims["sub"].(string)
+	authClaim, ok := claims["auth_scheme"].(string)
 	if !ok {
-		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("malformed sub claim"))
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("malformed auth_scheme claim"))
 	}
 
 	if authClaim == "" || authScheme == "" {
 		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("token missing authClaim or endpoint is missing authScheme"))
 	}
 	if authClaim != authScheme {
-		return common.NewInfraError(http.StatusForbidden, fmt.Errorf("authClaim %s is unauthorized to access. authScheme =%s", authClaim, authScheme))
+		return common.NewInfraError(http.StatusForbidden, fmt.Errorf("authClaim %s is unauthorized to access", authClaim))
 	}
 	return nil
 }

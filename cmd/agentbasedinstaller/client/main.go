@@ -43,9 +43,7 @@ const failureOutputPath = "/var/run/agent-installer/host-config-failures"
 
 var Options struct {
 	ServiceBaseUrl   string `envconfig:"SERVICE_BASE_URL" default:""`
-	AgentAuthToken   string `envconfig:"AGENT_AUTH_TOKEN" default:""`
 	UserAuthToken    string `envconfig:"USER_AUTH_TOKEN" default:""`
-	WatcherAuthToken string `envconfig:"WATCHER_AUTH_TOKEN" default:""`
 }
 
 var RegisterOptions struct {
