@@ -10,7 +10,6 @@ import (
 	"github.com/go-openapi/runtime/security"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -80,7 +79,7 @@ func (a *AgentLocalAuthenticator) authenticateToken(token string) (interface{}, 
 	exp, found := claims["exp"].(float64)
 	if !found {
 		// exp claim is not found in the case of install workflow
-		return ocm.AdminPayload(), nil
+		return claims, nil
 	}
 	// in the case of addnodes workflow, check if the token is expired
 	expTime := time.Unix(int64(exp), 0)
@@ -89,7 +88,7 @@ func (a *AgentLocalAuthenticator) authenticateToken(token string) (interface{}, 
 		a.log.Error(err)
 		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
-	return ocm.AdminPayload(), nil
+	return claims, nil
 }
 
 func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {

@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/restapi"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -58,49 +58,15 @@ func (a *AgentLocalAuthzHandler) authorizerMiddleware(request *http.Request) err
 	}
 }
 
-func JWTMiddleware(request *http.Request, authScheme string) (jwt.MapClaims, error) {
-	var authHeader string
-	switch authScheme {
-	// Agent authentication works with the "Authorization" header, but we explicitly set the "X-Secret-Key" header
-	// as it's the recommended header for assisted-installer-agent. The choice of header depends on the annotations
-	// in the swagger.yaml for the specific endpoint.
-	// For endpoints tagged with both agentAuth and userAuth, either "X-Secret-Key" or "Authorization" can be used.
-	// However, for ABI, we assume the three different user personas (agentAuth, userAuth, watcherAuth) have distinct roles.
-	// Therefore, we generate separate tokens for each persona and select the appropriate token based on the header.
-	// AuthAgentAuth could function with the "Authorization" header and the AuthUserAuth token if both agentAuth
-	// and userAuth are defined for the same endpoint.
-	case "agentAuth":
-		// AuthAgentAuth Applies when the "X-Secret-Key" header is set
-		// Refer assisted-installer-agent codebase
-		// used by agent service
-		authHeader = request.Header.Get("X-Secret-Key")
-	case "userAuth":
-		// AuthUserAuth Applies when the "Authorization" header is set
-		// used by ABI'S systemd services
-		authHeader = request.Header.Get("Authorization")
-	case "watcherAuth":
-		// AuthWatcherAuth Applies when the "Watcher-Authorization" header is set
-		// used by ABI's wait-for and monitor commands
-		authHeader = request.Header.Get("Watcher-Authorization")
-	default:
-		authHeader = ""
-	}
-	if authHeader == "" {
-		return nil, errors.New("missing authorization header")
-	}
-
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-
-	claims := jwt.MapClaims{}
-	_, _, err := new(jwt.Parser).ParseUnverified(tokenString, claims)
-
-	return claims, err
-}
-
 func (a *AgentLocalAuthzHandler) agentInstallerAuthorizer(request *http.Request, authScheme string) error {
-	claims, err := JWTMiddleware(request, authScheme)
-	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("claims error: %s", err))
+	payload := request.Context().Value(restapi.AuthKey)
+	if payload == nil {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("payload missing from authenticated context"))
+	}
+
+	claims, ok := payload.(jwt.MapClaims)
+	if !ok {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("malformed claims payload"))
 	}
 
 	authClaim, ok := claims["auth_scheme"].(string)
