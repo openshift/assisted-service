@@ -7,10 +7,12 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Boot boot
@@ -24,6 +26,10 @@ type Boot struct {
 	// current boot mode
 	CurrentBootMode string `json:"current_boot_mode,omitempty"`
 
+	// device type
+	// Enum: [persistent ephemeral]
+	DeviceType string `json:"device_type,omitempty"`
+
 	// pxe interface
 	PxeInterface string `json:"pxe_interface,omitempty"`
 
@@ -35,6 +41,10 @@ type Boot struct {
 func (m *Boot) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateDeviceType(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateSecureBootState(formats); err != nil {
 		res = append(res, err)
 	}
@@ -42,6 +52,48 @@ func (m *Boot) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+var bootTypeDeviceTypePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["persistent","ephemeral"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		bootTypeDeviceTypePropEnum = append(bootTypeDeviceTypePropEnum, v)
+	}
+}
+
+const (
+
+	// BootDeviceTypePersistent captures enum value "persistent"
+	BootDeviceTypePersistent string = "persistent"
+
+	// BootDeviceTypeEphemeral captures enum value "ephemeral"
+	BootDeviceTypeEphemeral string = "ephemeral"
+)
+
+// prop value enum
+func (m *Boot) validateDeviceTypeEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, bootTypeDeviceTypePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Boot) validateDeviceType(formats strfmt.Registry) error {
+	if swag.IsZero(m.DeviceType) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateDeviceTypeEnum("device_type", "body", m.DeviceType); err != nil {
+		return err
+	}
+
 	return nil
 }
 
