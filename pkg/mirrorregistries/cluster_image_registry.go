@@ -50,7 +50,7 @@ func GetImageRegistries(registryTOML string) ([]configv1.ImageDigestMirrors, []c
 
 	registriesTree, ok := tomlTree.Get("registry").([]*toml.Tree)
 	if !ok {
-		return nil, nil, nil, fmt.Errorf("failed to find registry key in toml tree")
+		return nil, nil, nil, fmt.Errorf("failed to find registry key in toml tree, registriesConfToml: %s", registryTOML)
 	}
 
 	idmsMirrors := make([]configv1.ImageDigestMirrors, 0)

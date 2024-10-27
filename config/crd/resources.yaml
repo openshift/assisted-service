@@ -471,9 +471,10 @@ spec:
                 description: Set to true to allow control plane nodes to be schedulable
                 type: boolean
               mirrorRegistryRef:
-                description: MirrorRegistryRef is a reference to ClusterMirrorRegistry
-                  ConfigMap that holds the registries toml data Set per cluster mirror
-                  registry
+                description: |-
+                  MirrorRegistryRef is a reference to ClusterMirrorRegistry ConfigMap that holds the registries toml
+                  data
+                  Set per cluster mirror registry
                 properties:
                   name:
                     description: Name is the name of the ConfigMap that this refers
@@ -719,54 +720,51 @@ spec:
                         about how to handle mirrors in the registries config.
                       properties:
                         mirrorSourcePolicy:
-                          description: mirrorSourcePolicy defines the fallback policy
-                            if fails to pull image from the mirrors. If unset, the
-                            image will continue to be pulled from the the repository
-                            in the pull spec. sourcePolicy is valid configuration
-                            only when one or more mirrors are in the mirror list.
+                          description: |-
+                            mirrorSourcePolicy defines the fallback policy if fails to pull image from the mirrors.
+                            If unset, the image will continue to be pulled from the the repository in the pull spec.
+                            sourcePolicy is valid configuration only when one or more mirrors are in the mirror list.
                           enum:
                           - NeverContactSource
                           - AllowContactingSource
                           type: string
                         mirrors:
-                          description: 'mirrors is zero or more locations that may
-                            also contain the same images. No mirror will be configured
-                            if not specified. Images can be pulled from these mirrors
-                            only if they are referenced by their digests. The mirrored
-                            location is obtained by replacing the part of the input
-                            reference that matches source by the mirrors entry, e.g.
-                            for registry.redhat.io/product/repo reference, a (source,
-                            mirror) pair *.redhat.io, mirror.local/redhat causes a
-                            mirror.local/redhat/product/repo repository to be used.
-                            The order of mirrors in this list is treated as the user''s
-                            desired priority, while source is by default considered
-                            lower priority than all mirrors. If no mirror is specified
-                            or all image pulls from the mirror list fail, the image
-                            will continue to be pulled from the repository in the
-                            pull spec unless explicitly prohibited by "mirrorSourcePolicy"
-                            Other cluster configuration, including (but not limited
-                            to) other imageDigestMirrors objects, may impact the exact
-                            order mirrors are contacted in, or some mirrors may be
-                            contacted in parallel, so this should be considered a
-                            preference rather than a guarantee of ordering. "mirrors"
-                            uses one of the following formats: host[:port] host[:port]/namespace[/namespace…]
-                            host[:port]/namespace[/namespace…]/repo for more information
-                            about the format, see the document about the location
-                            field: https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md#choosing-a-registry-toml-table'
+                          description: |-
+                            mirrors is zero or more locations that may also contain the same images. No mirror will be configured if not specified.
+                            Images can be pulled from these mirrors only if they are referenced by their digests.
+                            The mirrored location is obtained by replacing the part of the input reference that
+                            matches source by the mirrors entry, e.g. for registry.redhat.io/product/repo reference,
+                            a (source, mirror) pair *.redhat.io, mirror.local/redhat causes a mirror.local/redhat/product/repo
+                            repository to be used.
+                            The order of mirrors in this list is treated as the user's desired priority, while source
+                            is by default considered lower priority than all mirrors.
+                            If no mirror is specified or all image pulls from the mirror list fail, the image will continue to be
+                            pulled from the repository in the pull spec unless explicitly prohibited by "mirrorSourcePolicy"
+                            Other cluster configuration, including (but not limited to) other imageDigestMirrors objects,
+                            may impact the exact order mirrors are contacted in, or some mirrors may be contacted
+                            in parallel, so this should be considered a preference rather than a guarantee of ordering.
+                            "mirrors" uses one of the following formats:
+                            host[:port]
+                            host[:port]/namespace[/namespace…]
+                            host[:port]/namespace[/namespace…]/repo
+                            for more information about the format, see the document about the location field:
+                            https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md#choosing-a-registry-toml-table
                           items:
                             pattern: ^((?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])(?:(?:\.(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]))+)?(?::[0-9]+)?)(?:(?:/[a-z0-9]+(?:(?:(?:[._]|__|[-]*)[a-z0-9]+)+)?)+)?$
                             type: string
                           type: array
                           x-kubernetes-list-type: set
                         source:
-                          description: 'source matches the repository that users refer
-                            to, e.g. in image pull specifications. Setting source
-                            to a registry hostname e.g. docker.io. quay.io, or registry.redhat.io,
-                            will match the image pull specification of corressponding
-                            registry. "source" uses one of the following formats:
-                            host[:port] host[:port]/namespace[/namespace…] host[:port]/namespace[/namespace…]/repo
-                            [*.]host for more information about the format, see the
-                            document about the location field: https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md#choosing-a-registry-toml-table'
+                          description: |-
+                            source matches the repository that users refer to, e.g. in image pull specifications. Setting source to a registry hostname
+                            e.g. docker.io. quay.io, or registry.redhat.io, will match the image pull specification of corressponding registry.
+                            "source" uses one of the following formats:
+                            host[:port]
+                            host[:port]/namespace[/namespace…]
+                            host[:port]/namespace[/namespace…]/repo
+                            [*.]host
+                            for more information about the format, see the document about the location field:
+                            https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md#choosing-a-registry-toml-table
                           pattern: ^\*(?:\.(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]))+$|^((?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])(?:(?:\.(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]))+)?(?::[0-9]+)?)(?:(?:/[a-z0-9]+(?:(?:(?:[._]|__|[-]*)[a-z0-9]+)+)?)+)?$
                           type: string
                       required:
@@ -779,58 +777,53 @@ spec:
                         about how to handle mirrors in the registries config.
                       properties:
                         mirrorSourcePolicy:
-                          description: mirrorSourcePolicy defines the fallback policy
-                            if fails to pull image from the mirrors. If unset, the
-                            image will continue to be pulled from the repository in
-                            the pull spec. sourcePolicy is valid configuration only
-                            when one or more mirrors are in the mirror list.
+                          description: |-
+                            mirrorSourcePolicy defines the fallback policy if fails to pull image from the mirrors.
+                            If unset, the image will continue to be pulled from the repository in the pull spec.
+                            sourcePolicy is valid configuration only when one or more mirrors are in the mirror list.
                           enum:
                           - NeverContactSource
                           - AllowContactingSource
                           type: string
                         mirrors:
-                          description: 'mirrors is zero or more locations that may
-                            also contain the same images. No mirror will be configured
-                            if not specified. Images can be pulled from these mirrors
-                            only if they are referenced by their tags. The mirrored
-                            location is obtained by replacing the part of the input
-                            reference that matches source by the mirrors entry, e.g.
-                            for registry.redhat.io/product/repo reference, a (source,
-                            mirror) pair *.redhat.io, mirror.local/redhat causes a
-                            mirror.local/redhat/product/repo repository to be used.
-                            Pulling images by tag can potentially yield different
-                            images, depending on which endpoint we pull from. Configuring
-                            a list of mirrors using "ImageDigestMirrorSet" CRD and
-                            forcing digest-pulls for mirrors avoids that issue. The
-                            order of mirrors in this list is treated as the user''s
-                            desired priority, while source is by default considered
-                            lower priority than all mirrors. If no mirror is specified
-                            or all image pulls from the mirror list fail, the image
-                            will continue to be pulled from the repository in the
-                            pull spec unless explicitly prohibited by "mirrorSourcePolicy".
-                            Other cluster configuration, including (but not limited
-                            to) other imageTagMirrors objects, may impact the exact
-                            order mirrors are contacted in, or some mirrors may be
-                            contacted in parallel, so this should be considered a
-                            preference rather than a guarantee of ordering. "mirrors"
-                            uses one of the following formats: host[:port] host[:port]/namespace[/namespace…]
-                            host[:port]/namespace[/namespace…]/repo for more information
-                            about the format, see the document about the location
-                            field: https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md#choosing-a-registry-toml-table'
+                          description: |-
+                            mirrors is zero or more locations that may also contain the same images. No mirror will be configured if not specified.
+                            Images can be pulled from these mirrors only if they are referenced by their tags.
+                            The mirrored location is obtained by replacing the part of the input reference that
+                            matches source by the mirrors entry, e.g. for registry.redhat.io/product/repo reference,
+                            a (source, mirror) pair *.redhat.io, mirror.local/redhat causes a mirror.local/redhat/product/repo
+                            repository to be used.
+                            Pulling images by tag can potentially yield different images, depending on which endpoint we pull from.
+                            Configuring a list of mirrors using "ImageDigestMirrorSet" CRD and forcing digest-pulls for mirrors avoids that issue.
+                            The order of mirrors in this list is treated as the user's desired priority, while source
+                            is by default considered lower priority than all mirrors.
+                            If no mirror is specified or all image pulls from the mirror list fail, the image will continue to be
+                            pulled from the repository in the pull spec unless explicitly prohibited by "mirrorSourcePolicy".
+                            Other cluster configuration, including (but not limited to) other imageTagMirrors objects,
+                            may impact the exact order mirrors are contacted in, or some mirrors may be contacted
+                            in parallel, so this should be considered a preference rather than a guarantee of ordering.
+                            "mirrors" uses one of the following formats:
+                            host[:port]
+                            host[:port]/namespace[/namespace…]
+                            host[:port]/namespace[/namespace…]/repo
+                            for more information about the format, see the document about the location field:
+                            https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md#choosing-a-registry-toml-table
                           items:
                             pattern: ^((?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])(?:(?:\.(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]))+)?(?::[0-9]+)?)(?:(?:/[a-z0-9]+(?:(?:(?:[._]|__|[-]*)[a-z0-9]+)+)?)+)?$
                             type: string
                           type: array
                           x-kubernetes-list-type: set
                         source:
-                          description: 'source matches the repository that users refer
-                            to, e.g. in image pull specifications. Setting source
-                            to a registry hostname e.g. docker.io. quay.io, or registry.redhat.io,
-                            will match the image pull specification of corressponding
-                            registry. "source" uses one of the following formats:
-                            host[:port] host[:port]/namespace[/namespace…] host[:port]/namespace[/namespace…]/repo
-                            [*.]host for more information about the format, see the
-                            document about the location field: https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md#choosing-a-registry-toml-table'
+                          description: |-
+                            source matches the repository that users refer to, e.g. in image pull specifications. Setting source to a registry hostname
+                            e.g. docker.io. quay.io, or registry.redhat.io, will match the image pull specification of corressponding registry.
+                            "source" uses one of the following formats:
+                            host[:port]
+                            host[:port]/namespace[/namespace…]
+                            host[:port]/namespace[/namespace…]/repo
+                            [*.]host
+                            for more information about the format, see the document about the location field:
+                            https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md#choosing-a-registry-toml-table
                           pattern: ^\*(?:\.(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]))+$|^((?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])(?:(?:\.(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]))+)?(?::[0-9]+)?)(?:(?:/[a-z0-9]+(?:(?:(?:[._]|__|[-]*)[a-z0-9]+)+)?)+)?$
                           type: string
                       required:
@@ -3167,9 +3160,8 @@ spec:
                   type: object
                 type: array
               mirrorRegistryRef:
-                description: MirrorRegistryRef is a reference to ClusterMirrorRegistry
-                  ConfigMap that holds the registries toml data Set per cluster mirror
-                  registry
+                description: MirrorRegistryRef is a reference to a given MirrorRegistry
+                  ConfigMap that holds the registries toml data
                 properties:
                   name:
                     description: Name is the name of the ConfigMap that this refers

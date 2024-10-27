@@ -57,7 +57,7 @@ var _ = Describe("Generator tests", func() {
 
 		It("fails to extract data from registry config without mirrors", func() {
 			_, err := ExtractLocationMirrorDataFromRegistriesFromToml(configWithoutMirrors)
-			Expect(err.Error()).Should(Equal("failed to cast registry key to toml Tree, registriesConfToml: unqualified-search-registries = [\"registry1\", \"registry2\", \"registry3\"]"))
+			Expect(err.Error()).Should(Equal("failed to find registry key in toml tree, registriesConfToml: unqualified-search-registries = [\"registry1\", \"registry2\", \"registry3\"]"))
 		})
 
 		It("fails to extract data from registry config with garbage", func() {
@@ -67,7 +67,7 @@ var _ = Describe("Generator tests", func() {
 
 		It("fails to extract data from empty config", func() {
 			_, err := ExtractLocationMirrorDataFromRegistriesFromToml("")
-			Expect(err.Error()).Should(Equal("failed to cast registry key to toml Tree, registriesConfToml: "))
+			Expect(err.Error()).Should(Equal("failed to find registry key in toml tree, registriesConfToml: "))
 		})
 
 	})
@@ -260,7 +260,7 @@ var _ = Describe("Per cluster mirror registry tests", func() {
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal(
-					"failed to find registry key in toml tree"))
+					"failed to find registry key in toml tree, registriesConfToml: "))
 			})
 		})
 

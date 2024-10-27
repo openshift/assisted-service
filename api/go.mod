@@ -3,10 +3,10 @@ module github.com/openshift/assisted-service/api
 go 1.21
 
 require (
-	github.com/openshift/api v0.0.0-20230720094506-afcbe27aec7c
 	github.com/itchyny/gojq v0.12.8
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.30.0
+	github.com/openshift/api v0.0.0-20230720094506-afcbe27aec7c
 	github.com/openshift/assisted-service/models v0.0.0
 	github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
 	github.com/openshift/hive/apis v0.0.0-20231220215202-ad99b9e52d27
