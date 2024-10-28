@@ -1,8 +1,8 @@
 package mirrorregistries
 
 import (
-	"fmt"
 	"os"
+	"unsafe"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/pelletier/go-toml"
@@ -78,34 +78,16 @@ func (m *mirrorRegistriesConfigBuilder) ExtractLocationMirrorDataFromRegistries(
 }
 
 func ExtractLocationMirrorDataFromRegistriesFromToml(registriesConfToml string) ([]RegistriesConf, error) {
-	tomlTree, err := toml.Load(registriesConfToml)
+	var registriesConfList []RegistriesConf
+
+	idmsMirrors, _, _, err := GetImageRegistries(registriesConfToml)
 	if err != nil {
 		return nil, err
 	}
 
-	registriesTree, ok := tomlTree.Get("registry").([]*toml.Tree)
-	if !ok {
-		return nil, fmt.Errorf("failed to cast registry key to toml Tree, registriesConfToml: %s", registriesConfToml)
-	}
-	registriesConfList := make([]RegistriesConf, len(registriesTree))
-	for i, registryTree := range registriesTree {
-		location, ok := registryTree.Get("location").(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to cast location key to string, registriesConfToml: %s", registriesConfToml)
-		}
-		mirrorTree, ok := registryTree.Get("mirror").([]*toml.Tree)
-		if !ok {
-			return nil, fmt.Errorf("failed to cast mirror key to toml Tree, registriesConfToml: %s", registriesConfToml)
-		}
-		var mirrors []string
-		for i := range mirrorTree {
-			currentMirror, ok := mirrorTree[i].Get("location").(string)
-			if !ok {
-				return nil, fmt.Errorf("failed to cast mirror location key to string, registriesConfToml: %s", registriesConfToml)
-			}
-			mirrors = append(mirrors, currentMirror)
-		}
-		registriesConfList[i] = RegistriesConf{Location: location, Mirror: mirrors}
+	for _, i := range idmsMirrors {
+		mirrors := *(*[]string)(unsafe.Pointer(&i.Mirrors))
+		registriesConfList = append(registriesConfList, RegistriesConf{Location: i.Source, Mirror: mirrors})
 	}
 
 	return registriesConfList, nil

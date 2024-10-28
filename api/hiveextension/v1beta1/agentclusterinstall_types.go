@@ -525,14 +525,14 @@ type MirrorRegistryConfigMapReference struct {
 	Namespace string `json:"namespace"`
 }
 
-// MirrorRegistryConfigurationInfo holds the mirror registry configuration details
+// MirrorRegistryConfigurationInfo holds a parsed mirror registry configuration details
 type MirrorRegistryConfigurationInfo struct {
 	ImageDigestMirrors []configv1.ImageDigestMirrors `json:"imageDigestMirrors,omitempty"`
 	ImageTagMirrors    []configv1.ImageTagMirrors    `json:"imageTagMirrors,omitempty"`
 	Insecure           []string                      `json:"insecure,omitempty"`
 }
 
-// MirrorRegistryConfiguration holds the mirror registry configuration details
+// MirrorRegistryConfiguration holds the given mirror registry configuration
 type MirrorRegistryConfiguration struct {
 	MirrorRegistryConfigurationInfo *MirrorRegistryConfigurationInfo `json:"mirrorRegistryConfigurationInfo,omitempty"`
 	RegistriesConf                  string                           `json:"registriesConf,omitempty"`

@@ -142,9 +142,8 @@ spec:
                   type: object
                 type: array
               mirrorRegistryRef:
-                description: MirrorRegistryRef is a reference to ClusterMirrorRegistry
-                  ConfigMap that holds the registries toml data Set per cluster mirror
-                  registry
+                description: MirrorRegistryRef is a reference to a given MirrorRegistry
+                  ConfigMap that holds the registries toml data
                 properties:
                   name:
                     description: Name is the name of the ConfigMap that this refers

@@ -449,7 +449,7 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(mirrorRegistryConfiguration).Should(BeNil())
 
-				Expect(err.Error()).To(Equal("failed to find registry key in toml tree"))
+				Expect(err.Error()).To(Equal("failed to find registry key in toml tree, registriesConfToml: \n[[registry.mirror]]\nlocation = \"example-user-registry.com\"\n"))
 			})
 		})
 
@@ -669,7 +669,7 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).To(BeNil())
 
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
-				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: failed to find registry key in toml tree"))
+				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: failed to find registry key in toml tree, registriesConfToml: \n[[registry.mirror]]\nlocation = \"example-user-registry.com\"\n"))
 
 				err = c.Get(ctx, ClusterDeploymentKey, clusterDeployment)
 				Expect(err.Error()).To(Equal("clusterdeployments.hive.openshift.io \"test-cluster-aci\" not found"))

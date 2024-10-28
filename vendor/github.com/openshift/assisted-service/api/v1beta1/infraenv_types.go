@@ -119,9 +119,7 @@ type InfraEnvSpec struct {
 	// +optional
 	OSImageVersion string `json:"osImageVersion,omitempty"`
 
-	// MirrorRegistryRef is a reference to ClusterMirrorRegistry ConfigMap that holds the registries toml
-	// data
-	// Set per cluster mirror registry
+	// MirrorRegistryRef is a reference to a given MirrorRegistry ConfigMap that holds the registries toml data
 	// +optional
 	MirrorRegistryRef *v1beta1.MirrorRegistryConfigMapReference `json:"mirrorRegistryRef,omitempty"`
 }
