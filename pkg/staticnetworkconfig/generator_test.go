@@ -572,8 +572,8 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigDataYAML - gene
 
 		hostsYAML, hostsYAMLAndIni = `[{ "network_yaml": "%s" }]`, `[{ "network_yaml": "%s", "mac_interface_map": %s }]`
 
-		hostYAML = `interfaces:
-- name: eth0
+		staticNetYAML = `interfaces:
+- name: %s
   type: ethernet
   state: up
   ipv4:
@@ -582,28 +582,139 @@ var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigDataYAML - gene
       - ip: 192.0.2.1
         prefix-length: 24`
 
+		statNetExpectedResult = `capture:
+  iface0: interfaces.mac-address == "02:00:00:80:12:14"
+desiredState:
+  interfaces:
+  - ipv4:
+      address:
+      - ip: 192.0.2.1
+        prefix-length: 24
+      dhcp: false
+      enabled: true
+    name: "{{ capture.iface0.interfaces.0.name }}"
+    state: up
+    type: ethernet`
+
+		bondYAML = `interfaces:
+- name: bond99
+  type: bond
+  state: up
+  ipv4:
+    address:
+    - ip: 192.0.2.0
+      prefix-length: 24
+    enabled: true
+  link-aggregation:
+    mode: balance-rr
+    options:
+      miimon: '140'
+    port:
+    - %s`
+
+		bondExpectedResult = `capture:
+  iface0: interfaces.mac-address == "02:00:00:80:12:14"
+desiredState:
+  interfaces:
+  - ipv4:
+      address:
+      - ip: 192.0.2.0
+        prefix-length: 24
+      dhcp: false
+      enabled: true
+    link-aggregation:
+      mode: balance-rr
+      options:
+        miimon: "140"
+      port:
+      - "{{ capture.iface0.interfaces.0.name }}"
+    name: bond99
+    state: up
+    type: bond`
+
 		macInterfaceMap = `[
         {
           "mac_address": "02:00:00:80:12:14",
-          "logical_nic_name": "eth0"
+          "logical_nic_name": "%s"
         }
       ]`
 	)
-	escapedYamlContent, err := escapeYAMLForJSON(hostYAML)
-	Expect(err).NotTo(HaveOccurred())
 
 	It("Success - without ini file", func() {
-
+		escapedYamlContent, err := escapeYAMLForJSON(fmt.Sprintf(staticNetYAML, "eth0"))
+		Expect(err).NotTo(HaveOccurred())
 		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAML, escapedYamlContent))
 		fileContent := config[1].FileContents
 		Expect(fileContent).To(ContainSubstring("capture"))
-		Expect(fileContent).To(ContainSubstring("dhcp: false"))
 		Expect(err).NotTo(HaveOccurred())
 	})
 	It("Success - with ini file", func() {
-		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macInterfaceMap))
+		escapedYamlContent, err := escapeYAMLForJSON(fmt.Sprintf(staticNetYAML, "eth0"))
+		Expect(err).NotTo(HaveOccurred())
+		macMap := fmt.Sprintf(macInterfaceMap, "eth0")
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macMap))
 		fileContent := config[1].FileContents
-		Expect(fileContent).To(ContainSubstring("name: \"{{ capture.iface0.interfaces.0.name }}\""))
+		Expect(fileContent).To(Equal(statNetExpectedResult))
+		Expect(err).NotTo(HaveOccurred())
+	})
+	It("Success - name is a string as one of the keys in the YAML", func() {
+		escapedYamlContent, err := escapeYAMLForJSON(fmt.Sprintf(staticNetYAML, "type"))
+		Expect(err).NotTo(HaveOccurred())
+		macMap := fmt.Sprintf(macInterfaceMap, "type")
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macMap))
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(Equal(statNetExpectedResult))
+		Expect(err).NotTo(HaveOccurred())
+	})
+	It("Success - name is a single char", func() {
+		escapedYamlContent, err := escapeYAMLForJSON(fmt.Sprintf(staticNetYAML, "t"))
+		Expect(err).NotTo(HaveOccurred())
+		macMap := fmt.Sprintf(macInterfaceMap, "t")
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macMap))
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(Equal(statNetExpectedResult))
+		Expect(err).NotTo(HaveOccurred())
+	})
+	It("Success - name in quotes", func() {
+		escapedYamlContent, err := escapeYAMLForJSON(fmt.Sprintf(staticNetYAML, "\"eth0\""))
+		Expect(err).NotTo(HaveOccurred())
+		macMap := fmt.Sprintf(macInterfaceMap, "eth0")
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macMap))
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(Equal(statNetExpectedResult))
+		Expect(err).NotTo(HaveOccurred())
+
+		escapedYamlContent, err = escapeYAMLForJSON(fmt.Sprintf(staticNetYAML, "'eth0'"))
+		Expect(err).NotTo(HaveOccurred())
+		config, err = staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macMap))
+		fileContent = config[1].FileContents
+		Expect(fileContent).To(Equal(statNetExpectedResult))
+		Expect(err).NotTo(HaveOccurred())
+	})
+	It("Success - name with multiple spaces", func() {
+		escapedYamlContent, err := escapeYAMLForJSON(fmt.Sprintf(staticNetYAML, "   eth0"))
+		Expect(err).NotTo(HaveOccurred())
+		macMap := fmt.Sprintf(macInterfaceMap, "eth0")
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macMap))
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(Equal(statNetExpectedResult))
+		Expect(err).NotTo(HaveOccurred())
+	})
+	It("Success - bond", func() {
+		escapedYamlContent, err := escapeYAMLForJSON(fmt.Sprintf(bondYAML, "eth0"))
+		Expect(err).NotTo(HaveOccurred())
+		macMap := fmt.Sprintf(macInterfaceMap, "eth0")
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macMap))
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(Equal(bondExpectedResult))
+		Expect(err).NotTo(HaveOccurred())
+	})
+	It("Success - dhcp is added to the YAML", func() {
+		escapedYamlContent, err := escapeYAMLForJSON(fmt.Sprintf(staticNetYAML, "eth0"))
+		Expect(err).NotTo(HaveOccurred())
+		macMap := fmt.Sprintf(macInterfaceMap, "eth0")
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macMap))
+		fileContent := config[1].FileContents
 		Expect(fileContent).To(ContainSubstring("dhcp: false"))
 		Expect(err).NotTo(HaveOccurred())
 	})
