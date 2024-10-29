@@ -2349,9 +2349,15 @@ func getClusterDeploymentAdminKubeConfigSecretName(cd *hivev1.ClusterDeployment)
 
 // processMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
 func (r *ClusterDeploymentsReconciler) processMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall) (*hiveext.MirrorRegistryConfiguration, error) {
-	mirrorRegistryConfiguration, err := mirrorregistries.ProcessMirrorRegistryConfig(ctx, log, r.Client, clusterInstall.Spec.MirrorRegistryRef)
+	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistries.ProcessMirrorRegistryConfig(ctx, log, r.Client, clusterInstall.Spec.MirrorRegistryRef)
 	if err != nil {
 		return nil, err
+	}
+	if mirrorRegistryConfiguration != nil {
+		namespacedName := types.NamespacedName{Name: clusterInstall.Spec.MirrorRegistryRef.Name, Namespace: clusterInstall.Spec.MirrorRegistryRef.Namespace}
+		if err = ensureConfigMapIsLabelled(ctx, r.Client, userTomlConfigMap, namespacedName); err != nil {
+			return nil, errors.Wrapf(err, "Unable to mark mirror configmap for backup")
+		}
 	}
 
 	if mirrorRegistryConfiguration == nil {

@@ -229,9 +229,16 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 		updateParams.InfraEnvUpdateParams.KernelArguments = internalKernelArgs(infraEnv.Spec.KernelArguments)
 	}
 
-	mirrorRegistryConfiguration, err := mirrorregistries.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef)
+	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistries.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef)
 	if err != nil {
 		return nil, err
+	}
+
+	if mirrorRegistryConfiguration != nil {
+		namespacedName := types.NamespacedName{Name: infraEnv.Spec.MirrorRegistryRef.Name, Namespace: infraEnv.Spec.MirrorRegistryRef.Namespace}
+		if err := ensureConfigMapIsLabelled(ctx, r.Client, userTomlConfigMap, namespacedName); err != nil {
+			return nil, errors.Wrapf(err, "Unable to mark mirror configmap for backup")
+		}
 	}
 
 	// UpdateInfraEnvInternal will generate an ISO only if it was not generated before
@@ -513,9 +520,16 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 		createParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
 	}
 
-	mirrorRegistryConfiguration, err := mirrorregistries.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef)
+	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistries.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef)
 	if err != nil {
 		return nil, err
+	}
+
+	if mirrorRegistryConfiguration != nil {
+		namespacedName := types.NamespacedName{Name: infraEnv.Spec.MirrorRegistryRef.Name, Namespace: infraEnv.Spec.MirrorRegistryRef.Namespace}
+		if err = ensureConfigMapIsLabelled(ctx, r.Client, userTomlConfigMap, namespacedName); err != nil {
+			return nil, errors.Wrapf(err, "Unable to mark mirror configmap for backup")
+		}
 	}
 
 	return r.Installer.RegisterInfraEnvInternal(ctx, key, mirrorRegistryConfiguration, createParams)
