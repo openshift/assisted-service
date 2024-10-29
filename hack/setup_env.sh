@@ -55,7 +55,7 @@ function test_tools() {
 function assisted_service() {
   ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
 
-  OPERATOR_SDK_VERSION=v1.25.2
+  OPERATOR_SDK_VERSION=v1.10.1
   curl --retry 5 --connect-timeout 30 -sL "https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk_$(uname)_${ARCH}" --output /usr/local/bin/operator-sdk
   curl --retry 5 --connect-timeout 30 -sL "https://mirror.openshift.com/pub/openshift-v4/multi/clients/ocp/latest/${ARCH}/openshift-client-linux.tar.gz" | tar -C /usr/local/bin -xz
 
