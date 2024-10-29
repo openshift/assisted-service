@@ -260,9 +260,6 @@ spec:
                       PlatformName holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.
                       This field is solely for informational and reporting purposes and is not expected to be used for decision-making.
                     type: string
-                    x-kubernetes-validations:
-                    - message: platform name cannot be changed once set
-                      rule: oldSelf == 'Unknown' || self == oldSelf
                 type: object
               holdInstallation:
                 description: |-
