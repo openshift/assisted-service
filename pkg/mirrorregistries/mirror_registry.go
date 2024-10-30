@@ -1,0 +1,189 @@
+package mirrorregistries
+
+import (
+	"context"
+	"fmt"
+
+	configv1 "github.com/openshift/api/config/v1"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	"github.com/pelletier/go-toml"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	RegistryConfKey = "registries.conf"
+	RegistryCertKey = "ca-bundle.crt"
+)
+
+// GetImageRegistries reads a toml tree string with the structure:
+//
+// [[registry]]
+//
+//	 location = "source-registry"
+//
+//	   [[registry.mirror]]
+//		  location = "mirror-registry"
+//		  insecure = true # indicates to use an insecure connection to this mirror registry
+//		  pull-from-mirror = "tag-only" # indicates to add this to an ImageTagMirrorSet
+//
+// It will convert it to an ImageDigestMirrorSet CR and/or an ImageTagMirrorSet.
+// It will return these as marshalled JSON strings, and it will return a string list of insecure
+// mirror registries (if they exist)
+func GetImageRegistries(registryTOML string) ([]configv1.ImageDigestMirrors, []configv1.ImageTagMirrors, []string, error) {
+	// Parse toml and add mirror registry to image digest mirror set
+	tomlTree, err := toml.Load(registryTOML)
+	if err != nil {
+		return nil, nil, nil, errors.Wrap(err, "failed to load value of registries.conf into toml tree; incorrectly formatted toml")
+	}
+
+	registriesTree, ok := tomlTree.Get("registry").([]*toml.Tree)
+	if !ok {
+		return nil, nil, nil, fmt.Errorf("failed to find registry key in toml tree, registriesConfToml: %s", registryTOML)
+	}
+
+	idmsMirrors := make([]configv1.ImageDigestMirrors, 0)
+	itmsMirrors := make([]configv1.ImageTagMirrors, 0)
+	insecureRegistries := make([]string, 0)
+
+	// Add each registry and its mirrors as either an image digest mirror or an image tag mirror
+	for _, registry := range registriesTree {
+		source, sourceExists := registry.Get("location").(string)
+		mirrorTrees, mirrorExists := registry.Get("mirror").([]*toml.Tree)
+		if !sourceExists || !mirrorExists {
+			continue
+		}
+		parseMirrorRegistries(&idmsMirrors, &itmsMirrors, mirrorTrees, &insecureRegistries, source)
+	}
+
+	if len(idmsMirrors) < 1 && len(itmsMirrors) < 1 {
+		return nil, nil, nil, fmt.Errorf("failed to find any image mirrors in registry.conf")
+	}
+
+	return idmsMirrors, itmsMirrors, insecureRegistries, nil
+}
+
+// parseMirrorRegistries takes a mirror registry toml tree and parses it into
+// a list of image mirrors and a string list of insecure mirror registries.
+func parseMirrorRegistries(
+	idmsMirrors *[]configv1.ImageDigestMirrors,
+	itmsMirrors *[]configv1.ImageTagMirrors,
+	mirrorTrees []*toml.Tree,
+	insecureRegistries *[]string,
+	source string,
+) {
+	itmsMirror := configv1.ImageTagMirrors{}
+	idmsMirror := configv1.ImageDigestMirrors{}
+	for _, mirrorTree := range mirrorTrees {
+		if mirror, ok := mirrorTree.Get("location").(string); ok {
+			if insecure, ok := mirrorTree.Get("insecure").(bool); ok && insecure {
+				*insecureRegistries = append(*insecureRegistries, mirror)
+			}
+			if pullFrom, ok := mirrorTree.Get("pull-from-mirror").(string); ok {
+				switch pullFrom {
+				case "tag-only":
+					itmsMirror.Source = source
+					itmsMirror.Mirrors = append(itmsMirror.Mirrors, configv1.ImageMirror(mirror))
+				case "digest-only":
+					idmsMirror.Source = source
+					idmsMirror.Mirrors = append(idmsMirror.Mirrors, configv1.ImageMirror(mirror))
+				}
+			} else {
+				// Default is pulling by digest
+				idmsMirror.Source = source
+				idmsMirror.Mirrors = append(idmsMirror.Mirrors, configv1.ImageMirror(mirror))
+			}
+		}
+	}
+	if len(itmsMirror.Mirrors) > 0 {
+		*itmsMirrors = append(*itmsMirrors, itmsMirror)
+	}
+	if len(idmsMirror.Mirrors) > 0 {
+		*idmsMirrors = append(*idmsMirrors, idmsMirror)
+	}
+}
+
+// processMirrorRegistryConfig retrieves the mirror registry configuration from registries.conf and ca-bundle.crt
+func processMirrorRegistryConfig(registriesConf, caBundleCrt string) (*hiveext.MirrorRegistryConfiguration, error) {
+	if registriesConf == "" {
+		return nil, nil
+	}
+
+	imageDigestMirrors, imageTagMirrors, insecure, err := GetImageRegistries(registriesConf)
+	if err != nil {
+		return nil, err
+	}
+
+	return &hiveext.MirrorRegistryConfiguration{
+		ImageDigestMirrors: imageDigestMirrors,
+		ImageTagMirrors:    imageTagMirrors,
+		Insecure:           insecure,
+		CaBundleCrt:        caBundleCrt,
+		RegistriesConf:     registriesConf,
+	}, nil
+}
+
+// getUserTomlConfigMapData get registries.conf and ca-bundle.crt if exist in the provided configmap inside AgentClusterInstall
+func getUserTomlConfigMapData(ctx context.Context, log logrus.FieldLogger, c client.Client, ref *hiveext.MirrorRegistryConfigMapReference) (string, string, *corev1.ConfigMap, error) {
+	userTomlConfigMap := &corev1.ConfigMap{}
+	namespacedName := types.NamespacedName{Name: ref.Name, Namespace: ref.Namespace}
+	err := c.Get(ctx, namespacedName, userTomlConfigMap)
+	if err != nil {
+		log.Error(err, "Failed to get ConfigMap", "ConfigMapName", ref.Name, "ConfigMapNamespace", ref.Namespace)
+		return "", "", nil, errors.Wrap(err, "Failed to get referenced ConfigMap")
+	}
+
+	// Validating that both registries.conf and ca-bundle.crt exists
+	registriesConf, ok := userTomlConfigMap.Data[RegistryConfKey]
+	if !ok {
+		return "", "", nil, fmt.Errorf("ConfigMap %s/%s does not contain registries.conf key", ref.Namespace, ref.Name)
+	}
+
+	// Additional certificate is optional
+	caBundleCrt := userTomlConfigMap.Data[RegistryCertKey]
+
+	log.Infof("Successfully fetched the mirror registry TOML configuration file: %s %s", ref.Namespace, ref.Name)
+	return registriesConf, caBundleCrt, userTomlConfigMap, nil
+}
+
+// ProcessMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
+func ProcessMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, c client.Client, ref *hiveext.MirrorRegistryConfigMapReference) (*hiveext.MirrorRegistryConfiguration, *corev1.ConfigMap, error) {
+	if ref == nil {
+		return nil, nil, nil
+	}
+
+	log.Infof("Getting cluster mirror registry configurations %s %s ", ref.Namespace, ref.Name)
+	registriesConf, caBundleCrt, userTomlConfigMap, err := getUserTomlConfigMapData(ctx, log, c, ref)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if registriesConf == "" && caBundleCrt == "" {
+		log.Infof("No registires.conf ConfigMap %s/%s found", ref.Namespace, ref.Name)
+		return nil, nil, nil
+	}
+
+	mirrorRegistryConfiguration, err := processMirrorRegistryConfig(registriesConf, caBundleCrt)
+	if err != nil {
+		log.Error("Failed to validate and parse registries.conf", err)
+		return nil, nil, err
+	}
+
+	log.Info("Successfully retrieved mirror registry configuration", "ConfigMapName", ref.Name, "ConfigMapNamespace", ref.Namespace)
+	return mirrorRegistryConfiguration, userTomlConfigMap, nil
+}
+
+func IsMirrorConfigurationSet(conf *hiveext.MirrorRegistryConfiguration) bool {
+	if conf == nil {
+		return false
+	}
+
+	if conf.RegistriesConf != "" {
+		return true
+	}
+
+	return false
+}

@@ -110,7 +110,7 @@ type ClusterDeploymentsReconciler struct {
 	AuthType                      auth.AuthType
 	VersionsHandler               versions.Handler
 	SpokeK8sClientFactory         spoke_k8s_client.SpokeK8sClientFactory
-	MirrorRegistriesConfigBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+	MirrorRegistriesConfigBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 }
 
 const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"

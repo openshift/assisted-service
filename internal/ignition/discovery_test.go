@@ -85,7 +85,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		log                                 logrus.FieldLogger
 		builder                             IgnitionBuilder
 		mockStaticNetworkConfig             *staticnetworkconfig.MockStaticNetworkConfig
-		mockMirrorRegistriesConfigBuilder   *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistriesConfigBuilder   *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		infraEnvID                          strfmt.UUID
 		mockOcRelease                       *oc.MockRelease
 		mockVersionHandler                  *versions.MockHandler
@@ -99,7 +99,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		infraEnvID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
-		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())
@@ -949,7 +949,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		infraEnv                          common.InfraEnv
 		builder                           IgnitionBuilder
 		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
-		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		infraEnvID                        strfmt.UUID
 		mockOcRelease                     *oc.MockRelease
 		mockVersionHandler                *versions.MockHandler
@@ -971,7 +971,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		infraEnvID = strfmt.UUID("a64fff36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
-		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		infraEnv = common.InfraEnv{
@@ -1034,7 +1034,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		log                               logrus.FieldLogger
 		builder                           IgnitionBuilder
 		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
-		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		mockHost                          *models.Host
 		mockOcRelease                     *oc.MockRelease
 		mockVersionHandler                *versions.MockHandler
@@ -1044,7 +1044,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		log = common.GetTestLog()
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
-		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockHost = &models.Host{Inventory: hostInventory}
 		var err error
 		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
@@ -1126,7 +1126,7 @@ var _ = Describe("OKD overrides", func() {
 		infraEnv                           common.InfraEnv
 		builder                            IgnitionBuilder
 		mockStaticNetworkConfig            *staticnetworkconfig.MockStaticNetworkConfig
-		mockMirrorRegistriesConfigBuilder  *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistriesConfigBuilder  *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		infraEnvID                         strfmt.UUID
 		mockOcRelease                      *oc.MockRelease
 		mockVersionHandler                 *versions.MockHandler
@@ -1138,7 +1138,7 @@ var _ = Describe("OKD overrides", func() {
 		infraEnvID = strfmt.UUID("a64fff36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
-		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())

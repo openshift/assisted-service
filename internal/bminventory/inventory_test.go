@@ -170,7 +170,7 @@ var (
 	mockInstallConfigBuilder          *installcfg_builder.MockInstallConfigBuilder
 	mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 	mockProviderRegistry              *registry.MockProviderRegistry
-	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 	secondDayWorkerIgnition           = []byte(`{
 		"ignition": {
 		  "version": "3.1.0",
@@ -265,7 +265,7 @@ func mockClusterRegisterSuccessWithVersion(cpuArchitecture, openshiftVersion str
 
 func createInstallConfigBuilder() installcfg_builder.InstallConfigBuilder {
 	log := common.GetTestLog().WithField("pkg", "installcfg")
-	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 	return installcfg_builder.NewInstallConfigBuilder(log, mockMirrorRegistriesConfigBuilder, registry.InitProviderRegistry(log))
 
 }

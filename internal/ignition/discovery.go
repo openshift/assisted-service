@@ -177,13 +177,13 @@ type ignitionBuilder struct {
 	log                     logrus.FieldLogger
 	templates               *template.Template
 	staticNetworkConfig     staticnetworkconfig.StaticNetworkConfig
-	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 	ocRelease               oc.Release
 	versionHandler          versions.Handler
 }
 
 func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
-	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder, ocRelease oc.Release, versionHandler versions.Handler) (result IgnitionBuilder, err error) {
+	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder, ocRelease oc.Release, versionHandler versions.Handler) (result IgnitionBuilder, err error) {
 	// Parse the templates file system:
 	templates, err := templating.LoadTemplates(templatesRoot)
 	if err != nil {

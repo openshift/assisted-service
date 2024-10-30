@@ -171,7 +171,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockManifestsApi               *manifestsapi.MockClusterManifestsInternals
 		mockCRDEventsHandler           *MockCRDEventsHandler
 		mockVersions                   *versions.MockHandler
-		mockMirrorRegistries           *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistries           *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		defaultClusterSpec             hivev1.ClusterDeploymentSpec
 		clusterName                    = "test-cluster"
 		agentClusterInstallName        = "test-cluster-aci"
@@ -233,7 +233,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
 		mockManifestsApi = manifestsapi.NewMockClusterManifestsInternals(mockCtrl)
 		mockVersions = versions.NewMockHandler(mockCtrl)
-		mockMirrorRegistries = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(mockCtrl)
+		mockMirrorRegistries = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(mockCtrl)
 		cr = &ClusterDeploymentsReconciler{
 			Client:                        c,
 			APIReader:                     c,
@@ -1343,7 +1343,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
 			mockManifestsApi = manifestsapi.NewMockClusterManifestsInternals(mockCtrl)
 			mockVersions = versions.NewMockHandler(mockCtrl)
-			mockMirrorRegistries = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(mockCtrl)
+			mockMirrorRegistries = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(mockCtrl)
 			cr = &ClusterDeploymentsReconciler{
 				Client:                        c,
 				APIReader:                     c,
@@ -3885,7 +3885,7 @@ var _ = Describe("TestConditions", func() {
 		clusterKey             types.NamespacedName
 		agentClusterInstallKey types.NamespacedName
 		mockInstallerInternal  *bminventory.MockInstallerInternals
-		mockMirrorRegistries   *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistries   *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		imageSetName           = "openshift-v4.8.0"
 		releaseImageUrl        = "quay.io/openshift-release-dev/ocp-release:4.8.0-x86_64"
 		ocpReleaseVersion      = "4.8.0"
@@ -3905,7 +3905,7 @@ var _ = Describe("TestConditions", func() {
 			WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockVersions = versions.NewMockHandler(mockCtrl)
-		mockMirrorRegistries = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(mockCtrl)
+		mockMirrorRegistries = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(mockCtrl)
 		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClusterApi = cluster.NewMockAPI(mockCtrl)
@@ -4611,7 +4611,7 @@ var _ = Describe("day2 cluster", func() {
 		cr                             *ClusterDeploymentsReconciler
 		mockVersions                   *versions.MockHandler
 		dbCluster                      *common.Cluster
-		mockMirrorRegistries           *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistries           *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		ocpReleaseVersion              = "4.8.0"
 		ocpVersion                     = "4.8"
 		releaseImage                   = &models.ReleaseImage{
@@ -4626,7 +4626,7 @@ var _ = Describe("day2 cluster", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockVersions = versions.NewMockHandler(mockCtrl)
-		mockMirrorRegistries = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(mockCtrl)
+		mockMirrorRegistries = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(mockCtrl)
 		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
 			WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
