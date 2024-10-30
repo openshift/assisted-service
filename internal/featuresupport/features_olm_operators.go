@@ -289,3 +289,57 @@ func (feature *MceFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	}
 	return activeLevelNotActive
 }
+
+// MtvFeature
+type MtvFeature struct{}
+
+func (feature *MtvFeature) New() SupportLevelFeature {
+	return &MtvFeature{}
+}
+
+func (feature *MtvFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDMTV
+}
+
+func (feature *MtvFeature) GetName() string {
+	return "OpenShift Migration Toolkit for Virtualization"
+}
+
+func (feature *MtvFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeVsphere || *filters.PlatformType == models.PlatformTypeNutanix || *filters.PlatformType == models.PlatformTypeNone) {
+		return models.SupportLevelUnavailable
+	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.14", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *MtvFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	incompatibleArchitecture := []models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+	}
+	return &incompatibleArchitecture
+}
+
+func (feature *MtvFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+	}
+}
+
+func (feature *MtvFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("mtv", cluster, clusterUpdateParams) && isOperatorActivated("cnv", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
