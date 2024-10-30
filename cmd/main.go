@@ -514,6 +514,7 @@ func main() {
 	h, api, err := restapi.HandlerAPI(restapi.Config{
 		AuthAgentAuth:       authHandler.AuthAgentAuth,
 		AuthUserAuth:        authHandler.AuthUserAuth,
+		AuthWatcherAuth:     authHandler.AuthWatcherAuth,
 		AuthURLAuth:         authHandler.AuthURLAuth,
 		AuthImageAuth:       authHandler.AuthImageAuth,
 		AuthImageURLAuth:    authHandler.AuthImageAuth,
