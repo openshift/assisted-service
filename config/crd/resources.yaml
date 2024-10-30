@@ -470,6 +470,23 @@ spec:
               mastersSchedulable:
                 description: Set to true to allow control plane nodes to be schedulable
                 type: boolean
+              mirrorRegistryRef:
+                description: |-
+                  MirrorRegistryRef is a reference to ClusterMirrorRegistry ConfigMap that holds the registries toml
+                  data
+                  Set per cluster mirror registry
+                properties:
+                  name:
+                    description: Name is the name of the ConfigMap that this refers
+                      to
+                    type: string
+                  namespace:
+                    description: Namespace of the ConfigMap
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
               networking:
                 description: |-
                   Networking is the configuration for the pod network provider in

@@ -6,6 +6,7 @@ require (
 	github.com/itchyny/gojq v0.12.8
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.30.0
+	github.com/openshift/api v0.0.0-20230720094506-afcbe27aec7c
 	github.com/openshift/assisted-service/models v0.0.0
 	github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
 	github.com/openshift/hive/apis v0.0.0-20231220215202-ad99b9e52d27
@@ -58,7 +59,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/openshift/api v0.0.0-20230720094506-afcbe27aec7c // indirect
 	github.com/openshift/assisted-service v1.0.10-0.20230830164851-6573b5d7021d // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.18.0 // indirect
