@@ -164,10 +164,10 @@ func (i *installConfigBuilder) handleMirrorRegistry(cfg *installcfg.InstallerCon
 func (i *installConfigBuilder) setImageDigestMirrorSet(cfg *installcfg.InstallerConfigBaremetal, configuration *v1beta1.MirrorRegistryConfiguration) error {
 	var imageDigestSourceList []installcfg.ImageDigestSource
 
-	if configuration != nil && configuration.MirrorRegistryConfigurationInfo != nil {
-		i.log.Infof("Found cluster mirror configuration, setting imageDigestSourceList with %+v", configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors)
-		imageDigestSourceList = make([]installcfg.ImageDigestSource, len(configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors))
-		for k, _registry := range configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors {
+	if mirrorregistries.IsMirrorConfigurationSet(configuration) {
+		i.log.Infof("Found cluster mirror configuration, setting imageDigestSourceList with %+v", configuration.ImageDigestMirrors)
+		imageDigestSourceList = make([]installcfg.ImageDigestSource, len(configuration.ImageDigestMirrors))
+		for k, _registry := range configuration.ImageDigestMirrors {
 			mirrors := make([]string, len(_registry.Mirrors))
 			for j, mirror := range _registry.Mirrors {
 				mirrors[j] = string(mirror)
@@ -194,10 +194,10 @@ func (i *installConfigBuilder) setImageDigestMirrorSet(cfg *installcfg.Installer
 func (i *installConfigBuilder) setImageContentSources(cfg *installcfg.InstallerConfigBaremetal, configuration *v1beta1.MirrorRegistryConfiguration) error {
 	var imageContentSourceList []installcfg.ImageContentSource
 
-	if configuration != nil && configuration.MirrorRegistryConfigurationInfo != nil {
-		i.log.Infof("Found cluster mirror configuration, setting imageContentSourceList with %+v", configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors)
-		imageContentSourceList = make([]installcfg.ImageContentSource, len(configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors))
-		for j, _registry := range configuration.MirrorRegistryConfigurationInfo.ImageDigestMirrors {
+	if mirrorregistries.IsMirrorConfigurationSet(configuration) {
+		i.log.Infof("Found cluster mirror configuration, setting imageContentSourceList with %+v", configuration.ImageDigestMirrors)
+		imageContentSourceList = make([]installcfg.ImageContentSource, len(configuration.ImageDigestMirrors))
+		for j, _registry := range configuration.ImageDigestMirrors {
 			mirrors := make([]string, len(_registry.Mirrors))
 			for k, mirror := range _registry.Mirrors {
 				mirrors[k] = string(mirror)

@@ -1257,11 +1257,10 @@ location = "%s"
 						Namespace: Options.Namespace,
 						Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 					})
-					return aci.Status.MirrorRegistryConfigurationInfo == nil
+					return !aci.Status.MirrorRegistrySuccessfullyApplied
 				}, "1m", "20s").MustPassRepeatedly(3).Should(BeTrue())
 
 				Expect(aci.Spec.MirrorRegistryRef.Name).To(Equal(providedMirrorRegistryCMName))
-				Expect(aci.Status.MirrorRegistryConfigurationInfo).To(BeNil())
 
 				Expect(controllers.FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
 				Expect(controllers.FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: Failed to get referenced ConfigMap: ConfigMap \"user-provided-config-map\" not found"))
@@ -1296,19 +1295,10 @@ location = "%s"
 							Namespace: Options.Namespace,
 							Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 						})
-						return aci.Status.MirrorRegistryConfigurationInfo != nil
+						return aci.Status.MirrorRegistrySuccessfullyApplied
 					}, "1m", "20s").Should(BeTrue())
 
 					Expect(aci.Spec.MirrorRegistryRef.Name).To(Equal(providedMirrorRegistryCMName))
-
-					Expect(aci.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
-					Expect(len(aci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors)).To(Equal(1))
-					Expect(aci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Source).To(Equal(sourceRegistry))
-					Expect(len(aci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors)).To(Equal(1))
-					Expect(string(aci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
-
-					Expect(len(aci.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(0))
-					Expect(len(aci.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(0))
 				})
 			})
 

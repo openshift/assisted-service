@@ -117,17 +117,12 @@ func processMirrorRegistryConfig(registriesConf, caBundleCrt string) (*hiveext.M
 		return nil, err
 	}
 
-	// Store the mirror configuration for later use during install config generation
-	mirrorRegistryConfigurationInfo := &hiveext.MirrorRegistryConfigurationInfo{
+	return &hiveext.MirrorRegistryConfiguration{
 		ImageDigestMirrors: imageDigestMirrors,
 		ImageTagMirrors:    imageTagMirrors,
 		Insecure:           insecure,
-	}
-
-	return &hiveext.MirrorRegistryConfiguration{
-		MirrorRegistryConfigurationInfo: mirrorRegistryConfigurationInfo,
-		CaBundleCrt:                     caBundleCrt,
-		RegistriesConf:                  registriesConf,
+		CaBundleCrt:        caBundleCrt,
+		RegistriesConf:     registriesConf,
 	}, nil
 }
 
@@ -179,4 +174,16 @@ func ProcessMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, c 
 
 	log.Info("Successfully retrieved mirror registry configuration", "ConfigMapName", ref.Name, "ConfigMapNamespace", ref.Namespace)
 	return mirrorRegistryConfiguration, userTomlConfigMap, nil
+}
+
+func IsMirrorConfigurationSet(conf *hiveext.MirrorRegistryConfiguration) bool {
+	if conf == nil {
+		return false
+	}
+
+	if conf.RegistriesConf != "" {
+		return true
+	}
+
+	return false
 }

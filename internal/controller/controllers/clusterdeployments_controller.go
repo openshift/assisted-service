@@ -2364,8 +2364,7 @@ func (r *ClusterDeploymentsReconciler) processMirrorRegistryConfig(ctx context.C
 		return nil, nil
 	}
 
-	// Store the mirror configuration for later use during install config generation
-	clusterInstall.Status.MirrorRegistryConfigurationInfo = mirrorRegistryConfiguration.MirrorRegistryConfigurationInfo
+	clusterInstall.Status.MirrorRegistrySuccessfullyApplied = true
 
 	// Update the status to reflect that the configuration has been processed
 	err = r.Client.Status().Update(ctx, clusterInstall)

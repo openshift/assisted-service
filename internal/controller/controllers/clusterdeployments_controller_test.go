@@ -382,11 +382,7 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(mirrorRegistryConfiguration.CaBundleCrt).To(Equal(mirrorRegistryCertificate))
 
 				updatedAci := getTestClusterInstall()
-
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors).NotTo(BeNil())
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors).To(BeNil())
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.Insecure).To(BeNil())
+				Expect(updatedAci.Status.MirrorRegistrySuccessfullyApplied).To(BeTrue())
 			})
 		})
 
@@ -412,11 +408,7 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(mirrorRegistryConfiguration.CaBundleCrt).To(Equal(mirrorRegistryCertificate))
 
 				updatedAci := getTestClusterInstall()
-
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors).NotTo(BeNil())
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors).To(BeNil())
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.Insecure).NotTo(BeNil())
+				Expect(updatedAci.Status.MirrorRegistrySuccessfullyApplied).To(BeTrue())
 			})
 		})
 
@@ -432,11 +424,7 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(mirrorRegistryConfiguration.CaBundleCrt).To(Equal(mirrorRegistryCertificate))
 
 				updatedAci := getTestClusterInstall()
-
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors).To(BeNil())
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors).NotTo(BeNil())
-				Expect(updatedAci.Status.MirrorRegistryConfigurationInfo.Insecure).To(BeNil())
+				Expect(updatedAci.Status.MirrorRegistrySuccessfullyApplied).To(BeTrue())
 			})
 		})
 
@@ -567,55 +555,22 @@ var _ = Describe("cluster reconcile", func() {
 
 			It("successfully create a new cluster with mirror registry", func() {
 				clusterInstall := getClusterInstallSuccess(getSecureRegistryToml(), mirrorRegistryCertificate)
-
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors)).To(Equal(1))
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Source).To(Equal(sourceRegistry))
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors)).To(Equal(1))
-				Expect(string(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
-
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(0))
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(0))
+				Expect(clusterInstall.Status.MirrorRegistrySuccessfullyApplied).To(BeTrue())
 			})
 
 			It("successfully create a new cluster with insecure mirror registry", func() {
 				clusterInstall := getClusterInstallSuccess(getInsecureRegistryToml(), mirrorRegistryCertificate)
-
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors)).To(Equal(1))
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Source).To(Equal(sourceRegistry))
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors)).To(Equal(1))
-				Expect(string(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
-
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(1))
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(0))
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo.Insecure[0]).To(Equal(mirrorRegistry))
+				Expect(clusterInstall.Status.MirrorRegistrySuccessfullyApplied).To(BeTrue())
 			})
 
 			It("successfully create a new cluster with mirror registry that pulls by tag", func() {
 				clusterInstall := getClusterInstallSuccess(getSecureRegistryTagOnlyToml(), mirrorRegistryCertificate)
-
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(1))
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors[0].Source).To(Equal(sourceRegistry))
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors[0].Mirrors)).To(Equal(1))
-				Expect(string(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
-
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(0))
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors)).To(Equal(0))
+				Expect(clusterInstall.Status.MirrorRegistrySuccessfullyApplied).To(BeTrue())
 			})
 
 			It("successfully create a new cluster with mirror registry without additional certificates", func() {
 				clusterInstall := getClusterInstallSuccess(getSecureRegistryToml(), "")
-
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).NotTo(BeNil())
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors)).To(Equal(1))
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Source).To(Equal(sourceRegistry))
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors)).To(Equal(1))
-				Expect(string(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageDigestMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
-
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.Insecure)).To(Equal(0))
-				Expect(len(clusterInstall.Status.MirrorRegistryConfigurationInfo.ImageTagMirrors)).To(Equal(0))
+				Expect(clusterInstall.Status.MirrorRegistrySuccessfullyApplied).To(BeTrue())
 			})
 
 		})
@@ -638,9 +593,7 @@ var _ = Describe("cluster reconcile", func() {
 				}
 
 				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
-
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).To(BeNil())
-
+				Expect(clusterInstall.Status.MirrorRegistrySuccessfullyApplied).To(BeFalse())
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: Failed to get referenced ConfigMap: configmaps \"user-provided-config-map\" not found"))
 
@@ -666,8 +619,7 @@ var _ = Describe("cluster reconcile", func() {
 
 				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
 
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).To(BeNil())
-
+				Expect(clusterInstall.Status.MirrorRegistrySuccessfullyApplied).To(BeFalse())
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: failed to find registry key in toml tree, registriesConfToml: \n[[registry.mirror]]\nlocation = \"example-user-registry.com\"\n"))
 
@@ -692,7 +644,7 @@ var _ = Describe("cluster reconcile", func() {
 				}
 
 				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
-				Expect(clusterInstall.Status.MirrorRegistryConfigurationInfo).To(BeNil())
+				Expect(clusterInstall.Status.MirrorRegistrySuccessfullyApplied).To(BeFalse())
 
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: failed to find any image mirrors in registry.conf"))

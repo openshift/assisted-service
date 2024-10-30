@@ -767,16 +767,12 @@ location = "%s"
 			imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
 			Expect(err).To(Not(HaveOccurred()))
 
-			mirrorInfo := v1beta1.MirrorRegistryConfigurationInfo{
+			mirrors := &v1beta1.MirrorRegistryConfiguration{
 				ImageDigestMirrors: imageDigestMirrors,
 				ImageTagMirrors:    imageTagMirrors,
 				Insecure:           insecure,
-			}
-
-			mirrors := &v1beta1.MirrorRegistryConfiguration{
-				MirrorRegistryConfigurationInfo: &mirrorInfo,
-				CaBundleCrt:                     certificate,
-				RegistriesConf:                  registriesToml,
+				CaBundleCrt:        certificate,
+				RegistriesConf:     registriesToml,
 			}
 
 			return mirrors, imageDigestMirrors

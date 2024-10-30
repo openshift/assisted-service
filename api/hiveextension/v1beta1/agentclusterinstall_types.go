@@ -291,9 +291,9 @@ type AgentClusterInstallStatus struct {
 	// +optional
 	ValidationsInfo common.ValidationsStatus `json:"validationsInfo,omitempty"`
 
-	// MirrorRegistryConfigurationInfo contains the mirror registry configuration for this cluster
+	// MirrorRegistrySuccessfullyApplied represents the status of successfully applying the mirror registry config map.
 	// +optional
-	MirrorRegistryConfigurationInfo *MirrorRegistryConfigurationInfo `json:"mirrorRegistryConfigurationInfo,omitempty"`
+	MirrorRegistrySuccessfullyApplied bool `json:"MirrorRegistrySuccessfullyApplied,omitempty"`
 }
 
 type DebugInfo struct {
@@ -525,16 +525,11 @@ type MirrorRegistryConfigMapReference struct {
 	Namespace string `json:"namespace"`
 }
 
-// MirrorRegistryConfigurationInfo holds a parsed mirror registry configuration details
-type MirrorRegistryConfigurationInfo struct {
+// MirrorRegistryConfiguration holds the given mirror registry configuration
+type MirrorRegistryConfiguration struct {
 	ImageDigestMirrors []configv1.ImageDigestMirrors `json:"imageDigestMirrors,omitempty"`
 	ImageTagMirrors    []configv1.ImageTagMirrors    `json:"imageTagMirrors,omitempty"`
 	Insecure           []string                      `json:"insecure,omitempty"`
-}
-
-// MirrorRegistryConfiguration holds the given mirror registry configuration
-type MirrorRegistryConfiguration struct {
-	MirrorRegistryConfigurationInfo *MirrorRegistryConfigurationInfo `json:"mirrorRegistryConfigurationInfo,omitempty"`
-	RegistriesConf                  string                           `json:"registriesConf,omitempty"`
-	CaBundleCrt                     string                           `json:"caBundleCrt,omitempty"`
+	RegistriesConf     string                        `json:"registriesConf,omitempty"`
+	CaBundleCrt        string                        `json:"caBundleCrt,omitempty"`
 }

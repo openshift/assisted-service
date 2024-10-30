@@ -227,7 +227,7 @@ func (ib *ignitionBuilder) setIgnitionMirrorRegistry(ignitionParams *map[string]
 	mirrorRegistriesConfigKey := "MirrorRegistriesConfig"
 	mirrorRegistriesCAConfigKey := "MirrorRegistriesCAConfig"
 
-	if configuration != nil && configuration.RegistriesConf != "" {
+	if mirrorregistries.IsMirrorConfigurationSet(configuration) {
 		ib.log.Infof("Setting ignition cluster mirror registry to %s", configuration.RegistriesConf)
 		(*ignitionParams)[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.RegistriesConf))
 		(*ignitionParams)[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.CaBundleCrt))
