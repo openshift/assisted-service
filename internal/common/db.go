@@ -122,7 +122,7 @@ func (c *Cluster) SetMirrorRegistryConfiguration(configuration *v1beta1.MirrorRe
 		return nil
 	}
 
-	blob, err := convertMirrorRegistryConfigToBytes(configuration)
+	blob, err := ConvertMirrorRegistryConfigToBytes(configuration)
 	if err != nil {
 		return err
 	}
@@ -253,10 +253,11 @@ func (i *InfraEnv) GetMirrorRegistryConfiguration() (*v1beta1.MirrorRegistryConf
 
 func (i *InfraEnv) SetMirrorRegistryConfiguration(configuration *v1beta1.MirrorRegistryConfiguration) error {
 	if configuration == nil {
+		i.MirrorRegistryConfiguration = nil
 		return nil
 	}
 
-	blob, err := convertMirrorRegistryConfigToBytes(configuration)
+	blob, err := ConvertMirrorRegistryConfigToBytes(configuration)
 	if err != nil {
 		return err
 	}
@@ -635,8 +636,8 @@ func convertBytesToMirrorRegistryConfig(data []uint8) (*v1beta1.MirrorRegistryCo
 	return &config, nil
 }
 
-// convertMirrorRegistryConfigToBytes converts a MirrorRegistryConfiguration struct to a byte slice
-func convertMirrorRegistryConfigToBytes(config *v1beta1.MirrorRegistryConfiguration) ([]uint8, error) {
+// ConvertMirrorRegistryConfigToBytes converts a MirrorRegistryConfiguration struct to a byte slice
+func ConvertMirrorRegistryConfigToBytes(config *v1beta1.MirrorRegistryConfiguration) ([]uint8, error) {
 	// Marshal the struct into a JSON byte slice
 	data, err := json.Marshal(config)
 	if err != nil {

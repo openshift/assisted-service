@@ -169,8 +169,8 @@ type InstallerInternals interface {
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams, interactivity Interactivity) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
-	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) (*common.InfraEnv, error)
-	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
+	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.InfraEnv, error)
+	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
 	DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error
 	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams, reclaimHost bool, interactivity Interactivity) (*common.Host, error)
 	BindHostInternal(ctx context.Context, params installer.BindHostParams) (*common.Host, error)
@@ -4569,7 +4569,7 @@ func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer
 }
 
 func (b *bareMetalInventory) RegisterInfraEnv(ctx context.Context, params installer.RegisterInfraEnvParams) middleware.Responder {
-	i, err := b.RegisterInfraEnvInternal(ctx, nil, params)
+	i, err := b.RegisterInfraEnvInternal(ctx, nil, nil, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -4632,10 +4632,7 @@ func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
 	return nil
 }
 
-func (b *bareMetalInventory) RegisterInfraEnvInternal(
-	ctx context.Context,
-	kubeKey *types.NamespacedName,
-	params installer.RegisterInfraEnvParams) (*common.InfraEnv, error) {
+func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error) {
 
 	var infraEnv common.InfraEnv
 	var id strfmt.UUID
@@ -4744,6 +4741,10 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			},
 			KubeKeyNamespace: kubeKey.Namespace,
 			ImageTokenKey:    imageTokenKey,
+		}
+
+		if err = infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConfiguration); err != nil {
+			return err
 		}
 
 		if err = b.handlerClusterInfoOnRegisterInfraEnv(log, tx, clusterId, &infraEnv, cluster, params.InfraenvCreateParams); err != nil {
@@ -4992,14 +4993,14 @@ func (b *bareMetalInventory) setDiscoveryKernelArgumentsUsage(db *gorm.DB, clust
 }
 
 func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {
-	i, err := b.UpdateInfraEnvInternal(ctx, params, nil)
+	i, err := b.UpdateInfraEnvInternal(ctx, params, nil, nil)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewUpdateInfraEnvCreated().WithPayload(&i.InfraEnv)
 }
 
-func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) (*common.InfraEnv, error) {
+func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.InfraEnv, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var infraEnv *common.InfraEnv
 	var err error
@@ -5040,6 +5041,11 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 
 		if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraEnvUpdateParams.IgnitionConfigOverride); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		err = infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConfiguration)
+		if err != nil {
+			return err
 		}
 
 		if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {

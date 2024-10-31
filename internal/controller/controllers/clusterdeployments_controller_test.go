@@ -146,6 +146,7 @@ func getSecureRegistryToml() string {
 	return fmt.Sprintf(`
 [[registry]]
 location = "%s"
+
 [[registry.mirror]]
 location = "%s"
 `,
@@ -176,6 +177,7 @@ func getInsecureRegistryToml() string {
 	x := fmt.Sprintf(`
 [[registry]]
 location = "%s"
+
 [[registry.mirror]]
 location = "%s"
 insecure = true
@@ -190,6 +192,7 @@ func getSecureRegistryTagOnlyToml() string {
 	return fmt.Sprintf(`
 [[registry]]
 location = "%s"
+
 [[registry.mirror]]
 location = "%s"
 pull-from-mirror = "tag-only"
@@ -204,6 +207,7 @@ func getInvalidRegistryToml() string {
 	return `
 [[registry]]
 	location = "%s"
+
 	[[registry.mirror]]
 	location = 192.168.1.1:5000
 	insecure = true
@@ -349,7 +353,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockCtrl.Finish()
 	})
 
-	FContext("Mirror Registry", func() {
+	Context("Mirror Registry", func() {
 		createAgentClusterInstallForMirrorRegistry := func() *hiveext.AgentClusterInstall {
 			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -376,9 +380,6 @@ var _ = Describe("cluster reconcile", func() {
 
 				Expect(mirrorRegistryConfiguration).ShouldNot(BeNil())
 				Expect(mirrorRegistryConfiguration.CaBundleCrt).To(Equal(mirrorRegistryCertificate))
-
-				//updatedAci := getTestClusterInstall()
-				//Expect(updatedAci.Status.MirrorRegistrySuccessfullyApplied).To(BeTrue())
 			})
 		})
 
@@ -402,9 +403,6 @@ var _ = Describe("cluster reconcile", func() {
 
 				Expect(mirrorRegistryConfiguration).ShouldNot(BeNil())
 				Expect(mirrorRegistryConfiguration.CaBundleCrt).To(Equal(mirrorRegistryCertificate))
-
-				//updatedAci := getTestClusterInstall()
-				//Expect(updatedAci.Status.MirrorRegistrySuccessfullyApplied).To(BeTrue())
 			})
 		})
 
@@ -418,9 +416,6 @@ var _ = Describe("cluster reconcile", func() {
 
 				Expect(mirrorRegistryConfiguration).ShouldNot(BeNil())
 				Expect(mirrorRegistryConfiguration.CaBundleCrt).To(Equal(mirrorRegistryCertificate))
-
-				//updatedAci := getTestClusterInstall()
-				//Expect(updatedAci.Status.MirrorRegistrySuccessfullyApplied).To(BeTrue())
 			})
 		})
 
@@ -472,7 +467,7 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(mirrorRegistryConfiguration).Should(BeNil())
 
-				Expect(err.Error()).To(Equal("failed to load value of registries.conf into toml tree; incorrectly formatted toml: (5, 13): cannot have two dots in one float"))
+				Expect(err.Error()).To(Equal("failed to load value of registries.conf into toml tree; incorrectly formatted toml: (6, 13): cannot have two dots in one float"))
 			})
 		})
 
@@ -585,7 +580,6 @@ var _ = Describe("cluster reconcile", func() {
 				}
 
 				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
-				//Expect(clusterInstall.Status.MirrorRegistrySuccessfullyApplied).To(BeFalse())
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: Failed to get referenced ConfigMap: configmaps \"user-provided-config-map\" not found"))
 
@@ -611,7 +605,6 @@ var _ = Describe("cluster reconcile", func() {
 
 				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
 
-				//Expect(clusterInstall.Status.MirrorRegistrySuccessfullyApplied).To(BeFalse())
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: failed to find registry key in toml tree, registriesConfToml: \n[[registry.mirror]]\nlocation = \"example-user-registry.com\"\n"))
 
@@ -636,7 +629,6 @@ var _ = Describe("cluster reconcile", func() {
 				}
 
 				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
-				//Expect(clusterInstall.Status.MirrorRegistrySuccessfullyApplied).To(BeFalse())
 
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal("The Spec could not be synced due to an input error: failed to find any image mirrors in registry.conf"))
