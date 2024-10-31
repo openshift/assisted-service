@@ -272,7 +272,7 @@ func importCluster(ctx context.Context, log *log.Logger, bmInventory *client.Ass
 	}
 
 	clusterID := strfmt.UUID(ImportOptions.ClusterID)
-	_, err = agentbasedinstaller.ImportCluster(ctx, log, bmInventory, clusterID, ImportOptions.ClusterName, ImportOptions.ClusterAPIVIPDNSName, ImportOptions.ClusterConfigDir)
+	_, err = agentbasedinstaller.ImportCluster(os.DirFS(ImportOptions.ClusterConfigDir), ctx, log, bmInventory, clusterID, ImportOptions.ClusterName, ImportOptions.ClusterAPIVIPDNSName)
 	if err != nil {
 		log.Fatal("Failed to import cluster with assisted-service: ", err)
 	}

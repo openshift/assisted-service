@@ -2,9 +2,10 @@ package agentbasedinstaller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
-	"path"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/client"
@@ -14,8 +15,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ImportCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall,
-	clusterID strfmt.UUID, clusterName string, clusterAPIVIPDNSName string, clusterConfigDir string) (*models.Cluster, error) {
+const (
+	workerIgnitionEndpointFilename = "worker-ignition-endpoint.json"
+	importClusterConfigFilename    = "import-cluster-config.json"
+)
+
+func ImportCluster(fsys fs.FS, ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall,
+	clusterID strfmt.UUID, clusterName string, clusterAPIVIPDNSName string) (*models.Cluster, error) {
 
 	importClusterParams := &models.ImportClusterParams{
 		Name:               &clusterName,
@@ -31,15 +37,63 @@ func ImportCluster(ctx context.Context, log *log.Logger, bmInventory *client.Ass
 	}
 	log.Infof("Imported cluster with id: %s", clusterResult.Payload.ID)
 
-	if err := configureClusterIgnitionEndpoint(ctx, bmInventory, clusterConfigDir, clusterResult.Payload.ID); err != nil {
+	if err := updateClusterConfiguration(fsys, ctx, bmInventory, clusterResult.Payload.ID); err != nil {
 		return nil, err
 	}
 
 	return clusterResult.GetPayload(), nil
 }
 
-func configureClusterIgnitionEndpoint(ctx context.Context, bmInventory *client.AssistedInstall, clusterConfigDir string, clusterID *strfmt.UUID) error {
-	workerIgnitionRaw, err := os.ReadFile(path.Join(clusterConfigDir, "worker-ignition-endpoint.json"))
+func updateClusterConfiguration(fsys fs.FS, ctx context.Context, bmInventory *client.AssistedInstall, clusterID *strfmt.UUID) error {
+	updateClusterParams := &models.V2ClusterUpdateParams{}
+	err := configureClusterParams(fsys, updateClusterParams)
+	if err != nil {
+		return fmt.Errorf("failed to apply cluster params: %w", err)
+	}
+
+	err = configureClusterIgnitionEndpoint(fsys, updateClusterParams)
+	if err != nil {
+		return fmt.Errorf("failed to apply cluster ignition endpoint: %w", err)
+	}
+
+	updateParams := &installer.V2UpdateClusterParams{
+		ClusterID:           *clusterID,
+		ClusterUpdateParams: updateClusterParams,
+	}
+	_, updateClusterErr := bmInventory.Installer.V2UpdateCluster(ctx, updateParams)
+	if updateClusterErr != nil {
+		return errorutil.GetAssistedError(updateClusterErr)
+	}
+	log.Infof("Configuration updated for imported cluster with ID: %s", *clusterID)
+	return nil
+}
+
+type Networking struct {
+	UserManagedNetworking *bool `json:"userManagedNetworking,omitempty"`
+}
+type ClusterConfig struct {
+	Networking Networking `json:"networking"`
+}
+
+func configureClusterParams(fsys fs.FS, params *models.V2ClusterUpdateParams) error {
+	importClusterConfigRaw, err := fs.ReadFile(fsys, importClusterConfigFilename)
+	if err != nil {
+		return err
+	}
+
+	clusterConfig := &ClusterConfig{}
+	err = json.Unmarshal(importClusterConfigRaw, &clusterConfig)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal %s file: %w", importClusterConfigFilename, err)
+	}
+	log.Info("Read import cluster config file")
+
+	params.UserManagedNetworking = clusterConfig.Networking.UserManagedNetworking
+	return nil
+}
+
+func configureClusterIgnitionEndpoint(fsys fs.FS, params *models.V2ClusterUpdateParams) error {
+	workerIgnitionRaw, err := fs.ReadFile(fsys, workerIgnitionEndpointFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -54,18 +108,6 @@ func configureClusterIgnitionEndpoint(ctx context.Context, bmInventory *client.A
 	}
 	log.Info("Read worker ignition endpoint file")
 
-	updateClusterParams := &models.V2ClusterUpdateParams{
-		IgnitionEndpoint: ignitionEndpoint,
-	}
-	updateParams := &installer.V2UpdateClusterParams{
-		ClusterID:           *clusterID,
-		ClusterUpdateParams: updateClusterParams,
-	}
-	_, updateClusterErr := bmInventory.Installer.V2UpdateCluster(ctx, updateParams)
-	if updateClusterErr != nil {
-		return errorutil.GetAssistedError(updateClusterErr)
-	}
-	log.Infof("Configured ignition endpoint for cluster %s", *clusterID)
-
+	params.IgnitionEndpoint = ignitionEndpoint
 	return nil
 }
