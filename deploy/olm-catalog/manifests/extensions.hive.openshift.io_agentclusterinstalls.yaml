@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.6.2
   creationTimestamp: null
   name: agentclusterinstalls.extensions.hive.openshift.io
 spec:
@@ -32,19 +32,14 @@ spec:
           based cluster.
         properties:
           apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
-              may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
-              Cannot be updated.
-              In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -57,11 +52,11 @@ spec:
                   cluster's API.
                 type: string
               apiVIPs:
-                description: |-
-                  APIVIPs are the virtual IPs used to reach the OpenShift cluster's API.
-                  Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at
-                  most one IP address per IP stack used). The order of stacks should be the same as order
-                  of subnets in Cluster Networks, Service Networks, and Machine Networks.
+                description: APIVIPs are the virtual IPs used to reach the OpenShift
+                  cluster's API. Enter one IP address for single-stack clusters, or
+                  up to two for dual-stack clusters (at most one IP address per IP
+                  stack used). The order of stacks should be the same as order of
+                  subnets in Cluster Networks, Service Networks, and Machine Networks.
                 items:
                   type: string
                 maxItems: 2
@@ -71,13 +66,10 @@ spec:
                   associated with this AgentClusterInstall.
                 properties:
                   name:
-                    description: |-
-                      Name of the referent.
-                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Add other useful fields. apiVersion, kind, uid?
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
-                x-kubernetes-map-type: atomic
               clusterMetadata:
                 description: ClusterMetadata contains metadata information about the
                   installed cluster. It should be populated once the cluster install
@@ -90,26 +82,20 @@ spec:
                       the admin kubeconfig for this cluster.
                     properties:
                       name:
-                        description: |-
-                          Name of the referent.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
                         type: string
                     type: object
-                    x-kubernetes-map-type: atomic
                   adminPasswordSecretRef:
                     description: AdminPasswordSecretRef references the secret containing
                       the admin username/password which can be used to login to this
                       cluster.
                     properties:
                       name:
-                        description: |-
-                          Name of the referent.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                          TODO: Add other useful fields. apiVersion, kind, uid?
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
                         type: string
                     type: object
-                    x-kubernetes-map-type: atomic
                   clusterID:
                     description: ClusterID is a globally unique identifier for this
                       cluster generated during installation. Used for reporting metrics
@@ -127,9 +113,9 @@ spec:
                         description: AWS holds AWS-specific cluster metadata
                         properties:
                           hostedZoneRole:
-                            description: |-
-                              HostedZoneRole is the role to assume when performing operations
-                              on a hosted zone owned by another account.
+                            description: HostedZoneRole is the role to assume when
+                              performing operations on a hosted zone owned by another
+                              account.
                             type: string
                         type: object
                       azure:
@@ -156,54 +142,48 @@ spec:
                 - infraID
                 type: object
               compute:
-                description: |-
-                  Compute is the configuration for the machines that comprise the
-                  compute nodes.
+                description: Compute is the configuration for the machines that comprise
+                  the compute nodes.
                 items:
                   description: AgentMachinePool is a pool of machines to be installed.
                   properties:
                     hyperthreading:
                       default: Enabled
-                      description: |-
-                        Hyperthreading determines the mode of hyperthreading that machines in the
-                        pool will utilize.
-                        Default is for hyperthreading to be enabled.
+                      description: Hyperthreading determines the mode of hyperthreading
+                        that machines in the pool will utilize. Default is for hyperthreading
+                        to be enabled.
                       enum:
                       - ""
                       - Enabled
                       - Disabled
                       type: string
                     name:
-                      description: |-
-                        Name is the name of the machine pool.
-                        For the control plane machine pool, the name will always be "master".
-                        For the compute machine pools, the only valid name is "worker".
+                      description: Name is the name of the machine pool. For the control
+                        plane machine pool, the name will always be "master". For
+                        the compute machine pools, the only valid name is "worker".
                       type: string
                   required:
                   - name
                   type: object
                 type: array
               controlPlane:
-                description: |-
-                  ControlPlane is the configuration for the machines that comprise the
-                  control plane.
+                description: ControlPlane is the configuration for the machines that
+                  comprise the control plane.
                 properties:
                   hyperthreading:
                     default: Enabled
-                    description: |-
-                      Hyperthreading determines the mode of hyperthreading that machines in the
-                      pool will utilize.
-                      Default is for hyperthreading to be enabled.
+                    description: Hyperthreading determines the mode of hyperthreading
+                      that machines in the pool will utilize. Default is for hyperthreading
+                      to be enabled.
                     enum:
                     - ""
                     - Enabled
                     - Disabled
                     type: string
                   name:
-                    description: |-
-                      Name is the name of the machine pool.
-                      For the control plane machine pool, the name will always be "master".
-                      For the compute machine pools, the only valid name is "worker".
+                    description: Name is the name of the machine pool. For the control
+                      plane machine pool, the name will always be "master". For the
+                      compute machine pools, the only valid name is "worker".
                     type: string
                 required:
                 - name
@@ -234,9 +214,8 @@ spec:
                     type: string
                 type: object
               external:
-                description: |-
-                  ExternalPlatformSpec represents generic infrastructure provider.
-                  Platform-specific components should be supplemented separately.
+                description: ExternalPlatformSpec represents generic infrastructure
+                  provider. Platform-specific components should be supplemented separately.
                 properties:
                   cloudControllerManager:
                     allOf:
@@ -256,16 +235,17 @@ spec:
                     type: string
                   platformName:
                     default: Unknown
-                    description: |-
-                      PlatformName holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.
-                      This field is solely for informational and reporting purposes and is not expected to be used for decision-making.
+                    description: PlatformName holds the arbitrary string representing
+                      the infrastructure provider name, expected to be set at the
+                      installation time. This field is solely for informational and
+                      reporting purposes and is not expected to be used for decision-making.
                     type: string
                 type: object
               holdInstallation:
-                description: |-
-                  HoldInstallation will prevent installation from happening when true.
-                  Inspection and validation will proceed as usual, but once the RequirementsMet condition is true,
-                  installation will not begin until this field is set to false.
+                description: HoldInstallation will prevent installation from happening
+                  when true. Inspection and validation will proceed as usual, but
+                  once the RequirementsMet condition is true, installation will not
+                  begin until this field is set to false.
                 type: boolean
               ignitionEndpoint:
                 description: IgnitionEndpoint stores the data of the custom ignition
@@ -293,9 +273,9 @@ spec:
                     type: string
                 type: object
               imageSetRef:
-                description: |-
-                  ImageSetRef is a reference to a ClusterImageSet. The release image specified in the ClusterImageSet will be used
-                  to install the cluster.
+                description: ImageSetRef is a reference to a ClusterImageSet. The
+                  release image specified in the ClusterImageSet will be used to install
+                  the cluster.
                 properties:
                   name:
                     description: Name is the name of the ClusterImageSet that this
@@ -309,34 +289,31 @@ spec:
                   traffic.
                 type: string
               ingressVIPs:
-                description: |-
-                  IngressVIPs are the virtual IPs used for cluster ingress traffic.
-                  Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at
-                  most one IP address per IP stack used). The order of stacks should be the same as order
-                  of subnets in Cluster Networks, Service Networks, and Machine Networks.
+                description: IngressVIPs are the virtual IPs used for cluster ingress
+                  traffic. Enter one IP address for single-stack clusters, or up to
+                  two for dual-stack clusters (at most one IP address per IP stack
+                  used). The order of stacks should be the same as order of subnets
+                  in Cluster Networks, Service Networks, and Machine Networks.
                 items:
                   type: string
                 maxItems: 2
                 type: array
               manifestsConfigMapRef:
-                description: |-
-                  ManifestsConfigMapRef is a reference to user-provided manifests to
-                  add to or replace manifests that are generated by the installer.
-                  Deprecated: this field is ignored when ManifestsConfigMapRefs is set.
+                description: 'ManifestsConfigMapRef is a reference to user-provided
+                  manifests to add to or replace manifests that are generated by the
+                  installer. Deprecated: this field is ignored when ManifestsConfigMapRefs
+                  is set.'
                 properties:
                   name:
-                    description: |-
-                      Name of the referent.
-                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Add other useful fields. apiVersion, kind, uid?
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
-                x-kubernetes-map-type: atomic
               manifestsConfigMapRefs:
-                description: |-
-                  ManifestsConfigMapRefs is an array of references to user-provided manifests ConfigMaps to
-                  add to or replace manifests that are generated by the installer.
-                  Manifest names in each ConfigMap should be unique across all referenced ConfigMaps.
+                description: ManifestsConfigMapRefs is an array of references to user-provided
+                  manifests ConfigMaps to add to or replace manifests that are generated
+                  by the installer. Manifest names in each ConfigMap should be unique
+                  across all referenced ConfigMaps.
                 items:
                   description: ManifestsConfigMapReference is a reference to a manifests
                     ConfigMap
@@ -353,27 +330,24 @@ spec:
                 description: Set to true to allow control plane nodes to be schedulable
                 type: boolean
               networking:
-                description: |-
-                  Networking is the configuration for the pod network provider in
-                  the cluster.
+                description: Networking is the configuration for the pod network provider
+                  in the cluster.
                 properties:
                   clusterNetwork:
-                    description: |-
-                      ClusterNetwork is the list of IP address pools for pods.
-                      Default is 10.128.0.0/14 and a host prefix of /23.
+                    description: ClusterNetwork is the list of IP address pools for
+                      pods. Default is 10.128.0.0/14 and a host prefix of /23.
                     items:
-                      description: |-
-                        ClusterNetworkEntry is a single IP address block for pod IP blocks. IP blocks
-                        are allocated with size 2^HostSubnetLength.
+                      description: ClusterNetworkEntry is a single IP address block
+                        for pod IP blocks. IP blocks are allocated with size 2^HostSubnetLength.
                       properties:
                         cidr:
                           description: CIDR is the IP block address pool.
                           type: string
                         hostPrefix:
-                          description: |-
-                            HostPrefix is the prefix size to allocate to each node from the CIDR.
-                            For example, 24 would allocate 2^8=256 adresses to each node. If this
-                            field is not used by the plugin, it can be left unset.
+                          description: HostPrefix is the prefix size to allocate to
+                            each node from the CIDR. For example, 24 would allocate
+                            2^8=256 adresses to each node. If this field is not used
+                            by the plugin, it can be left unset.
                           format: int32
                           type: integer
                       required:
@@ -396,24 +370,23 @@ spec:
                       type: object
                     type: array
                   networkType:
-                    description: |-
-                      NetworkType is the Container Network Interface (CNI) plug-in to install
-                      The default value is OpenShiftSDN for IPv4, and OVNKubernetes for IPv6 or SNO
+                    description: NetworkType is the Container Network Interface (CNI)
+                      plug-in to install The default value is OpenShiftSDN for IPv4,
+                      and OVNKubernetes for IPv6 or SNO
                     enum:
                     - OpenShiftSDN
                     - OVNKubernetes
                     type: string
                   serviceNetwork:
-                    description: |-
-                      ServiceNetwork is the list of IP address pools for services.
-                      Default is 172.30.0.0/16.
+                    description: ServiceNetwork is the list of IP address pools for
+                      services. Default is 172.30.0.0/16.
                     items:
                       type: string
                     type: array
                   userManagedNetworking:
-                    description: |-
-                      UserManagedNetworking indicates if the networking is managed by the user.
-                      For single-node installations (none or external platform), set to true or leave empty.
+                    description: UserManagedNetworking indicates if the networking
+                      is managed by the user. For single-node installations (none
+                      or external platform), set to true or leave empty.
                     type: boolean
                 type: object
               platformType:
@@ -432,14 +405,14 @@ spec:
                   the installation is ready to be launched automatically.
                 properties:
                   controlPlaneAgents:
-                    description: |-
-                      ControlPlaneAgents is the number of matching approved and ready Agents with the control plane role
-                      required to launch the install. Must be either 1 or 3.
+                    description: ControlPlaneAgents is the number of matching approved
+                      and ready Agents with the control plane role required to launch
+                      the install. Must be either 1 or 3.
                     type: integer
                   workerAgents:
-                    description: |-
-                      WorkerAgents is the minimum number of matching approved and ready Agents with the worker role
-                      required to launch the install.
+                    description: WorkerAgents is the minimum number of matching approved
+                      and ready Agents with the worker role required to launch the
+                      install.
                     minimum: 0
                     type: integer
                 required:
@@ -456,9 +429,8 @@ spec:
                     description: HTTPSProxy is the URL of the proxy for HTTPS requests.
                     type: string
                   noProxy:
-                    description: |-
-                      NoProxy is a comma-separated list of domains and CIDRs for which the proxy should not be
-                      used.
+                    description: NoProxy is a comma-separated list of domains and
+                      CIDRs for which the proxy should not be used.
                     type: string
                 type: object
               sshPublicKey:
@@ -640,5 +612,5 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
-  storedVersions: null
+  conditions: []
+  storedVersions: []
