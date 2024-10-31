@@ -27,20 +27,6 @@ type StaticNetworkConfigData struct {
 	FileContents string
 }
 
-type networkInterface struct {
-	Name          string `yaml:"name"`
-	InterfaceType string `yaml:"type"`
-	Vlan          *vlan  `yaml:"vlan,omitempty"`
-	Identifier    string `yaml:"identifier,omitempty"`
-}
-
-type vlan struct {
-	BaseIface string `yaml:"base-iface"`
-}
-type interfaceConfig struct {
-	Interfaces []networkInterface `yaml:"interfaces"`
-}
-
 //go:generate mockgen -source=generator.go -package=staticnetworkconfig -destination=mock_generator.go
 type StaticNetworkConfig interface {
 	GenerateStaticNetworkConfigData(ctx context.Context, hostsYAMLS string) ([]StaticNetworkConfigData, error)
@@ -108,22 +94,10 @@ func (s *StaticNetworkConfigGenerator) injectIPV4V6FieldsIfNeeded(networkYaml st
 }
 
 func (s *StaticNetworkConfigGenerator) injectNMPolicyCaptures(hostConfig *models.HostStaticNetworkConfig) (string, error) {
-	interfacesWithCaptures := hostConfig.NetworkYaml
-	var config interfaceConfig
 
-	err := yaml.Unmarshal([]byte(interfacesWithCaptures), &config)
+	interfacesWithCaptures, err := normalizeYAML(hostConfig.NetworkYaml)
 	if err != nil {
-		s.log.WithError(err).Errorf("error unmarshalling YAML: %v", err)
-		return "", err
-	}
-
-	nameToType := make(map[string]string)
-	for _, iface := range config.Interfaces {
-		if iface.InterfaceType == "vlan" {
-			nameToType[iface.Vlan.BaseIface] = iface.InterfaceType
-		} else {
-			nameToType[iface.Name] = iface.InterfaceType
-		}
+		s.log.WithError(err)
 	}
 
 	var captureSection []string
@@ -137,15 +111,13 @@ func (s *StaticNetworkConfigGenerator) injectNMPolicyCaptures(hostConfig *models
 
 		// Replace logical names with capture values.
 		var modifiedInterfaceConfig string
-		// VLAN is a special case where the base-iface refers to the logical name rather than the VLAN's name.
-		if val, exists := nameToType[mac.LogicalNicName]; exists && val == "vlan" {
-			re := regexp.MustCompile(fmt.Sprintf("base-iface: %s", interfaceName))
-			modifiedInterfaceConfig = re.ReplaceAllString(interfacesWithCaptures, fmt.Sprintf(`base-iface: "{{ capture.iface%d.interfaces.0.name }}"`, j))
-		} else {
-			re := regexp.MustCompile(interfaceName)
-			modifiedInterfaceConfig = re.ReplaceAllString(interfacesWithCaptures, fmt.Sprintf(`"{{ capture.iface%d.interfaces.0.name }}"`, j))
+		re := regexp.MustCompile(fmt.Sprintf(`(?m)(^[^:]*: )(%s)$`, interfaceName))
 
-		}
+		modifiedInterfaceConfig = re.ReplaceAllString(interfacesWithCaptures, fmt.Sprintf("${1}\"{{ capture.iface%d.interfaces.0.name }}\"", j))
+
+		re = regexp.MustCompile(fmt.Sprintf(`(?m)(^[\s]*- )(%s)$`, interfaceName))
+
+		modifiedInterfaceConfig = re.ReplaceAllString(modifiedInterfaceConfig, fmt.Sprintf("${1}\"{{ capture.iface%d.interfaces.0.name }}\"", j))
 
 		// Add indentation
 		var indentedConfig []string
@@ -534,4 +506,22 @@ func GenerateStaticNetworkConfigArchive(files []StaticNetworkConfigData) (*bytes
 		return nil, err
 	}
 	return buffer, nil
+}
+
+func normalizeYAML(yamlData string) (string, error) {
+	var config map[string]interface{}
+
+	// Unmarshal the YAML string into the config struct
+	err := yaml.Unmarshal([]byte(yamlData), &config)
+	if err != nil {
+		return "", err
+	}
+
+	// Marshal the updated config back into YAML format
+	marshalYAML, err := yaml.Marshal(&config)
+	if err != nil {
+		return "", err
+	}
+
+	return string(marshalYAML), nil
 }
