@@ -13,6 +13,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gomega_format "github.com/onsi/gomega/format"
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
@@ -336,7 +338,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		cluster.InstallConfigOverrides = ""
 
 		mirrorCA := testBundle2
-		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false),
+		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1),
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true))
 		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte(mirrorCA), nil).Times(1)
 
@@ -393,7 +395,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		cluster.InstallConfigOverrides = ""
 
 		mirrorCA := testBundle2
-		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false),
+		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1),
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true))
 		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte(mirrorCA), nil).Times(1)
 
@@ -438,7 +440,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		ca := testBundle1
 		mirrorCA := testBundle2
 
-		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false),
+		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1),
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true))
 		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte(mirrorCA), nil).Times(1)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, ca)
@@ -628,25 +630,23 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 
 	It("Hyperthreading config", func() {
 		cluster.Hyperthreading = "none"
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Disabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
 		cluster.Hyperthreading = "all"
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err = installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
 		cluster.Hyperthreading = "workers"
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		data, err = installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Disabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
 		cluster.Hyperthreading = "masters"
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		data, err = installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
@@ -724,6 +724,87 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 			Expect(result.Networking.ClusterNetwork).To(HaveLen(2))
 			Expect(result.Networking.MachineNetwork).To(HaveLen(2))
 			Expect(result.Networking.ServiceNetwork).To(HaveLen(2))
+		})
+	})
+
+	Context("Mirror Registry", func() {
+
+		const (
+			mirrorRegistryCertificate = "-----BEGIN CERTIFICATE-----\n    certificate contents\n-----END CERTIFICATE------"
+			sourceRegistry            = "quay.io"
+			mirrorRegistry            = "example-user-registry.com"
+		)
+
+		getSecureRegistryToml := func() string {
+			return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+`,
+				sourceRegistry,
+				mirrorRegistry,
+			)
+		}
+
+		getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*v1beta1.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
+			imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
+			Expect(err).To(Not(HaveOccurred()))
+
+			mirrors := &v1beta1.MirrorRegistryConfiguration{
+				ImageDigestMirrors: imageDigestMirrors,
+				ImageTagMirrors:    imageTagMirrors,
+				Insecure:           insecure,
+				CaBundleCrt:        certificate,
+				RegistriesConf:     registriesToml,
+			}
+
+			return mirrors, imageDigestMirrors
+		}
+
+		It("success - cluster holds mirror registry configurations", func() {
+			var result installcfg.InstallerConfigBaremetal
+			cluster.OpenshiftVersion = "4.16.0-0.0"
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+
+			mirrors, imageDigestMirrors := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			cluster.SetMirrorRegistryConfiguration(mirrors)
+			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = json.Unmarshal(data, &result)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(len(result.ImageDigestSources)).To(Equal(len(imageDigestMirrors)))
+			Expect(len(result.ImageDigestSources)).To(Equal(1))
+			Expect(result.ImageDigestSources[0].Source).To(Equal(imageDigestMirrors[0].Source))
+			Expect(len(result.ImageDigestSources[0].Mirrors)).To(Equal(len(imageDigestMirrors[0].Mirrors)))
+			Expect(result.ImageDigestSources[0].Mirrors[0]).To(Equal(string(imageDigestMirrors[0].Mirrors[0])))
+
+			Expect(result.DeprecatedImageContentSources).To(BeEmpty())
+		})
+
+		It("success - cluster and infraenvs holds mirror registry configurations", func() {
+			var result installcfg.InstallerConfigBaremetal
+			cluster.OpenshiftVersion = "4.16.0-0.0"
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+
+			mirrors, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			cluster.SetMirrorRegistryConfiguration(mirrors)
+			testBundles := []string{testBundle1, testBundle2, testBundle3}
+			for i := 0; i < 3; i++ {
+				infraenv := &common.InfraEnv{InfraEnv: models.InfraEnv{}}
+				mirrors.CaBundleCrt = testBundles[i]
+				infraenv.SetMirrorRegistryConfiguration(mirrors)
+				clusterInfraenvs = append(clusterInfraenvs, infraenv)
+			}
+			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = json.Unmarshal(data, &result)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(result.AdditionalTrustBundle).Should(Equal(fmt.Sprintf("%s\n%s\n%s\n%s", mirrorRegistryCertificate, testBundle1, testBundle2, testBundle3)))
 		})
 	})
 

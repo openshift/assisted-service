@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/kennygrant/sanitize"
+	"github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -59,6 +60,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
@@ -144,12 +146,12 @@ type OCPClusterAPI interface {
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
-	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.V2RegisterClusterParams) (*common.Cluster, error)
+	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration, params installer.V2RegisterClusterParams) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error)
 	UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams) (*common.Cluster, error)
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
-	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error)
+	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, cluster *common.Cluster) error
 	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams, interactivity Interactivity) error
 	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
@@ -161,7 +163,7 @@ type InstallerInternals interface {
 	V2DownloadClusterCredentialsInternal(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error)
 	V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID, params installer.V2ImportClusterParams) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, infraEnvId strfmt.UUID, hostId strfmt.UUID) error
-	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
+	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
@@ -515,11 +517,7 @@ func MarshalNewClusterParamsNoPullSecret(params installer.V2RegisterClusterParam
 	return jsonNewClusterParams
 }
 
-func (b *bareMetalInventory) RegisterClusterInternal(
-	ctx context.Context,
-	kubeKey *types.NamespacedName,
-	params installer.V2RegisterClusterParams) (*common.Cluster, error) {
-
+func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration, params installer.V2RegisterClusterParams) (*common.Cluster, error) {
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.V2GetClusterURL{ClusterID: id}
 
@@ -655,6 +653,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		TriggerMonitorTimestamp:     time.Now(),
 		MachineNetworkCidrUpdatedAt: time.Now(),
 		ControlPlaneCount:           swag.Int64Value(params.NewClusterParams.ControlPlaneCount),
+	}
+
+	if err = cluster.SetMirrorRegistryConfiguration(mirrorRegistryConfiguration); err != nil {
+		return nil, err
 	}
 
 	newOLMOperators, err := b.getOLMMonitoredOperators(log, cluster, params, *releaseImage.Version)
@@ -1293,7 +1295,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.
 	return nil
 }
 
-func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var err error
 	var cluster *common.Cluster
@@ -1660,7 +1662,7 @@ func (b *bareMetalInventory) GetArchitecturesSupportLevelListInternal(_ context.
 	return featuresupport.GetCpuArchitectureSupportList(params.OpenshiftVersion), nil
 }
 
-func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
 	var clusterInfraenvs []*common.InfraEnv
@@ -1681,6 +1683,13 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 
 		if err = b.installConfigBuilder.ValidateInstallConfigPatch(cluster, clusterInfraenvs, params.InstallConfigParams); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		if mirrorregistries.IsMirrorConfigurationSet(mirrorRegistryConfiguration) {
+			err = cluster.SetMirrorRegistryConfiguration(mirrorRegistryConfiguration)
+			if err != nil {
+				log.WithError(err).Errorf("failed to set mirror registry for cluster %s", params.ClusterID)
+			}
 		}
 
 		// Set install config overrides feature usage
