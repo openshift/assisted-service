@@ -97,10 +97,6 @@ var _ = Describe("IgnitionBuilder", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
-		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
-			ID:            &infraEnvID,
-			PullSecretSet: false,
-		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		clusterID := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
@@ -112,6 +108,11 @@ var _ = Describe("IgnitionBuilder", func() {
 			},
 		}
 		cluster.ImageInfo = &models.ImageInfo{}
+		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
+			ID:            &infraEnvID,
+			ClusterID:     clusterID,
+			PullSecretSet: false,
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		var err error
 		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
 		Expect(err).ToNot(HaveOccurred())
@@ -642,7 +643,6 @@ var _ = Describe("Ignition SSH key building", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
-		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
@@ -810,9 +810,11 @@ var _ = Describe("OKD overrides", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
+		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
+				ClusterID:     clusterID,
 				PullSecretSet: false,
 			},
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
