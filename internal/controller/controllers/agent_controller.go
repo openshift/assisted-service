@@ -72,6 +72,8 @@ const (
 	AgentLabelHasNonrotationalDisk       = InventoryLabelPrefix + "storage-hasnonrotationaldisk"
 	AgentLabelCpuArchitecture            = InventoryLabelPrefix + "cpu-architecture"
 	AgentLabelCpuVirtEnabled             = InventoryLabelPrefix + "cpu-virtenabled"
+	AgentInventoryAnnotation             = "agent." + aiv1beta1.Group + "/inventory"
+	AgentRoleAnnotation                  = "agent." + aiv1beta1.Group + "/role"
 	AgentLabelHostManufacturer           = InventoryLabelPrefix + "host-manufacturer"
 	AgentLabelHostProductName            = InventoryLabelPrefix + "host-productname"
 	AgentLabelHostIsVirtual              = InventoryLabelPrefix + "host-isvirtual"
@@ -173,10 +175,10 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		log.WithError(err).Warnf("failed to set infraEnv name label on agent %s/%s", agent.Namespace, agent.Name)
 	}
 
-	// Add/Update 'state' annotation (with host's status)
-	if setAgentAnnotation(log, agent, AgentStateAnnotation, swag.StringValue(h.Status)) {
+	// Add/Update Agent annotations
+	if updateAnnotations(log, agent, &h.Host) {
 		if err = r.updateAndReplaceAgent(ctx, agent); err != nil {
-			log.WithError(err).Warnf("failed to set state annotation on agent %s/%s", agent.Namespace, agent.Name)
+			log.WithError(err).Warnf("failed to set annotations on agent %s/%s", agent.Namespace, agent.Name)
 		}
 	}
 
@@ -248,6 +250,16 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	}
 
 	return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, nil, false)
+}
+
+func updateAnnotations(log logrus.FieldLogger, agent *v1beta1.Agent, h *models.Host) bool {
+	updated := false
+	updated = setAgentAnnotation(log, agent, AgentStateAnnotation, swag.StringValue(h.Status))
+	updated = updated || setAgentAnnotation(log, agent, AgentRoleAnnotation, string(h.Role))
+	if h.Inventory != "" {
+		updated = updated || setAgentAnnotation(log, agent, AgentInventoryAnnotation, h.Inventory)
+	}
+	return updated
 }
 
 // shouldCleanUnboundSpokeNode returns true if the agent has deprovision info set and the host is not in the process of unbinding
@@ -1812,17 +1824,10 @@ func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, agent *aiv1bet
 }
 
 func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strfmt.UUID) (*models.Host, error) {
-	// Create Intentory
-	hostInventory := models.Inventory{}
-	manufacturer, exist := agent.Labels[AgentLabelHostManufacturer]
-	if exist {
-		hostInventory.SystemVendor = &models.SystemVendor{}
-		hostInventory.SystemVendor.Manufacturer = manufacturer
-	}
-	inventory, err := json.Marshal(hostInventory)
-	if err != nil {
-		return nil, errors.New("Failed to marshal agent's inventory")
-	}
+	// Retrieve host inventory and role
+	hostrole := agent.Annotations[AgentRoleAnnotation]
+	role := models.HostRole(hostrole)
+	inventory := agent.Annotations[AgentInventoryAnnotation]
 
 	// Fetch State
 	var hostStatus string
@@ -1843,12 +1848,12 @@ func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strf
 		Kind:          swag.String(models.HostKindHost),
 		RegisteredAt:  strfmt.DateTime(agent.CreationTimestamp.Time),
 		CheckedInAt:   strfmt.DateTime(agent.CreationTimestamp.Time),
-		Role:          agent.Spec.Role,
-		SuggestedRole: agent.Spec.Role,
+		Role:          role,
+		SuggestedRole: role,
 		ClusterID:     clusterID,
 		InfraEnvID:    infraEnvID,
 		Status:        &hostStatus,
-		Inventory:     string(inventory),
+		Inventory:     inventory,
 	}
 
 	return host, nil
