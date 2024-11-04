@@ -12,7 +12,7 @@ function create() {
             $__dir/minikube/minikube.sh create
             ;;
         kind)
-            $__dir/kind/kind.sh create
+            systemd-run --scope --user $__dir/kind/kind.sh create
             ;;
         *)
             echo "Unknown deploy target ${TARGET}!";
