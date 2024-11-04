@@ -4,6 +4,8 @@ The Infrastructure Operator can run on a kind cluster and will detect and alter 
 
 ## How to deploy
 
+to run `Kind` a non root user please check follow this [guide](./running_kind_rootless.md) before
+
 ### Create a kind cluster
 
 The cluster should be created using a kind config which adds port mappings for ingress on http (port 80)
