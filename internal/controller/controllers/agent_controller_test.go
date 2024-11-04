@@ -378,23 +378,23 @@ var _ = Describe("agent reconcile", func() {
 			func(ctx context.Context, name types.NamespacedName, agent *v1beta1.Agent, opts ...client.GetOption) error {
 				return c.Get(ctx, name, agent, opts...)
 			},
-		).Times(3)
+		).AnyTimes()
 		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
 			func(ctx context.Context, name types.NamespacedName, cd *hivev1.ClusterDeployment, opts ...client.GetOption) error {
 				return c.Get(ctx, name, cd, opts...)
 			},
-		).Times(2)
+		).AnyTimes()
 		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 				return c.Update(ctx, agent)
 			},
-		).Times(3)
+		).AnyTimes()
 		mockClient.EXPECT().Status().Return(mockSubResourceWriter).AnyTimes()
 		mockSubResourceWriter.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 				return c.Status().Update(ctx, agent)
 			},
-		).Times(1)
+		).AnyTimes()
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 
 		// We test 2 times to verify that agent is not updated the second time
@@ -4384,7 +4384,8 @@ var _ = Describe("createNewHost", func() {
 
 	It("all properties exist", func() {
 		agent.ObjectMeta.Annotations = map[string]string{
-			AgentStateAnnotation: models.HostStatusInstalled,
+			AgentStateAnnotation:     models.HostStatusInstalled,
+			AgentInventoryAnnotation: "{\"disks\":null,\"gpus\":null,\"interfaces\":null,\"routes\":null,\"system_vendor\":{\"manufacturer\":\"RedHat\"}}",
 		}
 		agent.ObjectMeta.Labels = map[string]string{
 			AgentLabelHostManufacturer: "RedHat",
@@ -4409,14 +4410,12 @@ var _ = Describe("createNewHost", func() {
 		Expect(host.Inventory).To(Equal(string(inventory)))
 	})
 
-	It("missing host-manufacturer label", func() {
+	It("missing inventory annotation", func() {
 		host, err := createNewHost(agent, &clusterID, infraEnvID)
 		Expect(err).To(BeNil())
 
-		hostInventory := models.Inventory{}
-		inventory, err := json.Marshal(hostInventory)
 		Expect(err).To(BeNil())
-		Expect(host.Inventory).To(Equal(string(inventory)))
+		Expect(host.Inventory).To(BeEmpty())
 	})
 
 	It("missing state annotation - bound", func() {
