@@ -10,7 +10,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/restapi"
-	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -18,9 +17,6 @@ import (
  * agent based installer (ABI) authentication cases
  */
 type AgentLocalAuthzHandler struct {
-	cfg *Config
-	log logrus.FieldLogger
-	db  *gorm.DB
 }
 
 func (a *AgentLocalAuthzHandler) CreateAuthorizer() func(*http.Request) error {

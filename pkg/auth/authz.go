@@ -56,11 +56,7 @@ func NewAuthzHandler(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldLogger,
 		}
 
 	case TypeAgentLocal:
-		authzr = &AgentLocalAuthzHandler{
-			cfg: cfg,
-			log: log,
-			db:  db,
-		}
+		authzr = &AgentLocalAuthzHandler{}
 	default:
 		authzr = &NoneHandler{}
 	}
