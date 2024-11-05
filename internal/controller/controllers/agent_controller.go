@@ -255,10 +255,8 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 func updateAnnotations(log logrus.FieldLogger, agent *v1beta1.Agent, h *models.Host) bool {
 	updated := false
 	updated = setAgentAnnotation(log, agent, AgentStateAnnotation, swag.StringValue(h.Status))
-	updated = updated || setAgentAnnotation(log, agent, AgentRoleAnnotation, string(h.Role))
-	if h.Inventory != "" {
-		updated = updated || setAgentAnnotation(log, agent, AgentInventoryAnnotation, h.Inventory)
-	}
+	updated = setAgentAnnotation(log, agent, AgentRoleAnnotation, string(h.Role)) || updated
+	updated = setAgentAnnotation(log, agent, AgentInventoryAnnotation, h.Inventory) || updated
 	return updated
 }
 
