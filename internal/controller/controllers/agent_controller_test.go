@@ -391,13 +391,13 @@ var _ = Describe("agent reconcile", func() {
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 				return c.Update(ctx, agent)
 			},
-		).Times(3)
+		).Times(5)
 		mockClient.EXPECT().Status().Return(mockSubResourceWriter).AnyTimes()
 		mockSubResourceWriter.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 				return c.Status().Update(ctx, agent)
 			},
-		).Times(2)
+		).Times(4)
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 
 		// We test 4 times to verify that agent is only updated twice
@@ -4536,7 +4536,8 @@ var _ = Describe("createNewHost", func() {
 
 	It("all properties exist", func() {
 		agent.ObjectMeta.Annotations = map[string]string{
-			AgentStateAnnotation: models.HostStatusInstalled,
+			AgentStateAnnotation:     models.HostStatusInstalled,
+			AgentInventoryAnnotation: "{\"disks\":null,\"gpus\":null,\"interfaces\":null,\"routes\":null,\"system_vendor\":{\"manufacturer\":\"RedHat\"}}",
 		}
 		agent.ObjectMeta.Labels = map[string]string{
 			AgentLabelHostManufacturer: "RedHat",
@@ -4561,14 +4562,12 @@ var _ = Describe("createNewHost", func() {
 		Expect(host.Inventory).To(Equal(string(inventory)))
 	})
 
-	It("missing host-manufacturer label", func() {
+	It("missing inventory annotation", func() {
 		host, err := createNewHost(agent, &clusterID, infraEnvID)
 		Expect(err).To(BeNil())
 
-		hostInventory := models.Inventory{}
-		inventory, err := json.Marshal(hostInventory)
 		Expect(err).To(BeNil())
-		Expect(host.Inventory).To(Equal(string(inventory)))
+		Expect(host.Inventory).To(BeEmpty())
 	})
 
 	It("missing state annotation - bound", func() {
