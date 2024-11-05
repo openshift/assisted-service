@@ -348,6 +348,7 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 
 	var removeAgentOnDelete bool
 	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; has_annotation && r.ConvergedFlowEnabled {
+		log.Infof("'%s' annotation was added and converged flow is enabled", BMH_DELETE_ANNOTATION)
 		removeAgentOnDelete = true
 	}
 	_, bmhPaused := bmh.GetAnnotations()[BMH_PAUSED_ANNOTATION]
@@ -1893,6 +1894,12 @@ func (r *BMACReconciler) drainAgentNode(ctx context.Context, log logrus.FieldLog
 func (r *BMACReconciler) addBMHStatusAndPausedAnnotations(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
 	if bmh.ObjectMeta.Annotations == nil {
 		bmh.ObjectMeta.Annotations = make(map[string]string)
+	}
+
+	if bmh.Status.OperationalStatus != bmh_v1alpha1.OperationalStatusDetached {
+		// The BMH is not yet detached, thus we shouldn't pause it in this state
+		// (since 'detached' OperationalStatus won't be saved in status annotation).
+		return reconcileComplete{}
 	}
 
 	// Convert BMH status to a JSON string
