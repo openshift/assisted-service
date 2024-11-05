@@ -34,7 +34,7 @@ spec:
     - -tls-key=/etc/tls/private/tls.key
     - -cookie-secret-file=/etc/proxy/secrets/session_secret
     - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
-    image: quay.io/openshift/origin-oauth-proxy:4.7
+    image: quay.io/openshift/origin-oauth-proxy:4.18
     name: oauth-proxy
     ports:
     - containerPort: 9091
