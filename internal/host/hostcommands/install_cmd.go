@@ -382,20 +382,9 @@ func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inve
 		return nil, fmt.Errorf("Cannot parse iSCSI host IP %s: %w", installationDisk.Iscsi.HostIPAddress, err)
 	}
 
-	nic, ok := lo.Find(inventory.Interfaces, func(nic *models.Interface) bool {
-		ips := nic.IPV4Addresses
-		if iSCSIHostIP.Is6() {
-			ips = nic.IPV6Addresses
-		}
-		_, ok := lo.Find(ips, func(ip string) bool {
-			prefix, err := netip.ParsePrefix(ip)
-			return err == nil && iSCSIHostIP.Compare(prefix.Addr()) == 0
-		})
-		return ok
-	})
-
-	if !ok {
-		return nil, fmt.Errorf("Cannot find the interface belonging to iSCSI host IP %s", iSCSIHostIP.String())
+	nic, err := network.FindInterfaceByIP(iSCSIHostIP, inventory.Interfaces)
+	if err != nil {
+		return nil, err
 	}
 
 	dhcp := "dhcp"

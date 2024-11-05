@@ -866,7 +866,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		_, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("Cannot find the interface belonging to iSCSI host IP 10.56.21.80"))
+		Expect(err.Error()).To(Equal("Cannot find the network interface on which the IP 10.56.21.80 is set"))
 	})
 	It("iSCSI installation disk - OCI - IPv4 address is left un-configured on machine networks interface", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "10.56.21.0/25"}}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"net/netip"
 	"net/url"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"github.com/vincent-petithory/dataurl"
@@ -1828,4 +1830,63 @@ func (v *validator) inventoryHasIP(inventory *models.Inventory, ipAddress string
 		}
 	}
 	return false, nil
+}
+
+func (v *validator) iSCSIHostNetworkInterfaceDoesNotBelongToMachineCidr(c *validationContext) (ValidationStatus, string) {
+	installationDisk, err := hostutil.GetHostInstallationDisk(c.host)
+	if err != nil || installationDisk == nil {
+		return ValidationSuccessSuppressOutput, ""
+	}
+
+	if installationDisk.DriveType != models.DriveTypeISCSI {
+		// Validation is not relevant in this case
+		return ValidationSuccessSuppressOutput, ""
+	}
+
+	if c.inventory == nil || !network.IsMachineCidrAvailable(c.cluster) {
+		return ValidationPending, "Missing inventory or machine network CIDR"
+	}
+
+	if installationDisk.Iscsi == nil {
+		// If this is nil, the disk shouldn't have passed the eligilibily test in the first place
+		v.log.Warn("iSCSI installation disk is missing host IP address")
+		return ValidationError, "iSCSI installation disk is missing host IP address"
+	}
+
+	nic, err := network.FindInterfaceByIPString(installationDisk.Iscsi.HostIPAddress, c.inventory.Interfaces)
+	if err != nil {
+		v.log.WithError(err).Warn("Cannot find network interface associated to iSCSI host IP address")
+		return ValidationError, "Cannot find network interface associated to iSCSI host IP address"
+	}
+
+	// Look if one of the IP set on the interface connected to the iSCSI disk belong to machine network CIDRs
+	ips := append(nic.IPV4Addresses, nic.IPV6Addresses...)
+	_, found := lo.Find(ips, func(ip string) bool {
+		var nicIP netip.Prefix
+		nicIP, err = netip.ParsePrefix(ip)
+		if err != nil {
+			return true
+		}
+
+		_, found := lo.Find(c.cluster.MachineNetworks, func(machineNetwork *models.MachineNetwork) bool {
+			var machineNetworkPrefix netip.Prefix
+			machineNetworkPrefix, err = netip.ParsePrefix(string(machineNetwork.Cidr))
+			if err != nil {
+				return true
+			}
+			return machineNetworkPrefix.Contains(nicIP.Addr())
+		})
+		return found
+	})
+
+	if err != nil {
+		v.log.WithError(err).Warn("Cannot determine if network interface connected to iSCSI disk belongs or not to machine network CIDR")
+		return ValidationError, "Cannot determine if network interface connected to iSCSI disk belongs or not to machine network CIDR"
+	}
+
+	if found {
+		return ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"
+	}
+
+	return ValidationSuccess, "Network interface connected to iSCSI disk does not belong to machine network CIDRs"
 }

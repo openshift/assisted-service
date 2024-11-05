@@ -2339,4 +2339,255 @@ var _ = Describe("Validations test", func() {
 			Expect(ValidationError).To(Equal(status))
 		})
 	})
+	Context("iSCSI host netowrk interface does not belong to machine networks", func() {
+		var (
+			cluster common.Cluster
+			host    models.Host
+		)
+		BeforeEach(func() {
+			cluster = hostutil.GenerateTestCluster(clusterID)
+			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+
+			mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
+
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusKnown, models.HostKindHost, models.HostRoleMaster)
+			host.Inventory = hostutil.GenerateMasterInventory()
+		})
+
+		It("No installation disk", func() {
+			var inventory models.Inventory
+			err := json.Unmarshal([]byte(host.Inventory), &inventory)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			host.InstallationDiskID = "not-foo"
+			inventory.Disks = []*models.Disk{
+				{ID: "foo", DriveType: models.DriveTypeSSD},
+			}
+
+			inventoryByte, _ := json.Marshal(inventory)
+			host.Inventory = string(inventoryByte)
+
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			mockAndRefreshStatus(&host)
+
+			refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			_, _, ok := getValidationResult(refreshedHost.ValidationsInfo, IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)
+			Expect(ok).To(BeFalse())
+		})
+		It("Not iSCSI drive", func() {
+			var inventory models.Inventory
+			err := json.Unmarshal([]byte(host.Inventory), &inventory)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			host.InstallationDiskID = "install-disk"
+			inventory.Disks = []*models.Disk{
+				{ID: "install-disk", DriveType: models.DriveTypeSSD},
+			}
+
+			inventoryByte, _ := json.Marshal(inventory)
+			host.Inventory = string(inventoryByte)
+
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			mockAndRefreshStatus(&host)
+
+			refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			_, _, ok := getValidationResult(refreshedHost.ValidationsInfo, IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)
+			Expect(ok).To(BeFalse())
+		})
+		It("iSCSI drive - no network interface set with host IP", func() {
+			var inventory models.Inventory
+			err := json.Unmarshal([]byte(host.Inventory), &inventory)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			host.InstallationDiskID = "install-disk"
+			inventory.Disks = []*models.Disk{
+				{
+					ID:        "install-disk",
+					DriveType: models.DriveTypeISCSI,
+					Iscsi: &models.Iscsi{
+						HostIPAddress: "99.99.99.99",
+					}},
+			}
+
+			inventoryByte, _ := json.Marshal(inventory)
+			host.Inventory = string(inventoryByte)
+
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			mockAndRefreshStatus(&host)
+
+			refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)
+			Expect(ok).To(BeTrue())
+			Expect(status).To(Equal(ValidationError))
+			Expect(message).To(Equal("Cannot find network interface associated to iSCSI host IP address"))
+		})
+
+		DescribeTable(
+			"iSCSI drive - malformed iSCSI properties",
+			func(iSCSI *models.Iscsi, expectedMessage string) {
+				var inventory models.Inventory
+				err := json.Unmarshal([]byte(host.Inventory), &inventory)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				host.InstallationDiskID = "install-disk"
+				inventory.Disks = []*models.Disk{
+					{
+						ID:        "install-disk",
+						DriveType: models.DriveTypeISCSI,
+						Iscsi:     iSCSI,
+					},
+				}
+
+				inventoryByte, _ := json.Marshal(inventory)
+				host.Inventory = string(inventoryByte)
+
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				mockAndRefreshStatus(&host)
+
+				refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+				status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)
+				Expect(ok).To(BeTrue())
+				Expect(status).To(Equal(ValidationError))
+				Expect(message).To(Equal(expectedMessage))
+			},
+			Entry("iSCSI is nil", nil, "iSCSI installation disk is missing host IP address"),
+			Entry("Host IP address is empty", &models.Iscsi{}, "Cannot find network interface associated to iSCSI host IP address"),
+			Entry("Host IP address is invalid", &models.Iscsi{HostIPAddress: "invalid"}, "Cannot find network interface associated to iSCSI host IP address"),
+		)
+		DescribeTable(
+			"iSCSI drive - machine networks",
+			func(iSCSIHostIPAdress string, machineNetworks []*models.MachineNetwork, interfaces []*models.Interface, expectedStatus ValidationStatus, expectedMessage string) {
+				var inventory models.Inventory
+				err := json.Unmarshal([]byte(host.Inventory), &inventory)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				host.InstallationDiskID = "install-disk"
+				inventory.Disks = []*models.Disk{
+					{
+						ID:        "install-disk",
+						DriveType: models.DriveTypeISCSI,
+						Iscsi: &models.Iscsi{
+							HostIPAddress: iSCSIHostIPAdress,
+						},
+					},
+				}
+				inventory.Interfaces = interfaces
+
+				inventoryByte, _ := json.Marshal(inventory)
+				host.Inventory = string(inventoryByte)
+				cluster.MachineNetworks = machineNetworks
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				mockAndRefreshStatus(&host)
+
+				refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+				status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)
+				Expect(ok).To(BeTrue())
+				Expect(message).To(Equal(expectedMessage))
+				Expect(status).To(Equal(expectedStatus))
+			},
+			Entry("Machine networks is nil", "192.168.1.1", nil, nil, ValidationPending, "Missing inventory or machine network CIDR"),
+			Entry("Machine networks is empty", "192.168.1.1", []*models.MachineNetwork{}, nil, ValidationPending, "Missing inventory or machine network CIDR"),
+			Entry("Machine networks IPv4 overlaps with host IPv4 address", "192.168.1.1",
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "192.168.1.0/24",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV4Addresses: []string{"192.168.1.1/24"},
+					},
+				},
+				ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"),
+			Entry("Machine networks IPv6 overlaps with host IPv6 address", "2001:0db8:85a3::8a2e:0370:7334",
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "2001:0db8:85a3::/48",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV6Addresses: []string{"2001:0db8:85a3::8a2e:0370:7334/48"},
+					},
+				},
+				ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"),
+			Entry("Machine networks IPv6 uses the same interface as host IPv4 address", "192.168.1.1",
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "2001:0db8:85a3::/48",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV4Addresses: []string{"192.168.1.1/24"},
+						IPV6Addresses: []string{"2001:0db8:85a3::8a2e:0370:7334/48"},
+					},
+				},
+				ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"),
+			Entry("Machine networks IPv4 uses the same interface as host IPv6 address", "2001:0db8:85a3::8a2e:0370:7334",
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "192.168.1.1/24",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV4Addresses: []string{"192.168.1.1/24"},
+						IPV6Addresses: []string{"2001:0db8:85a3::8a2e:0370:7334/48"},
+					},
+				},
+				ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"),
+			Entry("Machine networks IPv4 and host IPv4 address use different interfaces", "192.168.1.1",
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "192.168.2.1/24",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV4Addresses: []string{"192.168.1.1/24"},
+					},
+					{
+						IPV4Addresses: []string{"192.168.2.1/24"},
+					},
+				},
+				ValidationSuccess, "Network interface connected to iSCSI disk does not belong to machine network CIDRs"),
+			Entry("Machine networks IPv4/IPv6 and host IPv4 address use different interfaces", "192.168.1.1",
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "192.168.2.1/24",
+						ClusterID: clusterID,
+					},
+					{
+						Cidr:      "2001:0db8:85a3::/48",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV4Addresses: []string{"192.168.1.1/24"},
+					},
+					{
+						IPV4Addresses: []string{"192.168.2.1/24"},
+						IPV6Addresses: []string{"2001:0db8:85a3::8a2e:0370:7334/48"},
+					},
+				},
+				ValidationSuccess, "Network interface connected to iSCSI disk does not belong to machine network CIDRs"),
+		)
+	})
 })

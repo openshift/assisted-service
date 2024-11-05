@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"sort"
 	"strings"
 
@@ -447,4 +448,32 @@ func UpdateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, 
 	}
 
 	return nil
+}
+
+// Find the interface on which the given IP (v4 or v6) is set.
+func FindInterfaceByIP(ip netip.Addr, interfaces []*models.Interface) (*models.Interface, error) {
+	for _, intf := range interfaces {
+		addresses := intf.IPV4Addresses
+		addresses = append(addresses, intf.IPV6Addresses...)
+		for _, address := range addresses {
+			prefix, err := netip.ParsePrefix(address)
+			if err != nil {
+				return nil, err
+			}
+			if ip.Compare(prefix.Addr()) == 0 {
+				return intf, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("Cannot find the network interface on which the IP %s is set", ip.String())
+}
+
+// Wrapper function for FindInterfaceByIP that it accepts the IP as a string.
+func FindInterfaceByIPString(ipAddress string, interfaces []*models.Interface) (*models.Interface, error) {
+	ip, err := netip.ParseAddr(ipAddress)
+	if err != nil {
+		return nil, err
+	}
+	return FindInterfaceByIP(ip, interfaces)
 }
