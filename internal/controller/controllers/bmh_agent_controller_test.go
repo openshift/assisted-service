@@ -2036,6 +2036,7 @@ var _ = Describe("bmac reconcile", func() {
 		Context("when BMH is in provisioned state", func() {
 			BeforeEach(func() {
 				bmh.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+				bmh.Status.OperationalStatus = bmh_v1alpha1.OperationalStatusDetached
 				bmh.ObjectMeta.Annotations = make(map[string]string)
 			})
 
@@ -2090,7 +2091,7 @@ var _ = Describe("bmac reconcile", func() {
 				// Update BMH
 				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, bmh)
 				Expect(err).To(BeNil())
-				bmh.Status.OperationalStatus = "discovered"
+				bmh.Status.PoweredOn = true
 				Expect(c.Update(ctx, bmh)).To(BeNil())
 
 				// Reconcile updated BMH
@@ -2184,6 +2185,25 @@ var _ = Describe("bmac reconcile", func() {
 
 				// Ensure BMH is in 'provisioned' state
 				Expect(updatedBMH.Status.Provisioning.State).To(Equal(bmh_v1alpha1.StateProvisioned))
+			})
+
+			It("should not add paused annotation if the BMH is not detached", func() {
+				// Create BMH
+				Expect(c.Create(ctx, bmh)).To(Succeed())
+				bmh.Status.OperationalStatus = bmh_v1alpha1.OperationalStatusOK
+
+				// Reconcile BMH
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				// Get updated BMH
+				updatedBMH = &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, updatedBMH)
+				Expect(err).To(BeNil())
+
+				// Ensure 'paused' annotation is not added
+				Expect(bmh.ObjectMeta.Annotations).To(Not(HaveKey(BMH_PAUSED_ANNOTATION)))
 			})
 		})
 
