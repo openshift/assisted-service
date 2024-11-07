@@ -335,26 +335,7 @@ var _ = Describe("GetReleaseImage", func() {
 		Expect(image.URL).To(HaveValue(Equal("release_4.11.1")))
 	})
 
-	It("adds a release to the cache from a clusterimageset when no image in the cache matches", func() {
-		releaseImageURL := "example.com/openshift-release-dev/ocp-release:4.11.999"
-		cis := &hivev1.ClusterImageSet{
-			ObjectMeta: metav1.ObjectMeta{Name: "new-release"},
-			Spec:       hivev1.ClusterImageSetSpec{ReleaseImage: releaseImageURL},
-		}
-		Expect(client.Create(ctx, cis)).To(Succeed())
-
-		mockRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), releaseImageURL, "", pullSecret).Return("4.11.999", nil).Times(1)
-		mockRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), releaseImageURL, "", pullSecret).Return([]string{common.X86CPUArchitecture}, nil).Times(1)
-
-		image, err := h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
-		image, err = h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
-	})
-
-	It("doesn't re-add existing releases", func() {
+	It("fails to get a release image if it hasn't been added to the cache", func() {
 		for _, rel := range defaultReleaseImages {
 			cis := &hivev1.ClusterImageSet{
 				ObjectMeta: metav1.ObjectMeta{Name: *rel.URL},
@@ -368,13 +349,9 @@ var _ = Describe("GetReleaseImage", func() {
 			Spec:       hivev1.ClusterImageSetSpec{ReleaseImage: releaseImageURL},
 		}
 		Expect(client.Create(ctx, cis)).To(Succeed())
-
-		mockRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), releaseImageURL, "", pullSecret).Return("4.11.999", nil).Times(1)
-		mockRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), releaseImageURL, "", pullSecret).Return([]string{common.X86CPUArchitecture}, nil).Times(1)
-
-		image, err := h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
+		_, err := h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(Equal("The requested release image for version (4.11.999) and CPU architecture (x86_64) isn't specified in release images list"))
 	})
 
 	It("get from ReleaseImages", func() {
@@ -396,6 +373,27 @@ var _ = Describe("GetReleaseImage", func() {
 				}
 			}
 		}
+	})
+	Context("CacheAllReleaseImages", func() {
+		It("adds all release images to the cache and all requested images can be found", func() {
+			releaseImageURL := "example.com/openshift-release-dev/ocp-release:4.11.999"
+			cis := &hivev1.ClusterImageSet{
+				ObjectMeta: metav1.ObjectMeta{Name: "new-release"},
+				Spec:       hivev1.ClusterImageSetSpec{ReleaseImage: releaseImageURL},
+			}
+			Expect(client.Create(ctx, cis)).To(Succeed())
+
+			mockRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), releaseImageURL, "", pullSecret).Return("4.11.999", nil).Times(1)
+			mockRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), releaseImageURL, "", pullSecret).Return([]string{common.X86CPUArchitecture}, nil).Times(1)
+			err := h.CacheAllReleaseImages(ctx, pullSecret)
+			Expect(err).NotTo(HaveOccurred())
+			image, err := h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
+			image, err = h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
+		})
 	})
 })
 

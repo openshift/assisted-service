@@ -49,21 +49,16 @@ func (h *kubeAPIVersionsHandler) GetMustGatherImages(openshiftVersion, cpuArchit
 }
 
 // GetReleaseImage attempts to retrieve a release image that matches a specified OpenShift version and CPU architecture.
-// It first tries to find the image in the local cache. If the image is not found in the cache and a Kubernetes client is available (KubeAPI mode),
-// it then fetches all cluster image sets, updates the cache with these image sets, and attempts the cache lookup again.
 func (h *kubeAPIVersionsHandler) GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error) {
 	cpuArchitecture = common.NormalizeCPUArchitecture(cpuArchitecture)
-	image, err := h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
-	if err == nil || h.kubeClient == nil {
-		return image, err
-	}
+	return h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
+}
 
-	// The image doesn't exist in the cache.
-	// Fetch all the cluster image sets, cache them, then search the cache again
-
+func (h *kubeAPIVersionsHandler) CacheAllReleaseImages(ctx context.Context, pullSecret string) error {
+	// Fetch all the cluster image sets and caches them
 	clusterImageSets := &hivev1.ClusterImageSetList{}
 	if err := h.kubeClient.List(ctx, clusterImageSets); err != nil {
-		return nil, err
+		return err
 	}
 	var wg sync.WaitGroup
 	for _, clusterImageSet := range clusterImageSets.Items {
@@ -93,8 +88,7 @@ func (h *kubeAPIVersionsHandler) GetReleaseImage(ctx context.Context, openshiftV
 		}(clusterImageSet)
 	}
 	wg.Wait()
-
-	return h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
+	return nil
 }
 
 // GetReleaseImageByURL retrieves a release image based on its URL.
