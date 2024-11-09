@@ -99,6 +99,9 @@ const (
 	// ClusterValidationIDMtvRequirementsSatisfied captures enum value "mtv-requirements-satisfied"
 	ClusterValidationIDMtvRequirementsSatisfied ClusterValidationID = "mtv-requirements-satisfied"
 
+	// ClusterValidationIDOscRequirementsSatisfied captures enum value "osc-requirements-satisfied"
+	ClusterValidationIDOscRequirementsSatisfied ClusterValidationID = "osc-requirements-satisfied"
+
 	// ClusterValidationIDNetworkTypeValid captures enum value "network-type-valid"
 	ClusterValidationIDNetworkTypeValid ClusterValidationID = "network-type-valid"
 

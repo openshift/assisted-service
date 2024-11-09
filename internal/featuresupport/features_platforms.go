@@ -183,6 +183,7 @@ func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) *[]mod
 		models.FeatureSupportLevelIDCNV,
 		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDMTV,
+		models.FeatureSupportLevelIDOSC,
 	}
 }
 
@@ -236,6 +237,7 @@ func (feature *VsphereIntegrationFeature) getIncompatibleFeatures(openshiftVersi
 		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDCNV,
 		models.FeatureSupportLevelIDMTV,
+		models.FeatureSupportLevelIDOSC,
 	}
 
 	if isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion); isNotSupported || err != nil {

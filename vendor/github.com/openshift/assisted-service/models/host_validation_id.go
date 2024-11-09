@@ -102,6 +102,9 @@ const (
 	// HostValidationIDMtvRequirementsSatisfied captures enum value "mtv-requirements-satisfied"
 	HostValidationIDMtvRequirementsSatisfied HostValidationID = "mtv-requirements-satisfied"
 
+	// HostValidationIDOscRequirementsSatisfied captures enum value "osc-requirements-satisfied"
+	HostValidationIDOscRequirementsSatisfied HostValidationID = "osc-requirements-satisfied"
+
 	// HostValidationIDSufficientInstallationDiskSpeed captures enum value "sufficient-installation-disk-speed"
 	HostValidationIDSufficientInstallationDiskSpeed HostValidationID = "sufficient-installation-disk-speed"
 
