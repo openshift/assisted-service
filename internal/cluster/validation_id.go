@@ -34,6 +34,7 @@ const (
 	IsLvmRequirementsSatisfied                  = ValidationID(models.ClusterValidationIDLvmRequirementsSatisfied)
 	IsMceRequirementsSatisfied                  = ValidationID(models.ClusterValidationIDMceRequirementsSatisfied)
 	IsMtvRequirementsSatisfied                  = ValidationID(models.ClusterValidationIDMtvRequirementsSatisfied)
+	IsOscRequirementsSatisfied                  = ValidationID(models.ClusterValidationIDOscRequirementsSatisfied)
 	PlatformRequirementsSatisfied               = ValidationID(models.ClusterValidationIDPlatformRequirementsSatisfied)
 	IsNodeFeatureDiscoveryRequirementsSatisfied = ValidationID(models.ClusterValidationIDNodeFeatureDiscoveryRequirementsSatisfied)
 	IsNvidiaGPURequirementsSatisfied            = ValidationID(models.ClusterValidationIDNvidiaGpuRequirementsSatisfied)
@@ -60,6 +61,7 @@ func (v ValidationID) Category() (string, error) {
 		IsLvmRequirementsSatisfied,
 		IsMceRequirementsSatisfied,
 		IsMtvRequirementsSatisfied,
+		IsOscRequirementsSatisfied,
 		IsNodeFeatureDiscoveryRequirementsSatisfied,
 		IsNvidiaGPURequirementsSatisfied,
 		IsPipelinesRequirementsSatisfied,
