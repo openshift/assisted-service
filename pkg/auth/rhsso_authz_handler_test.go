@@ -147,7 +147,7 @@ var _ = Describe("OwnedBy", func() {
 		Context("tenancy disabled", func() {
 
 			BeforeEach(func() {
-				cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: false}
+				cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: false, EnableOcmAuthz: false}
 				handler = NewAuthzHandler(cfg, nil, logrus.New(), db)
 			})
 
@@ -224,7 +224,7 @@ var _ = Describe("OwnedBy", func() {
 		})
 		Context("tenancy enabled", func() {
 			BeforeEach(func() {
-				cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: true}
+				cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: true, EnableOcmAuthz: false}
 				handler = NewAuthzHandler(cfg, nil, logrus.New(), db)
 			})
 			It("admin user - empty query", func() {
@@ -345,7 +345,7 @@ var _ = Describe("HasAccessTo", func() {
 	BeforeEach(func() {
 		ctx = context.TODO()
 		ctrl = gomock.NewController(GinkgoT())
-		cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: true}
+		cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: true, EnableOcmAuthz: false}
 		mockOcmAuthorization = ocm.NewMockOCMAuthorization(ctrl)
 		ocmClient := &ocm.Client{
 			Authentication: ocm.NewMockOCMAuthentication(ctrl),

@@ -33,6 +33,7 @@ def handle_arguments():
     parser.add_argument("--disabled-steps", default="")
     parser.add_argument("--disk-encryption-support", default="True")
     parser.add_argument("--enable-org-tenancy", default="False")
+    parser.add_argument("--enable-ocm-authz", default="False")
     parser.add_argument("--enable-org-based-feature-gates", default="False")
     parser.add_argument("--allow-converged-flow", default=False, action='store_true')
 
@@ -156,6 +157,8 @@ def main():
     y['data']['DISK_ENCRYPTION_SUPPORT'] = deploy_options.disk_encryption_support
 
     y['data']['ENABLE_ORG_TENANCY'] = deploy_options.enable_org_tenancy
+    
+    y['data']['ENABLE_OCM_AUTHZ'] = deploy_options.enable_ocm_authz
 
     y['data']['ENABLE_ORG_BASED_FEATURE_GATES'] = deploy_options.enable_org_based_feature_gates
 

@@ -132,6 +132,9 @@ parameters:
 - name: ENABLE_ORG_TENANCY
   value: "false"
   required: false
+- name: ENABLE_OCM_AUTHZ
+  value: "false"
+  required: false
 - name: ENABLE_ORG_BASED_FEATURE_GATES
   value: "false"
   required: false
@@ -471,6 +474,8 @@ objects:
                 value: ${CNV_SNO_INSTALL_HPP}
               - name: ENABLE_ORG_TENANCY
                 value: ${ENABLE_ORG_TENANCY}
+              - name: ENABLE_OCM_AUTHZ
+                value: ${ENABLE_OCM_AUTHZ}
               - name: ENABLE_ORG_BASED_FEATURE_GATES
                 value: ${ENABLE_ORG_BASED_FEATURE_GATES}
               - name: ISO_IMAGE_TYPE

@@ -10,24 +10,29 @@ import (
 )
 
 type Action string
+type Resource string
 
 const ReadAction Action = "read"
 const UpdateAction Action = "update"
 const DeleteAction Action = "delete"
 const NoneAction Action = "none"
 
+const ClusterResource = "Cluster"
+const InfraEnvResource = "InfraEnv"
+const EventsResource = "Event"
+
 type Authorizer interface {
 	/* Limits the database query to access records that are owned by the current user,
 	 * according to the configured access policy.
 	 */
 
-	OwnedBy(ctx context.Context, db *gorm.DB) *gorm.DB
+	OwnedBy(ctx context.Context, db *gorm.DB, resource Resource) (*gorm.DB, error)
 
 	/* Limits the database query to access records owned only by the input user,
 	 * regardless of the configured access policy. If user-based authentication
 	 * is not supported, the function effectively will not limit access.
 	 */
-	OwnedByUser(ctx context.Context, db *gorm.DB, username string) *gorm.DB
+	OwnedByUser(ctx context.Context, db *gorm.DB, resource Resource, username string) (*gorm.DB, error)
 
 	/* verify that the current user has access rights (depending on the requested)
 	 * action) to the input resource

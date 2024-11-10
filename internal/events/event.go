@@ -429,7 +429,7 @@ func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParam
 
 	// add authorization check to query
 	if e.authz != nil {
-		tx = e.authz.OwnedBy(ctx, tx)
+		tx, _ = e.authz.OwnedBy(ctx, tx, auth.EventsResource)
 	}
 
 	tx = e.prepareEventsTable(ctx, tx, params.ClusterID, params.HostIds, params.InfraEnvID, params.Severities, params.Message, params.DeletedHosts)

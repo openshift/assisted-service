@@ -39,6 +39,10 @@ func (a *AuthzHandler) isTenancyEnabled() bool {
 	return a.cfg.EnableOrgTenancy
 }
 
+func (a *AuthzHandler) isOcmAuthzEnabled() bool {
+	return a.cfg.EnableOcmAuthz
+}
+
 func (a *AuthzHandler) isOrgBasedFunctionalityEnabled() bool {
 	return a.cfg.EnableOrgBasedFeatureGates
 }
@@ -67,27 +71,45 @@ func handleOwnershipQueryError(err error) (bool, error) {
 	return true, nil
 }
 
-func (a *AuthzHandler) OwnedBy(ctx context.Context, db *gorm.DB) *gorm.DB {
+func (a *AuthzHandler) OwnedBy(ctx context.Context, db *gorm.DB, resource Resource) (*gorm.DB, error) {
 	if a.IsAdmin(ctx) {
-		return db
+		return db, nil
+	}
+	if a.isOcmAuthzEnabled() {
+		accessibleClusterIDs, err := a.listAccessibleResource(ocm.UserNameFromContext(ctx), ocm.AMSActionGet, ClusterResource)
+		if err != nil {
+			return nil, err
+		}
+		query := "id"
+		if resource != ClusterResource {
+			query = "cluster_id"
+		}
+
+		return db.Where(query+"IN ?", accessibleClusterIDs), nil
 	}
 	if a.isTenancyEnabled() {
-		return db.Where("org_id = ?", ocm.OrgIDFromContext(ctx))
+		return db.Where("org_id = ?", ocm.OrgIDFromContext(ctx)), nil
 	} else {
-		return db.Where("user_name = ?", ocm.UserNameFromContext(ctx))
+		return db.Where("user_name = ?", ocm.UserNameFromContext(ctx)), nil
 	}
 }
 
-func (a *AuthzHandler) OwnedByUser(ctx context.Context, db *gorm.DB, username string) *gorm.DB {
+func (a *AuthzHandler) OwnedByUser(ctx context.Context, db *gorm.DB, resource Resource, username string) (*gorm.DB, error) {
 	// When tenancy-based access is supported, the following query returns records
 	// for the input user alone. With a user-based access policy, the query returns
 	// the user's records, provided it is the current user. Otherwise, it returns an
 	// empty set since we do not support listing objects on behalf of other users in
 	// that mode.
-	if username == "" {
-		return a.OwnedBy(ctx, db)
+	res, err := a.OwnedBy(ctx, db, resource)
+
+	if err != nil {
+		return nil, err
 	}
-	return a.OwnedBy(ctx, db).Where("user_name = ?", username)
+
+	if username == "" {
+		return res, nil
+	}
+	return res.Where("user_name = ?", username), nil
 }
 
 func (a *AuthzHandler) isObjectOwnedByUser(id string, obj interface{}, payload *ocm.AuthPayload) (bool, error) {
@@ -377,6 +399,11 @@ func (a *AuthzHandler) getObjFromRequest(request *http.Request) interface{} {
 func (a *AuthzHandler) allowedToUseAssistedInstaller(username string) (bool, error) {
 	return a.client.Authorization.AccessReview(
 		context.Background(), username, ocm.AMSActionCreate, "", ocm.BareMetalClusterResource)
+}
+
+func (a *AuthzHandler) listAccessibleResource(username, action, resource string) ([]string, error) {
+	return a.client.Authorization.ResourceReview(
+		context.Background(), username, action, resource)
 }
 
 func (a *AuthzHandler) hasClusterEditRole(payload *ocm.AuthPayload, action, subscriptionID string) (bool, error) {

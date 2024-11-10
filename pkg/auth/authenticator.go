@@ -29,6 +29,7 @@ type Authenticator interface {
 	AuthWatcherAuth(token string) (interface{}, error)
 	AuthType() AuthType
 	EnableOrgTenancy() bool
+	EnableOcmAuthz() bool
 	EnableOrgBasedFeatureGates() bool
 }
 
@@ -41,6 +42,7 @@ type Config struct {
 	AllowedDomains             string   `envconfig:"ALLOWED_DOMAINS" default:""`
 	AdminUsers                 []string `envconfig:"ADMIN_USERS" default:""`
 	EnableOrgTenancy           bool     `envconfig:"ENABLE_ORG_TENANCY" default:"false"`
+	EnableOcmAuthz             bool     `envconfig:"ENABLE_OCM_AUTHZ" default:"false"`
 	EnableOrgBasedFeatureGates bool     `envconfig:"ENABLE_ORG_BASED_FEATURE_GATES" default:"false"`
 }
 

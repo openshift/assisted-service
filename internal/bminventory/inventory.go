@@ -3138,6 +3138,7 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 
 	var dbClusters []*common.Cluster
 	var clusters []*models.Cluster
+	var err error
 
 	if swag.BoolValue(params.GetUnregisteredClusters) {
 		if !b.authzHandler.IsAdmin(ctx) {
@@ -3146,7 +3147,11 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 		db = db.Unscoped()
 	}
 
-	db = b.authzHandler.OwnedByUser(ctx, db, swag.StringValue(params.Owner))
+	db, err = b.authzHandler.OwnedByUser(ctx, db, auth.ClusterResource, swag.StringValue(params.Owner))
+	if err != nil {
+		log.WithError(err).Error("Failed to list clusters in db")
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
 
 	if params.OpenshiftClusterID != nil {
 		db = db.Where("openshift_cluster_id = ?", *params.OpenshiftClusterID)
@@ -3156,7 +3161,7 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 		db = db.Where("ams_subscription_id IN (?)", params.AmsSubscriptionIds)
 	}
 
-	dbClusters, err := common.GetClustersFromDBWhere(db, common.UseEagerLoading,
+	dbClusters, err = common.GetClustersFromDBWhere(db, common.UseEagerLoading,
 		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)))
 	if err != nil {
 		log.WithError(err).Error("Failed to list clusters in db")
@@ -4532,14 +4537,19 @@ func (b *bareMetalInventory) ListInfraEnvsInternal(ctx context.Context, clusterI
 	db := b.db
 	var dbInfraEnvs []*common.InfraEnv
 	var infraEnvs []*models.InfraEnv
+	var err error
 
-	db = b.authzHandler.OwnedByUser(ctx, db, swag.StringValue(owner))
+	db, err = b.authzHandler.OwnedByUser(ctx, db, auth.InfraEnvResource, swag.StringValue(owner))
+	if err != nil {
+		log.WithError(err).Error("Failed to list infraEnvs in db")
+		return nil, err
+	}
 
 	if clusterId != nil {
 		db = db.Where("cluster_id = ?", clusterId)
 	}
 
-	dbInfraEnvs, err := common.GetInfraEnvsFromDBWhere(db)
+	dbInfraEnvs, err = common.GetInfraEnvsFromDBWhere(db)
 	if err != nil {
 		log.WithError(err).Error("Failed to list infraEnvs in db")
 		return nil, err

@@ -23,12 +23,12 @@ func (*NoneHandler) CreateAuthorizer() func(*http.Request) error {
 	}
 }
 
-func (*NoneHandler) OwnedBy(ctx context.Context, db *gorm.DB) *gorm.DB {
-	return db
+func (*NoneHandler) OwnedBy(ctx context.Context, db *gorm.DB, resource Resource) (*gorm.DB, error) {
+	return db, nil
 }
 
-func (*NoneHandler) OwnedByUser(ctx context.Context, db *gorm.DB, username string) *gorm.DB {
-	return db
+func (*NoneHandler) OwnedByUser(ctx context.Context, db *gorm.DB, resource Resource, username string) (*gorm.DB, error) {
+	return db, nil
 }
 
 func (*NoneHandler) HasAccessTo(ctx context.Context, obj interface{}, action Action) (bool, error) {
