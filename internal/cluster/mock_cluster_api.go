@@ -348,6 +348,21 @@ func (mr *MockAPIMockRecorder) GetClusterByKubeKey(key interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterByKubeKey", reflect.TypeOf((*MockAPI)(nil).GetClusterByKubeKey), key)
 }
 
+// GetHostCountByRole mocks base method.
+func (m *MockAPI) GetHostCountByRole(clusterID strfmt.UUID, role models.HostRole, suggested bool) (*int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostCountByRole", clusterID, role, suggested)
+	ret0, _ := ret[0].(*int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHostCountByRole indicates an expected call of GetHostCountByRole.
+func (mr *MockAPIMockRecorder) GetHostCountByRole(clusterID, role, suggested interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostCountByRole", reflect.TypeOf((*MockAPI)(nil).GetHostCountByRole), clusterID, role, suggested)
+}
+
 // GetMasterNodesIds mocks base method.
 func (m *MockAPI) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
 	m.ctrl.T.Helper()

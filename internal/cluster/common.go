@@ -20,10 +20,6 @@ import (
 )
 
 const (
-	MinMastersNeededForInstallation = 3
-)
-
-const (
 	StatusInfoReady                           = "Cluster ready to be installed"
 	StatusInfoInsufficient                    = "Cluster is not ready for install"
 	statusInfoInstalling                      = "Installation in progress"

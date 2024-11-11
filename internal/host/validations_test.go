@@ -1159,7 +1159,7 @@ var _ = Describe("Validations test", func() {
 				eventstest.WithHostIdMatcher(h.ID.String()),
 				eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
 			))
-			err := m.RefreshRole(ctx, &h, db)
+			err := m.RefreshRole(ctx, &h, db, swag.Int(common.MinMasterHostsNeededForInstallationInHaMode))
 			Expect(err).ToNot(HaveOccurred())
 
 			mockAndRefreshStatusWithoutEvents(&h)

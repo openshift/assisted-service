@@ -91,9 +91,9 @@ type API interface {
 	IndexOfStage(element models.HostStage, data []models.HostStage) int
 	IsInstallable(h *models.Host) bool
 	// auto assign host role
-	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) (bool, error)
-	RefreshRole(ctx context.Context, h *models.Host, db *gorm.DB) error
-	IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (bool, error)
+	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB, expectedMasterCount *int) (bool, error)
+	RefreshRole(ctx context.Context, h *models.Host, db *gorm.DB, expectedMasterCount *int) error
+	IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger, validateAgainstOperators bool) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
 	PermanentHostsDeletion(olderThan strfmt.DateTime) error
@@ -428,7 +428,7 @@ func (m *Manager) UpdateMediaConnected(ctx context.Context, h *models.Host) erro
 	return m.updateHostAndNotify(ctx, m.db, h, updates).Error
 }
 
-func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *gorm.DB, forceRefresh bool) error {
+func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *gorm.DB, forceRefresh bool, expectedMasterCount *int) error {
 	//update suggested role, if not yet set
 	var suggestedRole models.HostRole
 	var err error
@@ -439,7 +439,7 @@ func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *g
 		if h.Role == models.HostRoleAutoAssign &&
 			funk.ContainsString(hostStatusesBeforeInstallation[:], *h.Status) {
 			host := *h //must have a defensive copy becuase selectRole changes the host object
-			if suggestedRole, err = m.selectRole(ctx, &host, db); err == nil {
+			if suggestedRole, err = m.selectRole(ctx, &host, db, expectedMasterCount); err == nil {
 				m.log.Debugf("calculated role for host %s is %s (original suggested = %s)", hostutil.GetHostnameForMsg(h), suggestedRole, h.SuggestedRole)
 				if h.SuggestedRole != suggestedRole {
 					if err = updateRole(m.log, h, h.Role, suggestedRole, db, string(h.Role)); err == nil {
@@ -504,11 +504,11 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 	return nil
 }
 
-func (m *Manager) RefreshRole(ctx context.Context, h *models.Host, db *gorm.DB) error {
+func (m *Manager) RefreshRole(ctx context.Context, h *models.Host, db *gorm.DB, expectedMasterCount *int) error {
 	if db == nil {
 		db = m.db
 	}
-	return m.refreshRoleInternal(ctx, h, db, true)
+	return m.refreshRoleInternal(ctx, h, db, true, expectedMasterCount)
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
@@ -1204,12 +1204,12 @@ func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *mod
 	return hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.InfraEnvID, *h.ID, *h.Status, "validations_info", string(b))
 }
 
-func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) (bool, error) {
+func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB, expectedMasterCount *int) (bool, error) {
 	if h.Role == models.HostRoleAutoAssign {
 		log := logutil.FromContext(ctx, m.log)
 		// If role is auto-assigned calculate the suggested roles
 		// to make sure the suggestion is fresh
-		if err := m.RefreshRole(ctx, h, db); err != nil { //force refresh
+		if err := m.RefreshRole(ctx, h, db, expectedMasterCount); err != nil { //force refresh
 			return false, err
 		}
 
@@ -1229,13 +1229,13 @@ func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.D
 	return false, nil
 }
 
-// This function recommends a role for a given host based on these criteria:
-//  1. if there are not enough masters and the host has enough capabilities to be
+// selectRole recommends a role for a given host based on these criteria:
+//   - if there are not enough masters and the host has enough capabilities to be
 //     a master the function select it to be a master
-//  2. if there are enough masters, or it is a day2 host, or it has not enough capabilities
-//     to be a master the function select it to be a  worker
-//  3. in case of missing inventory or an internal error the function returns auto-assign
-func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (models.HostRole, error) {
+//   - if there are enough masters, or it is a day2 host, or it does not not have enough capabilities
+//     to be a master the function select it to be a worker
+//   - in case of missing inventory or an internal error the function returns auto-assign
+func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB, expectedMasterCount *int) (models.HostRole, error) {
 	var (
 		autoSelectedRole = models.HostRoleAutoAssign
 		log              = logutil.FromContext(ctx, m.log)
@@ -1264,7 +1264,14 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		return autoSelectedRole, err
 	}
 
-	if len(masters) < common.MinMasterHostsNeededForInstallation {
+	var count int
+	if expectedMasterCount == nil {
+		count = common.MinMasterHostsNeededForInstallationInHaMode
+	} else {
+		count = *expectedMasterCount
+	}
+
+	if len(masters) < count {
 		h.Role = models.HostRoleMaster
 		vc, err = newValidationContext(ctx, h, nil, nil, db, make(InventoryCache), m.hwValidator, m.kubeApiEnabled, m.objectHandler, m.softTimeoutsEnabled)
 		if err != nil {
@@ -1276,7 +1283,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 			log.WithError(err).Errorf("failed to run validations on host %s", h.ID.String())
 			return autoSelectedRole, err
 		}
-		if m.canBeMaster(conditions) {
+		if m.canBeMaster(conditions, true) {
 			return models.HostRoleMaster, nil
 		}
 	}
@@ -1284,7 +1291,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 	return models.HostRoleWorker, nil
 }
 
-func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (bool, error) {
+func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger, validateAgainstOperators bool) (bool, error) {
 	if h.Role == models.HostRoleWorker {
 		return false, nil
 	}
@@ -1305,20 +1312,25 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *
 		return false, err
 	}
 
-	if m.canBeMaster(conditions) {
+	if m.canBeMaster(conditions, validateAgainstOperators) {
 		return true, nil
 	}
 
 	return false, nil
 }
 
-func (m *Manager) canBeMaster(conditions map[string]bool) bool {
-	return conditions[HasCPUCoresForRole.String()] &&
-		conditions[HasMemoryForRole.String()] &&
-		conditions[AreLsoRequirementsSatisfied.String()] &&
-		conditions[AreOdfRequirementsSatisfied.String()] &&
-		conditions[AreCnvRequirementsSatisfied.String()] &&
-		conditions[AreLvmRequirementsSatisfied.String()]
+func (m *Manager) canBeMaster(conditions map[string]bool, validateAgainstOperators bool) bool {
+	can := conditions[HasCPUCoresForRole.String()] &&
+		conditions[HasMemoryForRole.String()]
+
+	if validateAgainstOperators {
+		return can && conditions[AreLsoRequirementsSatisfied.String()] &&
+			conditions[AreOdfRequirementsSatisfied.String()] &&
+			conditions[AreCnvRequirementsSatisfied.String()] &&
+			conditions[AreLvmRequirementsSatisfied.String()]
+	}
+
+	return can
 }
 
 func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {

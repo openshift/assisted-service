@@ -2922,7 +2922,7 @@ var _ = Describe("AutoAssignRole", func() {
 		if isSelected {
 			mockRoleSuggestionEvent(host)
 		}
-		selected, err := hapi.AutoAssignRole(ctx, host, db)
+		selected, err := hapi.AutoAssignRole(ctx, host, db, swag.Int(common.MinMasterHostsNeededForInstallationInHaMode))
 		Expect(selected).To(Equal(isSelected))
 		if success {
 			Expect(err).ShouldNot(HaveOccurred())
@@ -2993,7 +2993,7 @@ var _ = Describe("AutoAssignRole", func() {
 	})
 
 	It("cluster already have enough master nodes", func() {
-		for i := 0; i < common.MinMasterHostsNeededForInstallation; i++ {
+		for i := 0; i < common.MinMasterHostsNeededForInstallationInHaMode; i++ {
 			h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvId, clusterId, models.HostStatusKnown)
 			h.Inventory = hostutil.GenerateMasterInventory()
 			h.Role = models.HostRoleAutoAssign
@@ -3129,7 +3129,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 				var cluster common.Cluster
 				Expect(db.Preload("Hosts").Take(&cluster, "id = ?", clusterId.String()).Error).ToNot(HaveOccurred())
-				isValidReply, err := hapi.IsValidMasterCandidate(&h, &cluster, db, common.GetTestLog())
+				isValidReply, err := hapi.IsValidMasterCandidate(&h, &cluster, db, common.GetTestLog(), true)
 				Expect(isValidReply).Should(Equal(t.isValid))
 				Expect(err).ShouldNot(HaveOccurred())
 			})

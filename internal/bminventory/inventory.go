@@ -317,6 +317,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 			{Cidr: models.Subnet(b.Config.DefaultServiceNetworkCidr)},
 		}
 	}
+
 	if params.NewClusterParams.MachineNetworks == nil {
 		params.NewClusterParams.MachineNetworks = []*models.MachineNetwork{}
 	}
@@ -324,15 +325,18 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 	if params.NewClusterParams.VipDhcpAllocation == nil {
 		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
 	}
+
 	if params.NewClusterParams.Hyperthreading == nil {
 		params.NewClusterParams.Hyperthreading = swag.String(models.ClusterHyperthreadingAll)
 	}
+
 	if params.NewClusterParams.SchedulableMasters == nil {
 		params.NewClusterParams.SchedulableMasters = swag.Bool(false)
 	}
-	if params.NewClusterParams.HighAvailabilityMode == nil {
-		params.NewClusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
-	}
+
+	params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount = common.GetDefaultHighAvailabilityAndMasterCountParams(
+		params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount,
+	)
 
 	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%s", getPlatformType(params.NewClusterParams.Platform), common.BoolPtrForLog(params.NewClusterParams.UserManagedNetworking))
 	platform, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.CPUArchitecture)
@@ -439,6 +443,15 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		if err := validations.ValidateHighAvailabilityModeWithPlatform(params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.Platform); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
+	}
+
+	// should be called after defaults were set
+	if err := validateHighAvailabilityWithControlPlaneCount(
+		swag.StringValue(params.NewClusterParams.HighAvailabilityMode),
+		swag.Int64Value(params.NewClusterParams.ControlPlaneCount),
+		swag.StringValue(params.NewClusterParams.OpenshiftVersion),
+	); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	return nil
@@ -641,6 +654,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		KubeKeyNamespace:            kubeKey.Namespace,
 		TriggerMonitorTimestamp:     time.Now(),
 		MachineNetworkCidrUpdatedAt: time.Now(),
+		ControlPlaneCount:           swag.Int64Value(params.NewClusterParams.ControlPlaneCount),
 	}
 
 	newOLMOperators, err := b.getOLMMonitoredOperators(log, cluster, params, *releaseImage.Version)
@@ -1308,13 +1322,20 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		sortedHosts, canRefreshRoles := host.SortHosts(cluster.Hosts)
 		if canRefreshRoles {
 			for i := range sortedHosts {
-				updated, err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx)
+				updated, err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx, swag.Int(int(cluster.ControlPlaneCount)))
 				if err != nil {
 					return err
 				}
 				autoAssigned = autoAssigned || updated
 			}
 		}
+
+		// Refresh schedulable masters again after all roles are assigned
+		if internalErr := b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID); internalErr != nil {
+			log.WithError(internalErr).Errorf("Failed to refresh SchedulableMastersForcedTrue while installing cluster <%s>", cluster.ID)
+			return internalErr
+		}
+
 		hasIgnoredValidations := common.IgnoredValidationsAreSet(cluster)
 		if hasIgnoredValidations {
 			eventgen.SendValidationsIgnoredEvent(ctx, b.eventsHandler, *cluster.ID)
@@ -1322,7 +1343,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		//usage for auto role selection is measured only for day1 clusters with more than
 		//3 hosts (which would automatically be assigned as masters if the hw is sufficient)
 		if usages, u_err := usage.Unmarshal(cluster.Cluster.FeatureUsage); u_err == nil {
-			report := cluster.Cluster.TotalHostCount > common.MinMasterHostsNeededForInstallation && autoAssigned
+			report := cluster.Cluster.TotalHostCount > common.MinMasterHostsNeededForInstallationInHaMode && autoAssigned
 			if hasIgnoredValidations {
 				b.setUsage(true, usage.ValidationsIgnored, nil, usages)
 			}
@@ -1435,9 +1456,11 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 	if h, err = b.getHost(ctx, infraEnvId.String(), hostId.String()); err != nil {
 		return err
 	}
+
 	// auto select host roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
-		if _, err = b.hostApi.AutoAssignRole(ctx, &h.Host, tx); err != nil {
+		// no need to specify expected master count for day2 hosts, as their suggested role will always be worker
+		if _, err = b.hostApi.AutoAssignRole(ctx, &h.Host, tx, nil); err != nil {
 			return err
 		}
 		return nil
@@ -1509,7 +1532,8 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 		return common.NewApiError(http.StatusConflict, fmt.Errorf("cannot install host in state %s", swag.StringValue(h.Status)))
 	}
 
-	_, err = b.hostApi.AutoAssignRole(ctx, h, b.db)
+	// no need to specify expected master count for day2 hosts, as their suggested role will always be worker
+	_, err = b.hostApi.AutoAssignRole(ctx, h, b.db, nil)
 	if err != nil {
 		log.Errorf("Failed to update role for host %s", params.HostID)
 		return common.GenerateErrorResponder(err)
@@ -1911,7 +1935,64 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		return installer.V2UpdateClusterParams{}, err
 	}
 
+	// We don't want to update ControlPlaneCount in day2 clusters as we don't know the previous hosts
+	if params.ClusterUpdateParams.ControlPlaneCount != nil && swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
+		if err := validateHighAvailabilityWithControlPlaneCount(
+			swag.StringValue(cluster.HighAvailabilityMode),
+			swag.Int64Value(params.ClusterUpdateParams.ControlPlaneCount),
+			cluster.OpenshiftVersion,
+		); err != nil {
+			return installer.V2UpdateClusterParams{}, err
+		}
+	}
+
 	return *params, nil
+}
+
+func validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, controlPlaneCount int64, openshiftVersion string) error {
+	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeNone &&
+		controlPlaneCount != 1 {
+		return common.NewApiError(
+			http.StatusBadRequest,
+			errors.New("single-node clusters must have a single control plane node"),
+		)
+	}
+
+	stretchedClustersNotSuported, err := common.BaseVersionLessThan(common.MinimumVersionForStretchedControlPlanesCluster, openshiftVersion)
+	if err != nil {
+		return err
+	}
+
+	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull &&
+		controlPlaneCount != common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder &&
+		stretchedClustersNotSuported {
+		return common.NewApiError(
+			http.StatusBadRequest,
+			fmt.Errorf(
+				"there should be exactly %d dedicated control plane nodes for high availability mode %s in openshift version older than %s",
+				common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder,
+				highAvailabilityMode,
+				common.MinimumVersionForStretchedControlPlanesCluster,
+			),
+		)
+	}
+
+	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull &&
+		(controlPlaneCount < common.MinMasterHostsNeededForInstallationInHaMode ||
+			controlPlaneCount > common.MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer) {
+		return common.NewApiError(
+			http.StatusBadRequest,
+			fmt.Errorf(
+				"there should be %d-%d dedicated control plane nodes for high availability mode %s in openshift version %s or newer",
+				common.MinMasterHostsNeededForInstallationInHaMode,
+				common.MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer,
+				highAvailabilityMode,
+				common.MinimumVersionForStretchedControlPlanesCluster,
+			),
+		)
+	}
+
+	return nil
 }
 
 func (b *bareMetalInventory) V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder {
@@ -2356,6 +2437,10 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && cluster.HighAvailabilityMode != nil {
 		b.setUserManagedNetworkingAndMultiNodeUsage(swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking), *cluster.HighAvailabilityMode, usages)
+	}
+
+	if params.ClusterUpdateParams.ControlPlaneCount != nil && *params.ClusterUpdateParams.ControlPlaneCount != cluster.ControlPlaneCount {
+		updates["control_plane_count"] = *params.ClusterUpdateParams.ControlPlaneCount
 	}
 
 	if len(updates) > 0 {

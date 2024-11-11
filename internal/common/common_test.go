@@ -376,6 +376,131 @@ var _ = Describe("JSON serialization checks", func() {
 	})
 })
 
+var _ = Describe("GetHostsByEachRole", func() {
+	Context("should categorize hosts based on Role", func() {
+		cluster := &models.Cluster{
+			Hosts: []*models.Host{
+				{ // Host that has been automatically assigned
+					Role:          models.HostRoleAutoAssign,
+					SuggestedRole: models.HostRoleMaster,
+				},
+				{ // Host that has been automatically assigned
+					Role:          models.HostRoleAutoAssign,
+					SuggestedRole: models.HostRoleMaster,
+				},
+				{ // Host that has been automatically assigned
+					Role:          models.HostRoleAutoAssign,
+					SuggestedRole: models.HostRoleMaster,
+				},
+				{ // Host that has been automatically assigned
+					Role:          models.HostRoleAutoAssign,
+					SuggestedRole: models.HostRoleWorker,
+				},
+				{ // Host that has been automatically assigned
+					Role:          models.HostRoleAutoAssign,
+					SuggestedRole: models.HostRoleWorker,
+				},
+				{ // Host that has been manually assigned to worker
+					Role:          models.HostRoleWorker,
+					SuggestedRole: models.HostRoleWorker,
+				},
+				{ // Host that has not been assigned
+					Role:          models.HostRoleAutoAssign,
+					SuggestedRole: models.HostRoleAutoAssign,
+				},
+			},
+		}
+
+		It("with effective roles", func() {
+			effectiveRoles := true
+			masterHosts, workerHosts, autoAssignHosts := GetHostsByEachRole(cluster, effectiveRoles)
+
+			Expect(masterHosts).To(HaveLen(3))
+			Expect(workerHosts).To(HaveLen(3))
+			Expect(autoAssignHosts).To(HaveLen(1))
+		})
+
+		It("with non-effective roles", func() {
+			effectiveRoles := false
+			masterHosts, workerHosts, autoAssignHosts := GetHostsByEachRole(cluster, effectiveRoles)
+
+			Expect(masterHosts).To(HaveLen(0))
+			Expect(workerHosts).To(HaveLen(1))
+			Expect(autoAssignHosts).To(HaveLen(6))
+		})
+	})
+})
+
+var _ = Describe("ShouldMastersBeSchedulable", func() {
+	Context("should return false", func() {
+		It("when the cluster is composed from more than 1 worker, multi-node", func() {
+			cluster := &models.Cluster{
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+				Hosts: []*models.Host{
+					{
+						Role:          models.HostRoleAutoAssign,
+						SuggestedRole: models.HostRoleMaster,
+					},
+					{
+						Role:          models.HostRoleAutoAssign,
+						SuggestedRole: models.HostRoleMaster,
+					},
+					{
+						Role:          models.HostRoleAutoAssign,
+						SuggestedRole: models.HostRoleMaster,
+					},
+					{
+						Role:          models.HostRoleAutoAssign,
+						SuggestedRole: models.HostRoleWorker,
+					},
+					{
+						Role:          models.HostRoleAutoAssign,
+						SuggestedRole: models.HostRoleWorker,
+					},
+				},
+			}
+
+			Expect(ShouldMastersBeSchedulable(cluster)).To(BeFalse())
+		})
+	})
+
+	Context("should return true", func() {
+		It("when SNO cluster", func() {
+			cluster := &models.Cluster{
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+			}
+
+			Expect(ShouldMastersBeSchedulable(cluster)).To(BeTrue())
+		})
+
+		It("when less than 2 workers, multi-node", func() {
+			cluster := &models.Cluster{
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+				Hosts: []*models.Host{
+					{
+						Role:          models.HostRoleAutoAssign,
+						SuggestedRole: models.HostRoleMaster,
+					},
+					{
+						Role:          models.HostRoleAutoAssign,
+						SuggestedRole: models.HostRoleMaster,
+					},
+					{
+						Role:          models.HostRoleAutoAssign,
+						SuggestedRole: models.HostRoleMaster,
+					},
+					{
+						Role:          models.HostRoleAutoAssign,
+						SuggestedRole: models.HostRoleWorker,
+					},
+				},
+			}
+
+			Expect(ShouldMastersBeSchedulable(cluster)).To(BeTrue())
+		})
+	})
+})
+
 func createHost(hostRole models.HostRole, state string) *models.Host {
 	hostId := strfmt.UUID(uuid.New().String())
 	clusterId := strfmt.UUID(uuid.New().String())

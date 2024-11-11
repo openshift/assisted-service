@@ -4911,6 +4911,10 @@ definitions:
         type: string
         description: A comma-separated list of tags that are associated to the cluster.
         x-nullable: true
+      control_plane_count:
+        type: integer
+        description: The amount of control planes which should be part of the cluster.
+        x-nullable: true
 
   host-update-params:
     type: object
@@ -5088,6 +5092,10 @@ definitions:
         type: string
         description: A comma-separated list of tags that are associated to the cluster.
         x-nullable: true
+      control_plane_count:
+        type: integer
+        description: The amount of control planes which should be part of the cluster.
+        x-nullable: true    
 
   import-cluster-params:
     type: object

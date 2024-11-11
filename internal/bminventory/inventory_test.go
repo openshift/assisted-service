@@ -61,6 +61,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/stream"
+	testutils "github.com/openshift/assisted-service/internal/testing"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -1493,6 +1494,10 @@ func mockDetectAndStoreCollidingIPsForCluster(mockClusterApi *cluster.MockAPI, t
 	mockClusterApi.EXPECT().DetectAndStoreCollidingIPsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(times)
 }
 
+func mockRefreshSchedulableMastersForcedTrue(mockClusterApi *cluster.MockAPI, times int) {
+	mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(times)
+}
+
 var _ = Describe("cluster", func() {
 	masterHostId1 := strfmt.UUID(uuid.New().String())
 	masterHostId2 := strfmt.UUID(uuid.New().String())
@@ -1605,14 +1610,14 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
 	}
 	mockAutoAssignFailed := func() {
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(false, errors.Errorf("")).Times(1)
 	}
 	mockAutoAssignSuccess := func(times int) {
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(times)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(times)
 	}
 	mockFalseAutoAssignSuccess := func(times int) {
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).Times(times)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).Times(times)
 	}
 	mockClusterRefreshStatusSuccess := func() {
 		mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -5307,6 +5312,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRefreshStatus(mockClusterApi)
 			mockClusterDeleteLogsSuccess(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
 				eventstest.WithClusterIdMatcher(clusterID.String()),
@@ -5355,6 +5361,7 @@ var _ = Describe("cluster", func() {
 				mockClusterRefreshStatus(mockClusterApi)
 				mockClusterDeleteLogsSuccess(mockClusterApi)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 				mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
 					eventstest.WithClusterIdMatcher(clusterID.String()),
@@ -5479,6 +5486,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRefreshStatus(mockClusterApi)
 			mockClusterDeleteLogsSuccess(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
 				eventstest.WithClusterIdMatcher(clusterID.String()),
@@ -5538,6 +5546,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRefreshStatus(mockClusterApi)
 			mockClusterDeleteLogsSuccess(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 			mockClusterApi.EXPECT().HandlePreInstallError(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Do(func(ctx, c, err interface{}) { DoneChannel <- 1 })
 
 			_ = bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
@@ -5576,6 +5585,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRefreshStatus(mockClusterApi)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
@@ -5592,6 +5602,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRefreshStatus(mockClusterApi)
 			setIsReadyForInstallationFalse(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 
 			Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("status", "insufficient").Error).To(Not(HaveOccurred()))
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
@@ -5604,6 +5615,7 @@ var _ = Describe("cluster", func() {
 			createCluster(defaultCluster)
 			mockFalseAutoAssignSuccess(3)
 			setIsReadyForInstallationFalse(mockClusterApi)
+			mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 
 			Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("status", "insufficient").Error).To(Not(HaveOccurred()))
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
@@ -5621,6 +5633,7 @@ var _ = Describe("cluster", func() {
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 
 			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return([]*strfmt.UUID{}, nil).Times(1)
@@ -5642,6 +5655,7 @@ var _ = Describe("cluster", func() {
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
@@ -5658,6 +5672,7 @@ var _ = Describe("cluster", func() {
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 
 			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
@@ -5687,6 +5702,8 @@ var _ = Describe("cluster", func() {
 			mockClusterDeleteLogsFailure(mockClusterApi)
 			mockHandlePreInstallationSuccess(mockClusterApi, DoneChannel)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
+
 			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
 				eventstest.WithClusterIdMatcher(clusterID.String()),
@@ -5840,7 +5857,7 @@ var _ = Describe("cluster", func() {
 	})
 })
 
-var _ = Describe("V2ClusterUpdate cluster", func() {
+var _ = Describe("V2UpdateCluster", func() {
 
 	masterHostId1 := strfmt.UUID(uuid.New().String())
 	masterHostId3 := strfmt.UUID(uuid.New().String())
@@ -5910,12 +5927,12 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 		mockClusterUpdateSuccess(1, 0)
 	}
 
-	Context("Update", func() {
+	Context("update", func() {
 		BeforeEach(func() {
 			mockDurationsSuccess()
 		})
 
-		Context("Single node", func() {
+		Context("single node cluster", func() {
 			var cluster *common.Cluster
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
@@ -7826,6 +7843,259 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "cannot use OpenShift Virtualization because it's not compatible with the ppc64le architecture on version 4.13 of OpenShift")
 				})
 
+			})
+		})
+
+		Context("control_plane_count", func() {
+			var (
+				clusterID = strfmt.UUID(uuid.New().String())
+			)
+
+			Context("should succeed", func() {
+
+				BeforeEach(func() {
+					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				})
+
+				It("when using nil value", func() {
+					cluster := &common.Cluster{
+						Cluster: models.Cluster{
+							ID:                   &clusterID,
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							OpenshiftVersion:     "4.16",
+						}}
+
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID:           clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				})
+
+				It("not changing the value", func() {
+					cluster := &common.Cluster{
+						Cluster: models.Cluster{
+							ID:                   &clusterID,
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							OpenshiftVersion:     "4.16",
+						},
+						ControlPlaneCount: 3,
+					}
+
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							ControlPlaneCount: swag.Int64(3),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					var newCluster *common.Cluster
+					err = db.Where("id = ?", clusterID).Take(&newCluster).Error
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(newCluster.ControlPlaneCount).To(BeEquivalentTo(3))
+				})
+
+				It("increasing to 4 control planes with OCP >= 4.18 the value and multi-node", func() {
+					cluster := &common.Cluster{
+						Cluster: models.Cluster{
+							ID:                   &clusterID,
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							OpenshiftVersion:     "4.18",
+						},
+						ControlPlaneCount: 3,
+					}
+
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							ControlPlaneCount: swag.Int64(4),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					var newCluster *common.Cluster
+					err = db.Where("id = ?", clusterID).Take(&newCluster).Error
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(newCluster.ControlPlaneCount).To(BeEquivalentTo(4))
+				})
+
+				It(fmt.Sprintf("descreasing to 3 control planes with OCP >= %s the value and multi-node", common.MinimumVersionForStretchedControlPlanesCluster), func() {
+					cluster := &common.Cluster{
+						Cluster: models.Cluster{
+							ID:                   &clusterID,
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							OpenshiftVersion:     "4.18",
+						},
+						ControlPlaneCount: 4,
+					}
+
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							ControlPlaneCount: swag.Int64(3),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					var newCluster *common.Cluster
+					err = db.Where("id = ?", clusterID).Take(&newCluster).Error
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(newCluster.ControlPlaneCount).To(BeEquivalentTo(3))
+				})
+			})
+
+			Context("should fail", func() {
+				It("update to invalid value, stretched clusters not supported", func() {
+					cluster := &common.Cluster{
+						Cluster: models.Cluster{
+							ID:                   &clusterID,
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							OpenshiftVersion:     "4.16",
+						},
+						ControlPlaneCount: 3,
+					}
+
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							ControlPlaneCount: swag.Int64(6),
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "there should be exactly 3 dedicated control plane nodes for high availability mode Full in openshift version older than 4.18")
+				})
+
+				It("update to invalid value, stretched clusters supported", func() {
+					cluster := &common.Cluster{
+						Cluster: models.Cluster{
+							ID:                   &clusterID,
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							OpenshiftVersion:     "4.18",
+						},
+						ControlPlaneCount: 3,
+					}
+
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							ControlPlaneCount: swag.Int64(6),
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "there should be 3-5 dedicated control plane nodes for high availability mode Full in openshift version 4.18 or newer")
+				})
+
+				It("update amount to != 1 when SNO", func() {
+					cluster := &common.Cluster{
+						Cluster: models.Cluster{
+							ID:                   &clusterID,
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+							OpenshiftVersion:     "4.16",
+						},
+						ControlPlaneCount: 1,
+					}
+
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							ControlPlaneCount: swag.Int64(3),
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "single-node clusters must have a single control plane node")
+				})
+
+				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version < %s", common.MinimumVersionForStretchedControlPlanesCluster), func() {
+					cluster := &common.Cluster{
+						Cluster: models.Cluster{
+							ID:                   &clusterID,
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							OpenshiftVersion:     "4.16",
+						},
+						ControlPlaneCount: 3,
+					}
+
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							ControlPlaneCount: swag.Int64(4),
+						},
+					})
+
+					verifyApiErrorString(
+						reply,
+						http.StatusBadRequest,
+						"there should be exactly 3 dedicated control plane nodes for high availability mode Full in openshift version older than 4.18",
+					)
+				})
+
+				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version >= %s", common.MinimumVersionForStretchedControlPlanesCluster), func() {
+					cluster := &common.Cluster{
+						Cluster: models.Cluster{
+							ID:                   &clusterID,
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							OpenshiftVersion:     "4.18",
+						},
+						ControlPlaneCount: 4,
+					}
+
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							ControlPlaneCount: swag.Int64(1),
+						},
+					})
+
+					verifyApiErrorString(
+						reply,
+						http.StatusBadRequest,
+						"there should be 3-5 dedicated control plane nodes for high availability mode Full in openshift version 4.18 or newer",
+					)
+				})
 			})
 		})
 	})
@@ -12831,7 +13101,7 @@ var _ = Describe("Install Host test", func() {
 			HostID:      hostID,
 		}
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -12849,7 +13119,7 @@ var _ = Describe("Install Host test", func() {
 			HostID:      hostID,
 		}
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -12898,7 +13168,7 @@ var _ = Describe("Install Host test", func() {
 			HostID:      hostID,
 		}
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(0)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("ign failure")).Times(1)
@@ -12913,7 +13183,7 @@ var _ = Describe("Install Host test", func() {
 			HostID:      hostID,
 		}
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
@@ -12961,7 +13231,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 			eventstest.WithHostIdMatcher(hostId.String()),
 			eventstest.WithInfraEnvIdMatcher(clusterID.String()),
 			eventstest.WithClusterIdMatcher(clusterID.String())))
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -12974,7 +13244,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		expectedErrMsg := "some-internal-error"
 		hostId := strfmt.UUID(uuid.New().String())
 		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -13026,7 +13296,7 @@ var _ = Describe("Transform day1 cluster to a day2 cluster test", func() {
 	})
 })
 
-var _ = Describe("TestRegisterCluster", func() {
+var _ = Describe("RegisterCluster", func() {
 	var (
 		bm     *bareMetalInventory
 		cfg    Config
@@ -15257,6 +15527,242 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 		})
 	})
+
+	Context("registering control_plane_count", func() {
+		Context("should succeed", func() {
+			BeforeEach(func() {
+				mockAMSSubscription(ctx)
+			})
+
+			Context("using defaults", func() {
+				It("high_availability mode is set to Full", func() {
+					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: &models.ClusterCreateParams{
+							OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+					actual := reply.(*installer.V2RegisterClusterCreated)
+					clusterID := actual.Payload.ID
+
+					var dbCluster common.Cluster
+					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
+
+					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(3))
+				})
+
+				It("high_availability mode is set to None", func() {
+					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: &models.ClusterCreateParams{
+							OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+					actual := reply.(*installer.V2RegisterClusterCreated)
+					clusterID := actual.Payload.ID
+
+					var dbCluster common.Cluster
+					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
+
+					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(1))
+				})
+
+				It("control_plane_count is set to 3", func() {
+					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: &models.ClusterCreateParams{
+							OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+							ControlPlaneCount: swag.Int64(3),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+					actual := reply.(*installer.V2RegisterClusterCreated)
+					clusterID := actual.Payload.ID
+
+					var dbCluster common.Cluster
+					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
+
+					Expect(*dbCluster.HighAvailabilityMode).To(BeEquivalentTo(models.ClusterCreateParamsHighAvailabilityModeFull))
+				})
+
+				It("control_plane_count is set to 1", func() {
+					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: &models.ClusterCreateParams{
+							OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+							ControlPlaneCount: swag.Int64(1),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+					actual := reply.(*installer.V2RegisterClusterCreated)
+					clusterID := actual.Payload.ID
+
+					var dbCluster common.Cluster
+					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
+
+					Expect(*dbCluster.HighAvailabilityMode).To(BeEquivalentTo(models.ClusterCreateParamsHighAvailabilityModeNone))
+				})
+
+				It("not set", func() {
+					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: &models.ClusterCreateParams{
+							OpenshiftVersion: swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+					actual := reply.(*installer.V2RegisterClusterCreated)
+					clusterID := actual.Payload.ID
+
+					var dbCluster common.Cluster
+					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
+
+					Expect(*dbCluster.HighAvailabilityMode).To(BeEquivalentTo(models.ClusterCreateParamsHighAvailabilityModeFull))
+					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(3))
+				})
+			})
+
+			It(fmt.Sprintf("setting 5 control planes, multi-node with OCP version >= %s", common.MinimumVersionForStretchedControlPlanesCluster), func() {
+				mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, common.MinimumVersionForStretchedControlPlanesCluster)
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:     swag.String(common.MinimumVersionForStretchedControlPlanesCluster),
+						ControlPlaneCount:    swag.Int64(5),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+					},
+				})
+
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				clusterID := actual.Payload.ID
+
+				var dbCluster common.Cluster
+				db.Where("id = ?", clusterID.String()).Take(&dbCluster)
+
+				Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(5))
+				Expect(*dbCluster.HighAvailabilityMode).To(BeEquivalentTo(models.ClusterCreateParamsHighAvailabilityModeFull))
+			})
+
+			It("setting 1 control plane, single-node", func() {
+				mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						ControlPlaneCount:    swag.Int64(1),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+					},
+				})
+
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				clusterID := actual.Payload.ID
+
+				var dbCluster common.Cluster
+				db.Where("id = ?", clusterID.String()).Take(&dbCluster)
+
+				Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(1))
+				Expect(*dbCluster.HighAvailabilityMode).To(BeEquivalentTo(models.ClusterCreateParamsHighAvailabilityModeNone))
+			})
+		})
+
+		Context("should fail", func() {
+			It("setting 6 control planes, multi-node, stretched clusters not supported", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						ControlPlaneCount:    swag.Int64(6),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+					},
+				})
+
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					"there should be exactly 3 dedicated control plane nodes for high availability mode Full in openshift version older than 4.18",
+				)
+			})
+
+			It("setting 6 control planes, multi-node, stretched clusters supported", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:     swag.String(common.MinimumVersionForStretchedControlPlanesCluster),
+						ControlPlaneCount:    swag.Int64(6),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+					},
+				})
+
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					"there should be 3-5 dedicated control plane nodes for high availability mode Full in openshift version 4.18 or newer",
+				)
+			})
+
+			It("setting 3 control planes, single-node", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						ControlPlaneCount:    swag.Int64(3),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+					},
+				})
+
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					"single-node clusters must have a single control plane node",
+				)
+			})
+
+			It("setting 1 control plane, mutli-node", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						ControlPlaneCount:    swag.Int64(1),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+					},
+				})
+
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					"there should be exactly 3 dedicated control plane nodes for high availability mode Full in openshift version older than 4.18",
+				)
+			})
+
+			It("setting 4 control planes, multi-node, stretched clusters not supported", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						ControlPlaneCount:    swag.Int64(4),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+					},
+				})
+
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					"there should be exactly 3 dedicated control plane nodes for high availability mode Full in openshift version older than 4.18",
+				)
+			})
+		})
+	})
 })
 
 var _ = Describe("AMS subscriptions", func() {
@@ -15508,6 +16014,7 @@ var _ = Describe("AMS subscriptions", func() {
 					mockClusterApi.EXPECT().DeleteClusterLogs(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					mockGetInstallConfigSuccess(mockInstallConfigBuilder)
 					mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+					mockRefreshSchedulableMastersForcedTrue(mockClusterApi, 1)
 					mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
 					if test.status == "succeed" {
 						mockAccountsMgmt.EXPECT().UpdateSubscriptionOpenshiftClusterID(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)

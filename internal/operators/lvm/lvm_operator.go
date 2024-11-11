@@ -112,7 +112,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 	diskCount, _ := operatorscommon.NonInstallationDiskCount(inventory.Disks, host.InstallationDiskID, minDiskSizeGb)
 
 	role := common.GetEffectiveRole(host)
-	areSchedulable := common.AreMastersSchedulable(cluster)
+	areSchedulable := common.ShouldMastersBeSchedulable(&cluster.Cluster)
 	minSizeMessage := ""
 	if minDiskSizeGb > 0 {
 		minSizeMessage = fmt.Sprintf(" of %dGB minimum", minDiskSizeGb)
@@ -157,7 +157,7 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 	}
 
 	role := common.GetEffectiveRole(host)
-	areSchedulable := common.AreMastersSchedulable(cluster)
+	areSchedulable := common.ShouldMastersBeSchedulable(&cluster.Cluster)
 
 	if role == models.HostRoleMaster && !areSchedulable {
 		return &models.ClusterHostRequirementsDetails{

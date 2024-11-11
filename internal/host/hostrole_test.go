@@ -131,7 +131,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 				))
 			}
 
-			err := hapi.RefreshRole(ctx, &host, db)
+			err := hapi.RefreshRole(ctx, &host, db, swag.Int(common.MinMasterHostsNeededForInstallationInHaMode))
 			Expect(err).ToNot(HaveOccurred())
 
 			var resultHost models.Host

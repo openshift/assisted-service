@@ -20,6 +20,7 @@ func NonInstallationDiskCount(disks []*models.Disk, installationDiskID string, m
 			}
 		}
 	}
+
 	return eligibleDisks, availableDisks
 }
 

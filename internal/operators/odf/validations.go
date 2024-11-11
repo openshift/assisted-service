@@ -33,6 +33,14 @@ type odfClusterResourcesInfo struct {
 
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
 	var status string
+
+	// temporary disabling ODF for stretched clusters until it will be clear how ODF will work in this scenario.
+	masters, _, _ := common.GetHostsByEachRole(cluster, true)
+	if masterCount := len(masters); masterCount > 3 {
+		status = "There are currently more than 3 hosts designated to be control planes. ODF currently supports clusters with exactly three control plane nodes."
+		return api.Failure, status
+	}
+
 	hosts := cluster.Hosts
 	numAvailableHosts := int64(len(hosts))
 

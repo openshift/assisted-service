@@ -5150,3 +5150,46 @@ var _ = Describe("Verify install-config manifest", func() {
 		Entry("Operation: V2GetClusterInstallConfig, Override config: true", "V2GetClusterInstallConfig", getInstallConfigFromFile, models.PlatformTypeBaremetal, true),
 	)
 })
+
+var _ = Describe("Verify role assignment for stretched control plane cluster", func() {
+	var ctx = context.TODO()
+
+	It("with 4 masters, 1 worker", func() {
+		reply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			Context: ctx,
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:              swag.String("test-cluster"),
+				OpenshiftVersion:  swag.String(common.MinimumVersionForStretchedControlPlanesCluster),
+				PullSecret:        swag.String(pullSecret),
+				ControlPlaneCount: swag.Int64(4),
+			},
+		})
+
+		Expect(err).To(BeNil())
+		Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+
+		cluster := reply.GetPayload()
+		Expect(cluster).ToNot(BeNil())
+
+		infraEnv := registerInfraEnv(cluster.ID, models.ImageTypeMinimalIso)
+		Expect(infraEnv).ToNot(BeNil())
+
+		ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
+		for k := 0; k < 5; k++ {
+			registerNodeWithInventory(ctx, *infraEnv.ID, fmt.Sprintf("host-%d", k), ips[0], getDefaultInventory(defaultCIDRv4))
+		}
+
+		Eventually(func() bool {
+			reply, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: *cluster.ID})
+			if err != nil {
+				return false
+			}
+
+			c := reply.Payload
+			masters, workers, autoAssign := common.GetHostsByEachRole(c, true)
+
+			return len(masters) == 4 && len(workers) == 1 && len(autoAssign) == 0
+
+		}, "60s", "2s").Should(BeTrue())
+	})
+})

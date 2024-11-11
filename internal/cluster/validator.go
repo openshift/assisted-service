@@ -305,49 +305,30 @@ func (v *clusterValidator) areIngressVipsValid(c *clusterPreprocessContext) (Val
 	return v.areVipsValid(c, &IngressVipsWrapper{c: c})
 }
 
-// conditions to have a valid number of masters
-// 1. have exactly three masters
-// 2. have less then 3 masters but enough to auto-assign hosts that can become masters
-// 3. have at least 2 workers or auto-assign hosts that can become workers, if workers configured
-// 4. having more then 3 known masters is illegal
-func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) (ValidationStatus, string) {
+// SufficientMastersCount validates that there is a sufficient amount of hosts to satisfy requirements of both masters and workers.
+// The requirements are -
+//   - For none-high-availablity cluster (SNO), exactly 1 master and 0 workers are required.
+//   - For high-availablity cluster, the master count should match the expected master count (ControlPlaneCount).
+func (v *clusterValidator) SufficientMastersCount(c *clusterPreprocessContext) (ValidationStatus, string) {
 	status := ValidationSuccess
-	var message string
+	var (
+		message string
+	)
 
-	minMastersNeededForInstallation := common.MinMasterHostsNeededForInstallation
-	nonHAMode := swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
-	if nonHAMode {
-		minMastersNeededForInstallation = common.AllowedNumberOfMasterHostsInNoneHaMode
+	// Might be the case for already existing records (default value). In this case high availablity mode is set, we will get
+	// the corresponding control planes count
+	if c.cluster.ControlPlaneCount == 0 {
+		_, count := common.GetDefaultHighAvailabilityAndMasterCountParams(c.cluster.HighAvailabilityMode, nil)
+		c.cluster.ControlPlaneCount = swag.Int64Value(count)
 	}
 
-	hosts := make([]*models.Host, 0)
-	for _, h := range MapHostsByStatus(c.cluster) {
-		hosts = append(hosts, h...)
-	}
-	masters := make([]*models.Host, 0)
-	workers := make([]*models.Host, 0)
-	candidates := make([]*models.Host, 0)
-
-	for _, host := range hosts {
-		switch role := common.GetEffectiveRole(host); role {
-		case models.HostRoleMaster:
-			//add pre-assigned/suggested master hosts to the masters list
-			masters = append(masters, host)
-		case models.HostRoleWorker:
-			//add pre-assigned/suggested worker hosts to the worker list
-			workers = append(workers, host)
-		default:
-			//auto-assign hosts and other types go to the candidate list
-			candidates = append(candidates, host)
-		}
-	}
-
-	for _, h := range candidates {
+	masters, workers, autoAssignHosts := common.GetHostsByEachRole(&c.cluster.Cluster, true)
+	for _, h := range autoAssignHosts {
 		//if allocated masters count is less than the desired count, find eligible hosts
-		//from the candidate pool to match the master count criteria, up to 3
-		if len(masters) < minMastersNeededForInstallation {
+		//from the candidate pool to match the master count criteria
+		if len(masters) < int(c.cluster.ControlPlaneCount) {
 			candidate := *h
-			if isValid, err := v.hostAPI.IsValidMasterCandidate(&candidate, c.cluster, c.db, v.log); isValid && err == nil {
+			if isValid, err := v.hostAPI.IsValidMasterCandidate(&candidate, c.cluster, c.db, v.log, false); isValid && err == nil {
 				masters = append(masters, h)
 				continue
 			}
@@ -357,8 +338,15 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) (
 	}
 
 	numWorkers := len(workers)
-	if len(masters) != minMastersNeededForInstallation ||
-		nonHAMode && numWorkers != common.AllowedNumberOfWorkersInNoneHaMode {
+	numMasters := len(masters)
+
+	// validate masters
+	if numMasters != int(c.cluster.ControlPlaneCount) {
+		status = ValidationFailure
+	}
+
+	// validate workers (for SNO)
+	if c.cluster.ControlPlaneCount == 1 && numWorkers != common.AllowedNumberOfWorkersInNoneHaMode {
 		status = ValidationFailure
 	}
 
@@ -366,8 +354,11 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) (
 	case ValidationSuccess:
 		message = "The cluster has the exact amount of dedicated control plane nodes."
 	case ValidationFailure:
-		message = fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallation)
-		if nonHAMode {
+		message = fmt.Sprintf(
+			"The cluster must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
+			c.cluster.ControlPlaneCount,
+		)
+		if c.cluster.ControlPlaneCount == 1 {
 			message = "Single-node clusters must have a single control plane node and no workers."
 		}
 	default:

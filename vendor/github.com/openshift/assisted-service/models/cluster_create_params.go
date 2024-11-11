@@ -42,6 +42,9 @@ type ClusterCreateParams struct {
 	// Cluster networks that are associated with this cluster.
 	ClusterNetworks []*ClusterNetwork `json:"cluster_networks"`
 
+	// The amount of control planes which should be part of the cluster.
+	ControlPlaneCount *int64 `json:"control_plane_count,omitempty"`
+
 	// The CPU architecture of the image (x86_64/arm64/etc).
 	// Enum: [x86_64 aarch64 arm64 ppc64le s390x multi]
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`

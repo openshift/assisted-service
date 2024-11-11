@@ -107,7 +107,6 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 	var vipsDefinedConditions = stateswitch.And(
 		If(AreIngressVipsDefined),
 		If(AreApiVipsDefined),
-		If(AreIngressVipsDefined),
 	)
 
 	var requiredForInstall = stateswitch.And(
@@ -175,7 +174,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshCluster(StatusInfoInsufficient),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Refresh discovering cluster - detect insufficient",
-			Description: "In order for this transition to be fired at least one of the validations in isSufficientForInstallNonDhcp must fail. This transition handles the case that one of the required validations that are required in order for the cluster to be in ready state  has failed",
+			Description: "In order for this transition to be fired at least one of the validations in isSufficientForInstallNonDhcp must fail. This transition handles the case that one of the required validations that are required in order for the cluster to be in ready state has failed",
 		},
 	})
 

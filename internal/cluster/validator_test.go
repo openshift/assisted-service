@@ -6,10 +6,13 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/testing"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -666,5 +669,320 @@ var _ = Describe("skipNetworkHostPrefixCheck", func() {
 
 		skipped := validator.skipNetworkHostPrefixCheck(preprocessContext)
 		Expect(skipped).Should(Equal(true))
+	})
+})
+
+var _ = Describe("SufficientMastersCount", func() {
+	var (
+		validator   clusterValidator
+		clusterID   strfmt.UUID
+		mockHostAPI *host.MockAPI
+		ctrl        *gomock.Controller
+	)
+
+	BeforeEach(func() {
+		clusterID = strfmt.UUID(uuid.New().String())
+		ctrl = gomock.NewController(GinkgoT())
+		mockHostAPI = host.NewMockAPI(ctrl)
+		validator = clusterValidator{log: logrus.New(), hostAPI: mockHostAPI}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	Context("pass validation", func() {
+		It("with matching counts, default ControlPlaneCount", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{Cluster: models.Cluster{
+					ID:                   &clusterID,
+					OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+					HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+					Hosts: []*models.Host{
+						{
+							Role: models.HostRoleMaster,
+						},
+						{
+							Role: models.HostRoleMaster,
+						},
+						{
+							Role: models.HostRoleMaster,
+						},
+					},
+				}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal("The cluster has the exact amount of dedicated control plane nodes."))
+		})
+
+		It("with matching counts, set ControlPlaneCount", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{
+					ControlPlaneCount: 3,
+					Cluster: models.Cluster{
+						ID:                   &clusterID,
+						OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						Hosts: []*models.Host{
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+						},
+					}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal("The cluster has the exact amount of dedicated control plane nodes."))
+		})
+
+		It("with SNO cluster, default controlPlaneCount", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{Cluster: models.Cluster{
+					ID:                   &clusterID,
+					OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+					HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+					Hosts: []*models.Host{
+						{
+							Role: models.HostRoleMaster,
+						},
+					},
+				}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal("The cluster has the exact amount of dedicated control plane nodes."))
+		})
+
+		It("with SNO cluster, set controlPlaneCount", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{
+					ControlPlaneCount: 1,
+					Cluster: models.Cluster{
+						ID:                   &clusterID,
+						OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+						Hosts: []*models.Host{
+							{
+								Role: models.HostRoleMaster,
+							},
+						},
+					}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal("The cluster has the exact amount of dedicated control plane nodes."))
+		})
+
+		It("with multi-node cluster, 5 masters", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{
+					ControlPlaneCount: 5,
+					Cluster: models.Cluster{
+						ID:                   &clusterID,
+						OpenshiftVersion:     common.MinimumVersionForStretchedControlPlanesCluster,
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						Hosts: []*models.Host{
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+						},
+					}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal("The cluster has the exact amount of dedicated control plane nodes."))
+		})
+	})
+
+	Context("fails validation", func() {
+		It("with multi node cluster, 5 masters but expected 3 by default", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{
+					Cluster: models.Cluster{
+						ID:                   &clusterID,
+						OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						Hosts: []*models.Host{
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+						},
+					}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(Equal(fmt.Sprintf(
+				"The cluster must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.",
+				common.MinMasterHostsNeededForInstallationInHaMode,
+			)))
+		})
+
+		It("with multi node cluster, 5 masters but expected 3", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{
+					ControlPlaneCount: 3,
+					Cluster: models.Cluster{
+						ID:                   &clusterID,
+						OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						Hosts: []*models.Host{
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+						},
+					}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(Equal("The cluster must have exactly 3 dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement."))
+		})
+
+		It("with SNO cluster, 2 masters 0 workers", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{Cluster: models.Cluster{
+					ID:                   &clusterID,
+					OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+					HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+					Hosts: []*models.Host{
+						{
+							Role: models.HostRoleMaster,
+						},
+						{
+							Role: models.HostRoleMaster,
+						},
+					},
+				}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(Equal("Single-node clusters must have a single control plane node and no workers."))
+		})
+
+		It("with SNO cluster, 1 masters 1 workers", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{Cluster: models.Cluster{
+					ID:                   &clusterID,
+					OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+					HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+					Hosts: []*models.Host{
+						{
+							Role: models.HostRoleMaster,
+						},
+						{
+							Role: models.HostRoleWorker,
+						},
+					},
+				}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(Equal("Single-node clusters must have a single control plane node and no workers."))
+		})
 	})
 })
