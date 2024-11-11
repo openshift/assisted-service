@@ -1853,6 +1853,26 @@ var _ = Describe("cluster install", func() {
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterHostConflict()))
 		})
 
+		It("triggering cluster install if not in appropriate state should leave last preparation status intact", func() {
+			clusterInstallationReply, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			c := clusterInstallationReply.GetPayload()
+			Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
+			generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
+			waitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusSuccess)
+			waitForClusterState(ctx, clusterID, models.ClusterStatusInstalling, defaultWaitForClusterStateTimeout, IgnoreStateInfo)
+
+			_, err = userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
+			Expect(err).To(HaveOccurred())
+
+			// MGMT-19217: The LastInstallationPreparation fields should not have been changed by handling of the additional (rejected) install request.
+			getClusterReply, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			c = getClusterReply.GetPayload()
+			Expect(c.LastInstallationPreparation.Status).To(Equal(models.LastInstallationPreparationStatusSuccess))
+			Expect(c.LastInstallationPreparation.Reason).To(Equal(constants.InstallationPreparationReasonSuccess))
+		})
+
 		It("fail installation if there is only a single worker that manages to install", func() {
 			FailCluster(ctx, clusterID, *infraEnvID, workerFailure)
 			//Wait for cluster to get to error state

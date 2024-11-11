@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	commontesting "github.com/openshift/assisted-service/internal/common/testing"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
@@ -427,7 +428,7 @@ var _ = Describe("Progress bar test", func() {
 						},
 						LastInstallationPreparation: models.LastInstallationPreparation{
 							Status: models.LastInstallationPreparationStatusSuccess,
-							Reason: "",
+							Reason: constants.InstallationPreparationReasonSuccess,
 						},
 					},
 				}

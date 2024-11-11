@@ -997,7 +997,7 @@ func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster
 	err := m.db.Model(&models.Cluster{}).Where("id = ?", c.ID.String()).Updates(&models.Cluster{
 		LastInstallationPreparation: models.LastInstallationPreparation{
 			Status: models.LastInstallationPreparationStatusSuccess,
-			Reason: "",
+			Reason: constants.InstallationPreparationReasonSuccess,
 		},
 	}).Error
 	if err != nil {

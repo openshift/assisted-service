@@ -37,6 +37,8 @@ var resetProgressFields = []interface{}{"progress_finalizing_stage_percentage", 
 
 var resetFields = append(append(resetProgressFields, resetLogsField...), "openshift_cluster_id", "")
 
+var resetInstallationPreparationStatusFields = []interface{}{"last_installation_preparation_status", models.LastInstallationPreparationStatusNotStarted, "last_installation_preparation_reason", constants.InstallationPreparationReasonNotPerformed}
+
 type transitionHandler struct {
 	log                 logrus.FieldLogger
 	db                  *gorm.DB
@@ -175,7 +177,7 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 			return err
 		}
 	}
-
+	extra = append(extra, resetInstallationPreparationStatusFields...)
 	return th.updateTransitionCluster(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sCluster, params.reason, extra...)
 }
 
@@ -201,6 +203,7 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 		return errors.New("PostPrepareForInstallation invalid argument")
 	}
 	extra := append(append(make([]interface{}, 0), "install_started_at", strfmt.DateTime(time.Now())), resetLogsField...)
+	extra = append(extra, resetInstallationPreparationStatusFields...)
 	err = th.updateTransitionCluster(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sCluster,
 		statusInfoPreparingForInstallation, extra...)
 	if err != nil {
