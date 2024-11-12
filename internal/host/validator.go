@@ -1830,7 +1830,7 @@ func (v *validator) inventoryHasIP(inventory *models.Inventory, ipAddress string
 	return false, nil
 }
 
-func (v *validator) iSCSIHostNetworkInterfaceDoesNotBelongToMachineCidr(c *validationContext) (ValidationStatus, string) {
+func (v *validator) noIscsiNicBelongsToMachineCidr(c *validationContext) (ValidationStatus, string) {
 	installationDisk, err := hostutil.GetHostInstallationDisk(c.host)
 	if err != nil || installationDisk == nil {
 		return ValidationSuccessSuppressOutput, ""

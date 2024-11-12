@@ -311,8 +311,8 @@ func newValidations(v *validator) []validation {
 			condition: v.noIPCollisionsInNetwork,
 		},
 		{
-			id:        IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr,
-			condition: v.iSCSIHostNetworkInterfaceDoesNotBelongToMachineCidr,
+			id:        NoIscsiNicBelongsToMachineCidr,
+			condition: v.noIscsiNicBelongsToMachineCidr,
 		},
 	}
 }

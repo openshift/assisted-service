@@ -8355,7 +8355,7 @@ func init() {
         "no-skip-installation-disk",
         "no-skip-missing-disk",
         "no-ip-collisions-in-network",
-        "iscsi-host-network-interface-does-not-belong-to-machine-cidr"
+        "no-iscsi-nic-belongs-to-machine-cidr"
       ]
     },
     "host_network": {
@@ -19151,7 +19151,7 @@ func init() {
         "no-skip-installation-disk",
         "no-skip-missing-disk",
         "no-ip-collisions-in-network",
-        "iscsi-host-network-interface-does-not-belong-to-machine-cidr"
+        "no-iscsi-nic-belongs-to-machine-cidr"
       ]
     },
     "host_network": {

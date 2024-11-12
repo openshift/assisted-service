@@ -6556,7 +6556,7 @@ var allValidationIDs = []validationID{
 	NoSkipMissingDisk,
 	NoIPCollisionsInNetwork,
 	IsReleaseDomainNameResolvedCorrectly,
-	IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr,
+	NoIscsiNicBelongsToMachineCidr,
 }
 
 var allConditions = []conditionId{
@@ -6710,14 +6710,14 @@ var _ = Describe("State machine test - refresh transition", func() {
 			Expect(string(testState.State())).To(Equal(models.HostStatusKnown))
 		})
 
-		It("Moves from known to insufficient when iscsi-host-network-interface-does-not-belong-to-machine-cidr validation fails", func() {
+		It("Moves from known to insufficient when  validation fails", func() {
 
-			refreshHostArgs.conditions[string(IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)] = false
+			refreshHostArgs.conditions[string(NoIscsiNicBelongsToMachineCidr)] = false
 
 			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
 			Expect(string(testState.State())).To(Equal(models.HostStatusInsufficient))
 
-			refreshHostArgs.conditions[string(IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)] = true
+			refreshHostArgs.conditions[string(NoIscsiNicBelongsToMachineCidr)] = true
 
 			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
 			Expect(string(testState.State())).To(Equal(models.HostStatusKnown))

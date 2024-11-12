@@ -2339,7 +2339,7 @@ var _ = Describe("Validations test", func() {
 			Expect(ValidationError).To(Equal(status))
 		})
 	})
-	Context("iSCSI host network interface does not belong to machine networks", func() {
+	Context("No iSCSI NIC belongs to machine networks", func() {
 		var (
 			cluster common.Cluster
 			host    models.Host
@@ -2373,7 +2373,7 @@ var _ = Describe("Validations test", func() {
 
 			refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 
-			_, _, ok := getValidationResult(refreshedHost.ValidationsInfo, IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)
+			_, _, ok := getValidationResult(refreshedHost.ValidationsInfo, NoIscsiNicBelongsToMachineCidr)
 			Expect(ok).To(BeFalse())
 		})
 		It("Not iSCSI drive", func() {
@@ -2395,7 +2395,7 @@ var _ = Describe("Validations test", func() {
 
 			refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 
-			_, _, ok := getValidationResult(refreshedHost.ValidationsInfo, IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)
+			_, _, ok := getValidationResult(refreshedHost.ValidationsInfo, NoIscsiNicBelongsToMachineCidr)
 			Expect(ok).To(BeFalse())
 		})
 		It("iSCSI drive - no network interface set with host IP", func() {
@@ -2422,7 +2422,7 @@ var _ = Describe("Validations test", func() {
 
 			refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 
-			status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)
+			status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, NoIscsiNicBelongsToMachineCidr)
 			Expect(ok).To(BeTrue())
 			Expect(status).To(Equal(ValidationError))
 			Expect(message).To(Equal("Cannot find network interface associated to iSCSI host IP address"))
@@ -2453,7 +2453,7 @@ var _ = Describe("Validations test", func() {
 
 				refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 
-				status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)
+				status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, NoIscsiNicBelongsToMachineCidr)
 				Expect(ok).To(BeTrue())
 				Expect(status).To(Equal(ValidationError))
 				Expect(message).To(Equal(expectedMessage))
@@ -2490,7 +2490,7 @@ var _ = Describe("Validations test", func() {
 
 				refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 
-				status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, IscsiHostNetworkInterfaceDoesNotBelongToMachineCidr)
+				status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, NoIscsiNicBelongsToMachineCidr)
 				Expect(ok).To(BeTrue())
 				Expect(message).To(Equal(expectedMessage))
 				Expect(status).To(Equal(expectedStatus))
