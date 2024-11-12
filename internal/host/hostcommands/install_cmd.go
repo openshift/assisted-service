@@ -384,7 +384,7 @@ func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inve
 
 	nic, err := network.FindInterfaceByIP(iSCSIHostIP, inventory.Interfaces)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Cannot find the interface belonging to iSCSI host IP: %w", err)
 	}
 
 	dhcp := "dhcp"
