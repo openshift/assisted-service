@@ -16,5 +16,5 @@ spec:
         - /usr/bin/bash
         - -ex
         - -c
-        - {{ executeTemplate "files/setup.sh" . | toString | toJson }}
+        - {{ executeTemplate "include/setup.sh" . | toString | toJson }}
       restartPolicy: Never

@@ -2,14 +2,15 @@ package openshiftai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"sort"
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
-	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/pipelines"
 	"github.com/openshift/assisted-service/internal/operators/serverless"
 	"github.com/openshift/assisted-service/internal/operators/servicemesh"
@@ -17,9 +18,15 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 )
 
 const nvidiaVendorID = "10de"
+
+const (
+	defaultFlavor = "default"
+	watsonxFlavor = "watsonx"
+)
 
 var Operator = models.MonitoredOperator{
 	Namespace:        "redhat-ods-operator",
@@ -34,6 +41,10 @@ type operator struct {
 	log       logrus.FieldLogger
 	config    *Config
 	templates *template.Template
+}
+
+type Properties struct {
+	Flavor string `json:"flavor,omitempty"`
 }
 
 // NewOpenShiftAIOperator creates new OpenShift AI operator.
@@ -65,18 +76,35 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(c *common.Cluster) (result []string, err error) {
-	// TODO: We shold probably add the node feature discovery and NVIDIA GPU operators only if there is at least one
-	// NVIDIA GPU in the cluster, but unfortunatelly this is calculated and saved to the database only when the
-	// cluster is created or updated via the API, and at that point we don't have the host inventory yet to
-	// determine if there are NVIDIA GPU.
-	result = []string{
-		odf.Operator.Name,
-		nvidiagpu.Operator.Name,
-		pipelines.Operator.Name,
-		serverless.Operator.Name,
-		servicemesh.Operator.Name,
+	// Get the properties:
+	properties, err := o.getProperties(c)
+	if err != nil {
+		return
 	}
-	return result, nil
+
+	// Start only with the operators that are required by all flavors.
+	//
+	// TODO: We shold probably add the NVIDIA GPU operators only if there is at least one NVIDIA GPU in the cluster,
+	// but unfortunatelly this is calculated and saved to the database only when the cluster is created or updated
+	// via the API, and at that point we don't have the host inventory yet to determine if there are NVIDIA GPU.
+	set := map[string]bool{}
+	set[odf.Operator.Name] = true
+	set[nvidiagpu.Operator.Name] = true
+
+	// Add operators that depend on the flavor:
+	switch properties.Flavor {
+	case watsonxFlavor:
+		// No additional operators for this flavor.
+	default:
+		set[pipelines.Operator.Name] = true
+		set[serverless.Operator.Name] = true
+		set[servicemesh.Operator.Name] = true
+	}
+
+	// Calculate the result:
+	result = maps.Keys(set)
+	sort.Strings(result)
+	return
 }
 
 // GetClusterValidationID returns cluster validation ID for the operator.
@@ -115,12 +143,7 @@ func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster)
 		}
 		var supportedGpuCount int64
 		for _, gpu := range gpuList {
-			var isSupported bool
-			isSupported, err = o.isSupportedGpu(gpu)
-			if err != nil {
-				return
-			}
-			if isSupported {
+			if o.isSupportedGpu(gpu) {
 				supportedGpuCount++
 			}
 		}
@@ -165,14 +188,12 @@ func (o *operator) gpusInHost(host *models.Host) (result []*models.Gpu, err erro
 	return
 }
 
-func (o *operator) isSupportedGpu(gpu *models.Gpu) (result bool, err error) {
-	result, err = o.isNvidiaGpu(gpu)
-	return
+func (o *operator) isSupportedGpu(gpu *models.Gpu) bool {
+	return o.isNvidiaGpu(gpu)
 }
 
-func (o *operator) isNvidiaGpu(gpu *models.Gpu) (result bool, err error) {
-	result = gpu.VendorID == nvidiaVendorID
-	return
+func (o *operator) isNvidiaGpu(gpu *models.Gpu) bool {
+	return gpu.VendorID == nvidiaVendorID
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and CPU.
@@ -245,7 +266,19 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 // GetProperties provides description of operator properties.
 func (o *operator) GetProperties() models.OperatorProperties {
-	return models.OperatorProperties{}
+	return models.OperatorProperties{
+		{
+			Description:  "OpenShift AI flavor to use",
+			Name:         "flavor",
+			DataType:     "string",
+			DefaultValue: defaultFlavor,
+			Mandatory:    false,
+			Options: []string{
+				defaultFlavor,
+				watsonxFlavor,
+			},
+		},
+	}
 }
 
 // GetMonitoredOperator returns the information that describes how to monitor the operator.
@@ -311,4 +344,21 @@ func (o *operator) GetSupportedArchitectures() []string {
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDOPENSHIFTAI
+}
+
+func (o *operator) getProperties(c *common.Cluster) (result *Properties, err error) {
+	result = &Properties{
+		Flavor: defaultFlavor,
+	}
+	for _, operator := range c.MonitoredOperators {
+		if operator.Name == Operator.Name && operator.Properties != "" {
+			data := []byte(operator.Properties)
+			err = json.Unmarshal(data, result)
+			if err != nil {
+				return
+			}
+			break
+		}
+	}
+	return
 }

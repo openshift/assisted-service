@@ -31,6 +31,12 @@ var _ = Describe("Operator", func() {
 					Hosts: []*models.Host{
 						host,
 					},
+					MonitoredOperators: []*models.MonitoredOperator{
+						{
+							Name:       operator.GetName(),
+							Properties: "",
+						},
+					},
 				},
 			}
 			actual, _ := operator.ValidateHost(ctx, cluster, host, nil)
