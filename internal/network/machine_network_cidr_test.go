@@ -355,8 +355,8 @@ var _ = Describe("inventory", func() {
 			Entry("MachineNetworks is malformed", []*models.Interface{createInterface("1.2.3.4/24")}, []*models.MachineNetwork{{Cidr: "a.b.c.d"}}, false),
 			Entry("Interfaces is empty", []*models.Interface{}, []*models.MachineNetwork{{Cidr: "a.b.c.d"}}, false),
 			Entry("Interface IP is malformed", []*models.Interface{createInterface("a.b.c.d/24")}, []*models.MachineNetwork{{Cidr: "1.2.3.4/24"}}, false),
-			Entry("Host belongs to all machine network CIDRs", []*models.Interface{createInterface("1.2.3.4/24"), createInterface("5.6.7.8/16")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "5.6.7.0/16"}}, true),
-			Entry("Host doesn't belong to all machine network CIDRs", []*models.Interface{createInterface("5.6.7.8/16")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "5.6.0.0/16"}}, false),
+			Entry("Host belongs to all machine network CIDRs", []*models.Interface{createInterface("1.2.3.4/24"), addIPv6Addresses(createInterface(), "2001:db8::1/48")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "2001:db8::/48"}}, true),
+			Entry("Host doesn't belong to all machine network CIDRs", []*models.Interface{createInterface("1.2.3.4/24")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "2001:db8::a1/120"}}, false),
 		)
 	})
 	Context("IsInterfaceInPrimaryMachineNetCidr", func() {
@@ -378,8 +378,9 @@ var _ = Describe("inventory", func() {
 			Entry("MachineNetworks is empty", createInterface("1.2.3.4/24"), []*models.MachineNetwork{}, false),
 			Entry("MachineNetworks is malformed", createInterface("1.2.3.4/24"), []*models.MachineNetwork{{Cidr: "a.b.c.d"}}, false),
 			Entry("Interface IP is malformed", createInterface("a.b.c.d/24"), []*models.MachineNetwork{{Cidr: "1.2.3.4/24"}}, false),
-			Entry("Interface belongs to a machine network CIDR", createInterface("1.2.3.4/24", "5.6.7.8/16"), []*models.MachineNetwork{{Cidr: "5.6.7.0/16"}}, true),
-			Entry("Interface doesn't belong to any machine network CIDRs", createInterface("5.6.7.8/16", "13.14.15.16/8"), []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "8.10.0.0/16"}}, false),
+			Entry("Interface belongs to a IPv4 machine network CIDR", addIPv6Addresses(createInterface("1.2.3.4/24"), "2001:db8::a1/48"), []*models.MachineNetwork{{Cidr: "1.2.3.4/24"}}, true),
+			Entry("Interface belongs to a IPv6 machine network CIDR", addIPv6Addresses(createInterface("1.2.3.4/24"), "2001:db8::a1/48"), []*models.MachineNetwork{{Cidr: "2001:db8::/48"}}, true),
+			Entry("Interface doesn't belong to any machine network CIDRs", createInterface("1.2.3.4/24", "2001:db8::a1/48"), []*models.MachineNetwork{{Cidr: "5.6.7.8/24"}, {Cidr: "2001:db9::/48"}}, false),
 		)
 	})
 })
