@@ -2339,7 +2339,7 @@ var _ = Describe("Validations test", func() {
 			Expect(ValidationError).To(Equal(status))
 		})
 	})
-	Context("iSCSI host netowrk interface does not belong to machine networks", func() {
+	Context("iSCSI host network interface does not belong to machine networks", func() {
 		var (
 			cluster common.Cluster
 			host    models.Host
