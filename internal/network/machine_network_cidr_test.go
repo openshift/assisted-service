@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -332,6 +333,54 @@ var _ = Describe("inventory", func() {
 			Expect(machineCidr).To(Equal(GetMachineCidrById(cluster, 0)))
 		})
 
+	})
+
+	Context("IsHostInPrimaryMachineNetCidr", func() {
+
+		var log logrus.FieldLogger
+
+		BeforeEach(func() {
+			log = logrus.New()
+		})
+
+		DescribeTable(
+			"IsHostInPrimaryMachineNetCidr",
+			func(nics []*models.Interface, machineNetworks []*models.MachineNetwork, expectedResult bool) {
+				cluster := createCluster("", "", createInventory(nics...))
+				cluster.MachineNetworks = machineNetworks
+				res := IsHostInPrimaryMachineNetCidr(log, cluster, cluster.Hosts[0])
+				Expect(res).To(Equal(expectedResult))
+			},
+			Entry("MachineNetworks is empty", []*models.Interface{createInterface("1.2.3.4/24")}, []*models.MachineNetwork{}, false),
+			Entry("MachineNetworks is malformed", []*models.Interface{createInterface("1.2.3.4/24")}, []*models.MachineNetwork{{Cidr: "a.b.c.d"}}, false),
+			Entry("Interfaces is empty", []*models.Interface{}, []*models.MachineNetwork{{Cidr: "a.b.c.d"}}, false),
+			Entry("Interface IP is malformed", []*models.Interface{createInterface("a.b.c.d/24")}, []*models.MachineNetwork{{Cidr: "1.2.3.4/24"}}, false),
+			Entry("Host belongs to all machine network CIDRs", []*models.Interface{createInterface("1.2.3.4/24"), createInterface("5.6.7.8/16")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "5.6.7.0/16"}}, true),
+			Entry("Host doesn't belong to all machine network CIDRs", []*models.Interface{createInterface("5.6.7.8/16")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "5.6.0.0/16"}}, false),
+		)
+	})
+	Context("IsInterfaceInPrimaryMachineNetCidr", func() {
+
+		var log logrus.FieldLogger
+
+		BeforeEach(func() {
+			log = logrus.New()
+		})
+
+		DescribeTable(
+			"IsInterfaceInPrimaryMachineNetCidr",
+			func(nic *models.Interface, machineNetworks []*models.MachineNetwork, expectedResult bool) {
+				cluster := createCluster("", "", createInventory(nic))
+				cluster.MachineNetworks = machineNetworks
+				res := IsInterfaceInPrimaryMachineNetCidr(log, cluster, nic)
+				Expect(res).To(Equal(expectedResult))
+			},
+			Entry("MachineNetworks is empty", createInterface("1.2.3.4/24"), []*models.MachineNetwork{}, false),
+			Entry("MachineNetworks is malformed", createInterface("1.2.3.4/24"), []*models.MachineNetwork{{Cidr: "a.b.c.d"}}, false),
+			Entry("Interface IP is malformed", createInterface("a.b.c.d/24"), []*models.MachineNetwork{{Cidr: "1.2.3.4/24"}}, false),
+			Entry("Interface belongs to a machine network CIDR", createInterface("1.2.3.4/24", "5.6.7.8/16"), []*models.MachineNetwork{{Cidr: "5.6.7.0/16"}}, true),
+			Entry("Interface doesn't belong to any machine network CIDRs", createInterface("5.6.7.8/16", "13.14.15.16/8"), []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "8.10.0.0/16"}}, false),
+		)
 	})
 })
 

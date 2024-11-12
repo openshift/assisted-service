@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -516,25 +517,63 @@ func GetDefaultRouteNetworkByFamily(h *models.Host, networks map[AddressFamily][
 	return ret, fmt.Errorf("can not find cidr by route: no inventory for host %s", h.ID.String())
 }
 
-func IsHostInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
-	// The host should belong to all the networks specified as Machine Networks.
+// Parse the Machine Network CIDRs into IPNet
+func parseMachineNetworks(machineNetworks []*models.MachineNetwork) ([]*net.IPNet, error) {
+	var parsedCidr []*net.IPNet
+	for _, machineNet := range machineNetworks {
+		_, machineIpnet, err := net.ParseCIDR(string(machineNet.Cidr))
+		if err != nil {
+			return nil, err
+		}
+		parsedCidr = append(parsedCidr, machineIpnet)
+	}
 
+	return parsedCidr, nil
+}
+
+// Check if a host belongs to all the networks specified as Machine Networks.
+func IsHostInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
 	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
 	//           entries using the same IP stack.
+	return forEachMachineNetwork(log, cluster, func(agg bool, machineIpnet *net.IPNet, index int) bool {
+		// initialize agg to true the first time this function is called
+		if index == 0 {
+			agg = true
+		}
 
+		return agg && belongsToNetwork(log, host, machineIpnet)
+	})
+}
+
+// Check if an interface is part of one of the networks specified as Machine Networks
+func IsInterfaceInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, nic *models.Interface) bool {
+	return forEachMachineNetwork(log, cluster, func(agg bool, machineIpnet *net.IPNet, index int) bool {
+		// initialize agg to false the first time this function is called
+		if index == 0 {
+			agg = false
+		}
+
+		isIPv4 := IsIPV4CIDR(machineIpnet.String())
+		found, _ := findMatchingIP(machineIpnet, nic, isIPv4)
+		return agg || found
+	})
+}
+
+type machineNetworkCheckFunc func(bool, *net.IPNet, int) bool
+
+// Function calling a given check fonction on each of the networks specified in cluster's Machine Networks.
+func forEachMachineNetwork(log logrus.FieldLogger, cluster *common.Cluster, checkFunc machineNetworkCheckFunc) bool {
 	if !IsMachineCidrAvailable(cluster) {
 		return false
 	}
 
-	ret := true
-	for _, machineNet := range cluster.MachineNetworks {
-		_, machineIpnet, err := net.ParseCIDR(string(machineNet.Cidr))
-		if err != nil {
-			return false
-		}
-		ret = ret && belongsToNetwork(log, host, machineIpnet)
+	machineNetwork, err := parseMachineNetworks(cluster.MachineNetworks)
+	if err != nil {
+		log.WithError(err).Warn("Failed to parse machine networks")
+		return false
 	}
-	return ret
+
+	return lo.Reduce(machineNetwork, checkFunc, false)
 }
 
 type IPSet map[strfmt.IPv4]struct{}

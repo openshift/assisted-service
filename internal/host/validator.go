@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"net/netip"
 	"net/url"
 	"strings"
 	"time"
@@ -28,7 +27,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"github.com/vincent-petithory/dataurl"
@@ -1859,31 +1857,7 @@ func (v *validator) iSCSIHostNetworkInterfaceDoesNotBelongToMachineCidr(c *valid
 		return ValidationError, "Cannot find network interface associated to iSCSI host IP address"
 	}
 
-	// Look if one of the IP set on the interface connected to the iSCSI disk belong to machine network CIDRs
-	ips := append(nic.IPV4Addresses, nic.IPV6Addresses...)
-	_, found := lo.Find(ips, func(ip string) bool {
-		var nicIP netip.Prefix
-		nicIP, err = netip.ParsePrefix(ip)
-		if err != nil {
-			return true
-		}
-
-		_, found := lo.Find(c.cluster.MachineNetworks, func(machineNetwork *models.MachineNetwork) bool {
-			var machineNetworkPrefix netip.Prefix
-			machineNetworkPrefix, err = netip.ParsePrefix(string(machineNetwork.Cidr))
-			if err != nil {
-				return true
-			}
-			return machineNetworkPrefix.Contains(nicIP.Addr())
-		})
-		return found
-	})
-
-	if err != nil {
-		v.log.WithError(err).Warn("Cannot determine if network interface connected to iSCSI disk belongs or not to machine network CIDR")
-		return ValidationError, "Cannot determine if network interface connected to iSCSI disk belongs or not to machine network CIDR"
-	}
-
+	found := network.IsInterfaceInPrimaryMachineNetCidr(v.log, c.cluster, nic)
 	if found {
 		return ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"
 	}
