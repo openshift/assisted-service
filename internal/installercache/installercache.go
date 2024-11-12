@@ -70,11 +70,7 @@ func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 	var workdir, binary, path string
 	var err error
 
-	releaseImageLocation := releaseID
-	if releaseIDMirror != "" {
-		releaseImageLocation = releaseIDMirror
-	}
-	workdir, binary, path, err = ocRelease.GetReleaseBinaryPath(releaseImageLocation, i.cacheDir, ocpVersion)
+	workdir, binary, path, err = ocRelease.GetReleaseBinaryPath(releaseID, i.cacheDir, ocpVersion)
 	if err != nil {
 		return nil, err
 	}

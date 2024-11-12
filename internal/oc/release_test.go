@@ -390,12 +390,12 @@ var _ = Describe("oc", func() {
 
 		It("extract baremetal-install from release image mirror", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				baremetalInstallBinary, filepath.Join(cacheDir, releaseImageMirror), true, releaseImageMirror, "", tempFilePath)
+				baremetalInstallBinary, filepath.Join(cacheDir, releaseImage), true, releaseImageMirror, "", tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
 			path, err := oc.Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret, "4.15.0")
-			filePath := filepath.Join(cacheDir+"/"+releaseImageMirror, baremetalInstallBinary)
+			filePath := filepath.Join(cacheDir+"/"+releaseImage, baremetalInstallBinary)
 			Expect(path).To(Equal(filePath))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
@@ -540,7 +540,7 @@ var _ = Describe("getImageFromRelease", func() {
 							}
 							doneChan <- true
 						}()
-						ret, err := oc.getImageFromRelease(log, r.imageName, r.releaseName, "pull", false)
+						ret, err := oc.getImageFromRelease(log, r.imageName, r.releaseName, "", "pull")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(ret).To(Equal(r.expectedResult))
 					}()
