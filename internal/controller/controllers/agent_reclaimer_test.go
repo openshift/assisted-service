@@ -290,7 +290,7 @@ var _ = Context("with a fake client", func() {
 		})
 	})
 
-	Describe("CC createNextStepRunnerDaemonSet", func() {
+	Describe("createNextStepRunnerDaemonSet", func() {
 		var (
 			nodeName      = "node.example.com"
 			daemonSetName = "node-example-com-reclaim"
