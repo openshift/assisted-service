@@ -5337,7 +5337,7 @@ spec:
 	})
 })
 
-var _ = Describe("bmac reconcile flow", func() {
+var _ = Describe("[kube-api]bmac reconcile flow", func() {
 	if !Options.EnableKubeAPI {
 		return
 	}
@@ -5458,7 +5458,7 @@ var _ = Describe("bmac reconcile flow", func() {
 	})
 })
 
-var _ = Describe("PreprovisioningImage reconcile flow", func() {
+var _ = Describe("[kube-api]PreprovisioningImage reconcile flow", func() {
 	if !Options.EnableKubeAPI {
 		return
 	}
@@ -5648,7 +5648,7 @@ var _ = Describe("PreprovisioningImage reconcile flow", func() {
 	})
 })
 
-var _ = Describe("restore Host by Agent flow", func() {
+var _ = Describe("[kube-api]restore Host by Agent flow", func() {
 	if !Options.EnableKubeAPI {
 		return
 	}
