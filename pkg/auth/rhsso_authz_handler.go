@@ -76,16 +76,15 @@ func (a *AuthzHandler) OwnedBy(ctx context.Context, db *gorm.DB, resource Resour
 		return db, nil
 	}
 	if a.isOcmAuthzEnabled() {
-		accessibleClusterIDs, err := a.listAccessibleResource(ocm.UserNameFromContext(ctx), ocm.AMSActionGet, ClusterResource)
+		allowedClusterID, allowedClusterUuids, err := a.listAccessibleResource(ocm.UserNameFromContext(ctx), ocm.AMSActionGet, ClusterResource)
 		if err != nil {
 			return nil, err
 		}
-		query := "id"
 		if resource != ClusterResource {
-			query = "cluster_id"
+			return db.Where("cluster_id IN ?", allowedClusterID), nil
 		}
 
-		return db.Where(query+"IN ?", accessibleClusterIDs), nil
+		return db.Where("id IN ? OR openshift_cluster_id IN ?", allowedClusterID, allowedClusterUuids), nil
 	}
 	if a.isTenancyEnabled() {
 		return db.Where("org_id = ?", ocm.OrgIDFromContext(ctx)), nil
@@ -106,10 +105,11 @@ func (a *AuthzHandler) OwnedByUser(ctx context.Context, db *gorm.DB, resource Re
 		return nil, err
 	}
 
-	if username == "" {
-		return res, nil
+	if username != "" {
+		res = res.Where("user_name = ?", username)
 	}
-	return res.Where("user_name = ?", username), nil
+
+	return res, nil
 }
 
 func (a *AuthzHandler) isObjectOwnedByUser(id string, obj interface{}, payload *ocm.AuthPayload) (bool, error) {
@@ -152,7 +152,7 @@ func (a *AuthzHandler) hasSubscriptionAccess(clusterId string, action string, pa
 		return true, nil
 	}
 
-	if a.isTenancyEnabled() {
+	if a.isTenancyEnabled() || a.isOcmAuthzEnabled() {
 		var cluster common.Cluster
 		err = a.db.Select("ams_subscription_id", "openshift_cluster_id", "kind").
 			First(&cluster, "id = ?", clusterId).Error
@@ -401,7 +401,7 @@ func (a *AuthzHandler) allowedToUseAssistedInstaller(username string) (bool, err
 		context.Background(), username, ocm.AMSActionCreate, "", ocm.BareMetalClusterResource)
 }
 
-func (a *AuthzHandler) listAccessibleResource(username, action, resource string) ([]string, error) {
+func (a *AuthzHandler) listAccessibleResource(username, action, resource string) ([]string, []string, error) {
 	return a.client.Authorization.ResourceReview(
 		context.Background(), username, action, resource)
 }
