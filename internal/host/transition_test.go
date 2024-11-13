@@ -6557,6 +6557,12 @@ var allValidationIDs = []validationID{
 	NoIPCollisionsInNetwork,
 	IsReleaseDomainNameResolvedCorrectly,
 	NoIscsiNicBelongsToMachineCidr,
+	AreNodeFeatureDiscoveryRequirementsSatisfied,
+	AreNvidiaGPURequirementsSatisfied,
+	ArePipelinesRequirementsSatisfied,
+	AreServiceMeshRequirementsSatisfied,
+	AreServerLessRequirementsSatisfied,
+	AreOpenShiftAIRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{

@@ -194,13 +194,6 @@ func AreMastersSchedulable(cluster *Cluster) bool {
 	return swag.BoolValue(cluster.SchedulableMastersForcedTrue) || swag.BoolValue(cluster.SchedulableMasters)
 }
 
-func GetEffectiveRole(host *models.Host) models.HostRole {
-	if host.Role == models.HostRoleAutoAssign && host.SuggestedRole != "" {
-		return host.SuggestedRole
-	}
-	return host.Role
-}
-
 func GetConsoleUrl(clusterName, baseDomain string) string {
 	return fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, clusterName, baseDomain)
 }
@@ -628,4 +621,22 @@ func IsOciExternalIntegrationEnabled(platform *models.Platform) bool {
 
 func IsMultiNodeNonePlatformCluster(cluster *Cluster) bool {
 	return !IsSingleNodeCluster(cluster) && swag.BoolValue(cluster.UserManagedNetworking)
+}
+
+func NumberOfWorkers(c *Cluster) int {
+	num := 0
+	for _, host := range c.Hosts {
+		if GetEffectiveRole(host) != models.HostRoleWorker {
+			continue
+		}
+		num += 1
+	}
+	return num
+}
+
+func GetEffectiveRole(host *models.Host) models.HostRole {
+	if host.Role == models.HostRoleAutoAssign && host.SuggestedRole != "" {
+		return host.SuggestedRole
+	}
+	return host.Role
 }

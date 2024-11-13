@@ -107,9 +107,15 @@ func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID s
 		return err
 	}
 
-	operator.Status = status
-	operator.StatusInfo = statusInfo
-	operator.Version = monitoredOperatorVersion
+	if status != "" {
+		operator.Status = status
+	}
+	if statusInfo != "" {
+		operator.StatusInfo = statusInfo
+	}
+	if monitoredOperatorVersion != "" {
+		operator.Version = monitoredOperatorVersion
+	}
 	operator.StatusUpdatedAt = strfmt.DateTime(time.Now())
 
 	if err = db.Save(operator).Error; err != nil {

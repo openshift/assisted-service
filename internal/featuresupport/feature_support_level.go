@@ -29,12 +29,18 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDOVNNETWORKTYPE:            (&OVNNetworkTypeFeature{}).New(),
 
 	// Olm Operators features
-	models.FeatureSupportLevelIDLVM: (&LvmFeature{}).New(),
-	models.FeatureSupportLevelIDCNV: (&CnvFeature{}).New(),
-	models.FeatureSupportLevelIDLSO: (&LsoFeature{}).New(),
-	models.FeatureSupportLevelIDMCE: (&MceFeature{}).New(),
-	models.FeatureSupportLevelIDODF: (&OdfFeature{}).New(),
-	models.FeatureSupportLevelIDMTV: (&MtvFeature{}).New(),
+	models.FeatureSupportLevelIDLVM:                  (&LvmFeature{}).New(),
+	models.FeatureSupportLevelIDCNV:                  (&CnvFeature{}).New(),
+	models.FeatureSupportLevelIDLSO:                  (&LsoFeature{}).New(),
+	models.FeatureSupportLevelIDMCE:                  (&MceFeature{}).New(),
+	models.FeatureSupportLevelIDODF:                  (&OdfFeature{}).New(),
+	models.FeatureSupportLevelIDMTV:                  (&MtvFeature{}).New(),
+	models.FeatureSupportLevelIDNODEFEATUREDISCOVERY: (&NodeFeatureDiscoveryFeature{}).New(),
+	models.FeatureSupportLevelIDNVIDIAGPU:            (&NvidiaGPUFeature{}).New(),
+	models.FeatureSupportLevelIDPIPELINES:            (&PipelinesFeature{}).New(),
+	models.FeatureSupportLevelIDSERVICEMESH:          (&ServiceMeshFeature{}).New(),
+	models.FeatureSupportLevelIDSERVERLESS:           (&ServerLessFeature{}).New(),
+	models.FeatureSupportLevelIDOPENSHIFTAI:          (&OpenShiftAIFeature{}).New(),
 
 	// Platform features
 	models.FeatureSupportLevelIDNUTANIXINTEGRATION:  (&NutanixIntegrationFeature{}).New(),

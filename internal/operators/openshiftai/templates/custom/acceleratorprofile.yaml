@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: AcceleratorProfile
+metadata:
+  namespace: redhat-ods-applications
+  name: migrated-gpu
+spec:
+  displayName: NVIDIA GPU
+  enabled: true
+  identifier: nvidia.com/gpu
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule

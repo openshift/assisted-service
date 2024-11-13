@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Operator.Namespace }}
+  name: setup
+  labels:
+    agent-install.openshift.io/setup-job: openshift-ai
+spec:
+  template:
+    spec:
+      serviceAccountName: setup
+      containers:
+      - name: setup
+        image: {{ .Config.ControllerImage }}
+        command:
+        - /usr/bin/bash
+        - -ex
+        - -c
+        - {{ executeTemplate "files/setup.sh" . | toString | toJson }}
+      restartPolicy: Never

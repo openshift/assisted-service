@@ -255,7 +255,7 @@ func (th *transitionHandler) createClusterCompletionStatusInfo(ctx context.Conte
 		statusInfo += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
 	} else {
 		_, installedWorkers := HostsInStatus(cluster, []string{models.HostStatusInstalled})
-		if installedWorkers < NumberOfWorkers(cluster) {
+		if installedWorkers < common.NumberOfWorkers(cluster) {
 			statusInfo = StatusInfoNotAllWorkersInstalled
 		}
 	}
@@ -513,7 +513,7 @@ func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, sta
 		minRequiredMasterNodes = 1
 	}
 
-	numberOfExpectedWorkers := NumberOfWorkers(sCluster.cluster)
+	numberOfExpectedWorkers := common.NumberOfWorkers(sCluster.cluster)
 	minWorkersNeededForInstallation := 0
 	if numberOfExpectedWorkers > 1 {
 		minWorkersNeededForInstallation = 2

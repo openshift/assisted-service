@@ -36,7 +36,13 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
+	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
+	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
+	"github.com/openshift/assisted-service/internal/operators/openshiftai"
+	"github.com/openshift/assisted-service/internal/operators/pipelines"
+	"github.com/openshift/assisted-service/internal/operators/serverless"
+	"github.com/openshift/assisted-service/internal/operators/servicemesh"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -3713,6 +3719,10 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			CPUCores: mtv.MasterCPU,
 			RAMMib:   conversions.GibToMib(mtv.MasterMemory),
 		}
+		workerOpenShiftAIRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: 8,
+			RAMMib:   conversions.GibToMib(32),
+		}
 	)
 
 	BeforeEach(func() {
@@ -3740,7 +3750,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-		Expect(requirements.Operators).To(HaveLen(6))
+		Expect(requirements.Operators).To(HaveLen(12))
 		for _, op := range requirements.Operators {
 			switch op.OperatorName {
 			case lso.Operator.Name:
@@ -3760,6 +3770,18 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 					fmt.Sprintf("expected: CPUCores: %d,RAMMib: %d, masterMTVRequirements: CPUCores: %d,RAMMib: %d", op.Requirements.Master.Quantitative.CPUCores, op.Requirements.Master.Quantitative.RAMMib, masterMTVRequirements.CPUCores, masterMTVRequirements.RAMMib))
 				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerMTVRequirements),
 					fmt.Sprintf("expected: CPUCores: %d,RAMMib: %d, workerMTVRequirements: CPUCores: %d,RAMMib: %d", op.Requirements.Worker.Quantitative.CPUCores, op.Requirements.Worker.Quantitative.RAMMib, workerMTVRequirements.CPUCores, workerMTVRequirements.RAMMib))
+			case nodefeaturediscovery.Operator.Name:
+				continue
+			case nvidiagpu.Operator.Name:
+				continue
+			case pipelines.Operator.Name:
+				continue
+			case servicemesh.Operator.Name:
+				continue
+			case serverless.Operator.Name:
+				continue
+			case openshiftai.Operator.Name:
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerOpenShiftAIRequirements))
 			case lvm.Operator.Name:
 				continue // lvm operator is tested separately
 			default:
