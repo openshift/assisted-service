@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
+	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -184,7 +185,7 @@ type ignitionBuilder struct {
 func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
 	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder, ocRelease oc.Release, versionHandler versions.Handler) (result IgnitionBuilder, err error) {
 	// Parse the templates file system:
-	templates, err := loadTemplates()
+	templates, err := templating.LoadTemplates(templatesRoot)
 	if err != nil {
 		return
 	}
