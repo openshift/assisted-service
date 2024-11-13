@@ -5,7 +5,7 @@ set -euo pipefail
 PG_USER=postgres
 PG_DATABASE=postgres
 PG_HOST=127.0.0.1
-PG_PORT=5432
+PG_PORT=5433
 export PGPASSWORD=admin
 
 if [ -x "$(command -v pg_isready)" ]; then
