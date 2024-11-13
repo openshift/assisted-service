@@ -2,6 +2,7 @@ package network
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -1011,4 +1012,41 @@ var _ = Describe("GetVips", func() {
 			Expect(PrimaryIngressVip).To(Equal("192.168.10.11"))
 		})
 	})
+})
+var _ = Describe("FindInterfaceByIP", func() {
+	var allInterfaces []*models.Interface
+	var searchedInterface models.Interface
+
+	BeforeEach(func() {
+		searchedInterface = models.Interface{
+			IPV4Addresses: []string{"192.168.1.3/24"},
+			IPV6Addresses: []string{"1001:db8:0:200::78/48", "1001:db8:0:200::79/48"},
+		}
+		allInterfaces = []*models.Interface{
+			{
+				IPV4Addresses: []string{"192.168.1.1/24"},
+			},
+			{
+				IPV6Addresses: []string{"1001:db8:0:200::80/48"},
+			},
+			&searchedInterface,
+		}
+
+	})
+	DescribeTable("FindInterfaceByIP", func(allInterfaces *[]*models.Interface, lookForIp string, expectedInterface *models.Interface, expectedError string) {
+		int, err := FindInterfaceByIPString(lookForIp, *allInterfaces)
+		if expectedError == "" {
+			Expect(err).To(BeNil())
+			Expect(int).To(Equal(expectedInterface))
+		} else {
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).To(Equal(expectedError))
+		}
+	},
+		Entry("Look for IPv4", &allInterfaces, "192.168.1.3", &searchedInterface, ""),
+		Entry("Look for IPv6", &allInterfaces, "1001:db8:0:200::79", &searchedInterface, ""),
+		Entry("Invalid searched IP", &allInterfaces, "invalid", nil, "ParseAddr(\"invalid\"): unable to parse IP"),
+		Entry("Empty list all interfaces", &[]*models.Interface{}, "192.168.1.3", nil, "Cannot find the network interface on which the IP 192.168.1.3 is set"),
+		Entry("Searched IP does not match any of the interfaces", &allInterfaces, "99.99.99.99", nil, "Cannot find the network interface on which the IP 99.99.99.99 is set"),
+	)
 })

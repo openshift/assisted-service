@@ -52,6 +52,7 @@ const (
 	NoSkipInstallationDisk                         = validationID(models.HostValidationIDNoSkipInstallationDisk)
 	NoSkipMissingDisk                              = validationID(models.HostValidationIDNoSkipMissingDisk)
 	NoIPCollisionsInNetwork                        = validationID(models.HostValidationIDNoIPCollisionsInNetwork)
+	NoIscsiNicBelongsToMachineCidr                 = validationID(models.HostValidationIDNoIscsiNicBelongsToMachineCidr)
 )
 
 func (v validationID) category() (string, error) {
@@ -75,7 +76,8 @@ func (v validationID) category() (string, error) {
 		IsDNSWildcardNotConfigured,
 		NonOverlappingSubnets,
 		IsReleaseDomainNameResolvedCorrectly,
-		NoIPCollisionsInNetwork:
+		NoIPCollisionsInNetwork,
+		NoIscsiNicBelongsToMachineCidr:
 		return "network", nil
 	case HasInventory,
 		HasMinCPUCores,
