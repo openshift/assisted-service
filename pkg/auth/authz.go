@@ -45,13 +45,20 @@ type Authorizer interface {
 }
 
 func NewAuthzHandler(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) Authorizer {
-	if cfg.AuthType == TypeRHSSO {
-		return &AuthzHandler{
+	var authzr Authorizer
+	switch cfg.AuthType {
+	case TypeRHSSO:
+		authzr = &AuthzHandler{
 			cfg:    cfg,
 			client: ocmCLient,
 			log:    log,
 			db:     db,
 		}
+
+	case TypeAgentLocal:
+		authzr = &AgentLocalAuthzHandler{}
+	default:
+		authzr = &NoneHandler{}
 	}
-	return &NoneHandler{}
+	return authzr
 }

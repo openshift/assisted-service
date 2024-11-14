@@ -48,7 +48,11 @@ func PayloadFromContext(ctx context.Context) *AuthPayload {
 		// fallback to system-admin
 		return AdminPayload()
 	}
-	return payload.(*AuthPayload)
+	authPayload, ok := payload.(*AuthPayload)
+	if !ok {
+		return AdminPayload()
+	}
+	return authPayload
 }
 
 // UserNameFromContext returns username from the specified context

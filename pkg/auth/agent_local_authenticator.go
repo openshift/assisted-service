@@ -10,7 +10,6 @@ import (
 	"github.com/go-openapi/runtime/security"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -64,7 +63,7 @@ func (a *AgentLocalAuthenticator) EnableOrgBasedFeatureGates() bool {
 	return false
 }
 
-func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
+func (a *AgentLocalAuthenticator) authenticateToken(token string) (interface{}, error) {
 	t, err := validateToken(token, a.publicKey)
 	if err != nil {
 		a.log.WithError(err).Error("failed to validate token")
@@ -80,7 +79,7 @@ func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, erro
 	exp, found := claims["exp"].(float64)
 	if !found {
 		// exp claim is not found in the case of install workflow
-		return ocm.AdminPayload(), nil
+		return claims, nil
 	}
 	// in the case of addnodes workflow, check if the token is expired
 	expTime := time.Unix(int64(exp), 0)
@@ -89,11 +88,15 @@ func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, erro
 		a.log.Error(err)
 		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
-	return ocm.AdminPayload(), nil
+	return claims, nil
+}
+
+func (a *AgentLocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
+	return a.authenticateToken(token)
 }
 
 func (a *AgentLocalAuthenticator) AuthUserAuth(token string) (interface{}, error) {
-	return a.AuthAgentAuth(token)
+	return a.authenticateToken(token)
 }
 
 func (a *AgentLocalAuthenticator) AuthURLAuth(token string) (interface{}, error) {
@@ -102,6 +105,10 @@ func (a *AgentLocalAuthenticator) AuthURLAuth(token string) (interface{}, error)
 
 func (a *AgentLocalAuthenticator) AuthImageAuth(_ string) (interface{}, error) {
 	return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("Image Authentication not allowed for agent local auth"))
+}
+
+func (a *AgentLocalAuthenticator) AuthWatcherAuth(token string) (interface{}, error) {
+	return a.authenticateToken(token)
 }
 
 func (a *AgentLocalAuthenticator) CreateAuthenticator() func(_, _ string, _ security.TokenAuthentication) runtime.Authenticator {
