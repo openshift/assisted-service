@@ -118,9 +118,14 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	if cluster != nil {
 		requirements, err = v.GetClusterHostRequirements(ctx, cluster, host)
 		clusterVersion = cluster.OpenshiftVersion
+		if common.IsDay2Cluster(cluster) {
+			// infer Openshift version from the infraEnv is case of day2
+			// because cluster.OpenshiftVersion will be empty
+			clusterVersion = infraEnv.OpenshiftVersion
+		}
 	} else {
 		requirements, err = v.GetInfraEnvHostRequirements(ctx, infraEnv)
-		clusterVersion = ""
+		clusterVersion = infraEnv.OpenshiftVersion
 	}
 	if err != nil {
 		return nil, err
