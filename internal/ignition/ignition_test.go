@@ -1211,8 +1211,10 @@ var _ = Describe("IgnitionBuilder", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
+		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
 			ID:            &infraEnvID,
+			ClusterID:     clusterID,
 			PullSecretSet: false,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		//cluster.ImageInfo = &models.ImageInfo{}
@@ -1711,7 +1713,6 @@ var _ = Describe("Ignition SSH key building", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
-		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
@@ -2324,9 +2325,11 @@ var _ = Describe("OKD overrides", func() {
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		mockOperatorManager = operators.NewMockAPI(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
+		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
+				ClusterID:     clusterID,
 				PullSecretSet: false,
 			},
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",

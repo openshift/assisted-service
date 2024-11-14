@@ -1755,6 +1755,10 @@ func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *c
 	if cfg.OKDRPMsImage != "" {
 		return cfg.OKDRPMsImage, true
 	}
+	// Late-binding InfraEnvs will not have release images associated with them
+	if infraEnv.ClusterID == "" {
+		return "", false
+	}
 	// Check if selected payload contains `okd-rpms` image
 	releaseImage, err := ib.versionHandler.GetReleaseImage(ctx, infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.PullSecret)
 	if err != nil {
