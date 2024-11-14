@@ -242,6 +242,75 @@ Add the annotation to the AgentServiceConfig:
 oc annotate --overwrite AgentServiceConfig agent unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls=true
 ```
 
+### Custom headers and query parameters for Assisted Image Service OS Image Download
+
+It is possible to specify custom headers and query parameters to be used when downloading OS images.
+
+A Secret to contain the headers and query parameters to be used should be created.
+The easiest approach is to create up to two files as required, one file to hold any headers, the other to hold query parameters.
+Use these files to create a secret. The files may be discarded after creation of the secret.
+
+```
+       cat <<EOF >> headers
+         {
+         	"header1": "header1value",
+         	"header2": "header2value",
+         }
+       EOF
+       cat <<EOF >> query_params
+         {
+         	"param1": "value1",
+         	"param2": "value2",
+         }
+       EOF
+       
+       oc create secret generic -n multicluster-engine os-images-http-auth --from-file=./query_params --from-file=./headers
+```
+
+Then in the `AgentServiceConfig`, this Secret should be referenced, in `OSImageAdditionalParamsRef` 
+The headers and query params contained within the Secret referenced by `OSImageAdditionalParamsRef` will then be used when pulling osImages.
+
+```
+cat <<EOF | kubectl apply -f -
+apiVersion: agent-install.openshift.io/v1beta1
+kind: AgentServiceConfig
+metadata:
+  name: agent
+spec:
+  OSImageAdditionalParamsRef:
+    name: os-images-http-auth
+  osImages:
+    - openshiftVersion: "4.14"
+      version: "414.92.202310170514-0"
+      url: "https://some-os-image-server.io/rhcos-4.14.0-rc.0-x86_64-live.x86_64.iso"
+      cpuArchitecture: "x86_64"
+    - openshiftVersion: "4.15"
+      version: "414.92.202310170514-0"
+      url: "https://some-os-image-server.io/rhcos-4.15.0-rc.0-x86_64-live.x86_64.iso"
+      cpuArchitecture: "x86_64"
+  databaseStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  filesystemStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 20Gi
+  imageStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  mirrorRegistryRef:
+    name: mirror-registry-config-map
+EOF
+```
+
 ### Mirror Registry Configuration
 
 A ConfigMap can be used to configure assisted service to create installations using mirrored content. The ConfigMap contains two keys:
