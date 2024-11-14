@@ -140,6 +140,7 @@ var (
 		"openshift-v4.11.0":       "quay.io/openshift-release-dev/ocp-release:4.11.0-x86_64",
 		"openshift-v4.11.0-multi": "quay.io/openshift-release-dev/ocp-release:4.11.0-multi",
 		"openshift-v4.14.0":       "quay.io/openshift-release-dev/ocp-release:4.14.0-ec.4-x86_64",
+		"openshift-v4.18.0-ec.2":  "quay.io/openshift-release-dev/ocp-release:4.18.0-ec.2-x86_64",
 	}
 )
 
@@ -5334,6 +5335,115 @@ spec:
 
 		updatedInfraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraNsName, waitForReconcileTimeout)
 		Expect(updatedInfraEnv.OpenshiftVersion).To(Equal("4.16"))
+	})
+
+	It("deploying OCP 4.18 cluster with 4 masters and 1 worker", func() {
+		By("Deploy 4.18 cluster Image Set")
+		clusterImageSetReference := hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.18.0-ec.2",
+		}
+		deployClusterImageSetCRD(ctx, kubeClient, &clusterImageSetReference)
+
+		By("Deploy cluster deployment")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+
+		By("Deploy agent cluster install")
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.ProvisionRequirements.ControlPlaneAgents = 4
+		aciSpec.ProvisionRequirements.WorkerAgents = 1
+		aciSpec.ImageSetRef = &clusterImageSetReference
+		aciSpec.Networking.NetworkType = models.ClusterCreateParamsNetworkTypeOVNKubernetes
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() *common.Cluster {
+			cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			return cluster
+		}, "15s", "1s").Should(Not(BeNil()))
+
+		By("Deploy infraenv")
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		Eventually(func() string {
+			url := getInfraEnvCRD(ctx, kubeClient, infraEnvKey).Status.ISODownloadURL
+			return url
+		}, "30s", "3s").Should(Not(BeEmpty()))
+
+		By("Register hosts")
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		Expect(infraEnv).ToNot(BeNil())
+
+		configureLocalAgentClient(infraEnv.ID.String())
+		ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
+		hosts := make([]*models.Host, 0)
+
+		for i := 0; i < 5; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			hosts = append(hosts, registerNode(ctx, *infraEnv.ID, hostname, ips[i]))
+		}
+
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
+		}
+
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		}
+
+		// approving the agents so the infraenv could be deregistered successfully
+		By("Wait for agent roles and approve")
+		masterCount := 0
+		workerCount := 0
+
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+
+			var agent *v1beta1.Agent
+			Eventually(func() bool {
+				agent = getAgentCRD(ctx, kubeClient, hostkey)
+				if agent == nil {
+					return false
+				}
+
+				if agent.Status.Role == models.HostRoleAutoAssign {
+					return false
+				}
+
+				return true
+			}, "30s", "10s").Should(BeTrue())
+
+			if agent.Status.Role == models.HostRoleMaster {
+				masterCount++
+			}
+
+			if agent.Status.Role == models.HostRoleWorker {
+				workerCount++
+			}
+
+			Eventually(func() error {
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+
+		Expect(masterCount).To(Equal(4))
+		Expect(workerCount).To(Equal(1))
 	})
 })
 

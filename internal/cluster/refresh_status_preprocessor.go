@@ -167,7 +167,7 @@ func newValidations(v *clusterValidator) []validation {
 		},
 		{
 			id:        SufficientMastersCount,
-			condition: v.sufficientMastersCount,
+			condition: v.SufficientMastersCount,
 		},
 		{
 			id:        IsDNSDomainDefined,

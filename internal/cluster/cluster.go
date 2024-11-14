@@ -49,8 +49,7 @@ import (
 )
 
 const (
-	DhcpLeaseTimeoutMinutes             = 2
-	ForceSchedulableMastersMaxHostCount = 5
+	DhcpLeaseTimeoutMinutes = 2
 )
 
 var S3FileNames = []string{
@@ -122,6 +121,7 @@ type API interface {
 	ResetClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
+	GetHostCountByRole(clusterID strfmt.UUID, role models.HostRole, suggested bool) (*int64, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
 	GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error
 	CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, reason string) (*common.Cluster, error)
@@ -620,6 +620,11 @@ func (m *Manager) ClusterMonitoring() {
 			if !m.SkipMonitoring(cluster) {
 				monitored += 1
 				_ = m.autoAssignMachineNetworkCidr(cluster)
+				if cluster.ID == nil {
+					log.WithError(err).Error("cluster ID is nil")
+					continue
+				}
+
 				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
 					log.WithError(err).Error("failed to set majority group for clusters")
 				}
@@ -640,6 +645,10 @@ func (m *Manager) ClusterMonitoring() {
 
 				if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
 					m.triggerLeaseTimeoutEvent(ctx, cluster)
+				}
+
+				if err := m.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID); err != nil {
+					log.WithError(err).Errorf("failed to refresh cluster with ID '%s' masters schedulability", string(*cluster.ID))
 				}
 			}
 		}
@@ -1713,7 +1722,7 @@ func (m *Manager) RefreshSchedulableMastersForcedTrue(ctx context.Context, clust
 		return err
 	}
 
-	newSchedulableMastersForcedTrue := len(cluster.Hosts) < ForceSchedulableMastersMaxHostCount
+	newSchedulableMastersForcedTrue := common.ShouldMastersBeSchedulable(&cluster.Cluster)
 	if cluster.SchedulableMastersForcedTrue == nil || newSchedulableMastersForcedTrue != *cluster.SchedulableMastersForcedTrue {
 		err = m.updateSchedulableMastersForcedTrue(ctx, clusterID, newSchedulableMastersForcedTrue)
 	}
@@ -1819,4 +1828,8 @@ func (m *Manager) UpdateFinalizingStage(ctx context.Context, clusterID strfmt.UU
 		eventgen.SendClusterFinalizingStageUpdatedEvent(ctx, m.eventsHandler, clusterID, string(finalizingStage))
 	}
 	return nil
+}
+
+func (m *Manager) GetHostCountByRole(clusterID strfmt.UUID, role models.HostRole, suggested bool) (*int64, error) {
+	return common.GetHostCountByRole(m.db, clusterID, role, suggested)
 }

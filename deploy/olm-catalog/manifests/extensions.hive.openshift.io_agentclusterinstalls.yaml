@@ -434,7 +434,7 @@ spec:
                   controlPlaneAgents:
                     description: |-
                       ControlPlaneAgents is the number of matching approved and ready Agents with the control plane role
-                      required to launch the install. Must be either 1 or 3.
+                      required to launch the install. Must be either 1 or 3-5.
                     type: integer
                   workerAgents:
                     description: |-

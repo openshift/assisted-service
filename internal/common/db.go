@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -81,6 +82,9 @@ type Cluster struct {
 
 	// A JSON blob in which cluster UI settings will be stored.
 	UISettings string `json:"ui_settings"`
+
+	// The amount of control planes which should be part of the cluster in high availability 'Full' mode.
+	ControlPlaneCount int64 `json:"control_plane_count"`
 }
 
 func (c *Cluster) GetClusterID() *strfmt.UUID {
@@ -303,6 +307,36 @@ func GetClusterFromDBWithVips(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, err
 	db = LoadTableFromDB(db, APIVIPsTable)
 	db = LoadTableFromDB(db, IngressVIPsTable)
 	return GetClusterFromDB(db, clusterId, SkipEagerLoading)
+}
+
+func GetHostCountByRole(db *gorm.DB, clusterID strfmt.UUID, role models.HostRole, suggested bool) (*int64, error) {
+	var count int64
+
+	field := "role"
+	errStr := " "
+	if suggested {
+		field = "suggested_role"
+		errStr = " suggested "
+	}
+	condition := fmt.Sprintf("hosts.%s = ?", field)
+
+	err := db.Model(&Host{}).
+		Joins("INNER JOIN clusters ON hosts.cluster_id = clusters.id").
+		Where("clusters.id = ?", clusterID.String()).
+		Where(condition, string(role)).
+		Count(&count).Error
+
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to count the number of hosts in cluster with ID '%s' and%srole '%s'",
+			clusterID.String(),
+			errStr,
+			string(role),
+		)
+	}
+
+	return &count, nil
 }
 
 func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, conditions ...interface{}) *gorm.DB {

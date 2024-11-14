@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/odf"
+	"github.com/openshift/assisted-service/internal/testing"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"gorm.io/gorm"
@@ -101,7 +102,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 	}
 
 	mockIsValidMasterCandidate := func() {
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
@@ -330,7 +331,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.AllHostsAreReadyToInstall:           {status: clust.ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
-				clust.SufficientMastersCount:              {status: clust.ValidationFailure, messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallation)},
+				clust.SufficientMastersCount:              {status: clust.ValidationFailure, messagePattern: fmt.Sprintf("The cluster must have exactly %d dedicated control plane nodes. Add or remove hosts, or change their roles configurations to meet the requirement.", common.MinMasterHostsNeededForInstallationInHaMode)},
 				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "A minimum of 3 hosts is required to deploy ODF."},
 			}),
 			errorExpected: false,
@@ -891,6 +892,10 @@ var _ = Describe("Ocs Operator use-cases", func() {
 					OpenshiftVersion:   t.OpenShiftVersion,
 					NetworkType:        swag.String(models.ClusterNetworkTypeOVNKubernetes),
 				},
+			}
+
+			if cluster.Cluster.OpenshiftVersion == "" {
+				cluster.Cluster.OpenshiftVersion = testing.ValidOCPVersionForNonStretchedClusters
 			}
 
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())

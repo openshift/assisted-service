@@ -415,7 +415,6 @@ func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args state
 	sCluster, ok := sw.(*stateCluster)
 	installedStatus := []string{models.HostStatusInstalled}
 
-	// Move to finalizing state when 3 masters and 0 or 2 worker (if workers are given) moved to installed state
 	if ok && th.enoughMastersAndWorkers(sCluster, installedStatus) {
 		th.log.Infof("Cluster %s has at least required number of installed hosts, "+
 			"cluster is finalizing.", sCluster.cluster.ID)
@@ -505,31 +504,36 @@ func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.St
 	return nil
 }
 
+// enoughMastersAndWorkers returns whether the number of master and worker nodes in the specified cluster with the given status
+// meets the required criteria. The conditions are as follows:
+//   - For SNO (Single Node OpenShift), there must be exactly one master node and zero worker nodes.
+//   - For High Availability cluster, the number of master nodes should match the user's request, and not less than the minimum. The worker node requirement depends on this request:
+//     If the user requested at least two workers, there must be at least two, indicating non-schedulable masters were intended.
+//     If the user requested fewer than two workers, any number of workers is acceptable.
 func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, statuses []string) bool {
 	mastersInSomeInstallingStatus, workersInSomeInstallingStatus := HostsInStatus(sCluster.cluster, statuses)
 
-	minRequiredMasterNodes := MinMastersNeededForInstallation
 	if swag.StringValue(sCluster.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-		minRequiredMasterNodes = 1
+		return mastersInSomeInstallingStatus == common.AllowedNumberOfMasterHostsInNoneHaMode &&
+			workersInSomeInstallingStatus == common.AllowedNumberOfWorkersInNoneHaMode
 	}
 
-	numberOfExpectedWorkers := common.NumberOfWorkers(sCluster.cluster)
-	minWorkersNeededForInstallation := 0
-	if numberOfExpectedWorkers > 1 {
-		minWorkersNeededForInstallation = 2
+	// hosts roles are known at this stage
+	masters, workers, _ := common.GetHostsByEachRole(&sCluster.cluster.Cluster, false)
+	numberOfExpectedMasters := len(masters)
+
+	// validate masters
+	if numberOfExpectedMasters < common.MinMasterHostsNeededForInstallationInHaMode ||
+		mastersInSomeInstallingStatus < numberOfExpectedMasters {
+		return false
 	}
 
-	// to be installed cluster need 3 master
-	// As for the workers, we need at least 2 workers when a cluster with 5 or more hosts is created
-	// otherwise no minimum workers are required. This is because in the case of 4 or less hosts the
-	// masters are set as schedulable and the workload can be shared across the available hosts. In the
-	// case of a 5 nodes cluster, masters are not schedulable so we depend on the workers to run the
-	// workload.
-	if mastersInSomeInstallingStatus >= minRequiredMasterNodes &&
-		(numberOfExpectedWorkers == 0 || workersInSomeInstallingStatus >= minWorkersNeededForInstallation) {
-		return true
-	}
-	return false
+	numberOfExpectedWorkers := len(workers)
+
+	// validate workers
+	return numberOfExpectedWorkers < common.MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode ||
+		numberOfExpectedWorkers >= common.MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode &&
+			workersInSomeInstallingStatus >= common.MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode
 }
 
 // check if installation reach to timeout

@@ -6623,6 +6623,11 @@ func init() {
           },
           "x-nullable": true
         },
+        "control_plane_count": {
+          "description": "The amount of control planes which should be part of the cluster.",
+          "type": "integer",
+          "x-nullable": true
+        },
         "cpu_architecture": {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
@@ -10462,6 +10467,11 @@ func init() {
           "items": {
             "$ref": "#/definitions/cluster_network"
           },
+          "x-nullable": true
+        },
+        "control_plane_count": {
+          "description": "The amount of control planes which should be part of the cluster.",
+          "type": "integer",
           "x-nullable": true
         },
         "disk_encryption": {
@@ -17487,6 +17497,11 @@ func init() {
           },
           "x-nullable": true
         },
+        "control_plane_count": {
+          "description": "The amount of control planes which should be part of the cluster.",
+          "type": "integer",
+          "x-nullable": true
+        },
         "cpu_architecture": {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
@@ -21258,6 +21273,11 @@ func init() {
           "items": {
             "$ref": "#/definitions/cluster_network"
           },
+          "x-nullable": true
+        },
+        "control_plane_count": {
+          "description": "The amount of control planes which should be part of the cluster.",
+          "type": "integer",
           "x-nullable": true
         },
         "disk_encryption": {

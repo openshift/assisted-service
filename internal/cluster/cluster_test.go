@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/testing"
 	"github.com/openshift/assisted-service/internal/uploader"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -195,6 +196,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 					PullSecretSet:      true,
 					MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
 					StatusUpdatedAt:    strfmt.DateTime(time.Now()),
+					OpenshiftVersion:   testing.ValidOCPVersionForNonStretchedClusters,
 				},
 				TriggerMonitorTimestamp: time.Now(),
 			}
@@ -208,7 +210,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			BeforeEach(func() {
 				c = createCluster(&id, "installing", statusInfoInstalling)
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 			})
 
 			It("installing -> installing", func() {
@@ -455,17 +457,18 @@ var _ = Describe("TestClusterMonitoring", func() {
 
 					c = common.Cluster{
 						Cluster: models.Cluster{
-							ID:              &id,
-							Status:          swag.String("insufficient"),
-							ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-							ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-							MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-							APIVips:         common.TestIPv4Networking.APIVips,
-							IngressVips:     common.TestIPv4Networking.IngressVips,
-							BaseDNSDomain:   "test.com",
-							PullSecretSet:   true,
-							StatusInfo:      swag.String(StatusInfoInsufficient),
-							NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+							ID:               &id,
+							Status:           swag.String("insufficient"),
+							ClusterNetworks:  common.TestIPv4Networking.ClusterNetworks,
+							ServiceNetworks:  common.TestIPv4Networking.ServiceNetworks,
+							MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
+							APIVips:          common.TestIPv4Networking.APIVips,
+							IngressVips:      common.TestIPv4Networking.IngressVips,
+							BaseDNSDomain:    "test.com",
+							PullSecretSet:    true,
+							StatusInfo:       swag.String(StatusInfoInsufficient),
+							NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
+							OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
 						},
 						TriggerMonitorTimestamp: time.Now(),
 					}
@@ -542,17 +545,18 @@ var _ = Describe("TestClusterMonitoring", func() {
 				BeforeEach(func() {
 					c = common.Cluster{
 						Cluster: models.Cluster{
-							ID:              &id,
-							Status:          swag.String(models.ClusterStatusReady),
-							StatusInfo:      swag.String(StatusInfoReady),
-							ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-							ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-							MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-							APIVips:         common.TestIPv4Networking.APIVips,
-							IngressVips:     common.TestIPv4Networking.IngressVips,
-							BaseDNSDomain:   "test.com",
-							PullSecretSet:   true,
-							NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+							ID:               &id,
+							Status:           swag.String(models.ClusterStatusReady),
+							StatusInfo:       swag.String(StatusInfoReady),
+							ClusterNetworks:  common.TestIPv4Networking.ClusterNetworks,
+							ServiceNetworks:  common.TestIPv4Networking.ServiceNetworks,
+							MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
+							APIVips:          common.TestIPv4Networking.APIVips,
+							IngressVips:      common.TestIPv4Networking.IngressVips,
+							BaseDNSDomain:    "test.com",
+							PullSecretSet:    true,
+							NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
+							OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
 						},
 						TriggerMonitorTimestamp: time.Now(),
 					}
@@ -643,7 +647,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 		monitorKnownToInsufficient := func(nClusters int) {
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
-			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(true, nil).AnyTimes()
 
 			for i := 0; i < nClusters; i++ {
@@ -708,7 +712,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName))).Times(0)
 				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).Times(0)
-				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(0)
+				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(0)
 			})
 
 			It("empty log info (no logs expected or arrived)", func() {
@@ -1402,7 +1406,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 					eventstest.WithClusterIdMatcher(c.ID.String()))).AnyTimes()
 			}
 			if len(t.hosts) > 0 {
-				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			}
 			if t.userActionResetExpected {
 				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).AnyTimes()
@@ -2250,16 +2254,17 @@ var _ = Describe("Majority groups", func() {
 		ingressVip := "1.2.3.6"
 		verificationSuccess := models.VipVerificationSucceeded
 		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:              &id,
-			Status:          swag.String(models.ClusterStatusReady),
-			ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-			ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-			APIVips:         []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: &verificationSuccess}},
-			IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: &verificationSuccess}},
-			BaseDNSDomain:   "test.com",
-			PullSecretSet:   true,
-			NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+			ID:               &id,
+			Status:           swag.String(models.ClusterStatusReady),
+			ClusterNetworks:  common.TestIPv4Networking.ClusterNetworks,
+			ServiceNetworks:  common.TestIPv4Networking.ServiceNetworks,
+			MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
+			APIVips:          []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: &verificationSuccess}},
+			IngressVips:      []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: &verificationSuccess}},
+			BaseDNSDomain:    "test.com",
+			PullSecretSet:    true,
+			NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
+			OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -2568,16 +2573,17 @@ var _ = Describe("ready_state", func() {
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
 		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:              &id,
-			Status:          swag.String(models.ClusterStatusReady),
-			ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
-			ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
-			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-			APIVips:         []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
-			IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
-			BaseDNSDomain:   "test.com",
-			PullSecretSet:   true,
-			NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
+			ID:               &id,
+			Status:           swag.String(models.ClusterStatusReady),
+			ClusterNetworks:  common.TestIPv4Networking.ClusterNetworks,
+			ServiceNetworks:  common.TestIPv4Networking.ServiceNetworks,
+			MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
+			APIVips:          []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
+			IngressVips:      []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
+			BaseDNSDomain:    "test.com",
+			PullSecretSet:    true,
+			NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
+			OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		addInstallationRequirements(id, db)
@@ -2759,7 +2765,7 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 	It("timeout - assisted pod failure", func() {
 		// In the case of assisted pod failure, all of the hosts are likely to be successful
 		// This is detecting the case where assisted pod failure is the only reason that the cluster failed to prepare.
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		h1ID := strfmt.UUID(uuid.New().String())
 		h1 := common.Host{
 			Host: models.Host{
@@ -3827,8 +3833,8 @@ var _ = Describe("Test RefreshSchedulableMastersForcedTrue", func() {
 
 	It("schedulableMastersForcedTrue should be set to false when MinHostsDisableSchedulableMasters hosts or more are registered with the cluster", func() {
 		cluster := createCluster(swag.Bool(true))
-		for hostCount := 0; hostCount < ForceSchedulableMastersMaxHostCount; hostCount++ {
-			createHost(*cluster.ID, "", db)
+		for hostCount := 0; hostCount < common.MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode; hostCount++ {
+			createWorkerHost(*cluster.ID, "", db)
 		}
 
 		err := clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID)
@@ -3840,7 +3846,7 @@ var _ = Describe("Test RefreshSchedulableMastersForcedTrue", func() {
 
 	It("schedulableMastersForcedTrue should be set to false less then MinHostsDisableSchedulableMasters hosts are registered with the cluster", func() {
 		cluster := createCluster(swag.Bool(false))
-		for hostCount := 0; hostCount < ForceSchedulableMastersMaxHostCount-1; hostCount++ {
+		for hostCount := 0; hostCount < common.MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode-1; hostCount++ {
 			createHost(*cluster.ID, "", db)
 		}
 

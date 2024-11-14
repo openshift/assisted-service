@@ -216,6 +216,13 @@ var _ = Describe("Odf Operator", func() {
 				workerWithNoInventory,
 				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUStandardMode, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBStandardMode)},
 			),
+			table.Entry("there are more than 3 masters",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, masterWithLessDiskSize, workerWithThreeDisk, workerWithNoInventory,
+				}}},
+				masterWithLessDiskSize,
+				&models.ClusterHostRequirementsDetails{CPUCores: 0, RAMMib: 0},
+			),
 		)
 	})
 
@@ -349,6 +356,35 @@ var _ = Describe("Odf Operator", func() {
 				workerWithThreeDiskSizeOfOneZero,
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
 			),
+			table.Entry("more than 3 masters",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, masterWithLessDiskSize, workerWithThreeDisk, workerWithThreeDiskSizeOfOneZero,
+				}}},
+				masterWithThreeDisk,
+				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
+			),
 		)
+	})
+
+	Context("ValidateCluster", func() {
+		It("should fail with more than 3 masters", func() {
+			cluster := &common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, masterWithLessDiskSize, workerWithThreeDisk, workerWithThreeDiskSizeOfOneZero,
+			}}}
+
+			res, err := operator.ValidateCluster(ctx, cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).Should(Equal(api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"There are currently more than 3 hosts designated to be control planes. ODF currently supports clusters with exactly three control plane nodes."}}))
+		})
+
+		It("should pass with valid cluster", func() {
+			cluster := &common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithThreeDisk, workerWithThreeDisk, workerWithThreeDisk,
+			}}}
+
+			res, err := operator.ValidateCluster(ctx, cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).Should(Equal(api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF Requirements for Standard Deployment are satisfied."}}))
+		})
 	})
 })

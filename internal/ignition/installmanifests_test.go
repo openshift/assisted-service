@@ -1074,6 +1074,11 @@ var _ = Describe("infrastructureCRPatch", func() {
 			{
 				Inventory:         hostInventory,
 				RequestedHostname: "example3",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				Inventory:         hostInventory,
+				RequestedHostname: "example4",
 				Role:              models.HostRoleWorker,
 			},
 		}

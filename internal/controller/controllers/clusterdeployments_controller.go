@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	errpkg "errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -223,6 +224,10 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 
+	if cluster.ID == nil {
+		return ctrl.Result{}, fmt.Errorf("cluster associated with namespace '%s', name '%s' is missing ID", req.Namespace, req.Name)
+	}
+
 	// check for updates from user, compare spec and update if needed
 	cluster, err = r.updateIfNeeded(ctx, log, clusterDeployment, clusterInstall, cluster)
 	if err != nil {
@@ -383,13 +388,41 @@ func isInstalled(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hi
 	return cond != nil && cond.Reason == hiveext.ClusterInstalledReason
 }
 
+// getHostSuggestedRoleCount returns the amount of suggested masters and workers for the given cluster.
+// It counts from DB as the hosts are not loaded to memory, and we want to avoid loading them.
+func getHostSuggestedRoleCount(clusterAPI cluster.API, clusterID strfmt.UUID) (*int64, *int64, error) {
+	var combinedErr error
+
+	mastersCountPtr, err := clusterAPI.GetHostCountByRole(clusterID, models.HostRoleMaster, true)
+	if err != nil {
+		combinedErr = errpkg.Join(combinedErr, err)
+	}
+
+	workersCountPtr, err := clusterAPI.GetHostCountByRole(clusterID, models.HostRoleWorker, true)
+	if err != nil {
+		combinedErr = errpkg.Join(combinedErr, err)
+	}
+
+	if combinedErr != nil {
+		// convert the err to one line
+		combinedErr = errors.New(strings.ReplaceAll(combinedErr.Error(), "\n", ", "))
+		return nil, nil, combinedErr
+	}
+
+	return mastersCountPtr, workersCountPtr, nil
+}
+
 func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
-	ready, err := r.isReadyForInstallation(ctx, log, clusterInstall, cluster)
+
+	ready, err := r.isReadyForInstallation(
+		ctx, log, clusterInstall, cluster,
+	)
 	if err != nil {
 		log.WithError(err).Error("failed to check if cluster ready for installation")
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
+
 	if ready {
 		// create custom manifests if needed before installation
 		err = r.addCustomManifests(ctx, log, clusterInstall, cluster)
@@ -413,6 +446,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 		}
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, ic, err)
 	}
+
 	return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, nil)
 }
 
@@ -636,7 +670,12 @@ func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context
 	return s, r.Create(ctx, s)
 }
 
-func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) (bool, error) {
+func (r *ClusterDeploymentsReconciler) isReadyForInstallation(
+	ctx context.Context,
+	log logrus.FieldLogger,
+	clusterInstall *hiveext.AgentClusterInstall,
+	c *common.Cluster,
+) (bool, error) {
 	if ready, _ := r.ClusterApi.IsReadyForInstallation(c); !ready {
 		return false, nil
 	}
@@ -655,9 +694,23 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Contex
 
 	unsyncedHosts := getNumOfUnsyncedAgents(agents)
 	log.Debugf("Calculating installation readiness, found %d unsynced agents out of total of %d agents", unsyncedHosts, len(agents))
-	expectedHosts := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents +
-		clusterInstall.Spec.ProvisionRequirements.WorkerAgents
-	return approvedHosts == expectedHosts && registered == approvedHosts && unsyncedHosts == 0, nil
+
+	expectedMasterCount := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents
+	expectedWorkerCount := clusterInstall.Spec.ProvisionRequirements.WorkerAgents
+	expectedHostCount := expectedMasterCount + expectedWorkerCount
+
+	masterCountPrt, workerCountPtr, err := getHostSuggestedRoleCount(r.ClusterApi, *c.ID)
+	if err != nil {
+		// will be shown as a SpecSynced error
+		log.WithError(err).Error("failed to fetch host suggested role count")
+		return false, err
+	}
+
+	return approvedHosts == expectedHostCount &&
+		registered == expectedHostCount &&
+		int(swag.Int64Value(masterCountPrt)) == expectedMasterCount &&
+		int(swag.Int64Value(workerCountPtr)) == expectedWorkerCount &&
+		unsyncedHosts == 0, nil
 }
 
 func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
@@ -988,11 +1041,13 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 	return swag.Bool(update), nil
 }
 
-func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
+func (r *ClusterDeploymentsReconciler) updateIfNeeded(
+	ctx context.Context,
 	log logrus.FieldLogger,
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall,
-	cluster *common.Cluster) (*common.Cluster, error) {
+	cluster *common.Cluster,
+) (*common.Cluster, error) {
 
 	update := false
 	params := &models.V2ClusterUpdateParams{}
@@ -1076,6 +1131,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 
 	if clusterInstall.Spec.MastersSchedulable != swag.BoolValue(cluster.SchedulableMasters) {
 		params.SchedulableMasters = &clusterInstall.Spec.MastersSchedulable
+		update = true
+	}
+
+	if clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents != int(cluster.ControlPlaneCount) {
+		params.ControlPlaneCount = swag.Int64(int64(clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents))
 		update = true
 	}
 
@@ -1299,6 +1359,7 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
 		Platform:              platform,
 		SchedulableMasters:    swag.Bool(clusterInstall.Spec.MastersSchedulable),
+		ControlPlaneCount:     swag.Int64(int64(clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents)),
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
@@ -1746,6 +1807,10 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 	clusterInstall *hiveext.AgentClusterInstall, clusterDeployment *hivev1.ClusterDeployment,
 	c *common.Cluster, syncErr error) (ctrl.Result, error) {
 
+	var (
+		mastersCountPtr, workersCountPtr *int64
+	)
+
 	clusterSpecSynced(clusterInstall, syncErr)
 	if c != nil {
 		clusterInstall.Status.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
@@ -1766,8 +1831,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			clusterInstall.Status.UserManagedNetworking = c.UserManagedNetworking
 			clusterInstall.Status.PlatformType = getPlatformType(c.Platform)
 			status := *c.Status
-			var err error
-			err = r.populateEventsURL(log, clusterInstall, c)
+
+			err := r.populateEventsURL(log, clusterInstall, c)
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
@@ -1775,22 +1840,38 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
-			var registeredHosts, approvedHosts, unsyncedHosts int
+			var approvedHosts, unsyncedHosts int
 			if status == models.ClusterStatusReady {
-				registeredHosts, approvedHosts, err = r.getNumOfClusterAgents(c)
+				_, approvedHosts, err = r.getNumOfClusterAgents(c)
 				if err != nil {
 					log.WithError(err).Error("failed to fetch cluster's agents")
 					return ctrl.Result{Requeue: true}, nil
 				}
-				agents, err := findAgentsByAgentClusterInstall(r.Client, ctx, log, clusterInstall)
+				var agents []*aiv1beta1.Agent
+				agents, err = findAgentsByAgentClusterInstall(r.Client, ctx, log, clusterInstall)
 				if err != nil {
 					log.WithError(err).Error("failed to fetch ACI's agents")
 					return ctrl.Result{Requeue: true}, nil
 				}
+
+				mastersCountPtr, workersCountPtr, err = getHostSuggestedRoleCount(r.ClusterApi, *c.ID)
+				if err != nil {
+					log.WithError(err).Error("failed to fetch host suggested role count")
+					// proceed to update the conditions (the counts will be 0)
+				}
+
 				unsyncedHosts = getNumOfUnsyncedAgents(agents)
 				log.Debugf("Updating ACI conditions, found %d unsynced agents out of total of %d agents", unsyncedHosts, len(agents))
 			}
-			clusterRequirementsMet(clusterInstall, status, registeredHosts, approvedHosts, unsyncedHosts)
+
+			clusterRequirementsMet(
+				clusterInstall,
+				status,
+				approvedHosts,
+				unsyncedHosts,
+				int(swag.Int64Value(mastersCountPtr)),
+				int(swag.Int64Value(workersCountPtr)),
+			)
 			clusterValidated(clusterInstall, status, c)
 			clusterCompleted(clusterInstall, clusterDeployment, status, swag.StringValue(c.StatusInfo), c.MonitoredOperators)
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
@@ -1929,31 +2010,43 @@ func clusterSpecSynced(cluster *hiveext.AgentClusterInstall, syncErr error) {
 	})
 }
 
-func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status string, registeredHosts, approvedHosts, unsyncedHosts int) {
+func clusterRequirementsMet(
+	clusterInstall *hiveext.AgentClusterInstall,
+	status string,
+	approvedHosts,
+	unsyncedHosts int,
+	masterCount int,
+	workerCount int,
+) {
 	var condStatus corev1.ConditionStatus
 	var reason string
 	var msg string
 
 	switch status {
 	case models.ClusterStatusReady:
-		expectedHosts := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents +
-			clusterInstall.Spec.ProvisionRequirements.WorkerAgents
-		if registeredHosts < expectedHosts {
+		expectedMasterCount := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents
+		expectedWorkerCount := clusterInstall.Spec.ProvisionRequirements.WorkerAgents
+		expectedHostCount := expectedMasterCount + expectedWorkerCount
+
+		if masterCount != expectedMasterCount ||
+			workerCount != expectedWorkerCount {
 			condStatus = corev1.ConditionFalse
 			reason = hiveext.ClusterInsufficientAgentsReason
-			msg = fmt.Sprintf(hiveext.ClusterInsufficientAgentsMsg, expectedHosts, approvedHosts)
+			msg = fmt.Sprintf(
+				hiveext.ClusterInsufficientAgentsMsg,
+				expectedMasterCount,
+				expectedWorkerCount,
+				masterCount,
+				workerCount,
+			)
 		} else if unsyncedHosts != 0 {
 			condStatus = corev1.ConditionFalse
 			reason = hiveext.ClusterUnsyncedAgentsReason
 			msg = fmt.Sprintf(hiveext.ClusterUnsyncedAgentsMsg, unsyncedHosts)
-		} else if approvedHosts < expectedHosts {
+		} else if approvedHosts < expectedHostCount {
 			condStatus = corev1.ConditionFalse
 			reason = hiveext.ClusterUnapprovedAgentsReason
-			msg = fmt.Sprintf(hiveext.ClusterUnapprovedAgentsMsg, expectedHosts-approvedHosts)
-		} else if registeredHosts > expectedHosts {
-			condStatus = corev1.ConditionFalse
-			reason = hiveext.ClusterAdditionalAgentsReason
-			msg = fmt.Sprintf(hiveext.ClusterAdditionalAgentsMsg, expectedHosts, registeredHosts)
+			msg = fmt.Sprintf(hiveext.ClusterUnapprovedAgentsMsg, expectedHostCount-approvedHosts)
 		} else {
 			condStatus = corev1.ConditionTrue
 			reason = hiveext.ClusterReadyReason

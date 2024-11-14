@@ -433,14 +433,20 @@ func (g *installerGenerator) applyManifestPatches(ctx context.Context) error {
 func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) error {
 	log := logutil.FromContext(ctx, g.log)
 
-	// We are only patching the InfrastructureCR if the hosts count is 4
-	// and the three masters are schedulable.
-	if len(g.cluster.Hosts) != 4 {
-		log.Debugf("number of hosts is different than 4, no need to patch the Infrastructure CR %d", len(g.cluster.Hosts))
+	// hosts roles are known at this stage
+	_, workers, _ := common.GetHostsByEachRole(&g.cluster.Cluster, false)
+	// Patch the InfrastructureCR only if there is exactly one worker.
+	// For multiple workers, the OpenShift installer will handle assigning 'infrastructureTopology: HighlyAvailable'.
+	// When there are no workers, the control plane nodes also act as workers, so 'infrastructureTopology: HighlyAvailable' is set automatically.
+	// Explicitly set 'infrastructureTopology: HighlyAvailable' for a single-worker setup, as specified in
+	// https://github.com/openshift/assisted-service/blob/master/docs/enhancements/4-nodes-cluster-deployment.md
+	numberOfWorkers := len(workers)
+	if numberOfWorkers != 1 {
+		log.Debugf("There are '%d' workers, no need to patch the Infrastructure CR", numberOfWorkers)
 		return nil
 	}
 
-	log.Infof("Patching Infrastructure CR: Number of hosts: %d", len(g.cluster.Hosts))
+	log.Infof("Patching Infrastructure CR: Number of workers: %d", numberOfWorkers)
 
 	infraManifest := filepath.Join(g.workDir, "manifests", "cluster-infrastructure-02-config.yml")
 	data, err := os.ReadFile(infraManifest)

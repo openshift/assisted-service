@@ -5,6 +5,7 @@ package common
 
 import (
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/models"
 )
 
 // IsAgentCompatible checks if the given agent image is compatible with what the service expects.
@@ -12,8 +13,20 @@ func IsAgentCompatible(expectedImage, agentImage string) bool {
 	return agentImage == expectedImage
 }
 
-var NonIgnorableHostValidations []string = []string{"connected", "has-inventory", "machine-cidr-defined", "hostname-unique", "hostname-valid"}
-var NonIgnorableClusterValidations []string = []string{"api-vips-defined", "ingress-vips-defined", "all-hosts-are-ready-to-install", "sufficient-masters-count", "pull-secret-set", "cluster-preparation-succeeded"}
+var NonIgnorableHostValidations []string = []string{
+	string(models.HostValidationIDConnected),
+	string(models.HostValidationIDHasInventory),
+	string(models.HostValidationIDMachineCidrDefined),
+	string(models.HostValidationIDHostnameUnique),
+	string(models.HostValidationIDHostnameValid),
+}
+var NonIgnorableClusterValidations []string = []string{
+	string(models.ClusterValidationIDAPIVipsDefined),
+	string(models.ClusterValidationIDIngressVipsDefined),
+	string(models.ClusterValidationIDAllHostsAreReadyToInstall),
+	string(models.ClusterValidationIDSufficientMastersCount),
+	string(models.ClusterValidationIDPullSecretSet),
+}
 
 func ShouldIgnoreValidation(ignoredValidations []string, validationId string, nonIgnoribles []string) bool {
 	if !MayIgnoreValidation(validationId, nonIgnoribles) {

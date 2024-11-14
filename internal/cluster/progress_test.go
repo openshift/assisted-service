@@ -358,7 +358,7 @@ var _ = Describe("Progress bar test", func() {
 			hid1 = strfmt.UUID(uuid.New().String())
 			none = models.ClusterHighAvailabilityModeNone
 
-			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 			mockDnsApi.EXPECT().CreateDNSRecordSets(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 			mockOperatorApi.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).Return([]api.ValidationResult{}, nil).AnyTimes()
 			mockMetric.EXPECT().InstallationStarted().AnyTimes()

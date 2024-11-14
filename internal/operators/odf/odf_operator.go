@@ -129,6 +129,13 @@ func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID st
 
 // ValidateHost verifies whether this operator is valid for given host
 func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host, additionalOperatorRequirements *models.ClusterHostRequirementsDetails) (api.ValidationResult, error) {
+	// temporary disabling ODF for stretched clusters until it will be clear how ODF will work in this scenario.
+	// We pass host validation to avoid false validation messages. The cluster validation will fail
+	masters, _, _ := common.GetHostsByEachRole(&cluster.Cluster, true)
+	if masterCount := len(masters); masterCount > 3 {
+		return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
+	}
+
 	numOfHosts := len(cluster.Hosts)
 	if host.Inventory == "" {
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in the host."}}, nil
@@ -192,6 +199,13 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 
 // GetHostRequirements provides operator's requirements towards the host
 func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+	// temporary disabling ODF for stretched clusters until it will be clear how ODF will work in this scenario.
+	// We pass host validation to avoid false validation messages. The cluster validation will fail
+	masters, _, _ := common.GetHostsByEachRole(&cluster.Cluster, true)
+	if masterCount := len(masters); masterCount > 3 {
+		return &models.ClusterHostRequirementsDetails{CPUCores: 0, RAMMib: 0}, nil
+	}
+
 	numOfHosts := len(cluster.Hosts)
 	mode := getODFDeploymentMode(numOfHosts)
 

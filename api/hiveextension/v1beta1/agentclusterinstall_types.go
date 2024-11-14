@@ -22,13 +22,11 @@ const (
 	ClusterInstallationStoppedReason string = "ClusterInstallationStopped"
 	ClusterInstallationStoppedMsg    string = "The cluster installation stopped"
 	ClusterInsufficientAgentsReason  string = "InsufficientAgents"
-	ClusterInsufficientAgentsMsg     string = "The cluster currently requires %d agents but only %d have registered"
+	ClusterInsufficientAgentsMsg     string = "The cluster currently requires exactly %d master agents and %d worker agents, but currently registered %d master agents and %d worker agents"
 	ClusterUnapprovedAgentsReason    string = "UnapprovedAgents"
 	ClusterUnapprovedAgentsMsg       string = "The installation is pending on the approval of %d agents"
 	ClusterUnsyncedAgentsReason      string = "UnsyncedAgents"
 	ClusterUnsyncedAgentsMsg         string = "The cluster currently has %d agents with spec error"
-	ClusterAdditionalAgentsReason    string = "AdditionalAgents"
-	ClusterAdditionalAgentsMsg       string = "The cluster currently requires exactly %d agents but have %d registered"
 
 	ClusterValidatedCondition        hivev1.ClusterInstallConditionType = "Validated"
 	ClusterValidationsOKMsg          string                             = "The cluster's validations are passing"
@@ -355,7 +353,7 @@ type ClusterNetworkEntry struct {
 type ProvisionRequirements struct {
 
 	// ControlPlaneAgents is the number of matching approved and ready Agents with the control plane role
-	// required to launch the install. Must be either 1 or 3.
+	// required to launch the install. Must be either 1 or 3-5.
 	ControlPlaneAgents int `json:"controlPlaneAgents"`
 
 	// WorkerAgents is the minimum number of matching approved and ready Agents with the worker role
