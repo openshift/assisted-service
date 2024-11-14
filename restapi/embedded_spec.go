@@ -7084,6 +7084,12 @@ func init() {
           "items": {
             "$ref": "#/definitions/l3-connectivity"
           }
+        },
+        "mtu_report": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mtu-report"
+          }
         }
       }
     },
@@ -9530,6 +9536,20 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/monitored-operator"
+      }
+    },
+    "mtu-report": {
+      "type": "object",
+      "properties": {
+        "mtu_successful": {
+          "type": "boolean"
+        },
+        "outgoing_nic": {
+          "type": "string"
+        },
+        "remote_ip_address": {
+          "type": "string"
+        }
       }
     },
     "next_step_cmd_request": {
@@ -17958,6 +17978,12 @@ func init() {
           "items": {
             "$ref": "#/definitions/l3-connectivity"
           }
+        },
+        "mtu_report": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mtu-report"
+          }
         }
       }
     },
@@ -20362,6 +20388,20 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/monitored-operator"
+      }
+    },
+    "mtu-report": {
+      "type": "object",
+      "properties": {
+        "mtu_successful": {
+          "type": "boolean"
+        },
+        "outgoing_nic": {
+          "type": "string"
+        },
+        "remote_ip_address": {
+          "type": "string"
+        }
       }
     },
     "next_step_cmd_request": {
