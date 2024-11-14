@@ -343,3 +343,250 @@ func (feature *MtvFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	}
 	return activeLevelNotActive
 }
+
+// NodeFeatureDiscoveryFeature describes the support for the node feature discovery operator.
+type NodeFeatureDiscoveryFeature struct{}
+
+func (f *NodeFeatureDiscoveryFeature) New() SupportLevelFeature {
+	return &NodeFeatureDiscoveryFeature{}
+}
+
+func (f *NodeFeatureDiscoveryFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDNODEFEATUREDISCOVERY
+}
+
+func (f *NodeFeatureDiscoveryFeature) GetName() string {
+	return "Node Feature Discovery"
+}
+
+func (f *NodeFeatureDiscoveryFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(f, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.6", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelDevPreview
+}
+
+func (f *NodeFeatureDiscoveryFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+	}
+}
+
+func (f *NodeFeatureDiscoveryFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *NodeFeatureDiscoveryFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("node-feature-discovery", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// NvidiaGPUFeature describes the support for the NVIDIA GPU operator.
+type NvidiaGPUFeature struct{}
+
+func (f *NvidiaGPUFeature) New() SupportLevelFeature {
+	return &NvidiaGPUFeature{}
+}
+
+func (f *NvidiaGPUFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDNVIDIAGPU
+}
+
+func (f *NvidiaGPUFeature) GetName() string {
+	return "NVIDIA GPU"
+}
+
+func (f *NvidiaGPUFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(f, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelDevPreview
+}
+
+func (f *NvidiaGPUFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+	}
+}
+
+func (f *NvidiaGPUFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *NvidiaGPUFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("nvidia-gpu", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// PipelinesFeature describes the support for the pipelines operator.
+type PipelinesFeature struct{}
+
+func (f *PipelinesFeature) New() SupportLevelFeature {
+	return &PipelinesFeature{}
+}
+
+func (f *PipelinesFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDPIPELINES
+}
+
+func (f *PipelinesFeature) GetName() string {
+	return "Pipelines"
+}
+
+func (f *PipelinesFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(f, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelDevPreview
+}
+
+func (f *PipelinesFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *PipelinesFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *PipelinesFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("pipelines", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// ServiceMeshFeature describes the support for the service mesh operator.
+type ServiceMeshFeature struct{}
+
+func (f *ServiceMeshFeature) New() SupportLevelFeature {
+	return &ServiceMeshFeature{}
+}
+
+func (f *ServiceMeshFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDSERVICEMESH
+}
+
+func (f *ServiceMeshFeature) GetName() string {
+	return "ServiceMesh"
+}
+
+func (f *ServiceMeshFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(f, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelDevPreview
+}
+
+func (f *ServiceMeshFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *ServiceMeshFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *ServiceMeshFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("servicemesh", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// ServerLessFeature describes the support for the serverless operator.
+type ServerLessFeature struct{}
+
+func (f *ServerLessFeature) New() SupportLevelFeature {
+	return &ServerLessFeature{}
+}
+
+func (f *ServerLessFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDSERVERLESS
+}
+
+func (f *ServerLessFeature) GetName() string {
+	return "ServerLess"
+}
+
+func (f *ServerLessFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(f, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelDevPreview
+}
+
+func (f *ServerLessFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *ServerLessFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *ServerLessFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("serverless", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// OpenShiftAPIFeature describes the support for the OpenShift API operator.
+type OpenShiftAIFeature struct{}
+
+func (f *OpenShiftAIFeature) New() SupportLevelFeature {
+	return &OpenShiftAIFeature{}
+}
+
+func (f *OpenShiftAIFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDOPENSHIFTAI
+}
+
+func (f *OpenShiftAIFeature) GetName() string {
+	return "OpenShift AI"
+}
+
+func (f *OpenShiftAIFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(f, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.12", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelDevPreview
+}
+
+func (f *OpenShiftAIFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+	}
+}
+
+func (f *OpenShiftAIFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *OpenShiftAIFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("openshift-ai", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}

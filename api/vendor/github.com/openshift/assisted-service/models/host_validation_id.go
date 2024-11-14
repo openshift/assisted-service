@@ -158,6 +158,24 @@ const (
 
 	// HostValidationIDNoIscsiNicBelongsToMachineCidr captures enum value "no-iscsi-nic-belongs-to-machine-cidr"
 	HostValidationIDNoIscsiNicBelongsToMachineCidr HostValidationID = "no-iscsi-nic-belongs-to-machine-cidr"
+
+	// HostValidationIDNodeFeatureDiscoveryRequirementsSatisfied captures enum value "node-feature-discovery-requirements-satisfied"
+	HostValidationIDNodeFeatureDiscoveryRequirementsSatisfied HostValidationID = "node-feature-discovery-requirements-satisfied"
+
+	// HostValidationIDNvidiaGpuRequirementsSatisfied captures enum value "nvidia-gpu-requirements-satisfied"
+	HostValidationIDNvidiaGpuRequirementsSatisfied HostValidationID = "nvidia-gpu-requirements-satisfied"
+
+	// HostValidationIDPipelinesRequirementsSatisfied captures enum value "pipelines-requirements-satisfied"
+	HostValidationIDPipelinesRequirementsSatisfied HostValidationID = "pipelines-requirements-satisfied"
+
+	// HostValidationIDServicemeshRequirementsSatisfied captures enum value "servicemesh-requirements-satisfied"
+	HostValidationIDServicemeshRequirementsSatisfied HostValidationID = "servicemesh-requirements-satisfied"
+
+	// HostValidationIDServerlessRequirementsSatisfied captures enum value "serverless-requirements-satisfied"
+	HostValidationIDServerlessRequirementsSatisfied HostValidationID = "serverless-requirements-satisfied"
+
+	// HostValidationIDOpenshiftAiRequirementsSatisfied captures enum value "openshift-ai-requirements-satisfied"
+	HostValidationIDOpenshiftAiRequirementsSatisfied HostValidationID = "openshift-ai-requirements-satisfied"
 )
 
 // for schema
@@ -165,7 +183,7 @@ var hostValidationIdEnum []interface{}
 
 func init() {
 	var res []HostValidationID
-	if err := json.Unmarshal([]byte(`["connected","media-connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","ignition-downloadable","belongs-to-majority-group","valid-platform-network-settings","ntp-synced","time-synced-between-host-and-service","container-images-available","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","lvm-requirements-satisfied","mce-requirements-satisfied","mtv-requirements-satisfied","sufficient-installation-disk-speed","cnv-requirements-satisfied","sufficient-network-latency-requirement-for-role","sufficient-packet-loss-requirement-for-role","has-default-route","api-domain-name-resolved-correctly","api-int-domain-name-resolved-correctly","apps-domain-name-resolved-correctly","release-domain-name-resolved-correctly","compatible-with-cluster-platform","dns-wildcard-not-configured","disk-encryption-requirements-satisfied","non-overlapping-subnets","vsphere-disk-uuid-enabled","compatible-agent","no-skip-installation-disk","no-skip-missing-disk","no-ip-collisions-in-network","no-iscsi-nic-belongs-to-machine-cidr"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connected","media-connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","ignition-downloadable","belongs-to-majority-group","valid-platform-network-settings","ntp-synced","time-synced-between-host-and-service","container-images-available","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","lvm-requirements-satisfied","mce-requirements-satisfied","mtv-requirements-satisfied","sufficient-installation-disk-speed","cnv-requirements-satisfied","sufficient-network-latency-requirement-for-role","sufficient-packet-loss-requirement-for-role","has-default-route","api-domain-name-resolved-correctly","api-int-domain-name-resolved-correctly","apps-domain-name-resolved-correctly","release-domain-name-resolved-correctly","compatible-with-cluster-platform","dns-wildcard-not-configured","disk-encryption-requirements-satisfied","non-overlapping-subnets","vsphere-disk-uuid-enabled","compatible-agent","no-skip-installation-disk","no-skip-missing-disk","no-ip-collisions-in-network","no-iscsi-nic-belongs-to-machine-cidr","node-feature-discovery-requirements-satisfied","nvidia-gpu-requirements-satisfied","pipelines-requirements-satisfied","servicemesh-requirements-satisfied","serverless-requirements-satisfied","openshift-ai-requirements-satisfied"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

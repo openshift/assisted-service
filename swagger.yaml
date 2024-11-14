@@ -4145,6 +4145,12 @@ definitions:
       - 'EXTERNAL_PLATFORM'
       - 'OVN_NETWORK_TYPE'
       - 'SDN_NETWORK_TYPE'
+      - 'NODE_FEATURE_DISCOVERY'
+      - 'NVIDIA_GPU'
+      - 'PIPELINES'
+      - 'SERVICEMESH'
+      - 'SERVERLESS'
+      - 'OPENSHIFT_AI'
 
   architecture-support-level-id:
     type: string
@@ -6504,6 +6510,12 @@ definitions:
       - 'no-skip-missing-disk'
       - 'no-ip-collisions-in-network'
       - 'no-iscsi-nic-belongs-to-machine-cidr'
+      - 'node-feature-discovery-requirements-satisfied'
+      - 'nvidia-gpu-requirements-satisfied'
+      - 'pipelines-requirements-satisfied'
+      - 'servicemesh-requirements-satisfied'
+      - 'serverless-requirements-satisfied'
+      - 'openshift-ai-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -6870,6 +6882,12 @@ definitions:
       - 'mtv-requirements-satisfied'
       - 'network-type-valid'
       - 'platform-requirements-satisfied'
+      - 'node-feature-discovery-requirements-satisfied'
+      - 'nvidia-gpu-requirements-satisfied'
+      - 'pipelines-requirements-satisfied'
+      - 'servicemesh-requirements-satisfied'
+      - 'serverless-requirements-satisfied'
+      - 'openshift-ai-requirements-satisfied'
 
   logs_type:
     type: string

@@ -192,17 +192,6 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 	return masterNodesIds, nil
 }
 
-func NumberOfWorkers(c *common.Cluster) int {
-	num := 0
-	for _, host := range c.Hosts {
-		if common.GetEffectiveRole(host) != models.HostRoleWorker {
-			continue
-		}
-		num += 1
-	}
-	return num
-}
-
 func HostsInStatus(c *common.Cluster, statuses []string) (int, int) {
 	mappedMastersByRole := MapMasterHostsByStatus(c)
 	mappedWorkersByRole := MapWorkersHostsByStatus(c)

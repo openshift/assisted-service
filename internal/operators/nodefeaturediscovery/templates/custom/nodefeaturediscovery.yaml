@@ -1,0 +1,26 @@
+apiVersion: nfd.openshift.io/v1
+kind: NodeFeatureDiscovery
+metadata:
+  namespace: {{ .Operator.Namespace }}
+  name: nfd-instance
+spec:
+  instance: ""
+  operand:
+    # TODO: This image was the default used by the node feature discovery when this was written. There is currently no
+    # good way to automatically upgrade this, not even when the node feature discovery operator is installed manually.
+    image: registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9@sha256:e9d3814585bd41b9d0e8612f053dc9753a47c1eae49c07d81f8946e1e25a2fd7
+    imagePullPolicy: IfNotPresent
+    servicePort: 12000
+  topologyUpdater: false
+  workerConfig:
+    configData: |
+      core:
+        sleepInterval: 60s
+      sources:
+        pci:
+          deviceClassWhitelist:
+          - "0200"
+          - "03"
+          - "12"
+          deviceLabelFields:
+          - "vendor"
