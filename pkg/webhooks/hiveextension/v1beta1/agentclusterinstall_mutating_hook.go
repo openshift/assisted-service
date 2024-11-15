@@ -172,7 +172,7 @@ func patchUserManagedNetworking(newObject *hiveext.AgentClusterInstall, logger *
 	// 1. Cluster topology is SNO.
 	// 2. Platform is specified.
 	if !isNonePlatformOrSNO(newObject) && newObject.Spec.PlatformType != "" {
-		platform := common.PlatformTypeToPlatform(newObject.Spec.PlatformType)
+		platform := common.PlatformTypeToPlatform(newObject.Spec)
 		_, platformUserManagedNetworking, err = provider.GetClusterPlatformByHighAvailabilityMode(platform, nil, highAvailabilityMode)
 		if err != nil {
 			logger.Warnf("Cannot set UserManagedNetworking automatically due to: %s", err.Error())
