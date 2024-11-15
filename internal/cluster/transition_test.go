@@ -590,6 +590,33 @@ var _ = Describe("Reset cluster", func() {
 				Expect(len(cluster.Cluster.IngressVips)).ShouldNot(Equal(0))
 			}
 		})
+
+		It(fmt.Sprintf("resets LastInstallationPreparation in case of cluster reset from state %s", t.state), func() {
+			cluster = common.Cluster{
+				Cluster: models.Cluster{
+					ID:     &clusterId,
+					Status: swag.String(t.state),
+					LastInstallationPreparation: models.LastInstallationPreparation{
+						Status: models.LastInstallationPreparationStatusSuccess,
+						Reason: constants.InstallationPreparationReasonSuccess,
+					},
+				},
+			}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			acceptNewEvents(t.eventsNum)
+			err := capi.ResetCluster(ctx, &cluster, "reason", db)
+			cluster = getClusterFromDB(clusterId, db)
+			if t.success {
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cluster.Cluster.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusNotStarted))
+				Expect(cluster.Cluster.LastInstallationPreparation.Reason).Should(Equal(constants.InstallationPreparationReasonNotPerformed))
+			} else {
+				Expect(err).Should(HaveOccurred())
+				Expect(err.StatusCode()).Should(Equal(t.statusCode))
+				Expect(cluster.Cluster.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusSuccess))
+				Expect(cluster.Cluster.LastInstallationPreparation.Reason).Should(Equal(constants.InstallationPreparationReasonSuccess))
+			}
+		})
 	}
 })
 
@@ -1855,23 +1882,25 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 	})
 
 	tests := []struct {
-		name               string
-		apiVip             string
-		apiVips            []*models.APIVip
-		ingressVip         string
-		ingressVips        []*models.IngressVip
-		dstState           string
-		installationStatus string
-		hosts              []models.Host
-		statusInfoChecker  statusInfoChecker
-		validationsChecker *validationsChecker
+		name                              string
+		apiVip                            string
+		apiVips                           []*models.APIVip
+		ingressVip                        string
+		ingressVips                       []*models.IngressVip
+		dstState                          string
+		lastInstallationPreparationStatus string
+		lastInstallationPreparationReason string
+		hosts                             []models.Host
+		statusInfoChecker                 statusInfoChecker
+		validationsChecker                *validationsChecker
 	}{
 		{
-			name:               "no change",
-			apiVips:            common.TestIPv4Networking.APIVips,
-			ingressVips:        common.TestIPv4Networking.IngressVips,
-			dstState:           models.ClusterStatusPreparingForInstallation,
-			installationStatus: models.LastInstallationPreparationStatusNotStarted,
+			name:                              "no change",
+			apiVips:                           common.TestIPv4Networking.APIVips,
+			ingressVips:                       common.TestIPv4Networking.IngressVips,
+			dstState:                          models.ClusterStatusPreparingForInstallation,
+			lastInstallationPreparationStatus: models.LastInstallationPreparationStatusNotStarted,
+			lastInstallationPreparationReason: constants.InstallationPreparationReasonNotPerformed,
 			hosts: []models.Host{
 				{
 					ID:     &hid1,
@@ -1889,11 +1918,12 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 			statusInfoChecker: makeValueChecker(statusInfoPreparingForInstallation),
 		},
 		{
-			name:               "one insufficient host",
-			apiVips:            common.TestIPv4Networking.APIVips,
-			ingressVips:        common.TestIPv4Networking.IngressVips,
-			dstState:           models.ClusterStatusInsufficient,
-			installationStatus: models.LastInstallationPreparationStatusNotStarted,
+			name:                              "one insufficient host",
+			apiVips:                           common.TestIPv4Networking.APIVips,
+			ingressVips:                       common.TestIPv4Networking.IngressVips,
+			dstState:                          models.ClusterStatusInsufficient,
+			lastInstallationPreparationStatus: models.LastInstallationPreparationStatusNotStarted,
+			lastInstallationPreparationReason: constants.InstallationPreparationReasonNotPerformed,
 			hosts: []models.Host{
 				{
 					ID:     &hid1,
@@ -1929,8 +1959,9 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					Status: swag.String(models.HostStatusInsufficient),
 				},
 			},
-			installationStatus: models.LastInstallationPreparationStatusFailed,
-			statusInfoChecker:  makeValueChecker(statusInfoUnpreparingHostExists),
+			lastInstallationPreparationStatus: models.LastInstallationPreparationStatusFailed,
+			lastInstallationPreparationReason: "arbitrary failure reason",
+			statusInfoChecker:                 makeValueChecker(statusInfoUnpreparingHostExists),
 		},
 		{
 			name:        "one insufficient host + preparation succeeded",
@@ -1951,8 +1982,9 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					Status: swag.String(models.HostStatusInsufficient),
 				},
 			},
-			installationStatus: models.LastInstallationPreparationStatusSuccess,
-			statusInfoChecker:  makeValueChecker(statusInfoUnpreparingHostExists),
+			lastInstallationPreparationStatus: models.LastInstallationPreparationStatusSuccess,
+			lastInstallationPreparationReason: constants.InstallationPreparationReasonSuccess,
+			statusInfoChecker:                 makeValueChecker(statusInfoUnpreparingHostExists),
 		},
 		{
 			name:        "preparation failed",
@@ -1973,8 +2005,9 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					Status: swag.String(models.HostStatusPreparingForInstallation),
 				},
 			},
-			installationStatus: models.LastInstallationPreparationStatusFailed,
-			statusInfoChecker:  makeValueChecker(statusInfoClusterFailedToPrepare),
+			lastInstallationPreparationStatus: models.LastInstallationPreparationStatusFailed,
+			lastInstallationPreparationReason: "arbitrary failure reason",
+			statusInfoChecker:                 makeValueChecker(statusInfoClusterFailedToPrepare),
 		},
 		{
 			name:        "all hosts prepared + preparation succeeded",
@@ -1995,8 +2028,9 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					Status: swag.String(models.HostStatusPreparingSuccessful),
 				},
 			},
-			installationStatus: models.LastInstallationPreparationStatusSuccess,
-			statusInfoChecker:  makeValueChecker(statusInfoInstalling),
+			lastInstallationPreparationStatus: models.LastInstallationPreparationStatusSuccess,
+			lastInstallationPreparationReason: constants.InstallationPreparationReasonSuccess,
+			statusInfoChecker:                 makeValueChecker(statusInfoInstalling),
 		},
 	}
 	for i := range tests {
@@ -2013,8 +2047,8 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					StatusInfo:      swag.String(statusInfoPreparingForInstallation),
 					StatusUpdatedAt: strfmt.DateTime(time.Now()),
 					LastInstallationPreparation: models.LastInstallationPreparation{
-						Status: t.installationStatus,
-						Reason: "",
+						Status: t.lastInstallationPreparationStatus,
+						Reason: t.lastInstallationPreparationReason,
 					},
 					OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
 				},
@@ -4955,7 +4989,7 @@ var _ = Describe("Single node", func() {
 					cluster.Cluster.StatusUpdatedAt = strfmt.DateTime(time.Now())
 					cluster.LastInstallationPreparation = models.LastInstallationPreparation{
 						Status: models.LastInstallationPreparationStatusSuccess,
-						Reason: "",
+						Reason: constants.InstallationPreparationReasonSuccess,
 					}
 
 					mockMetric.EXPECT().InstallationStarted().Times(1)

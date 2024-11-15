@@ -112,10 +112,6 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		cluster.Status = &clusterStatus
 		hostToAdd := createHost()
 		cluster.Hosts = []*models.Host{&hostToAdd}
-		cluster.LastInstallationPreparation = models.LastInstallationPreparation{
-			Status: models.LastInstallationPreparationStatusFailed,
-			Reason: "",
-		}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	}
 
