@@ -2427,7 +2427,6 @@ var _ = Describe("Validations test", func() {
 			Expect(status).To(Equal(ValidationError))
 			Expect(message).To(Equal("Cannot find network interface associated to iSCSI host IP address"))
 		})
-
 		DescribeTable(
 			"iSCSI drive - malformed iSCSI properties",
 			func(iSCSI *models.Iscsi, expectedMessage string) {
@@ -2588,6 +2587,22 @@ var _ = Describe("Validations test", func() {
 					},
 				},
 				ValidationSuccess, "Network interface connected to iSCSI disk does not belong to machine network CIDRs"),
+		)
+		DescribeTable(
+			"Validation is skipped when cluster",
+			func(cluster *models.Cluster) {
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				mockAndRefreshStatus(&host)
+
+				refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+				status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, NoIscsiNicBelongsToMachineCidr)
+				Expect(ok).To(BeFalse(), fmt.Sprintf("%s %s", status, message))
+			},
+			Entry("is multi-mode with UMN", &models.Cluster{ID: &clusterID, HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull), UserManagedNetworking: swag.Bool(true)}),
+			Entry("is day 2", &models.Cluster{ID: &clusterID, Kind: swag.String(models.ClusterKindAddHostsCluster)}),
+			Entry("is imported", &models.Cluster{ID: &clusterID, Imported: swag.Bool(true)}),
 		)
 	})
 })
