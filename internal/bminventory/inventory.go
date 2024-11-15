@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/kennygrant/sanitize"
+	configv1 "github.com/openshift/api/config/v1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -180,6 +181,7 @@ type InstallerInternals interface {
 	GetInfraEnvInternal(ctx context.Context, params installer.GetInfraEnvParams) (*common.InfraEnv, error)
 	V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) error
 	CreateHostInKubeKeyNamespace(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error
+	CheckClusterCapabilities(cluster *common.Cluster, baselineCapability configv1.ClusterVersionCapabilitySet, includes, excludes []configv1.ClusterVersionCapability) (bool, error)
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -6575,26 +6577,56 @@ func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version s
 		featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, version, swag.String(models.ClusterCPUArchitectureArm64))
 }
 
+// CheckClusterCapabilities sees if a cluster has the capabilities set to the
+// baselineCapability and contains all the capabilities listed in the includes list and excludes
+// any capability listed in the excludes list
+func (b *bareMetalInventory) CheckClusterCapabilities(cluster *common.Cluster, baselineCapability configv1.ClusterVersionCapabilitySet, includes, excludes []configv1.ClusterVersionCapability) (bool, error) {
+	// Get the complete installer configuration, including the overrides:
+	installConfigData, err := b.installConfigBuilder.GetInstallConfig(cluster, nil, "")
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get install config when checking cluster capabilities for cluster %s", cluster.Name)
+	}
+	var installConfig installcfgdata.InstallerConfigBaremetal
+	err = json.Unmarshal(installConfigData, &installConfig)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get unmarshal install config when checking cluster capabilities for cluster %s", cluster.Name)
+	}
+
+	capabilities := installConfig.Capabilities
+	if capabilities == nil {
+		b.log.Debugf("cluster %s doesn't have any capabilities specified", cluster.Name)
+		return false, nil
+	}
+
+	if capabilities.BaselineCapabilitySet != baselineCapability {
+		b.log.Debugf("Cluster BaselineCapability [%s] does not match expected BaslineCapability [%s]", string(capabilities.BaselineCapabilitySet), baselineCapability)
+		return false, nil
+	}
+	includedCapabilitiesFound := true
+	for _, capability := range includes {
+		if !funk.Contains(capabilities.AdditionalEnabledCapabilities, capability) {
+			b.log.Debugf("Cluster Additional Capability is missing [%s]", capability)
+			includedCapabilitiesFound = false
+		}
+	}
+	excludedCapabilitiesMissing := true
+	for _, capability := range excludes {
+		if funk.Contains(capabilities.AdditionalEnabledCapabilities, capability) {
+			b.log.Debugf("Cluster Additional Capability contains [%s] when it is expecting not to", capability)
+			excludedCapabilitiesMissing = false
+		}
+	}
+	return includedCapabilitiesFound && excludedCapabilitiesMissing, nil
+}
+
 // updateMonitoredOperators checks the content of the installer configuration and updates the list
 // of monitored operators accordingly. For example, if the installer configuration uses the
 // capabilities mechanism to disable the console then the console operator is removed from the list
 // of monitored operators.
 func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *common.Cluster) error {
-	// Get the complete installer configuration, including the overrides:
-	installConfigData, err := b.installConfigBuilder.GetInstallConfig(cluster, nil, "")
-	if err != nil {
-		return err
-	}
-	var installConfig installcfgdata.InstallerConfigBaremetal
-	err = json.Unmarshal(installConfigData, &installConfig)
-	if err != nil {
-		return err
-	}
-
 	// Since version 4.12 it is possible to disable the console via the capabilities section of
 	// the installer configuration. The way to do it is to set the base capability set to `None`
 	// and then explicitly list all the enabled capabilities.
-	consoleEnabled := true
 	logFields := logrus.Fields{
 		"cluster_id":      cluster.ID,
 		"cluster_version": cluster.OpenshiftVersion,
@@ -6604,21 +6636,11 @@ func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *comm
 	if err != nil {
 		return err
 	}
+	consoleEnabled, err := b.CheckClusterCapabilities(cluster, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityConsole}, []configv1.ClusterVersionCapability{})
+	if err != nil {
+		return err
+	}
 	if consoleCapabilitySupported {
-		capabilities := installConfig.Capabilities
-		if capabilities != nil {
-			logFields["baseline_capability_set"] = capabilities.BaselineCapabilitySet
-			logFields["additional_enabled_capabilities"] = capabilities.AdditionalEnabledCapabilities
-			if capabilities.BaselineCapabilitySet == "None" {
-				consoleEnabled = false
-				for _, capability := range capabilities.AdditionalEnabledCapabilities {
-					if capability == "Console" {
-						consoleEnabled = true
-						break
-					}
-				}
-			}
-		}
 		if consoleEnabled {
 			b.log.WithFields(logFields).Info(
 				"Console is enabled because the cluster version supports the " +

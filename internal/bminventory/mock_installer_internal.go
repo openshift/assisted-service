@@ -11,6 +11,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
+	v1 "github.com/openshift/api/config/v1"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	installer "github.com/openshift/assisted-service/restapi/operations/installer"
@@ -68,6 +69,21 @@ func (m *MockInstallerInternals) CancelInstallationInternal(arg0 context.Context
 func (mr *MockInstallerInternalsMockRecorder) CancelInstallationInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInstallationInternal", reflect.TypeOf((*MockInstallerInternals)(nil).CancelInstallationInternal), arg0, arg1)
+}
+
+// CheckClusterCapabilities mocks base method.
+func (m *MockInstallerInternals) CheckClusterCapabilities(arg0 *common.Cluster, arg1 v1.ClusterVersionCapabilitySet, arg2, arg3 []v1.ClusterVersionCapability) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckClusterCapabilities", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckClusterCapabilities indicates an expected call of CheckClusterCapabilities.
+func (mr *MockInstallerInternalsMockRecorder) CheckClusterCapabilities(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckClusterCapabilities", reflect.TypeOf((*MockInstallerInternals)(nil).CheckClusterCapabilities), arg0, arg1, arg2, arg3)
 }
 
 // CreateHostInKubeKeyNamespace mocks base method.
