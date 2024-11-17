@@ -515,7 +515,12 @@ func (v *validator) getOCPRequirementsForVersion(openshiftVersion string) (*mode
 func (v *validator) getValidDeviceStorageTypes(hostArchitecture string, openshiftVersion string) []string {
 	validTypes := []string{string(models.DriveTypeHDD), string(models.DriveTypeSSD), string(models.DriveTypeMultipath)}
 
-	isGreater, err := common.BaseVersionGreaterOrEqual("4.15.0", openshiftVersion)
+	isGreater, err := common.BaseVersionGreaterOrEqual("4.14.0", openshiftVersion)
+	if err == nil && isGreater {
+		validTypes = append(validTypes, string(models.DriveTypeRAID))
+	}
+
+	isGreater, err = common.BaseVersionGreaterOrEqual("4.15.0", openshiftVersion)
 	if err == nil && isGreater {
 		validTypes = append(validTypes, string(models.DriveTypeISCSI))
 	}
