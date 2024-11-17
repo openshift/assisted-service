@@ -157,7 +157,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Find(&records)
 				Expect(results.RowsAffected, 4)
 			})
 			It("admin user - non-empty query", func() {
@@ -166,7 +167,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Where("name = ?", "A").Find(&records)
 				Expect(results.RowsAffected, 3)
 				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
 			})
@@ -176,7 +178,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedByUser(ctx, db, "user1").Find(&records)
+				results, _ := handler.OwnedByUser(ctx, db, "", "user1")
+				results.Find(&records)
 				Expect(results.RowsAffected, 2)
 				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
 			})
@@ -187,7 +190,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Find(&records)
 				Expect(results.RowsAffected, 2)
 				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
 			})
@@ -197,7 +201,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Where("name = ?", "A").Find(&records)
 				Expect(results.RowsAffected, 2)
 				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
 				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
@@ -208,7 +213,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedByUser(ctx, db, "user1").Find(&records)
+				results, _ := handler.OwnedByUser(ctx, db, "", "user1")
+				results.Find(&records)
 				Expect(results.RowsAffected, 2)
 				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
 			})
@@ -218,7 +224,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedByUser(ctx, db, "user2").Find(&records)
+				results, _ := handler.OwnedByUser(ctx, db, "", "user2")
+				results.Find(&records)
 				Expect(results.RowsAffected, 0)
 			})
 		})
@@ -233,7 +240,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Find(&records)
 				Expect(results.RowsAffected, 4)
 			})
 			It("admin user - non-empty query", func() {
@@ -242,7 +250,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Where("name = ?", "A").Find(&records)
 				Expect(results.RowsAffected, 3)
 				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
 			})
@@ -252,7 +261,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Find(&records)
 				Expect(results.RowsAffected, 2)
 				Expect(AllRecordsHasOrgId(records, "org1")).To(BeTrue())
 			})
@@ -262,7 +272,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Find(&records).Where("name = ?", "A").Find(&records)
 				Expect(results.RowsAffected, 1)
 				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
 				Expect(AllRecordsHasOrgId(records, "org1")).To(BeTrue())
@@ -274,7 +285,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedByUser(ctx, db, "user1").Find(&records)
+				results, _ := handler.OwnedByUser(ctx, db, "", "user1")
+				results.Find(&records)
 				Expect(results.RowsAffected, 1)
 				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
 			})
@@ -285,7 +297,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedByUser(ctx, db, "user2").Find(&records)
+				results, _ := handler.OwnedByUser(ctx, db, "", "user2")
+				results.Find(&records)
 				Expect(results.RowsAffected, 0)
 			})
 		})

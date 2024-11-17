@@ -355,12 +355,12 @@ func (e Events) prepareEventsTable(ctx context.Context, tx *gorm.DB, clusterID *
 	//host bound to a cluster or registered to a bound infra-env) check the access permission
 	//relative to the cluster ownership
 	if clusterBoundEvents() {
-		tx = tx.Model(&common.Event{}).Select("events.*, clusters.user_name, clusters.org_id").
+		tx = tx.Model(&common.Event{}).Select("events.*, clusters.user_name, clusters.org_id, clusters.openshift_cluster_id").
 			Joins("INNER JOIN clusters ON clusters.id = events.cluster_id")
 
 		// if deleted hosts flag is true, we need to add 'deleted_at' to know whether events are related to a deleted host
 		if swag.BoolValue(deletedHosts) {
-			tx = tx.Select("events.*, clusters.user_name, clusters.org_id, hosts.deleted_at").
+			tx = tx.Select("events.*, clusters.user_name, clusters.org_id, clusters.openshift_cluster_id, hosts.deleted_at").
 				Joins("LEFT JOIN hosts ON hosts.id = events.host_id")
 		}
 		return tx
@@ -369,14 +369,16 @@ func (e Events) prepareEventsTable(ctx context.Context, tx *gorm.DB, clusterID *
 	//for unbound events that are searched with infra-env id (whether events on hosts or the
 	//infra-env level itself) check the access permission relative to the infra-env ownership
 	if nonBoundEvents() {
-		return tx.Model(&common.Event{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
+		return tx.Model(&common.Event{}).Select("events.*, infra_envs.user_name, infra_envs.org_id, clusters.openshift_cluster_id").
+			Joins("LEFT JOIN clusters ON clusters.id = events.cluster_id").
 			Joins("INNER JOIN infra_envs ON infra_envs.id = events.infra_env_id")
 	}
 
 	// Events must be linked to the infra_envs table and then to the hosts table
 	// The hosts table does not hold an org_id, so permissions related fields must be supplied by the infra_env
 	if hostOnlyEvents() {
-		return tx.Model(&common.Event{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
+		return tx.Model(&common.Event{}).Select("events.*, infra_envs.user_name, infra_envs.org_id, clusters.openshift_cluster_id").
+			Joins("LEFT JOIN clusters ON clusters.id = events.cluster_id").
 			Joins("INNER JOIN infra_envs ON infra_envs.id = events.infra_env_id").
 			Joins("INNER JOIN hosts ON hosts.id = events.host_id"). // This join is here to ensure that only events for a host that exists are fetched
 			Where("hosts.deleted_at IS NULL")                       // Only interested in active hosts
@@ -427,11 +429,6 @@ func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParam
 
 	events := []*common.Event{}
 
-	// add authorization check to query
-	if e.authz != nil {
-		tx, _ = e.authz.OwnedBy(ctx, tx, auth.EventsResource)
-	}
-
 	tx = e.prepareEventsTable(ctx, tx, params.ClusterID, params.HostIds, params.InfraEnvID, params.Severities, params.Message, params.DeletedHosts)
 	if tx == nil {
 		return make([]*common.Event, 0), &common.EventSeverityCount{}, swag.Int64(0), nil
@@ -470,6 +467,11 @@ func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParam
 		return make([]*common.Event, 0), eventSeverityCount, &eventCount, nil
 	}
 
+	// if we need to apply authorization check then repackage tx as a subquery
+	// this is to ensure that user_name and org_id are unambiguous
+	if e.authz != nil {
+		tx, _ = e.authz.OwnedBy(ctx, cleanQuery.Table("(?) as s", tx), auth.EventsResource)
+	}
 	err = tx.Offset(int(*params.Offset)).Limit(int(*params.Limit)).Find(&events).Error
 	if err != nil {
 		return nil, nil, nil, err

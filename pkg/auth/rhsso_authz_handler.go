@@ -80,11 +80,19 @@ func (a *AuthzHandler) OwnedBy(ctx context.Context, db *gorm.DB, resource Resour
 		if err != nil {
 			return nil, err
 		}
-		if resource != ClusterResource {
-			return db.Where("cluster_id IN ?", allowedClusterID), nil
+
+		query := ""
+		switch resource {
+		case InfraEnvResource:
+			query = "user_name = ? OR cluster_id IN (?) OR openshift_cluster_id in (?)"
+			db = db.Joins("LEFT JOIN clusters on infra_envs.cluster_id = clusters.id")
+		case EventsResource:
+			query = "user_name = ? OR cluster_id IN (?) OR openshift_cluster_id in (?)"
+		default:
+			query = "user_name = ? OR id IN (?) OR openshift_cluster_id in (?)"
 		}
 
-		return db.Where("id IN ? OR openshift_cluster_id IN ?", allowedClusterID, allowedClusterUuids), nil
+		return db.Where(query, ocm.UserNameFromContext(ctx), allowedClusterID, allowedClusterUuids), nil
 	}
 	if a.isTenancyEnabled() {
 		return db.Where("org_id = ?", ocm.OrgIDFromContext(ctx)), nil
