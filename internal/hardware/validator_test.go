@@ -222,10 +222,19 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).To(ContainElement("Drive type is iSCSI, it must be one of HDD, SSD, Multipath."))
 
-		By("Check infra env iSCSI is not eligible")
+		By("Check iSCSI is eligible on day2 cluster")
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		cluster.OpenshiftVersion = ""
+		infraEnv.OpenshiftVersion = "4.16"
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
+
+		By("Check infra env iSCSI is eligible")
 		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("Drive type is iSCSI, it must be one of HDD, SSD, Multipath."))
+		Expect(eligible).To(BeEmpty())
 	})
 
 	It("Check that FC multipath is eligible", func() {
