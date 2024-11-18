@@ -1831,6 +1831,23 @@ func (v *validator) inventoryHasIP(inventory *models.Inventory, ipAddress string
 }
 
 func (v *validator) noIscsiNicBelongsToMachineCidr(c *validationContext) (ValidationStatus, string) {
+	if c.cluster == nil {
+		return ValidationSuccessSuppressOutput, ""
+	}
+
+	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) {
+		// We don't expect users to select machine network in case of
+		// UMN with compact and multi-node clusters
+		return ValidationSuccessSuppressOutput, ""
+	}
+
+	if common.IsImportedCluster(c.cluster) || common.IsDay2Cluster(c.cluster) {
+		// Machine networks and network type (UMN or CNM) is not known
+		// for imported and day2 clusters
+		// We will skip this check in these cases
+		return ValidationSuccessSuppressOutput, ""
+	}
+
 	installationDisk, err := hostutil.GetHostInstallationDisk(c.host)
 	if err != nil || installationDisk == nil {
 		return ValidationSuccessSuppressOutput, ""
