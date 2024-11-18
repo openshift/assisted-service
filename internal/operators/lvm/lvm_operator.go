@@ -184,24 +184,29 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 	if ok, _ := common.BaseVersionGreaterOrEqual(LvmNewResourcesOpenshiftVersion4_16, cluster.OpenshiftVersion); ok {
 		memoryRequirements = o.Config.LvmMemoryPerHostMiBFrom4_16
 	}
+	requirementMessage := []string{
+		"At least 1 non-boot disk per host",
+		fmt.Sprintf("%d MiB of additional RAM", memoryRequirements),
+		fmt.Sprintf("%d additional CPUs for each non-boot disk", o.Config.LvmCPUPerHost),
+	}
 
 	return &models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
 		Dependencies: dependecies,
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
-				Qualitative: []string{
-					"At least 1 non-boot disk per host",
-					fmt.Sprintf("%d MiB of additional RAM", memoryRequirements),
-					fmt.Sprintf("%d additional CPUs for each non-boot disk", o.Config.LvmCPUPerHost),
-				},
+				Qualitative: requirementMessage,
 				Quantitative: &models.ClusterHostRequirementsDetails{
 					CPUCores: o.Config.LvmCPUPerHost,
 					RAMMib:   memoryRequirements,
 				},
 			},
 			Worker: &models.HostTypeHardwareRequirements{
-				Quantitative: &models.ClusterHostRequirementsDetails{},
+				Qualitative: requirementMessage,
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores: o.Config.LvmCPUPerHost,
+					RAMMib:   memoryRequirements,
+				},
 			},
 		},
 	}, nil
