@@ -5636,6 +5636,16 @@ definitions:
         format: double
         description: Percentage of packets lost during connectivity check.
 
+  mtu-report:
+    type: object
+    properties:
+      outgoing_nic:
+        type: string
+      remote_ip_address:
+        type: string
+      mtu_successful:
+        type: boolean
+
   connectivity-remote-host:
     type: object
     properties:
@@ -5650,6 +5660,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/l3-connectivity'
+      mtu_report:
+        type: array
+        items:
+          $ref: '#/definitions/mtu-report'
 
   # Return value of connectivity check
   connectivity-report:
