@@ -3844,7 +3844,7 @@ var _ = Describe("Preflight Cluster Requirements for lvms", func() {
 			switch op.OperatorName {
 			case lvm.Operator.Name:
 				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterLVMRequirementsBefore4_13))
-				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(masterLVMRequirementsBefore4_13))
 			}
 		}
 		_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
@@ -3872,7 +3872,7 @@ var _ = Describe("Preflight Cluster Requirements for lvms", func() {
 			switch op.OperatorName {
 			case lvm.Operator.Name:
 				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterLVMRequirements))
-				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(masterLVMRequirements))
 			}
 		}
 		_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
