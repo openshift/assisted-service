@@ -264,8 +264,9 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		},
 			Entry("on Vsphere", "4.14", common.X86CPUArchitecture, models.PlatformTypeVsphere, models.SupportLevelUnavailable),
 			Entry("on Nutanix", "4.14", common.X86CPUArchitecture, models.PlatformTypeNutanix, models.SupportLevelUnavailable),
-			Entry("on None", "4.14", common.X86CPUArchitecture, models.PlatformTypeNone, models.SupportLevelUnavailable),
+			Entry("on none", "4.14", common.X86CPUArchitecture, models.PlatformTypeNone, models.SupportLevelSupported),
 			Entry("on baremetal", "4.14", common.X86CPUArchitecture, models.PlatformTypeBaremetal, models.SupportLevelSupported),
+			Entry("on baremetal", "4.13", common.X86CPUArchitecture, models.PlatformTypeBaremetal, models.SupportLevelUnavailable),
 		)
 	})
 })
