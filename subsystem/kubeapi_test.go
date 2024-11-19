@@ -1303,7 +1303,7 @@ location = "%s"
 							Namespace: Options.Namespace,
 							Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 						})
-						return aci != nil && dbCluster != nil && dbCluster.MirrorRegistryConfiguration != nil
+						return aci != nil && dbCluster != nil && dbCluster.MirrorRegistryConfiguration != ""
 					}, "1m", "20s").Should(BeTrue())
 
 					Expect(aci.Spec.MirrorRegistryRef.Name).To(Equal(providedMirrorRegistryCMName))

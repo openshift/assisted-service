@@ -20,7 +20,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -710,6 +709,92 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	Context("mirror registries config", func() {
+		const (
+			mirrorRegistryCertificate = "    -----BEGIN CERTIFICATE-----\n    certificate contents\n    -----END CERTIFICATE------"
+			sourceRegistry            = "quay.io"
+			mirrorRegistry            = "example-user-registry.com"
+		)
+
+		getSecureRegistryToml := func() string {
+			return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+`,
+				sourceRegistry,
+				mirrorRegistry,
+			)
+		}
+
+		getInsecureRegistryToml := func() string {
+			x := fmt.Sprintf(`
+		[[registry]]
+		location = "%s"
+		
+		[[registry.mirror]]
+		location = "%s"
+		insecure = true
+		`,
+				sourceRegistry,
+				mirrorRegistry,
+			)
+			return x
+		}
+
+		getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
+			imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
+			Expect(err).To(Not(HaveOccurred()))
+
+			mirrors := &common.MirrorRegistryConfiguration{
+				ImageDigestMirrors: imageDigestMirrors,
+				ImageTagMirrors:    imageTagMirrors,
+				Insecure:           insecure,
+				CaBundleCrt:        certificate,
+				RegistriesConf:     registriesToml,
+			}
+
+			return mirrors, imageDigestMirrors
+		}
+
+		It("produce ignition with secure cluster mirror registries config", func() {
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+
+			mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			Expect(infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConf)).NotTo(HaveOccurred())
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "registries.conf") || strings.HasSuffix(f.Path, "domain.crt") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(2))
+		})
+
+		It("produce ignition with insecure cluster mirror registries config", func() {
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+
+			mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getInsecureRegistryToml(), mirrorRegistryCertificate)
+			Expect(infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConf)).NotTo(HaveOccurred())
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "registries.conf") || strings.HasSuffix(f.Path, "domain.crt") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(2))
+		})
 
 		It("produce ignition with mirror registries config", func() {
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
@@ -729,93 +814,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			}
 			Expect(count).Should(Equal(2))
 		})
-	})
-
-	const (
-		mirrorRegistryCertificate = "    -----BEGIN CERTIFICATE-----\n    certificate contents\n    -----END CERTIFICATE------"
-		sourceRegistry            = "quay.io"
-		mirrorRegistry            = "example-user-registry.com"
-	)
-
-	getSecureRegistryToml := func() string {
-		return fmt.Sprintf(`
-[[registry]]
-location = "%s"
-
-[[registry.mirror]]
-location = "%s"
-`,
-			sourceRegistry,
-			mirrorRegistry,
-		)
-	}
-
-	getInsecureRegistryToml := func() string {
-		x := fmt.Sprintf(`
-		[[registry]]
-		location = "%s"
-		
-		[[registry.mirror]]
-		location = "%s"
-		insecure = true
-		`,
-			sourceRegistry,
-			mirrorRegistry,
-		)
-		return x
-	}
-
-	getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*v1beta1.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
-		imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
-		Expect(err).To(Not(HaveOccurred()))
-
-		mirrors := &v1beta1.MirrorRegistryConfiguration{
-			ImageDigestMirrors: imageDigestMirrors,
-			ImageTagMirrors:    imageTagMirrors,
-			Insecure:           insecure,
-			CaBundleCrt:        certificate,
-			RegistriesConf:     registriesToml,
-		}
-
-		return mirrors, imageDigestMirrors
-	}
-
-	It("produce ignition with secure cluster mirror registries config", func() {
-		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
-
-		mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
-		Expect(infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConf)).NotTo(HaveOccurred())
-		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
-		Expect(err).NotTo(HaveOccurred())
-		config, report, err := config_31.Parse([]byte(text))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(report.IsFatal()).To(BeFalse())
-		count := 0
-		for _, f := range config.Storage.Files {
-			if strings.HasSuffix(f.Path, "registries.conf") || strings.HasSuffix(f.Path, "domain.crt") {
-				count += 1
-			}
-		}
-		Expect(count).Should(Equal(2))
-	})
-
-	It("produce ignition with insecure cluster mirror registries config", func() {
-		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
-
-		mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getInsecureRegistryToml(), mirrorRegistryCertificate)
-		Expect(infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConf)).NotTo(HaveOccurred())
-		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
-		Expect(err).NotTo(HaveOccurred())
-		config, report, err := config_31.Parse([]byte(text))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(report.IsFatal()).To(BeFalse())
-		count := 0
-		for _, f := range config.Storage.Files {
-			if strings.HasSuffix(f.Path, "registries.conf") || strings.HasSuffix(f.Path, "domain.crt") {
-				count += 1
-			}
-		}
-		Expect(count).Should(Equal(2))
 	})
 
 	It("Adds NTP sources script and systemd service when one additional NTP source is given", func() {

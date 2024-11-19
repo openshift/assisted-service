@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	gomega_format "github.com/onsi/gomega/format"
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
@@ -748,11 +747,11 @@ location = "%s"
 			)
 		}
 
-		getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*v1beta1.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
+		getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
 			imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
 			Expect(err).To(Not(HaveOccurred()))
 
-			mirrors := &v1beta1.MirrorRegistryConfiguration{
+			mirrors := &common.MirrorRegistryConfiguration{
 				ImageDigestMirrors: imageDigestMirrors,
 				ImageTagMirrors:    imageTagMirrors,
 				Insecure:           insecure,

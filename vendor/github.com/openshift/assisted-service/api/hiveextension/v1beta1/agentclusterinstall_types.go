@@ -1,7 +1,6 @@
 package v1beta1
 
 import (
-	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/api/common"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -517,13 +516,4 @@ type MirrorRegistryConfigMapReference struct {
 	Name string `json:"name"`
 	// Namespace of the ConfigMap
 	Namespace string `json:"namespace"`
-}
-
-// MirrorRegistryConfiguration holds the given mirror registry configuration
-type MirrorRegistryConfiguration struct {
-	ImageDigestMirrors []configv1.ImageDigestMirrors `json:"imageDigestMirrors,omitempty"`
-	ImageTagMirrors    []configv1.ImageTagMirrors    `json:"imageTagMirrors,omitempty"`
-	Insecure           []string                      `json:"insecure,omitempty"`
-	RegistriesConf     string                        `json:"registriesConf,omitempty"`
-	CaBundleCrt        string                        `json:"caBundleCrt,omitempty"`
 }

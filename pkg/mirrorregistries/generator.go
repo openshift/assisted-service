@@ -2,7 +2,6 @@ package mirrorregistries
 
 import (
 	"os"
-	"unsafe"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/pelletier/go-toml"
@@ -85,8 +84,7 @@ func ExtractLocationMirrorDataFromRegistriesFromToml(registriesConfToml string) 
 		return nil, err
 	}
 	for _, i := range idmsMirrors {
-		mirrors := *(*[]string)(unsafe.Pointer(&i.Mirrors))
-		registriesConfList = append(registriesConfList, RegistriesConf{Location: i.Source, Mirror: mirrors})
+		registriesConfList = append(registriesConfList, RegistriesConf{Location: i.Source, Mirror: mirrorToStrings(i.Mirrors)})
 	}
 
 	return registriesConfList, nil

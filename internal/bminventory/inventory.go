@@ -20,7 +20,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/kennygrant/sanitize"
-	"github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -60,7 +59,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
@@ -146,12 +144,12 @@ type OCPClusterAPI interface {
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
-	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration, params installer.V2RegisterClusterParams) (*common.Cluster, error)
+	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, params installer.V2RegisterClusterParams) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error)
-	UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams) (*common.Cluster, error)
+	UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (*common.Cluster, error)
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
-	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error)
+	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, cluster *common.Cluster) error
 	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams, interactivity Interactivity) error
 	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
@@ -163,14 +161,14 @@ type InstallerInternals interface {
 	V2DownloadClusterCredentialsInternal(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error)
 	V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID, params installer.V2ImportClusterParams) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, infraEnvId strfmt.UUID, hostId strfmt.UUID) error
-	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error)
+	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams, interactivity Interactivity) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
-	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.InfraEnv, error)
-	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
+	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (*common.InfraEnv, error)
+	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
 	DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error
 	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams, reclaimHost bool, interactivity Interactivity) (*common.Host, error)
 	BindHostInternal(ctx context.Context, params installer.BindHostParams) (*common.Host, error)
@@ -517,7 +515,7 @@ func MarshalNewClusterParamsNoPullSecret(params installer.V2RegisterClusterParam
 	return jsonNewClusterParams
 }
 
-func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration, params installer.V2RegisterClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, params installer.V2RegisterClusterParams) (*common.Cluster, error) {
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.V2GetClusterURL{ClusterID: id}
 
@@ -1295,7 +1293,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.
 	return nil
 }
 
-func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error) {
+func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var err error
 	var cluster *common.Cluster
@@ -1662,7 +1660,7 @@ func (b *bareMetalInventory) GetArchitecturesSupportLevelListInternal(_ context.
 	return featuresupport.GetCpuArchitectureSupportList(params.OpenshiftVersion), nil
 }
 
-func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.Cluster, error) {
+func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
 	var clusterInfraenvs []*common.InfraEnv
@@ -1683,13 +1681,6 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 
 		if err = b.installConfigBuilder.ValidateInstallConfigPatch(cluster, clusterInfraenvs, params.InstallConfigParams); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
-		}
-
-		if mirrorregistries.IsMirrorConfigurationSet(mirrorRegistryConfiguration) {
-			err = cluster.SetMirrorRegistryConfiguration(mirrorRegistryConfiguration)
-			if err != nil {
-				log.WithError(err).Errorf("failed to set mirror registry for cluster %s", params.ClusterID)
-			}
 		}
 
 		// Set install config overrides feature usage
@@ -1994,15 +1985,15 @@ func validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, 
 }
 
 func (b *bareMetalInventory) V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder {
-	c, err := b.v2UpdateClusterInternal(ctx, params, Interactive)
+	c, err := b.v2UpdateClusterInternal(ctx, params, Interactive, nil)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2UpdateClusterCreated().WithPayload(&c.Cluster)
 }
 
-func (b *bareMetalInventory) UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams) (*common.Cluster, error) {
-	return b.v2UpdateClusterInternal(ctx, params, NonInteractive)
+func (b *bareMetalInventory) UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (*common.Cluster, error) {
+	return b.v2UpdateClusterInternal(ctx, params, NonInteractive, mirrorRegistryConfiguration)
 }
 
 func getPlatformType(platform *models.Platform) string {
@@ -2090,7 +2081,7 @@ func (b *bareMetalInventory) setUpdatedPlatformParams(log logrus.FieldLogger, cl
 	return params, nil
 }
 
-func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params installer.V2UpdateClusterParams, interactivity Interactivity) (*common.Cluster, error) {
+func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params installer.V2UpdateClusterParams, interactivity Interactivity, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
 	var err error
@@ -2115,7 +2106,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 			return err
 		}
 
-		err = b.updateClusterData(ctx, cluster, params, usages, tx, log, interactivity)
+		err = b.updateClusterData(ctx, cluster, params, usages, tx, log, interactivity, mirrorRegistryConfiguration)
 		if err != nil {
 			log.WithError(err).Error("updateClusterData")
 			return err
@@ -2343,7 +2334,7 @@ func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncry
 	b.setUsage(swag.StringValue(c.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
 }
 
-func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
+func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) error {
 	var err error
 	updates := map[string]interface{}{}
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
@@ -2357,6 +2348,10 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	b.setProxyUsage(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy, usages)
 
 	if err = b.updatePlatformParams(params, updates, usages); err != nil {
+		return err
+	}
+
+	if err = b.updateClusterMirrorRegistry(cluster, mirrorRegistryConfiguration, updates); err != nil {
 		return err
 	}
 
@@ -2653,6 +2648,20 @@ func setUpdatesForPlatformParams(params installer.V2UpdateClusterParams, updates
 	if params.ClusterUpdateParams.Platform.External != nil && params.ClusterUpdateParams.Platform.External.CloudControllerManager != nil {
 		updates["platform_external_cloud_controller_manager"] = params.ClusterUpdateParams.Platform.External.CloudControllerManager
 	}
+}
+
+func (b *bareMetalInventory) updateClusterMirrorRegistry(cluster *common.Cluster, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, updates map[string]interface{}) error {
+	mirrorConfigString, err := common.ConvertMirrorRegistryConfigToString(mirrorRegistryConfiguration)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	if mirrorConfigString == cluster.MirrorRegistryConfiguration {
+		return nil
+	}
+
+	updates["mirror_registry_configuration"] = mirrorConfigString
+	return nil
 }
 
 func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) error {
@@ -4632,7 +4641,7 @@ func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
 	return nil
 }
 
-func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error) {
+func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error) {
 
 	var infraEnv common.InfraEnv
 	var id strfmt.UUID
@@ -5000,7 +5009,7 @@ func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installe
 	return installer.NewUpdateInfraEnvCreated().WithPayload(&i.InfraEnv)
 }
 
-func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *v1beta1.MirrorRegistryConfiguration) (*common.InfraEnv, error) {
+func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (*common.InfraEnv, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var infraEnv *common.InfraEnv
 	var err error

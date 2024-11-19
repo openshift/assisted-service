@@ -16,3 +16,4 @@ type ValidationsStatus map[string]ValidationResults
 
 // +kubebuilder:object:generate=true
 type ValidationResults []ValidationResult
+

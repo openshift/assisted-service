@@ -144,7 +144,7 @@ func (b *bareMetalInventory) V2GetClusterInstallConfig(ctx context.Context, para
 }
 
 func (b *bareMetalInventory) V2UpdateClusterInstallConfig(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) middleware.Responder {
-	_, err := b.UpdateClusterInstallConfigInternal(ctx, params, nil)
+	_, err := b.UpdateClusterInstallConfigInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -152,7 +152,7 @@ func (b *bareMetalInventory) V2UpdateClusterInstallConfig(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) V2InstallCluster(ctx context.Context, params installer.V2InstallClusterParams) middleware.Responder {
-	cluster, err := b.InstallClusterInternal(ctx, params, nil)
+	cluster, err := b.InstallClusterInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}

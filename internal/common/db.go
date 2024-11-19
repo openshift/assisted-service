@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/transaction"
@@ -89,7 +89,7 @@ type Cluster struct {
 	ControlPlaneCount int64 `json:"control_plane_count"`
 
 	// A JSON blob in which holds the cluster mirror registry if set
-	MirrorRegistryConfiguration []uint8 `gorm:"type:BYTEA"`
+	MirrorRegistryConfiguration string `json:"mirror_registry_configuration" gorm:"type:TEXT"`
 }
 
 func (c *Cluster) GetClusterID() *strfmt.UUID {
@@ -110,24 +110,26 @@ func (c *Cluster) Payload() any {
 	return &c.Cluster
 }
 
-func (c *Cluster) GetMirrorRegistryConfiguration() (*v1beta1.MirrorRegistryConfiguration, error) {
-	if c.MirrorRegistryConfiguration == nil {
+func (c *Cluster) GetMirrorRegistryConfiguration() (*MirrorRegistryConfiguration, error) {
+	if c.MirrorRegistryConfiguration == "" {
 		return nil, nil
 	}
-	return convertBytesToMirrorRegistryConfig(c.MirrorRegistryConfiguration)
-}
 
-func (c *Cluster) SetMirrorRegistryConfiguration(configuration *v1beta1.MirrorRegistryConfiguration) error {
-	if configuration == nil {
-		return nil
+	config, err := convertStringToMirrorRegistryConfig(c.MirrorRegistryConfiguration)
+	if err != nil {
+		return nil, err
 	}
 
-	blob, err := ConvertMirrorRegistryConfigToBytes(configuration)
+	return config, nil
+}
+
+func (c *Cluster) SetMirrorRegistryConfiguration(configuration *MirrorRegistryConfiguration) error {
+	data, err := ConvertMirrorRegistryConfigToString(configuration)
 	if err != nil {
 		return err
 	}
 
-	c.MirrorRegistryConfiguration = blob
+	c.MirrorRegistryConfiguration = data
 	return nil
 }
 
@@ -223,7 +225,7 @@ type InfraEnv struct {
 	InternalIgnitionConfigOverride string `json:"internal_ignition_config_override,omitempty"`
 
 	// A JSON blob in which holds a mirror registry configurations if set
-	MirrorRegistryConfiguration []uint8 `gorm:"type:BYTEA"`
+	MirrorRegistryConfiguration string `gorm:"type:TEXT"`
 }
 
 func (i *InfraEnv) GetClusterID() *strfmt.UUID {
@@ -244,25 +246,26 @@ func (i *InfraEnv) Payload() any {
 	return &i.InfraEnv
 }
 
-func (i *InfraEnv) GetMirrorRegistryConfiguration() (*v1beta1.MirrorRegistryConfiguration, error) {
-	if i.MirrorRegistryConfiguration == nil {
+func (i *InfraEnv) GetMirrorRegistryConfiguration() (*MirrorRegistryConfiguration, error) {
+	if i.MirrorRegistryConfiguration == "" {
 		return nil, nil
 	}
-	return convertBytesToMirrorRegistryConfig(i.MirrorRegistryConfiguration)
-}
 
-func (i *InfraEnv) SetMirrorRegistryConfiguration(configuration *v1beta1.MirrorRegistryConfiguration) error {
-	if configuration == nil {
-		i.MirrorRegistryConfiguration = nil
-		return nil
+	config, err := convertStringToMirrorRegistryConfig(i.MirrorRegistryConfiguration)
+	if err != nil {
+		return nil, err
 	}
 
-	blob, err := ConvertMirrorRegistryConfigToBytes(configuration)
+	return config, nil
+}
+
+func (i *InfraEnv) SetMirrorRegistryConfiguration(configuration *MirrorRegistryConfiguration) error {
+	data, err := ConvertMirrorRegistryConfigToString(configuration)
 	if err != nil {
 		return err
 	}
 
-	i.MirrorRegistryConfiguration = blob
+	i.MirrorRegistryConfiguration = data
 	return nil
 }
 
@@ -623,12 +626,12 @@ func CloseDB(db *gorm.DB) {
 	_ = sqlDB.Close()
 }
 
-// convertBytesToMirrorRegistryConfig converts a byte slice to a MirrorRegistryConfiguration struct
-func convertBytesToMirrorRegistryConfig(data []uint8) (*v1beta1.MirrorRegistryConfiguration, error) {
-	var config v1beta1.MirrorRegistryConfiguration
+// convertStringToMirrorRegistryConfig converts a serialized JSON to a MirrorRegistryConfiguration struct
+func convertStringToMirrorRegistryConfig(data string) (*MirrorRegistryConfiguration, error) {
+	var config MirrorRegistryConfiguration
 
 	// Unmarshal the JSON byte slice into the struct
-	err := json.Unmarshal(data, &config)
+	err := json.Unmarshal([]byte(data), &config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal MirrorRegistryConfiguration: %w", err)
 	}
@@ -636,13 +639,24 @@ func convertBytesToMirrorRegistryConfig(data []uint8) (*v1beta1.MirrorRegistryCo
 	return &config, nil
 }
 
-// ConvertMirrorRegistryConfigToBytes converts a MirrorRegistryConfiguration struct to a byte slice
-func ConvertMirrorRegistryConfigToBytes(config *v1beta1.MirrorRegistryConfiguration) ([]uint8, error) {
-	// Marshal the struct into a JSON byte slice
-	data, err := json.Marshal(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal MirrorRegistryConfiguration: %w", err)
+// ConvertMirrorRegistryConfigToString converts a MirrorRegistryConfiguration struct to a serialized JSON
+func ConvertMirrorRegistryConfigToString(configuration *MirrorRegistryConfiguration) (string, error) {
+	if configuration == nil {
+		return "", nil
 	}
 
-	return data, nil
+	data, err := json.Marshal(configuration)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal MirrorRegistryConfiguration: %w", err)
+	}
+	return string(data), nil
+}
+
+// MirrorRegistryConfiguration holds the given mirror registry configuration
+type MirrorRegistryConfiguration struct {
+	ImageDigestMirrors []v1.ImageDigestMirrors `json:"imageDigestMirrors,omitempty"`
+	ImageTagMirrors    []v1.ImageTagMirrors    `json:"imageTagMirrors,omitempty"`
+	Insecure           []string                `json:"insecure,omitempty"`
+	RegistriesConf     string                  `json:"registriesConf,omitempty"`
+	CaBundleCrt        string                  `json:"caBundleCrt,omitempty"`
 }

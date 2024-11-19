@@ -14,7 +14,6 @@ import (
 	"text/template"
 	"time"
 
-	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -153,6 +152,8 @@ ConditionPathExists=/enoent
 `
 
 const tempNMConnectionsDir = "/etc/assisted/network"
+const mirrorRegistriesConfigKey = "MirrorRegistriesConfig"
+const mirrorRegistriesCAConfigKey = "MirrorRegistriesCAConfig"
 
 // IgnitionBuilder defines the ignition formatting methods for the various images
 //
@@ -228,17 +229,17 @@ func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *c
 	return okdRpmsImage, true
 }
 
-func (ib *ignitionBuilder) setIgnitionMirrorRegistry(ignitionParams *map[string]interface{}, configuration *hiveext.MirrorRegistryConfiguration) error {
-	mirrorRegistriesConfigKey := "MirrorRegistriesConfig"
-	mirrorRegistriesCAConfigKey := "MirrorRegistriesCAConfig"
+func (ib *ignitionBuilder) setIgnitionMirrorRegistry(ignitionParams map[string]interface{}, configuration *common.MirrorRegistryConfiguration) error {
 
-	if mirrorregistries.IsMirrorConfigurationSet(configuration) {
-		ib.log.Infof("Setting ignition cluster mirror registry to %s", configuration.RegistriesConf)
-		(*ignitionParams)[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.RegistriesConf))
-		(*ignitionParams)[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.CaBundleCrt))
+	// check if mirror registry is configured in the infra env
+	if common.IsMirrorConfigurationSet(configuration) {
+		ib.log.Debugf("Setting ignition cluster mirror registry to %s", configuration.RegistriesConf)
+		ignitionParams[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.RegistriesConf))
+		ignitionParams[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.CaBundleCrt))
 		return nil
-
 	}
+
+	// check if mirror registry is configured for the entire env
 	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
 		caContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorCA()
 		if mirrorsErr != nil {
@@ -250,8 +251,8 @@ func (ib *ignitionBuilder) setIgnitionMirrorRegistry(ignitionParams *map[string]
 			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries config contents")
 			return mirrorsErr
 		}
-		(*ignitionParams)[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString(registriesContents)
-		(*ignitionParams)[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString(caContents)
+		ignitionParams[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString(registriesContents)
+		ignitionParams[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString(caContents)
 		return nil
 	}
 
@@ -366,7 +367,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		return "", err
 	}
 
-	if err = ib.setIgnitionMirrorRegistry(&ignitionParams, mirrorRegistryConfiguration); err != nil {
+	if err = ib.setIgnitionMirrorRegistry(ignitionParams, mirrorRegistryConfiguration); err != nil {
 		return "", err
 	}
 
