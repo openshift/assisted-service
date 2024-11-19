@@ -53,9 +53,10 @@ func NewHandler(
 	}
 
 	if enableKubeAPI {
+		releaseImagesCache := convertReleaseImagesToMap(releaseImages)
 		h := &kubeAPIVersionsHandler{
 			mustGatherVersions: mustGatherVersions,
-			releaseImages:      releaseImages,
+			releaseImages:      releaseImagesCache,
 			releaseHandler:     releaseHandler,
 			releaseImageMirror: releaseImageMirror,
 			log:                log,
@@ -280,4 +281,20 @@ func validateReleaseImage(releaseImage *models.ReleaseImage) error {
 
 	// To validate CPU architecture enum
 	return releaseImage.Validate(strfmt.Default)
+}
+
+func convertReleaseImagesToMap(releaseImages models.ReleaseImages) map[string]*models.ReleaseImage {
+	releaseImagesCache := make(map[string]*models.ReleaseImage, len(releaseImages))
+	for _, releaseImage := range releaseImages {
+		releaseImagesCache[*releaseImage.URL] = releaseImage
+	}
+	return releaseImagesCache
+}
+
+func convertMapToReleaseImages(releaseImagesMap map[string]*models.ReleaseImage) models.ReleaseImages {
+	var releaseImages []*models.ReleaseImage
+	for _, img := range releaseImagesMap {
+		releaseImages = append(releaseImages, img)
+	}
+	return releaseImages
 }

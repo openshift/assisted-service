@@ -173,7 +173,7 @@ var _ = Describe("GetReleaseImage", func() {
 		h = &kubeAPIVersionsHandler{
 			log:            common.GetTestLog(),
 			releaseHandler: mockRelease,
-			releaseImages:  defaultReleaseImages,
+			releaseImages:  convertReleaseImagesToMap(defaultReleaseImages),
 			sem:            semaphore.NewWeighted(30),
 		}
 		schemes := runtime.NewScheme()
@@ -274,7 +274,7 @@ var _ = Describe("GetReleaseImage", func() {
 	})
 
 	It("returns the matching CPU architecture over multi-arch if it is present", func() {
-		h.releaseImages = models.ReleaseImages{
+		h.releaseImages = convertReleaseImagesToMap(models.ReleaseImages{
 			&models.ReleaseImage{
 				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
@@ -289,7 +289,7 @@ var _ = Describe("GetReleaseImage", func() {
 				URL:              swag.String("release_4.12.999-x86_64"),
 				Version:          swag.String("4.12.999"),
 			},
-		}
+		})
 
 		releaseImage, err := h.GetReleaseImage(ctx, "4.12.999", common.X86CPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -299,7 +299,7 @@ var _ = Describe("GetReleaseImage", func() {
 	})
 
 	It("returns the multi-arch image if matching CPU architecture is not present", func() {
-		h.releaseImages = models.ReleaseImages{
+		h.releaseImages = convertReleaseImagesToMap(models.ReleaseImages{
 			&models.ReleaseImage{
 				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
@@ -314,7 +314,7 @@ var _ = Describe("GetReleaseImage", func() {
 				URL:              swag.String("release_4.13.999-x86_64"),
 				Version:          swag.String("4.13.999"),
 			},
-		}
+		})
 
 		releaseImage, err := h.GetReleaseImage(ctx, "4.12.999", common.X86CPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -397,6 +397,27 @@ var _ = Describe("GetReleaseImage", func() {
 			}
 		}
 	})
+	Context("CacheAllClusterImageSets", func() {
+		It("adds all release images to the cache and all requested images can be found", func() {
+			releaseImageURL := "example.com/openshift-release-dev/ocp-release:4.11.999"
+			cis := &hivev1.ClusterImageSet{
+				ObjectMeta: metav1.ObjectMeta{Name: "new-release"},
+				Spec:       hivev1.ClusterImageSetSpec{ReleaseImage: releaseImageURL},
+			}
+			Expect(client.Create(ctx, cis)).To(Succeed())
+
+			mockRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), releaseImageURL, "", pullSecret).Return("4.11.999", nil).Times(1)
+			mockRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), releaseImageURL, "", pullSecret).Return([]string{common.X86CPUArchitecture}, nil).Times(1)
+			err := h.CacheAllClusterImageSets(ctx, pullSecret)
+			Expect(err).NotTo(HaveOccurred())
+			image, err := h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
+			image, err = h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
+		})
+	})
 })
 
 var _ = Describe("GetReleaseImageByURL", func() {
@@ -418,7 +439,7 @@ var _ = Describe("GetReleaseImageByURL", func() {
 		h = &kubeAPIVersionsHandler{
 			log:            common.GetTestLog(),
 			releaseHandler: mockRelease,
-			releaseImages:  defaultReleaseImages,
+			releaseImages:  convertReleaseImagesToMap(defaultReleaseImages),
 			sem:            semaphore.NewWeighted(30),
 		}
 	})

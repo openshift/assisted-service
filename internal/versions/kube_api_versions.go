@@ -21,7 +21,7 @@ import (
 
 type kubeAPIVersionsHandler struct {
 	mustGatherVersions MustGatherVersions
-	releaseImages      models.ReleaseImages
+	releaseImages      map[string]*models.ReleaseImage
 	imagesLock         sync.Mutex
 	sem                *semaphore.Weighted
 	releaseHandler     oc.Release
@@ -60,10 +60,17 @@ func (h *kubeAPIVersionsHandler) GetReleaseImage(ctx context.Context, openshiftV
 
 	// The image doesn't exist in the cache.
 	// Fetch all the cluster image sets, cache them, then search the cache again
+	if err := h.CacheAllClusterImageSets(ctx, pullSecret); err != nil {
+		return nil, err
+	}
 
+	return h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
+}
+
+func (h *kubeAPIVersionsHandler) CacheAllClusterImageSets(ctx context.Context, pullSecret string) error {
 	clusterImageSets := &hivev1.ClusterImageSetList{}
 	if err := h.kubeClient.List(ctx, clusterImageSets); err != nil {
-		return nil, err
+		return err
 	}
 	var wg sync.WaitGroup
 	for _, clusterImageSet := range clusterImageSets.Items {
@@ -77,13 +84,7 @@ func (h *kubeAPIVersionsHandler) GetReleaseImage(ctx context.Context, openshiftV
 				wg.Done()
 				h.sem.Release(1)
 			}()
-			existsInCache := false
-			for _, releaseImage := range h.releaseImages {
-				if releaseImage.URL != nil && *releaseImage.URL == clusterImageSet.Spec.ReleaseImage {
-					existsInCache = true
-					break
-				}
-			}
+			_, existsInCache := h.releaseImages[clusterImageSet.Spec.ReleaseImage]
 			if !existsInCache {
 				_, err := h.addReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret)
 				if err != nil {
@@ -93,8 +94,7 @@ func (h *kubeAPIVersionsHandler) GetReleaseImage(ctx context.Context, openshiftV
 		}(clusterImageSet)
 	}
 	wg.Wait()
-
-	return h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
+	return nil
 }
 
 // GetReleaseImageByURL retrieves a release image based on its URL.
@@ -102,10 +102,8 @@ func (h *kubeAPIVersionsHandler) GetReleaseImage(ctx context.Context, openshiftV
 // If the image is not present in the cache, it attempts to add the image to the cache by fetching its details
 // (including OpenShift version and CPU architecture) using the specified URL and 'oc' / 'skopeo' CLI tools.
 func (h *kubeAPIVersionsHandler) GetReleaseImageByURL(ctx context.Context, url, pullSecret string) (*models.ReleaseImage, error) {
-	for _, image := range h.releaseImages {
-		if swag.StringValue(image.URL) == url {
-			return image, nil
-		}
+	if img, existsInCache := h.releaseImages[url]; existsInCache {
+		return img, nil
 	}
 
 	return h.addReleaseImage(url, pullSecret)
@@ -123,13 +121,14 @@ func (h *kubeAPIVersionsHandler) getReleaseImageFromCache(openshiftVersion, cpuA
 		cpuArchitecture = common.DefaultCPUArchitecture
 	}
 
+	releaseImages := convertMapToReleaseImages(h.releaseImages)
 	// Filter Release images by specified CPU architecture.
-	exactCPUArchReleaseImages := funk.Filter(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
+	exactCPUArchReleaseImages := funk.Filter(releaseImages, func(releaseImage *models.ReleaseImage) bool {
 		return swag.StringValue(releaseImage.CPUArchitecture) == cpuArchitecture
 	})
 
 	// Filter multi-arch Release images by containing the specified CPU architecture
-	multiArchReleaseImages := funk.Filter(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
+	multiArchReleaseImages := funk.Filter(releaseImages, func(releaseImage *models.ReleaseImage) bool {
 		return *releaseImage.CPUArchitecture == common.MultiCPUArchitecture &&
 			funk.Contains(releaseImage.CPUArchitectures, cpuArchitecture)
 	})
@@ -190,7 +189,8 @@ func getReleaseImageByVersion(desiredOpenshiftVersion string, releaseImages []*m
 // version that can be used. This functions performs a very weak matching because RHCOS versions
 // are very loosely coupled with the OpenShift versions what allows for a variety of mix&match.
 func (h *kubeAPIVersionsHandler) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArchitecture string) error {
-	return validateReleaseImageForRHCOS(h.log, rhcosVersion, cpuArchitecture, h.releaseImages)
+	releaseImages := convertMapToReleaseImages(h.releaseImages)
+	return validateReleaseImageForRHCOS(h.log, rhcosVersion, cpuArchitecture, releaseImages)
 }
 
 // addReleaseImage adds a new release image to the handler's cache based on the specified image URL and pull secret.
@@ -223,13 +223,14 @@ func (h *kubeAPIVersionsHandler) addReleaseImage(releaseImageUrl, pullSecret str
 	h.imagesLock.Lock()
 	defer h.imagesLock.Unlock()
 
+	releaseImages := convertMapToReleaseImages(h.releaseImages)
 	// Fetch ReleaseImage if exists (not using GetReleaseImage as we search for the x.y.z image only)
-	releaseImage := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
+	releaseImage := funk.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
 		return *releaseImage.OpenshiftVersion == ocpReleaseVersion && *releaseImage.CPUArchitecture == cpuArchitecture
 	})
 	if releaseImage == nil {
 		// Create a new ReleaseImage
-		releaseImage = &models.ReleaseImage{
+		newReleaseImage := &models.ReleaseImage{
 			OpenshiftVersion: &ocpReleaseVersion,
 			CPUArchitecture:  &cpuArchitecture,
 			URL:              &releaseImageUrl,
@@ -237,12 +238,13 @@ func (h *kubeAPIVersionsHandler) addReleaseImage(releaseImageUrl, pullSecret str
 			CPUArchitectures: cpuArchitectures,
 		}
 
-		// Store in releaseImages array
-		h.releaseImages = append(h.releaseImages, releaseImage.(*models.ReleaseImage))
+		// Store in releaseImages cache
+		h.releaseImages[releaseImageUrl] = newReleaseImage
 		h.log.Infof("Stored release version %s for architecture %s", ocpReleaseVersion, cpuArchitecture)
 		if len(cpuArchitectures) > 1 {
 			h.log.Infof("Full list or architectures: %s", cpuArchitectures)
 		}
+		return newReleaseImage, nil
 	}
 
 	return releaseImage.(*models.ReleaseImage), nil
