@@ -1,6 +1,9 @@
 package network
 
 import (
+	"fmt"
+	"net"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -1048,5 +1051,18 @@ var _ = Describe("FindInterfaceByIP", func() {
 		Entry("Invalid searched IP", &allInterfaces, "invalid", nil, "ParseAddr(\"invalid\"): unable to parse IP"),
 		Entry("Empty list all interfaces", &[]*models.Interface{}, "192.168.1.3", nil, "Cannot find the network interface on which the IP 192.168.1.3 is set"),
 		Entry("Searched IP does not match any of the interfaces", &allInterfaces, "99.99.99.99", nil, "Cannot find the network interface on which the IP 99.99.99.99 is set"),
+	)
+})
+
+var _ = Describe("FindSourceIPInMachineNetwork", func() {
+	DescribeTable("", func(outgoingNicName string, machineNet *models.MachineNetwork, interfaces []*models.Interface, expectedIP string) {
+		_, mNetwork, err := net.ParseCIDR(string(machineNet.Cidr))
+		Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Debugging info: %v", err))
+		sourceIP, err := FindSourceIPInMachineNetwork(outgoingNicName, mNetwork, interfaces)
+		Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Debugging info: %v", err))
+		Expect(sourceIP).To(Equal(expectedIP), fmt.Sprintf("Debugging info: sourceIP: %s, expectedIP: %s", sourceIP, expectedIP))
+	},
+		Entry("source IP in machine network", "eth0", &models.MachineNetwork{Cidr: "192.168.10.0/24"}, []*models.Interface{{IPV4Addresses: []string{"192.168.10.2/24"}, Name: "eth0"}}, "192.168.10.2/24"),
+		Entry("source IP doesn't in machine network", "eth0", &models.MachineNetwork{Cidr: "192.168.10.1/24"}, []*models.Interface{{IPV4Addresses: []string{"192.168.11.2/24"}, Name: "eth0"}}, ""),
 	)
 })

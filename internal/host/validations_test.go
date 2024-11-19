@@ -2605,4 +2605,64 @@ var _ = Describe("Validations test", func() {
 			Entry("is imported", &models.Cluster{ID: &clusterID, Imported: swag.Bool(true)}),
 		)
 	})
+	Context("Is MTU Valid", func() {
+		var (
+			cluster common.Cluster
+			host    models.Host
+		)
+		BeforeEach(func() {
+			cluster = hostutil.GenerateTestCluster(clusterID)
+			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusKnown, models.HostKindHost, models.HostRoleMaster)
+			host.Inventory = hostutil.GenerateMasterInventory()
+		})
+		DescribeTable("MTU validations across CMN and UMN", func(validationID validationID, mtuReports []*models.MtuReport, validationStatus ValidationStatus, isUMN bool) {
+			cluster.UserManagedNetworking = &isUMN
+
+			mNet := []*models.MachineNetwork{
+				{
+					Cidr:      "1.2.3.1/24",
+					ClusterID: clusterID,
+				},
+			}
+			cluster.MachineNetworks = mNet
+
+			connectivityReport := &models.ConnectivityReport{}
+			connectivityReport.RemoteHosts = append(connectivityReport.RemoteHosts, &models.ConnectivityRemoteHost{
+				HostID:    hostID,
+				MtuReport: mtuReports,
+			})
+
+			report, err := hostutil.MarshalConnectivityReport(connectivityReport)
+			Expect(err).To(BeNil())
+			host.Connectivity = report
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&host)
+
+			refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, _, ok := getValidationResult(refreshedHost.ValidationsInfo, validationID)
+			Expect(ok).To(BeTrue(), fmt.Sprintf("debuuging info: status %s, isOK: %t host: %#v cluster: %#v", status, ok, host, cluster))
+			Expect(status).To(Equal(validationStatus))
+		},
+			Entry("isMtuValidInMachineNetwork (CMN) - Happy flow - MTU reports in the machine network are successful", IsMtuValid, []*models.MtuReport{
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
+				{MtuSuccessful: false, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
+			}, ValidationSuccess, false),
+			Entry("isMtuValidInMachineNetwork (CMN) - Bad flow - MTU reports in the machine network are unsuccessful", IsMtuValid, []*models.MtuReport{
+				{MtuSuccessful: false, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
+			}, ValidationFailure, false),
+			Entry("isMtuValidAllInterfaces (UMN) - Happy flow - all Mtu reports successful", IsMtuValid, []*models.MtuReport{
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
+			}, ValidationSuccess, true),
+			Entry("isMtuValidAllInterfaces (UMN) - Bad flow - all MTU reports are unsuccessful", IsMtuValid, []*models.MtuReport{
+				{MtuSuccessful: false, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
+				{MtuSuccessful: false, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
+			}, ValidationFailure, true),
+		)
+	})
 })
