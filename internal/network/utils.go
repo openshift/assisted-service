@@ -477,3 +477,25 @@ func FindInterfaceByIPString(ipAddress string, interfaces []*models.Interface) (
 	}
 	return FindInterfaceByIP(ip, interfaces)
 }
+
+// FindSourceIPInMachineNetwork is a helper function to locate the source IP within a given machine network.
+func FindSourceIPInMachineNetwork(outgoingNicName string, mNetwork *net.IPNet, interfaces []*models.Interface) (string, error) {
+	var sourceIP string
+	for _, nic := range interfaces {
+		if nic.Name == outgoingNicName {
+			addresses := append(nic.IPV4Addresses, nic.IPV6Addresses...)
+			for _, address := range addresses {
+				ip, _, err := net.ParseCIDR(address)
+				if err != nil {
+					return "", errors.New("internal error - failed to parse outgoing nic address CIDR")
+				}
+				// If an address is found in the machine network, we are done
+				if mNetwork.Contains(ip) {
+					sourceIP = address
+					break
+				}
+			}
+		}
+	}
+	return sourceIP, nil
+}
