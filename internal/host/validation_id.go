@@ -60,6 +60,7 @@ const (
 	AreServerLessRequirementsSatisfied             = validationID(models.HostValidationIDServerlessRequirementsSatisfied)
 	AreOpenShiftAIRequirementsSatisfied            = validationID(models.HostValidationIDOpenshiftAiRequirementsSatisfied)
 	AreAuthorinoRequirementsSatisfied              = validationID(models.HostValidationIDAuthorinoRequirementsSatisfied)
+	IsMtuOK                                        = validationID(models.HostValidationIDMtuTest)
 )
 
 func (v validationID) category() (string, error) {
@@ -84,6 +85,7 @@ func (v validationID) category() (string, error) {
 		NonOverlappingSubnets,
 		IsReleaseDomainNameResolvedCorrectly,
 		NoIPCollisionsInNetwork,
+		IsMtuOK,
 		NoIscsiNicBelongsToMachineCidr:
 		return "network", nil
 	case HasInventory,

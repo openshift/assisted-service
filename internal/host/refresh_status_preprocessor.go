@@ -220,6 +220,10 @@ func newValidations(v *validator) []validation {
 			condition: v.belongsToMajorityGroup,
 		},
 		{
+			id:        IsMtuOK,
+			condition: v.isMtuOK,
+		},
+		{
 			id:        IsPlatformNetworkSettingsValid,
 			condition: v.isValidPlatformNetworkSettings,
 		},
