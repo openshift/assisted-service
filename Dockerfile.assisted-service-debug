@@ -1,6 +1,6 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.21 AS golang
+FROM registry.access.redhat.com/ubi9/go-toolset:1.22.5 AS golang
 
-RUN GOFLAGS=-mod=mod go install github.com/go-delve/delve/cmd/dlv@v1.21.2
+RUN GOFLAGS=-mod=mod go install github.com/go-delve/delve/cmd/dlv@v1.22.1
 
 FROM quay.io/centos/centos:stream9 AS builder
 
