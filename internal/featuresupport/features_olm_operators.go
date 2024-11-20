@@ -591,3 +591,39 @@ func (f *OpenShiftAIFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *m
 	}
 	return activeLevelNotActive
 }
+
+// AuthorinoFeature describes the support for the Authorino operator.
+type AuthorinoFeature struct{}
+
+func (f *AuthorinoFeature) New() SupportLevelFeature {
+	return &AuthorinoFeature{}
+}
+
+func (f *AuthorinoFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDAUTHORINO
+}
+
+func (f *AuthorinoFeature) GetName() string {
+	return "Authorino"
+}
+
+func (f *AuthorinoFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelDevPreview
+}
+
+func (f *AuthorinoFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+	}
+}
+
+func (f *AuthorinoFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return nil
+}
+
+func (f *AuthorinoFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("authorino", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}

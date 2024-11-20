@@ -6927,7 +6927,8 @@ func init() {
         "pipelines-requirements-satisfied",
         "servicemesh-requirements-satisfied",
         "serverless-requirements-satisfied",
-        "openshift-ai-requirements-satisfied"
+        "openshift-ai-requirements-satisfied",
+        "authorino-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -7777,7 +7778,8 @@ func init() {
         "SERVICEMESH",
         "SERVERLESS",
         "OPENSHIFT_AI",
-        "NON_STANDARD_HA_CONTROL_PLANE"
+        "NON_STANDARD_HA_CONTROL_PLANE",
+        "AUTHORINO"
       ]
     },
     "finalizing-stage": {
@@ -8400,7 +8402,8 @@ func init() {
         "pipelines-requirements-satisfied",
         "servicemesh-requirements-satisfied",
         "serverless-requirements-satisfied",
-        "openshift-ai-requirements-satisfied"
+        "openshift-ai-requirements-satisfied",
+        "authorino-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -17834,7 +17837,8 @@ func init() {
         "pipelines-requirements-satisfied",
         "servicemesh-requirements-satisfied",
         "serverless-requirements-satisfied",
-        "openshift-ai-requirements-satisfied"
+        "openshift-ai-requirements-satisfied",
+        "authorino-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -18651,7 +18655,8 @@ func init() {
         "SERVICEMESH",
         "SERVERLESS",
         "OPENSHIFT_AI",
-        "NON_STANDARD_HA_CONTROL_PLANE"
+        "NON_STANDARD_HA_CONTROL_PLANE",
+        "AUTHORINO"
       ]
     },
     "finalizing-stage": {
@@ -19274,7 +19279,8 @@ func init() {
         "pipelines-requirements-satisfied",
         "servicemesh-requirements-satisfied",
         "serverless-requirements-satisfied",
-        "openshift-ai-requirements-satisfied"
+        "openshift-ai-requirements-satisfied",
+        "authorino-requirements-satisfied"
       ]
     },
     "host_network": {

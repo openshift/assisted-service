@@ -4160,6 +4160,7 @@ definitions:
       - 'SERVERLESS'
       - 'OPENSHIFT_AI'
       - 'NON_STANDARD_HA_CONTROL_PLANE'
+      - 'AUTHORINO'
 
   architecture-support-level-id:
     type: string
@@ -6549,6 +6550,7 @@ definitions:
       - 'servicemesh-requirements-satisfied'
       - 'serverless-requirements-satisfied'
       - 'openshift-ai-requirements-satisfied'
+      - 'authorino-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -6921,6 +6923,7 @@ definitions:
       - 'servicemesh-requirements-satisfied'
       - 'serverless-requirements-satisfied'
       - 'openshift-ai-requirements-satisfied'
+      - 'authorino-requirements-satisfied'
 
   logs_type:
     type: string
