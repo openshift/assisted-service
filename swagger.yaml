@@ -6015,6 +6015,8 @@ definitions:
         type: string
       command_line:
         type: string
+      secure_boot_state:
+        $ref: '#/definitions/secure-boot-state'
 
   system_vendor:
     type: object
@@ -7590,3 +7592,11 @@ definitions:
         type: string
         format: date-time
         description: Expiration time for the URL token.
+
+  secure-boot-state:
+    type: string
+    enum:
+    - Unknown
+    - NotSupported
+    - Enabled
+    - Disabled

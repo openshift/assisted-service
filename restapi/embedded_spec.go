@@ -6140,6 +6140,9 @@ func init() {
         },
         "pxe_interface": {
           "type": "string"
+        },
+        "secure_boot_state": {
+          "$ref": "#/definitions/secure-boot-state"
         }
       }
     },
@@ -10109,6 +10112,15 @@ func init() {
           "format": "int32"
         }
       }
+    },
+    "secure-boot-state": {
+      "type": "string",
+      "enum": [
+        "Unknown",
+        "NotSupported",
+        "Enabled",
+        "Disabled"
+      ]
     },
     "service_network": {
       "description": "IP address block for service IP blocks.",
@@ -17034,6 +17046,9 @@ func init() {
         },
         "pxe_interface": {
           "type": "string"
+        },
+        "secure_boot_state": {
+          "$ref": "#/definitions/secure-boot-state"
         }
       }
     },
@@ -20961,6 +20976,15 @@ func init() {
           "format": "int32"
         }
       }
+    },
+    "secure-boot-state": {
+      "type": "string",
+      "enum": [
+        "Unknown",
+        "NotSupported",
+        "Enabled",
+        "Disabled"
+      ]
     },
     "service_network": {
       "description": "IP address block for service IP blocks.",
