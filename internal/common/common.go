@@ -716,3 +716,15 @@ func GetDefaultHighAvailabilityAndMasterCountParams(highAvailabilityMode *string
 	// both are set
 	return highAvailabilityMode, controlPlaneCount
 }
+
+func IsMirrorConfigurationSet(conf *MirrorRegistryConfiguration) bool {
+	if conf == nil {
+		return false
+	}
+
+	if conf.RegistriesConf != "" {
+		return true
+	}
+
+	return false
+}

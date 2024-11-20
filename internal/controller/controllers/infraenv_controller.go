@@ -32,6 +32,7 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/controller/controllers/mirrorregistry"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/imageservice"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -228,8 +229,13 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 		updateParams.InfraEnvUpdateParams.KernelArguments = internalKernelArgs(infraEnv.Spec.KernelArguments)
 	}
 
-	// UpdateInfraEnvInternal will generate an ISO only if there it was not generated before,
-	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams, nil)
+	mirrorRegistryConfiguration, err := r.processMirrorRegistryConfig(ctx, log, infraEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	// UpdateInfraEnvInternal will generate an ISO only if it was not generated before
+	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams, nil, mirrorRegistryConfiguration)
 }
 
 func areKernelArgsIdentical(k1, k2 []aiv1beta1.KernelArgument) bool {
@@ -507,7 +513,12 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 		createParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
 	}
 
-	return r.Installer.RegisterInfraEnvInternal(ctx, key, createParams)
+	mirrorRegistryConfiguration, err := r.processMirrorRegistryConfig(ctx, log, infraEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Installer.RegisterInfraEnvInternal(ctx, key, mirrorRegistryConfiguration, createParams)
 }
 
 func (r *InfraEnvReconciler) deregisterInfraEnvIfNeeded(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) (ctrl.Result, error) {
@@ -912,4 +923,20 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(mapPullSecretToInfraEnv)).
 		WatchesRawSource(&source.Channel{Source: infraEnvUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
+}
+
+// processMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
+func (r *InfraEnvReconciler) processMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (*common.MirrorRegistryConfiguration, error) {
+	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistry.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef)
+	if err != nil {
+		return nil, err
+	}
+	if mirrorRegistryConfiguration != nil {
+		namespacedName := types.NamespacedName{Name: infraEnv.Spec.MirrorRegistryRef.Name, Namespace: infraEnv.Spec.MirrorRegistryRef.Namespace}
+		if err = ensureConfigMapIsLabelled(ctx, r.Client, userTomlConfigMap, namespacedName); err != nil {
+			return nil, errors.Wrapf(err, "Unable to mark infraenv mirror configmap for backup")
+		}
+	}
+
+	return mirrorRegistryConfiguration, nil
 }

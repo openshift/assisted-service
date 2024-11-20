@@ -183,8 +183,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			backendInfraEnv.ClusterID = ""
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
-			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(""))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(defaultIronicImage))
@@ -213,8 +213,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			backendCluster.ServiceNetworks = nil
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
-			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicServiceIPs[1])))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicInspectorIPs[1])))
@@ -238,8 +238,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			backendInfraEnv.ClusterID = ""
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
-			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicServiceIPs[1])))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicInspectorIPs[1])))
@@ -458,8 +458,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 
 			mockOcRelease.EXPECT().GetImageArchitecture(gomock.Any(), iccConfig.IronicAgentImage, backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
-			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(""))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic"))
@@ -497,8 +497,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			mockOcRelease.EXPECT().GetImageArchitecture(gomock.Any(), iccConfig.IronicAgentImage, backendInfraEnv.PullSecret).Times(1).Return([]string{"arm64"}, nil)
 			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Times(1).Return([]string{"arm64"}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("ironic-image:4.12.0", nil)
-			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(""))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic"))
@@ -528,8 +528,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 
 			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil)
-			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(""))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic"))
@@ -558,8 +558,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 
 			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"arm64"}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("ironic-image:4.12.0", nil)
-			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(""))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic"))
@@ -592,8 +592,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil).Times(1)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil).Times(1)
 
-			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(ironicAgentImage))
 				}).Return(
@@ -626,8 +626,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			backendInfraEnv.PullSecret = "mypullsecret"
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 
-			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(internalIgnitionConfig).Should(HaveValue(ContainSubstring(overrideAgentImage)))
 				})
@@ -767,7 +767,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		Expect(c.Create(ctx, infraEnv)).To(BeNil())
 		mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
 		mockBMOUtils.EXPECT().GetIronicIPs().AnyTimes().Return(ironicServiceIPs, ironicInspectorIPs, nil)
-		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("Failed to update infraEnvInternal"))
+		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("Failed to update infraEnvInternal"))
 
 		res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 		Expect(err).To(HaveOccurred())

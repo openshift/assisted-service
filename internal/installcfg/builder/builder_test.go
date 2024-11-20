@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gomega_format "github.com/onsi/gomega/format"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
@@ -22,7 +23,7 @@ import (
 )
 
 var (
-	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 	providerRegistry                  registry.ProviderRegistry
 	ctrl                              *gomock.Controller
 )
@@ -30,7 +31,7 @@ var (
 func createInstallConfigBuilder() *installConfigBuilder {
 	ctrl = gomock.NewController(GinkgoT())
 
-	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 	providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
 	return &installConfigBuilder{
 		log:                     common.GetTestLog(),
@@ -336,7 +337,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		cluster.InstallConfigOverrides = ""
 
 		mirrorCA := testBundle2
-		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false),
+		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1),
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true))
 		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte(mirrorCA), nil).Times(1)
 
@@ -393,7 +394,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		cluster.InstallConfigOverrides = ""
 
 		mirrorCA := testBundle2
-		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false),
+		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1),
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true))
 		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte(mirrorCA), nil).Times(1)
 
@@ -438,7 +439,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		ca := testBundle1
 		mirrorCA := testBundle2
 
-		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false),
+		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1),
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true))
 		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte(mirrorCA), nil).Times(1)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, ca)
@@ -628,25 +629,23 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 
 	It("Hyperthreading config", func() {
 		cluster.Hyperthreading = "none"
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Disabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
 		cluster.Hyperthreading = "all"
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err = installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
 		cluster.Hyperthreading = "workers"
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		data, err = installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Disabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
 		cluster.Hyperthreading = "masters"
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		data, err = installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
@@ -666,15 +665,15 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 	})
 
 	It("Baremetal host BMC configuration overrides", func() {
-                var result installcfg.InstallerConfigBaremetal
-                mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-                cluster.InstallConfigOverrides = `{"platform":{"baremetal":{"hosts":[{"name":"master-0","bmc":{"username":"admin","password":"pwd","address":"http://10.10.10.1:8000/v1/Systems","disableCertificateVerification":false},"role":"","bootMACAddress":"00:65:0f:82:fd:3b","hardwareProfile":""},{"name":"master-1","bmc":{"username":"admin2","password":"pwd2","address":"http://10.10.10.2:8000/v1/Systems","disableCertificateVerification":false},"role":"","bootMACAddress":"00:65:0f:82:fd:3f","hardwareProfile":""},{"name":"master-2","bmc":{"username":"admin3","password":"pwd3","address":"http://10.10.10.3:8000/v1/Systems","disableCertificateVerification":false},"role":"","bootMACAddress":"00:65:0f:82:fd:43","hardwareProfile":""}],"clusterProvisioningIP":"172.22.0.3","provisioningNetwork":"Managed","provisioningNetworkInterface":"enp1s0","provisioningNetworkCIDR":"172.22.0.0/24","provisioningDHCPRange":"172.22.0.10,172.22.0.254"}}}`
-                data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
-                Expect(err).ShouldNot(HaveOccurred())
-                err = json.Unmarshal(data, &result)
-                Expect(err).ShouldNot(HaveOccurred())
-                assertBaremetalHostBMCConfig(result)
-        })
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		cluster.InstallConfigOverrides = `{"platform":{"baremetal":{"hosts":[{"name":"master-0","bmc":{"username":"admin","password":"pwd","address":"http://10.10.10.1:8000/v1/Systems","disableCertificateVerification":false},"role":"","bootMACAddress":"00:65:0f:82:fd:3b","hardwareProfile":""},{"name":"master-1","bmc":{"username":"admin2","password":"pwd2","address":"http://10.10.10.2:8000/v1/Systems","disableCertificateVerification":false},"role":"","bootMACAddress":"00:65:0f:82:fd:3f","hardwareProfile":""},{"name":"master-2","bmc":{"username":"admin3","password":"pwd3","address":"http://10.10.10.3:8000/v1/Systems","disableCertificateVerification":false},"role":"","bootMACAddress":"00:65:0f:82:fd:43","hardwareProfile":""}],"clusterProvisioningIP":"172.22.0.3","provisioningNetwork":"Managed","provisioningNetworkInterface":"enp1s0","provisioningNetworkCIDR":"172.22.0.0/24","provisioningDHCPRange":"172.22.0.10,172.22.0.254"}}}`
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		assertBaremetalHostBMCConfig(result)
+	})
 
 	Context("networking", func() {
 		It("Single network fields", func() {
@@ -724,6 +723,87 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 			Expect(result.Networking.ClusterNetwork).To(HaveLen(2))
 			Expect(result.Networking.MachineNetwork).To(HaveLen(2))
 			Expect(result.Networking.ServiceNetwork).To(HaveLen(2))
+		})
+	})
+
+	Context("Mirror Registry", func() {
+
+		const (
+			mirrorRegistryCertificate = "-----BEGIN CERTIFICATE-----\n    certificate contents\n-----END CERTIFICATE------"
+			sourceRegistry            = "quay.io"
+			mirrorRegistry            = "example-user-registry.com"
+		)
+
+		getSecureRegistryToml := func() string {
+			return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+`,
+				sourceRegistry,
+				mirrorRegistry,
+			)
+		}
+
+		getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
+			imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
+			Expect(err).To(Not(HaveOccurred()))
+
+			mirrors := &common.MirrorRegistryConfiguration{
+				ImageDigestMirrors: imageDigestMirrors,
+				ImageTagMirrors:    imageTagMirrors,
+				Insecure:           insecure,
+				CaBundleCrt:        certificate,
+				RegistriesConf:     registriesToml,
+			}
+
+			return mirrors, imageDigestMirrors
+		}
+
+		It("success - cluster holds mirror registry configurations", func() {
+			var result installcfg.InstallerConfigBaremetal
+			cluster.OpenshiftVersion = "4.16.0-0.0"
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+
+			mirrors, imageDigestMirrors := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			cluster.SetMirrorRegistryConfiguration(mirrors)
+			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = json.Unmarshal(data, &result)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(len(result.ImageDigestSources)).To(Equal(len(imageDigestMirrors)))
+			Expect(len(result.ImageDigestSources)).To(Equal(1))
+			Expect(result.ImageDigestSources[0].Source).To(Equal(imageDigestMirrors[0].Source))
+			Expect(len(result.ImageDigestSources[0].Mirrors)).To(Equal(len(imageDigestMirrors[0].Mirrors)))
+			Expect(result.ImageDigestSources[0].Mirrors[0]).To(Equal(string(imageDigestMirrors[0].Mirrors[0])))
+
+			Expect(result.DeprecatedImageContentSources).To(BeEmpty())
+		})
+
+		It("success - cluster and infraenvs holds mirror registry configurations", func() {
+			var result installcfg.InstallerConfigBaremetal
+			cluster.OpenshiftVersion = "4.16.0-0.0"
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+
+			mirrors, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			cluster.SetMirrorRegistryConfiguration(mirrors)
+			testBundles := []string{testBundle1, testBundle2, testBundle3}
+			for i := 0; i < 3; i++ {
+				infraenv := &common.InfraEnv{InfraEnv: models.InfraEnv{}}
+				mirrors.CaBundleCrt = testBundles[i]
+				infraenv.SetMirrorRegistryConfiguration(mirrors)
+				clusterInfraenvs = append(clusterInfraenvs, infraenv)
+			}
+			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = json.Unmarshal(data, &result)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(result.AdditionalTrustBundle).Should(Equal(fmt.Sprintf("%s\n%s\n%s\n%s", mirrorRegistryCertificate, testBundle1, testBundle2, testBundle3)))
 		})
 	})
 
@@ -816,26 +896,26 @@ func assertVSphereCredentials(result installcfg.InstallerConfigBaremetal) {
 
 // asserts Baremetal Host BMC Configuration set by InstallConfigOverrides
 func assertBaremetalHostBMCConfig(result installcfg.InstallerConfigBaremetal) {
-        Expect(result.Platform.Baremetal.Hosts[0].Name).Should(Equal("master-0"))
-        Expect(result.Platform.Baremetal.Hosts[0].BMC.Username).Should(Equal("admin"))
-        Expect(result.Platform.Baremetal.Hosts[0].BMC.Password).Should(Equal("pwd"))
-        Expect(result.Platform.Baremetal.Hosts[0].BMC.Address).Should(Equal("http://10.10.10.1:8000/v1/Systems"))
-        Expect(result.Platform.Baremetal.Hosts[0].BMC.DisableCertificateVerification).Should(Equal(false))
-        Expect(result.Platform.Baremetal.Hosts[1].Name).Should(Equal("master-1"))
-        Expect(result.Platform.Baremetal.Hosts[1].BMC.Username).Should(Equal("admin2"))
-        Expect(result.Platform.Baremetal.Hosts[1].BMC.Password).Should(Equal("pwd2"))
-        Expect(result.Platform.Baremetal.Hosts[1].BMC.Address).Should(Equal("http://10.10.10.2:8000/v1/Systems"))
-        Expect(result.Platform.Baremetal.Hosts[1].BMC.DisableCertificateVerification).Should(Equal(false))
-        Expect(result.Platform.Baremetal.Hosts[2].Name).Should(Equal("master-2"))
-        Expect(result.Platform.Baremetal.Hosts[2].BMC.Username).Should(Equal("admin3"))
-        Expect(result.Platform.Baremetal.Hosts[2].BMC.Password).Should(Equal("pwd3"))
-        Expect(result.Platform.Baremetal.Hosts[2].BMC.Address).Should(Equal("http://10.10.10.3:8000/v1/Systems"))
-        Expect(result.Platform.Baremetal.Hosts[2].BMC.DisableCertificateVerification).Should(Equal(false))
-        Expect(result.Platform.Baremetal.ClusterProvisioningIP).Should(Equal("172.22.0.3"))
-        Expect(result.Platform.Baremetal.ProvisioningNetwork).Should(Equal("Managed"))
-        Expect(result.Platform.Baremetal.ProvisioningNetworkInterface).Should(Equal("enp1s0"))
-        Expect(*result.Platform.Baremetal.ProvisioningNetworkCIDR).Should(Equal("172.22.0.0/24"))
-        Expect(result.Platform.Baremetal.ProvisioningDHCPRange).Should(Equal("172.22.0.10,172.22.0.254"))
+	Expect(result.Platform.Baremetal.Hosts[0].Name).Should(Equal("master-0"))
+	Expect(result.Platform.Baremetal.Hosts[0].BMC.Username).Should(Equal("admin"))
+	Expect(result.Platform.Baremetal.Hosts[0].BMC.Password).Should(Equal("pwd"))
+	Expect(result.Platform.Baremetal.Hosts[0].BMC.Address).Should(Equal("http://10.10.10.1:8000/v1/Systems"))
+	Expect(result.Platform.Baremetal.Hosts[0].BMC.DisableCertificateVerification).Should(Equal(false))
+	Expect(result.Platform.Baremetal.Hosts[1].Name).Should(Equal("master-1"))
+	Expect(result.Platform.Baremetal.Hosts[1].BMC.Username).Should(Equal("admin2"))
+	Expect(result.Platform.Baremetal.Hosts[1].BMC.Password).Should(Equal("pwd2"))
+	Expect(result.Platform.Baremetal.Hosts[1].BMC.Address).Should(Equal("http://10.10.10.2:8000/v1/Systems"))
+	Expect(result.Platform.Baremetal.Hosts[1].BMC.DisableCertificateVerification).Should(Equal(false))
+	Expect(result.Platform.Baremetal.Hosts[2].Name).Should(Equal("master-2"))
+	Expect(result.Platform.Baremetal.Hosts[2].BMC.Username).Should(Equal("admin3"))
+	Expect(result.Platform.Baremetal.Hosts[2].BMC.Password).Should(Equal("pwd3"))
+	Expect(result.Platform.Baremetal.Hosts[2].BMC.Address).Should(Equal("http://10.10.10.3:8000/v1/Systems"))
+	Expect(result.Platform.Baremetal.Hosts[2].BMC.DisableCertificateVerification).Should(Equal(false))
+	Expect(result.Platform.Baremetal.ClusterProvisioningIP).Should(Equal("172.22.0.3"))
+	Expect(result.Platform.Baremetal.ProvisioningNetwork).Should(Equal("Managed"))
+	Expect(result.Platform.Baremetal.ProvisioningNetworkInterface).Should(Equal("enp1s0"))
+	Expect(*result.Platform.Baremetal.ProvisioningNetworkCIDR).Should(Equal("172.22.0.0/24"))
+	Expect(result.Platform.Baremetal.ProvisioningDHCPRange).Should(Equal("172.22.0.10,172.22.0.254"))
 }
 
 func getInventoryStr(hostname, bootMode string, ipv4 bool, ipv6 bool) string {

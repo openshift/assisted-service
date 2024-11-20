@@ -41,6 +41,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/controller/controllers/mirrorregistry"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -110,7 +111,7 @@ type ClusterDeploymentsReconciler struct {
 	AuthType                      auth.AuthType
 	VersionsHandler               versions.Handler
 	SpokeK8sClientFactory         spoke_k8s_client.SpokeK8sClientFactory
-	MirrorRegistriesConfigBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+	MirrorRegistriesConfigBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 }
 
 const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
@@ -212,10 +213,19 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
 	}
 
+	var mirrorRegistryConfiguration *common.MirrorRegistryConfiguration
+	if clusterInstall.Spec.MirrorRegistryRef != nil {
+		log.Infof("Found MirrorRegistry referenace on AgentClusterInstall %s %s", clusterInstall.Name, clusterInstall.Namespace)
+		mirrorRegistryConfiguration, err = r.processMirrorRegistryConfig(ctx, log, clusterInstall)
+		if err != nil {
+			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, newInputError(err.Error()))
+		}
+	}
+
 	cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		if !isInstalled(clusterDeployment, clusterInstall) {
-			return r.createNewCluster(ctx, log, req.NamespacedName, pullSecret, releaseImage, clusterDeployment, clusterInstall)
+			return r.createNewCluster(ctx, log, req.NamespacedName, pullSecret, releaseImage, clusterDeployment, clusterInstall, mirrorRegistryConfiguration)
 		}
 
 		return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
@@ -229,7 +239,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	}
 
 	// check for updates from user, compare spec and update if needed
-	cluster, err = r.updateIfNeeded(ctx, log, clusterDeployment, clusterInstall, cluster)
+	cluster, err = r.updateIfNeeded(ctx, log, clusterDeployment, clusterInstall, cluster, mirrorRegistryConfiguration)
 	if err != nil {
 		log.WithError(err).Error("failed to update cluster")
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
@@ -1047,7 +1057,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall,
 	cluster *common.Cluster,
-) (*common.Cluster, error) {
+	mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (*common.Cluster, error) {
 
 	update := false
 	params := &models.V2ClusterUpdateParams{}
@@ -1148,7 +1158,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 	clusterAfterUpdate, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.V2UpdateClusterParams{
 		ClusterUpdateParams: params,
 		ClusterID:           *cluster.ID,
-	})
+	}, mirrorRegistryConfiguration)
 	if err != nil {
 		return cluster, err
 	}
@@ -1194,8 +1204,7 @@ func selectClusterNetworkType(params *models.V2ClusterUpdateParams, cluster *com
 	}
 }
 
-func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall,
-	cluster *common.Cluster) error {
+func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) error {
 	// not relevant for day2 cluster - install config is not used
 	if common.IsDay2Cluster(cluster) {
 		return nil
@@ -1429,7 +1438,8 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	pullSecret string,
 	releaseImage *models.ReleaseImage,
 	clusterDeployment *hivev1.ClusterDeployment,
-	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
+	clusterInstall *hiveext.AgentClusterInstall,
+	mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (ctrl.Result, error) {
 
 	log.Infof("Creating a new cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 
@@ -1446,7 +1456,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	clusterParams := CreateClusterParams(clusterDeployment, clusterInstall, pullSecret, *releaseImage.Version,
 		*releaseImage.CPUArchitecture, ignitionEndpoint)
 
-	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{
+	c, err := r.Installer.RegisterClusterInternal(ctx, &key, mirrorRegistryConfiguration, installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,
 	})
 
@@ -2426,4 +2436,20 @@ func getClusterDeploymentAdminKubeConfigSecretName(cd *hivev1.ClusterDeployment)
 		return cd.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name
 	}
 	return fmt.Sprintf(adminKubeConfigStringTemplate, cd.Name)
+}
+
+// processMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
+func (r *ClusterDeploymentsReconciler) processMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall) (*common.MirrorRegistryConfiguration, error) {
+	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistry.ProcessMirrorRegistryConfig(ctx, log, r.Client, clusterInstall.Spec.MirrorRegistryRef)
+	if err != nil {
+		return nil, err
+	}
+	if mirrorRegistryConfiguration != nil {
+		namespacedName := types.NamespacedName{Name: clusterInstall.Spec.MirrorRegistryRef.Name, Namespace: clusterInstall.Spec.MirrorRegistryRef.Namespace}
+		if err = ensureConfigMapIsLabelled(ctx, r.Client, userTomlConfigMap, namespacedName); err != nil {
+			return nil, errors.Wrapf(err, "Unable to mark mirror configmap for backup")
+		}
+	}
+
+	return mirrorRegistryConfiguration, nil
 }

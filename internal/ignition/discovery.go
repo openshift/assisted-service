@@ -152,6 +152,8 @@ ConditionPathExists=/enoent
 `
 
 const tempNMConnectionsDir = "/etc/assisted/network"
+const mirrorRegistriesConfigKey = "MirrorRegistriesConfig"
+const mirrorRegistriesCAConfigKey = "MirrorRegistriesCAConfig"
 
 // IgnitionBuilder defines the ignition formatting methods for the various images
 //
@@ -177,13 +179,13 @@ type ignitionBuilder struct {
 	log                     logrus.FieldLogger
 	templates               *template.Template
 	staticNetworkConfig     staticnetworkconfig.StaticNetworkConfig
-	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 	ocRelease               oc.Release
 	versionHandler          versions.Handler
 }
 
 func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
-	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder, ocRelease oc.Release, versionHandler versions.Handler) (result IgnitionBuilder, err error) {
+	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder, ocRelease oc.Release, versionHandler versions.Handler) (result IgnitionBuilder, err error) {
 	// Parse the templates file system:
 	templates, err := templating.LoadTemplates(templatesRoot)
 	if err != nil {
@@ -225,6 +227,36 @@ func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *c
 		return "", false
 	}
 	return okdRpmsImage, true
+}
+
+func (ib *ignitionBuilder) setIgnitionMirrorRegistry(ignitionParams map[string]interface{}, configuration *common.MirrorRegistryConfiguration) error {
+
+	// check if mirror registry is configured in the infra env
+	if common.IsMirrorConfigurationSet(configuration) {
+		ib.log.Debugf("Setting ignition cluster mirror registry to %s", configuration.RegistriesConf)
+		ignitionParams[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.RegistriesConf))
+		ignitionParams[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.CaBundleCrt))
+		return nil
+	}
+
+	// check if mirror registry is configured for the entire env
+	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		caContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorCA()
+		if mirrorsErr != nil {
+			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries CA contents")
+			return mirrorsErr
+		}
+		registriesContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorRegistries()
+		if mirrorsErr != nil {
+			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries config contents")
+			return mirrorsErr
+		}
+		ignitionParams[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString(registriesContents)
+		ignitionParams[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString(caContents)
+		return nil
+	}
+
+	return nil
 }
 
 func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string) (string, error) {
@@ -330,19 +362,13 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		}
 	}
 
-	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
-		caContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorCA()
-		if mirrorsErr != nil {
-			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries CA contents")
-			return "", mirrorsErr
-		}
-		registriesContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorRegistries()
-		if mirrorsErr != nil {
-			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries config contents")
-			return "", mirrorsErr
-		}
-		ignitionParams["MirrorRegistriesConfig"] = base64.StdEncoding.EncodeToString(registriesContents)
-		ignitionParams["MirrorRegistriesCAConfig"] = base64.StdEncoding.EncodeToString(caContents)
+	mirrorRegistryConfiguration, err := infraEnv.GetMirrorRegistryConfiguration()
+	if err != nil {
+		return "", err
+	}
+
+	if err = ib.setIgnitionMirrorRegistry(ignitionParams, mirrorRegistryConfiguration); err != nil {
+		return "", err
 	}
 
 	if okdRpmsImage, ok := ib.shouldAppendOKDFiles(ctx, infraEnv, cfg); ok {

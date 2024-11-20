@@ -1,7 +1,6 @@
 package mirrorregistries
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/openshift/assisted-service/internal/common"
@@ -9,7 +8,7 @@ import (
 )
 
 //go:generate mockgen -source=generator.go -package=mirrorregistries -destination=mock_generator.go
-type MirrorRegistriesConfigBuilder interface {
+type ServiceMirrorRegistriesConfigBuilder interface {
 	IsMirrorRegistriesConfigured() bool
 	GetMirrorCA() ([]byte, error)
 	GetMirrorRegistries() ([]byte, error)
@@ -21,7 +20,7 @@ type mirrorRegistriesConfigBuilder struct {
 	MirrorRegistriesCertificatePath string
 }
 
-func New() MirrorRegistriesConfigBuilder {
+func New() ServiceMirrorRegistriesConfigBuilder {
 	return &mirrorRegistriesConfigBuilder{
 		MirrorRegistriesConfigPath:      common.MirrorRegistriesConfigPath,
 		MirrorRegistriesCertificatePath: common.MirrorRegistriesCertificatePath,
@@ -56,15 +55,15 @@ func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
 	return ok
 }
 
-// return error if the path is actually an empty dir, which will indicate that
+// GetMirrorCA return error if the path is actually an empty dir, which will indicate that
 // the mirror registries are not configured.
 // empty dir is due to the way we mao configmap in the assisted-service pod
 func (m *mirrorRegistriesConfigBuilder) GetMirrorCA() ([]byte, error) {
 	return os.ReadFile(m.MirrorRegistriesCertificatePath)
 }
 
-// returns error if the file is not present, which will also indicate that
-// mirror registries are not confgiured
+// GetMirrorRegistries returns error if the file is not present, which will also indicate that
+// mirror registries are not configured
 func (m *mirrorRegistriesConfigBuilder) GetMirrorRegistries() ([]byte, error) {
 	return os.ReadFile(m.MirrorRegistriesConfigPath)
 }
@@ -78,34 +77,14 @@ func (m *mirrorRegistriesConfigBuilder) ExtractLocationMirrorDataFromRegistries(
 }
 
 func ExtractLocationMirrorDataFromRegistriesFromToml(registriesConfToml string) ([]RegistriesConf, error) {
-	tomlTree, err := toml.Load(registriesConfToml)
+	var registriesConfList []RegistriesConf
+
+	idmsMirrors, _, _, err := GetImageRegistries(registriesConfToml)
 	if err != nil {
 		return nil, err
 	}
-
-	registriesTree, ok := tomlTree.Get("registry").([]*toml.Tree)
-	if !ok {
-		return nil, fmt.Errorf("failed to cast registry key to toml Tree, registriesConfToml: %s", registriesConfToml)
-	}
-	registriesConfList := make([]RegistriesConf, len(registriesTree))
-	for i, registryTree := range registriesTree {
-		location, ok := registryTree.Get("location").(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to cast location key to string, registriesConfToml: %s", registriesConfToml)
-		}
-		mirrorTree, ok := registryTree.Get("mirror").([]*toml.Tree)
-		if !ok {
-			return nil, fmt.Errorf("failed to cast mirror key to toml Tree, registriesConfToml: %s", registriesConfToml)
-		}
-		var mirrors []string
-		for i := range mirrorTree {
-			currentMirror, ok := mirrorTree[i].Get("location").(string)
-			if !ok {
-				return nil, fmt.Errorf("failed to cast mirror location key to string, registriesConfToml: %s", registriesConfToml)
-			}
-			mirrors = append(mirrors, currentMirror)
-		}
-		registriesConfList[i] = RegistriesConf{Location: location, Mirror: mirrors}
+	for _, i := range idmsMirrors {
+		registriesConfList = append(registriesConfList, RegistriesConf{Location: i.Source, Mirror: mirrorToStrings(i.Mirrors)})
 	}
 
 	return registriesConfList, nil

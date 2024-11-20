@@ -19,6 +19,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -85,7 +86,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		log                                 logrus.FieldLogger
 		builder                             IgnitionBuilder
 		mockStaticNetworkConfig             *staticnetworkconfig.MockStaticNetworkConfig
-		mockMirrorRegistriesConfigBuilder   *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistriesConfigBuilder   *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		infraEnvID                          strfmt.UUID
 		mockOcRelease                       *oc.MockRelease
 		mockVersionHandler                  *versions.MockHandler
@@ -99,7 +100,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		infraEnvID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
-		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())
@@ -708,6 +709,92 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	Context("mirror registries config", func() {
+		const (
+			mirrorRegistryCertificate = "    -----BEGIN CERTIFICATE-----\n    certificate contents\n    -----END CERTIFICATE------"
+			sourceRegistry            = "quay.io"
+			mirrorRegistry            = "example-user-registry.com"
+		)
+
+		getSecureRegistryToml := func() string {
+			return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+`,
+				sourceRegistry,
+				mirrorRegistry,
+			)
+		}
+
+		getInsecureRegistryToml := func() string {
+			x := fmt.Sprintf(`
+		[[registry]]
+		location = "%s"
+		
+		[[registry.mirror]]
+		location = "%s"
+		insecure = true
+		`,
+				sourceRegistry,
+				mirrorRegistry,
+			)
+			return x
+		}
+
+		getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
+			imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
+			Expect(err).To(Not(HaveOccurred()))
+
+			mirrors := &common.MirrorRegistryConfiguration{
+				ImageDigestMirrors: imageDigestMirrors,
+				ImageTagMirrors:    imageTagMirrors,
+				Insecure:           insecure,
+				CaBundleCrt:        certificate,
+				RegistriesConf:     registriesToml,
+			}
+
+			return mirrors, imageDigestMirrors
+		}
+
+		It("produce ignition with secure cluster mirror registries config", func() {
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+
+			mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			Expect(infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConf)).NotTo(HaveOccurred())
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "registries.conf") || strings.HasSuffix(f.Path, "domain.crt") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(2))
+		})
+
+		It("produce ignition with insecure cluster mirror registries config", func() {
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+
+			mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getInsecureRegistryToml(), mirrorRegistryCertificate)
+			Expect(infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConf)).NotTo(HaveOccurred())
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "registries.conf") || strings.HasSuffix(f.Path, "domain.crt") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(2))
+		})
 
 		It("produce ignition with mirror registries config", func() {
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
@@ -949,7 +1036,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		infraEnv                          common.InfraEnv
 		builder                           IgnitionBuilder
 		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
-		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		infraEnvID                        strfmt.UUID
 		mockOcRelease                     *oc.MockRelease
 		mockVersionHandler                *versions.MockHandler
@@ -971,7 +1058,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		infraEnvID = strfmt.UUID("a64fff36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
-		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		infraEnv = common.InfraEnv{
@@ -1034,7 +1121,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		log                               logrus.FieldLogger
 		builder                           IgnitionBuilder
 		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
-		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		mockHost                          *models.Host
 		mockOcRelease                     *oc.MockRelease
 		mockVersionHandler                *versions.MockHandler
@@ -1044,7 +1131,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		log = common.GetTestLog()
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
-		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockHost = &models.Host{Inventory: hostInventory}
 		var err error
 		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
@@ -1126,7 +1213,7 @@ var _ = Describe("OKD overrides", func() {
 		infraEnv                           common.InfraEnv
 		builder                            IgnitionBuilder
 		mockStaticNetworkConfig            *staticnetworkconfig.MockStaticNetworkConfig
-		mockMirrorRegistriesConfigBuilder  *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockMirrorRegistriesConfigBuilder  *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 		infraEnvID                         strfmt.UUID
 		mockOcRelease                      *oc.MockRelease
 		mockVersionHandler                 *versions.MockHandler
@@ -1138,7 +1225,7 @@ var _ = Describe("OKD overrides", func() {
 		infraEnvID = strfmt.UUID("a64fff36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
-		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())

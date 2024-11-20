@@ -1,11 +1,13 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/transaction"
@@ -85,6 +87,9 @@ type Cluster struct {
 
 	// The amount of control planes which should be part of the cluster in high availability 'Full' mode.
 	ControlPlaneCount int64 `json:"control_plane_count"`
+
+	// A JSON blob in which holds the cluster mirror registry if set
+	MirrorRegistryConfiguration string `json:"mirror_registry_configuration" gorm:"type:TEXT"`
 }
 
 func (c *Cluster) GetClusterID() *strfmt.UUID {
@@ -103,6 +108,29 @@ func (c *Cluster) NotificationType() string {
 
 func (c *Cluster) Payload() any {
 	return &c.Cluster
+}
+
+func (c *Cluster) GetMirrorRegistryConfiguration() (*MirrorRegistryConfiguration, error) {
+	if c.MirrorRegistryConfiguration == "" {
+		return nil, nil
+	}
+
+	config, err := convertStringToMirrorRegistryConfig(c.MirrorRegistryConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+func (c *Cluster) SetMirrorRegistryConfiguration(configuration *MirrorRegistryConfiguration) error {
+	data, err := ConvertMirrorRegistryConfigToString(configuration)
+	if err != nil {
+		return err
+	}
+
+	c.MirrorRegistryConfiguration = data
+	return nil
 }
 
 type Event struct {
@@ -195,6 +223,9 @@ type InfraEnv struct {
 	// Json formatted string containing internal overrides for the default ignition config.
 	// This is used for adding ironic ignition config to the assisted ignition config
 	InternalIgnitionConfigOverride string `json:"internal_ignition_config_override,omitempty"`
+
+	// A JSON blob in which holds a mirror registry configurations if set
+	MirrorRegistryConfiguration string `gorm:"type:TEXT"`
 }
 
 func (i *InfraEnv) GetClusterID() *strfmt.UUID {
@@ -213,6 +244,29 @@ func (i *InfraEnv) NotificationType() string {
 
 func (i *InfraEnv) Payload() any {
 	return &i.InfraEnv
+}
+
+func (i *InfraEnv) GetMirrorRegistryConfiguration() (*MirrorRegistryConfiguration, error) {
+	if i.MirrorRegistryConfiguration == "" {
+		return nil, nil
+	}
+
+	config, err := convertStringToMirrorRegistryConfig(i.MirrorRegistryConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+func (i *InfraEnv) SetMirrorRegistryConfiguration(configuration *MirrorRegistryConfiguration) error {
+	data, err := ConvertMirrorRegistryConfigToString(configuration)
+	if err != nil {
+		return err
+	}
+
+	i.MirrorRegistryConfiguration = data
+	return nil
 }
 
 type EagerLoadingState bool
@@ -570,4 +624,39 @@ func CloseDB(db *gorm.DB) {
 		return
 	}
 	_ = sqlDB.Close()
+}
+
+// convertStringToMirrorRegistryConfig converts a serialized JSON to a MirrorRegistryConfiguration struct
+func convertStringToMirrorRegistryConfig(data string) (*MirrorRegistryConfiguration, error) {
+	var config MirrorRegistryConfiguration
+
+	// Unmarshal the JSON byte slice into the struct
+	err := json.Unmarshal([]byte(data), &config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal MirrorRegistryConfiguration: %w", err)
+	}
+
+	return &config, nil
+}
+
+// ConvertMirrorRegistryConfigToString converts a MirrorRegistryConfiguration struct to a serialized JSON
+func ConvertMirrorRegistryConfigToString(configuration *MirrorRegistryConfiguration) (string, error) {
+	if configuration == nil {
+		return "", nil
+	}
+
+	data, err := json.Marshal(configuration)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal MirrorRegistryConfiguration: %w", err)
+	}
+	return string(data), nil
+}
+
+// MirrorRegistryConfiguration holds the given mirror registry configuration
+type MirrorRegistryConfiguration struct {
+	ImageDigestMirrors []v1.ImageDigestMirrors `json:"imageDigestMirrors,omitempty"`
+	ImageTagMirrors    []v1.ImageTagMirrors    `json:"imageTagMirrors,omitempty"`
+	Insecure           []string                `json:"insecure,omitempty"`
+	RegistriesConf     string                  `json:"registriesConf,omitempty"`
+	CaBundleCrt        string                  `json:"caBundleCrt,omitempty"`
 }

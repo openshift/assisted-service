@@ -36,6 +36,7 @@ import (
 	. "github.com/onsi/gomega"
 	gomega_format "github.com/onsi/gomega/format"
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -170,7 +171,7 @@ var (
 	mockInstallConfigBuilder          *installcfg_builder.MockInstallConfigBuilder
 	mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 	mockProviderRegistry              *registry.MockProviderRegistry
-	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 	secondDayWorkerIgnition           = []byte(`{
 		"ignition": {
 		  "version": "3.1.0",
@@ -265,7 +266,7 @@ func mockClusterRegisterSuccessWithVersion(cpuArchitecture, openshiftVersion str
 
 func createInstallConfigBuilder() installcfg_builder.InstallConfigBuilder {
 	log := common.GetTestLog().WithField("pkg", "installcfg")
-	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 	return installcfg_builder.NewInstallConfigBuilder(log, mockMirrorRegistriesConfigBuilder, registry.InitProviderRegistry(log))
 
 }
@@ -4319,7 +4320,7 @@ var _ = Describe("cluster", func() {
 							ClusterUpdateParams: &models.V2ClusterUpdateParams{
 								MachineNetworks: []*models.MachineNetwork{{Cidr: cidr}},
 							},
-						})
+						}, nil)
 						Expect(err).ToNot(HaveOccurred())
 						var machineNetworks []*models.MachineNetwork
 						Expect(db.Where("cluster_id = ?", clusterID).Find(&machineNetworks).Error).ToNot(HaveOccurred())
@@ -8870,6 +8871,74 @@ var _ = Describe("infraEnvs", func() {
 			err := params.Validate(nil)
 			Expect(err.Error()).To(ContainSubstring("should be at most 65535 chars long"))
 		})
+
+		Context("Cluster Mirror Registry", func() {
+			const (
+				mirrorRegistryCertificate = "-----BEGIN CERTIFICATE-----\n    certificate contents\n-----END CERTIFICATE------"
+				sourceRegistry            = "quay.io"
+				mirrorRegistry            = "example-user-registry.com"
+			)
+
+			getSecureRegistryToml := func() string {
+				return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+`,
+					sourceRegistry,
+					mirrorRegistry,
+				)
+			}
+
+			getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
+				imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
+				Expect(err).To(Not(HaveOccurred()))
+
+				mirrors := &common.MirrorRegistryConfiguration{
+					ImageDigestMirrors: imageDigestMirrors,
+					ImageTagMirrors:    imageTagMirrors,
+					Insecure:           insecure,
+					CaBundleCrt:        certificate,
+					RegistriesConf:     registriesToml,
+				}
+
+				return mirrors, imageDigestMirrors
+			}
+
+			It("Validate mirror registry saved on DB", func() {
+				mockInfraEnvRegisterSuccess()
+				MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+
+				conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+				reply, err := bm.RegisterInfraEnvInternal(ctx, nil, conf, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("some-infra-env-name"),
+						OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+						PullSecret:       swag.String(fakePullSecret),
+					},
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+
+				var infraEnv common.InfraEnv
+				Expect(db.First(&infraEnv, "id = ?", reply.ID).Error).ShouldNot(HaveOccurred())
+				Expect(infraEnv.MirrorRegistryConfiguration).ShouldNot(BeNil())
+
+				mirrorRegistryConf, err := infraEnv.GetMirrorRegistryConfiguration()
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(len(mirrorRegistryConf.ImageDigestMirrors)).To(Equal(1))
+				Expect(mirrorRegistryConf.ImageDigestMirrors[0].Source).To(Equal(sourceRegistry))
+				Expect(len(mirrorRegistryConf.ImageDigestMirrors[0].Mirrors)).To(Equal(1))
+				Expect(string(mirrorRegistryConf.ImageDigestMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
+
+				Expect(len(mirrorRegistryConf.Insecure)).To(Equal(0))
+				Expect(len(mirrorRegistryConf.ImageTagMirrors)).To(Equal(0))
+			})
+		})
 	})
 
 	Context("Create InfraEnv - with rhsso auth", func() {
@@ -9683,9 +9752,7 @@ var _ = Describe("infraEnvs", func() {
 				reponse, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID:           infraEnvID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
-				},
-					nil,
-				)
+				}, nil, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(reponse.GeneratedAt).ShouldNot(Equal(strfmt.NewDateTime()))
 			})
@@ -9704,9 +9771,7 @@ var _ = Describe("infraEnvs", func() {
 				response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID:           *i.ID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
-				},
-					nil,
-				)
+				}, nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				parsed, err := url.Parse(response.DownloadURL)
@@ -9749,9 +9814,7 @@ var _ = Describe("infraEnvs", func() {
 				response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID:           boundedInfraEnvID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
-				},
-					nil,
-				)
+				}, nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				parsed, err := url.Parse(response.DownloadURL)
@@ -9788,9 +9851,7 @@ var _ = Describe("infraEnvs", func() {
 					response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 						InfraEnvID:           infraEnvID,
 						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
-					},
-						nil,
-					)
+					}, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
 
 					u, err := url.Parse(response.DownloadURL)
@@ -9816,9 +9877,7 @@ var _ = Describe("infraEnvs", func() {
 					response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 						InfraEnvID:           infraEnvID,
 						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
-					},
-						nil,
-					)
+					}, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(response.ExpiresAt.String()).ToNot(Equal("0001-01-01T00:00:00.000Z"))
@@ -9850,9 +9909,7 @@ var _ = Describe("infraEnvs", func() {
 					response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 						InfraEnvID:           infraEnvID,
 						InfraEnvUpdateParams: params,
-					},
-						nil,
-					)
+					}, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
 					return response.DownloadURL
 				}
@@ -13461,6 +13518,76 @@ var _ = Describe("RegisterCluster", func() {
 			actual := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(swag.StringValue(actual.NetworkType)).To(Equal(t.DesiredNetworkType))
 		}
+	})
+
+	Context("Cluster Mirror Registry", func() {
+		const (
+			mirrorRegistryCertificate = "-----BEGIN CERTIFICATE-----\n    certificate contents\n-----END CERTIFICATE------"
+			sourceRegistry            = "quay.io"
+			mirrorRegistry            = "example-user-registry.com"
+		)
+
+		getSecureRegistryToml := func() string {
+			return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+`,
+				sourceRegistry,
+				mirrorRegistry,
+			)
+		}
+
+		getClusterCreateParams := func() *models.ClusterCreateParams {
+			return &models.ClusterCreateParams{
+				Name:                 swag.String("some-cluster-name"),
+				OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:           swag.String(fakePullSecret),
+				CPUArchitecture:      models.ClusterCPUArchitectureX8664,
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+			}
+		}
+
+		getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
+			imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
+			Expect(err).To(Not(HaveOccurred()))
+
+			mirrors := &common.MirrorRegistryConfiguration{
+				ImageDigestMirrors: imageDigestMirrors,
+				ImageTagMirrors:    imageTagMirrors,
+				Insecure:           insecure,
+				CaBundleCrt:        certificate,
+				RegistriesConf:     registriesToml,
+			}
+
+			return mirrors, imageDigestMirrors
+		}
+
+		It("Validate mirror registry saved on DB", func() {
+			mockClusterRegisterSuccess(true)
+			mockAMSSubscription(ctx)
+			conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			params := getClusterCreateParams()
+			c, err := bm.RegisterClusterInternal(ctx, nil, conf, installer.V2RegisterClusterParams{NewClusterParams: params})
+			Expect(err).ShouldNot(HaveOccurred())
+
+			var clusterObj common.Cluster
+			Expect(db.First(&clusterObj, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
+			Expect(clusterObj.MirrorRegistryConfiguration).ShouldNot(BeNil())
+
+			mirrorRegistryConf, err := clusterObj.GetMirrorRegistryConfiguration()
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(len(mirrorRegistryConf.ImageDigestMirrors)).To(Equal(1))
+			Expect(mirrorRegistryConf.ImageDigestMirrors[0].Source).To(Equal(sourceRegistry))
+			Expect(len(mirrorRegistryConf.ImageDigestMirrors[0].Mirrors)).To(Equal(1))
+			Expect(string(mirrorRegistryConf.ImageDigestMirrors[0].Mirrors[0])).To(Equal(mirrorRegistry))
+
+			Expect(len(mirrorRegistryConf.Insecure)).To(Equal(0))
+			Expect(len(mirrorRegistryConf.ImageTagMirrors)).To(Equal(0))
+		})
 	})
 
 	Context("Platform", func() {
@@ -17959,7 +18086,7 @@ var _ = Describe("Dual-stack cluster", func() {
 			params.ClusterUpdateParams.MachineNetworks = common.TestDualStackNetworking.MachineNetworks
 			params.ClusterUpdateParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
 			params.ClusterUpdateParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
-			cls, err := bm.UpdateClusterNonInteractive(ctx, params)
+			cls, err := bm.UpdateClusterNonInteractive(ctx, params, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cls.MachineNetworks).To(HaveLen(2))
 			for _, m := range common.TestDualStackNetworking.MachineNetworks {
@@ -17968,7 +18095,7 @@ var _ = Describe("Dual-stack cluster", func() {
 			By("update machine networks")
 			params.ClusterUpdateParams.MachineNetworks = append([]*models.MachineNetwork{}, common.TestDualStackNetworking.MachineNetworks...)
 			params.ClusterUpdateParams.MachineNetworks[1] = &models.MachineNetwork{ClusterID: clusterID, Cidr: "3001:db8::/120"}
-			cls, err = bm.UpdateClusterNonInteractive(ctx, params)
+			cls, err = bm.UpdateClusterNonInteractive(ctx, params, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cls.MachineNetworks).To(HaveLen(2))
 			Expect(cls.MachineNetworks).To(ContainElement(&models.MachineNetwork{ClusterID: clusterID, Cidr: "3001:db8::/120"}))

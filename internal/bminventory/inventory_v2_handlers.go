@@ -43,7 +43,7 @@ func (b *bareMetalInventory) V2UpdateHost(ctx context.Context, params installer.
 }
 
 func (b *bareMetalInventory) V2RegisterCluster(ctx context.Context, params installer.V2RegisterClusterParams) middleware.Responder {
-	c, err := b.RegisterClusterInternal(ctx, nil, params)
+	c, err := b.RegisterClusterInternal(ctx, nil, nil, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}

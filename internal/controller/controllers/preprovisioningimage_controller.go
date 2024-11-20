@@ -29,6 +29,7 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/controller/controllers/mirrorregistry"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -548,7 +549,16 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 
 	updated := false
 	if string(conf) != infraEnvInternal.InternalIgnitionConfigOverride {
-		_, err = r.Installer.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{InfraEnvID: *infraEnvInternal.ID, InfraEnvUpdateParams: &models.InfraEnvUpdateParams{}}, swag.String(string(conf)))
+		var mirrorRegistryConfiguration *common.MirrorRegistryConfiguration
+		if infraEnvInternal.MirrorRegistryConfiguration != "" {
+			mirrorRegistryConfiguration, err = r.processMirrorRegistryConfig(ctx, log, infraEnv)
+			if err != nil {
+				log.WithError(err).Error("failed to process mirror registry config")
+				return false, err
+			}
+		}
+
+		_, err = r.Installer.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{InfraEnvID: *infraEnvInternal.ID, InfraEnvUpdateParams: &models.InfraEnvUpdateParams{}}, swag.String(string(conf)), mirrorRegistryConfiguration)
 		if err != nil {
 			return false, err
 		}
@@ -634,4 +644,20 @@ func (r *PreprovisioningImageReconciler) setBMHRebootAnnotation(ctx context.Cont
 	}
 
 	return nil
+}
+
+// processMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
+func (r *PreprovisioningImageReconciler) processMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (*common.MirrorRegistryConfiguration, error) {
+	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistry.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef)
+	if err != nil {
+		return nil, err
+	}
+	if mirrorRegistryConfiguration != nil {
+		namespacedName := types.NamespacedName{Name: infraEnv.Spec.MirrorRegistryRef.Name, Namespace: infraEnv.Spec.MirrorRegistryRef.Namespace}
+		if err = ensureConfigMapIsLabelled(ctx, r.Client, userTomlConfigMap, namespacedName); err != nil {
+			return nil, errors.Wrapf(err, "Unable to mark infraenv mirror configmap for backup")
+		}
+	}
+
+	return mirrorRegistryConfiguration, nil
 }

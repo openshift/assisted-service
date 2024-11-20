@@ -22,6 +22,7 @@ package v1beta1
 
 import (
 	"github.com/openshift/assisted-service/api/common"
+	hiveextensionv1beta1 "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -920,6 +921,11 @@ func (in *InfraEnvSpec) DeepCopyInto(out *InfraEnvSpec) {
 		in, out := &in.KernelArguments, &out.KernelArguments
 		*out = make([]KernelArgument, len(*in))
 		copy(*out, *in)
+	}
+	if in.MirrorRegistryRef != nil {
+		in, out := &in.MirrorRegistryRef, &out.MirrorRegistryRef
+		*out = new(hiveextensionv1beta1.MirrorRegistryConfigMapReference)
+		**out = **in
 	}
 }
 
