@@ -11971,28 +11971,23 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		func(version string) {
 			err := db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("openshift_version", version).Error
 			Expect(err).ToNot(HaveOccurred())
+			override := `{"capabilities": {"baselineCapabilitySet": "None", "additionalEnabledCapabilities": ["baremetal"]}}`
+			//err = db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("install_config_overrides", override).Error
+			//Expect(err).ToNot(HaveOccurred())
 			operator := &models.MonitoredOperator{
 				ClusterID: clusterID,
 				Name:      "console",
 			}
 			err = db.FirstOrCreate(operator).Error
 			Expect(err).ToNot(HaveOccurred())
-			installConfig := installcfg.InstallerConfigBaremetal{
-				Capabilities: &installcfg.Capabilities{
-					BaselineCapabilitySet: configv1.ClusterVersionCapabilitySetNone,
-					AdditionalEnabledCapabilities: []configv1.ClusterVersionCapability{
-						"baremetal",
-					},
-				},
-			}
-			installConfigData, err := json.Marshal(installConfig)
-			Expect(err).ToNot(HaveOccurred())
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
+			mockUsage.EXPECT().Add(gomock.Any(), usage.InstallConfigOverrides, gomock.Any()).Times(1)
+			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
 			params := installer.V2UpdateClusterInstallConfigParams{
 				ClusterID:           clusterID,
-				InstallConfigParams: "{}",
+				InstallConfigParams: override,
 			}
 			bm.V2UpdateClusterInstallConfig(ctx, params)
 			err = db.First(&operator).Error
@@ -12008,28 +12003,21 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		func(version string) {
 			err := db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("openshift_version", version).Error
 			Expect(err).ToNot(HaveOccurred())
+			override := `{"capabilities": {"baselineCapabilitySet": "None", "additionalEnabledCapabilities": ["console"]}}`
 			operator := &models.MonitoredOperator{
 				ClusterID: clusterID,
 				Name:      "console",
 			}
 			err = db.FirstOrCreate(operator).Error
 			Expect(err).ToNot(HaveOccurred())
-			installConfig := installcfg.InstallerConfigBaremetal{
-				Capabilities: &installcfg.Capabilities{
-					BaselineCapabilitySet: configv1.ClusterVersionCapabilitySetNone,
-					AdditionalEnabledCapabilities: []configv1.ClusterVersionCapability{
-						"baremetal",
-					},
-				},
-			}
-			installConfigData, err := json.Marshal(installConfig)
-			Expect(err).ToNot(HaveOccurred())
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
+			mockUsage.EXPECT().Add(gomock.Any(), usage.InstallConfigOverrides, gomock.Any()).Times(1)
+			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
 			params := installer.V2UpdateClusterInstallConfigParams{
 				ClusterID:           clusterID,
-				InstallConfigParams: "{}",
+				InstallConfigParams: override,
 			}
 			bm.V2UpdateClusterInstallConfig(ctx, params)
 			err = db.First(&operator).Error
@@ -12041,7 +12029,10 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 	)
 
 	It("Adds the console from the list of monitored operators", func() {
+		override := `{"capabilities": {"baselineCapabilitySet": "None", "additionalEnabledCapabilities": ["console"]}}`
 		err := db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("openshift_version", "4.12.7").Error
+		Expect(err).ToNot(HaveOccurred())
+		err = db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("install_config_overrides", override).Error
 		Expect(err).ToNot(HaveOccurred())
 		operator := &models.MonitoredOperator{
 			ClusterID: clusterID,
@@ -12049,22 +12040,11 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		}
 		err = db.Delete(operator).Error
 		Expect(err).ToNot(HaveOccurred())
-		installConfig := installcfg.InstallerConfigBaremetal{
-			Capabilities: &installcfg.Capabilities{
-				BaselineCapabilitySet: configv1.ClusterVersionCapabilitySetNone,
-				AdditionalEnabledCapabilities: []configv1.ClusterVersionCapability{
-					"Console",
-				},
-			},
-		}
-		installConfigData, err := json.Marshal(installConfig)
-		Expect(err).ToNot(HaveOccurred())
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
 		params := installer.V2UpdateClusterInstallConfigParams{
 			ClusterID:           clusterID,
-			InstallConfigParams: "{}",
+			InstallConfigParams: "",
 		}
 		bm.V2UpdateClusterInstallConfig(ctx, params)
 		err = db.First(&operator).Error
@@ -19540,111 +19520,6 @@ var _ = Describe("V2UpdateHostIgnition unbound blabla", func() {
 
 		response := bm.V2UpdateHostIgnition(context.TODO(), params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostIgnitionCreated{}))
-	})
-})
-
-var _ = Describe("CheckClusterCapabilities", func() {
-	var (
-		db        *gorm.DB
-		bm        *bareMetalInventory
-		cfg       Config
-		dbName    string
-		c         *common.Cluster
-		clusterID strfmt.UUID
-		override  string
-	)
-	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		clusterID = strfmt.UUID(uuid.New().String())
-		bm = createInventory(db, cfg)
-
-		override = `{"baselineCapabilities": "None", "additionalEnabledCapabilities": ["Console"]}`
-		c = &common.Cluster{
-			Cluster: models.Cluster{
-				ID:                     &clusterID,
-				OpenshiftVersion:       common.TestDefaultConfig.OpenShiftVersion,
-				InstallConfigOverrides: override,
-			},
-		}
-
-		Expect(db.Create(c).Error).ShouldNot(HaveOccurred())
-	})
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
-	Context("should error", func() {
-		It("getting the install config fails", func() {
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("someerror")).Times(1)
-			_, err := bm.CheckClusterCapabilities(c, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityConsole}, []configv1.ClusterVersionCapability{})
-			Expect(err).To(HaveOccurred())
-		})
-		It("unmarshalling the install config fails", func() {
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("badinstallconfig"), nil).Times(1)
-			_, err := bm.CheckClusterCapabilities(c, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityConsole}, []configv1.ClusterVersionCapability{})
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("returns false", func() {
-		It("the cluster has no capabilities set", func() {
-			dc := getDummyCluster()
-			Expect(db.Create(&dc).Error).ShouldNot(HaveOccurred())
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("{}"), nil).Times(1)
-			hasCapabilities, err := bm.CheckClusterCapabilities(&dc, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityConsole}, []configv1.ClusterVersionCapability{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(hasCapabilities).To(BeFalse())
-		})
-		It("the cluster baseline capability does not match the expected baseline capability passed in", func() {
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte(override), nil).AnyTimes()
-			hasCapabilities, err := bm.CheckClusterCapabilities(c, "v4.16", []configv1.ClusterVersionCapability{}, []configv1.ClusterVersionCapability{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(hasCapabilities).To(BeFalse())
-		})
-		It("cluster includes capabilities that should be excluded", func() {
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte(override), nil).AnyTimes()
-			hasCapabilities, err := bm.CheckClusterCapabilities(c, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{}, []configv1.ClusterVersionCapability{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(hasCapabilities).To(BeFalse())
-		})
-		It("cluster doesn't have capabilities that should be included", func() {
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte(override), nil).AnyTimes()
-			hasCapabilities, err := bm.CheckClusterCapabilities(c, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityBaremetal}, []configv1.ClusterVersionCapability{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(hasCapabilities).To(BeFalse())
-		})
-		It("cluster doesn't have capabilities that should be included and includes capabilities that should be excluded", func() {
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte(override), nil).AnyTimes()
-			hasCapabilities, err := bm.CheckClusterCapabilities(c, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityBaremetal}, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityConsole})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(hasCapabilities).To(BeFalse())
-		})
-	})
-	Context("returns true", func() {
-		It("if the includes and excludes lists are empty and baseline capability matches", func() {
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte(override), nil).AnyTimes()
-			hasCapabilities, err := bm.CheckClusterCapabilities(c, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{}, []configv1.ClusterVersionCapability{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(hasCapabilities).To(BeFalse())
-		})
-		It("if the includes list matches the cluster's and excludes is empty", func() {
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte(override), nil).AnyTimes()
-			hasCapabilities, err := bm.CheckClusterCapabilities(c, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityConsole}, []configv1.ClusterVersionCapability{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(hasCapabilities).To(BeFalse())
-		})
-		It("if the excludes list isn't in the cluster's capabilities and the includes list is emtpy", func() {
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte(override), nil).AnyTimes()
-			hasCapabilities, err := bm.CheckClusterCapabilities(c, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{}, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityBaremetal})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(hasCapabilities).To(BeFalse())
-		})
-		It("if the includes and excludes lists match the cluster's", func() {
-			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte(override), nil).AnyTimes()
-			hasCapabilities, err := bm.CheckClusterCapabilities(c, configv1.ClusterVersionCapabilitySetNone, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityConsole}, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityBaremetal})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(hasCapabilities).To(BeFalse())
-		})
 	})
 })
 

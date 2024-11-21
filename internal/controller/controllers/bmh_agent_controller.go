@@ -33,6 +33,7 @@ import (
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
+	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
@@ -1082,7 +1083,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileComplete{}
 	}
 	if skipSpokeBMH {
-		log.Infof("Skipping spoke BareMetalHost reconcile for agent %s/%s since it's baremetal platform without MAPI capability", agent.Name, agent.Namespace)
+		log.Infof("Skipping spoke BareMetalHost creation for agent %s/%s since it's baremetal platform without MAPI capability", agent.Name, agent.Namespace)
 		return reconcileComplete{}
 	}
 
@@ -1957,6 +1958,8 @@ func (r *BMACReconciler) removePausedAnnotation(log logrus.FieldLogger, bmh *bmh
 	return reconcileComplete{}
 }
 
+// isBaremetalPlatformWithoutMAPI returns true if a cluster is baremetal platform and if in its
+// capabilities it specifies baremetal and doesn't specify MAPI
 func (r *BMACReconciler) isBaremetalPlatformWithoutMAPI(ctx context.Context, cd *hivev1.ClusterDeployment) (bool, error) {
 	isBaremetalPlatform, err := isBaremetalPlatform(ctx, r.Client, cd)
 	if err != nil {
@@ -1973,12 +1976,9 @@ func (r *BMACReconciler) isBaremetalPlatformWithoutMAPI(ctx context.Context, cd 
 	if getClusterErr != nil {
 		return false, errors.Wrapf(err, "failed to get cluster from DB for ClusterDeployment %s/%s", cd.Namespace, cd.Name)
 	}
+
 	// If it's baremetal platform, check for install config overrides and if they exist and the capabilities don't include mapi then skip
-	includes := []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityBaremetal}
-	excludes := []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityMachineAPI}
-	isBaremetalWithoutMAPI, err := r.Installer.CheckClusterCapabilities(cluster, "None", includes, excludes)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to determine cluster capabilities ClusterDeployment %s/%s", cd.Namespace, cd.Name)
-	}
-	return isBaremetalWithoutMAPI, nil
+	return clusterPkg.HasBaseCapabilities(cluster, configv1.ClusterVersionCapabilitySetNone) &&
+		clusterPkg.HasAdditionalCapabilities(cluster, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityBaremetal}) &&
+		!clusterPkg.HasAdditionalCapabilities(cluster, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityMachineAPI}), nil
 }

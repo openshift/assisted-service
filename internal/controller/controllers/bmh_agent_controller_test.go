@@ -1410,7 +1410,7 @@ var _ = Describe("bmac reconcile", func() {
 
 			})
 			It("should create spoke BMH for day 2 host with worker role when it's installing - happy flow", func() {
-				mockInstallerInternal.EXPECT().CheckClusterCapabilities(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
+
 				agent_day2.Status.DebugInfo.State = models.HostStatusInstalling
 				Expect(c.Update(ctx, agent_day2)).To(BeNil())
 
@@ -1472,7 +1472,6 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(string(spokeMachine.Spec.ProviderSpec.Value.Raw)).To(ContainSubstring(imageURL))
 			})
 			It("should create spoke BMH & Machine for day 2 host with master role when it's installing - happy flow", func() {
-				mockInstallerInternal.EXPECT().CheckClusterCapabilities(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "root-ca",
@@ -1605,7 +1604,6 @@ var _ = Describe("bmac reconcile", func() {
 
 		Context("when agent role worker and cluster deployment is set", func() {
 			It("should not create spoke BMH when agent is not installing", func() {
-				mockInstallerInternal.EXPECT().CheckClusterCapabilities(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "root-ca",
@@ -1644,7 +1642,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).NotTo(BeNil())
 			})
 			It("should create spoke BMH when agent is installing", func() {
-				mockInstallerInternal.EXPECT().CheckClusterCapabilities(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
+
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "root-ca",
@@ -1700,7 +1698,6 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(string(spokeMachine.Spec.ProviderSpec.Value.Raw)).To(ContainSubstring(imageURL))
 			})
 			It("should not set spoke BMH - None platform", func() {
-				mockInstallerInternal.EXPECT().CheckClusterCapabilities(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 				clusterInstall.Spec.Networking.UserManagedNetworking = swag.Bool(true)
 				Expect(c.Update(ctx, clusterInstall)).ToNot(HaveOccurred())
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
@@ -1722,7 +1719,6 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 			})
 			It("should not set spoke BMH - baremetal platform without MAPI", func() {
-				mockInstallerInternal.EXPECT().CheckClusterCapabilities(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 				By("setting the Agent state to installing")
 				agent.Status.DebugInfo.State = models.HostStatusInstallingInProgress
 				Expect(c.Update(context.Background(), agent)).ShouldNot(HaveOccurred())
@@ -1760,7 +1756,6 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("validate label on Secrets", func() {
-				mockInstallerInternal.EXPECT().CheckClusterCapabilities(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "root-ca",
@@ -1789,7 +1784,6 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("ClusterDeployment not set in Agent", func() {
-				mockInstallerInternal.EXPECT().CheckClusterCapabilities(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 				agent.Spec.ClusterDeploymentName = nil
 				Expect(c.Update(ctx, agent)).To(BeNil())
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
@@ -1818,7 +1812,6 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should fall back to Hypershift root CA storage - .crt name", func() {
-				mockInstallerInternal.EXPECT().CheckClusterCapabilities(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 				_, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).NotTo(HaveOccurred())
 				_, err = bmhr.Reconcile(ctx, newBMHRequest(host))
