@@ -13,6 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// nvidiaVendorID is the PCI vendor identifier of NVIDIA devices.
+const nvidiaVendorID = "10de"
+
 var Operator = models.MonitoredOperator{
 	Namespace:        "nvidia-gpu-operator",
 	Name:             "nvidia-gpu",
@@ -91,7 +94,49 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		Status:       api.Success,
 		ValidationId: o.GetHostValidationID(),
 	}
+
+	// Get the inventory:
+	if host.Inventory == "" {
+		result.Status = api.Pending
+		result.Reasons = []string{
+			"Missing inventory in the host",
+		}
+		return
+	}
+	inventory, err := common.UnmarshalInventory(host.Inventory)
+	if err != nil {
+		result.Status = api.Pending
+		result.Reasons = []string{
+			"Failed to get inventory from host",
+		}
+		return
+	}
+
+	// Secure boot must be disabled if there are NVIDIA GPUs in the node, as otherwise it won't be possible to load
+	// NVIDIA drivers.
+	if o.hasNvidiaGPU(inventory) && o.isSecureBootEnabled(inventory) {
+		result.Status = api.Failure
+		result.Reasons = append(
+			result.Reasons,
+			"Secure boot is enabled, but it needs to be disabled in order to load NVIDIA GPU drivers",
+		)
+		return
+	}
+
 	return
+}
+
+func (o *operator) hasNvidiaGPU(inventory *models.Inventory) bool {
+	for _, gpu := range inventory.Gpus {
+		if gpu.VendorID == nvidiaVendorID {
+			return true
+		}
+	}
+	return false
+}
+
+func (o *operator) isSecureBootEnabled(inventory *models.Inventory) bool {
+	return inventory.Boot != nil && inventory.Boot.SecureBootState == models.SecureBootStateEnabled
 }
 
 // GetProperties provides description of operator properties.
