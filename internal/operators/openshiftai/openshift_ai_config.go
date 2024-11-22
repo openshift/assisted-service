@@ -13,4 +13,9 @@ type Config struct {
 	// `oc` command, and that way we don't need an additional image. But in the future we will probably want to have
 	// a separate image that contains the things that we need to run these setup jobs.
 	ControllerImage string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-controller:latest"`
+
+	// SupportedGPUS is a comma separated list of vendor identifiers of supported GPUs. For examaple, to enable
+	// support for NVIDIA and Virtio GPUS the value should be `10de,1af4`. By default only NVIDIA GPUs are
+	// supported.
+	SupportedGPUs []string `envconfig:"OPENSHIFT_AI_SUPPORTED_GPUS" default:"10de"`
 }
