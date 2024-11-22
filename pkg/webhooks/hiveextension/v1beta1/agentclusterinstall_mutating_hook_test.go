@@ -139,6 +139,41 @@ var _ = Describe("ACI mutator hook", func() {
 			patched:         false,
 		},
 		{
+			name: "ACI create with userManagedNetworking not set with External platform --> patch to true",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{},
+				PlatformType: hiveext.ExternalPlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+			patched:         true,
+			patchedValue:    true,
+		},
+		{
+			name: "ACI create with userManagedNetworking not set with External platform and multi node --> patch to true",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:            hiveext.Networking{},
+				PlatformType:          hiveext.ExternalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 3, WorkerAgents: 3},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+			patched:         true,
+			patchedValue:    true,
+		},
+		{
+			name: "ACI create with userManagedNetworking not set with External platform and SNO --> patch to true",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:            hiveext.Networking{},
+				PlatformType:          hiveext.ExternalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 1},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+			patched:         true,
+			patchedValue:    true,
+		},
+		{
 			name: "ACI updated after install start --> no change",
 			oldSpec: hiveext.AgentClusterInstallSpec{
 				Networking:            hiveext.Networking{},

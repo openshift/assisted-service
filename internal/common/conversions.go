@@ -5,13 +5,21 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/models"
 )
 
-func PlatformTypeToPlatform(platformType hiveext.PlatformType) *models.Platform {
-	pType := strings.ToLower(string(platformType))
+func PlatformTypeToPlatform(aciSpec hiveext.AgentClusterInstallSpec) *models.Platform {
+	pType := strings.ToLower(string(aciSpec.PlatformType))
 	platform := &models.Platform{Type: PlatformTypePtr(models.PlatformType(pType))}
+	if aciSpec.ExternalPlatformSpec != nil {
+		platform.External = &models.PlatformExternal{
+			PlatformName:           swag.String(aciSpec.ExternalPlatformSpec.PlatformName),
+			CloudControllerManager: swag.String(string(aciSpec.ExternalPlatformSpec.CloudControllerManager)),
+		}
+	}
+
 	return platform
 }
 

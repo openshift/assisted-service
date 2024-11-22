@@ -363,7 +363,7 @@ func isUserManagedNetworkingSetToFalseWithSNO(newObject *hiveext.AgentClusterIns
 }
 
 func validateCreatePlatformAndUMN(newObject *hiveext.AgentClusterInstall) error {
-	platform := common.PlatformTypeToPlatform(newObject.Spec.PlatformType)
+	platform := common.PlatformTypeToPlatform(newObject.Spec)
 	_, _, err := provider.GetActualCreateClusterPlatformParams(
 		platform, newObject.Spec.Networking.UserManagedNetworking, getHighAvailabilityMode(newObject, nil), "")
 	return err
@@ -376,9 +376,9 @@ func validateUpdatePlatformAndUMNUpdate(oldObject, newObject *hiveext.AgentClust
 	)
 
 	if newObject.Spec.PlatformType != "" {
-		platform = common.PlatformTypeToPlatform(newObject.Spec.PlatformType)
+		platform = common.PlatformTypeToPlatform(newObject.Spec)
 	} else {
-		platform = common.PlatformTypeToPlatform(oldObject.Spec.PlatformType)
+		platform = common.PlatformTypeToPlatform(oldObject.Spec)
 	}
 
 	if newObject.Spec.Networking.UserManagedNetworking != nil {

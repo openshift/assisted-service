@@ -607,6 +607,202 @@ var _ = Describe("ACI web validate", func() {
 			operation:       admissionv1.Update,
 			expectedAllowed: true,
 		},
+		{
+			name: "ACI create with External platform and userManagedNetworking set to true is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI create with External platform and userManagedNetworking set to false is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "SNO ACI create with External platform and userManagedNetworking set to true is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 1,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "Multi node ACI create with External platform and userManagedNetworking set to true is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "SNO ACI create with External platform and userManagedNetworking set to false is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 1,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "Multi node ACI create with External platform and userManagedNetworking set to false is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "Multi node ACI create with External platform without ExternalPlatformSpec is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "SNO ACI update External platform to Multi node is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       3,
+				},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 1,
+					WorkerAgents:       1,
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI update External platform with userManagedNetworking set to false not is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking: hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
+		{
+			name: "ACI update External platform with platform BareMetalPlatformType and userManagedNetworking set to false is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI update External platform with platform BareMetalPlatformType and userManagedNetworking set to false is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI update BareMetalPlatformType platform with platform External is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				PlatformType: hiveext.ExternalPlatformType,
+				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
+					PlatformName:           "test",
+					CloudControllerManager: "",
+				},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
 	}
 
 	for i := range cases {
