@@ -152,11 +152,6 @@ func (m *Manager) clusterHostMonitoring() int64 {
 		}
 
 		for _, c := range clusters {
-			expectedMasterCount := c.ControlPlaneCount
-			if c.ControlPlaneCount == 0 {
-				expectedMasterCount = common.MinMasterHostsNeededForInstallationInHaMode
-			}
-
 			inventoryCache := make(InventoryCache)
 			sortedHosts, canRefreshRoles := SortHosts(c.Hosts)
 
@@ -176,7 +171,7 @@ func (m *Manager) clusterHostMonitoring() int64 {
 					//all the hosts in the cluster has inventory to avoid race condition
 					//with the reset auto-assign mechanism.
 					if canRefreshRoles {
-						err = m.refreshRoleInternal(ctx, host, m.db, false, swag.Int(int(expectedMasterCount)))
+						err = m.refreshRoleInternal(ctx, host, m.db, false, swag.Int(int(c.ControlPlaneCount)))
 						if err != nil {
 							log.WithError(err).Errorf("failed to refresh host %s role", *host.ID)
 						}

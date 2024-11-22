@@ -45,6 +45,7 @@ func post() []*gormigrate.Migration {
 		dropClusterApiVipAndIngressVip(),
 		updateOciToExternalPlatformType(),
 		dropClusterPlatformIsExternal(),
+		updateNewColumnControlPlaneCountValueForExistingClusterRecords(),
 	}
 
 	sort.SliceStable(postMigrations, func(i, j int) bool { return postMigrations[i].ID < postMigrations[j].ID })

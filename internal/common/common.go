@@ -688,35 +688,6 @@ func ShouldMastersBeSchedulable(cluster *models.Cluster) bool {
 	return len(workers) < MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode
 }
 
-func GetDefaultHighAvailabilityAndMasterCountParams(highAvailabilityMode *string, controlPlaneCount *int64) (*string, *int64) {
-	// Both not set, multi node by default
-	if highAvailabilityMode == nil && controlPlaneCount == nil {
-		return swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-			swag.Int64(MinMasterHostsNeededForInstallationInHaMode)
-	}
-
-	// only highAvailabilityMode set
-	if controlPlaneCount == nil {
-		if *highAvailabilityMode == models.ClusterHighAvailabilityModeNone {
-			return highAvailabilityMode, swag.Int64(AllowedNumberOfMasterHostsInNoneHaMode)
-		} else {
-			return highAvailabilityMode, swag.Int64(MinMasterHostsNeededForInstallationInHaMode)
-		}
-	}
-
-	// only controlPlaneCount set
-	if highAvailabilityMode == nil {
-		if *controlPlaneCount == AllowedNumberOfMasterHostsInNoneHaMode {
-			return swag.String(models.ClusterHighAvailabilityModeNone), controlPlaneCount
-		} else {
-			return swag.String(models.ClusterHighAvailabilityModeFull), controlPlaneCount
-		}
-	}
-
-	// both are set
-	return highAvailabilityMode, controlPlaneCount
-}
-
 func IsMirrorConfigurationSet(conf *MirrorRegistryConfiguration) bool {
 	if conf == nil {
 		return false
