@@ -364,6 +364,9 @@ func GetClusterFromDBWithVips(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, err
 }
 
 func GetHostCountByRole(db *gorm.DB, clusterID strfmt.UUID, role models.HostRole, suggested bool) (*int64, error) {
+	// Start from empty query
+	cleanQuery := db.Session(&gorm.Session{NewDB: true})
+
 	var count int64
 
 	field := "role"
@@ -374,7 +377,7 @@ func GetHostCountByRole(db *gorm.DB, clusterID strfmt.UUID, role models.HostRole
 	}
 	condition := fmt.Sprintf("hosts.%s = ?", field)
 
-	err := db.Model(&Host{}).
+	err := cleanQuery.Model(&Host{}).
 		Joins("INNER JOIN clusters ON hosts.cluster_id = clusters.id").
 		Where("clusters.id = ?", clusterID.String()).
 		Where(condition, string(role)).
