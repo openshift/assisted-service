@@ -456,6 +456,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				BeforeEach(func() {
 
 					c = common.Cluster{
+						ControlPlaneCount: 3,
 						Cluster: models.Cluster{
 							ID:               &id,
 							Status:           swag.String("insufficient"),
@@ -544,6 +545,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			Context("from ready state", func() {
 				BeforeEach(func() {
 					c = common.Cluster{
+						ControlPlaneCount: 3,
 						Cluster: models.Cluster{
 							ID:               &id,
 							Status:           swag.String(models.ClusterStatusReady),
@@ -2253,19 +2255,21 @@ var _ = Describe("Majority groups", func() {
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
 		verificationSuccess := models.VipVerificationSucceeded
-		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:               &id,
-			Status:           swag.String(models.ClusterStatusReady),
-			ClusterNetworks:  common.TestIPv4Networking.ClusterNetworks,
-			ServiceNetworks:  common.TestIPv4Networking.ServiceNetworks,
-			MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
-			APIVips:          []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: &verificationSuccess}},
-			IngressVips:      []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: &verificationSuccess}},
-			BaseDNSDomain:    "test.com",
-			PullSecretSet:    true,
-			NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
-			OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
-		}}
+		cluster = common.Cluster{
+			ControlPlaneCount: 3,
+			Cluster: models.Cluster{
+				ID:               &id,
+				Status:           swag.String(models.ClusterStatusReady),
+				ClusterNetworks:  common.TestIPv4Networking.ClusterNetworks,
+				ServiceNetworks:  common.TestIPv4Networking.ServiceNetworks,
+				MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
+				APIVips:          []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: &verificationSuccess}},
+				IngressVips:      []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: &verificationSuccess}},
+				BaseDNSDomain:    "test.com",
+				PullSecretSet:    true,
+				NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
+				OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
+			}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
 		mockMetricApi.EXPECT().MonitoredClusterCount(int64(1)).AnyTimes()
@@ -2572,19 +2576,21 @@ var _ = Describe("ready_state", func() {
 		id = strfmt.UUID(uuid.New().String())
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
-		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:               &id,
-			Status:           swag.String(models.ClusterStatusReady),
-			ClusterNetworks:  common.TestIPv4Networking.ClusterNetworks,
-			ServiceNetworks:  common.TestIPv4Networking.ServiceNetworks,
-			MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
-			APIVips:          []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
-			IngressVips:      []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
-			BaseDNSDomain:    "test.com",
-			PullSecretSet:    true,
-			NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
-			OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
-		}}
+		cluster = common.Cluster{
+			ControlPlaneCount: 3,
+			Cluster: models.Cluster{
+				ID:               &id,
+				Status:           swag.String(models.ClusterStatusReady),
+				ClusterNetworks:  common.TestIPv4Networking.ClusterNetworks,
+				ServiceNetworks:  common.TestIPv4Networking.ServiceNetworks,
+				MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
+				APIVips:          []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
+				IngressVips:      []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
+				BaseDNSDomain:    "test.com",
+				PullSecretSet:    true,
+				NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
+				OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
+			}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		addInstallationRequirements(id, db)
 

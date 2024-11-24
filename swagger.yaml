@@ -4159,6 +4159,7 @@ definitions:
       - 'SERVICEMESH'
       - 'SERVERLESS'
       - 'OPENSHIFT_AI'
+      - 'STRETCHED_CLUSTERS'
 
   architecture-support-level-id:
     type: string

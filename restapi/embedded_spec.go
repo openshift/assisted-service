@@ -7773,7 +7773,8 @@ func init() {
         "PIPELINES",
         "SERVICEMESH",
         "SERVERLESS",
-        "OPENSHIFT_AI"
+        "OPENSHIFT_AI",
+        "STRETCHED_CLUSTERS"
       ]
     },
     "finalizing-stage": {
@@ -18634,7 +18635,8 @@ func init() {
         "PIPELINES",
         "SERVICEMESH",
         "SERVERLESS",
-        "OPENSHIFT_AI"
+        "OPENSHIFT_AI",
+        "STRETCHED_CLUSTERS"
       ]
     },
     "finalizing-stage": {
