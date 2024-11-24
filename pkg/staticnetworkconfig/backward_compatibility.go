@@ -7,7 +7,7 @@ import (
 
 type Config struct {
 	// MinVersionForNmstateService is a flag that enables the static networking flow using the nmstate service for specific OCP versions.
-	MinVersionForNmstateService string `envconfig:"MIN_VERSION_FOR_NMSTATE_SERVICE" default:"4.19"`
+	MinVersionForNmstateService string `envconfig:"MIN_VERSION_FOR_NMSTATE_SERVICE" default:"4.18"`
 }
 
 func (s *StaticNetworkConfigGenerator) NMStatectlServiceSupported(version, arch string) (bool, error) {
