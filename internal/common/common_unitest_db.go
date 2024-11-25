@@ -31,11 +31,11 @@ import (
 		* k8s cluster
 		* if k8s connection is not available try to run it as docker container
 
-		When SKIP_UT_DB env var is set localhost:5432 is being used.
+		When SKIP_UT_DB env var is set localhost:5433 is being used.
 */
 const (
 	dbDockerName  = "ut-postgres"
-	dbDefaultPort = "5432"
+	dbDefaultPort = "5433"
 
 	k8sNamespace = "assisted-installer"
 )
@@ -134,9 +134,9 @@ func (c *K8SDBContext) Create() error {
 							Image: "quay.io/sclorg/postgresql-12-c8s",
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          "tcp-5432",
+									Name:          "tcp-5433",
 									Protocol:      corev1.ProtocolTCP,
-									ContainerPort: 5432,
+									ContainerPort: 5433,
 								},
 							},
 							Env: []corev1.EnvVar{
@@ -148,7 +148,7 @@ func (c *K8SDBContext) Create() error {
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									TCPSocket: &corev1.TCPSocketAction{
-										Port: intstr.FromInt(5432),
+										Port: intstr.FromInt(5433),
 									},
 								},
 							},
@@ -201,9 +201,9 @@ func (c *K8SDBContext) Create() error {
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
-					Port:     5432,
+					Port:     5433,
 					Protocol: corev1.ProtocolTCP,
-					Name:     "tcp-5432",
+					Name:     "tcp-5433",
 				},
 			},
 			Type: corev1.ServiceTypeLoadBalancer,
