@@ -5171,7 +5171,7 @@ var _ = Describe("Verify install-config manifest", func() {
 	)
 })
 
-var _ = Describe("Verify role assignment for stretched control plane cluster", func() {
+var _ = Describe("Verify role assignment for non-standard HA OCP Control Plane cluster", func() {
 	var ctx = context.TODO()
 
 	It("with 4 masters, 1 worker", func() {
@@ -5179,7 +5179,7 @@ var _ = Describe("Verify role assignment for stretched control plane cluster", f
 			Context: ctx,
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(common.MinimumVersionForStretchedControlPlanesCluster),
+				OpenshiftVersion:  swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
 				PullSecret:        swag.String(pullSecret),
 				ControlPlaneCount: swag.Int64(4),
 			},

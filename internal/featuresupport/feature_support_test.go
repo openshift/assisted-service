@@ -177,22 +177,30 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		)
 	})
 
-	Context("Test Stretched Clusters", func() {
-		feature := models.FeatureSupportLevelIDSTRETCHEDCLUSTERS
+	Context("Test non-standad HA OCP Control Plane", func() {
+		feature := models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE
 		arch := "DoesNotMatter"
 
 		It("test feature availability", func() {
-			Expect(IsFeatureAvailable(feature, common.MinimumVersionForStretchedControlPlanesCluster, swag.String(arch))).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, common.MinimumVersionForNonStandardHAOCPControlPlane, swag.String(arch))).To(BeTrue())
 			Expect(IsFeatureAvailable(feature, "4.17", swag.String(arch))).To(BeFalse())
 		})
 
 		DescribeTable("test feature compatability with other features", func(activeFeatures []SupportLevelFeature, shouldSucceed bool) {
-			activeFeatures = append(activeFeatures, &StretchedCluster{})
+			activeFeatures = append(activeFeatures, &NonStandardHAControlPlane{})
 
 			if shouldSucceed {
-				Expect(isFeaturesCompatibleWithFeatures(common.MinimumVersionForStretchedControlPlanesCluster, activeFeatures)).ToNot(HaveOccurred())
+				Expect(
+					isFeaturesCompatibleWithFeatures(
+						common.MinimumVersionForNonStandardHAOCPControlPlane,
+						activeFeatures),
+				).ToNot(HaveOccurred())
 			} else {
-				Expect(isFeaturesCompatibleWithFeatures(common.MinimumVersionForStretchedControlPlanesCluster, activeFeatures)).To(HaveOccurred())
+				Expect(
+					isFeaturesCompatibleWithFeatures(
+						common.MinimumVersionForNonStandardHAOCPControlPlane,
+						activeFeatures),
+				).To(HaveOccurred())
 			}
 		},
 			Entry(

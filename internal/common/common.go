@@ -54,7 +54,7 @@ const (
 	AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder = 3
 	AllowedNumberOfMasterHostsInNoneHaMode                           = 1
 	AllowedNumberOfWorkersInNoneHaMode                               = 0
-	MinimumVersionForStretchedControlPlanesCluster                   = "4.18"
+	MinimumVersionForNonStandardHAOCPControlPlane                    = "4.18"
 	MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode    = 2
 )
 

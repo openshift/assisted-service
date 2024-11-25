@@ -1947,21 +1947,21 @@ func validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, 
 		)
 	}
 
-	stretchedClustersNotSuported, err := common.BaseVersionLessThan(common.MinimumVersionForStretchedControlPlanesCluster, openshiftVersion)
+	nonStandardHAOCPControlPlaneNotSuported, err := common.BaseVersionLessThan(common.MinimumVersionForNonStandardHAOCPControlPlane, openshiftVersion)
 	if err != nil {
 		return err
 	}
 
 	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull &&
 		controlPlaneCount != common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder &&
-		stretchedClustersNotSuported {
+		nonStandardHAOCPControlPlaneNotSuported {
 		return common.NewApiError(
 			http.StatusBadRequest,
 			fmt.Errorf(
 				"there should be exactly %d dedicated control plane nodes for high availability mode %s in openshift version older than %s",
 				common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder,
 				highAvailabilityMode,
-				common.MinimumVersionForStretchedControlPlanesCluster,
+				common.MinimumVersionForNonStandardHAOCPControlPlane,
 			),
 		)
 	}
@@ -1976,7 +1976,7 @@ func validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, 
 				common.MinMasterHostsNeededForInstallationInHaMode,
 				common.MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer,
 				highAvailabilityMode,
-				common.MinimumVersionForStretchedControlPlanesCluster,
+				common.MinimumVersionForNonStandardHAOCPControlPlane,
 			),
 		)
 	}

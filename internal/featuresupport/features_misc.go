@@ -301,35 +301,35 @@ func (f *skipMcoReboot) getFeatureActiveLevel(cluster *common.Cluster, infraEnv 
 	return activeLevelActive
 }
 
-// Stretched Cluster
-type StretchedCluster struct{}
+// Non-standard HA OCP Control Plane
+type NonStandardHAControlPlane struct{}
 
-func (f *StretchedCluster) New() SupportLevelFeature {
-	return &StretchedCluster{}
+func (f *NonStandardHAControlPlane) New() SupportLevelFeature {
+	return &NonStandardHAControlPlane{}
 }
 
-func (f *StretchedCluster) getId() models.FeatureSupportLevelID {
-	return models.FeatureSupportLevelIDSTRETCHEDCLUSTERS
+func (f *NonStandardHAControlPlane) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE
 }
 
-func (f *StretchedCluster) GetName() string {
-	return "Stretched Cluster"
+func (f *NonStandardHAControlPlane) GetName() string {
+	return "Non-standard HA OCP Control Plane"
 }
 
-func (f *StretchedCluster) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	supported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForStretchedControlPlanesCluster, filters.OpenshiftVersion)
+func (f *NonStandardHAControlPlane) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	supported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForNonStandardHAOCPControlPlane, filters.OpenshiftVersion)
 	if !supported || err != nil {
 		return models.SupportLevelUnavailable
 	}
 
 	if filters.PlatformType != nil && *filters.PlatformType != models.PlatformTypeBaremetal {
-		return models.SupportLevelSupported
+		return models.SupportLevelUnavailable
 	}
 
 	return models.SupportLevelSupported
 }
 
-func (f *StretchedCluster) getIncompatibleFeatures(openshiftVersion string) *[]models.FeatureSupportLevelID {
+func (f *NonStandardHAControlPlane) getIncompatibleFeatures(openshiftVersion string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDODF,
 
@@ -342,11 +342,11 @@ func (f *StretchedCluster) getIncompatibleFeatures(openshiftVersion string) *[]m
 	}
 }
 
-func (f *StretchedCluster) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
+func (f *NonStandardHAControlPlane) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
 	return nil
 }
 
-func (f *StretchedCluster) getFeatureActiveLevel(cluster *common.Cluster, infraEnv *models.InfraEnv,
+func (f *NonStandardHAControlPlane) getFeatureActiveLevel(cluster *common.Cluster, infraEnv *models.InfraEnv,
 	clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
 	if cluster != nil && cluster.ControlPlaneCount > 3 {
 		return activeLevelActive

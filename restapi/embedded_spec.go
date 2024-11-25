@@ -7774,7 +7774,7 @@ func init() {
         "SERVICEMESH",
         "SERVERLESS",
         "OPENSHIFT_AI",
-        "STRETCHED_CLUSTERS"
+        "NON_STANDARD_HA_CONTROL_PLANE"
       ]
     },
     "finalizing-stage": {
@@ -18636,7 +18636,7 @@ func init() {
         "SERVICEMESH",
         "SERVERLESS",
         "OPENSHIFT_AI",
-        "STRETCHED_CLUSTERS"
+        "NON_STANDARD_HA_CONTROL_PLANE"
       ]
     },
     "finalizing-stage": {

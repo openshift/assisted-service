@@ -896,7 +896,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			}
 
 			if cluster.Cluster.OpenshiftVersion == "" {
-				cluster.Cluster.OpenshiftVersion = testing.ValidOCPVersionForNonStretchedClusters
+				cluster.Cluster.OpenshiftVersion = testing.ValidOCPVersionForNonStandardHAOCPControlPlane
 			}
 
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())

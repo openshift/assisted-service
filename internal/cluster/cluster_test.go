@@ -196,7 +196,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 					PullSecretSet:      true,
 					MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
 					StatusUpdatedAt:    strfmt.DateTime(time.Now()),
-					OpenshiftVersion:   testing.ValidOCPVersionForNonStretchedClusters,
+					OpenshiftVersion:   testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 				},
 				TriggerMonitorTimestamp: time.Now(),
 			}
@@ -469,7 +469,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 							PullSecretSet:    true,
 							StatusInfo:       swag.String(StatusInfoInsufficient),
 							NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
-							OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
+							OpenshiftVersion: testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						},
 						TriggerMonitorTimestamp: time.Now(),
 					}
@@ -558,7 +558,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 							BaseDNSDomain:    "test.com",
 							PullSecretSet:    true,
 							NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
-							OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
+							OpenshiftVersion: testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						},
 						TriggerMonitorTimestamp: time.Now(),
 					}
@@ -2268,7 +2268,7 @@ var _ = Describe("Majority groups", func() {
 				BaseDNSDomain:    "test.com",
 				PullSecretSet:    true,
 				NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
-				OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
+				OpenshiftVersion: testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 			}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -2589,7 +2589,7 @@ var _ = Describe("ready_state", func() {
 				BaseDNSDomain:    "test.com",
 				PullSecretSet:    true,
 				NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
-				OpenshiftVersion: testing.ValidOCPVersionForNonStretchedClusters,
+				OpenshiftVersion: testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 			}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		addInstallationRequirements(id, db)

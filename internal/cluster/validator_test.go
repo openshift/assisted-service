@@ -704,7 +704,7 @@ var _ = Describe("SufficientMastersCount", func() {
 					ControlPlaneCount: 3,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 						Hosts: []*models.Host{
 							{
@@ -737,7 +737,7 @@ var _ = Describe("SufficientMastersCount", func() {
 					ControlPlaneCount: 1,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
 						Hosts: []*models.Host{
 							{
@@ -764,7 +764,7 @@ var _ = Describe("SufficientMastersCount", func() {
 					ControlPlaneCount: 5,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
-						OpenshiftVersion:     common.MinimumVersionForStretchedControlPlanesCluster,
+						OpenshiftVersion:     common.MinimumVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 						Hosts: []*models.Host{
 							{
@@ -805,7 +805,7 @@ var _ = Describe("SufficientMastersCount", func() {
 					ControlPlaneCount: 3,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 						Hosts: []*models.Host{
 							{
@@ -844,7 +844,7 @@ var _ = Describe("SufficientMastersCount", func() {
 					ControlPlaneCount: 1,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
 						Hosts: []*models.Host{
 							{
@@ -874,7 +874,7 @@ var _ = Describe("SufficientMastersCount", func() {
 					ControlPlaneCount: 1,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStretchedClusters,
+						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
 						Hosts: []*models.Host{
 							{

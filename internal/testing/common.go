@@ -8,8 +8,8 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 )
 
-var ValidOCPVersionForNonStretchedClusters = func(majorMinorOCPVersion string) string {
+var ValidOCPVersionForNonStandardHAOCPControlPlane = func(majorMinorOCPVersion string) string {
 	splittedVersion := strings.Split(majorMinorOCPVersion, ".")
 	intVersion, _ := strconv.Atoi(splittedVersion[1])
 	return fmt.Sprintf("%s.%d", splittedVersion[0], intVersion-1)
-}(common.MinimumVersionForStretchedControlPlanesCluster)
+}(common.MinimumVersionForNonStandardHAOCPControlPlane)
