@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/alecthomas/units"
@@ -18,25 +19,25 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
-	"github.com/pkg/xattr"
 	"github.com/sirupsen/logrus"
-	syscall "golang.org/x/sys/unix"
 )
 
 type FSClient struct {
-	log     logrus.FieldLogger
-	basedir string
+	log         logrus.FieldLogger
+	basedir     string
+	xattrClient XattrClient
 }
 
 var _ API = &FSClient{}
 
-func NewFSClient(basedir string, logger logrus.FieldLogger, metricsAPI metrics.API, fsThreshold int) *FSClientDecorator {
+func NewFSClient(basedir string, logger logrus.FieldLogger, metricsAPI metrics.API, fsThreshold int, xattrClient XattrClient) *FSClientDecorator {
 	return &FSClientDecorator{
 		log:        logger,
 		metricsAPI: metricsAPI,
 		fsClient: FSClient{
-			log:     logger,
-			basedir: basedir,
+			log:         logger,
+			basedir:     basedir,
+			xattrClient: xattrClient,
 		},
 		fsUsageThreshold:              fsThreshold,
 		timeFSUsageLog:                time.Now().Add(-1 * time.Hour),
@@ -53,11 +54,9 @@ func (f *FSClient) CreateBucket() error {
 	return nil
 }
 
-const xattrUserAttributePrefix = "user."
-
-func (f *FSClient) writeFileMetadata(filePath string, metadata map[string]string) error {
+func (f *FSClient) writeFileMetadata(tempFileName string, finalFileName string, metadata map[string]string) error {
 	for attributeName, attributeValue := range metadata {
-		err := xattr.Set(filePath, strings.ToLower(fmt.Sprintf("%s%s", xattrUserAttributePrefix, attributeName)), []byte(attributeValue))
+		err := f.xattrClient.Set(tempFileName, finalFileName, strings.ToLower(attributeName), attributeValue)
 		if err != nil {
 			return errors.Wrapf(err, "unable to store metadata key %s = %s", attributeName, attributeValue)
 		}
@@ -67,20 +66,16 @@ func (f *FSClient) writeFileMetadata(filePath string, metadata map[string]string
 
 func (f *FSClient) getFileMetadata(filePath string) (map[string]string, error) {
 	attributes := make(map[string]string)
-	attributeNames, err := xattr.List(filePath)
+	attributeNames, err := f.xattrClient.List(filePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to obtain extended file attributes while retrieving file metadata")
 	}
 	for _, attributeName := range attributeNames {
-		if !strings.HasPrefix(attributeName, xattrUserAttributePrefix) {
-			continue
-		}
-		attributeByteValue, err := xattr.Get(filePath, attributeName)
+		attributeValue, _, err := f.xattrClient.Get(filePath, attributeName)
 		if err != nil {
-			return nil, errors.Wrap(err, "Unable to obtain extended file attributes while retrieving file metadata")
+			return nil, errors.Wrapf(err, "Unable to obtain extended file attribute %s while retrieving file metadata", attributeName)
 		}
-		attributeValue := string(attributeByteValue)
-		attributes[strings.TrimPrefix(attributeName, xattrUserAttributePrefix)] = attributeValue
+		attributes[attributeName] = attributeValue
 	}
 	return attributes, nil
 }
@@ -120,7 +115,7 @@ func (f *FSClient) upload(ctx context.Context, data []byte, objectName string, m
 		log.Error(err)
 		return err
 	}
-	if err := f.writeFileMetadata(t.Name(), metadata); err != nil {
+	if err := f.writeFileMetadata(t.Name(), filePath, metadata); err != nil {
 		err = errors.Wrapf(err, "Unable to write file metadata for file %s", filePath)
 		log.Error(err)
 		return err
@@ -207,7 +202,7 @@ func (f *FSClient) uploadStream(ctx context.Context, reader io.Reader, objectNam
 			break
 		}
 	}
-	if err := f.writeFileMetadata(t.Name(), metadata); err != nil {
+	if err := f.writeFileMetadata(t.Name(), filePath, metadata); err != nil {
 		err = errors.Wrapf(err, "Unable to write file metadata for file %s", filePath)
 		log.Error(err)
 		return err
@@ -263,7 +258,11 @@ func (f *FSClient) DoesObjectExist(ctx context.Context, objectName string) (bool
 func (f *FSClient) DeleteObject(ctx context.Context, objectName string) (bool, error) {
 	log := logutil.FromContext(ctx, f.log)
 	filePath := filepath.Join(f.basedir, objectName)
-	err := os.Remove(filePath)
+	err := f.xattrClient.RemoveAll(filePath)
+	if err != nil {
+		return false, err
+	}
+	err = os.Remove(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -326,7 +325,11 @@ func (f *FSClient) handleFile(ctx context.Context, log logrus.FieldLogger, fileP
 	if now.Before(fileInfo.ModTime().Add(deleteTime)) {
 		return
 	}
-	err := os.Remove(filePath)
+	err := f.xattrClient.RemoveAll(filePath)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to remove xattr data for file %s", filePath)
+	}
+	err = os.Remove(filePath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			log.WithError(err).Errorf("Failed to delete file %s", filePath)
