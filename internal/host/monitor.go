@@ -35,7 +35,6 @@ func (m *Manager) initMonitoringQueryGenerator() {
 				models.HostStatusPreparingSuccessful,
 				models.HostStatusInstalling,
 				models.HostStatusInstallingInProgress,
-				models.HostStatusInstalled,
 				models.HostStatusInstallingPendingUserAction,
 				models.HostStatusResettingPendingUserAction,
 				models.HostStatusCancelled, // for limited time, until log collection finished or timed-out
