@@ -9,6 +9,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -168,6 +169,9 @@ var Options struct {
 
 	// EnableSoftTimeouts is a boolean flag to enable Soft timeouts by assisted installer
 	EnableSoftTimeouts bool `envconfig:"ENABLE_SOFT_TIMEOUTS" default:"false"`
+
+	// EnableXattrFallback is a boolean flag to enable en emulated fallback methoid of xattr on systems that do not support xattr.
+	EnableXattrFallback bool `envconfig:"ENABLE_XATTR_FALLBACK" default:"true"`
 }
 
 func InitLogs(logLevel, logFormat string) *logrus.Logger {
@@ -201,6 +205,37 @@ func maxDuration(dur time.Duration, durations ...time.Duration) time.Duration {
 		}
 	}
 	return ret
+}
+
+func setUpXattrClient(
+	log *logrus.Logger,
+	rootDir string,
+) s3wrapper.XattrClient {
+	log.Infof("Options.EnableXattrFallback:%t", Options.EnableXattrFallback)
+	var xattrClient s3wrapper.XattrClient
+	var err error
+	xattrClient = s3wrapper.NewOSxAttrClient(log, rootDir)
+	if Options.Storage != storage_filesystem {
+		return xattrClient
+	}
+	if Options.EnableXattrFallback {
+		xattrClient, err = s3wrapper.NewCompositeXattrClient(
+			log,
+			s3wrapper.NewOSxAttrClient(log, rootDir),
+			s3wrapper.NewFilesystemBasedXattrClient(log, rootDir),
+		)
+		if err != nil {
+			log.WithError(err).Fatalf("failed to initialize xattr handling")
+		}
+	}
+	xattrClientSupported, err := xattrClient.IsSupported()
+	if err != nil {
+		log.WithError(err).Fatalf("failed to initialize xattr handling")
+	}
+	if !xattrClientSupported {
+		log.Fatalf("Fallback has been disabled and the file system at '%s' doesn't support extended attributes. This happens when using a RHEL NFS server older than 8.4, a NetApp ONTAP older than 9.12.1, or some other file system that doesn't support extended attributes.", rootDir)
+	}
+	return xattrClient
 }
 
 func main() {
@@ -325,8 +360,13 @@ func main() {
 	failOnError(err, "failed to create ignition builder")
 	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
 
+	var xattrClient s3wrapper.XattrClient = setUpXattrClient(
+		log,
+		filepath.Join(Options.WorkDir, Options.S3Config.S3Bucket),
+	)
+
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
-		Options.WorkDir, log, metricsManager, Options.FileSystemUsageThreshold)
+		Options.WorkDir, log, metricsManager, Options.FileSystemUsageThreshold, xattrClient)
 	createS3Bucket(objectHandler, log)
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler, usageManager)
@@ -737,7 +777,7 @@ func createS3Bucket(objectHandler s3wrapper.API, log logrus.FieldLogger) {
 }
 
 func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.Config, fsWorkDir string,
-	log logrus.FieldLogger, metricsAPI metrics.API, fsThreshold int) s3wrapper.API {
+	log logrus.FieldLogger, metricsAPI metrics.API, fsThreshold int, xattrClient s3wrapper.XattrClient) s3wrapper.API {
 	var storageClient s3wrapper.API = nil
 	if storage != "" {
 		switch storage {
@@ -746,7 +786,7 @@ func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.C
 				log.Fatal("failed to create S3 client")
 			}
 		case storage_filesystem:
-			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold)
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold, xattrClient)
 		default:
 			log.Fatalf("unsupported storage client: %s", storage)
 		}
@@ -758,7 +798,7 @@ func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.C
 				log.Fatal("failed to create S3 client")
 			}
 		case deployment_type_onprem, deployment_type_ocp:
-			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold)
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold, xattrClient)
 		default:
 			log.Fatalf("unsupported deploy target %s", deployTarget)
 		}
