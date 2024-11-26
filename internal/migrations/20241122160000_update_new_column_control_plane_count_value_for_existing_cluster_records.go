@@ -11,32 +11,28 @@ import (
 // split to 2 migrations, one for each query.
 
 func updateNewColumnControlPlaneCountValueForExistingClusterRecords() *gormigrate.Migration {
-	migrate := func(tx *gorm.DB) error {
-		transaction := tx.Begin()
+	migrate := func(db *gorm.DB) error {
+		return db.Transaction(func(tx *gorm.DB) error {
+			err := tx.Model(&common.Cluster{}).
+				// control_plane_count value in existing records can be NULL or 0 (default). We want to set the value in both cases
+				Where(tx.Where("control_plane_count IS NULL OR control_plane_count = ?", 0)).
+				Where("high_availability_mode = ?", models.ClusterCreateParamsHighAvailabilityModeNone).
+				Update("control_plane_count", "1").Error
+			if err != nil {
+				return errors.Wrap(err, "failed to update control_plane_count value of existing SNO clusters to 1")
+			}
 
-		cleanQuery := tx.Session(&gorm.Session{NewDB: true})
-		err := transaction.Model(&common.Cluster{}).
-			// control_plane_count value in existing records can be NULL or 0 (default). We want to set the value in both cases
-			Where(cleanQuery.Where("control_plane_count IS NULL").Or("control_plane_count = ?", 0)).
-			Where("high_availability_mode = ?", models.ClusterCreateParamsHighAvailabilityModeNone).
-			Update("control_plane_count", "1").Error
-		if err != nil {
-			transaction.Rollback()
-			return errors.Wrap(err, "failed to update control_plane_count value of existing SNO clusters to 1")
-		}
+			err = tx.Model(&common.Cluster{}).
+				// control_plane_count value in existing records can be NULL or 0 (default). We want to set the value in both cases
+				Where(tx.Where("control_plane_count IS NULL OR control_plane_count = ?", 0)).
+				Where("high_availability_mode = ?", models.ClusterCreateParamsHighAvailabilityModeFull).
+				Update("control_plane_count", "3").Error
+			if err != nil {
+				return errors.Wrap(err, "failed to update control_plane_count value of existing multi-node clusters to 3")
+			}
 
-		cleanQuery = tx.Session(&gorm.Session{NewDB: true})
-		err = transaction.Model(&common.Cluster{}).
-			// control_plane_count value in existing records can be NULL or 0 (default). We want to set the value in both cases
-			Where(cleanQuery.Where("control_plane_count IS NULL").Or("control_plane_count = ?", 0)).
-			Where("high_availability_mode = ?", models.ClusterCreateParamsHighAvailabilityModeFull).
-			Update("control_plane_count", "3").Error
-		if err != nil {
-			transaction.Rollback()
-			return errors.Wrap(err, "failed to update control_plane_count value of existing multi-node clusters to 3")
-		}
-
-		return transaction.Commit().Error
+			return nil
+		})
 	}
 
 	rollback := func(tx *gorm.DB) error {

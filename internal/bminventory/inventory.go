@@ -6675,18 +6675,18 @@ func getDefaultHighAvailabilityAndMasterCountParams(highAvailabilityMode *string
 	if controlPlaneCount == nil {
 		if *highAvailabilityMode == models.ClusterHighAvailabilityModeNone {
 			return highAvailabilityMode, swag.Int64(common.AllowedNumberOfMasterHostsInNoneHaMode)
-		} else {
-			return highAvailabilityMode, swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode)
 		}
+
+		return highAvailabilityMode, swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode)
 	}
 
 	// only controlPlaneCount set
 	if highAvailabilityMode == nil {
 		if *controlPlaneCount == common.AllowedNumberOfMasterHostsInNoneHaMode {
 			return swag.String(models.ClusterHighAvailabilityModeNone), controlPlaneCount
-		} else {
-			return swag.String(models.ClusterHighAvailabilityModeFull), controlPlaneCount
 		}
+
+		return swag.String(models.ClusterHighAvailabilityModeFull), controlPlaneCount
 	}
 
 	// both are set
