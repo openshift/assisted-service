@@ -14,13 +14,6 @@ import (
 	"gorm.io/gorm"
 )
 
-func (m *Manager) SkipMonitoring(h *models.Host) bool {
-	skipMonitoringStates := []string{string(models.LogsStateCompleted), string(models.LogsStateTimeout), ""}
-	result := ((swag.StringValue(h.Status) == models.HostStatusError || swag.StringValue(h.Status) == models.HostStatusCancelled) &&
-		funk.Contains(skipMonitoringStates, h.LogsInfo))
-	return result
-}
-
 func (m *Manager) initMonitoringQueryGenerator() {
 	if m.monitorClusterQueryGenerator == nil {
 		buildInitialQuery := func(db *gorm.DB) *gorm.DB {
@@ -37,11 +30,20 @@ func (m *Manager) initMonitoringQueryGenerator() {
 				models.HostStatusInstallingInProgress,
 				models.HostStatusInstallingPendingUserAction,
 				models.HostStatusResettingPendingUserAction,
-				models.HostStatusCancelled, // for limited time, until log collection finished or timed-out
-				models.HostStatusError,     // for limited time, until log collection finished or timed-out
 			}
 
-			dbWithCondition := common.LoadTableFromDB(db, common.HostsTable, "status in (?)", monitorStates)
+			// monitor following states for limited time, until log collection finished or timed-out
+			monitorStatesUntilLogCollection := []string{
+				models.HostStatusCancelled,
+				models.HostStatusError,
+			}
+			logCollectionEndStates := []string{
+				string(models.LogsStateCompleted),
+				string(models.LogsStateTimeout),
+				"",
+			}
+
+			dbWithCondition := common.LoadTableFromDB(db, common.HostsTable, "status in (?) or (status in (?) and logs_info not in (?))", monitorStates, monitorStatesUntilLogCollection, logCollectionEndStates)
 			dbWithCondition = common.LoadClusterTablesFromDB(dbWithCondition, common.HostsTable)
 			dbWithCondition = dbWithCondition.Where("exists (select 1 from hosts where clusters.id = hosts.cluster_id)")
 			return dbWithCondition
@@ -159,21 +161,20 @@ func (m *Manager) clusterHostMonitoring() int64 {
 					m.log.Debugf("Not a leader, exiting cluster HostMonitoring")
 					return monitored
 				}
-				if !m.SkipMonitoring(host) {
-					monitored += 1
-					err = m.refreshStatusInternal(ctx, host, c, nil, inventoryCache, m.db)
+
+				monitored += 1
+				err = m.refreshStatusInternal(ctx, host, c, nil, inventoryCache, m.db)
+				if err != nil {
+					log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
+				}
+				//the refreshed role will be taken into account in the validations
+				//on the next monitor cycle. The roles will not be calculated until
+				//all the hosts in the cluster has inventory to avoid race condition
+				//with the reset auto-assign mechanism.
+				if canRefreshRoles {
+					err = m.refreshRoleInternal(ctx, host, m.db, false, swag.Int(int(c.ControlPlaneCount)))
 					if err != nil {
-						log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
-					}
-					//the refreshed role will be taken into account in the validations
-					//on the next monitor cycle. The roles will not be calculated until
-					//all the hosts in the cluster has inventory to avoid race condition
-					//with the reset auto-assign mechanism.
-					if canRefreshRoles {
-						err = m.refreshRoleInternal(ctx, host, m.db, false, swag.Int(int(c.ControlPlaneCount)))
-						if err != nil {
-							log.WithError(err).Errorf("failed to refresh host %s role", *host.ID)
-						}
+						log.WithError(err).Errorf("failed to refresh host %s role", *host.ID)
 					}
 				}
 			}
