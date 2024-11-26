@@ -709,7 +709,7 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(
 	expectedWorkerCount := clusterInstall.Spec.ProvisionRequirements.WorkerAgents
 	expectedHostCount := expectedMasterCount + expectedWorkerCount
 
-	masterCountPrt, workerCountPtr, err := getHostSuggestedRoleCount(r.ClusterApi, *c.ID)
+	masterCountPtr, workerCountPtr, err := getHostSuggestedRoleCount(r.ClusterApi, *c.ID)
 	if err != nil {
 		// will be shown as a SpecSynced error
 		log.WithError(err).Error("failed to fetch host suggested role count")
@@ -718,7 +718,7 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(
 
 	return approvedHosts == expectedHostCount &&
 		registered == expectedHostCount &&
-		int(swag.Int64Value(masterCountPrt)) == expectedMasterCount &&
+		int(swag.Int64Value(masterCountPtr)) == expectedMasterCount &&
 		int(swag.Int64Value(workerCountPtr)) == expectedWorkerCount &&
 		unsyncedHosts == 0, nil
 }

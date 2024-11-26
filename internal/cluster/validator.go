@@ -315,13 +315,6 @@ func (v *clusterValidator) SufficientMastersCount(c *clusterPreprocessContext) (
 		message string
 	)
 
-	// Might be the case for already existing records (default value). In this case high availablity mode is set, we will get
-	// the corresponding control planes count
-	if c.cluster.ControlPlaneCount == 0 {
-		_, count := common.GetDefaultHighAvailabilityAndMasterCountParams(c.cluster.HighAvailabilityMode, nil)
-		c.cluster.ControlPlaneCount = swag.Int64Value(count)
-	}
-
 	masters, workers, autoAssignHosts := common.GetHostsByEachRole(&c.cluster.Cluster, true)
 	for _, h := range autoAssignHosts {
 		//if allocated masters count is less than the desired count, find eligible hosts

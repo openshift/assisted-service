@@ -4159,6 +4159,7 @@ definitions:
       - 'SERVICEMESH'
       - 'SERVERLESS'
       - 'OPENSHIFT_AI'
+      - 'NON_STANDARD_HA_CONTROL_PLANE'
 
   architecture-support-level-id:
     type: string

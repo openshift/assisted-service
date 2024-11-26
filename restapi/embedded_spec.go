@@ -7776,7 +7776,8 @@ func init() {
         "PIPELINES",
         "SERVICEMESH",
         "SERVERLESS",
-        "OPENSHIFT_AI"
+        "OPENSHIFT_AI",
+        "NON_STANDARD_HA_CONTROL_PLANE"
       ]
     },
     "finalizing-stage": {
@@ -18649,7 +18650,8 @@ func init() {
         "PIPELINES",
         "SERVICEMESH",
         "SERVERLESS",
-        "OPENSHIFT_AI"
+        "OPENSHIFT_AI",
+        "NON_STANDARD_HA_CONTROL_PLANE"
       ]
     },
     "finalizing-stage": {

@@ -125,6 +125,7 @@ func (feature *NonePlatformFeature) getIncompatibleFeatures(string) *[]models.Fe
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
+		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 	}
 }
 
@@ -183,6 +184,7 @@ func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) *[]mod
 		models.FeatureSupportLevelIDCNV,
 		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDMTV,
+		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 	}
 }
 
@@ -236,6 +238,7 @@ func (feature *VsphereIntegrationFeature) getIncompatibleFeatures(openshiftVersi
 		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDCNV,
 		models.FeatureSupportLevelIDMTV,
+		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 	}
 
 	if isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion); isNotSupported || err != nil {
@@ -289,6 +292,7 @@ func (feature *OciIntegrationFeature) getIncompatibleFeatures(string) *[]models.
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDDUALSTACKVIPS,
 		models.FeatureSupportLevelIDFULLISO,
+		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 	}
 }
 
@@ -338,6 +342,7 @@ func (feature *ExternalPlatformFeature) getIncompatibleFeatures(string) *[]model
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
+		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 	}
 }
 

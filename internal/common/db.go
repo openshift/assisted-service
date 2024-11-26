@@ -85,7 +85,7 @@ type Cluster struct {
 	// A JSON blob in which cluster UI settings will be stored.
 	UISettings string `json:"ui_settings"`
 
-	// The amount of control planes which should be part of the cluster in high availability 'Full' mode.
+	// The amount of control planes which should be part of the cluster.
 	ControlPlaneCount int64 `json:"control_plane_count"`
 
 	// A JSON blob in which holds the cluster mirror registry if set

@@ -334,7 +334,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 		params.NewClusterParams.SchedulableMasters = swag.Bool(false)
 	}
 
-	params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount = common.GetDefaultHighAvailabilityAndMasterCountParams(
+	params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount = getDefaultHighAvailabilityAndMasterCountParams(
 		params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount,
 	)
 
@@ -1947,21 +1947,21 @@ func validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, 
 		)
 	}
 
-	stretchedClustersNotSuported, err := common.BaseVersionLessThan(common.MinimumVersionForStretchedControlPlanesCluster, openshiftVersion)
+	nonStandardHAOCPControlPlaneNotSuported, err := common.BaseVersionLessThan(common.MinimumVersionForNonStandardHAOCPControlPlane, openshiftVersion)
 	if err != nil {
 		return err
 	}
 
 	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull &&
 		controlPlaneCount != common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder &&
-		stretchedClustersNotSuported {
+		nonStandardHAOCPControlPlaneNotSuported {
 		return common.NewApiError(
 			http.StatusBadRequest,
 			fmt.Errorf(
 				"there should be exactly %d dedicated control plane nodes for high availability mode %s in openshift version older than %s",
 				common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder,
 				highAvailabilityMode,
-				common.MinimumVersionForStretchedControlPlanesCluster,
+				common.MinimumVersionForNonStandardHAOCPControlPlane,
 			),
 		)
 	}
@@ -1976,7 +1976,7 @@ func validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, 
 				common.MinMasterHostsNeededForInstallationInHaMode,
 				common.MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer,
 				highAvailabilityMode,
-				common.MinimumVersionForStretchedControlPlanesCluster,
+				common.MinimumVersionForNonStandardHAOCPControlPlane,
 			),
 		)
 	}
@@ -6662,4 +6662,33 @@ func (b *bareMetalInventory) HandleVerifyVipsResponse(ctx context.Context, host 
 		return errors.Errorf("host %s infra-env %s: empty cluster id", host.ID.String(), host.InfraEnvID.String())
 	}
 	return b.clusterApi.HandleVerifyVipsResponse(ctx, *host.ClusterID, stepReply)
+}
+
+func getDefaultHighAvailabilityAndMasterCountParams(highAvailabilityMode *string, controlPlaneCount *int64) (*string, *int64) {
+	// Both not set, multi node by default
+	if highAvailabilityMode == nil && controlPlaneCount == nil {
+		return swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+			swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode)
+	}
+
+	// only highAvailabilityMode set
+	if controlPlaneCount == nil {
+		if *highAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+			return highAvailabilityMode, swag.Int64(common.AllowedNumberOfMasterHostsInNoneHaMode)
+		}
+
+		return highAvailabilityMode, swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode)
+	}
+
+	// only controlPlaneCount set
+	if highAvailabilityMode == nil {
+		if *controlPlaneCount == common.AllowedNumberOfMasterHostsInNoneHaMode {
+			return swag.String(models.ClusterHighAvailabilityModeNone), controlPlaneCount
+		}
+
+		return swag.String(models.ClusterHighAvailabilityModeFull), controlPlaneCount
+	}
+
+	// both are set
+	return highAvailabilityMode, controlPlaneCount
 }

@@ -7929,7 +7929,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					Expect(newCluster.ControlPlaneCount).To(BeEquivalentTo(4))
 				})
 
-				It(fmt.Sprintf("descreasing to 3 control planes with OCP >= %s the value and multi-node", common.MinimumVersionForStretchedControlPlanesCluster), func() {
+				It(fmt.Sprintf("descreasing to 3 control planes with OCP >= %s the value and multi-node", common.MinimumVersionForNonStandardHAOCPControlPlane), func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
 							ID:                   &clusterID,
@@ -7962,7 +7962,7 @@ var _ = Describe("V2UpdateCluster", func() {
 			})
 
 			Context("should fail", func() {
-				It("update to invalid value, stretched clusters not supported", func() {
+				It("update to invalid value, non-standad HA OCP Control Plane not supported", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
 							ID:                   &clusterID,
@@ -7985,7 +7985,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "there should be exactly 3 dedicated control plane nodes for high availability mode Full in openshift version older than 4.18")
 				})
 
-				It("update to invalid value, stretched clusters supported", func() {
+				It("update to invalid value, non-standad HA OCP Control Plane supported", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
 							ID:                   &clusterID,
@@ -8031,7 +8031,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "single-node clusters must have a single control plane node")
 				})
 
-				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version < %s", common.MinimumVersionForStretchedControlPlanesCluster), func() {
+				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version < %s", common.MinimumVersionForNonStandardHAOCPControlPlane), func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
 							ID:                   &clusterID,
@@ -8058,7 +8058,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					)
 				})
 
-				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version >= %s", common.MinimumVersionForStretchedControlPlanesCluster), func() {
+				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version >= %s", common.MinimumVersionForNonStandardHAOCPControlPlane), func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
 							ID:                   &clusterID,
@@ -15650,11 +15650,11 @@ location = "%s"
 
 			Context("using defaults", func() {
 				It("high_availability mode is set to Full", func() {
-					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStandardHAOCPControlPlane)
 
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
-							OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+							OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 						},
 					})
@@ -15670,11 +15670,11 @@ location = "%s"
 				})
 
 				It("high_availability mode is set to None", func() {
-					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStandardHAOCPControlPlane)
 
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
-							OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+							OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
 						},
 					})
@@ -15690,11 +15690,11 @@ location = "%s"
 				})
 
 				It("control_plane_count is set to 3", func() {
-					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStandardHAOCPControlPlane)
 
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
-							OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+							OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 							ControlPlaneCount: swag.Int64(3),
 						},
 					})
@@ -15710,11 +15710,11 @@ location = "%s"
 				})
 
 				It("control_plane_count is set to 1", func() {
-					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStandardHAOCPControlPlane)
 
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
-							OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+							OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 							ControlPlaneCount: swag.Int64(1),
 						},
 					})
@@ -15730,11 +15730,11 @@ location = "%s"
 				})
 
 				It("not set", func() {
-					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStandardHAOCPControlPlane)
 
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
-							OpenshiftVersion: swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+							OpenshiftVersion: swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 						},
 					})
 
@@ -15750,12 +15750,12 @@ location = "%s"
 				})
 			})
 
-			It(fmt.Sprintf("setting 5 control planes, multi-node with OCP version >= %s", common.MinimumVersionForStretchedControlPlanesCluster), func() {
-				mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, common.MinimumVersionForStretchedControlPlanesCluster)
+			It(fmt.Sprintf("setting 5 control planes, multi-node with OCP version >= %s", common.MinimumVersionForNonStandardHAOCPControlPlane), func() {
+				mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, common.MinimumVersionForNonStandardHAOCPControlPlane)
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(common.MinimumVersionForStretchedControlPlanesCluster),
+						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
 						ControlPlaneCount:    swag.Int64(5),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 					},
@@ -15773,11 +15773,11 @@ location = "%s"
 			})
 
 			It("setting 1 control plane, single-node", func() {
-				mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStretchedClusters)
+				mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStandardHAOCPControlPlane)
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 						ControlPlaneCount:    swag.Int64(1),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
 					},
@@ -15796,10 +15796,10 @@ location = "%s"
 		})
 
 		Context("should fail", func() {
-			It("setting 6 control planes, multi-node, stretched clusters not supported", func() {
+			It("setting 6 control planes, multi-node, non-standad HA OCP Control Plane not supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 						ControlPlaneCount:    swag.Int64(6),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 					},
@@ -15812,10 +15812,10 @@ location = "%s"
 				)
 			})
 
-			It("setting 6 control planes, multi-node, stretched clusters supported", func() {
+			It("setting 6 control planes, multi-node, non-standad HA OCP Control Plane supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(common.MinimumVersionForStretchedControlPlanesCluster),
+						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
 						ControlPlaneCount:    swag.Int64(6),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 					},
@@ -15831,7 +15831,7 @@ location = "%s"
 			It("setting 3 control planes, single-node", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 						ControlPlaneCount:    swag.Int64(3),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
 					},
@@ -15847,7 +15847,7 @@ location = "%s"
 			It("setting 1 control plane, mutli-node", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 						ControlPlaneCount:    swag.Int64(1),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 					},
@@ -15860,10 +15860,10 @@ location = "%s"
 				)
 			})
 
-			It("setting 4 control planes, multi-node, stretched clusters not supported", func() {
+			It("setting 4 control planes, multi-node, non-standad HA OCP Control Plane not supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStretchedClusters),
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 						ControlPlaneCount:    swag.Int64(4),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 					},
