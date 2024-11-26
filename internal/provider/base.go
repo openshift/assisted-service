@@ -26,7 +26,8 @@ type Provider interface {
 	IsProviderForPlatform(platform *models.Platform) bool
 	// AddPlatformToInstallConfig adds the provider platform to the installconfig platform field,
 	// sets platform fields from values within the cluster model.
-	AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error
+	AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster,
+		infraEnvs []*common.InfraEnv) error
 	// CleanPlatformValuesFromDBUpdates remove platform specific values from the `updates` data structure
 	CleanPlatformValuesFromDBUpdates(updates map[string]interface{}) error
 	// SetPlatformUsages uses the usageApi to update platform specific usages
