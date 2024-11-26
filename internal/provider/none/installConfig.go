@@ -6,7 +6,8 @@ import (
 	"github.com/openshift/assisted-service/internal/provider"
 )
 
-func (p noneProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+func (p noneProvider) AddPlatformToInstallConfig(
+	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster, infraEnvs []*common.InfraEnv) error {
 	cfg.Platform = installcfg.Platform{
 		None: &installcfg.PlatformNone{},
 	}
