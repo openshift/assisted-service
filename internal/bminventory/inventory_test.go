@@ -7962,7 +7962,7 @@ var _ = Describe("V2UpdateCluster", func() {
 			})
 
 			Context("should fail", func() {
-				It("update to invalid value, non-standad HA OCP Control Plane not supported", func() {
+				It("update to invalid value, non-standard HA OCP Control Plane not supported", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
 							ID:                   &clusterID,
@@ -7985,7 +7985,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "there should be exactly 3 dedicated control plane nodes for high availability mode Full in openshift version older than 4.18")
 				})
 
-				It("update to invalid value, non-standad HA OCP Control Plane supported", func() {
+				It("update to invalid value, non-standard HA OCP Control Plane supported", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
 							ID:                   &clusterID,
@@ -15796,7 +15796,7 @@ location = "%s"
 		})
 
 		Context("should fail", func() {
-			It("setting 6 control planes, multi-node, non-standad HA OCP Control Plane not supported", func() {
+			It("setting 6 control planes, multi-node, non-standard HA OCP Control Plane not supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
@@ -15812,7 +15812,7 @@ location = "%s"
 				)
 			})
 
-			It("setting 6 control planes, multi-node, non-standad HA OCP Control Plane supported", func() {
+			It("setting 6 control planes, multi-node, non-standard HA OCP Control Plane supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
@@ -15860,7 +15860,7 @@ location = "%s"
 				)
 			})
 
-			It("setting 4 control planes, multi-node, non-standad HA OCP Control Plane not supported", func() {
+			It("setting 4 control planes, multi-node, non-standard HA OCP Control Plane not supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
