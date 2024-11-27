@@ -40,7 +40,7 @@ func (m *Manager) initMonitoringQueryGenerator() {
 			logCollectionEndStates := []string{
 				string(models.LogsStateCompleted),
 				string(models.LogsStateTimeout),
-				"",
+				string(models.LogsStateEmpty),
 			}
 
 			dbWithCondition := common.LoadTableFromDB(db, common.HostsTable, "status in (?) or (status in (?) and logs_info not in (?))", monitorStates, monitorStatesUntilLogCollection, logCollectionEndStates)

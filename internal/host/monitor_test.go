@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -316,6 +317,63 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 			mockMetricApi.EXPECT().MonitoredHostsCount(int64(765)).Times(1)
 			registerAndValidateDisconnected(765)
 		})
+	})
+
+	Context("validate host status monitoring", func() {
+		BeforeEach(func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			cluster := hostutil.GenerateTestCluster(clusterID)
+			Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
+
+			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
+			db.Save(&host)
+		})
+
+		DescribeTable("status", func(status string, logState models.LogsState, expectedCount int) {
+			host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, models.HostStatusDiscovering)
+			host.Inventory = workerInventory()
+			host.LogsInfo = logState
+			Expect(state.RegisterHost(ctx, &host, db)).ShouldNot(HaveOccurred())
+			Expect(db.Model(&host).Update("status", status).Error).ShouldNot(HaveOccurred())
+
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(expectedCount)).Times(1)
+			state.HostMonitoring()
+		},
+			Entry("HostStatusAddedToExistingCluster is not monitored", models.HostStatusAddedToExistingCluster, models.LogsStateCompleted, 0),
+			Entry("HostStatusBinding is not monitored", models.HostStatusBinding, models.LogsStateCompleted, 0),
+			Entry("HostStatusCancelled is monitored when waiting for log state", models.HostStatusCancelled, models.LogsStateCollecting, 1),
+			Entry("HostStatusCancelled is not monitored when log state has timed out", models.HostStatusCancelled, models.LogsStateTimeout, 0),
+			Entry("HostStatusCancelled is not monitored when log state is completed", models.HostStatusCancelled, models.LogsStateCompleted, 0),
+			Entry("HostStatusCancelled is not monitored when log state is empty", models.HostStatusCancelled, models.LogsStateEmpty, 0),
+			Entry("HostStatusDisabled is not monitored", models.HostStatusDisabled, models.LogsStateCompleted, 0),
+			Entry("HostStatusDisabledUnbound is not monitored", models.HostStatusDisabledUnbound, models.LogsStateCompleted, 0),
+			Entry("HostStatusDisconnected is monitored", models.HostStatusDisconnected, models.LogsStateCompleted, 1),
+			Entry("HostStatusDisconnectedUnbound is not monitored", models.HostStatusDisconnectedUnbound, models.LogsStateCompleted, 0),
+			Entry("HostStatusDiscovering is monitored", models.HostStatusDiscovering, models.LogsStateCompleted, 1),
+			Entry("HostStatusDiscoveringUnbound is not monitored", models.HostStatusDiscoveringUnbound, models.LogsStateCompleted, 0),
+			Entry("HostStatusError is monitored when waiting for log state", models.HostStatusError, models.LogsStateCollecting, 1),
+			Entry("HostStatusError is not monitored when log state has timed out", models.HostStatusError, models.LogsStateTimeout, 0),
+			Entry("HostStatusError is not monitored when log state is completed", models.HostStatusError, models.LogsStateCompleted, 0),
+			Entry("HostStatusError is not monitored when log state is empty", models.HostStatusError, models.LogsStateEmpty, 0),
+			Entry("HostStatusInstalled is not monitored", models.HostStatusInstalled, models.LogsStateCompleted, 0),
+			Entry("HostStatusInstalling is monitored", models.HostStatusInstalling, models.LogsStateCompleted, 1),
+			Entry("HostStatusInstallingInProgress is monitored", models.HostStatusInstallingInProgress, models.LogsStateCompleted, 1),
+			Entry("HostStatusInstallingPendingUserAction is monitored", models.HostStatusInstallingPendingUserAction, models.LogsStateCompleted, 1),
+			Entry("HostStatusInsufficient is monitored", models.HostStatusInsufficient, models.LogsStateCompleted, 1),
+			Entry("HostStatusInsufficientUnbound is not monitored", models.HostStatusInsufficientUnbound, models.LogsStateCompleted, 0),
+			Entry("HostStatusKnown is monitored", models.HostStatusKnown, models.LogsStateCompleted, 1),
+			Entry("HostStatusKnownUnbound is not monitored", models.HostStatusKnownUnbound, models.LogsStateCompleted, 0),
+			Entry("HostStatusPendingForInput is monitored", models.HostStatusPendingForInput, models.LogsStateCompleted, 1),
+			Entry("HostStatusPreparingFailed is monitored", models.HostStatusPreparingFailed, models.LogsStateCompleted, 1),
+			Entry("HostStatusPreparingForInstallation is monitored", models.HostStatusPreparingForInstallation, models.LogsStateCompleted, 1),
+			Entry("HostStatusPreparingSuccessful is monitored", models.HostStatusPreparingSuccessful, models.LogsStateCompleted, 1),
+			Entry("HostStatusReclaiming is not monitored", models.HostStatusReclaiming, models.LogsStateCompleted, 0),
+			Entry("HostStatusReclaimingRebooting is not monitored", models.HostStatusReclaimingRebooting, models.LogsStateCompleted, 0),
+			Entry("HostStatusResetting is not monitored", models.HostStatusResetting, models.LogsStateCompleted, 0),
+			Entry("HostStatusResettingPendingUserAction is monitored", models.HostStatusResettingPendingUserAction, models.LogsStateCompleted, 1),
+			Entry("HostStatusUnbinding is not monitored", models.HostStatusUnbinding, models.LogsStateCompleted, 0),
+			Entry("HostStatusUnbindingPendingUserAction is not monitored", models.HostStatusUnbindingPendingUserAction, models.LogsStateCompleted, 0),
+		)
 	})
 })
 
