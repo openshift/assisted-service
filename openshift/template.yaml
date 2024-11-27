@@ -222,6 +222,8 @@ parameters:
   value: "false"
 - name: ENVOY_CONFIGMAP_NAME
   value: assisted-service-envoy-config
+- name: OPENSHIFT_AI_SUPPORTED_GPUS
+  value: "10de"
 apiVersion: v1
 kind: Template
 metadata:
@@ -497,6 +499,8 @@ objects:
                 value: ${OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL}
               - name: IGNORED_OPENSHIFT_VERSIONS
                 value: ${IGNORED_OPENSHIFT_VERSIONS}
+              - name: OPENSHIFT_AI_SUPPORTED_GPUS
+                value: ${OPENSHIFT_AI_SUPPORTED_GPUS}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
