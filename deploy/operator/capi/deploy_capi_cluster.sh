@@ -220,6 +220,11 @@ wait_for_condition "hostedcluster/$ASSISTED_CLUSTER_NAME" "Available" "10m" "$SP
 # Scale up
 echo "Scaling the hosted cluster up to contain ${SPOKE_CONTROLPLANE_AGENTS} worker nodes"
 oc scale nodepool/$ASSISTED_CLUSTER_NAME -n $SPOKE_NAMESPACE --replicas=${SPOKE_CONTROLPLANE_AGENTS}
+if [ $? -gt 0 ]
+then
+  echo "Scaling nodepool with oc scale failed, attempting to patch instead."
+  oc patch nodepool/$ASSISTED_CLUSTER_NAME -n $SPOKE_NAMESPACE -p "{\"spec\":{\"replicas\":${SPOKE_CONTROLPLANE_AGENTS}}}" --type=merge
+fi
 
 # Wait for node to appear in the CAPI-deployed cluster
 oc extract -n $SPOKE_NAMESPACE secret/$ASSISTED_CLUSTER_NAME-admin-kubeconfig --to=- > /tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
