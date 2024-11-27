@@ -11,8 +11,13 @@ import (
 )
 
 // GenerateManifests generates manifests for the operator.
-func (o *operator) GenerateManifests(_ *common.Cluster) (openshiftManifests map[string][]byte, customManifests []byte,
+func (o *operator) GenerateManifests(c *common.Cluster) (openshiftManifests map[string][]byte, customManifests []byte,
 	err error) {
+	properties, err := o.getProperties(c)
+	if err != nil {
+		return
+	}
+
 	openshiftManifests = map[string][]byte{}
 	openshiftTemplatePaths, err := fs.Glob(templatesRoot, "openshift/*.yaml")
 	if err != nil {
@@ -21,7 +26,7 @@ func (o *operator) GenerateManifests(_ *common.Cluster) (openshiftManifests map[
 	for _, openshiftTemplatePath := range openshiftTemplatePaths {
 		manifestName := path.Base(openshiftTemplatePath)
 		var manifestContent []byte
-		manifestContent, err = o.executeTemplate(openshiftTemplatePath)
+		manifestContent, err = o.executeTemplate(openshiftTemplatePath, properties)
 		if err != nil {
 			return
 		}
@@ -35,7 +40,7 @@ func (o *operator) GenerateManifests(_ *common.Cluster) (openshiftManifests map[
 	}
 	for _, customTemplatePath := range customTemplatePaths {
 		var manifestContent []byte
-		manifestContent, err = o.executeTemplate(customTemplatePath)
+		manifestContent, err = o.executeTemplate(customTemplatePath, properties)
 		if err != nil {
 			return
 		}
@@ -48,19 +53,21 @@ func (o *operator) GenerateManifests(_ *common.Cluster) (openshiftManifests map[
 	return
 }
 
-func (o operator) executeTemplate(name string) (result []byte, err error) {
+func (o operator) executeTemplate(name string, properties *Properties) (result []byte, err error) {
 	template := o.templates.Lookup(name)
 	if template == nil {
 		err = fmt.Errorf("failed to find template '%s'", name)
 		return
 	}
 	type Data struct {
-		Operator *models.MonitoredOperator
-		Config   *Config
+		Operator   *models.MonitoredOperator
+		Config     *Config
+		Properties *Properties
 	}
 	data := &Data{
-		Operator: &Operator,
-		Config:   o.config,
+		Operator:   &Operator,
+		Config:     o.config,
+		Properties: properties,
 	}
 	buffer := &bytes.Buffer{}
 	err = template.Execute(buffer, data)

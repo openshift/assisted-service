@@ -1,11 +1,15 @@
 package openshiftai
 
 import (
+	"bytes"
+	"errors"
+	"io"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	"sigs.k8s.io/yaml"
+	"gopkg.in/yaml.v3"
 )
 
 var _ = Describe("Manifest generation", func() {
@@ -18,6 +22,12 @@ var _ = Describe("Manifest generation", func() {
 		cluster = &common.Cluster{
 			Cluster: models.Cluster{
 				OpenshiftVersion: "4.12.0",
+				MonitoredOperators: []*models.MonitoredOperator{
+					{
+						Name:       "openshift-ai",
+						Properties: "",
+					},
+				},
 			},
 		}
 		operator = NewOpenShiftAIOperator(common.GetTestLog())
@@ -36,15 +46,24 @@ var _ = Describe("Manifest generation", func() {
 	})
 
 	It("Generates valid YAML", func() {
-		openShiftManifests, customManifest, err := operator.GenerateManifests(cluster)
+		openShiftManifests, customManifests, err := operator.GenerateManifests(cluster)
 		Expect(err).ToNot(HaveOccurred())
+
 		for _, openShiftManifest := range openShiftManifests {
 			var object any
 			err = yaml.Unmarshal(openShiftManifest, &object)
 			Expect(err).ToNot(HaveOccurred())
 		}
-		var object any
-		err = yaml.Unmarshal(customManifest, &object)
-		Expect(err).ToNot(HaveOccurred())
+
+		reader := bytes.NewBuffer(customManifests)
+		decoder := yaml.NewDecoder(reader)
+		for {
+			var object any
+			err = decoder.Decode(&object)
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			Expect(err).ToNot(HaveOccurred())
+		}
 	})
 })
