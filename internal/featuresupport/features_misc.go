@@ -343,7 +343,12 @@ func (f *NonStandardHAControlPlane) getIncompatibleFeatures(openshiftVersion str
 }
 
 func (f *NonStandardHAControlPlane) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
-	return nil
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+		models.ArchitectureSupportLevelIDMULTIARCHRELEASEIMAGE,
+	}
 }
 
 func (f *NonStandardHAControlPlane) getFeatureActiveLevel(cluster *common.Cluster, infraEnv *models.InfraEnv,

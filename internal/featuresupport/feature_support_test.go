@@ -177,9 +177,9 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		)
 	})
 
-	Context("Test non-standad HA OCP Control Plane", func() {
+	Context("Test non-standard HA OCP Control Plane", func() {
 		feature := models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE
-		arch := "DoesNotMatter"
+		arch := common.X86CPUArchitecture
 
 		It("test feature availability", func() {
 			Expect(IsFeatureAvailable(feature, common.MinimumVersionForNonStandardHAOCPControlPlane, swag.String(arch))).To(BeTrue())
@@ -236,6 +236,48 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Entry(
 				"odf operator",
 				[]SupportLevelFeature{&OdfFeature{}},
+				false,
+			),
+		)
+
+		DescribeTable(
+			"test feature architecture support",
+			func(arch string, result bool) {
+				Expect(
+					isFeatureCompatibleWithArchitecture(
+						&NonStandardHAControlPlane{},
+						common.MinimumVersionForNonStandardHAOCPControlPlane,
+						arch,
+					),
+				).To(Equal(result))
+			},
+			Entry(
+				common.X86CPUArchitecture,
+				common.X86CPUArchitecture,
+				true,
+			),
+
+			Entry(
+				common.ARM64CPUArchitecture,
+				common.ARM64CPUArchitecture,
+				false,
+			),
+
+			Entry(
+				common.S390xCPUArchitecture,
+				common.S390xCPUArchitecture,
+				false,
+			),
+
+			Entry(
+				common.PowerCPUArchitecture,
+				common.PowerCPUArchitecture,
+				false,
+			),
+
+			Entry(
+				common.MultiCPUArchitecture,
+				common.MultiCPUArchitecture,
 				false,
 			),
 		)
