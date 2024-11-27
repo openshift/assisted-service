@@ -4414,9 +4414,10 @@ var _ = Describe("Refresh Host", func() {
 				ntpSources:       defaultNTPSources,
 				imageStatuses:    map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:             models.HostRoleWorker,
-				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(
+					statusInfoNotReadyForInstall,
 					"Require at least 8.35 GiB RAM for role worker, found only 8.00 GiB",
-					"ODF unsupported Host Role for Compact Mode.")),
+				)),
 				inventory: hostutil.GenerateInventoryWithResourcesAndMultipleDisk(11, 8, "worker-1"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},

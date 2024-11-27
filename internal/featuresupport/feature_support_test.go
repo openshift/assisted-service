@@ -232,12 +232,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				[]SupportLevelFeature{&NonePlatformFeature{}},
 				false,
 			),
-
-			Entry(
-				"odf operator",
-				[]SupportLevelFeature{&OdfFeature{}},
-				false,
-			),
 		)
 	})
 

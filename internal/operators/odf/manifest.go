@@ -28,18 +28,18 @@ func generateStorageClusterManifest(StorageClusterManifest string, odfDiskCounts
 
 }
 
-func Manifests(odfConfig *Config, openshiftVersion string) (map[string][]byte, []byte, error) {
+func Manifests(mode odfDeploymentMode, numberOfDisks int64, openshiftVersion string) (map[string][]byte, []byte, error) {
 	openshiftManifests := make(map[string][]byte)
 	var odfSC []byte
 	var err error
 
-	if odfConfig.ODFDeploymentType == compactMode {
-		odfSC, err = generateStorageClusterManifest(ocsMinDeploySC, odfConfig.ODFDisksAvailable)
+	if mode == compactMode {
+		odfSC, err = generateStorageClusterManifest(ocsMinDeploySC, numberOfDisks)
 		if err != nil {
 			return nil, nil, err
 		}
 	} else { // use the ODF CR with labelSelector to deploy ODF on only worker nodes
-		odfSC, err = generateStorageClusterManifest(ocsSc, odfConfig.ODFDisksAvailable)
+		odfSC, err = generateStorageClusterManifest(ocsSc, numberOfDisks)
 		if err != nil {
 			return nil, nil, err
 		}

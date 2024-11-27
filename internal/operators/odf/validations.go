@@ -10,21 +10,6 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-type Config struct {
-	ODFNumMinimumDisks              int64             `envconfig:"ODF_NUM_MINIMUM_DISK" default:"3"`
-	ODFDisksAvailable               int64             `envconfig:"ODF_DISKS_AVAILABLE" default:"3"`
-	ODFPerDiskCPUCount              int64             `envconfig:"ODF_PER_DISK_CPU_COUNT" default:"2"` // each disk requires 2 cpus
-	ODFPerDiskRAMGiB                int64             `envconfig:"ODF_PER_DISK_RAM_GIB" default:"5"`   // each disk requires 5GiB ram
-	ODFNumMinimumHosts              int64             `envconfig:"ODF_NUM_MINIMUM_HOST" default:"3"`
-	ODFMinimumHostsStandardMode     int64             `envconfig:"ODF_MINIMUM_HOSTS_STANDARD_MODE" default:"6"`
-	ODFPerHostCPUCompactMode        int64             `envconfig:"ODF_PER_HOST_CPU_COMPACT_MODE" default:"6"`
-	ODFPerHostMemoryGiBCompactMode  int64             `envconfig:"ODF_PER_HOST_MEMORY_GIB_COMPACT_MODE" default:"19"`
-	ODFPerHostCPUStandardMode       int64             `envconfig:"ODF_PER_HOST_CPU_STANDARD_MODE" default:"8"`
-	ODFPerHostMemoryGiBStandardMode int64             `envconfig:"ODF_PER_HOST_MEMORY_GIB_STANDARD_MODE" default:"19"`
-	ODFMinDiskSizeGB                int64             `envconfig:"ODF_MIN_DISK_SIZE_GB" default:"25"`
-	ODFDeploymentType               odfDeploymentMode `envconfig:"ODF_DEPLOYMENT_TYPE" default:"None"`
-}
-
 type odfClusterResourcesInfo struct {
 	numberOfDisks    int64 //number of Valid disks in the cluster
 	hostsWithDisks   int64 //number of hosts with Valid disk in the cluster
@@ -34,83 +19,58 @@ type odfClusterResourcesInfo struct {
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
 	var status string
 
-	// temporary disabling ODF for non-standad HA OCP Control Plane until it will be clear how ODF will work in this scenario.
-	masters, _, _ := common.GetHostsByEachRole(cluster, true)
-	if masterCount := len(masters); masterCount > 3 {
-		status = "There are currently more than 3 hosts designated to be control planes. ODF currently supports clusters with exactly three control plane nodes."
-		return api.Failure, status
-	}
+	mode := getODFDeploymentMode(cluster, o.config.ODFNumMinimumHosts)
 
-	hosts := cluster.Hosts
-	numAvailableHosts := int64(len(hosts))
-
-	if numAvailableHosts < o.config.ODFNumMinimumHosts {
-		status = "A minimum of 3 hosts is required to deploy ODF."
-		return api.Failure, status
-	}
-	if numAvailableHosts > o.config.ODFNumMinimumHosts && numAvailableHosts < o.config.ODFMinimumHostsStandardMode {
-		status = "A cluster with only 3 masters or with a minimum of 3 workers is required."
+	if mode == unknown {
+		status = "A cluster with only masters or with a minimum of 3 workers is required."
 		return api.Failure, status
 	}
 
 	odfClusterResources := &odfClusterResourcesInfo{}
-	status, err := o.computeResourcesAllNodes(cluster, odfClusterResources)
+	status, err := o.computeResourcesAllNodes(cluster, odfClusterResources, mode)
 	if err != nil {
 		if odfClusterResources.missingInventory {
 			return api.Pending, status
 		}
 		return api.Failure, status
 	}
-	canDeployODF, status := o.canODFBeDeployed(hosts, odfClusterResources)
 
+	canDeployODF, status := o.canODFBeDeployed(odfClusterResources, mode)
 	if canDeployODF {
-		// this will be used to set count of StorageDevices in StorageCluster manifest
-		o.config.ODFDisksAvailable = odfClusterResources.numberOfDisks
 		return api.Success, status
 	}
+
 	return api.Failure, status
 }
 
-func isHostRoleDefined(host *models.Host, isCompactMode bool) bool {
-	role := common.GetEffectiveRole(host)
-	return role != models.HostRoleAutoAssign || isCompactMode
-}
+func (o *operator) computeResourcesAllNodes(
+	cluster *models.Cluster,
+	odfClusterResources *odfClusterResourcesInfo,
+	mode odfDeploymentMode,
+) (string, error) {
+	for _, host := range cluster.Hosts {
+		hostEffectiveRole := common.GetEffectiveRole(host)
 
-func canHostRunODF(host *models.Host, isCompactMode bool) bool {
-	role := common.GetEffectiveRole(host)
-	return role == models.HostRoleWorker || isCompactMode
-}
-
-func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, odfClusterResources *odfClusterResourcesInfo) (string, error) {
-	var status string
-	var err error
-
-	hosts := cluster.Hosts
-	isCompactMode := int64(len(hosts)) == 3
-	for _, host := range hosts { // if the worker nodes >=3 , install ODF on all the worker nodes if they satisfy ODF requirements
-
-		/* If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
-		As ODF will use only worker nodes for non-compact deployments, the ODF validations cannot be performed as it cannot know which nodes will be worker nodes.
-		We ignore the role check for a cluster of 3 nodes as they will all be master nodes. ODF validations will proceed as for a compact deployment.
-		*/
-
-		if !isHostRoleDefined(host, isCompactMode) {
-			status = "For ODF Standard Mode, all host roles must be assigned to master or worker."
-			err = errors.New("Role is set to auto-assign for host ")
-			return status, err
+		// We want to consider only hosts that should run ODF workloads.
+		shouldHostRunODF, failureReason := shouldHostRunODF(cluster, mode, hostEffectiveRole)
+		if failureReason != nil || shouldHostRunODF == nil || !*shouldHostRunODF {
+			continue
 		}
-		if canHostRunODF(host, isCompactMode) {
-			status, err = o.computeNodeResourceUtil(cluster, host, odfClusterResources)
-			if err != nil {
-				return status, err
-			}
+
+		status, err := o.computeNodeResourceUtil(host, odfClusterResources, mode)
+		if err != nil {
+			return status, err
 		}
 	}
 
-	return status, nil
+	return "", nil
 }
 
-func (o *operator) computeNodeResourceUtil(cluster *models.Cluster, host *models.Host, odfClusterResources *odfClusterResourcesInfo) (string, error) {
+func (o *operator) computeNodeResourceUtil(
+	host *models.Host,
+	odfClusterResources *odfClusterResourcesInfo,
+	mode odfDeploymentMode,
+) (string, error) {
 	var status string
 
 	// if inventory is empty, return an error
@@ -119,12 +79,14 @@ func (o *operator) computeNodeResourceUtil(cluster *models.Cluster, host *models
 		status = "Missing Inventory in some of the hosts"
 		return status, errors.New("Missing Inventory in some of the hosts ") // to indicate that inventory is empty and the ValidationStatus must be Pending
 	}
+
 	inventory, err := common.UnmarshalInventory(host.Inventory)
 	if err != nil {
+		status = "Failed to parse the inventory of some of the hosts"
 		return status, err
 	}
 
-	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, cluster, nil)
+	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, nil, mode)
 	if err != nil {
 		return err.Error(), err
 	}
@@ -133,31 +95,20 @@ func (o *operator) computeNodeResourceUtil(cluster *models.Cluster, host *models
 		odfClusterResources.numberOfDisks += diskCount
 		odfClusterResources.hostsWithDisks++
 	}
+
 	return status, nil
 }
 
 // used to validate resource requirements for ODF
-func (o *operator) canODFBeDeployed(hosts []*models.Host, odfClusterResources *odfClusterResourcesInfo) (bool, string) {
-	var status string
-	numAvailableHosts := int64(len(hosts))
-
-	if numAvailableHosts == o.config.ODFNumMinimumHosts { // for 3 hosts
-		if !validateRequirements(o, odfClusterResources) { // check for master nodes requirements
-			status = o.setStatusInsufficientResources(odfClusterResources, compactMode)
-			return false, status
-		}
-		o.config.ODFDeploymentType = compactMode
-		status = "ODF Requirements for Compact Mode are satisfied."
-		return true, status
+func (o *operator) canODFBeDeployed(
+	odfClusterResources *odfClusterResourcesInfo,
+	mode odfDeploymentMode,
+) (bool, string) {
+	if !validateRequirements(o, odfClusterResources) { // check for master nodes requirements
+		return false, o.setStatusInsufficientResources(odfClusterResources, mode)
 	}
 
-	if !validateRequirements(o, odfClusterResources) { // check for worker nodes requirement
-		status = o.setStatusInsufficientResources(odfClusterResources, standardMode)
-		return false, status
-	}
-	status = "ODF Requirements for Standard Deployment are satisfied."
-	o.config.ODFDeploymentType = standardMode
-	return true, status
+	return true, fmt.Sprintf("ODF Requirements for %s Deployment are satisfied.", mode)
 }
 
 func validateRequirements(o *operator, odfClusterResources *odfClusterResourcesInfo) bool {
