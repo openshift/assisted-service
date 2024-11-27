@@ -455,6 +455,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied), Reasons: []string{"osc is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeFeatureDiscoveryRequirementsSatisfied), Reasons: []string{"node-feature-discovery is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNvidiaGpuRequirementsSatisfied), Reasons: []string{"nvidia-gpu is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDPipelinesRequirementsSatisfied), Reasons: []string{"pipelines is disabled"}},
@@ -483,6 +484,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied), Reasons: []string{"osc is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeFeatureDiscoveryRequirementsSatisfied), Reasons: []string{"node-feature-discovery is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNvidiaGpuRequirementsSatisfied), Reasons: []string{"nvidia-gpu is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDPipelinesRequirementsSatisfied), Reasons: []string{"pipelines is disabled"}},
@@ -509,6 +511,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied), Reasons: []string{"osc is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNodeFeatureDiscoveryRequirementsSatisfied), Reasons: []string{"node-feature-discovery is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNvidiaGpuRequirementsSatisfied), Reasons: []string{"nvidia-gpu is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDPipelinesRequirementsSatisfied), Reasons: []string{"pipelines is disabled"}},
@@ -536,6 +539,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied), Reasons: []string{"osc is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNodeFeatureDiscoveryRequirementsSatisfied), Reasons: []string{"node-feature-discovery is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNvidiaGpuRequirementsSatisfied), Reasons: []string{"nvidia-gpu is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDPipelinesRequirementsSatisfied), Reasons: []string{"pipelines is disabled"}},
@@ -571,6 +575,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied), Reasons: []string{"osc is disabled"}},
 			))
 		})
 
@@ -592,6 +597,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied), Reasons: []string{"osc is disabled"}},
 			))
 		})
 
@@ -613,6 +619,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied), Reasons: []string{"osc is disabled"}},
 			))
 
 			clusterHost = getMockHostWithDisks(int64(20), int64(30))
@@ -631,6 +638,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied), Reasons: []string{"osc is disabled"}},
 			))
 		})
 	})
@@ -675,6 +683,7 @@ var _ = Describe("Operators manager", func() {
 				"lvm",
 				"mce",
 				"mtv",
+				"osc",
 				"node-feature-discovery",
 				"nvidia-gpu",
 				"odf",
