@@ -1,6 +1,7 @@
 package osc
 
 import (
+	"fmt"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -15,13 +16,12 @@ var _ = Describe("OSC manifest generation", func() {
 	var cluster *common.Cluster
 
 	getCluster := func(openshiftVersion string) *common.Cluster {
-		cluster := common.Cluster{Cluster: models.Cluster{
+		return &common.Cluster{Cluster: models.Cluster{
 			OpenshiftVersion: openshiftVersion,
 		}}
-		return &cluster
 	}
 
-	Context("MVP manifest", func() {
+	Context("OSC manifest", func() {
 		It("Check YAMLs of OSC", func() {
 			cluster = getCluster("4.17.0")
 			openshiftManifests, manifest, err := operator.GenerateManifests(cluster)
@@ -38,14 +38,14 @@ var _ = Describe("OSC manifest generation", func() {
 			}
 
 			_, err = yaml.YAMLToJSON(manifest)
-			Expect(err).ShouldNot(HaveOccurred(), "yamltojson err: %v", err)
+			Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("yamltojson err: %v", err))
 		})
 
 		It("Check Subscription manifest", func() {
-			subscriptionData, err := getSubscription(Namespace, Subscription, Source, SourceName)
+			subscriptionData, err := getSubscription(Namespace, SubscriptionName, Source, SourceName)
 			Expect(err).To(BeNil())
 
-			Expect(extractData(subscriptionData, "metadata.name")).To(Equal(Subscription))
+			Expect(extractData(subscriptionData, "metadata.name")).To(Equal(SubscriptionName))
 			Expect(extractData(subscriptionData, "metadata.namespace")).To(Equal(Namespace))
 
 			Expect(extractData(subscriptionData, "spec.source")).To(Equal(Source))
@@ -66,12 +66,6 @@ var _ = Describe("OSC manifest generation", func() {
 			Expect(extractData(opData, "metadata.namespace")).To(Equal(Namespace))
 		})
 
-		It("Check ConfigMap manifest", func() {
-			controllerData, err := getConfigMap(Namespace, LayeredImageDeployment)
-			Expect(err).To(BeNil())
-
-			Expect(extractData(controllerData, "metadata.namespace")).To(Equal(Namespace))
-		})
 	})
 })
 
