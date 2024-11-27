@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
-	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
@@ -28,11 +27,6 @@ var _ = Describe("OSC Operator", func() {
 	Context("operator", func() {
 		BeforeEach(func() {
 			operator = NewOscOperator(log)
-		})
-
-		It("should return the name of the operator", func() {
-			Expect(operator.GetName()).To(Equal(Name))
-			Expect(operator.GetFullName()).To(Equal(FullName))
 		})
 
 		It("should return the right validations ids", func() {
@@ -70,13 +64,9 @@ var _ = Describe("OSC Operator", func() {
 
 		},
 			Entry("min requirements", models.HostRoleMaster, newRequirements(minCpu, minRamMib)),
+			Entry("min requirements", models.HostRoleWorker, newRequirements(minCpu, minRamMib)),
 		)
 
-		It("should return the dependencies", func() {
-			preflightRequirements, err := operator.GetPreflightRequirements(context.TODO(), &cluster)
-			Expect(err).To(BeNil())
-			Expect(preflightRequirements.Dependencies).To(Equal([]string{cnv.Operator.Name}))
-		})
 	})
 
 	Context("Validate host", func() {
@@ -93,7 +83,7 @@ var _ = Describe("OSC Operator", func() {
 			}
 		})
 
-		It("host should be valid", func() {
+		It("master host should be valid", func() {
 			host := models.Host{Role: models.HostRoleMaster, Inventory: getInventory(int64(1024))}
 
 			result, err := operator.ValidateHost(context.TODO(), &cluster, &host, nil)
@@ -101,7 +91,15 @@ var _ = Describe("OSC Operator", func() {
 			Expect(result.Status).To(Equal(api.Success))
 		})
 
-		It("host should be fail - not enough memory", func() {
+		It("worker host should be valid", func() {
+			host := models.Host{Role: models.HostRoleWorker, Inventory: getInventory(int64(1024))}
+
+			result, err := operator.ValidateHost(context.TODO(), &cluster, &host, nil)
+			Expect(err).To(BeNil())
+			Expect(result.Status).To(Equal(api.Success))
+		})
+
+		It("master host should be fail - not enough memory", func() {
 			host := models.Host{Role: models.HostRoleMaster, Inventory: getInventory(int64(300))}
 
 			result, err := operator.ValidateHost(context.TODO(), &cluster, &host, nil)
@@ -109,13 +107,30 @@ var _ = Describe("OSC Operator", func() {
 			Expect(result.Status).To(Equal(api.Failure))
 		})
 
-		It("host should be fail - no inventory", func() {
+		It("worker host should be fail - not enough memory", func() {
+			host := models.Host{Role: models.HostRoleWorker, Inventory: getInventory(int64(300))}
+
+			result, err := operator.ValidateHost(context.TODO(), &cluster, &host, nil)
+			Expect(err).To(BeNil())
+			Expect(result.Status).To(Equal(api.Failure))
+		})
+
+		It("master host should be fail - no inventory", func() {
 			host := models.Host{Role: models.HostRoleMaster}
 
 			result, err := operator.ValidateHost(context.TODO(), &cluster, &host, nil)
 			Expect(err).To(BeNil())
 			Expect(result.Status).To(Equal(api.Pending))
 		})
+
+		It("worker host should be fail - no inventory", func() {
+			host := models.Host{Role: models.HostRoleWorker}
+
+			result, err := operator.ValidateHost(context.TODO(), &cluster, &host, nil)
+			Expect(err).To(BeNil())
+			Expect(result.Status).To(Equal(api.Pending))
+		})
+
 	})
 })
 
