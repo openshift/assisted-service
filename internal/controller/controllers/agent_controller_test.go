@@ -4368,6 +4368,121 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		Expect(err).ToNot(BeNil())
 		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 	})
+	Context("Agent Stage", func() {
+		It("should restore the Agent's stage if it's valid", func() {
+			// Create ClusterDeployment
+			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+
+			// Create Agent
+			agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: clusterDeployment.Name, Namespace: clusterDeployment.Namespace}})
+			mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+			agent.ObjectMeta.Labels = map[string]string{
+				v1beta1.InfraEnvNameLabel:  "infraEnvName",
+				AgentLabelHostManufacturer: "RedHat",
+			}
+			agent.ObjectMeta.Annotations = map[string]string{
+				AgentCurrentStageAnnotation: string(models.HostStageDone),
+			}
+			Expect(c.Create(ctx, agent)).To(BeNil())
+
+			// Mock InfraEnv
+			infraEnvId := strfmt.UUID(uuid.New().String())
+			infraEnvKey := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "infraEnvName",
+			}
+			clusterId := *backEndCluster.ID
+			backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+			// Create Host
+			host, err := createNewHost(agent, &clusterId, infraEnvId)
+			Expect(err).To(BeNil())
+			Expect(host.Progress.CurrentStage).To(Equal(models.HostStageDone))
+			mockInstallerInternal.EXPECT().CreateHostInKubeKeyNamespace(gomock.Any(), infraEnvKey, gomock.Any()).Return(nil).Times(1)
+
+			// Reconcile Agent
+			result, err := hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+
+			// Ensure the Agent exists
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "agent",
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+			// Reconcile Agent again to get a status update
+			mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&common.Host{Host: *host}, nil).Times(1)
+			allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, infraEnvKey.Name)
+
+			result, err = hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageDone))
+		})
+		It("should not restore the Agent's stage if it's invalid", func() {
+			// Create ClusterDeployment
+			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+
+			// Create Agent
+			agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: clusterDeployment.Name, Namespace: clusterDeployment.Namespace}})
+			mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+			agent.ObjectMeta.Labels = map[string]string{
+				v1beta1.InfraEnvNameLabel:  "infraEnvName",
+				AgentLabelHostManufacturer: "RedHat",
+			}
+			agent.ObjectMeta.Annotations = map[string]string{
+				AgentCurrentStageAnnotation: "invalid-stage",
+			}
+			Expect(c.Create(ctx, agent)).To(BeNil())
+
+			// Mock InfraEnv
+			infraEnvId := strfmt.UUID(uuid.New().String())
+			infraEnvKey := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "infraEnvName",
+			}
+			clusterId := *backEndCluster.ID
+			backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+			// Create Host
+			host, err := createNewHost(agent, &clusterId, infraEnvId)
+			Expect(err).To(BeNil())
+			Expect(host.Progress).To(BeNil())
+			mockInstallerInternal.EXPECT().CreateHostInKubeKeyNamespace(gomock.Any(), infraEnvKey, gomock.Any()).Return(nil).Times(1)
+
+			// Reconcile Agent
+			result, err := hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+
+			// Ensure the Agent exists
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "agent",
+			}
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+			Expect(agent.Status.Progress.CurrentStage).To(BeEmpty())
+			// Reconcile Agent again to get a status update
+			mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&common.Host{Host: *host}, nil).Times(1)
+			allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, infraEnvKey.Name)
+
+			result, err = hr.Reconcile(ctx, newHostRequest(agent))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(c.Get(ctx, key, agent)).To(BeNil())
+			Expect(agent.Status.Progress.CurrentStage).To(BeEmpty())
+		})
+	})
 })
 
 var _ = Describe("createNewHost", func() {
