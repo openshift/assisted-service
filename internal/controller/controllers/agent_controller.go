@@ -73,6 +73,7 @@ const (
 	AgentLabelCpuArchitecture            = InventoryLabelPrefix + "cpu-architecture"
 	AgentLabelCpuVirtEnabled             = InventoryLabelPrefix + "cpu-virtenabled"
 	AgentInventoryAnnotation             = "agent." + aiv1beta1.Group + "/inventory"
+	AgentCurrentStageAnnotation          = "agent." + aiv1beta1.Group + "/current-stage"
 	AgentRoleAnnotation                  = "agent." + aiv1beta1.Group + "/role"
 	AgentLabelHostManufacturer           = InventoryLabelPrefix + "host-manufacturer"
 	AgentLabelHostProductName            = InventoryLabelPrefix + "host-productname"
@@ -257,6 +258,9 @@ func updateAnnotations(log logrus.FieldLogger, agent *v1beta1.Agent, h *models.H
 	updated = setAgentAnnotation(log, agent, AgentStateAnnotation, swag.StringValue(h.Status))
 	updated = setAgentAnnotation(log, agent, AgentRoleAnnotation, string(h.Role)) || updated
 	updated = setAgentAnnotation(log, agent, AgentInventoryAnnotation, h.Inventory) || updated
+	if h.Progress != nil {
+		updated = setAgentAnnotation(log, agent, AgentCurrentStageAnnotation, string(h.Progress.CurrentStage))
+	}
 	return updated
 }
 
@@ -1852,6 +1856,14 @@ func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strf
 		InfraEnvID:    infraEnvID,
 		Status:        &hostStatus,
 		Inventory:     inventory,
+	}
+
+	// Fetch Current Stage
+	if stage, has_annotation := agent.GetAnnotations()[AgentCurrentStageAnnotation]; has_annotation {
+		currentStage := models.HostStage(stage)
+		if err := currentStage.Validate(nil); err == nil {
+			host.Progress = &models.HostProgressInfo{CurrentStage: currentStage}
+		}
 	}
 
 	return host, nil
