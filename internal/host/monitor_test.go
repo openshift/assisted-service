@@ -326,8 +326,6 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 			cluster.Status = swag.String(clusterStatus)
 			Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
 
-			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
-			db.Save(&host)
 			host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, models.HostStatusDiscovering)
 			host.Inventory = workerInventory()
 			host.LogsInfo = logState
