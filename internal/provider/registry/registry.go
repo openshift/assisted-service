@@ -31,7 +31,8 @@ type ProviderRegistry interface {
 	GetSupportedProvidersByHosts(hosts []*models.Host) ([]models.PlatformType, error)
 	// AddPlatformToInstallConfig adds the provider platform to the installconfig platform field,
 	// sets platform fields from values within the cluster model.
-	AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error
+	AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster,
+		infraEnvs []*common.InfraEnv) error
 	// SetPlatformUsages uses the usageApi to update platform specific usages
 	SetPlatformUsages(p *models.Platform, usages map[string]models.Usage, usageApi usage.API) error
 	// IsHostSupported checks if the provider supports the host
@@ -88,12 +89,13 @@ func (r *registry) Name() models.PlatformType {
 	return ""
 }
 
-func (r *registry) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+func (r *registry) AddPlatformToInstallConfig(
+	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster, infraEnvs []*common.InfraEnv) error {
 	currentProvider, err := r.Get(cluster.Platform)
 	if err != nil {
 		return fmt.Errorf("error adding platform to install config, platform provider wasn't set: %w", err)
 	}
-	return currentProvider.AddPlatformToInstallConfig(cfg, cluster)
+	return currentProvider.AddPlatformToInstallConfig(cfg, cluster, infraEnvs)
 }
 
 func (r *registry) SetPlatformUsages(
