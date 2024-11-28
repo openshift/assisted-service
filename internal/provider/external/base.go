@@ -27,7 +27,8 @@ func (p *baseExternalProvider) AreHostsSupported(hosts []*models.Host) (bool, er
 	return true, nil
 }
 
-func (p *baseExternalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+func (p *baseExternalProvider) AddPlatformToInstallConfig(
+	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster, infraEnvs []*common.InfraEnv) error {
 	cfg.Platform = installcfg.Platform{
 		External: &installcfg.ExternalInstallConfigPlatform{
 			PlatformName:           *cluster.Platform.External.PlatformName,
