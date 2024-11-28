@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/kennygrant/sanitize"
+	configv1 "github.com/openshift/api/config/v1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -37,7 +38,6 @@ import (
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/imageservice"
 	"github.com/openshift/assisted-service/internal/infraenv"
-	installcfgdata "github.com/openshift/assisted-service/internal/installcfg"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
@@ -6580,17 +6580,6 @@ func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version s
 // capabilities mechanism to disable the console then the console operator is removed from the list
 // of monitored operators.
 func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *common.Cluster) error {
-	// Get the complete installer configuration, including the overrides:
-	installConfigData, err := b.installConfigBuilder.GetInstallConfig(cluster, nil, "")
-	if err != nil {
-		return err
-	}
-	var installConfig installcfgdata.InstallerConfigBaremetal
-	err = json.Unmarshal(installConfigData, &installConfig)
-	if err != nil {
-		return err
-	}
-
 	// Since version 4.12 it is possible to disable the console via the capabilities section of
 	// the installer configuration. The way to do it is to set the base capability set to `None`
 	// and then explicitly list all the enabled capabilities.
@@ -6605,19 +6594,8 @@ func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *comm
 		return err
 	}
 	if consoleCapabilitySupported {
-		capabilities := installConfig.Capabilities
-		if capabilities != nil {
-			logFields["baseline_capability_set"] = capabilities.BaselineCapabilitySet
-			logFields["additional_enabled_capabilities"] = capabilities.AdditionalEnabledCapabilities
-			if capabilities.BaselineCapabilitySet == "None" {
-				consoleEnabled = false
-				for _, capability := range capabilities.AdditionalEnabledCapabilities {
-					if capability == "Console" {
-						consoleEnabled = true
-						break
-					}
-				}
-			}
+		if clusterPkg.HasBaseCapabilities(cluster, configv1.ClusterVersionCapabilitySetNone) {
+			consoleEnabled = clusterPkg.HasAdditionalCapabilities(cluster, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityConsole})
 		}
 		if consoleEnabled {
 			b.log.WithFields(logFields).Info(

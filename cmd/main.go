@@ -620,6 +620,7 @@ func main() {
 				APIReader:             ctrlMgr.GetAPIReader(),
 				Log:                   log,
 				Scheme:                ctrlMgr.GetScheme(),
+				Installer:             bm,
 				SpokeK8sClientFactory: spoke_k8s_client.NewSpokeK8sClientFactory(log),
 				ConvergedFlowEnabled:  useConvergedFlow,
 				PauseProvisionedBMHs:  Options.PauseProvisionedBMHs,

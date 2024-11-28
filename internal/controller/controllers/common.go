@@ -407,6 +407,25 @@ func isNonePlatformCluster(ctx context.Context, client client.Client, cd *hivev1
 	return isUserManagedNetwork(&clusterInstall), false, nil
 }
 
+func isBaremetalPlatform(ctx context.Context, client client.Client, cd *hivev1.ClusterDeployment) (bool, error) {
+	if cd.Spec.ClusterInstallRef == nil {
+		return false, errors.Errorf("Cluster Install Reference is null for cluster deployment ns=%s name=%s", cd.Namespace, cd.Name)
+	}
+	clusterInstall := hiveext.AgentClusterInstall{}
+	namespacedName := types.NamespacedName{
+		Namespace: cd.Namespace,
+		Name:      cd.Spec.ClusterInstallRef.Name,
+	}
+	if err := client.Get(ctx, namespacedName, &clusterInstall); err != nil {
+		return false, errors.Wrapf(err, "Could not get AgentClusterInstall %s for ClusterDeployment %s", cd.Spec.ClusterInstallRef.Name, cd.Name)
+	}
+	platform, err := getPlatform(clusterInstall.Spec)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get AgentClusterInstall %s platform", clusterInstall.Name)
+	}
+	return *platform.Type == models.PlatformTypeBaremetal, nil
+}
+
 // We get first agent's cluster deployment and then we query if it belongs to none platform cluster
 func isAgentInNonePlatformCluster(ctx context.Context, client client.Client, agent *aiv1beta1.Agent) (isNone bool, err error) {
 	var cd hivev1.ClusterDeployment

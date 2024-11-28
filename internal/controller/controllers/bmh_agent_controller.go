@@ -29,8 +29,11 @@ import (
 	"time"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/bminventory"
+	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
@@ -66,6 +69,7 @@ type BMACReconciler struct {
 	APIReader             client.Reader
 	Log                   logrus.FieldLogger
 	Scheme                *runtime.Scheme
+	Installer             bminventory.InstallerInternals
 	SpokeK8sClientFactory spoke_k8s_client.SpokeK8sClientFactory
 	spokeClient           client.Client
 	ConvergedFlowEnabled  bool
@@ -1070,6 +1074,18 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		// If none platform do not attempt to create spoke BMH
 		return reconcileComplete{}
 	}
+	skipSpokeBMH, err := r.isBaremetalPlatformWithoutMAPI(ctx, cd)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to determine if cluster deployment %s/%s is baremetal platform without MAPI capability", cd.Namespace, cd.Name)
+		if propagateError {
+			return reconcileError{err: err}
+		}
+		return reconcileComplete{}
+	}
+	if skipSpokeBMH {
+		log.Infof("Skipping spoke BareMetalHost creation for agent %s/%s since it's baremetal platform without MAPI capability", agent.Name, agent.Namespace)
+		return reconcileComplete{}
+	}
 
 	if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusInstallingInProgress}, agent.Status.DebugInfo.State) {
 		// If agent hasn't started installing, do not create the spoke BMH yet
@@ -1940,4 +1956,29 @@ func (r *BMACReconciler) removePausedAnnotation(log logrus.FieldLogger, bmh *bmh
 		return reconcileComplete{dirty: true, stop: true}
 	}
 	return reconcileComplete{}
+}
+
+// isBaremetalPlatformWithoutMAPI returns true if a cluster is baremetal platform and if in its
+// capabilities it specifies baremetal and doesn't specify MAPI
+func (r *BMACReconciler) isBaremetalPlatformWithoutMAPI(ctx context.Context, cd *hivev1.ClusterDeployment) (bool, error) {
+	isBaremetalPlatform, err := isBaremetalPlatform(ctx, r.Client, cd)
+	if err != nil {
+		return false, err
+	}
+
+	if !isBaremetalPlatform {
+		return false, nil
+	}
+
+	// Skip adding BMH and Machine to spoke cluster if it's baremetal platform
+	// without MAPI
+	cluster, getClusterErr := r.Installer.GetClusterByKubeKey(types.NamespacedName{Name: cd.Name, Namespace: cd.Namespace})
+	if getClusterErr != nil {
+		return false, errors.Wrapf(err, "failed to get cluster from DB for ClusterDeployment %s/%s", cd.Namespace, cd.Name)
+	}
+
+	// If it's baremetal platform, check for install config overrides and if they exist and the capabilities don't include mapi then skip
+	return clusterPkg.HasBaseCapabilities(cluster, configv1.ClusterVersionCapabilitySetNone) &&
+		clusterPkg.HasAdditionalCapabilities(cluster, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityBaremetal}) &&
+		!clusterPkg.HasAdditionalCapabilities(cluster, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityMachineAPI}), nil
 }

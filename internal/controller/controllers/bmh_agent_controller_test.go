@@ -6,19 +6,25 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,16 +43,18 @@ var BASIC_CERT = `test`
 
 var _ = Describe("bmac reconcile", func() {
 	var (
-		c        client.Client
-		bmhr     *BMACReconciler
-		ctx      = context.Background()
-		mockCtrl *gomock.Controller
+		c                     client.Client
+		bmhr                  *BMACReconciler
+		ctx                   = context.Background()
+		mockCtrl              *gomock.Controller
+		mockInstallerInternal *bminventory.MockInstallerInternals
 	)
 
 	BeforeEach(func() {
 		schemes := GetKubeClientSchemes()
 		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		bmhr = &BMACReconciler{
 			Client:               c,
 			APIReader:            c,
@@ -55,6 +63,7 @@ var _ = Describe("bmac reconcile", func() {
 			spokeClient:          fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
 			ConvergedFlowEnabled: false,
 			PauseProvisionedBMHs: true,
+			Installer:            mockInstallerInternal,
 		}
 	})
 
@@ -1207,14 +1216,19 @@ var _ = Describe("bmac reconcile", func() {
 	})
 
 	Describe("Reconcile a Spoke BMH", func() {
-		var host *bmh_v1alpha1.BareMetalHost
-		var agent *v1beta1.Agent
-		var infraEnv *v1beta1.InfraEnv
-		var cluster *hivev1.ClusterDeployment
-		var clusterInstall *hiveext.AgentClusterInstall
-		var adminKubeconfigSecret *corev1.Secret
-		var secretName string
-		var bmhName string
+		var (
+			host                  *bmh_v1alpha1.BareMetalHost
+			agent                 *v1beta1.Agent
+			infraEnv              *v1beta1.InfraEnv
+			cluster               *hivev1.ClusterDeployment
+			clusterInstall        *hiveext.AgentClusterInstall
+			adminKubeconfigSecret *corev1.Secret
+			secretName            string
+			bmhName               string
+			db                    *gorm.DB
+			dbCluster             *common.Cluster
+		)
+
 		imageURL := "http://192.168.111.35:6181/images/rhcos-48.84.202106091622-0-openstack.x86_64.qcow2/cached-rhcos-48.84.202106091622-0-openstack.x86_64.qcow2"
 
 		BeforeEach(func() {
@@ -1270,8 +1284,20 @@ var _ = Describe("bmac reconcile", func() {
 			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			cluster.Spec.Installed = true
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
-			clusterInstall = newAgentClusterInstall(cluster.Spec.ClusterInstallRef.Name, testNamespace, hiveext.AgentClusterInstallSpec{}, cluster)
+			clusterInstall = newAgentClusterInstall(cluster.Spec.ClusterInstallRef.Name, testNamespace, hiveext.AgentClusterInstallSpec{PlatformType: hiveext.BareMetalPlatformType}, cluster)
 			Expect(c.Create(ctx, clusterInstall)).ShouldNot(HaveOccurred())
+
+			db, _ = common.PrepareTestDB()
+			id := strfmt.UUID(uuid.New().String())
+			dbCluster = &common.Cluster{
+				Cluster: models.Cluster{
+					ID: &id,
+				},
+				KubeKeyName:      cluster.Name,
+				KubeKeyNamespace: cluster.Namespace,
+			}
+			Expect(db.Create(dbCluster).Error).ToNot(HaveOccurred())
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(dbCluster, nil).AnyTimes()
 			secretName = fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)
 			adminKubeconfigSecret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1384,6 +1410,7 @@ var _ = Describe("bmac reconcile", func() {
 
 			})
 			It("should create spoke BMH for day 2 host with worker role when it's installing - happy flow", func() {
+
 				agent_day2.Status.DebugInfo.State = models.HostStatusInstalling
 				Expect(c.Update(ctx, agent_day2)).To(BeNil())
 
@@ -1615,6 +1642,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).NotTo(BeNil())
 			})
 			It("should create spoke BMH when agent is installing", func() {
+
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "root-ca",
@@ -1680,6 +1708,42 @@ var _ = Describe("bmac reconcile", func() {
 				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 
+				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
+				spokeClient := bmhr.spokeClient
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
+				Expect(err).ToNot(BeNil())
+				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+				spokeSecret := &corev1.Secret{}
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: adminKubeconfigSecret.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeSecret)
+				Expect(err).ToNot(BeNil())
+				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+			})
+			It("should not set spoke BMH - baremetal platform without MAPI", func() {
+				By("setting the Agent state to installing")
+				agent.Status.DebugInfo.State = models.HostStatusInstallingInProgress
+				Expect(c.Update(context.Background(), agent)).ShouldNot(HaveOccurred())
+				By("setting the cluster's capabilities to baremetal without MAPI")
+				installConfig := installcfg.InstallerConfigBaremetal{
+					Capabilities: &installcfg.Capabilities{
+						BaselineCapabilitySet: configv1.ClusterVersionCapabilitySetNone,
+						AdditionalEnabledCapabilities: []configv1.ClusterVersionCapability{
+							"baremetal",
+						},
+					},
+				}
+				installConfigData, err := json.Marshal(installConfig)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(db.Model(&dbCluster).Update("install_config_overrides", installConfigData).Error).ShouldNot(HaveOccurred())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+
+				By("verifying the spoke cluster doesn't have the BMH & Machine for this node")
 				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
 				spokeClient := bmhr.spokeClient
 				err = spokeClient.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
