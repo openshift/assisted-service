@@ -2,7 +2,9 @@ package baremetal
 
 import (
 	"encoding/json"
+	"slices"
 	"sort"
+	"strings"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -14,8 +16,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (p baremetalProvider) AddPlatformToInstallConfig(
-	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+func (p *baremetalProvider) AddPlatformToInstallConfig(
+	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster, infraEnvs []*common.InfraEnv) error {
 	// set hosts
 	numMasters := cfg.ControlPlane.Replicas
 	// TODO: will we always have just one compute?
@@ -111,5 +113,36 @@ func (p baremetalProvider) AddPlatformToInstallConfig(
 			},
 		}
 	}
+
+	// We want to use the NTP sources specified in the cluster, and if that is empty, the ones specified in the
+	// infrastructure environment. Note that in some rare cases there may be multiple infrastructure environments,
+	// so we add the NTP sources of all of them.
+	ntpServers := p.splitNTPSources(cluster.AdditionalNtpSource)
+	if len(ntpServers) == 0 {
+		for _, infraEnv := range infraEnvs {
+			for _, ntpSource := range p.splitNTPSources(infraEnv.AdditionalNtpSources) {
+				if !slices.Contains(ntpServers, ntpSource) {
+					ntpServers = append(ntpServers, ntpSource)
+				}
+			}
+		}
+	}
+
+	// Note that the new `additionalNTPServers` field was added in OpenShift 4.18, but we add it to all versions
+	// here because older versions will just ignore it.
+	cfg.Platform.Baremetal.AdditionalNTPServers = ntpServers
+
 	return nil
+}
+
+func (p *baremetalProvider) splitNTPSources(sources string) []string {
+	split := strings.Split(sources, ",")
+	var result []string
+	for _, source := range split {
+		source = strings.TrimSpace(source)
+		if source != "" {
+			result = append(result, source)
+		}
+	}
+	return result
 }

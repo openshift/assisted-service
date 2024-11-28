@@ -42,6 +42,7 @@ type BareMetalInstallConfigPlatform struct {
 	ProvisioningNetworkInterface string   `json:"provisioningNetworkInterface,omitempty"`
 	ProvisioningNetworkCIDR      *string  `json:"provisioningNetworkCIDR,omitempty"`
 	ProvisioningDHCPRange        string   `json:"provisioningDHCPRange,omitempty"`
+	AdditionalNTPServers         []string `json:"additionalNTPServers,omitempty"`
 }
 
 type VsphereFailureDomainTopology struct {
