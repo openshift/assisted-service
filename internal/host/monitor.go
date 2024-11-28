@@ -43,9 +43,14 @@ func (m *Manager) initMonitoringQueryGenerator() {
 				string(models.LogsStateEmpty),
 			}
 
-			dbWithCondition := common.LoadTableFromDB(db, common.HostsTable, "status in (?) or (status in (?) and logs_info not in (?))", monitorStates, monitorStatesUntilLogCollection, logCollectionEndStates)
-			dbWithCondition = common.LoadClusterTablesFromDB(dbWithCondition, common.HostsTable)
-			dbWithCondition = dbWithCondition.Where("exists (select 1 from hosts where clusters.id = hosts.cluster_id)")
+			dbWithCondition := common.LoadClusterTablesFromDB(db)
+			dbWithCondition = dbWithCondition.Where(
+				"id IN (SELECT cluster_id FROM hosts WHERE hosts.status in (?) OR (hosts.status in (?) AND hosts.logs_info not in (?)))",
+				monitorStates, monitorStatesUntilLogCollection, logCollectionEndStates)
+			dbWithCondition = dbWithCondition.Or(
+				"id IN (SELECT cluster_id FROM hosts WHERE clusters.id = hosts.cluster_id AND hosts.status = ? AND clusters.status <> ?)",
+				models.HostStatusInstalled, models.ClusterStatusInstalled)
+
 			return dbWithCondition
 		}
 		m.monitorClusterQueryGenerator = common.NewMonitorQueryGenerator(m.db, buildInitialQuery, m.Config.MonitorBatchSize)
