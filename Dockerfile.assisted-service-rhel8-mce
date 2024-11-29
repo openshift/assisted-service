@@ -1,0 +1,81 @@
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi8/go-toolset:1.21 AS builder
+ARG TARGETOS
+ARG TARGETARCH
+
+ENV COMPONENT_NAME=assisted-service
+ENV COMPONENT_VERSION=2.0.0
+ENV COMPONENT_TAG_EXTENSION=" "
+ENV USER_UID=1001 \
+    USER_NAME=assisted-installer
+COPY --chown=${USER_UID} . /app
+WORKDIR /app
+
+USER 0
+RUN INSTALL_PKGS="gcc git nmstate-devel openssl-devel" && \
+    subscription-manager refresh && \
+    dnf install -y $INSTALL_PKGS && \
+    dnf clean all
+USER ${USER_UID}
+
+RUN go install github.com/google/go-licenses@v1.6.0
+RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
+
+ENV GOEXPERIMENT=strictfipsruntime
+ENV BUILD_TAGS="strictfipsruntime"
+
+RUN CGO_ENABLED=1 GOFLAGS="-p=4" GO111MODULE=on GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags ${BUILD_TAGS} -o ./build/assisted-service cmd/main.go
+RUN CGO_ENABLED=1 GOFLAGS="-p=4" GO111MODULE=on GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags ${BUILD_TAGS} -o ./build/assisted-service-operator cmd/operator/main.go
+RUN CGO_ENABLED=1 GOFLAGS="-p=4" GO111MODULE=on GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags ${BUILD_TAGS} -o ./build/assisted-service-admission cmd/webadmission/main.go
+RUN CGO_ENABLED=1 GOFLAGS="-p=4" GO111MODULE=on GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags ${BUILD_TAGS} -o ./build/agent-installer-client cmd/agentbasedinstaller/client/main.go
+
+
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi8/ubi:8.10
+ARG release=main
+ARG version=latest
+
+ENV USER_UID=1001 \
+    USER_NAME=assisted-installer
+
+COPY --from=builder /tmp/licenses /licenses
+COPY --from=builder /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/ssl/certs/ca-bundle.crt
+COPY --from=builder /etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt /etc/ssl/certs/ca-bundle.trust.crt
+COPY --from=builder /app/build/assisted-service /assisted-service
+COPY --from=builder /app/build/assisted-service-operator /assisted-service-operator
+COPY --from=builder /app/build/assisted-service-admission /assisted-service-admission
+COPY --from=builder /app/build/agent-installer-client /usr/local/bin/agent-installer-client
+RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-cluster-and-infraenv
+
+RUN INSTALL_PKGS="libvirt-libs nmstate nmstate-devel nmstate-libs skopeo openshift-clients" && \
+    subscription-manager refresh && \
+    dnf install -y $INSTALL_PKGS && \
+    dnf clean all && \
+    rm -rf /var/cache/{yum,dnf}/* && \
+    mkdir -p ${HOME} && \
+    chown ${USER_UID}:0 ${HOME} && \
+    chmod ug+rwx ${HOME} && \
+    # runtime user will need to be able to self-insert in /etc/passwd
+    chmod g+rw /etc/passwd
+
+RUN rm -f /etc/pki/tls/certs/ca-bundle.crt
+RUN ln -s /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/pki/tls/certs/ca-bundle.crt
+
+ENTRYPOINT ["/assisted-service"]
+
+USER ${USER_UID}
+
+LABEL com.redhat.component="multicluster-engine-assisted-service-8-container" \
+      name="multicluster-engine/assisted-service-8-rhel8" \
+      version="${version}" \
+      upstream-ref="${version}" \
+      upstream-url="https://github.com/openshift/assisted-service" \
+      summary="OpenShift Assisted Installer Service" \
+      io.k8s.display-name="OpenShift Assisted Installer Service" \
+      maintainer="Liat Gamliel <lgamliel@redhat.com>" \
+      description="OpenShift Assisted Installer Service" \
+      io.k8s.description="OpenShift Assisted Installer Service" \
+      distribution-scope="public" \
+      release="${release}" \
+      vendor="Red Hat, Inc." \
+      upstream_commit="${version}" \
+      org.label-schema.vcs-ref="${version}" \
+      org.label-schema.vcs-url="https://github.com/openshift/assisted-service"
