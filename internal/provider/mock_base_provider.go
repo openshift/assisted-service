@@ -38,17 +38,17 @@ func (m *MockProvider) EXPECT() *MockProviderMockRecorder {
 }
 
 // AddPlatformToInstallConfig mocks base method.
-func (m *MockProvider) AddPlatformToInstallConfig(arg0 *installcfg.InstallerConfigBaremetal, arg1 *common.Cluster) error {
+func (m *MockProvider) AddPlatformToInstallConfig(arg0 *installcfg.InstallerConfigBaremetal, arg1 *common.Cluster, arg2 []*common.InfraEnv) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddPlatformToInstallConfig", arg0, arg1)
+	ret := m.ctrl.Call(m, "AddPlatformToInstallConfig", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AddPlatformToInstallConfig indicates an expected call of AddPlatformToInstallConfig.
-func (mr *MockProviderMockRecorder) AddPlatformToInstallConfig(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockProviderMockRecorder) AddPlatformToInstallConfig(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddPlatformToInstallConfig", reflect.TypeOf((*MockProvider)(nil).AddPlatformToInstallConfig), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddPlatformToInstallConfig", reflect.TypeOf((*MockProvider)(nil).AddPlatformToInstallConfig), arg0, arg1, arg2)
 }
 
 // AreHostsSupported mocks base method.

@@ -52,7 +52,8 @@ func setPlatformValues(openshiftVersion string, platform *installcfg.VsphereInst
 	}
 }
 
-func (p vsphereProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+func (p vsphereProvider) AddPlatformToInstallConfig(
+	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster, infraEnvs []*common.InfraEnv) error {
 	vsPlatform := &installcfg.VsphereInstallConfigPlatform{}
 
 	if !swag.BoolValue(cluster.UserManagedNetworking) {
