@@ -4782,7 +4782,7 @@ definitions:
         enum: ['Full', 'None']
         default: 'Full'
         description: |
-          Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+          (DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
           over multiple master nodes whereas 'None' installs a full cluster over one node.
       openshift_version:
         type: string
