@@ -29,10 +29,17 @@ spec:
   - name: build-platforms
     value:
     - linux/x86_64
+    - linux/arm64
+    - linux/ppc64le
+    - linux/s390x
   - name: dockerfile
     value: Dockerfile.assisted-service-rhel9-mce
   - name: path-context
     value: .
+  - name: build-args
+    value:
+    - release={{target_branch}}
+    - version={{revision}}
   pipelineSpec:
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.
