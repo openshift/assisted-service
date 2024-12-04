@@ -4894,15 +4894,7 @@ func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context,
 		params.InfraenvCreateParams.AdditionalNtpSources = &b.Config.DefaultNTPSource
 	}
 
-	// set the default value for REST API case, in case it was not provided in the request
-	if params.InfraenvCreateParams.ImageType == "" {
-		if params.InfraenvCreateParams.CPUArchitecture == models.ClusterCPUArchitectureS390x {
-			b.log.Infof("Found Z architecture, updating ISO image type to %s", models.ImageTypeFullIso)
-			params.InfraenvCreateParams.ImageType = models.ImageTypeFullIso
-		} else {
-			params.InfraenvCreateParams.ImageType = models.ImageType(b.Config.ISOImageType)
-		}
-	}
+	params.InfraenvCreateParams.ImageType = infraenv.GetInfraEnvIsoImageType(b.log, params.InfraenvCreateParams.CPUArchitecture, params.InfraenvCreateParams.ImageType, models.ImageType(b.Config.ISOImageType))
 
 	if params.InfraenvCreateParams.CPUArchitecture == "" {
 		// Specifying architecture in params is optional, fallback to default

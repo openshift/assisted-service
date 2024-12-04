@@ -1370,6 +1370,40 @@ location = "%s"
 		}, "1m", "20s").Should(BeTrue())
 	})
 
+	It("Test update infraenv CR image type", func() {
+		By("Request infraenv")
+		infraEnvSpec.ClusterRef = nil
+		infraEnvSpec.CpuArchitecture = models.ClusterCPUArchitectureX8664
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		By("Verify default image type requested on creation of infra-env")
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		var infraEnv *common.InfraEnv
+		Eventually(func() bool {
+			infraEnv = getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+			return *infraEnv.InfraEnv.Type == models.ImageTypeMinimalIso
+		}, "1m", "20s").Should(BeTrue())
+
+		By("Set infra-env to full-iso to test update")
+		infraEnvCR := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+		infraEnvCR.Spec.ImageType = models.ImageTypeFullIso
+		err := kubeClient.Update(ctx, infraEnvCR)
+		Expect(err).ToNot(HaveOccurred())
+
+		Eventually(func() bool {
+			infraEnv = getInfraEnvFromDBByKubeKey(ctx, db, types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      infraNsName.Name,
+			}, waitForReconcileTimeout)
+			return *infraEnv.InfraEnv.Type == models.ImageTypeFullIso
+		}, "1m", "20s").Should(BeTrue())
+	})
+
 	It("Pull Secret validation error", func() {
 		By("setting pull secret with wrong data")
 		updateSecret(ctx, kubeClient, pullSecretName, map[string]string{

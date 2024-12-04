@@ -128,6 +128,7 @@ type InfraEnvSpec struct {
 	// Supported values include:
 	// - full-iso: A complete Red Hat CoreOS (RHCOS) ISO, customized with a specific ignition file.
 	// - minimal-iso: A lightweight ISO that retrieves the remainder of the RHCOS root file system (rootfs) dynamically from the Internet
+	// +optional
 	ImageType models.ImageType `json:"imageType,omitempty"`
 }
 
