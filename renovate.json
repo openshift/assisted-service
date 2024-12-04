@@ -3,9 +3,5 @@
     "groupName": "Konflux build pipeline",
     "includePaths": [".tekton/*"],
     "commitMessagePrefix": "NO-ISSUE: ",
-    "prBodyNotes": [
-        "/lgtm",
-        "/approve"
-    ]
+    "labels": ["lgtm", "approved", "konflux"]
 }
-
