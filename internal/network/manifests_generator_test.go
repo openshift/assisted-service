@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"regexp"
 
+	configv31 "github.com/coreos/ignition/v2/config/v3_1"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -15,24 +17,15 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/models"
+	mcfgv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/vincent-petithory/dataurl"
 	"gorm.io/gorm"
+	"sigs.k8s.io/yaml"
 )
 
 var _ = Describe("chrony manifest", func() {
-	createHost := func(clusterId strfmt.UUID, sources []*models.NtpSource) *models.Host {
-		b, err := json.Marshal(&sources)
-		Expect(err).ShouldNot(HaveOccurred())
-		hostID := strfmt.UUID(uuid.New().String())
-		return &models.Host{
-			ID:         &hostID,
-			NtpSources: string(b),
-			ClusterID:  &clusterId,
-			InfraEnvID: clusterId,
-		}
-	}
-
 	var (
 		ctx          = context.Background()
 		log          *logrus.Logger
@@ -42,8 +35,61 @@ var _ = Describe("chrony manifest", func() {
 		db           *gorm.DB
 		dbName       string
 		clusterId    strfmt.UUID
-		cluster      common.Cluster
+		cluster      *common.Cluster
+		infraEnvId   strfmt.UUID
+		infraEnv     *common.InfraEnv
 	)
+
+	createHost := func(sources []*models.NtpSource) *models.Host {
+		var sourcesText string
+		if sources != nil {
+			sourcesBytes, err := json.Marshal(&sources)
+			Expect(err).ToNot(HaveOccurred())
+			sourcesText = string(sourcesBytes)
+		}
+		hostID := strfmt.UUID(uuid.New().String())
+		host := &models.Host{
+			ID:         &hostID,
+			NtpSources: sourcesText,
+			ClusterID:  &clusterId,
+			InfraEnvID: infraEnvId,
+		}
+		db.Create(host)
+		Expect(db.Error).ToNot(HaveOccurred())
+		return host
+	}
+
+	chronyConfServerRE := regexp.MustCompile(`(?m)^server\s+([^\s]+)\s+.*$`)
+
+	extractChronyConf := func(machineConfigBytes []byte) string {
+		var machineConfig *mcfgv1.MachineConfig
+		err := yaml.Unmarshal(machineConfigBytes, &machineConfig)
+		Expect(err).ToNot(HaveOccurred())
+		config, _, err := configv31.Parse(machineConfig.Spec.Config.Raw)
+		Expect(err).ToNot(HaveOccurred())
+		var source string
+		for _, file := range config.Storage.Files {
+			if file.Path == "/etc/chrony.conf" {
+				Expect(file.Contents.Source).ToNot(BeNil())
+				source = *file.Contents.Source
+				break
+			}
+		}
+		Expect(source).ToNot(BeEmpty())
+		data, err := dataurl.DecodeString(source)
+		Expect(err).ToNot(HaveOccurred())
+		return string(data.Data)
+	}
+
+	extractChronyConfServers := func(machineConfigBytes []byte) []string {
+		chronyConf := extractChronyConf(machineConfigBytes)
+		var serverList []string
+		serverMatches := chronyConfServerRE.FindAllStringSubmatch(chronyConf, -1)
+		for _, serverMatch := range serverMatches {
+			serverList = append(serverList, serverMatch[1])
+		}
+		return serverList
+	}
 
 	BeforeEach(func() {
 		log = logrus.New()
@@ -51,6 +97,25 @@ var _ = Describe("chrony manifest", func() {
 		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
 		db, dbName = common.PrepareTestDB()
 		ntpUtils = NewManifestsGenerator(manifestsApi, Config{}, db)
+
+		clusterId = strfmt.UUID(uuid.NewString())
+		cluster = &common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterId,
+			},
+		}
+		db.Create(cluster)
+		Expect(db.Error).ToNot(HaveOccurred())
+
+		infraEnvId = strfmt.UUID(uuid.NewString())
+		infraEnv = &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:        &infraEnvId,
+				ClusterID: clusterId,
+			},
+		}
+		db.Create(infraEnv)
+		Expect(db.Error).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -59,96 +124,185 @@ var _ = Describe("chrony manifest", func() {
 	})
 
 	Context("Create NTP Manifest", func() {
-		It("no_ntp_sources", func() {
-			hosts := make([]*models.Host, 0)
-			hosts = append(hosts, &models.Host{})
+		It("Adds nothing if there aren't sources in the host, cluster or infra-env", func() {
+			cluster.Hosts = []*models.Host{
+				createHost(nil),
+			}
 
-			response, err := ntpUtils.createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
-				Hosts: hosts,
-			}}, models.HostRoleMaster, logrus.New())
-			Expect(err).ShouldNot(HaveOccurred())
+			response, err := ntpUtils.createChronyManifestContent(cluster, models.HostRoleMaster, log)
+			Expect(err).ToNot(HaveOccurred())
 
-			expectedContent := defaultChronyConf
-			Expect(response).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(expectedContent))))
+			chronyConfServers := extractChronyConfServers(response)
+			Expect(chronyConfServers).To(BeEmpty())
 		})
 
-		It("same_ntp_source", func() {
-			toMarshal := []*models.NtpSource{
-				common.TestNTPSourceSynced,
-				common.TestNTPSourceUnsynced,
+		It("Eliminates duplicated sources from two hosts", func() {
+			cluster.Hosts = []*models.Host{
+				createHost([]*models.NtpSource{
+					common.TestNTPSourceSynced,
+					common.TestNTPSourceUnsynced,
+				}),
+				createHost([]*models.NtpSource{
+					common.TestNTPSourceSynced,
+					common.TestNTPSourceUnsynced,
+				}),
 			}
 
-			clusterId = strfmt.UUID(uuid.New().String())
-			Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).NotTo(HaveOccurred())
-			hosts := make([]*models.Host, 0)
-			hosts = append(hosts, createHost(clusterId, toMarshal))
-			hosts = append(hosts, createHost(clusterId, toMarshal))
+			response, err := ntpUtils.createChronyManifestContent(cluster, models.HostRoleMaster, log)
+			Expect(err).ToNot(HaveOccurred())
 
-			response, err := ntpUtils.createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
-				Hosts: hosts,
-			}}, models.HostRoleMaster, logrus.New())
-			Expect(err).ShouldNot(HaveOccurred())
-
-			expectedContent := defaultChronyConf
-			expectedContent += fmt.Sprintf("\nserver %s iburst", common.TestNTPSourceSynced.SourceName)
-			Expect(response).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(expectedContent))))
+			chronyConfServers := extractChronyConfServers(response)
+			Expect(chronyConfServers).To(ConsistOf(
+				common.TestNTPSourceSynced.SourceName,
+				common.TestNTPSourceUnsynced.SourceName,
+			))
 		})
 
-		It("multiple_ntp_source", func() {
-			toMarshal := []*models.NtpSource{
-				common.TestNTPSourceSynced,
-				common.TestNTPSourceUnsynced,
+		It("Merges different sources from two hosts", func() {
+			cluster.Hosts = []*models.Host{
+				createHost([]*models.NtpSource{
+					common.TestNTPSourceSynced,
+					common.TestNTPSourceUnsynced,
+				}),
+				createHost([]*models.NtpSource{
+					{
+						SourceName:  "3.3.3.3",
+						SourceState: models.SourceStateSynced,
+					},
+					{
+						SourceName:  "0.rhel.pool.ntp.org",
+						SourceState: models.SourceStateCombined,
+					},
+					{
+						SourceName:  "1.rhel.pool.ntp.org",
+						SourceState: models.SourceStateNotCombined,
+					},
+					{
+						SourceName:  "2.rhel.pool.ntp.org",
+						SourceState: models.SourceStateError,
+					},
+					{
+						SourceName:  "3.rhel.pool.ntp.org",
+						SourceState: models.SourceStateVariable,
+					},
+					{
+						SourceName:  "4.rhel.pool.ntp.org",
+						SourceState: models.SourceStateUnreachable,
+					},
+				}),
 			}
 
-			clusterId = strfmt.UUID(uuid.New().String())
-			Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).NotTo(HaveOccurred())
-			hosts := make([]*models.Host, 0)
-			hosts = append(hosts, createHost(clusterId, toMarshal))
+			response, err := ntpUtils.createChronyManifestContent(cluster, models.HostRoleMaster, log)
+			Expect(err).ToNot(HaveOccurred())
 
-			sources := []*models.NtpSource{
-				{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced},
-				{SourceName: "0.rhel.pool.ntp.org", SourceState: models.SourceStateCombined},
-				{SourceName: "1.rhel.pool.ntp.org", SourceState: models.SourceStateNotCombined},
-				{SourceName: "2.rhel.pool.ntp.org", SourceState: models.SourceStateError},
-				{SourceName: "3.rhel.pool.ntp.org", SourceState: models.SourceStateVariable},
-				{SourceName: "4.rhel.pool.ntp.org", SourceState: models.SourceStateUnreachable},
+			actualChronyConfServers := extractChronyConfServers(response)
+			var expectedChronyConfServers []string
+			for _, host := range cluster.Hosts {
+				var sources []*models.NtpSource
+				if host.NtpSources != "" {
+					err = json.Unmarshal([]byte(host.NtpSources), &sources)
+					Expect(err).ToNot(HaveOccurred())
+				}
+				for _, source := range sources {
+					expectedChronyConfServers = append(expectedChronyConfServers, source.SourceName)
+				}
 			}
-			hosts = append(hosts, createHost(clusterId, sources))
+			Expect(actualChronyConfServers).To(ConsistOf(expectedChronyConfServers))
+		})
 
-			response, err := ntpUtils.createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
-				Hosts: hosts,
-			}}, models.HostRoleMaster, logrus.New())
-			Expect(err).ShouldNot(HaveOccurred())
+		It("Adds cluster sources if there are no sources in the host", func() {
+			cluster.AdditionalNtpSource = "from.cluster.1, from.cluster.2"
+			db.Save(cluster)
+			Expect(db.Error).ToNot(HaveOccurred())
 
-			expectedContent := defaultChronyConf
-			expectedContent += fmt.Sprintf("\nserver %s iburst", common.TestNTPSourceSynced.SourceName)
-			expectedContent += fmt.Sprintf("\nserver %s iburst", common.TestNTPSourceUnsynced.SourceName)
-			for _, s := range sources {
-				expectedContent += fmt.Sprintf("\nserver %s iburst", s.SourceName)
+			cluster.Hosts = []*models.Host{
+				createHost(nil),
 			}
-			Expect(response).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(expectedContent))))
+
+			response, err := ntpUtils.createChronyManifestContent(cluster, models.HostRoleMaster, log)
+			Expect(err).ToNot(HaveOccurred())
+
+			chronyConfServers := extractChronyConfServers(response)
+			Expect(chronyConfServers).To(ConsistOf("from.cluster.1", "from.cluster.2"))
+		})
+
+		It("Adds infra-env sources if there are no sources in the host or in the cluster", func() {
+			infraEnv.AdditionalNtpSources = "from.infraenv.1, from.infraenv.2"
+			db.Save(infraEnv)
+			Expect(db.Error).ToNot(HaveOccurred())
+
+			cluster.Hosts = []*models.Host{
+				createHost(nil),
+			}
+
+			response, err := ntpUtils.createChronyManifestContent(cluster, models.HostRoleMaster, log)
+			Expect(err).ToNot(HaveOccurred())
+
+			chronyConfServers := extractChronyConfServers(response)
+			Expect(chronyConfServers).To(ConsistOf("from.infraenv.1", "from.infraenv.2"))
+		})
+
+		It("Ignores infra-env sources if there are sources in the cluster", func() {
+			cluster.AdditionalNtpSource = "from.cluster"
+			db.Save(cluster)
+			Expect(db.Error).ToNot(HaveOccurred())
+
+			infraEnv.AdditionalNtpSources = "from.infraenv"
+			db.Save(infraEnv)
+			Expect(db.Error).ToNot(HaveOccurred())
+
+			cluster.Hosts = []*models.Host{
+				createHost(nil),
+			}
+
+			response, err := ntpUtils.createChronyManifestContent(cluster, models.HostRoleMaster, log)
+			Expect(err).ToNot(HaveOccurred())
+
+			chronyConfServers := extractChronyConfServers(response)
+			Expect(chronyConfServers).To(ConsistOf("from.cluster"))
+		})
+
+		It("Adds sources from infra-env if hosts don't have reference to cluster", func() {
+			host := createHost(nil)
+			host.ClusterID = nil
+			db.Save(host)
+			Expect(db.Error).ToNot(HaveOccurred())
+
+			cluster.AdditionalNtpSource = "from.cluster"
+			db.Save(cluster)
+			Expect(db.Error).ToNot(HaveOccurred())
+
+			infraEnv.ClusterID = ""
+			infraEnv.AdditionalNtpSources = "from.infraenv"
+			db.Save(infraEnv)
+			Expect(db.Error).ToNot(HaveOccurred())
+
+			cluster.Hosts = []*models.Host{
+				host,
+			}
+
+			response, err := ntpUtils.createChronyManifestContent(cluster, models.HostRoleMaster, log)
+			Expect(err).ToNot(HaveOccurred())
+
+			chronyConfServers := extractChronyConfServers(response)
+			Expect(chronyConfServers).To(ConsistOf("from.infraenv"))
 		})
 	})
 
 	Context("Add NTP Manifest", func() {
 
 		BeforeEach(func() {
-			clusterId = strfmt.UUID(uuid.New().String())
-
-			hosts := make([]*models.Host, 0)
-			hosts = append(hosts, createHost(clusterId, []*models.NtpSource{
-				common.TestNTPSourceSynced,
-				common.TestNTPSourceUnsynced,
-			}))
-			hosts = append(hosts, createHost(clusterId, []*models.NtpSource{{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced}}))
-
-			cluster = common.Cluster{
-				Cluster: models.Cluster{
-					ID:    &clusterId,
-					Hosts: hosts,
-				},
+			cluster.Hosts = []*models.Host{
+				createHost([]*models.NtpSource{
+					common.TestNTPSourceSynced,
+					common.TestNTPSourceUnsynced,
+				}),
+				createHost([]*models.NtpSource{{
+					SourceName:  "3.3.3.3",
+					SourceState: models.SourceStateSynced,
+				}}),
 			}
-			Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
+
 			manifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
 		})
 
@@ -161,14 +315,14 @@ var _ = Describe("chrony manifest", func() {
 				FileName: "50-workers-chrony-configuration.yaml",
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil).Times(1)
-			Expect(ntpUtils.AddChronyManifest(ctx, log, &cluster)).ShouldNot(HaveOccurred())
+			Expect(ntpUtils.AddChronyManifest(ctx, log, cluster)).ShouldNot(HaveOccurred())
 
 		})
 
 		It("CreateClusterManifest failure", func() {
 			fileName := "50-masters-chrony-configuration.yaml"
 			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(nil, errors.Errorf("Failed to create manifest %s", fileName)).Times(1)
-			Expect(ntpUtils.AddChronyManifest(ctx, log, &cluster)).Should(HaveOccurred())
+			Expect(ntpUtils.AddChronyManifest(ctx, log, cluster)).Should(HaveOccurred())
 		})
 	})
 })
