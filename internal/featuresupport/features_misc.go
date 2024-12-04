@@ -322,7 +322,8 @@ func (f *NonStandardHAControlPlane) getSupportLevel(filters SupportLevelFilters)
 		return models.SupportLevelUnavailable
 	}
 
-	if filters.PlatformType != nil && *filters.PlatformType != models.PlatformTypeBaremetal {
+	if filters.PlatformType != nil &&
+		(*filters.PlatformType != models.PlatformTypeBaremetal && *filters.PlatformType != models.PlatformTypeNone) {
 		return models.SupportLevelUnavailable
 	}
 
@@ -335,7 +336,6 @@ func (f *NonStandardHAControlPlane) getIncompatibleFeatures(openshiftVersion str
 		models.FeatureSupportLevelIDEXTERNALPLATFORM,
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
-		models.FeatureSupportLevelIDNONEPLATFORM,
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 	}
 }
