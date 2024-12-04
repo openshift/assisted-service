@@ -134,7 +134,6 @@ func (feature *OdfFeature) getIncompatibleFeatures(string) *[]models.FeatureSupp
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDLVM,
-		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 	}
 }
 

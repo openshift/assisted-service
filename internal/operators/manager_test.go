@@ -477,7 +477,7 @@ var _ = Describe("Operators manager", func() {
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
-					Reasons: []string{"A minimum of 3 hosts is required to deploy ODF."}},
+					Reasons: []string{"A cluster with only masters or with a minimum of 3 workers is required."}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
@@ -543,11 +543,18 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("should be not valid if not enough disk space available for mce and odf", func() {
-			clusterHost = getMockHostWithDisks(int64(20), int64(20))
+			clusterHost = getMockHostWithDisks(int64(50), int64(50))
 
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&odf.Operator,
 				&mce.Operator,
+			}
+
+			// For compact mode
+			cluster.Hosts = []*models.Host{
+				{Role: models.HostRoleMaster},
+				{Role: models.HostRoleMaster},
+				{Role: models.HostRoleMaster},
 			}
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
