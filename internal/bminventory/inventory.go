@@ -3800,7 +3800,7 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 	if infraEnv.StaticNetworkConfig != "" {
 		// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
 		var ok bool
-		ok, err = b.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+		ok, err = b.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion)
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
@@ -4871,7 +4871,7 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 	}
 
 	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraenvCreateParams.StaticNetworkConfig, params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture, b.installerInvoker); err != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraenvCreateParams.StaticNetworkConfig, params.InfraenvCreateParams.OpenshiftVersion, b.installerInvoker); err != nil {
 			return err
 		}
 	}
@@ -5058,7 +5058,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 
 		if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
-			if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraEnvUpdateParams.StaticNetworkConfig, infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, b.installerInvoker); err != nil {
+			if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraEnvUpdateParams.StaticNetworkConfig, infraEnv.OpenshiftVersion, b.installerInvoker); err != nil {
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 		}
@@ -6013,7 +6013,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		if infraEnv.StaticNetworkConfig != "" {
 			// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
 			var ok bool
-			ok, err = b.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+			ok, err = b.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion)
 			if err != nil {
 				return common.GenerateErrorResponder(err)
 			}

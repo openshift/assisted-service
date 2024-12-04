@@ -32,8 +32,8 @@ type StaticNetworkConfig interface {
 	GenerateStaticNetworkConfigData(ctx context.Context, hostsYAMLS string) ([]StaticNetworkConfigData, error)
 	GenerateStaticNetworkConfigDataYAML(staticNetworkConfigStr string) ([]StaticNetworkConfigData, error)
 	FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error)
-	ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, arch, installerInvoker string) error
-	NMStatectlServiceSupported(version, arch string) (bool, error)
+	ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, installerInvoker string) error
+	NMStatectlServiceSupported(version string) (bool, error)
 }
 
 type StaticNetworkConfigGenerator struct {
@@ -293,7 +293,7 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 	return buf.String(), nil
 }
 
-func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macInterfaceMap models.MacInterfaceMap, networksYaml, ocpVersion, arch, installerInvoker string) error {
+func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macInterfaceMap models.MacInterfaceMap, networksYaml, ocpVersion, installerInvoker string) error {
 	interfaceNames := lo.Map(macInterfaceMap, func(m *models.MacInterfaceMapItems0, _ int) string { return m.LogicalNicName })
 
 	var config map[string]interface{}
@@ -339,7 +339,7 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macIn
 
 		identifier, exists := nic["identifier"]
 		isMacAddressIdentifier := exists && identifier == "mac-address"
-		isVersionOK, err := s.NMStatectlServiceSupported(ocpVersion, arch)
+		isVersionOK, err := s.NMStatectlServiceSupported(ocpVersion)
 		if err != nil {
 			return err
 		}
@@ -382,7 +382,7 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macIn
 	return nil
 }
 
-func (s *StaticNetworkConfigGenerator) ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, arch, installInvoker string) error {
+func (s *StaticNetworkConfigGenerator) ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, installInvoker string) error {
 	var err *multierror.Error
 	for i, hostConfig := range staticNetworkConfig {
 		err = multierror.Append(err, s.validateMacInterfaceName(i, hostConfig.MacInterfaceMap))
@@ -391,7 +391,7 @@ func (s *StaticNetworkConfigGenerator) ValidateStaticConfigParamsYAML(staticNetw
 			err = multierror.Append(err, fmt.Errorf("failed to validate network yaml for host %d, %s", i, validateErr))
 			return err.ErrorOrNil()
 		}
-		err = multierror.Append(err, s.validateInterfaceNamesExistenceYAML(hostConfig.MacInterfaceMap, hostConfig.NetworkYaml, ocpVersion, arch, installInvoker))
+		err = multierror.Append(err, s.validateInterfaceNamesExistenceYAML(hostConfig.MacInterfaceMap, hostConfig.NetworkYaml, ocpVersion, installInvoker))
 	}
 	return err.ErrorOrNil()
 }
