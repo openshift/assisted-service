@@ -1513,21 +1513,21 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 			It(t.name, func() {
 				cluster = common.Cluster{
 					Cluster: models.Cluster{
-						APIVips:          t.apiVips,
-						ID:               &clusterId,
-						IngressVips:      t.ingressVips,
-						MachineNetworks:  t.machineNetworks,
-						Status:           &t.srcState,
-						StatusInfo:       &t.srcStatusInfo,
-						BaseDNSDomain:    t.dnsDomain,
-						PullSecretSet:    t.pullSecretSet,
-						ClusterNetworks:  common.TestIPv4Networking.ClusterNetworks,
-						ServiceNetworks:  common.TestIPv4Networking.ServiceNetworks,
-						NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
-						StatusUpdatedAt:  strfmt.DateTime(time.Now()),
-						OpenshiftVersion: t.openshiftVersion,
+						APIVips:           t.apiVips,
+						ID:                &clusterId,
+						IngressVips:       t.ingressVips,
+						MachineNetworks:   t.machineNetworks,
+						Status:            &t.srcState,
+						StatusInfo:        &t.srcStatusInfo,
+						BaseDNSDomain:     t.dnsDomain,
+						PullSecretSet:     t.pullSecretSet,
+						ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
+						ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+						NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						StatusUpdatedAt:   strfmt.DateTime(time.Now()),
+						OpenshiftVersion:  t.openshiftVersion,
+						ControlPlaneCount: t.controlPlaneCount,
 					},
-					ControlPlaneCount: t.controlPlaneCount,
 				}
 
 				if cluster.Cluster.OpenshiftVersion == "" {
@@ -1793,21 +1793,21 @@ var _ = Describe("Refresh Cluster - Same networks", func() {
 			t := tests[i]
 			It(t.name, func() {
 				cluster = common.Cluster{
-					ControlPlaneCount: 3,
 					Cluster: models.Cluster{
-						APIVips:          t.apiVips,
-						ID:               &clusterId,
-						IngressVips:      t.ingressVips,
-						MachineNetworks:  t.machineNetworks,
-						Status:           &t.srcState,
-						StatusInfo:       &t.srcStatusInfo,
-						BaseDNSDomain:    t.dnsDomain,
-						PullSecretSet:    t.pullSecretSet,
-						ClusterNetworks:  t.clusterNetworks,
-						ServiceNetworks:  t.serviceNetworks,
-						NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
-						StatusUpdatedAt:  strfmt.DateTime(time.Now()),
-						OpenshiftVersion: testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						APIVips:           t.apiVips,
+						ID:                &clusterId,
+						IngressVips:       t.ingressVips,
+						MachineNetworks:   t.machineNetworks,
+						Status:            &t.srcState,
+						StatusInfo:        &t.srcStatusInfo,
+						BaseDNSDomain:     t.dnsDomain,
+						PullSecretSet:     t.pullSecretSet,
+						ClusterNetworks:   t.clusterNetworks,
+						ServiceNetworks:   t.serviceNetworks,
+						NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						StatusUpdatedAt:   strfmt.DateTime(time.Now()),
+						OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount: 3,
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -2045,7 +2045,6 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		t := tests[i]
 		It(t.name, func() {
 			cluster = common.Cluster{
-				ControlPlaneCount: 3,
 				Cluster: models.Cluster{
 					APIVips:         t.apiVips,
 					ID:              &clusterId,
@@ -2059,7 +2058,8 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 						Status: t.lastInstallationPreparationStatus,
 						Reason: t.lastInstallationPreparationReason,
 					},
-					OpenshiftVersion: testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+					OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+					ControlPlaneCount: 3,
 				},
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -2593,7 +2593,6 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 			t := tests[i]
 			It(t.name, func() {
 				cluster = common.Cluster{
-					ControlPlaneCount: t.controlPlaneCount,
 					Cluster: models.Cluster{
 						APIVips:               t.apiVips,
 						ID:                    &clusterId,
@@ -2609,6 +2608,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 						NetworkType:           &t.networkType,
 						VipDhcpAllocation:     &t.vipDhcpAllocation,
 						OpenshiftVersion:      testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount:     t.controlPlaneCount,
 					},
 				}
 
@@ -3068,7 +3068,6 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 			t := tests[i]
 			It(t.name, func() {
 				cluster = common.Cluster{
-					ControlPlaneCount: 3,
 					Cluster: models.Cluster{
 						APIVips:               t.apiVips,
 						ID:                    &clusterId,
@@ -3083,6 +3082,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 						UserManagedNetworking: &t.userManagedNetworking,
 						NetworkType:           &t.networkType,
 						OpenshiftVersion:      testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount:     3,
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -3775,7 +3775,6 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 			t := tests[i]
 			It(t.name, func() {
 				cluster = common.Cluster{
-					ControlPlaneCount: t.controlPlaneCount,
 					Cluster: models.Cluster{
 						APIVips:           t.apiVips,
 						ID:                &clusterId,
@@ -3791,6 +3790,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 						NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
 						StatusUpdatedAt:   strfmt.DateTime(time.Now()),
 						OpenshiftVersion:  t.openshiftVersion,
+						ControlPlaneCount: t.controlPlaneCount,
 					},
 				}
 
@@ -4222,7 +4222,6 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 			t := tests[i]
 			It(t.name, func() {
 				cluster = common.Cluster{
-					ControlPlaneCount: 3,
 					Cluster: models.Cluster{
 						ClusterNetworks:    common.TestIPv4Networking.ClusterNetworks,
 						ServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
@@ -4238,6 +4237,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 						MonitoredOperators: t.operators,
 						StatusUpdatedAt:    strfmt.DateTime(time.Now()),
 						OpenshiftVersion:   testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount:  3,
 					},
 				}
 				if t.openshiftVersion != "" {
@@ -4715,20 +4715,20 @@ var _ = Describe("NTP refresh cluster", func() {
 			t := tests[i]
 			It(t.name, func() {
 				cluster = common.Cluster{
-					ControlPlaneCount: 3,
 					Cluster: models.Cluster{
-						ClusterNetworks:  common.TestIPv4Networking.ClusterNetworks,
-						ServiceNetworks:  common.TestIPv4Networking.ServiceNetworks,
-						MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
-						APIVips:          common.TestIPv4Networking.APIVips,
-						IngressVips:      common.TestIPv4Networking.IngressVips,
-						ID:               &clusterId,
-						Status:           &t.srcState,
-						StatusInfo:       &t.srcStatusInfo,
-						BaseDNSDomain:    "test.com",
-						PullSecretSet:    t.pullSecretSet,
-						OpenshiftVersion: testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
-						NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
+						ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+						MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
+						APIVips:           common.TestIPv4Networking.APIVips,
+						IngressVips:       common.TestIPv4Networking.IngressVips,
+						ID:                &clusterId,
+						Status:            &t.srcState,
+						StatusInfo:        &t.srcStatusInfo,
+						BaseDNSDomain:     "test.com",
+						PullSecretSet:     t.pullSecretSet,
+						OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						ControlPlaneCount: 3,
 					},
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -5000,7 +5000,6 @@ var _ = Describe("Single node", func() {
 			haMode := models.ClusterHighAvailabilityModeNone
 			It(t.name, func() {
 				cluster = common.Cluster{
-					ControlPlaneCount: 1,
 					Cluster: models.Cluster{
 						ClusterNetworks:      common.TestIPv4Networking.ClusterNetworks,
 						ServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
@@ -5015,6 +5014,7 @@ var _ = Describe("Single node", func() {
 						NetworkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
 						HighAvailabilityMode: &haMode,
 						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount:    1,
 					},
 				}
 

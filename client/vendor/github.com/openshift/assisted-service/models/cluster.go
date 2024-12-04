@@ -54,6 +54,9 @@ type Cluster struct {
 	// Json formatted string containing the majority groups for connectivity checks.
 	ConnectivityMajorityGroups string `json:"connectivity_majority_groups,omitempty" gorm:"type:text"`
 
+	// Specifies the required number of control plane nodes that should be part of the cluster.
+	ControlPlaneCount int64 `json:"control_plane_count,omitempty"`
+
 	// controller logs collected at
 	// Format: date-time
 	ControllerLogsCollectedAt strfmt.DateTime `json:"controller_logs_collected_at,omitempty" gorm:"type:timestamp with time zone"`

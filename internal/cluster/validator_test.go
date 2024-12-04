@@ -701,11 +701,11 @@ var _ = Describe("SufficientMastersCount", func() {
 			preprocessContext := &clusterPreprocessContext{
 				clusterId: clusterID,
 				cluster: &common.Cluster{
-					ControlPlaneCount: 3,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
 						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    3,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,
@@ -734,11 +734,11 @@ var _ = Describe("SufficientMastersCount", func() {
 			preprocessContext := &clusterPreprocessContext{
 				clusterId: clusterID,
 				cluster: &common.Cluster{
-					ControlPlaneCount: 1,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
 						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+						ControlPlaneCount:    1,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,
@@ -761,11 +761,11 @@ var _ = Describe("SufficientMastersCount", func() {
 			preprocessContext := &clusterPreprocessContext{
 				clusterId: clusterID,
 				cluster: &common.Cluster{
-					ControlPlaneCount: 5,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
 						OpenshiftVersion:     common.MinimumVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    5,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,
@@ -802,11 +802,11 @@ var _ = Describe("SufficientMastersCount", func() {
 			preprocessContext := &clusterPreprocessContext{
 				clusterId: clusterID,
 				cluster: &common.Cluster{
-					ControlPlaneCount: 3,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
 						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    3,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,
@@ -841,11 +841,11 @@ var _ = Describe("SufficientMastersCount", func() {
 			preprocessContext := &clusterPreprocessContext{
 				clusterId: clusterID,
 				cluster: &common.Cluster{
-					ControlPlaneCount: 1,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
 						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+						ControlPlaneCount:    1,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,
@@ -871,11 +871,11 @@ var _ = Describe("SufficientMastersCount", func() {
 			preprocessContext := &clusterPreprocessContext{
 				clusterId: clusterID,
 				cluster: &common.Cluster{
-					ControlPlaneCount: 1,
 					Cluster: models.Cluster{
 						ID:                   &clusterID,
 						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+						ControlPlaneCount:    1,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,

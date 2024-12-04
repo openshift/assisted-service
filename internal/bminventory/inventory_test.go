@@ -7873,8 +7873,8 @@ var _ = Describe("V2UpdateCluster", func() {
 							ID:                   &clusterID,
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 							OpenshiftVersion:     "4.16",
+							ControlPlaneCount:    3,
 						},
-						ControlPlaneCount: 3,
 					}
 
 					err := db.Create(cluster).Error
@@ -7904,8 +7904,8 @@ var _ = Describe("V2UpdateCluster", func() {
 							ID:                   &clusterID,
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 							OpenshiftVersion:     "4.18",
+							ControlPlaneCount:    3,
 						},
-						ControlPlaneCount: 3,
 					}
 
 					err := db.Create(cluster).Error
@@ -7935,8 +7935,8 @@ var _ = Describe("V2UpdateCluster", func() {
 							ID:                   &clusterID,
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 							OpenshiftVersion:     "4.18",
+							ControlPlaneCount:    4,
 						},
-						ControlPlaneCount: 4,
 					}
 
 					err := db.Create(cluster).Error
@@ -7968,8 +7968,8 @@ var _ = Describe("V2UpdateCluster", func() {
 							ID:                   &clusterID,
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 							OpenshiftVersion:     "4.16",
+							ControlPlaneCount:    3,
 						},
-						ControlPlaneCount: 3,
 					}
 
 					err := db.Create(cluster).Error
@@ -7991,8 +7991,8 @@ var _ = Describe("V2UpdateCluster", func() {
 							ID:                   &clusterID,
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 							OpenshiftVersion:     "4.18",
+							ControlPlaneCount:    3,
 						},
-						ControlPlaneCount: 3,
 					}
 
 					err := db.Create(cluster).Error
@@ -8014,8 +8014,8 @@ var _ = Describe("V2UpdateCluster", func() {
 							ID:                   &clusterID,
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
 							OpenshiftVersion:     "4.16",
+							ControlPlaneCount:    1,
 						},
-						ControlPlaneCount: 1,
 					}
 
 					err := db.Create(cluster).Error
@@ -8037,8 +8037,8 @@ var _ = Describe("V2UpdateCluster", func() {
 							ID:                   &clusterID,
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 							OpenshiftVersion:     "4.16",
+							ControlPlaneCount:    3,
 						},
-						ControlPlaneCount: 3,
 					}
 
 					err := db.Create(cluster).Error
@@ -8064,8 +8064,8 @@ var _ = Describe("V2UpdateCluster", func() {
 							ID:                   &clusterID,
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 							OpenshiftVersion:     "4.18",
+							ControlPlaneCount:    4,
 						},
-						ControlPlaneCount: 4,
 					}
 
 					err := db.Create(cluster).Error
