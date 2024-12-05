@@ -125,7 +125,6 @@ func (feature *NonePlatformFeature) getIncompatibleFeatures(string) *[]models.Fe
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
-		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 	}
 }
 

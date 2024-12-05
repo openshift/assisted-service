@@ -210,6 +210,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			),
 
 			Entry(
+				"none platform",
+				[]SupportLevelFeature{&NonePlatformFeature{}},
+				true,
+			),
+
+			Entry(
 				"external platform",
 				[]SupportLevelFeature{&ExternalPlatformFeature{}},
 				false,
@@ -224,12 +230,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Entry(
 				"vsphere platform",
 				[]SupportLevelFeature{&VsphereIntegrationFeature{}},
-				false,
-			),
-
-			Entry(
-				"none platform",
-				[]SupportLevelFeature{&NonePlatformFeature{}},
 				false,
 			),
 		)
