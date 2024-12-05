@@ -187,18 +187,16 @@ func (m *ManifestsGenerator) createChronyManifestContent(c *common.Cluster, role
 	sources := make([]string, 0)
 
 	for _, host := range c.Hosts {
-		if host.NtpSources == "" {
-			continue
-		}
+		if host.NtpSources != "" {
+			var ntpSources []*models.NtpSource
+			if err := json.Unmarshal([]byte(host.NtpSources), &ntpSources); err != nil {
+				return nil, errors.Wrapf(err, "Failed to unmarshal %s", host.NtpSources)
+			}
 
-		var ntpSources []*models.NtpSource
-		if err := json.Unmarshal([]byte(host.NtpSources), &ntpSources); err != nil {
-			return nil, errors.Wrapf(err, "Failed to unmarshal %s", host.NtpSources)
-		}
-
-		for _, source := range ntpSources {
-			if !funk.Contains(sources, source.SourceName) {
-				sources = append(sources, source.SourceName)
+			for _, source := range ntpSources {
+				if !funk.Contains(sources, source.SourceName) {
+					sources = append(sources, source.SourceName)
+				}
 			}
 		}
 
