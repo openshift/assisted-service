@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/internal/controller/controllers/mirrorregistry"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/imageservice"
+	"github.com/openshift/assisted-service/internal/infraenv"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -146,15 +147,6 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 	return r.ensureISO(ctx, log, infraEnv)
 }
 
-func (r *InfraEnvReconciler) getImageType(ctx context.Context, infraEnv *aiv1beta1.InfraEnv) models.ImageType {
-	// S390X platform does not support minimal ISO, ensure that full ISO is requested instead.
-	imageType := r.Config.ImageType
-	if infraEnv.Spec.CpuArchitecture == models.ClusterCPUArchitectureS390x {
-		imageType = models.ImageTypeFullIso
-	}
-	return imageType
-}
-
 func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (*common.InfraEnv, error) {
 	updateParams := installer.UpdateInfraEnvParams{
 		InfraEnvID:           *internalInfraEnv.ID,
@@ -175,6 +167,10 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	}
 	if len(infraEnv.Spec.AdditionalNTPSources) > 0 {
 		updateParams.InfraEnvUpdateParams.AdditionalNtpSources = swag.String(strings.Join(infraEnv.Spec.AdditionalNTPSources[:], ","))
+	}
+	imageType := infraenv.GetInfraEnvIsoImageType(log, infraEnv.Spec.CpuArchitecture, infraEnv.Spec.ImageType, r.Config.ImageType)
+	if imageType != common.ImageTypeValue(internalInfraEnv.Type) {
+		updateParams.InfraEnvUpdateParams.ImageType = imageType
 	}
 	if infraEnv.Spec.IgnitionConfigOverride != "" {
 		updateParams.InfraEnvUpdateParams.IgnitionConfigOverride = infraEnv.Spec.IgnitionConfigOverride
@@ -218,8 +214,6 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 		log.Infof("removed all nmStateConfigs from the image")
 		updateParams.InfraEnvUpdateParams.StaticNetworkConfig = []*models.HostStaticNetworkConfig{}
 	}
-
-	updateParams.InfraEnvUpdateParams.ImageType = r.getImageType(ctx, infraEnv)
 
 	existingKargs, err := kubeKernelArgs(internalInfraEnv)
 	if err != nil {
@@ -502,7 +496,8 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 	if cluster != nil {
 		clusterID = cluster.ID
 	}
-	createParams := CreateInfraEnvParams(infraEnv, r.getImageType(ctx, infraEnv), pullSecret, clusterID, osImageVersion)
+	imageType := infraenv.GetInfraEnvIsoImageType(log, infraEnv.Spec.CpuArchitecture, infraEnv.Spec.ImageType, r.Config.ImageType)
+	createParams := CreateInfraEnvParams(infraEnv, imageType, pullSecret, clusterID, osImageVersion)
 
 	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {
