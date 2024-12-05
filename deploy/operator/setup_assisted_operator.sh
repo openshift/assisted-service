@@ -110,7 +110,7 @@ function install_from_catalog_source() {
 
   if [ "${DISCONNECTED}" != "true" ]; then
     # In disconnected mode it should be applied already with a different image
-  tee << EOCR >(oc apply --wait=true -f -)
+  tee << EOCR >(oc apply  -f -)
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -124,7 +124,7 @@ spec:
 EOCR
   fi
 
-  tee << EOCR >(oc apply --wait=true -f -)
+  tee << EOCR >(oc apply  -f -)
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -159,7 +159,7 @@ EOCR
 
   wait_for_crd "agentserviceconfigs.agent-install.openshift.io"
 
-  tee << EOCR >(oc apply --wait=true -f -)
+  tee << EOCR >(oc apply  -f -)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -174,7 +174,7 @@ EOCR
     deploy_mirror_config_map
   fi
 
-  tee << EOCR >(oc apply --wait=true -f -)
+  tee << EOCR >(oc apply  -f -)
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:
@@ -303,7 +303,7 @@ data:
 EOCR
 
   python ${__dir}/set_ca_bundle.py "${WORKING_DIR}/registry/certs/registry.2.crt" "./assisted-mirror-config"
-  tee < ./assisted-mirror-config >(oc apply --wait=true -f -)
+  tee < ./assisted-mirror-config >(oc apply  -f -)
 }
 
 function from_index_image() {
