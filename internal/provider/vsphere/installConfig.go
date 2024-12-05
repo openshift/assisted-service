@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/swag"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/installcfg"
@@ -84,6 +85,35 @@ func (p vsphereProvider) AddPlatformToInstallConfig(
 	setPlatformValues(cluster.OpenshiftVersion, vsPlatform)
 	cfg.Platform = installcfg.Platform{
 		Vsphere: vsPlatform,
+	}
+
+	err := p.addLoadBalancer(cfg, cluster)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p vsphereProvider) addLoadBalancer(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+	if cluster.LoadBalancer == nil {
+		return nil
+	}
+	switch cluster.LoadBalancer.Type {
+	case models.LoadBalancerTypeClusterManaged:
+		// Nothing, this is the default.
+	case models.LoadBalancerTypeUserManaged:
+		cfg.Platform.Vsphere.LoadBalancer = &configv1.VSpherePlatformLoadBalancer{
+			Type: configv1.LoadBalancerTypeUserManaged,
+		}
+	default:
+		return fmt.Errorf(
+			"load balancer type is set to unsupported value '%s', supported values are "+
+				"'%s' and '%s'",
+			cluster.LoadBalancer.Type,
+			models.LoadBalancerTypeClusterManaged,
+			models.LoadBalancerTypeUserManaged,
+		)
 	}
 	return nil
 }

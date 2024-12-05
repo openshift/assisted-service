@@ -6400,6 +6400,9 @@ func init() {
         "last-installation-preparation": {
           "$ref": "#/definitions/last-installation-preparation"
         },
+        "load_balancer": {
+          "$ref": "#/definitions/load_balancer"
+        },
         "logs_info": {
           "description": "The progress of log collection or empty if logs are not applicable",
           "$ref": "#/definitions/logs_state"
@@ -6689,6 +6692,9 @@ func init() {
           "items": {
             "$ref": "#/definitions/ingress_vip"
           }
+        },
+        "load_balancer": {
+          "$ref": "#/definitions/load_balancer"
         },
         "machine_networks": {
           "description": "Machine networks that are associated with this cluster.",
@@ -7777,7 +7783,8 @@ func init() {
         "SERVICEMESH",
         "SERVERLESS",
         "OPENSHIFT_AI",
-        "NON_STANDARD_HA_CONTROL_PLANE"
+        "NON_STANDARD_HA_CONTROL_PLANE",
+        "EXTERNAL_LOAD_BALANCER"
       ]
     },
     "finalizing-stage": {
@@ -9311,6 +9318,21 @@ func init() {
         }
       }
     },
+    "load_balancer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Indicates if the load balancer will be managed by the cluster or by the user. This is optional and The\ndefault is ` + "`" + `cluster-managed` + "`" + `.\n\n` + "`" + `cluster-managed` + "`" + ` means that the cluster will start the components that assign the API and ingress VIPs to the\nnodes of the cluster automatically.\n\n` + "`" + `user-managed` + "`" + ` means that the user is responsible for configuring an external load balancer and assign the\nAPI and ingress VIPs to it. Note that this configuration needs to be completed before starting the\ninstallation of the cluster, as it is needed during the installation process.\n",
+          "type": "string",
+          "enum": [
+            "cluster-managed",
+            "user-managed"
+          ],
+          "x-go-custom-tag": "gorm:\"not null;check:load_balancer_type in ('cluster-managed', 'user-managed');default:'cluster-managed'\""
+        }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:load_balancer_\""
+    },
     "logs-progress-params": {
       "type": "object",
       "required": [
@@ -10543,6 +10565,9 @@ func init() {
             "$ref": "#/definitions/ingress_vip"
           },
           "x-nullable": true
+        },
+        "load_balancer": {
+          "$ref": "#/definitions/load_balancer"
         },
         "machine_network_cidr": {
           "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
@@ -17307,6 +17332,9 @@ func init() {
         "last-installation-preparation": {
           "$ref": "#/definitions/last-installation-preparation"
         },
+        "load_balancer": {
+          "$ref": "#/definitions/load_balancer"
+        },
         "logs_info": {
           "description": "The progress of log collection or empty if logs are not applicable",
           "$ref": "#/definitions/logs_state"
@@ -17596,6 +17624,9 @@ func init() {
           "items": {
             "$ref": "#/definitions/ingress_vip"
           }
+        },
+        "load_balancer": {
+          "$ref": "#/definitions/load_balancer"
         },
         "machine_networks": {
           "description": "Machine networks that are associated with this cluster.",
@@ -18651,7 +18682,8 @@ func init() {
         "SERVICEMESH",
         "SERVERLESS",
         "OPENSHIFT_AI",
-        "NON_STANDARD_HA_CONTROL_PLANE"
+        "NON_STANDARD_HA_CONTROL_PLANE",
+        "EXTERNAL_LOAD_BALANCER"
       ]
     },
     "finalizing-stage": {
@@ -20187,6 +20219,21 @@ func init() {
         }
       }
     },
+    "load_balancer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Indicates if the load balancer will be managed by the cluster or by the user. This is optional and The\ndefault is ` + "`" + `cluster-managed` + "`" + `.\n\n` + "`" + `cluster-managed` + "`" + ` means that the cluster will start the components that assign the API and ingress VIPs to the\nnodes of the cluster automatically.\n\n` + "`" + `user-managed` + "`" + ` means that the user is responsible for configuring an external load balancer and assign the\nAPI and ingress VIPs to it. Note that this configuration needs to be completed before starting the\ninstallation of the cluster, as it is needed during the installation process.\n",
+          "type": "string",
+          "enum": [
+            "cluster-managed",
+            "user-managed"
+          ],
+          "x-go-custom-tag": "gorm:\"not null;check:load_balancer_type in ('cluster-managed', 'user-managed');default:'cluster-managed'\""
+        }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:load_balancer_\""
+    },
     "logs-progress-params": {
       "type": "object",
       "required": [
@@ -21382,6 +21429,9 @@ func init() {
             "$ref": "#/definitions/ingress_vip"
           },
           "x-nullable": true
+        },
+        "load_balancer": {
+          "$ref": "#/definitions/load_balancer"
         },
         "machine_network_cidr": {
           "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",

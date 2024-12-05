@@ -4160,6 +4160,7 @@ definitions:
       - 'SERVERLESS'
       - 'OPENSHIFT_AI'
       - 'NON_STANDARD_HA_CONTROL_PLANE'
+      - 'EXTERNAL_LOAD_BALANCER'
 
   architecture-support-level-id:
     type: string
@@ -4916,6 +4917,8 @@ definitions:
         type: integer
         description: The amount of control planes which should be part of the cluster.
         x-nullable: true
+      load_balancer:
+        $ref: '#/definitions/load_balancer'
 
   host-update-params:
     type: object
@@ -5097,6 +5100,8 @@ definitions:
         type: integer
         description: The amount of control planes which should be part of the cluster.
         x-nullable: true    
+      load_balancer:
+        $ref: '#/definitions/load_balancer'
 
   import-cluster-params:
     type: object
@@ -5475,7 +5480,8 @@ definitions:
       org_soft_timeouts_enabled:
         type: boolean
         description: Indication if organization soft timeouts is enabled for the cluster.
-
+      load_balancer:
+        $ref: '#/definitions/load_balancer'
 
   last-installation-preparation:
     type: object
@@ -7601,3 +7607,24 @@ definitions:
     - NotSupported
     - Enabled
     - Disabled
+
+  load_balancer:
+    type: object
+    x-go-custom-tag: gorm:"embedded;embeddedPrefix:load_balancer_"
+    properties:
+      type:
+        x-go-custom-tag: gorm:"not null;check:load_balancer_type in ('cluster-managed', 'user-managed');default:'cluster-managed'"
+        description: |
+          Indicates if the load balancer will be managed by the cluster or by the user. This is optional and The
+          default is `cluster-managed`.
+
+          `cluster-managed` means that the cluster will start the components that assign the API and ingress VIPs to the
+          nodes of the cluster automatically.
+
+          `user-managed` means that the user is responsible for configuring an external load balancer and assign the
+          API and ingress VIPs to it. Note that this configuration needs to be completed before starting the
+          installation of the cluster, as it is needed during the installation process.
+        type: string
+        enum:
+        - cluster-managed
+        - user-managed

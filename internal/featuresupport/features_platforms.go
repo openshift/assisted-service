@@ -126,6 +126,7 @@ func (feature *NonePlatformFeature) getIncompatibleFeatures(string) *[]models.Fe
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
+		models.FeatureSupportLevelIDEXTERNALLOADBALANCER,
 	}
 }
 
@@ -185,6 +186,7 @@ func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) *[]mod
 		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDMTV,
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
+		models.FeatureSupportLevelIDEXTERNALLOADBALANCER,
 	}
 }
 
@@ -293,6 +295,7 @@ func (feature *OciIntegrationFeature) getIncompatibleFeatures(string) *[]models.
 		models.FeatureSupportLevelIDDUALSTACKVIPS,
 		models.FeatureSupportLevelIDFULLISO,
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
+		models.FeatureSupportLevelIDEXTERNALLOADBALANCER,
 	}
 }
 
@@ -343,6 +346,7 @@ func (feature *ExternalPlatformFeature) getIncompatibleFeatures(string) *[]model
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
+		models.FeatureSupportLevelIDEXTERNALLOADBALANCER,
 	}
 }
 
@@ -355,5 +359,52 @@ func (feature *ExternalPlatformFeature) getFeatureActiveLevel(cluster *common.Cl
 		return activeLevelActive
 	}
 
+	return activeLevelNotActive
+}
+
+// ExternalLoadBalancerFeature
+type ExternalLoadBalancerFeature struct{}
+
+func (feature *ExternalLoadBalancerFeature) New() SupportLevelFeature {
+	return &ExternalLoadBalancerFeature{}
+}
+
+func (feature *ExternalLoadBalancerFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDEXTERNALLOADBALANCER
+}
+
+func (feature *ExternalLoadBalancerFeature) GetName() string {
+	return "External Load Balancer"
+}
+
+func (feature *ExternalLoadBalancerFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if isPlatformSet(filters) {
+		return ""
+	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.16", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *ExternalLoadBalancerFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDEXTERNALPLATFORM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+		models.FeatureSupportLevelIDNONEPLATFORM,
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+	}
+}
+
+func (feature *ExternalLoadBalancerFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (feature *ExternalLoadBalancerFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if cluster != nil && cluster.LoadBalancer != nil && cluster.LoadBalancer.Type == models.LoadBalancerTypeUserManaged {
+		return activeLevelActive
+	}
 	return activeLevelNotActive
 }

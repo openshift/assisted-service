@@ -2,11 +2,13 @@ package baremetal
 
 import (
 	"encoding/json"
+	"fmt"
 	"slices"
 	"sort"
 	"strings"
 
 	"github.com/go-openapi/swag"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -132,6 +134,34 @@ func (p *baremetalProvider) AddPlatformToInstallConfig(
 	// here because older versions will just ignore it.
 	cfg.Platform.Baremetal.AdditionalNTPServers = ntpServers
 
+	err = p.addLoadBalancer(cfg, cluster)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p baremetalProvider) addLoadBalancer(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+	if cluster.LoadBalancer == nil {
+		return nil
+	}
+	switch cluster.LoadBalancer.Type {
+	case models.LoadBalancerTypeClusterManaged:
+		// Nothing, this is the default.
+	case models.LoadBalancerTypeUserManaged:
+		cfg.Platform.Baremetal.LoadBalancer = &configv1.BareMetalPlatformLoadBalancer{
+			Type: configv1.LoadBalancerTypeUserManaged,
+		}
+	default:
+		return fmt.Errorf(
+			"load balancer type is set to unsupported value '%s', supported values are "+
+				"'%s' and '%s'",
+			cluster.LoadBalancer.Type,
+			models.LoadBalancerTypeClusterManaged,
+			models.LoadBalancerTypeUserManaged,
+		)
+	}
 	return nil
 }
 

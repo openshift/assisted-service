@@ -645,6 +645,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 			IgnitionEndpoint:             params.NewClusterParams.IgnitionEndpoint,
 			Tags:                         swag.StringValue(params.NewClusterParams.Tags),
 			OrgSoftTimeoutsEnabled:       orgSoftTimeoutsEnabled,
+			LoadBalancer:                 params.NewClusterParams.LoadBalancer,
 		},
 		KubeKeyName:                 kubeKey.Name,
 		KubeKeyNamespace:            kubeKey.Namespace,
@@ -2196,6 +2197,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 	targetConfiguration.MachineNetworks = cluster.MachineNetworks
 	targetConfiguration.APIVips = cluster.APIVips
 	targetConfiguration.IngressVips = cluster.IngressVips
+	targetConfiguration.LoadBalancer = cluster.LoadBalancer
 
 	if params.ClusterUpdateParams.ClusterNetworks != nil {
 		targetConfiguration.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks

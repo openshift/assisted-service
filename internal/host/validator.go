@@ -514,6 +514,9 @@ func (v *validator) isMachineCidrDefined(c *validationContext) (ValidationStatus
 	if network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationSuccess, "Machine Network CIDR is defined"
 	}
+	if network.IsLoadBalancerUserManaged(c.cluster) {
+		return ValidationPending, "Machine Network CIDR: is not yet defined"
+	}
 	if swag.BoolValue(c.cluster.VipDhcpAllocation) {
 		return ValidationFailure, "Machine Network CIDR is undefined"
 	}
