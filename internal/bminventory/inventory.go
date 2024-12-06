@@ -645,12 +645,12 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 			IgnitionEndpoint:             params.NewClusterParams.IgnitionEndpoint,
 			Tags:                         swag.StringValue(params.NewClusterParams.Tags),
 			OrgSoftTimeoutsEnabled:       orgSoftTimeoutsEnabled,
+			ControlPlaneCount:            swag.Int64Value(params.NewClusterParams.ControlPlaneCount),
 		},
 		KubeKeyName:                 kubeKey.Name,
 		KubeKeyNamespace:            kubeKey.Namespace,
 		TriggerMonitorTimestamp:     time.Now(),
 		MachineNetworkCidrUpdatedAt: time.Now(),
-		ControlPlaneCount:           swag.Int64Value(params.NewClusterParams.ControlPlaneCount),
 	}
 
 	if err = cluster.SetMirrorRegistryConfiguration(mirrorRegistryConfiguration); err != nil {

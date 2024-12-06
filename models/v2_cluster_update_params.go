@@ -45,7 +45,7 @@ type V2ClusterUpdateParams struct {
 	// Cluster networks that are associated with this cluster.
 	ClusterNetworks []*ClusterNetwork `json:"cluster_networks"`
 
-	// The amount of control planes which should be part of the cluster.
+	// Specifies the required number of control plane nodes that should be part of the cluster.
 	ControlPlaneCount *int64 `json:"control_plane_count,omitempty"`
 
 	// Installation disks encryption mode and host roles to be applied.

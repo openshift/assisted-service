@@ -4914,7 +4914,7 @@ definitions:
         x-nullable: true
       control_plane_count:
         type: integer
-        description: The amount of control planes which should be part of the cluster.
+        description: Specifies the required number of control plane nodes that should be part of the cluster.
         x-nullable: true
 
   host-update-params:
@@ -5095,7 +5095,7 @@ definitions:
         x-nullable: true
       control_plane_count:
         type: integer
-        description: The amount of control planes which should be part of the cluster.
+        description: Specifies the required number of control plane nodes that should be part of the cluster.
         x-nullable: true    
 
   import-cluster-params:
@@ -5475,7 +5475,9 @@ definitions:
       org_soft_timeouts_enabled:
         type: boolean
         description: Indication if organization soft timeouts is enabled for the cluster.
-
+      control_plane_count:
+        type: integer
+        description: Specifies the required number of control plane nodes that should be part of the cluster.
 
   last-installation-preparation:
     type: object

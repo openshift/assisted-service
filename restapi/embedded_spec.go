@@ -6209,6 +6209,10 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "control_plane_count": {
+          "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
+          "type": "integer"
+        },
         "controller_logs_collected_at": {
           "type": "string",
           "format": "date-time",
@@ -6627,7 +6631,7 @@ func init() {
           "x-nullable": true
         },
         "control_plane_count": {
-          "description": "The amount of control planes which should be part of the cluster.",
+          "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
           "type": "integer",
           "x-nullable": true
         },
@@ -10503,7 +10507,7 @@ func init() {
           "x-nullable": true
         },
         "control_plane_count": {
-          "description": "The amount of control planes which should be part of the cluster.",
+          "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
           "type": "integer",
           "x-nullable": true
         },
@@ -17116,6 +17120,10 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "control_plane_count": {
+          "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
+          "type": "integer"
+        },
         "controller_logs_collected_at": {
           "type": "string",
           "format": "date-time",
@@ -17534,7 +17542,7 @@ func init() {
           "x-nullable": true
         },
         "control_plane_count": {
-          "description": "The amount of control planes which should be part of the cluster.",
+          "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
           "type": "integer",
           "x-nullable": true
         },
@@ -21342,7 +21350,7 @@ func init() {
           "x-nullable": true
         },
         "control_plane_count": {
-          "description": "The amount of control planes which should be part of the cluster.",
+          "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
           "type": "integer",
           "x-nullable": true
         },

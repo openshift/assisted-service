@@ -38,31 +38,31 @@ var _ = Describe("updateNewColumnControlPlaneCountValueForExistingSNOClusterReco
 		It("changing only records with control_plane_count = 0", func() {
 			clusters := []*common.Cluster{
 				{
-					ControlPlaneCount: 0,
 					Cluster: models.Cluster{
 						ID:                   &id1,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+						ControlPlaneCount:    0,
 					},
 				},
 				{
-					ControlPlaneCount: 1,
 					Cluster: models.Cluster{
 						ID:                   &id2,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+						ControlPlaneCount:    1,
 					},
 				},
 				{
-					ControlPlaneCount: 0,
 					Cluster: models.Cluster{
 						ID:                   &id3,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    0,
 					},
 				},
 				{
-					ControlPlaneCount: 3,
 					Cluster: models.Cluster{
 						ID:                   &id4,
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    3,
 					},
 				},
 			}
