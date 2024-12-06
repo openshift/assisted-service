@@ -12,6 +12,7 @@ import (
 
 const (
 	BareMetalClusterResource        string = "BareMetalCluster"
+	AMSActionGet                    string = "get"
 	AMSActionCreate                 string = "create"
 	AMSActionUpdate                 string = "update"
 	AMSActionDelete                 string = "delete"
