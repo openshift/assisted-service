@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/authorino"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
@@ -3770,7 +3771,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-		Expect(requirements.Operators).To(HaveLen(12))
+		Expect(requirements.Operators).To(HaveLen(13))
 		for _, op := range requirements.Operators {
 			switch op.OperatorName {
 			case lso.Operator.Name:
@@ -3804,6 +3805,8 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerOpenShiftAIRequirements))
 			case lvm.Operator.Name:
 				continue // lvm operator is tested separately
+			case authorino.Operator.Name:
+				continue
 			default:
 				Fail("Unexpected operator")
 			}

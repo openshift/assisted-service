@@ -42,6 +42,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDSERVICEMESH:          (&ServiceMeshFeature{}).New(),
 	models.FeatureSupportLevelIDSERVERLESS:           (&ServerLessFeature{}).New(),
 	models.FeatureSupportLevelIDOPENSHIFTAI:          (&OpenShiftAIFeature{}).New(),
+	models.FeatureSupportLevelIDAUTHORINO:            (&AuthorinoFeature{}).New(),
 
 	// Platform features
 	models.FeatureSupportLevelIDNUTANIXINTEGRATION:  (&NutanixIntegrationFeature{}).New(),

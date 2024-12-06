@@ -6563,6 +6563,7 @@ var allValidationIDs = []validationID{
 	AreServiceMeshRequirementsSatisfied,
 	AreServerLessRequirementsSatisfied,
 	AreOpenShiftAIRequirementsSatisfied,
+	AreAuthorinoRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{
