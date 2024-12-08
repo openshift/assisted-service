@@ -10,7 +10,7 @@ type Config struct {
 	MinVersionForNmstateService string `envconfig:"MIN_VERSION_FOR_NMSTATE_SERVICE" default:"4.19"`
 }
 
-func (s *StaticNetworkConfigGenerator) NMStatectlServiceSupported(version, arch string) (bool, error) {
+func (s *StaticNetworkConfigGenerator) NMStatectlServiceSupported(version string) (bool, error) {
 	// When a cluster is imported, the OpenshiftVersion isn't stored in the database.
 	// Consequently, a bound InfraEnv with static networking uses the Cluster's OpenshiftVersion, which is empty.
 	if version == "" {
@@ -21,6 +21,5 @@ func (s *StaticNetworkConfigGenerator) NMStatectlServiceSupported(version, arch 
 	if err != nil {
 		return false, err
 	}
-	// TODO: Remove the architecture condition after fetching the nmstatectl binary from rootfs.
-	return versionOK && arch == common.X86CPUArchitecture, nil
+	return versionOK, nil
 }

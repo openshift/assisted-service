@@ -81,30 +81,30 @@ func (mr *MockStaticNetworkConfigMockRecorder) GenerateStaticNetworkConfigDataYA
 }
 
 // NMStatectlServiceSupported mocks base method.
-func (m *MockStaticNetworkConfig) NMStatectlServiceSupported(version, arch string) (bool, error) {
+func (m *MockStaticNetworkConfig) NMStatectlServiceSupported(version string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NMStatectlServiceSupported", version, arch)
+	ret := m.ctrl.Call(m, "NMStatectlServiceSupported", version)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NMStatectlServiceSupported indicates an expected call of NMStatectlServiceSupported.
-func (mr *MockStaticNetworkConfigMockRecorder) NMStatectlServiceSupported(version, arch interface{}) *gomock.Call {
+func (mr *MockStaticNetworkConfigMockRecorder) NMStatectlServiceSupported(version interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NMStatectlServiceSupported", reflect.TypeOf((*MockStaticNetworkConfig)(nil).NMStatectlServiceSupported), version, arch)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NMStatectlServiceSupported", reflect.TypeOf((*MockStaticNetworkConfig)(nil).NMStatectlServiceSupported), version)
 }
 
 // ValidateStaticConfigParamsYAML mocks base method.
-func (m *MockStaticNetworkConfig) ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, arch, installerInvoker string) error {
+func (m *MockStaticNetworkConfig) ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig, ocpVersion, installerInvoker string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateStaticConfigParamsYAML", staticNetworkConfig, ocpVersion, arch, installerInvoker)
+	ret := m.ctrl.Call(m, "ValidateStaticConfigParamsYAML", staticNetworkConfig, ocpVersion, installerInvoker)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ValidateStaticConfigParamsYAML indicates an expected call of ValidateStaticConfigParamsYAML.
-func (mr *MockStaticNetworkConfigMockRecorder) ValidateStaticConfigParamsYAML(staticNetworkConfig, ocpVersion, arch, installerInvoker interface{}) *gomock.Call {
+func (mr *MockStaticNetworkConfigMockRecorder) ValidateStaticConfigParamsYAML(staticNetworkConfig, ocpVersion, installerInvoker interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateStaticConfigParamsYAML", reflect.TypeOf((*MockStaticNetworkConfig)(nil).ValidateStaticConfigParamsYAML), staticNetworkConfig, ocpVersion, arch, installerInvoker)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateStaticConfigParamsYAML", reflect.TypeOf((*MockStaticNetworkConfig)(nil).ValidateStaticConfigParamsYAML), staticNetworkConfig, ocpVersion, installerInvoker)
 }

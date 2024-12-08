@@ -339,7 +339,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 
 		// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
 		var ok bool
-		ok, err = ib.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+		ok, err = ib.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion)
 		if err != nil {
 			return "", err
 		}
