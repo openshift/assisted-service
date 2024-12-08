@@ -47,6 +47,7 @@ func (feature *SnoFeature) getIncompatibleFeatures(string) *[]models.FeatureSupp
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
+		models.FeatureSupportLevelIDOPENSHIFTAI,
 	}
 }
 
