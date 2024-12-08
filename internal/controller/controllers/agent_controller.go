@@ -75,6 +75,7 @@ const (
 	AgentInventoryAnnotation             = "agent." + aiv1beta1.Group + "/inventory"
 	AgentCurrentStageAnnotation          = "agent." + aiv1beta1.Group + "/current-stage"
 	AgentRoleAnnotation                  = "agent." + aiv1beta1.Group + "/role"
+	AgentValidationsInfoAnnotation       = "agent." + aiv1beta1.Group + "/validations-info"
 	AgentLabelHostManufacturer           = InventoryLabelPrefix + "host-manufacturer"
 	AgentLabelHostProductName            = InventoryLabelPrefix + "host-productname"
 	AgentLabelHostIsVirtual              = InventoryLabelPrefix + "host-isvirtual"
@@ -258,6 +259,7 @@ func updateAnnotations(log logrus.FieldLogger, agent *v1beta1.Agent, h *models.H
 	updated = setAgentAnnotation(log, agent, AgentStateAnnotation, swag.StringValue(h.Status))
 	updated = setAgentAnnotation(log, agent, AgentRoleAnnotation, string(h.Role)) || updated
 	updated = setAgentAnnotation(log, agent, AgentInventoryAnnotation, h.Inventory) || updated
+	updated = setAgentAnnotation(log, agent, AgentValidationsInfoAnnotation, h.ValidationsInfo) || updated
 	if h.Progress != nil {
 		updated = setAgentAnnotation(log, agent, AgentCurrentStageAnnotation, string(h.Progress.CurrentStage))
 	}
@@ -1830,6 +1832,7 @@ func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strf
 	hostrole := agent.Annotations[AgentRoleAnnotation]
 	role := models.HostRole(hostrole)
 	inventory := agent.Annotations[AgentInventoryAnnotation]
+	validationsInfo := agent.Annotations[AgentValidationsInfoAnnotation]
 
 	// Fetch State
 	var hostStatus string
@@ -1846,16 +1849,17 @@ func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strf
 	// Create Host model
 	hostID := strfmt.UUID(agent.Name)
 	host := &models.Host{
-		ID:            &hostID,
-		Kind:          swag.String(models.HostKindHost),
-		RegisteredAt:  strfmt.DateTime(agent.CreationTimestamp.Time),
-		CheckedInAt:   strfmt.DateTime(agent.CreationTimestamp.Time),
-		Role:          role,
-		SuggestedRole: role,
-		ClusterID:     clusterID,
-		InfraEnvID:    infraEnvID,
-		Status:        &hostStatus,
-		Inventory:     inventory,
+		ID:              &hostID,
+		Kind:            swag.String(models.HostKindHost),
+		RegisteredAt:    strfmt.DateTime(agent.CreationTimestamp.Time),
+		CheckedInAt:     strfmt.DateTime(agent.CreationTimestamp.Time),
+		Role:            role,
+		SuggestedRole:   role,
+		ClusterID:       clusterID,
+		InfraEnvID:      infraEnvID,
+		Status:          &hostStatus,
+		Inventory:       inventory,
+		ValidationsInfo: validationsInfo,
 	}
 
 	// Fetch Current Stage
