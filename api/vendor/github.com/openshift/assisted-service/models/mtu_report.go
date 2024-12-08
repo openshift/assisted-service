@@ -25,6 +25,9 @@ type MtuReport struct {
 
 	// remote ip address
 	RemoteIPAddress string `json:"remote_ip_address,omitempty"`
+
+	// source ip address
+	SourceIPAddress string `json:"source_ip_address,omitempty"`
 }
 
 // Validate validates this mtu report
