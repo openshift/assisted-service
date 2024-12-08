@@ -47,15 +47,14 @@ const (
 	maxHostAheadOfServiceTimeDiff                    = 1 * time.Hour
 	maxHostTimingMetrics                             = 4
 	maxPingCommandExamples                           = 4
-
 	// How much we allow the user to deviate from our official
 	// minimum. Some setups (e.g. VMs) might give just a bit less
 	// than requested, so we shouldn't be too strict about it
 	HostMemoryRequirementToleranceMiB int64 = 100
+	FailedToFindAction                      = "failed to find action for step"
+	OpenStackPlatform                       = "OpenStack Compute"
+	LateBindingMsg                          = "Host is not bound to a cluster"
 )
-
-const FailedToFindAction = "failed to find action for step"
-const OpenStackPlatform = "OpenStack Compute"
 
 var (
 	ImageStatusDownloadRateThreshold = 0.001
@@ -303,6 +302,62 @@ func (v *validator) isMediaConnected(c *validationContext) (ValidationStatus, st
 	default:
 		return status, fmt.Sprintf("Unexpected status %s", status)
 	}
+}
+
+// isMtuOK - This validation distinguishes between CMN and UMN. For UMN, the MTU is checked across all interfaces, while for CMN, it focuses specifically on the MTU reports for the machine networks.
+func (v *validator) isMtuOK(c *validationContext) (ValidationStatus, string) {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput, LateBindingMsg
+	}
+	if common.IsSingleNodeCluster(c.cluster) {
+		return ValidationSuccessSuppressOutput, "The validation is not applicable to SNO"
+	}
+	if len(c.host.Connectivity) == 0 {
+		return ValidationPending, "Missing MTU report information"
+	}
+	connectivityReport, err := hostutil.UnmarshalConnectivityReport(c.host.Connectivity)
+	if err != nil {
+		return ValidationError, "Internal error - failed to parse host connectivity report"
+	}
+
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return v.isMtuOKAllInterfaces(c, connectivityReport)
+	}
+	return v.isMtuOKInMachineNetwork(c, connectivityReport)
+}
+
+// isMtuOKAllInterfaces - intended for UMN, where the MTU report is checked across all interfaces.
+func (v *validator) isMtuOKAllInterfaces(c *validationContext, connectivityReport *models.ConnectivityReport) (ValidationStatus, string) {
+	for _, r := range connectivityReport.RemoteHosts {
+		for _, mtuReport := range r.MtuReport {
+			if !mtuReport.MtuSuccessful {
+				return ValidationFailure, fmt.Sprintf("MTU is broken. Interface %s, remote IP address: %s", mtuReport.OutgoingNic, mtuReport.RemoteIPAddress)
+			}
+		}
+	}
+	return ValidationSuccess, "MTU is ok"
+}
+
+// isMtuOKInMachineNetwork - intended for CMN, focusing exclusively on the MTU reports for the machine network.
+func (v *validator) isMtuOKInMachineNetwork(c *validationContext, connectivityReport *models.ConnectivityReport) (ValidationStatus, string) {
+	for _, machineNet := range c.cluster.MachineNetworks {
+		_, mNetwork, err := net.ParseCIDR(string(machineNet.Cidr))
+		if err != nil {
+			return ValidationError, "Internal error - failed to parse machine network CIDR"
+		}
+		for _, r := range connectivityReport.RemoteHosts {
+			for _, mtuReport := range r.MtuReport {
+				ip := net.ParseIP(mtuReport.RemoteIPAddress)
+				if mNetwork.Contains(ip) {
+					if !mtuReport.MtuSuccessful {
+						return ValidationFailure, fmt.Sprintf("MTU is broken. Interface %s, remote IP address: %s", mtuReport.OutgoingNic, mtuReport.RemoteIPAddress)
+					}
+				}
+			}
+		}
+	}
+
+	return ValidationSuccess, "MTU is ok"
 }
 
 func (v *validator) isConnected(c *validationContext) (ValidationStatus, string) {

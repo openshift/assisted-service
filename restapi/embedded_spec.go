@@ -8404,7 +8404,8 @@ func init() {
         "pipelines-requirements-satisfied",
         "servicemesh-requirements-satisfied",
         "serverless-requirements-satisfied",
-        "openshift-ai-requirements-satisfied"
+        "openshift-ai-requirements-satisfied",
+        "mtu-test"
       ]
     },
     "host_network": {
@@ -19282,7 +19283,8 @@ func init() {
         "pipelines-requirements-satisfied",
         "servicemesh-requirements-satisfied",
         "serverless-requirements-satisfied",
-        "openshift-ai-requirements-satisfied"
+        "openshift-ai-requirements-satisfied",
+        "mtu-test"
       ]
     },
     "host_network": {

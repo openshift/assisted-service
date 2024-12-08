@@ -6551,6 +6551,7 @@ definitions:
       - 'servicemesh-requirements-satisfied'
       - 'serverless-requirements-satisfied'
       - 'openshift-ai-requirements-satisfied'
+      - 'mtu-test'
 
   dhcp_allocation_request:
     type: object
