@@ -9553,6 +9553,9 @@ func init() {
         },
         "remote_ip_address": {
           "type": "string"
+        },
+        "source_ip_address": {
+          "type": "string"
         }
       }
     },
@@ -20417,6 +20420,9 @@ func init() {
           "type": "string"
         },
         "remote_ip_address": {
+          "type": "string"
+        },
+        "source_ip_address": {
           "type": "string"
         }
       }

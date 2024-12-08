@@ -5644,6 +5644,8 @@ definitions:
         type: string
       remote_ip_address:
         type: string
+      source_ip_address:
+        type: string
       mtu_successful:
         type: boolean
 
