@@ -447,7 +447,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(12))
+			Expect(results).To(HaveLen(13))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -461,6 +461,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDServicemeshRequirementsSatisfied), Reasons: []string{"servicemesh is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDServerlessRequirementsSatisfied), Reasons: []string{"serverless is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
 			))
 		})
 
@@ -473,7 +474,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(12))
+			Expect(results).To(HaveLen(13))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
@@ -488,6 +489,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDServicemeshRequirementsSatisfied), Reasons: []string{"servicemesh is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDServerlessRequirementsSatisfied), Reasons: []string{"serverless is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
 			))
 		})
 	})
@@ -499,7 +501,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(12))
+			Expect(results).To(HaveLen(13))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -513,6 +515,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDServicemeshRequirementsSatisfied), Reasons: []string{"servicemesh is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDServerlessRequirementsSatisfied), Reasons: []string{"serverless is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
 			))
 		})
 
@@ -524,7 +527,7 @@ var _ = Describe("Operators manager", func() {
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(12))
+			Expect(results).To(HaveLen(13))
 
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
@@ -539,6 +542,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDServicemeshRequirementsSatisfied), Reasons: []string{"servicemesh is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDServerlessRequirementsSatisfied), Reasons: []string{"serverless is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
 			))
 		})
 
@@ -678,6 +682,7 @@ var _ = Describe("Operators manager", func() {
 				"pipelines",
 				"serverless",
 				"servicemesh",
+				"authorino",
 			))
 		})
 
