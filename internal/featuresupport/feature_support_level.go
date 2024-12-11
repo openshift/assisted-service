@@ -36,6 +36,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDMCE:                  (&MceFeature{}).New(),
 	models.FeatureSupportLevelIDODF:                  (&OdfFeature{}).New(),
 	models.FeatureSupportLevelIDMTV:                  (&MtvFeature{}).New(),
+	models.FeatureSupportLevelIDOSC:                  (&OscFeature{}).New(),
 	models.FeatureSupportLevelIDNODEFEATUREDISCOVERY: (&NodeFeatureDiscoveryFeature{}).New(),
 	models.FeatureSupportLevelIDNVIDIAGPU:            (&NvidiaGPUFeature{}).New(),
 	models.FeatureSupportLevelIDPIPELINES:            (&PipelinesFeature{}).New(),
