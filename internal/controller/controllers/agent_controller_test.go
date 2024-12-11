@@ -4362,7 +4362,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		// Reconcile Agent
 		result, err := hr.Reconcile(ctx, newHostRequest(agent))
 		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}))
 
 		// Ensure the Agent exists
 		key := types.NamespacedName{
@@ -4403,7 +4403,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		// Reconcile Agent
 		result, err := hr.Reconcile(ctx, newHostRequest(agent))
 		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}))
 
 		// Ensure the Agent exists
 		key := types.NamespacedName{
@@ -4448,7 +4448,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		// Reconcile Agent
 		result, err := hr.Reconcile(ctx, newHostRequest(agent))
 		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}))
 
 		// Ensure the Agent exists
 		key := types.NamespacedName{
@@ -4516,7 +4516,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		// Reconcile Agent
 		result, err := hr.Reconcile(ctx, newHostRequest(agent))
 		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}))
 
 		// Ensure the Agent exists
 		key := types.NamespacedName{
@@ -4644,7 +4644,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			// Reconcile Agent
 			result, err := hr.Reconcile(ctx, newHostRequest(agent))
 			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}))
 
 			// Ensure the Agent exists
 			key := types.NamespacedName{
@@ -4700,7 +4700,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			// Reconcile Agent
 			result, err := hr.Reconcile(ctx, newHostRequest(agent))
 			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}))
 
 			// Ensure the Agent exists
 			key := types.NamespacedName{
