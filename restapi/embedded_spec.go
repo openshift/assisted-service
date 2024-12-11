@@ -8407,7 +8407,8 @@ func init() {
         "servicemesh-requirements-satisfied",
         "serverless-requirements-satisfied",
         "openshift-ai-requirements-satisfied",
-        "authorino-requirements-satisfied"
+        "authorino-requirements-satisfied",
+        "mtu-valid"
       ]
     },
     "host_network": {
@@ -19288,7 +19289,8 @@ func init() {
         "servicemesh-requirements-satisfied",
         "serverless-requirements-satisfied",
         "openshift-ai-requirements-satisfied",
-        "authorino-requirements-satisfied"
+        "authorino-requirements-satisfied",
+        "mtu-valid"
       ]
     },
     "host_network": {

@@ -6553,6 +6553,7 @@ definitions:
       - 'serverless-requirements-satisfied'
       - 'openshift-ai-requirements-satisfied'
       - 'authorino-requirements-satisfied'
+      - 'mtu-valid'
 
   dhcp_allocation_request:
     type: object
