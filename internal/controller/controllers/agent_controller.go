@@ -743,14 +743,29 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 
 // CSRs should be approved in the following cases:
 // * Agent belongs to a none platform cluster
+// * Agent belongs to baremetal cluster without MAPI capability
 // * No BMH exists for agent
 func (r *AgentReconciler) shouldApproveCSRsForAgent(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host) (bool, error) {
 	if funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined}, h.Progress.CurrentStage) {
-		isNone, err := isAgentInNonePlatformCluster(ctx, r.Client, agent)
+		cd, err := getClusterDeploymentFromAgent(ctx, r.Client, agent)
+		if err != nil {
+			return false, err
+		}
+
+		isNone, _, err := isNonePlatformCluster(ctx, r.Client, cd)
 		if err != nil {
 			return false, err
 		}
 		if isNone {
+			return true, nil
+		}
+
+		isBaremetalWithoutMAPI, err := isBaremetalPlatformWithoutMAPI(ctx, r.Client, r.Installer, cd)
+		if err != nil {
+			return false, err
+		}
+
+		if isBaremetalWithoutMAPI {
 			return true, nil
 		}
 

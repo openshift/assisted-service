@@ -21,6 +21,8 @@ import (
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	restclient "github.com/openshift/assisted-service/client"
+	"github.com/openshift/assisted-service/internal/bminventory"
+	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -407,6 +409,28 @@ func isNonePlatformCluster(ctx context.Context, client client.Client, cd *hivev1
 	return isUserManagedNetwork(&clusterInstall), false, nil
 }
 
+// isBaremetalPlatformWithoutMAPI returns true if a cluster is baremetal platform and if its
+// capabilities specifies baremetal and doesn't specify MAPI
+func isBaremetalPlatformWithoutMAPI(ctx context.Context, client client.Client, installer bminventory.InstallerInternals, cd *hivev1.ClusterDeployment) (bool, error) {
+	isBaremetalPlatform, err := isBaremetalPlatform(ctx, client, cd)
+	if err != nil {
+		return false, err
+	}
+
+	if !isBaremetalPlatform {
+		return false, nil
+	}
+
+	cluster, getClusterErr := installer.GetClusterByKubeKey(types.NamespacedName{Name: cd.Name, Namespace: cd.Namespace})
+	if getClusterErr != nil {
+		return false, errors.Wrapf(err, "failed to get cluster from DB for ClusterDeployment %s/%s", cd.Namespace, cd.Name)
+	}
+
+	return clusterPkg.HasBaseCapabilities(cluster, configv1.ClusterVersionCapabilitySetNone) &&
+		clusterPkg.HasAdditionalCapabilities(cluster, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityBaremetal}) &&
+		!clusterPkg.HasAdditionalCapabilities(cluster, []configv1.ClusterVersionCapability{configv1.ClusterVersionCapabilityMachineAPI}), nil
+}
+
 func isBaremetalPlatform(ctx context.Context, client client.Client, cd *hivev1.ClusterDeployment) (bool, error) {
 	if cd.Spec.ClusterInstallRef == nil {
 		return false, errors.Errorf("Cluster Install Reference is null for cluster deployment ns=%s name=%s", cd.Namespace, cd.Name)
@@ -423,24 +447,26 @@ func isBaremetalPlatform(ctx context.Context, client client.Client, cd *hivev1.C
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get AgentClusterInstall %s platform", clusterInstall.Name)
 	}
+	if platform == nil {
+		return false, nil
+	}
 	return *platform.Type == models.PlatformTypeBaremetal, nil
 }
 
-// We get first agent's cluster deployment and then we query if it belongs to none platform cluster
-func isAgentInNonePlatformCluster(ctx context.Context, client client.Client, agent *aiv1beta1.Agent) (isNone bool, err error) {
+// getClusterDeploymentFromAgent retrieves the ClusterDeployment that is referenced by the Agent from the Kube APIServer
+func getClusterDeploymentFromAgent(ctx context.Context, client client.Client, agent *aiv1beta1.Agent) (*hivev1.ClusterDeployment, error) {
 	var cd hivev1.ClusterDeployment
 	if agent.Spec.ClusterDeploymentName == nil {
-		return false, errors.Errorf("No cluster deployment for agent %s/%s", agent.Namespace, agent.Name)
+		return nil, errors.Errorf("No cluster deployment for agent %s/%s", agent.Namespace, agent.Name)
 	}
 	namespacedName := types.NamespacedName{
 		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
 		Name:      agent.Spec.ClusterDeploymentName.Name,
 	}
-	if err = client.Get(ctx, namespacedName, &cd); err != nil {
-		return false, errors.Wrapf(err, "Failed to get cluster deployment %s/%s", namespacedName.Namespace, namespacedName.Name)
+	if err := client.Get(ctx, namespacedName, &cd); err != nil {
+		return nil, errors.Wrapf(err, "Failed to get cluster deployment %s/%s", namespacedName.Namespace, namespacedName.Name)
 	}
-	isNone, _, err = isNonePlatformCluster(ctx, client, &cd)
-	return
+	return &cd, nil
 }
 
 func setAnnotation(meta *metav1.ObjectMeta, key string, value string) {
