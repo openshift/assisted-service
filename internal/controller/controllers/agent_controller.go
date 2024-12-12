@@ -81,6 +81,8 @@ const (
 	AgentLabelHostIsVirtual              = InventoryLabelPrefix + "host-isvirtual"
 	AgentLabelClusterDeploymentNamespace = BaseLabelPrefix + "clusterdeployment-namespace"
 	AgentDeprovisionMessage              = "Waiting for host to unbind to do spoke cleanup"
+
+	defaultRequeue = 1 * time.Minute
 )
 
 // AgentReconciler reconciles a Agent object
@@ -158,7 +160,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 			}
 			// Requeuing as the associated Host should exist now
 			log.Infof("Restored a Host for agent %s", agent.Name)
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}, nil
 		} else {
 			log.WithError(err).Errorf("failed to retrieve Host %s from backend", agent.Name)
 			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
