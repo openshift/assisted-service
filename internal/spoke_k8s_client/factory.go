@@ -1,13 +1,6 @@
 package spoke_k8s_client
 
 import (
-	context "context"
-	"fmt"
-	"io"
-
-	strfmt "github.com/go-openapi/strfmt"
-	"github.com/openshift/assisted-service/internal/constants"
-	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -20,7 +13,6 @@ import (
 type SpokeK8sClientFactory interface {
 	CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error)
 	CreateFromRawKubeconfig(kubeconfig []byte) (SpokeK8sClient, error)
-	CreateFromStorageKubeconfig(ctx context.Context, clusterId *strfmt.UUID, objectHandler s3wrapper.API) (SpokeK8sClient, error)
 	ClientAndSetFromSecret(secret *corev1.Secret) (SpokeK8sClient, *kubernetes.Clientset, error)
 }
 
@@ -46,23 +38,6 @@ func (cf *spokeK8sClientFactory) CreateFromSecret(secret *corev1.Secret) (SpokeK
 		return nil, err
 	}
 	return cf.CreateFromRawKubeconfig(kubeconfigData)
-}
-
-func (cf *spokeK8sClientFactory) CreateFromStorageKubeconfig(ctx context.Context, clusterId *strfmt.UUID, objectHandler s3wrapper.API) (SpokeK8sClient, error) {
-	kubeConfigReader, contentLength, err := objectHandler.Download(ctx, fmt.Sprintf("%s/%s", clusterId, constants.Kubeconfig))
-	if err != nil {
-		return nil, fmt.Errorf("could not load kubeconfig from internal storage with cluster id %s and filename %s: %w", clusterId, constants.Kubeconfig, err)
-	}
-
-	kubeconfig := make([]byte, contentLength)
-	bytesRead, err := io.ReadAtLeast(kubeConfigReader, kubeconfig, int(contentLength))
-	if err != nil {
-		return nil, fmt.Errorf("could not read spoke cluster kubeconfig from internal storage with cluster id %s and filename %s: %w", clusterId, constants.Kubeconfig, err)
-	}
-	if bytesRead > int(contentLength) {
-		return nil, fmt.Errorf("too many bytes read when reading spoke cluster kubeconfig from internal storage with cluster id %s and filename %s", clusterId, constants.Kubeconfig)
-	}
-	return cf.CreateFromRawKubeconfig(kubeconfig)
 }
 
 func (cf *spokeK8sClientFactory) ClientAndSetFromSecret(secret *corev1.Secret) (SpokeK8sClient, *kubernetes.Clientset, error) {

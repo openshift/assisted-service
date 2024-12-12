@@ -5,12 +5,9 @@
 package spoke_k8s_client
 
 import (
-	context "context"
 	reflect "reflect"
 
-	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
-	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 	v1 "k8s.io/api/core/v1"
 	kubernetes "k8s.io/client-go/kubernetes"
 )
@@ -82,19 +79,4 @@ func (m *MockSpokeK8sClientFactory) CreateFromSecret(arg0 *v1.Secret) (SpokeK8sC
 func (mr *MockSpokeK8sClientFactoryMockRecorder) CreateFromSecret(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFromSecret", reflect.TypeOf((*MockSpokeK8sClientFactory)(nil).CreateFromSecret), arg0)
-}
-
-// CreateFromStorageKubeconfig mocks base method.
-func (m *MockSpokeK8sClientFactory) CreateFromStorageKubeconfig(arg0 context.Context, arg1 *strfmt.UUID, arg2 s3wrapper.API) (SpokeK8sClient, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateFromStorageKubeconfig", arg0, arg1, arg2)
-	ret0, _ := ret[0].(SpokeK8sClient)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateFromStorageKubeconfig indicates an expected call of CreateFromStorageKubeconfig.
-func (mr *MockSpokeK8sClientFactoryMockRecorder) CreateFromStorageKubeconfig(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFromStorageKubeconfig", reflect.TypeOf((*MockSpokeK8sClientFactory)(nil).CreateFromStorageKubeconfig), arg0, arg1, arg2)
 }
