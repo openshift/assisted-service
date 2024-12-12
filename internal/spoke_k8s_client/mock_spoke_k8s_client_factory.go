@@ -51,21 +51,6 @@ func (mr *MockSpokeK8sClientFactoryMockRecorder) ClientAndSetFromSecret(arg0 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClientAndSetFromSecret", reflect.TypeOf((*MockSpokeK8sClientFactory)(nil).ClientAndSetFromSecret), arg0)
 }
 
-// CreateFromRawKubeconfig mocks base method.
-func (m *MockSpokeK8sClientFactory) CreateFromRawKubeconfig(arg0 []byte) (SpokeK8sClient, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateFromRawKubeconfig", arg0)
-	ret0, _ := ret[0].(SpokeK8sClient)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateFromRawKubeconfig indicates an expected call of CreateFromRawKubeconfig.
-func (mr *MockSpokeK8sClientFactoryMockRecorder) CreateFromRawKubeconfig(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFromRawKubeconfig", reflect.TypeOf((*MockSpokeK8sClientFactory)(nil).CreateFromRawKubeconfig), arg0)
-}
-
 // CreateFromSecret mocks base method.
 func (m *MockSpokeK8sClientFactory) CreateFromSecret(arg0 *v1.Secret) (SpokeK8sClient, error) {
 	m.ctrl.T.Helper()

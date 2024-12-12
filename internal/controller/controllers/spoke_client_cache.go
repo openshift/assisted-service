@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -24,7 +25,7 @@ type spokeClientCache struct {
 
 type spokeClient struct {
 	spokeK8sClient *spoke_k8s_client.SpokeK8sClient
-	kubeconfigHash string
+	secretHash     string
 }
 
 func NewSpokeClientCache(clientFactory spoke_k8s_client.SpokeK8sClientFactory) SpokeClientCache {
@@ -40,24 +41,23 @@ func (c *spokeClientCache) Get(secret *corev1.Secret) (spoke_k8s_client.SpokeK8s
 	c.Lock()
 	defer c.Unlock()
 
-	// Get kubeconfig data and compute hash
-	kubeconfigData, err := c.getKubeconfigFromSecret(secret)
+	// Compute a hash for the content of the secret:
+	secretHash, err := c.calculateSecretHash(secret)
 	if err != nil {
 		return nil, err
 	}
-	kubeconfigHash := fmt.Sprintf("%x", sha256.New().Sum(kubeconfigData))
 
 	// Get client from cache or create a new one if not available
 	key := types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}
 	client, present := c.clientMap[key.String()]
-	if !present || client.kubeconfigHash != kubeconfigHash {
-		spokeK8sClient, err := c.clientFactory.CreateFromRawKubeconfig(kubeconfigData)
+	if !present || client.secretHash != secretHash {
+		spokeK8sClient, err := c.clientFactory.CreateFromSecret(secret)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to create client using secret '%s'", secret.Name)
 		}
 		client = &spokeClient{
 			spokeK8sClient: &spokeK8sClient,
-			kubeconfigHash: kubeconfigHash,
+			secretHash:     secretHash,
 		}
 		c.clientMap[key.String()] = client
 	}
@@ -65,15 +65,11 @@ func (c *spokeClientCache) Get(secret *corev1.Secret) (spoke_k8s_client.SpokeK8s
 	return *client.spokeK8sClient, nil
 }
 
-func (c *spokeClientCache) getKubeconfigFromSecret(secret *corev1.Secret) ([]byte, error) {
-	if secret.Data == nil {
-		return nil, errors.Errorf("Secret %s/%s does not contain any data", secret.Namespace, secret.Name)
+func (c *spokeClientCache) calculateSecretHash(secret *corev1.Secret) (string, error) {
+	data, err := json.Marshal(secret.Data)
+	if err != nil {
+		return "", err
 	}
-
-	kubeconfigData, ok := secret.Data["kubeconfig"]
-	if !ok || len(kubeconfigData) == 0 {
-		return nil, errors.Errorf("Secret data for %s/%s does not contain kubeconfig", secret.Namespace, secret.Name)
-	}
-
-	return kubeconfigData, nil
+	hash := fmt.Sprintf("%x", sha256.New().Sum(data))
+	return hash, nil
 }
