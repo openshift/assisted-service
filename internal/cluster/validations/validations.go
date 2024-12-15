@@ -208,6 +208,7 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
+	targetConfiguration.LoadBalancer = params.LoadBalancer
 
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
@@ -297,6 +298,11 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
+	targetConfiguration.LoadBalancer = cluster.LoadBalancer
+
+	if params.LoadBalancer != nil {
+		targetConfiguration.LoadBalancer = params.LoadBalancer
+	}
 
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
@@ -452,13 +458,15 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 	var multiErr error
 	var err error
 
+	allowCommonVIP := network.IsLoadBalancerUserManaged(&targetConfiguration)
+
 	// Basic input validations
 	if err = validateIPAddressesInput(targetConfiguration.APIVips, targetConfiguration.IngressVips); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	// In-depth input validations
-	if err = network.ValidateNoVIPAddressesDuplicates(targetConfiguration.APIVips, targetConfiguration.IngressVips); err != nil {
+	if err = network.ValidateNoVIPAddressesDuplicates(targetConfiguration.APIVips, targetConfiguration.IngressVips, allowCommonVIP); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -491,6 +499,14 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 
 	reqDualStack := network.CheckIfClusterIsDualStack(&targetConfiguration)
 
+	// The rest of the code is verifying the VIPs, which is not required for
+	// User managed load balancer because in this case the VIPs should point
+	// to the load balancer, and they are not required to be part of the machine
+	// networks.
+	if network.IsLoadBalancerUserManaged(&targetConfiguration) {
+		return nil
+	}
+
 	// In any case, if VIPs are provided, they must pass the validation for being part of the
 	// primary Machine Network and for non-overlapping addresses
 	if swag.BoolValue(targetConfiguration.VipDhcpAllocation) {
@@ -502,7 +518,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 		if len(targetConfiguration.MachineNetworks) > 0 {
 			for i := range targetConfiguration.APIVips { // len of APIVips and IngressVips should be the same. asserted above.
 				err = network.VerifyVips(nil, string(targetConfiguration.MachineNetworks[i].Cidr),
-					string(targetConfiguration.APIVips[i].IP), string(targetConfiguration.IngressVips[i].IP), nil)
+					string(targetConfiguration.APIVips[i].IP), string(targetConfiguration.IngressVips[i].IP), allowCommonVIP, nil)
 				if err != nil {
 					multiErr = multierror.Append(multiErr, err)
 				}

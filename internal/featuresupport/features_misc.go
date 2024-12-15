@@ -333,7 +333,6 @@ func (f *NonStandardHAControlPlane) getSupportLevel(filters SupportLevelFilters)
 
 func (f *NonStandardHAControlPlane) getIncompatibleFeatures(openshiftVersion string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
-		// only baremetal platform is supported
 		models.FeatureSupportLevelIDEXTERNALPLATFORM,
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
