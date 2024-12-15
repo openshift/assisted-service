@@ -1330,6 +1330,15 @@ func (r *BMACReconciler) ensureSpokeBMH(ctx context.Context, log logrus.FieldLog
 	} else if result != controllerutil.OperationResultNone {
 		log.Info("Spoke BareMetalHost created")
 	}
+	if bmhSpoke != nil && !bmhSpoke.Status.PoweredOn {
+		// Ensure that any Day 2 BMH is marked as online when copied to spoke.
+		// Metal3 is not connected at this point and will not do this for us.
+		bmhSpoke.Status.PoweredOn = true
+		err := r.spokeClient.Status().Update(ctx, bmhSpoke)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return bmhSpoke, nil
 }
 
