@@ -1,90 +1,224 @@
 package spoke_k8s_client
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"slices"
+
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	client "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 //go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client_factory.go . SpokeK8sClientFactory
 type SpokeK8sClientFactory interface {
-	CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error)
-	ClientAndSetFromSecret(secret *corev1.Secret) (SpokeK8sClient, *kubernetes.Clientset, error)
+	CreateFromSecret(ctx context.Context, secret *corev1.Secret) (SpokeK8sClient, error)
+	ClientAndSetFromSecret(ctx context.Context, secret *corev1.Secret) (SpokeK8sClient, *kubernetes.Clientset, error)
 }
 
 type spokeK8sClientFactory struct {
-	log logrus.FieldLogger
+	logger            logrus.FieldLogger
+	hubClient         ctrlclient.Client
+	transportWrappers []func(http.RoundTripper) http.RoundTripper
 }
 
-func NewSpokeK8sClientFactory(log logrus.FieldLogger) SpokeK8sClientFactory {
-	return &spokeK8sClientFactory{
-		log: log,
+// NewFactory creates a spoke client factory. The logger and the hubClient are mandatory, the transport wrappers are
+// optional.
+func NewFactory(logger logrus.FieldLogger, hubClient ctrlclient.Client,
+	transportWrappers []func(http.RoundTripper) http.RoundTripper) (SpokeK8sClientFactory, error) {
+	// Check parameters:
+	if logger == nil {
+		return nil, errors.New("logger is mandatory")
 	}
+	if hubClient == nil {
+		return nil, errors.New("hub client is mandatory")
+	}
+
+	// Create and populate the object:
+	result := &spokeK8sClientFactory{
+		logger:            logger,
+		hubClient:         hubClient,
+		transportWrappers: slices.Clone(transportWrappers),
+	}
+	return result, nil
 }
 
-func (cf *spokeK8sClientFactory) CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error) {
-	kubeconfigData, err := kubeconfigFromSecret(secret)
-	if err != nil {
-		return nil, err
-	}
-	client, _, err := cf.clientAndSetForKubeconfig(kubeconfigData)
+func (f *spokeK8sClientFactory) CreateFromSecret(ctx context.Context, secret *corev1.Secret) (SpokeK8sClient, error) {
+	client, _, err := f.ClientAndSetFromSecret(ctx, secret)
 	return client, err
 }
 
-func (cf *spokeK8sClientFactory) ClientAndSetFromSecret(secret *corev1.Secret) (SpokeK8sClient, *kubernetes.Clientset, error) {
-	kubeconfig, err := kubeconfigFromSecret(secret)
+func (f *spokeK8sClientFactory) ClientAndSetFromSecret(ctx context.Context, secret *corev1.Secret) (SpokeK8sClient,
+	*kubernetes.Clientset, error) {
+	// Create the REST configuration from the content of the secret:
+	restConfig, err := f.restConfigFromSecret(secret)
 	if err != nil {
-		cf.log.WithError(err).Error("failed to get kubeconfig from secret")
 		return nil, nil, err
 	}
 
-	return cf.clientAndSetForKubeconfig(kubeconfig)
-}
-
-func kubeconfigFromSecret(secret *corev1.Secret) ([]byte, error) {
-	if secret.Data == nil {
-		return nil, errors.Errorf("Secret %s/%s does not contain any data", secret.Namespace, secret.Name)
-	}
-	kubeconfigData, ok := secret.Data["kubeconfig"]
-	if !ok || len(kubeconfigData) == 0 {
-		return nil, errors.Errorf("Secret data for %s/%s does not contain kubeconfig", secret.Namespace, secret.Name)
-	}
-	return kubeconfigData, nil
-}
-
-func (cf *spokeK8sClientFactory) clientAndSetForKubeconfig(kubeconfig []byte) (SpokeK8sClient, *kubernetes.Clientset, error) {
-	clientConfig, err := clientcmd.NewClientConfigFromBytes(kubeconfig)
+	// If the secret is from a hosted cluster then the API server address can be replaced by a
+	// 'kube-apiserver.*.svc' address that uses the service network and therefore reduces the number of round trips
+	// and doesn't need to go via proxies.
+	isHostedCluster, clusterDeploymentKey, err := f.isFromHostedCluster(ctx, secret)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to get clientconfig from kubeconfig data")
+		return nil, nil, err
+	}
+	if isHostedCluster {
+		err = f.modifyRestConfigForHostedCluster(clusterDeploymentKey, restConfig)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to get restconfig for kube client")
+	// Add the transport wrappers:
+	for _, transportWrapper := range f.transportWrappers {
+		restConfig.Wrap(transportWrapper)
 	}
 
-	clientset, err := kubernetes.NewForConfig(restConfig)
+	// Create the controller-runtime client:
+	client, err := f.clientFromRestConfig(restConfig)
 	if err != nil {
-		cf.log.WithError(err).Warnf("Getting kuberenetes config for cluster")
 		return nil, nil, err
 	}
 
+	// Create the client-go client:
+	clientSet, err := f.clientSetFromRestConfig(restConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Create and populate the object:
+	result := &spokeK8sClient{
+		logger:      f.logger,
+		Client:      client,
+		csrClient:   clientSet.CertificatesV1().CertificateSigningRequests(),
+		sarClient:   clientSet.AuthorizationV1().SelfSubjectAccessReviews(),
+		nodesClient: clientSet.CoreV1().Nodes(),
+	}
+	return result, clientSet, nil
+}
+
+func (f *spokeK8sClientFactory) restConfigFromSecret(secret *corev1.Secret) (*rest.Config, error) {
+	kubeConfig, err := f.kubeConfigFromSecret(secret)
+	if err != nil {
+		return nil, err
+	}
+	clientConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfig)
+	if err != nil {
+		return nil, err
+	}
+	return clientConfig.ClientConfig()
+}
+
+func (f *spokeK8sClientFactory) kubeConfigFromSecret(secret *corev1.Secret) ([]byte, error) {
+	if len(secret.Data) == 0 {
+		err := errors.Errorf("secret '%s/%s' is empty", secret.Namespace, secret.Name)
+		return nil, err
+	}
+	result, ok := secret.Data["kubeconfig"]
+	if !ok || len(result) == 0 {
+		err := errors.Errorf(
+			"secret '%s/%s' doesn't contain the 'kubeconfig' key",
+			secret.Namespace, secret.Name,
+		)
+		return nil, err
+	}
+	return result, nil
+}
+
+func (f *spokeK8sClientFactory) clientFromRestConfig(restConfig *rest.Config) (ctrlclient.Client, error) {
 	schemes := GetKubeClientSchemes()
-	targetClient, err := client.New(restConfig, client.Options{Scheme: schemes})
+	return ctrlclient.New(restConfig, ctrlclient.Options{Scheme: schemes})
+}
+
+func (f *spokeK8sClientFactory) clientSetFromRestConfig(restConfig *rest.Config) (*kubernetes.Clientset, error) {
+	return kubernetes.NewForConfig(restConfig)
+}
+
+// isFromHostedCluster determines if this cluster corresponding to the given kubeconfig secret is a hosted cluster.
+// Returns a boolean flag and, when that flag is true, the namespace and name of the cluster deployment of the hosted
+// cluster.
+func (f *spokeK8sClientFactory) isFromHostedCluster(ctx context.Context, kubeconfigSecret *corev1.Secret) (bool,
+	types.NamespacedName, error) {
+	logger := f.logger.WithFields(logrus.Fields{
+		"namespace": kubeconfigSecret.Namespace,
+		"name":      kubeconfigSecret.Name,
+	})
+
+	// Try to find the cluster deployment. If we can't, for whatever the reason, explain it in the log and assume
+	// it isn't a hosted cluster.
+	clusterDeployment, err := f.findClusterDeploymentForKubeconfigSecret(ctx, kubeconfigSecret)
 	if err != nil {
-		cf.log.WithError(err).Warnf("failed to get spoke kube client")
-		return nil, nil, err
+		logger.WithError(err).Warn(
+			"Failed to find cluster deployment corresponding to kubeconfig secret, will assume it isn't " +
+				"a hosted cluster",
+		)
+		return false, types.NamespacedName{}, err
+	}
+	if clusterDeployment == nil {
+		logger.Warn(
+			"Cluster deployment corresponding to kubeconfig secret doesn't exist, will assume it isn't " +
+				"a hosted cluster",
+		)
+		return false, types.NamespacedName{}, err
 	}
 
-	spokeClient := &spokeK8sClient{
-		Client:      targetClient,
-		csrClient:   clientset.CertificatesV1().CertificateSigningRequests(),
-		sarClient:   clientset.AuthorizationV1().SelfSubjectAccessReviews(),
-		nodesClient: clientset.CoreV1().Nodes(),
-		log:         cf.log,
+	// We assume this is a hosted cluster if it has the 'agentClusterRef' label, no matter the value.
+	_, result := clusterDeployment.Labels["agentClusterRef"]
+	var clusterDeploymentKey types.NamespacedName
+	if result {
+		clusterDeploymentKey.Namespace = clusterDeployment.Namespace
+		clusterDeploymentKey.Name = clusterDeployment.Name
 	}
-	return spokeClient, clientset, nil
+	return result, clusterDeploymentKey, nil
+}
+
+// findClusterDeploymentForKubeconfigSecret finds the cluster deployment that corresponds to the given kubeconfig
+// secret. It returns nil if there is no such cluster deployment.
+func (f *spokeK8sClientFactory) findClusterDeploymentForKubeconfigSecret(ctx context.Context,
+	kubeconfigSecret *corev1.Secret) (*hivev1.ClusterDeployment, error) {
+	// The cluster deployment should be in the same namespace than the secret, because the cluster deployment
+	// references the secret from the 'spec.clusterMetadata.adminKubeconfigSecretRef' field, and that is a local
+	// object reference. So to find the cluster deployment we can get all the instances inside the namespace of the
+	// secret and then select the first one that references it.
+	clusterDeploymentList := &hivev1.ClusterDeploymentList{}
+	err := f.hubClient.List(ctx, clusterDeploymentList, ctrlclient.InNamespace(kubeconfigSecret.Namespace))
+	if err != nil {
+		err = errors.Wrapf(
+			err,
+			"failed to find cluster deployment correspondig to kubeconfig secret '%s/%s'",
+			kubeconfigSecret.Namespace, kubeconfigSecret.Name,
+		)
+		return nil, err
+	}
+	for _, clusterDeployment := range clusterDeploymentList.Items {
+		clusterDeploymentMetadata := clusterDeployment.Spec.ClusterMetadata
+		if clusterDeploymentMetadata == nil {
+			continue
+		}
+		if clusterDeploymentMetadata.AdminKubeconfigSecretRef.Name == kubeconfigSecret.Name {
+			return &clusterDeployment, nil
+		}
+	}
+	return nil, nil
+}
+
+func (f *spokeK8sClientFactory) modifyRestConfigForHostedCluster(clusterDeploymentKey types.NamespacedName,
+	restConfig *rest.Config) error {
+	originalHost := restConfig.Host
+	restConfig.Host = fmt.Sprintf("https://kube-apiserver.%s.svc:6443", clusterDeploymentKey.Namespace)
+	f.logger.WithFields(logrus.Fields{
+		"namespace": clusterDeploymentKey.Namespace,
+		"name":      clusterDeploymentKey.Name,
+		"original":  originalHost,
+		"modified":  restConfig.Host,
+	}).Info("Modified hosted cluster API server address to connect via the service network")
+	return nil
 }
