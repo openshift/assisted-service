@@ -571,7 +571,7 @@ func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1b
 		r.Log.WithError(err).Errorf("failed to get spoke secret for cluster %s/%s", clusterRef.Namespace, clusterRef.Name)
 		return nil, err
 	}
-	return r.SpokeK8sClientFactory.CreateFromSecret(secret)
+	return r.SpokeK8sClientFactory.CreateFromSecret(ctx, secret)
 }
 
 // Attempt to approve CSRs for agent. If already approved then the node will be marked as done
