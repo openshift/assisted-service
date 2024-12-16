@@ -39,7 +39,7 @@ func setPlatformValues(platform *installcfg.NutanixInstallConfigPlatform) {
 }
 
 func (p nutanixProvider) AddPlatformToInstallConfig(
-	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster, infraEnvs []*common.InfraEnv) error {
 	nPlatform := &installcfg.NutanixInstallConfigPlatform{}
 	if !swag.BoolValue(cluster.UserManagedNetworking) {
 		if len(cluster.APIVips) == 0 {
