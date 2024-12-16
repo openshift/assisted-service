@@ -47,7 +47,7 @@ type spokeK8sClient struct {
 	csrClient   cerv1.CertificateSigningRequestInterface
 	sarClient   authorizationv1interfaces.SelfSubjectAccessReviewInterface
 	nodesClient typedcorev1.NodeInterface
-	log         logrus.FieldLogger
+	logger      logrus.FieldLogger
 }
 
 func (c *spokeK8sClient) ListCsrs(ctx context.Context) (*certificatesv1.CertificateSigningRequestList, error) {
@@ -90,7 +90,7 @@ func (c *spokeK8sClient) PatchMachineConfigPoolPaused(ctx context.Context, pause
 		return nil
 	}
 	pausePatch := []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", pause))
-	c.log.Infof("Setting pause MCP %s to %t", mcpName, pause)
+	c.logger.Infof("Setting pause MCP %s to %t", mcpName, pause)
 	return c.Patch(ctx, mcp, client.RawPatch(types.MergePatchType, pausePatch))
 }
 

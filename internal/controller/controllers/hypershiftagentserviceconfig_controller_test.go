@@ -249,7 +249,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		fakeSpokeClient = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 		client := fakeSpokeK8sClient{Client: fakeSpokeClient}
 
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(client, nil)
+		mockSpokeClientCache.EXPECT().Get(gomock.Any(), gomock.Any()).Return(client, nil)
 		res, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
@@ -288,7 +288,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	})
 
 	It("runs without error", func() {
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
+		mockSpokeClientCache.EXPECT().Get(gomock.Any(), gomock.Any()).Return(mockSpokeClient, nil)
 		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockSpokeClient.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockSpokeClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -329,7 +329,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	})
 
 	It("fails due to an error getting client", func() {
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, errors.Errorf("error"))
+		mockSpokeClientCache.EXPECT().Get(gomock.Any(), gomock.Any()).Return(mockSpokeClient, errors.Errorf("error"))
 		_, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring("Failed to create client"))
@@ -338,7 +338,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 
 	It("fails due to missing agent-install CRDs on management cluster", func() {
 		Expect(hr.Client.Delete(ctx, crd)).To(Succeed())
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
+		mockSpokeClientCache.EXPECT().Get(gomock.Any(), gomock.Any()).Return(mockSpokeClient, nil)
 		_, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring("agent-install CRDs are not available"))
@@ -353,7 +353,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	})
 
 	It("fails due to missing konnectivity deployment", func() {
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
+		mockSpokeClientCache.EXPECT().Get(gomock.Any(), gomock.Any()).Return(mockSpokeClient, nil)
 		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockSpokeClient.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockSpokeClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -384,7 +384,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		c := crd.DeepCopy()
 		c.Labels["new"] = "label"
 		Expect(hr.Client.Update(ctx, c)).To(Succeed())
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(fakeSpokeK8sClient{Client: fakeSpokeClient}, nil)
+		mockSpokeClientCache.EXPECT().Get(gomock.Any(), gomock.Any()).Return(fakeSpokeK8sClient{Client: fakeSpokeClient}, nil)
 		res, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
@@ -403,7 +403,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		crdKey := client.ObjectKeyFromObject(crd)
 		spokeCrd := apiextensionsv1.CustomResourceDefinition{}
 
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(fakeSpokeK8sClient{Client: fakeSpokeClient}, nil)
+		mockSpokeClientCache.EXPECT().Get(gomock.Any(), gomock.Any()).Return(fakeSpokeK8sClient{Client: fakeSpokeClient}, nil)
 		res, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
@@ -411,7 +411,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	})
 
 	It("successfully added kubeconfig resources to service deployment", func() {
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
+		mockSpokeClientCache.EXPECT().Get(gomock.Any(), gomock.Any()).Return(mockSpokeClient, nil)
 		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockSpokeClient.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockSpokeClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()

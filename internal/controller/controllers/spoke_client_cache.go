@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -14,7 +15,7 @@ import (
 
 //go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_spoke_client_cache.go . SpokeClientCache
 type SpokeClientCache interface {
-	Get(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error)
+	Get(clusterDeployment *hivev1.ClusterDeployment, secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error)
 }
 
 type spokeClientCache struct {
@@ -31,13 +32,14 @@ type spokeClient struct {
 func NewSpokeClientCache(clientFactory spoke_k8s_client.SpokeK8sClientFactory) SpokeClientCache {
 	return &spokeClientCache{
 		clientFactory: clientFactory,
-		clientMap:     make(map[string]*spokeClient),
+		clientMap:     map[string]*spokeClient{},
 	}
 }
 
 // Get returns a SpokeK8sClient for the given secret.
 // The client is returned from cache, or, a new client is created if not available.
-func (c *spokeClientCache) Get(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+func (c *spokeClientCache) Get(clusterDeployment *hivev1.ClusterDeployment,
+	secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -51,7 +53,7 @@ func (c *spokeClientCache) Get(secret *corev1.Secret) (spoke_k8s_client.SpokeK8s
 	key := types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}
 	client, present := c.clientMap[key.String()]
 	if !present || client.secretHash != secretHash {
-		spokeK8sClient, err := c.clientFactory.CreateFromSecret(secret)
+		spokeK8sClient, err := c.clientFactory.CreateFromSecret(clusterDeployment, secret)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to create client using secret '%s'", secret.Name)
 		}

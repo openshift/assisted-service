@@ -1099,7 +1099,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileError{err: err}
 	}
 
-	spokeClient, err := r.getSpokeClient(secret)
+	spokeClient, err := r.getSpokeClient(cd, secret)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create spoke kubeclient")
 		return reconcileError{err: err}
@@ -1396,7 +1396,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 		return reconcileError{err: err}
 	}
 
-	spokeClient, err := r.getSpokeClient(secret)
+	spokeClient, err := r.getSpokeClient(cd, secret)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create spoke kubeclient")
 		return reconcileError{err: err}
@@ -1563,7 +1563,8 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 	return machine, mutateFn
 }
 
-func (r *BMACReconciler) getSpokeClient(secret *corev1.Secret) (client.Client, error) {
+func (r *BMACReconciler) getSpokeClient(clusterDeployment *hivev1.ClusterDeployment,
+	secret *corev1.Secret) (client.Client, error) {
 	var err error
 	// We only set `spokeClient` during tests. Do not
 	// set it as it would cache the client, which would
@@ -1572,7 +1573,7 @@ func (r *BMACReconciler) getSpokeClient(secret *corev1.Secret) (client.Client, e
 	if r.spokeClient != nil {
 		return r.spokeClient, err
 	}
-	return r.SpokeK8sClientFactory.CreateFromSecret(secret)
+	return r.SpokeK8sClientFactory.CreateFromSecret(clusterDeployment, secret)
 }
 
 // Returns a list of BMH ReconcileRequests for a given Agent
@@ -1850,7 +1851,23 @@ func (r *BMACReconciler) drainAgentNode(ctx context.Context, log logrus.FieldLog
 		return false, err
 	}
 
-	client, clientset, err := r.SpokeK8sClientFactory.ClientAndSetFromSecret(spokeSecret)
+	clusterDeploymentKey := types.NamespacedName{
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Name:      agent.Spec.ClusterDeploymentName.Name,
+	}
+	clusterDeployment := &hivev1.ClusterDeployment{}
+	err = r.Client.Get(ctx, clusterDeploymentKey, clusterDeployment)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			clusterDeployment = nil
+			err = nil
+		}
+	}
+	if err != nil {
+		log.WithError(err).Error("failed to get cluster deployment")
+		return false, err
+	}
+	client, clientset, err := r.SpokeK8sClientFactory.ClientAndSetFromSecret(clusterDeployment, spokeSecret)
 	if err != nil {
 		log.WithError(err).Error("failed to create spoke client")
 		return false, err

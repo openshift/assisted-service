@@ -620,6 +620,9 @@ func main() {
 				InsecureIPXEURLs:    generateInsecureIPXEURLs,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")
 
+			spokeClientFactory, err := spoke_k8s_client.NewFactory(log, nil)
+			failOnError(err, "unable to create spoke client factory")
+
 			cluster_client := ctrlMgr.GetClient()
 			cluster_reader := ctrlMgr.GetAPIReader()
 			failOnError((&controllers.ClusterDeploymentsReconciler{
@@ -636,7 +639,7 @@ func main() {
 				PullSecretHandler:             controllers.NewPullSecretHandler(cluster_client, cluster_reader, bm),
 				AuthType:                      Options.Auth.AuthType,
 				VersionsHandler:               versionHandler,
-				SpokeK8sClientFactory:         spoke_k8s_client.NewSpokeK8sClientFactory(log),
+				SpokeK8sClientFactory:         spokeClientFactory,
 				MirrorRegistriesConfigBuilder: mirrorregistries.New(),
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
@@ -649,7 +652,7 @@ func main() {
 				CRDEventsHandler:           crdEventsHandler,
 				ServiceBaseURL:             Options.BMConfig.ServiceBaseURL,
 				AuthType:                   Options.Auth.AuthType,
-				SpokeK8sClientFactory:      spoke_k8s_client.NewSpokeK8sClientFactory(log),
+				SpokeK8sClientFactory:      spokeClientFactory,
 				ApproveCsrsRequeueDuration: Options.ApproveCsrsRequeueDuration,
 				AgentContainerImage:        Options.BMConfig.AgentDockerImg,
 				HostFSMountDir:             hostFSMountDir,
@@ -661,7 +664,7 @@ func main() {
 				Log:                   log,
 				Scheme:                ctrlMgr.GetScheme(),
 				Installer:             bm,
-				SpokeK8sClientFactory: spoke_k8s_client.NewSpokeK8sClientFactory(log),
+				SpokeK8sClientFactory: spokeClientFactory,
 				ConvergedFlowEnabled:  useConvergedFlow,
 				PauseProvisionedBMHs:  Options.PauseProvisionedBMHs,
 				Drainer:               &controllers.KubectlDrainer{},
