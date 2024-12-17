@@ -378,6 +378,8 @@ spec:
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: ARGS
+        value: "--project-name=assisted-service --report --org=3e6fd93b-b325-49dd-8a33-432a0160ab66"
       - name: SOURCE_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
