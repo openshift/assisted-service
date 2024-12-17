@@ -99,6 +99,9 @@ const (
 	// ClusterValidationIDMtvRequirementsSatisfied captures enum value "mtv-requirements-satisfied"
 	ClusterValidationIDMtvRequirementsSatisfied ClusterValidationID = "mtv-requirements-satisfied"
 
+	// ClusterValidationIDOscRequirementsSatisfied captures enum value "osc-requirements-satisfied"
+	ClusterValidationIDOscRequirementsSatisfied ClusterValidationID = "osc-requirements-satisfied"
+
 	// ClusterValidationIDNetworkTypeValid captures enum value "network-type-valid"
 	ClusterValidationIDNetworkTypeValid ClusterValidationID = "network-type-valid"
 
@@ -132,7 +135,7 @@ var clusterValidationIdEnum []interface{}
 
 func init() {
 	var res []ClusterValidationID
-	if err := json.Unmarshal([]byte(`["machine-cidr-defined","cluster-cidr-defined","service-cidr-defined","no-cidrs-overlapping","networks-same-address-families","network-prefix-valid","machine-cidr-equals-to-calculated-cidr","api-vips-defined","api-vips-valid","ingress-vips-defined","ingress-vips-valid","all-hosts-are-ready-to-install","sufficient-masters-count","dns-domain-defined","pull-secret-set","ntp-server-configured","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","cnv-requirements-satisfied","lvm-requirements-satisfied","mce-requirements-satisfied","mtv-requirements-satisfied","network-type-valid","platform-requirements-satisfied","node-feature-discovery-requirements-satisfied","nvidia-gpu-requirements-satisfied","pipelines-requirements-satisfied","servicemesh-requirements-satisfied","serverless-requirements-satisfied","openshift-ai-requirements-satisfied","authorino-requirements-satisfied"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["machine-cidr-defined","cluster-cidr-defined","service-cidr-defined","no-cidrs-overlapping","networks-same-address-families","network-prefix-valid","machine-cidr-equals-to-calculated-cidr","api-vips-defined","api-vips-valid","ingress-vips-defined","ingress-vips-valid","all-hosts-are-ready-to-install","sufficient-masters-count","dns-domain-defined","pull-secret-set","ntp-server-configured","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","cnv-requirements-satisfied","lvm-requirements-satisfied","mce-requirements-satisfied","mtv-requirements-satisfied","osc-requirements-satisfied","network-type-valid","platform-requirements-satisfied","node-feature-discovery-requirements-satisfied","nvidia-gpu-requirements-satisfied","pipelines-requirements-satisfied","servicemesh-requirements-satisfied","serverless-requirements-satisfied","openshift-ai-requirements-satisfied","authorino-requirements-satisfied"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

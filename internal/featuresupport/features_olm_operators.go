@@ -632,3 +632,57 @@ func (f *AuthorinoFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	}
 	return activeLevelNotActive
 }
+
+// OscFeature
+type OscFeature struct{}
+
+func (feature *OscFeature) New() SupportLevelFeature {
+	return &OscFeature{}
+}
+
+func (feature *OscFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDOSC
+}
+
+func (feature *OscFeature) GetName() string {
+	return "OpenShift sandboxed containers"
+}
+
+func (feature *OscFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeVsphere || *filters.PlatformType == models.PlatformTypeNutanix) {
+		return models.SupportLevelUnavailable
+	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.10", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelTechPreview
+}
+
+func (feature *OscFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	incompatibleArchitecture := []models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+	}
+	return &incompatibleArchitecture
+}
+
+func (feature *OscFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+	}
+}
+
+func (feature *OscFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("osc", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
