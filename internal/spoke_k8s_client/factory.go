@@ -12,7 +12,6 @@ import (
 //go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client_factory.go . SpokeK8sClientFactory
 type SpokeK8sClientFactory interface {
 	CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error)
-	CreateFromRawKubeconfig(kubeconfig []byte) (SpokeK8sClient, error)
 	ClientAndSetFromSecret(secret *corev1.Secret) (SpokeK8sClient, *kubernetes.Clientset, error)
 }
 
@@ -26,18 +25,13 @@ func NewSpokeK8sClientFactory(log logrus.FieldLogger) SpokeK8sClientFactory {
 	}
 }
 
-func (cf *spokeK8sClientFactory) CreateFromRawKubeconfig(kubeconfig []byte) (SpokeK8sClient, error) {
-	client, _, err := cf.clientAndSetForKubeconfig(kubeconfig)
-	return client, err
-
-}
-
 func (cf *spokeK8sClientFactory) CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error) {
 	kubeconfigData, err := kubeconfigFromSecret(secret)
 	if err != nil {
 		return nil, err
 	}
-	return cf.CreateFromRawKubeconfig(kubeconfigData)
+	client, _, err := cf.clientAndSetForKubeconfig(kubeconfigData)
+	return client, err
 }
 
 func (cf *spokeK8sClientFactory) ClientAndSetFromSecret(secret *corev1.Secret) (SpokeK8sClient, *kubernetes.Clientset, error) {
@@ -52,11 +46,11 @@ func (cf *spokeK8sClientFactory) ClientAndSetFromSecret(secret *corev1.Secret) (
 
 func kubeconfigFromSecret(secret *corev1.Secret) ([]byte, error) {
 	if secret.Data == nil {
-		return nil, errors.Errorf("Secret %s/%s  does not contain any data", secret.Namespace, secret.Name)
+		return nil, errors.Errorf("Secret %s/%s does not contain any data", secret.Namespace, secret.Name)
 	}
 	kubeconfigData, ok := secret.Data["kubeconfig"]
 	if !ok || len(kubeconfigData) == 0 {
-		return nil, errors.Errorf("Secret data for %s/%s  does not contain kubeconfig", secret.Namespace, secret.Name)
+		return nil, errors.Errorf("Secret data for %s/%s does not contain kubeconfig", secret.Namespace, secret.Name)
 	}
 	return kubeconfigData, nil
 }
