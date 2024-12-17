@@ -6,21 +6,8 @@ set -o errexit
 set -o xtrace
 
 function print_help() {
-  ALL_FUNCS="golang|assisted_service|hive_from_upstream|print_help"
+  ALL_FUNCS="assisted_service|print_help"
   echo "Usage: bash ${0} (${ALL_FUNCS})"
-}
-
-function golang() {
-  echo "Installing golang..."
-  curl --retry 5 --connect-timeout 30 -L https://storage.googleapis.com/golang/getgo/installer_linux -o /tmp/golang_installer
-  chmod u+x /tmp/golang_installer
-  /tmp/golang_installer -version 1.18
-  rm /tmp/golang_installer
-
-  echo "Activating go command on current shell..."
-  set +u
-  source /root/.bash_profile
-  set -u
 }
 
 function spectral() {
@@ -99,9 +86,6 @@ function assisted_service() {
   python3 -m pip install --no-cache-dir -r ./dev-requirements.txt
 }
 
-function hive_from_upstream() {
-  golang
-}
 
 declare -F $@ || (print_help && exit 1)
 
