@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	authzv1 "github.com/openshift/api/authorization/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	common_api "github.com/openshift/assisted-service/api/common"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
@@ -23,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -2302,6 +2304,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		mockInstallerInternal *bminventory.MockInstallerInternals
 		mockClientFactory     *spoke_k8s_client.MockSpokeK8sClientFactory
 		commonHost            *common.Host
+		db                    *gorm.DB
 	)
 	newAciWithUserManagedNetworkingNoSNO := func(name, namespace string) *hiveext.AgentClusterInstall {
 		return &hiveext.AgentClusterInstall{
@@ -2337,6 +2340,11 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 				Namespace: namespace,
 			},
 		}
+	}
+	newAciBaremetalPlatformNoUMNNoSNO := func(name, namespace string) *hiveext.AgentClusterInstall {
+		aci := newAciNoUserManagedNetworkingNoSNO(name, namespace)
+		aci.Spec.PlatformType = hiveext.BareMetalPlatformType
+		return aci
 	}
 
 	newAciNoUserManagedNetworkingWithSNO := func(name, namespace string) *hiveext.AgentClusterInstall {
@@ -2548,27 +2556,30 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			},
 		}
 		Expect(c.Create(ctx, adminKubeconfigSecret)).ShouldNot(HaveOccurred())
+		db, _ = common.PrepareTestDB()
 	})
 
 	tests := []struct {
-		name                string
-		hostname            string
-		createClient        bool
-		node                *corev1.Node
-		nodeError           error
-		csrs                *certificatesv1.CertificateSigningRequestList
-		approveExpected     bool
-		hostInitialStage    models.HostStage
-		hostInitialStatus   string
-		expectedResult      ctrl.Result
-		expectedError       error
-		expectedStatus      string
-		expectedStage       models.HostStage
-		clusterInstall      *hiveext.AgentClusterInstall
-		updateProgressStage bool
-		getNodeCount        int
-		isDay1Host          bool
-		bmhExists           bool
+		name                           string
+		hostname                       string
+		createClient                   bool
+		node                           *corev1.Node
+		nodeError                      error
+		csrs                           *certificatesv1.CertificateSigningRequestList
+		approveExpected                bool
+		hostInitialStage               models.HostStage
+		hostInitialStatus              string
+		expectedResult                 ctrl.Result
+		expectedError                  error
+		expectedStatus                 string
+		expectedStage                  models.HostStage
+		clusterInstall                 *hiveext.AgentClusterInstall
+		updateProgressStage            bool
+		getNodeCount                   int
+		isDay1Host                     bool
+		bmhExists                      bool
+		getDBCluster                   bool
+		baremetalWithoutMapiCapability bool
 	}{
 		{
 			name:                "Not day 2 host - do nothing",
@@ -2728,6 +2739,41 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			bmhExists:           true,
 		},
 		{
+			name:         "Do not auto approve CSR for baremetal host with MAPI",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			approveExpected: false,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus:      models.HostStatusInstalling,
+			expectedStage:       models.HostStageJoined,
+			clusterInstall:      newAciBaremetalPlatformNoUMNNoSNO("test-cluster-aci", testNamespace),
+			updateProgressStage: true,
+			getNodeCount:        1,
+			getDBCluster:        true,
+			bmhExists:           true,
+		},
+		{
 			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is true",
 			createClient: true,
 			hostname:     CommonHostname,
@@ -2829,6 +2875,42 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciNoUserManagedNetworkingWithSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
 			getNodeCount:        1,
+		},
+		{
+			name:         "Auto approve CSR for baremetal host without MAPI",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:            serverCsrs(),
+			approveExpected: true,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus:                 models.HostStatusInstalling,
+			expectedStage:                  models.HostStageJoined,
+			clusterInstall:                 newAciBaremetalPlatformNoUMNNoSNO("test-cluster-aci", testNamespace),
+			updateProgressStage:            true,
+			getNodeCount:                   1,
+			getDBCluster:                   true,
+			baremetalWithoutMapiCapability: true,
 		},
 		{
 			name:                "Get node error",
@@ -3093,6 +3175,22 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 				if t.approveExpected {
 					mockClient.EXPECT().ApproveCsr(gomock.Any(), gomock.Any()).Return(nil)
 				}
+			}
+			if t.getDBCluster {
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			}
+			if t.baremetalWithoutMapiCapability {
+				installConfig := installcfg.InstallerConfigBaremetal{
+					Capabilities: &installcfg.Capabilities{
+						BaselineCapabilitySet: configv1.ClusterVersionCapabilitySetNone,
+						AdditionalEnabledCapabilities: []configv1.ClusterVersionCapability{
+							"baremetal",
+						},
+					},
+				}
+				installConfigData, err := json.Marshal(installConfig)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(db.Model(backEndCluster).Update("install_config_overrides", installConfigData).Error).ShouldNot(HaveOccurred())
 			}
 			hostRequest = newHostRequest(host)
 			result, err := hr.Reconcile(ctx, hostRequest)
