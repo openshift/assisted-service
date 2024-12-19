@@ -71,6 +71,9 @@ type V2ClusterUpdateParams struct {
 	// The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
 	IngressVips []*IngressVip `json:"ingress_vips"`
 
+	// load balancer
+	LoadBalancer *LoadBalancer `json:"load_balancer,omitempty" gorm:"embedded;embeddedPrefix:load_balancer_"`
+
 	// A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	MachineNetworkCidr *string `json:"machine_network_cidr,omitempty"`
@@ -155,6 +158,10 @@ func (m *V2ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateIngressVips(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateLoadBalancer(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -388,6 +395,25 @@ func (m *V2ClusterUpdateParams) validateIngressVips(formats strfmt.Registry) err
 	return nil
 }
 
+func (m *V2ClusterUpdateParams) validateLoadBalancer(formats strfmt.Registry) error {
+	if swag.IsZero(m.LoadBalancer) { // not required
+		return nil
+	}
+
+	if m.LoadBalancer != nil {
+		if err := m.LoadBalancer.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("load_balancer")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("load_balancer")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *V2ClusterUpdateParams) validateMachineNetworkCidr(formats strfmt.Registry) error {
 	if swag.IsZero(m.MachineNetworkCidr) { // not required
 		return nil
@@ -591,6 +617,10 @@ func (m *V2ClusterUpdateParams) ContextValidate(ctx context.Context, formats str
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateLoadBalancer(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateMachineNetworks(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -700,6 +730,22 @@ func (m *V2ClusterUpdateParams) contextValidateIngressVips(ctx context.Context, 
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *V2ClusterUpdateParams) contextValidateLoadBalancer(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.LoadBalancer != nil {
+		if err := m.LoadBalancer.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("load_balancer")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("load_balancer")
+			}
+			return err
+		}
 	}
 
 	return nil

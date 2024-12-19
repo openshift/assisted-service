@@ -86,7 +86,8 @@ type clusterValidator struct {
 func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) {
 		return ValidationSuccess, "No Machine Network CIDR needed: User Managed Networking"
-	} else if network.IsMachineCidrAvailable(c.cluster) {
+	}
+	if network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationSuccess, "The Machine Network CIDR is defined."
 	}
 	if !c.hasHostsWithInventories {
@@ -120,6 +121,9 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, "The Cluster Machine CIDR is not required: User Managed Networking"
+	}
+	if network.IsLoadBalancerUserManaged(c.cluster) {
+		return ValidationSuccess, "Virtual IPs do not need to belong to the Machine Network CIDR: User Managed Load Balancer"
 	}
 	if len(c.cluster.APIVips) == 0 && len(c.cluster.IngressVips) == 0 {
 		return ValidationPending, "The Machine Network CIDR, API virtual IPs, or Ingress virtual IPs are undefined."
@@ -223,6 +227,11 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: User Managed Networking", vipsWrapper.Name())
 	}
+
+	if network.IsLoadBalancerUserManaged(c.cluster) {
+		return ValidationSuccess, fmt.Sprintf("%s virtual IPs validation is not required: User Managed Load Balancer", vipsWrapper.Name())
+	}
+
 	if swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: SNO", vipsWrapper.Name())
 	}

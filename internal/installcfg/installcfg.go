@@ -31,18 +31,19 @@ type Host struct {
 }
 
 type BareMetalInstallConfigPlatform struct {
-	ProvisioningNetwork          string   `json:"provisioningNetwork"`
-	APIVIPs                      []string `json:"apiVIPs,omitempty"`
-	DeprecatedAPIVIP             string   `json:"apiVIP,omitempty"`
-	IngressVIPs                  []string `json:"ingressVIPs,omitempty"`
-	DeprecatedIngressVIP         string   `json:"ingressVIP,omitempty"`
-	Hosts                        []Host   `json:"hosts"`
-	ClusterOSImage               string   `json:"clusterOSImage,omitempty"`
-	ClusterProvisioningIP        string   `json:"clusterProvisioningIP,omitempty"`
-	ProvisioningNetworkInterface string   `json:"provisioningNetworkInterface,omitempty"`
-	ProvisioningNetworkCIDR      *string  `json:"provisioningNetworkCIDR,omitempty"`
-	ProvisioningDHCPRange        string   `json:"provisioningDHCPRange,omitempty"`
-	AdditionalNTPServers         []string `json:"additionalNTPServers,omitempty"`
+	ProvisioningNetwork          string                                  `json:"provisioningNetwork"`
+	APIVIPs                      []string                                `json:"apiVIPs,omitempty"`
+	DeprecatedAPIVIP             string                                  `json:"apiVIP,omitempty"`
+	IngressVIPs                  []string                                `json:"ingressVIPs,omitempty"`
+	DeprecatedIngressVIP         string                                  `json:"ingressVIP,omitempty"`
+	Hosts                        []Host                                  `json:"hosts"`
+	ClusterOSImage               string                                  `json:"clusterOSImage,omitempty"`
+	ClusterProvisioningIP        string                                  `json:"clusterProvisioningIP,omitempty"`
+	ProvisioningNetworkInterface string                                  `json:"provisioningNetworkInterface,omitempty"`
+	ProvisioningNetworkCIDR      *string                                 `json:"provisioningNetworkCIDR,omitempty"`
+	ProvisioningDHCPRange        string                                  `json:"provisioningDHCPRange,omitempty"`
+	AdditionalNTPServers         []string                                `json:"additionalNTPServers,omitempty"`
+	LoadBalancer                 *configv1.BareMetalPlatformLoadBalancer `json:"loadBalancer,omitempty"`
 }
 
 type VsphereFailureDomainTopology struct {
@@ -92,20 +93,21 @@ type VsphereVCenter struct {
 }
 
 type VsphereInstallConfigPlatform struct {
-	DeprecatedVCenter          string                 `json:"vCenter,omitempty"`
-	DeprecatedUsername         string                 `json:"username,omitempty"`
-	DeprecatedPassword         strfmt.Password        `json:"password,omitempty"`
-	DeprecatedDatacenter       string                 `json:"datacenter,omitempty"`
-	DeprecatedDefaultDatastore string                 `json:"defaultDatastore,omitempty"`
-	DeprecatedFolder           string                 `json:"folder,omitempty"`
-	DeprecatedNetwork          string                 `json:"network,omitempty"`
-	DeprecatedCluster          string                 `json:"cluster,omitempty"`
-	DeprecatedAPIVIP           string                 `json:"apiVIP,omitempty"`
-	DeprecatedIngressVIP       string                 `json:"ingressVIP,omitempty"`
-	IngressVIPs                []string               `json:"ingressVIPs,omitempty"`
-	APIVIPs                    []string               `json:"apiVIPs,omitempty"`
-	FailureDomains             []VsphereFailureDomain `json:"failureDomains,omitempty"`
-	VCenters                   []VsphereVCenter       `json:"vcenters,omitempty"`
+	DeprecatedVCenter          string                                `json:"vCenter,omitempty"`
+	DeprecatedUsername         string                                `json:"username,omitempty"`
+	DeprecatedPassword         strfmt.Password                       `json:"password,omitempty"`
+	DeprecatedDatacenter       string                                `json:"datacenter,omitempty"`
+	DeprecatedDefaultDatastore string                                `json:"defaultDatastore,omitempty"`
+	DeprecatedFolder           string                                `json:"folder,omitempty"`
+	DeprecatedNetwork          string                                `json:"network,omitempty"`
+	DeprecatedCluster          string                                `json:"cluster,omitempty"`
+	DeprecatedAPIVIP           string                                `json:"apiVIP,omitempty"`
+	DeprecatedIngressVIP       string                                `json:"ingressVIP,omitempty"`
+	IngressVIPs                []string                              `json:"ingressVIPs,omitempty"`
+	APIVIPs                    []string                              `json:"apiVIPs,omitempty"`
+	FailureDomains             []VsphereFailureDomain                `json:"failureDomains,omitempty"`
+	VCenters                   []VsphereVCenter                      `json:"vcenters,omitempty"`
+	LoadBalancer               *configv1.VSpherePlatformLoadBalancer `json:"loadBalancer,omitempty"`
 }
 
 type NutanixInstallConfigPlatform struct {
@@ -251,4 +253,8 @@ func (c *InstallerConfigBaremetal) Validate() error {
 	}
 
 	return nil
+}
+
+type LoadBalancer struct {
+	Type string `json:"type,omitempty"`
 }

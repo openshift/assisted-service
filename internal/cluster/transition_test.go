@@ -745,6 +745,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 			errorExpected      bool
 			openshiftVersion   string
 			controlPlaneCount  int64
+			loadBalancerType   string
 		}{
 			{
 				name:          "pending-for-input to pending-for-input",
@@ -1203,6 +1204,84 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				errorExpected: false,
 			},
 			{
+				name:            "pending-for-input to ready, user managed load balancer, VIPs part of the machine netowrk",
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusReady,
+				machineNetworks: common.TestIPv4Networking.MachineNetworks,
+				apiVips:         common.TestIPv4Networking.APIVips,
+				ingressVips:     common.TestIPv4Networking.IngressVips,
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoReady),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Virtual IPs do not need to belong to the Machine Network CIDR: User Managed Load Balancer"},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs validation is not required: User Managed Load Balancer"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs validation is not required: User Managed Load Balancer"},
+				}),
+				errorExpected:    false,
+				loadBalancerType: models.LoadBalancerTypeUserManaged,
+			},
+			{
+				name:            "pending-for-input to ready, user managed load balancer, VIPs not part of the machine netowrk",
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusReady,
+				machineNetworks: common.TestIPv4Networking.MachineNetworks,
+				apiVips:         []*models.APIVip{{IP: "8.8.8.8"}},
+				ingressVips:     []*models.IngressVip{{IP: "8.8.8.9"}},
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoReady),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Virtual IPs do not need to belong to the Machine Network CIDR: User Managed Load Balancer"},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs validation is not required: User Managed Load Balancer"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs validation is not required: User Managed Load Balancer"},
+				}),
+				errorExpected:    false,
+				loadBalancerType: models.LoadBalancerTypeUserManaged,
+			},
+			{
+				name:            "pending-for-input to ready, user managed load balancer, VIPs are same",
+				srcState:        models.ClusterStatusPendingForInput,
+				dstState:        models.ClusterStatusReady,
+				machineNetworks: common.TestIPv4Networking.MachineNetworks,
+				apiVips:         []*models.APIVip{{IP: "8.8.8.8"}},
+				ingressVips:     []*models.IngressVip{{IP: "8.8.8.8"}},
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoReady),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Virtual IPs do not need to belong to the Machine Network CIDR: User Managed Load Balancer"},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs validation is not required: User Managed Load Balancer"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs validation is not required: User Managed Load Balancer"},
+				}),
+				errorExpected:    false,
+				loadBalancerType: models.LoadBalancerTypeUserManaged,
+			},
+			{
 				name:            "pending-for-input to insufficient - not all hosts are ready to install",
 				srcState:        models.ClusterStatusPendingForInput,
 				dstState:        models.ClusterStatusInsufficient,
@@ -1536,6 +1615,10 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 
 				if cluster.ControlPlaneCount == 0 {
 					cluster.ControlPlaneCount = 3
+				}
+
+				if t.loadBalancerType != "" {
+					cluster.LoadBalancer = &models.LoadBalancer{Type: t.loadBalancerType}
 				}
 
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())

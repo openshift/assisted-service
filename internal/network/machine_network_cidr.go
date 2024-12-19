@@ -144,7 +144,7 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 	return ret, errors.New(msg)
 }
 
-func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*models.IngressVip) error {
+func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*models.IngressVip, allowCommonVIP bool) error {
 	var (
 		err                     error
 		multiErr                error
@@ -179,7 +179,7 @@ func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*m
 		}
 		// Should also assert for duplicates between Ingress VIPs and API VIPs
 		_, found = seenApiVipAddresses[ipAddress]
-		if found {
+		if !allowCommonVIP && found {
 			err = errors.Errorf("The IP address \"%s\" appears both in apiVIPs and ingressVIPs", ipAddress)
 			multiErr = multierror.Append(multiErr, err)
 		}
@@ -194,14 +194,14 @@ func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*m
 // This function is called from places which assume it is OK for a VIP to be unverified.
 // The assumption is that VIPs are eventually verified by cluster validation
 // (i.e api-vips-valid, ingress-vips-valid)
-func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, log logrus.FieldLogger) error {
+func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, allowCommonVIP bool, log logrus.FieldLogger) error {
 	verification, err := VerifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", nil, log)
 	// Error is ignored if the verification didn't fail
 	if verification != models.VipVerificationFailed {
 		verification, err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", nil, log)
 	}
 	if verification != models.VipVerificationFailed {
-		return ValidateNoVIPAddressesDuplicates([]*models.APIVip{{IP: models.IP(apiVip)}}, []*models.IngressVip{{IP: models.IP(ingressVip)}})
+		return ValidateNoVIPAddressesDuplicates([]*models.APIVip{{IP: models.IP(apiVip)}}, []*models.IngressVip{{IP: models.IP(ingressVip)}}, allowCommonVIP)
 	}
 	return err
 }

@@ -424,6 +424,18 @@ var _ = Describe("areVipsValid", func() {
 				Expect(status).Should(Equal(ValidationFailure))
 				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1.2.3.[56]> is already in use in cidr 1.2.3.0/24", strings.ToLower(lcontext.name))))
 			})
+
+			It("with user managed load balancer", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:           &clusterID,
+					Hosts:        hosts,
+					LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				}}
+
+				status, message := validator.areApiVipsValid(preprocessContext)
+				Expect(status).Should(Equal(ValidationSuccess))
+				Expect(message).Should(MatchRegexp("virtual IPs validation is not required: User Managed Load Balancer"))
+			})
 		})
 	}
 })
@@ -891,5 +903,40 @@ var _ = Describe("SufficientMastersCount", func() {
 			Expect(status).To(Equal(ValidationFailure))
 			Expect(message).To(Equal("Single-node clusters must have a single control plane node and no workers."))
 		})
+	})
+})
+
+var _ = Describe("isMachineCidrEqualsToCalculatedCidr", func() {
+	var (
+		validator   clusterValidator
+		clusterID   strfmt.UUID
+		mockHostAPI *host.MockAPI
+		ctrl        *gomock.Controller
+	)
+
+	BeforeEach(func() {
+		clusterID = strfmt.UUID(uuid.New().String())
+		ctrl = gomock.NewController(GinkgoT())
+		mockHostAPI = host.NewMockAPI(ctrl)
+		validator = clusterValidator{log: logrus.New(), hostAPI: mockHostAPI}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("skips validation when load balancer type is user-managed", func() {
+		preprocessContext := &clusterPreprocessContext{
+			clusterId: clusterID,
+			cluster: &common.Cluster{
+				Cluster: models.Cluster{
+					LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				},
+			},
+		}
+
+		status, message := validator.isMachineCidrEqualsToCalculatedCidr(preprocessContext)
+		Expect(status).To(Equal(ValidationSuccess))
+		Expect(message).To(Equal("Virtual IPs do not need to belong to the Machine Network CIDR: User Managed Load Balancer"))
 	})
 })

@@ -376,12 +376,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil, nil, nil)
-			Expect(len(list)).To(Equal(34))
+			Expect(len(list)).To(Equal(35))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil, nil, nil)
-			Expect(len(list)).To(Equal(34))
+			Expect(len(list)).To(Equal(35))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
@@ -922,6 +922,99 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 		})
 	})
+
+	DescribeTable(
+		"User Managed load balancer support",
+		func(version string, expected bool) {
+			arch := "x86_64"
+			actual := IsFeatureAvailable(
+				models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
+				version,
+				&arch,
+			)
+			Expect(actual).To(Equal(expected))
+		},
+		Entry(
+			"Not in 4.14",
+			"4.14",
+			false,
+		),
+		Entry(
+			"Not in 4.15",
+			"4.14",
+			false,
+		),
+		Entry(
+			"Yes in 4.16",
+			"4.16",
+			true,
+		),
+		Entry(
+			"Yes in 4.17",
+			"4.17",
+			true,
+		),
+	)
+
+	DescribeTable("User Managed load balancer compatability with other features", func(activeFeatures []SupportLevelFeature, shouldSucceed bool) {
+		activeFeatures = append(activeFeatures, &UserManagedLoadBalancerFeature{})
+
+		if shouldSucceed {
+			Expect(
+				isFeaturesCompatibleWithFeatures(
+					common.MimimumVersionForUserManagedLoadBalancerFeature,
+					activeFeatures),
+			).ToNot(HaveOccurred())
+		} else {
+			Expect(
+				isFeaturesCompatibleWithFeatures(
+					common.MimimumVersionForUserManagedLoadBalancerFeature,
+					activeFeatures),
+			).To(HaveOccurred())
+		}
+	},
+		Entry(
+			"platform baremetal",
+			[]SupportLevelFeature{&BaremetalPlatformFeature{}},
+			true,
+		),
+
+		Entry(
+			"external platform",
+			[]SupportLevelFeature{&ExternalPlatformFeature{}},
+			false,
+		),
+
+		Entry(
+			"nutanix platform",
+			[]SupportLevelFeature{&NutanixIntegrationFeature{}},
+			false,
+		),
+
+		Entry(
+			"vsphere platform",
+			[]SupportLevelFeature{&VsphereIntegrationFeature{}},
+			false,
+		),
+
+		Entry(
+			"none platform",
+			[]SupportLevelFeature{&NonePlatformFeature{}},
+			false,
+		),
+
+		Entry(
+			"user managed networking",
+			[]SupportLevelFeature{&UserManagedNetworkingFeature{}},
+			false,
+		),
+
+		Entry(
+			"vip automatic allocation",
+			[]SupportLevelFeature{&VipAutoAllocFeature{}},
+			false,
+		),
+	)
 })
 
 func TestOperators(t *testing.T) {

@@ -174,6 +174,9 @@ type Cluster struct {
 	// last installation preparation
 	LastInstallationPreparation LastInstallationPreparation `json:"last-installation-preparation,omitempty" gorm:"embedded;embeddedPrefix:last_installation_preparation_"`
 
+	// load balancer
+	LoadBalancer *LoadBalancer `json:"load_balancer,omitempty" gorm:"embedded;embeddedPrefix:load_balancer_"`
+
 	// The progress of log collection or empty if logs are not applicable
 	LogsInfo LogsState `json:"logs_info,omitempty" gorm:"type:varchar(2048)"`
 
@@ -372,6 +375,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateLastInstallationPreparation(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateLoadBalancer(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -951,6 +958,25 @@ func (m *Cluster) validateLastInstallationPreparation(formats strfmt.Registry) e
 	return nil
 }
 
+func (m *Cluster) validateLoadBalancer(formats strfmt.Registry) error {
+	if swag.IsZero(m.LoadBalancer) { // not required
+		return nil
+	}
+
+	if m.LoadBalancer != nil {
+		if err := m.LoadBalancer.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("load_balancer")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("load_balancer")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *Cluster) validateLogsInfo(formats strfmt.Registry) error {
 	if swag.IsZero(m.LogsInfo) { // not required
 		return nil
@@ -1305,6 +1331,10 @@ func (m *Cluster) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateLoadBalancer(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateLogsInfo(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -1492,6 +1522,22 @@ func (m *Cluster) contextValidateLastInstallationPreparation(ctx context.Context
 			return ce.ValidateName("last-installation-preparation")
 		}
 		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) contextValidateLoadBalancer(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.LoadBalancer != nil {
+		if err := m.LoadBalancer.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("load_balancer")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("load_balancer")
+			}
+			return err
+		}
 	}
 
 	return nil
