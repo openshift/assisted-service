@@ -2841,8 +2841,8 @@ var _ = Describe("handleBMHFinalizer", func() {
 
 				// mock client and clientset
 				clientset := &kubernetes.Clientset{}
-				mockClientFactory.EXPECT().ClientAndSetFromSecret(gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
-					func(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, *kubernetes.Clientset, error) {
+				mockClientFactory.EXPECT().ClientAndSetFromSecret(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+					func(_ context.Context, secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, *kubernetes.Clientset, error) {
 						Expect(secret.Data["kubeconfig"]).To(Equal([]byte("definitely_a_kubeconfig")))
 						return mockSpokeClient, clientset, nil
 					},
