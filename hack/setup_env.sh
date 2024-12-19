@@ -43,6 +43,22 @@ function podman_remote() {
   rm -f podman-remote4.tar.gz
 }
 
+function envtest() {
+  # Branch 'release-0.17' is the newest version that can be installed with Go 1.21. This should be updated when we
+  # update the version of Go.
+  go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.17
+
+  # The unit tests will try to use the 'setup-envtest' tool to download and locate the required assets. But that doesn't
+  # work in the CI environment because that tool saves the assets to a directory in the home of the user, which may not
+  # be writeable. To avoid that we download them here, and we move them to the default directory where the unit tests
+  # expect them.
+  src=$(setup-envtest use --print path 1.30.0)
+  dst="/usr/local/kubebuilder/bin"
+  mkdir -p "${dst}"
+  mv "${src}"/* "${dst}"/.
+  setup-envtest cleanup
+}
+
 function test_tools() {
   go install github.com/onsi/ginkgo/ginkgo@v1.16.4
   go install github.com/golang/mock/mockgen@v1.6.0
@@ -50,6 +66,7 @@ function test_tools() {
   go install gotest.tools/gotestsum@v1.6.3
   go install github.com/axw/gocov/gocov@v1.1.0
   go install github.com/AlekSi/gocov-xml@v1.1.0
+  envtest
 }
 
 function assisted_service() {
