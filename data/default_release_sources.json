@@ -295,6 +295,46 @@
         ]
       }
     ]
+  },
+  {
+    "openshift_version": "4.19",
+    "multi_cpu_architectures": [
+      "x86_64",
+      "arm64",
+      "s390x",
+      "ppc64le"
+    ],
+    "upgrade_channels": [
+      {
+        "cpu_architecture": "x86_64",
+        "channels": [
+          "candidate"
+        ]
+      },
+      {
+        "cpu_architecture": "arm64",
+        "channels": [
+          "candidate"
+        ]
+      },
+      {
+        "cpu_architecture": "ppc64le",
+        "channels": [
+          "candidate"
+        ]
+      },
+      {
+        "cpu_architecture": "s390x",
+        "channels": [
+          "candidate"
+        ]
+      },
+      {
+        "cpu_architecture": "multi",
+        "channels": [
+          "candidate"
+        ]
+      }
+    ]
   }
 ]
-  
