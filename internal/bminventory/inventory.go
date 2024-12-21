@@ -364,6 +364,12 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 		return params, err
 	}
 
+	// Set default values for baremetal / vsphere flows where this feature is relevant.
+	if params.NewClusterParams.LoadBalancer == nil && platform.Type != nil &&
+		(*platform.Type == models.PlatformTypeBaremetal || *platform.Type == models.PlatformTypeVsphere) {
+		params.NewClusterParams.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged}
+	}
+
 	return params, nil
 }
 
@@ -646,6 +652,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 			Tags:                         swag.StringValue(params.NewClusterParams.Tags),
 			OrgSoftTimeoutsEnabled:       orgSoftTimeoutsEnabled,
 			ControlPlaneCount:            swag.Int64Value(params.NewClusterParams.ControlPlaneCount),
+			LoadBalancer:                 params.NewClusterParams.LoadBalancer,
 		},
 		KubeKeyName:                 kubeKey.Name,
 		KubeKeyNamespace:            kubeKey.Namespace,
@@ -2196,6 +2203,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 	targetConfiguration.MachineNetworks = cluster.MachineNetworks
 	targetConfiguration.APIVips = cluster.APIVips
 	targetConfiguration.IngressVips = cluster.IngressVips
+	targetConfiguration.LoadBalancer = cluster.LoadBalancer
 
 	if params.ClusterUpdateParams.ClusterNetworks != nil {
 		targetConfiguration.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
@@ -2222,6 +2230,12 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 		log.WithError(err).Warnf("Set Machine Network CIDR")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
+	if params.ClusterUpdateParams.LoadBalancer != nil {
+		targetConfiguration.LoadBalancer = params.ClusterUpdateParams.LoadBalancer
+	}
+
+	allowCommonVIP := network.IsLoadBalancerUserManaged(&targetConfiguration)
+
 	var err error
 	err = validations.VerifyParsableVIPs(targetConfiguration.APIVips, targetConfiguration.IngressVips)
 	if err != nil {
@@ -2229,7 +2243,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 		return err
 	}
 
-	err = network.ValidateNoVIPAddressesDuplicates(targetConfiguration.APIVips, targetConfiguration.IngressVips)
+	err = network.ValidateNoVIPAddressesDuplicates(targetConfiguration.APIVips, targetConfiguration.IngressVips, allowCommonVIP)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -2237,8 +2251,6 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 	if interactivity == Interactive && (params.ClusterUpdateParams.APIVips != nil || params.ClusterUpdateParams.IngressVips != nil) {
 		var primaryMachineNetworkCidr string
 		var secondaryMachineNetworkCidr string
-
-		matchRequired := network.GetApiVipById(&targetConfiguration, 0) != "" || network.GetIngressVipById(&targetConfiguration, 0) != ""
 
 		// We want to calculate Machine Network based on the API/Ingress VIPs only in case of the
 		// single-stack cluster. Auto calculation is not supported for dual-stack in which we
@@ -2260,19 +2272,23 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 
-			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
+			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), allowCommonVIP, log); err != nil {
 				log.WithError(err).Warnf("Verify VIPs")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 
 			if len(targetConfiguration.IngressVips) == 2 && len(targetConfiguration.APIVips) == 2 { // in case there's a second set of VIPs
-				if err = network.VerifyVips(cluster.Hosts, secondaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), log); err != nil {
+				if err = network.VerifyVips(cluster.Hosts, secondaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), allowCommonVIP, log); err != nil {
 					log.WithError(err).Warnf("Verify VIPs")
 					return common.NewApiError(http.StatusBadRequest, err)
 				}
 			}
 
 		} else {
+			// We don't require a match when user managed load balancer is used because
+			// the VIPs are not required to be part of the machine network.
+			matchRequired := (network.GetApiVipById(&targetConfiguration, 0) != "" || network.GetIngressVipById(&targetConfiguration, 0) != "") &&
+				!network.IsLoadBalancerUserManaged(&targetConfiguration)
 			primaryMachineNetworkCidr, err = network.CalculateMachineNetworkCIDR(network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), cluster.Hosts, matchRequired)
 			if err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Calculate machine network CIDR"))
@@ -2286,7 +2302,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 				// the assignment below.
 				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
 			}
-			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
+			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), allowCommonVIP, log); err != nil {
 				log.WithError(err).Warnf("Verify VIPs")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
@@ -2706,7 +2722,18 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 		cluster.MachineNetworks = []*models.MachineNetwork{}
 	}
 
+	if params.ClusterUpdateParams.LoadBalancer != nil &&
+		cluster.LoadBalancer != nil &&
+		params.ClusterUpdateParams.LoadBalancer.Type != cluster.LoadBalancer.Type {
+		updates["load_balancer_type"] = params.ClusterUpdateParams.LoadBalancer.Type
+	}
+
 	if userManagedNetworking {
+		err = validateUserManagedNetworkConflicts(params.ClusterUpdateParams, log)
+		if err != nil {
+			return err
+		}
+
 		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(db, cluster.ID, params.ClusterUpdateParams, updates, log)
 		if err != nil {
 			return err
@@ -2756,13 +2783,9 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 }
 
 func setCommonUserNetworkManagedParams(db *gorm.DB, id *strfmt.UUID, params *models.V2ClusterUpdateParams, updates map[string]interface{}, log logrus.FieldLogger) (error, bool) {
-	err := validateUserManagedNetworkConflicts(params, log)
-	if err != nil {
-		return err, false
-	}
 	updates["vip_dhcp_allocation"] = false
 	emptyCluster := common.Cluster{Cluster: models.Cluster{ID: id}}
-	if err = network.UpdateVipsTables(db, &emptyCluster, true, true); err != nil {
+	if err := network.UpdateVipsTables(db, &emptyCluster, true, true); err != nil {
 		return err, false
 	}
 
