@@ -74,7 +74,7 @@ function assisted_service() {
 
 
   go install golang.org/x/tools/cmd/goimports@v0.1.5
-  go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2
+  go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
 
   python3 -m venv ${VIRTUAL_ENV:-/opt/venv}
   python3 -m pip install --upgrade pip
