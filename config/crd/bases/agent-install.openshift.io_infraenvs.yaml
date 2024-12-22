@@ -1,11 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.2
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: infraenvs.agent-install.openshift.io
 spec:
   group: agent-install.openshift.io
@@ -31,42 +29,50 @@ spec:
       openAPIV3Schema:
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
           spec:
             properties:
               additionalNTPSources:
-                description: AdditionalNTPSources is a list of NTP sources (hostname
-                  or IP) to be added to all cluster hosts. They are added to any NTP
-                  sources that were configured through other means.
+                description: |-
+                  AdditionalNTPSources is a list of NTP sources (hostname or IP) to be added to all cluster
+                  hosts. They are added to any NTP sources that were configured through other means.
                 items:
                   type: string
                 type: array
               additionalTrustBundle:
-                description: PEM-encoded X.509 certificate bundle. Hosts discovered
-                  by this infra-env will trust the certificates in this bundle. Clusters
-                  formed from the hosts discovered by this infra-env will also trust
-                  the certificates in this bundle.
+                description: |-
+                  PEM-encoded X.509 certificate bundle. Hosts discovered by this
+                  infra-env will trust the certificates in this bundle. Clusters formed
+                  from the hosts discovered by this infra-env will also trust the
+                  certificates in this bundle.
                 type: string
               agentLabels:
                 additionalProperties:
                   type: string
-                description: AgentLabels lists labels to apply to Agents that are
-                  associated with this InfraEnv upon the creation of the Agents.
+                description: |-
+                  AgentLabels lists labels to apply to Agents that are associated with this InfraEnv upon
+                  the creation of the Agents.
                 type: object
               clusterRef:
-                description: ClusterRef is the reference to the single ClusterDeployment
-                  that will be installed from this InfraEnv. Future versions will
-                  allow for multiple ClusterDeployments and this reference will be
+                description: |-
+                  ClusterRef is the reference to the single ClusterDeployment that will be installed from
+                  this InfraEnv.
+                  Future versions will allow for multiple ClusterDeployments and this reference will be
                   removed.
                 properties:
                   name:
@@ -89,24 +95,22 @@ spec:
                 type: string
               ipxeScriptType:
                 default: DiscoveryImageAlways
-                description: 'IPXEScriptType the script type that should be served
-                  (DiscoveryImageAlways/BootOrderControl) DiscoveryImageAlways: Boot
-                  unconditionaly from the network discovery image BootOrderControl:
-                  Boot from discovery ISO depending on the host''s state. When the
-                  value is BootOrderControl, the service will look for an Agent record
-                  that matches the host''s MAC address; if found, and if that Agent
-                  is in a state where it is provisioned and attached to a cluster,
-                  then host will boot the host disk. Otherwise it will boot the discovery
-                  ISO using the same script as the DiscoveryImageAlways option.'
+                description: |-
+                  IPXEScriptType the script type that should be served (DiscoveryImageAlways/BootOrderControl)
+                  DiscoveryImageAlways: Boot unconditionaly from the network discovery image
+                  BootOrderControl: Boot from discovery ISO depending on the host's state.
+                  When the value is BootOrderControl, the service will look for an Agent record that matches the host's MAC address;
+                  if found, and if that Agent is in a state where it is provisioned and attached to a cluster, then host will boot the host disk.
+                  Otherwise it will boot the discovery ISO using the same script as the DiscoveryImageAlways option.
                 enum:
                 - ""
                 - DiscoveryImageAlways
                 - BootOrderControl
                 type: string
               kernelArguments:
-                description: KernelArguments is the additional kernel arguments to
-                  be passed during boot time of the discovery image. Applicable for
-                  both iPXE, and ISO streaming from Image Service.
+                description: |-
+                  KernelArguments is the additional kernel arguments to be passed during boot time of the discovery image.
+                  Applicable for both iPXE, and ISO streaming from Image Service.
                 items:
                   properties:
                     operation:
@@ -118,39 +122,42 @@ spec:
                       - delete
                       type: string
                     value:
-                      description: 'Value can have the form <parameter> or <parameter>=<value>.
-                        The following examples should be supported: rd.net.timeout.carrier=60
-                        isolcpus=1,2,10-20,100-2000:2/25 quiet'
+                      description: |-
+                        Value can have the form <parameter> or <parameter>=<value>. The following examples should be supported:
+                        rd.net.timeout.carrier=60
+                        isolcpus=1,2,10-20,100-2000:2/25
+                        quiet
                       pattern: ^(?:(?:[^ \t\n\r"]+)|(?:"[^"]*"))+$
                       type: string
                   type: object
                 type: array
               nmStateConfigLabelSelector:
-                description: NmstateConfigLabelSelector associates NMStateConfigs
-                  for hosts that are considered part of this installation environment.
+                description: |-
+                  NmstateConfigLabelSelector associates NMStateConfigs for hosts that are considered part
+                  of this installation environment.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
                       The requirements are ANDed.
                     items:
-                      description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
-                        and values.
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
                       properties:
                         key:
                           description: key is the label key that the selector applies
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
-                            a set of values. Valid operators are In, NotIn, Exists
-                            and DoesNotExist.
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
                           type: string
                         values:
-                          description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
-                            array must be empty. This array is replaced during a strategic
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
                             type: string
@@ -163,24 +170,24 @@ spec:
                   matchLabels:
                     additionalProperties:
                       type: string
-                    description: matchLabels is a map of {key,value} pairs. A single
-                      {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
-                      is "In", and the values array contains only "value". The requirements
-                      are ANDed.
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
                     type: object
                 type: object
+                x-kubernetes-map-type: atomic
               osImageVersion:
-                description: 'OSImageVersion is the version of OS image to use when
-                  generating the InfraEnv. The version should refer to an OSImage
-                  specified in the AgentServiceConfig (i.e. OSImageVersion should
-                  equal to an OpenshiftVersion in OSImages list). Note: OSImageVersion
-                  can''t be specified along with ClusterRef.'
+                description: |-
+                  OSImageVersion is the version of OS image to use when generating the InfraEnv.
+                  The version should refer to an OSImage specified in the AgentServiceConfig
+                  (i.e. OSImageVersion should equal to an OpenshiftVersion in OSImages list).
+                  Note: OSImageVersion can't be specified along with ClusterRef.
                 type: string
               proxy:
-                description: Proxy defines the proxy settings for agents and clusters
-                  that use the InfraEnv. If unset, the agents and clusters will not
-                  be configured to use a proxy.
+                description: |-
+                  Proxy defines the proxy settings for agents and clusters that use the InfraEnv. If
+                  unset, the agents and clusters will not be configured to use a proxy.
                 properties:
                   httpProxy:
                     description: HTTPProxy is the URL of the proxy for HTTP requests.
@@ -189,8 +196,9 @@ spec:
                     description: HTTPSProxy is the URL of the proxy for HTTPS requests.
                     type: string
                   noProxy:
-                    description: NoProxy is a comma-separated list of domains and
-                      CIDRs for which the proxy should not be used.
+                    description: |-
+                      NoProxy is a comma-separated list of domains and CIDRs for which the proxy should not be
+                      used.
                     type: string
                 type: object
               pullSecretRef:
@@ -198,10 +206,13 @@ spec:
                   pulling images.
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               sshAuthorizedKey:
                 description: SSHAuthorizedKey is a SSH public keys that will be added
                   to all agents for use in debugging.
@@ -212,33 +223,33 @@ spec:
           status:
             properties:
               agentLabelSelector:
-                description: AgentLabelSelector specifies the label that will be applied
-                  to Agents that boot from the installation media of this InfraEnv.
-                  This is how a user would identify which agents are associated with
-                  a particular InfraEnv.
+                description: |-
+                  AgentLabelSelector specifies the label that will be applied to Agents that boot from the
+                  installation media of this InfraEnv. This is how a user would identify which agents are
+                  associated with a particular InfraEnv.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
                       The requirements are ANDed.
                     items:
-                      description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
-                        and values.
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
                       properties:
                         key:
                           description: key is the label key that the selector applies
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
-                            a set of values. Valid operators are In, NotIn, Exists
-                            and DoesNotExist.
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
                           type: string
                         values:
-                          description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
-                            array must be empty. This array is replaced during a strategic
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
                             type: string
@@ -251,13 +262,13 @@ spec:
                   matchLabels:
                     additionalProperties:
                       type: string
-                    description: matchLabels is a map of {key,value} pairs. A single
-                      {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
-                      is "In", and the values array contains only "value". The requirements
-                      are ANDed.
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
                     type: object
                 type: object
+                x-kubernetes-map-type: atomic
               bootArtifacts:
                 description: BootArtifacts specifies the URLs for each boot artifact
                 properties:
@@ -280,8 +291,9 @@ spec:
                 type: object
               conditions:
                 items:
-                  description: Condition represents the state of the operator's reconciliation
-                    functionality.
+                  description: |-
+                    Condition represents the state of the operator's
+                    reconciliation functionality.
                   properties:
                     lastHeartbeatTime:
                       format: date-time
@@ -317,8 +329,9 @@ spec:
                     type: string
                 type: object
               isoDownloadURL:
-                description: ISODownloadURL specifies an HTTP/S URL that contains
-                  a discovery ISO containing the configuration from this InfraEnv.
+                description: |-
+                  ISODownloadURL specifies an HTTP/S URL that contains a discovery ISO containing the
+                  configuration from this InfraEnv.
                 type: string
             type: object
         type: object
@@ -326,9 +339,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
