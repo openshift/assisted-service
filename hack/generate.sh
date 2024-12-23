@@ -86,7 +86,7 @@ with open("'${__root}/config/samples/agent-install.openshift.io_v1beta1_agentser
 function generate_manifests() (
     if [ "${ENABLE_KUBE_API:-}" != "true" ]; then exit 0; fi
 
-    local crd_options=${CRD_OPTIONS:-"crd:trivialVersions=true"}
+    local crd_options=${CRD_OPTIONS:-"crd"}
     local controller_path=${__root}/internal/controller
     local controller_config_path=${__root}/config
     local controller_crd_path=${controller_config_path}/crd
