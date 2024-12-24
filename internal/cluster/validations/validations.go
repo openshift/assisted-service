@@ -208,6 +208,7 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
+	targetConfiguration.LoadBalancer = params.LoadBalancer
 
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
@@ -297,6 +298,11 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
+	targetConfiguration.LoadBalancer = cluster.LoadBalancer
+
+	if params.LoadBalancer != nil {
+		targetConfiguration.LoadBalancer = params.LoadBalancer
+	}
 
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
@@ -458,7 +464,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 	}
 
 	// In-depth input validations
-	if err = network.ValidateNoVIPAddressesDuplicates(targetConfiguration.APIVips, targetConfiguration.IngressVips); err != nil {
+	if err = network.ValidateNoVIPAddressesDuplicates(targetConfiguration.APIVips, targetConfiguration.IngressVips, network.IsLoadBalancerUserManaged(&targetConfiguration)); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -502,7 +508,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 		if len(targetConfiguration.MachineNetworks) > 0 {
 			for i := range targetConfiguration.APIVips { // len of APIVips and IngressVips should be the same. asserted above.
 				err = network.VerifyVips(nil, string(targetConfiguration.MachineNetworks[i].Cidr),
-					string(targetConfiguration.APIVips[i].IP), string(targetConfiguration.IngressVips[i].IP), nil)
+					string(targetConfiguration.APIVips[i].IP), string(targetConfiguration.IngressVips[i].IP), network.IsLoadBalancerUserManaged(&targetConfiguration), nil)
 				if err != nil {
 					multiErr = multierror.Append(multiErr, err)
 				}
