@@ -478,6 +478,10 @@ func FindInterfaceByIPString(ipAddress string, interfaces []*models.Interface) (
 	return FindInterfaceByIP(ip, interfaces)
 }
 
+func IsLoadBalancerUserManaged(c *common.Cluster) bool {
+	return c != nil && c.LoadBalancer != nil && c.LoadBalancer.Type == models.LoadBalancerTypeUserManaged
+}
+
 // FindSourceIPInMachineNetwork is a helper function to locate the source IP within a given machine network.
 func FindSourceIPInMachineNetwork(outgoingNicName string, mNetwork *net.IPNet, interfaces []*models.Interface) (string, error) {
 	var sourceIP string

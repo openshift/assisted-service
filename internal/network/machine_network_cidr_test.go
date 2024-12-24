@@ -142,6 +142,7 @@ var _ = Describe("inventory", func() {
 		BeforeEach(func() {
 			log = logrus.New()
 		})
+
 		It("Same vips", func() {
 			cluster := createCluster("1.2.5.6", primaryMachineCidr,
 				createInventory(createInterface("1.2.5.7/23")))
@@ -151,9 +152,25 @@ var _ = Describe("inventory", func() {
 				},
 			}
 			cluster.IngressVips = []*models.IngressVip{{IP: models.IP(GetApiVipById(cluster, 0))}}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), false, log)
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("Same vips - user managed load balancer", func() {
+			cluster := createCluster("1.2.5.6", primaryMachineCidr,
+				createInventory(createInterface("1.2.5.7/23")))
+			cluster.Hosts = []*models.Host{
+				{
+					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\"]}]",
+				},
+			}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP(GetApiVipById(cluster, 0))}}
+			cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged}
+
+			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), true, log)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
 		It("Different vips", func() {
 			cluster := createCluster("1.2.5.6", primaryMachineCidr,
 				createInventory(createInterface("1.2.5.7/23")))
@@ -163,9 +180,10 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), false, log)
 			Expect(err).ToNot(HaveOccurred())
 		})
+
 		It("Not free", func() {
 			cluster := createCluster("1.2.5.6", primaryMachineCidr,
 				createInventory(createInterface("1.2.5.7/23")))
@@ -175,9 +193,25 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.9\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), false, log)
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("Not free - user managed load balancer", func() {
+			cluster := createCluster("1.2.5.6", primaryMachineCidr,
+				createInventory(createInterface("1.2.5.7/23")))
+			cluster.IngressVips = []*models.IngressVip{{IP: "1.2.5.8"}}
+			cluster.Hosts = []*models.Host{
+				{
+					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.9\"]}]",
+				},
+			}
+			cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged}
+
+			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), true, log)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
 		It("Empty", func() {
 			cluster := createCluster("1.2.5.6", primaryMachineCidr,
 				createInventory(createInterface("1.2.5.7/23")))
@@ -187,9 +221,10 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), false, log)
 			Expect(err).ToNot(HaveOccurred())
 		})
+
 		It("Free", func() {
 			cluster := createCluster("1.2.5.6", primaryMachineCidr,
 				createInventory(createInterface("1.2.5.7/23")))
@@ -199,9 +234,10 @@ var _ = Describe("inventory", func() {
 					FreeAddresses: "[{\"network\":\"1.2.4.0/23\",\"free_addresses\":[\"1.2.5.6\",\"1.2.5.8\",\"1.2.5.9\"]}]",
 				},
 			}
-			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, primaryMachineCidr, GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), false, log)
 			Expect(err).ToNot(HaveOccurred())
 		})
+
 		It("machine cidr is too small", func() {
 			cluster := createCluster("1.2.5.2", "1.2.5.0/29", createInventory(
 				createInterface("1.2.5.2/29"),
@@ -214,7 +250,7 @@ var _ = Describe("inventory", func() {
 			}
 			cluster.Hosts = []*models.Host{h, h, h, h, h}
 			cluster.APIVips = []*models.APIVip{{IP: "1.2.5.2"}}
-			err := VerifyVips(cluster.Hosts, "1.2.5.0/29", GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), log)
+			err := VerifyVips(cluster.Hosts, "1.2.5.0/29", GetApiVipById(cluster, 0), GetIngressVipById(cluster, 0), false, log)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("The machine network range is too small for the cluster"))
 		})

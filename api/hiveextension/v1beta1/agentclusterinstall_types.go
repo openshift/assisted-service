@@ -209,6 +209,10 @@ type AgentClusterInstallSpec struct {
 	// Set per cluster mirror registry
 	// +optional
 	MirrorRegistryRef *MirrorRegistryConfigMapReference `json:"mirrorRegistryRef,omitempty"`
+
+	// LoadBalancer defines the load balancer used by the cluster for ingress traffic.
+	// +optional
+	LoadBalancer *LoadBalancer `json:"loadBalancer,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.
@@ -505,6 +509,33 @@ type ManifestsConfigMapReference struct {
 	// Name is the name of the ConfigMap that this refers to
 	Name string `json:"name"`
 }
+
+// LoadBalancer defines the load balancer used by the cluster.
+// +union
+type LoadBalancer struct {
+	// Type defines the type of load balancer used by the cluster, which can be managed by the user or by the
+	// cluster. The default value is ClusterManaged.
+	// +default="ClusterManaged"
+	// +kubebuilder:default:="ClusterManaged"
+	// +kubebuilder:validation:Enum:="ClusterManaged";"UserManaged"
+	// +optional
+	// +unionDiscriminator
+	Type LoadBalancerType `json:"type,omitempty"`
+}
+
+// LoadBalancerType defines the type of load balancer used by the cluster.
+type LoadBalancerType string
+
+const (
+	// LoadBalancerTypeClusterManaged is a load balancer with virtual IP addresses managed internally by the
+	// cluster.
+	LoadBalancerTypeClusterManaged LoadBalancerType = "ClusterManaged"
+
+	// LoadBalancerTypeUserManaged is a load balancer managed outside of the cluster by the customer. When this is
+	// used no virtual IP addresses should be specified. Note that this is only allowed for the bare metal and
+	// vSphere platforms.
+	LoadBalancerTypeUserManaged LoadBalancerType = "UserManaged"
+)
 
 func init() {
 	SchemeBuilder.Register(&AgentClusterInstall{}, &AgentClusterInstallList{})
