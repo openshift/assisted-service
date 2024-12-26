@@ -3798,14 +3798,12 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 	var netFiles []staticnetworkconfig.StaticNetworkConfigData
 	var scriptContent, serviceContent string
 	if infraEnv.StaticNetworkConfig != "" {
-		// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
-		var ok bool
-		ok, err = b.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion)
+		var shouldUseNmstateService bool
+		shouldUseNmstateService, err = b.staticNetworkConfig.ShouldUseNmstateService(infraEnv.StaticNetworkConfig, infraEnv.OpenshiftVersion)
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
-
-		if ok {
+		if shouldUseNmstateService {
 			b.log.Info("Static network configuration using the nmstatectl service")
 			netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigDataYAML(infraEnv.StaticNetworkConfig)
 			scriptContent = constants.PreNetworkConfigScriptWithNmstatectl
@@ -4871,7 +4869,7 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 	}
 
 	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraenvCreateParams.StaticNetworkConfig, params.InfraenvCreateParams.OpenshiftVersion, b.installerInvoker); err != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
 			return err
 		}
 	}
@@ -5050,7 +5048,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 
 		if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
-			if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraEnvUpdateParams.StaticNetworkConfig, infraEnv.OpenshiftVersion, b.installerInvoker); err != nil {
+			if err = b.staticNetworkConfig.ValidateStaticConfigParamsYAML(params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 		}
@@ -6003,14 +6001,12 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	case "static-network-config":
 		var netFiles []staticnetworkconfig.StaticNetworkConfigData
 		if infraEnv.StaticNetworkConfig != "" {
-			// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
-			var ok bool
-			ok, err = b.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion)
+			var shouldUseNmstateService bool
+			shouldUseNmstateService, err = b.staticNetworkConfig.ShouldUseNmstateService(infraEnv.StaticNetworkConfig, infraEnv.OpenshiftVersion)
 			if err != nil {
 				return common.GenerateErrorResponder(err)
 			}
-
-			if ok {
+			if shouldUseNmstateService {
 				b.log.Info("Static network configuration using the nmstatectl service")
 				netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigDataYAML(infraEnv.StaticNetworkConfig)
 			} else {
