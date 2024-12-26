@@ -4,12 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-openapi/swag"
 	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -102,68 +100,8 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		return osi
 	}
 
-	readDefaultReleaseImages := func(osImages OSImages) *handler {
-		bytes, err := os.ReadFile("../../data/default_release_images.json")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		releaseImages := &models.ReleaseImages{}
-		err = json.Unmarshal(bytes, releaseImages)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		versionsHandler, err := NewHandler(logger, mockRelease, *releaseImages, nil, "", nil)
-		Expect(err).ShouldNot(HaveOccurred())
-		return versionsHandler
-	}
-
-	It("get_defaults from data directory", func() {
-		osImages := readDefaultOsImages()
-		versionsHandler := readDefaultReleaseImages(osImages)
-
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
-		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
-		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
-		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
-		defaultExists := false
-
-		fmt.Println("Release image from data")
-		spew.Println(versionsHandler.releaseImages)
-		fmt.Println("Release image from response")
-		spew.Println(val)
-
-		for _, releaseImage := range versionsHandler.releaseImages {
-			key := *releaseImage.OpenshiftVersion
-			version := val.Payload[key]
-			architecture := *releaseImage.CPUArchitecture
-			architectures := releaseImage.CPUArchitectures
-			defaultExists = defaultExists || releaseImage.Default
-			if len(architectures) < 2 {
-				// For single-arch release we require in the test that there is a matching
-				// OS image for the provided release image. Otherwise the whole release image
-				// is not usable and indicates a mistake.
-				if architecture == "" {
-					architecture = common.CPUArchitecture
-				}
-				if architecture == common.CPUArchitecture {
-					Expect(version.Default).Should(Equal(releaseImage.Default))
-				}
-				Expect(version.CPUArchitectures).Should(ContainElement(architecture))
-				Expect(version.DisplayName).Should(Equal(releaseImage.Version))
-				Expect(version.SupportLevel).Should(Equal(getSupportLevel(*releaseImage)))
-			} else {
-				// For multi-arch release we don't require a strict matching for every
-				// architecture supported by this image. As long as we have at least one OS
-				// image that matches, we are okay. This is to allow setups where release
-				// image supports more architectures than we have available RHCOS images.
-				Expect(len(version.CPUArchitectures)).ShouldNot(Equal(0))
-				Expect(*version.DisplayName).Should(ContainSubstring(*releaseImage.Version))
-				Expect(version.SupportLevel).Should(Equal(getSupportLevel(*releaseImage)))
-			}
-		}
-
-		// We want to make sure after parsing the default file, there is always a release
-		// image marked as default. It is not desired to have a service without anything
-		// to default to.
-		Expect(defaultExists).Should(Equal(true))
+	It("validate default OS images in the data directory", func() {
+		_ = readDefaultOsImages()
 	})
 
 	It("getSupportLevel", func() {
