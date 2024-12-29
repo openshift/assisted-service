@@ -336,15 +336,12 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 	if infraEnv.StaticNetworkConfig != "" && models.ImageType(isoType) == models.ImageTypeFullIso {
 		var filesList []staticnetworkconfig.StaticNetworkConfigData
 		var newErr error
-
-		// backward compatibility - nmstate.service has been available on RHCOS since version 4.14+, therefore, we should maintain both flows
-		var ok bool
-		ok, err = ib.staticNetworkConfig.NMStatectlServiceSupported(infraEnv.OpenshiftVersion)
+		var shouldUseNmstateService bool
+		shouldUseNmstateService, err = ib.staticNetworkConfig.ShouldUseNmstateService(infraEnv.StaticNetworkConfig, infraEnv.OpenshiftVersion)
 		if err != nil {
 			return "", err
 		}
-
-		if ok {
+		if shouldUseNmstateService {
 			ib.log.Info("Static network configuration using the nmstatectl service")
 			filesList, newErr = ib.prepareStaticNetworkConfigYAMLForIgnition(infraEnv)
 			ignitionParams["StaticNetworkConfigWithNmstatectl"] = filesList
