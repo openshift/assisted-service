@@ -8,8 +8,10 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+// getODFDeploymentMode returns the ODF deployment mode based on the cluster
+// configuration and the minimum number of hosts required for ODF installation.
 func getODFDeploymentMode(cluster *models.Cluster, odfMinimumHosts int64) odfDeploymentMode {
-	masterHosts, workerHosts, autoAssignHosts := common.GetHostsByEachRole(cluster, true)
+	masterHosts, workerHosts, autoAssignHosts := common.GetHostsByEachRole(cluster, false)
 
 	masterCount := len(masterHosts)
 	workerCount := len(workerHosts)
@@ -43,18 +45,20 @@ func isAutoAssignmentAllowed(cluster *models.Cluster) bool {
 //   - nil, nil - If the deployment mode is not known yet.
 //   - nil, error - If there the host's role is auto-assign but it is not allowed.
 //   - *bool, nil - If the cluster and host are suitable for checking whether the host will run ODF workloads.
-func shouldHostRunODF(cluster *models.Cluster, mode odfDeploymentMode, hostEffectiveRole models.HostRole) (*bool, error) {
+func shouldHostRunODF(cluster *models.Cluster, mode odfDeploymentMode, hostRole models.HostRole) (*bool, error) {
+	// This is not allowed as there are deployment configurations
+	// of assisted-service where we can't tell what role will the host get eventually.
+	if !isAutoAssignmentAllowed(cluster) && hostRole == models.HostRoleAutoAssign {
+		return nil, errors.New("auto-assigning roles for hosts with ODF is allowed only for clusters with exactly three hosts." +
+			" For other scenarios, please manually assign the host role as either a control plane node or a worker",
+		)
+	}
+
 	// No answer yet, we return nil and let the caller handle it in its context
 	if mode == unknown {
 		return nil, nil
 	}
 
-	// This is not allowed as there are deployment configurations
-	// of assisted-service where we can't tell what role will the host get eventually.
-	if !isAutoAssignmentAllowed(cluster) && hostEffectiveRole == models.HostRoleAutoAssign {
-		return nil, errors.New("for ODF with more than 3 hosts, role must be assigned to master or worker")
-	}
-
-	return swag.Bool(mode == compactMode && (hostEffectiveRole == models.HostRoleMaster || hostEffectiveRole == models.HostRoleAutoAssign) ||
-		mode == standardMode && (hostEffectiveRole == models.HostRoleWorker)), nil
+	return swag.Bool(mode == compactMode && (hostRole == models.HostRoleMaster || hostRole == models.HostRoleAutoAssign) ||
+		mode == standardMode && (hostRole == models.HostRoleWorker)), nil
 }

@@ -1311,7 +1311,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		sortedHosts, canRefreshRoles := host.SortHosts(cluster.Hosts)
 		if canRefreshRoles {
 			for i := range sortedHosts {
-				updated, err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx, swag.Int(int(cluster.ControlPlaneCount)))
+				updated, err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx)
 				if err != nil {
 					return err
 				}
@@ -1448,8 +1448,7 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 
 	// auto select host roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
-		// no need to specify expected master count for day2 hosts, as their suggested role will always be worker
-		if _, err = b.hostApi.AutoAssignRole(ctx, &h.Host, tx, nil); err != nil {
+		if _, err = b.hostApi.AutoAssignRole(ctx, &h.Host, tx); err != nil {
 			return err
 		}
 		return nil
@@ -1521,8 +1520,8 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 		return common.NewApiError(http.StatusConflict, fmt.Errorf("cannot install host in state %s", swag.StringValue(h.Status)))
 	}
 
-	// no need to specify expected master count for day2 hosts, as their suggested role will always be worker
-	_, err = b.hostApi.AutoAssignRole(ctx, h, b.db, nil)
+	// no need to specify cluster for day2 hosts as their suggested role will always be worker
+	_, err = b.hostApi.AutoAssignRole(ctx, h, b.db)
 	if err != nil {
 		log.Errorf("Failed to update role for host %s", params.HostID)
 		return common.GenerateErrorResponder(err)
