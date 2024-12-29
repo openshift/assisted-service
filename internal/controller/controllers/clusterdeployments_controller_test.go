@@ -1107,6 +1107,44 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
 				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).ToNot(ContainSubstring("this is usually unsupported in combination with mirror registries, try providing a digest-based image instead"))
 			})
+
+			It("should succeed with cluster managed load balancer", func() {
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2, arg3 interface{}, params installer.V2RegisterClusterParams) {
+						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
+					}).Return(clusterReply, nil)
+				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+
+				cd := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cd)).ShouldNot(HaveOccurred())
+
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cd)
+				aci.Spec.LoadBalancer = &hiveext.LoadBalancer{Type: hiveext.LoadBalancerTypeClusterManaged}
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+				validateCreation(cd)
+			})
+
+			It("should succeed with user managed load balancer", func() {
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2, arg3 interface{}, params installer.V2RegisterClusterParams) {
+						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
+					}).Return(clusterReply, nil)
+				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+
+				cd := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cd)).ShouldNot(HaveOccurred())
+
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cd)
+				aci.Spec.LoadBalancer = &hiveext.LoadBalancer{Type: hiveext.LoadBalancerTypeUserManaged}
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+				validateCreation(cd)
+			})
 		})
 
 		It("create new cluster backend failure", func() {
@@ -3840,10 +3878,99 @@ var _ = Describe("cluster reconcile", func() {
 			request := newClusterDeploymentRequest(cluster)
 			_, err := cr.Reconcile(ctx, request)
 			Expect(err).ShouldNot(HaveOccurred())
-			aci := getTestClusterInstall()
+			aci = getTestClusterInstall()
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(ContainSubstring(
 				"Failed to parse 'agent-install.openshift.io/install-config-overrides' annotation"))
+		})
+
+		It("update to user managed load balancer when there is no load balancer", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               &sId,
+					Name:             "different-cluster-name",
+					OpenshiftVersion: common.MinimumVersionForUserManagedLoadBalancerFeature,
+					Status:           swag.String(models.ClusterStatusPendingForInput),
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+
+			updateReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:           &sId,
+					Status:       swag.String(models.ClusterStatusInsufficient),
+					StatusInfo:   swag.String(models.ClusterStatusInsufficient),
+					LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				},
+			}
+
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.V2UpdateClusterParams, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
+					Expect(param.ClusterUpdateParams.LoadBalancer).ToNot(BeNil())
+					Expect(param.ClusterUpdateParams.LoadBalancer.Type).To(Equal(models.LoadBalancerTypeUserManaged))
+				}).Return(updateReply, nil)
+
+			aci.Spec.LoadBalancer = &hiveext.LoadBalancer{Type: hiveext.LoadBalancerTypeUserManaged}
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
+
+		It("update to user managed load balancer when there is cluster managed load balancer", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               &sId,
+					Name:             "different-cluster-name",
+					OpenshiftVersion: common.MinimumVersionForUserManagedLoadBalancerFeature,
+					Status:           swag.String(models.ClusterStatusPendingForInput),
+					LoadBalancer:     &models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+
+			updateReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:           &sId,
+					Status:       swag.String(models.ClusterStatusInsufficient),
+					StatusInfo:   swag.String(models.ClusterStatusInsufficient),
+					LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				},
+			}
+
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.V2UpdateClusterParams, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
+					Expect(param.ClusterUpdateParams.LoadBalancer).ToNot(BeNil())
+					Expect(param.ClusterUpdateParams.LoadBalancer.Type).To(Equal(models.LoadBalancerTypeUserManaged))
+				}).Return(updateReply, nil)
+
+			aci.Spec.LoadBalancer = &hiveext.LoadBalancer{Type: hiveext.LoadBalancerTypeUserManaged}
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 	})
 

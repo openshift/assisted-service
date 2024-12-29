@@ -56,6 +56,8 @@ const (
 	AllowedNumberOfWorkersInNoneHaMode                               = 0
 	MinimumVersionForNonStandardHAOCPControlPlane                    = "4.18"
 	MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode    = 2
+
+	MinimumVersionForUserManagedLoadBalancerFeature = "4.16"
 )
 
 type AddressFamily int

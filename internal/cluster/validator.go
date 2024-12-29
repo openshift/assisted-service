@@ -236,10 +236,21 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 		return ValidationPending, "Hosts have not been discovered yet"
 	}
 
+	// When using user managed load balancer, the VIPs are the load balancer IP (not virtual),
+	// therefore will not be free
+	shouldVerifyVIPIsFree := !network.IsLoadBalancerUserManaged(c.cluster)
+
 	failed := false
 	for i := 0; i != vipsWrapper.Len(); i++ {
-		verification, err := network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, i), vipsWrapper.IP(i), name,
-			vipsWrapper.Verification(i), v.log)
+		verification, err := network.VerifyVip(
+			c.cluster.Hosts,
+			network.GetMachineCidrById(c.cluster, i),
+			vipsWrapper.IP(i),
+			name,
+			vipsWrapper.Verification(i),
+			shouldVerifyVIPIsFree,
+			v.log,
+		)
 		failed = failed || verification != models.VipVerificationSucceeded
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)

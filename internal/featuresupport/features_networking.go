@@ -40,6 +40,7 @@ func (feature *VipAutoAllocFeature) getIncompatibleFeatures(string) *[]models.Fe
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 		models.FeatureSupportLevelIDNONEPLATFORM,
 		models.FeatureSupportLevelIDEXTERNALPLATFORM,
+		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
 	}
 }
 
@@ -265,6 +266,7 @@ func (feature *UserManagedNetworkingFeature) getIncompatibleFeatures(string) *[]
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDBAREMETALPLATFORM,
+		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
 	}
 }
 
@@ -463,4 +465,57 @@ func openshiftVersionLessThan(targetVersion, openshiftVersion string) bool {
 	isAvailable, err := common.BaseVersionLessThan(targetVersion, openshiftVersion)
 
 	return openshiftVersion == "" || err == nil && isAvailable
+}
+
+// UserManagedLoadBalancerFeature
+type UserManagedLoadBalancerFeature struct{}
+
+func (feature *UserManagedLoadBalancerFeature) New() SupportLevelFeature {
+	return &UserManagedLoadBalancerFeature{}
+}
+
+func (feature *UserManagedLoadBalancerFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER
+}
+
+func (feature *UserManagedLoadBalancerFeature) GetName() string {
+	return "User Managed Load Balancer"
+}
+
+func (feature *UserManagedLoadBalancerFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if isNotSupported, err := common.BaseVersionLessThan(
+		common.MinimumVersionForUserManagedLoadBalancerFeature, filters.OpenshiftVersion,
+	); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *UserManagedLoadBalancerFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDEXTERNALPLATFORM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+		models.FeatureSupportLevelIDNONEPLATFORM,
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
+		models.FeatureSupportLevelIDVIPAUTOALLOC,
+		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+	}
+}
+
+func (feature *UserManagedLoadBalancerFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+// getFeatureActiveLevel returns true when:
+//   - The cluster load balancder is ser-managed.
+//   - The cluster is going to be updated to user-managed.
+func (feature *UserManagedLoadBalancerFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if (cluster != nil && cluster.LoadBalancer != nil && cluster.LoadBalancer.Type == models.LoadBalancerTypeUserManaged) ||
+		(clusterUpdateParams != nil && clusterUpdateParams.LoadBalancer != nil && clusterUpdateParams.LoadBalancer.Type == models.LoadBalancerTypeUserManaged) {
+		return activeLevelActive
+	}
+
+	return activeLevelNotActive
 }

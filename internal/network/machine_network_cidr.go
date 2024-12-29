@@ -116,7 +116,15 @@ func VerifyVipFree(hosts []*models.Host, vip string, machineNetworkCidr string, 
 	return IpInFreeList(hosts, vip, machineNetworkCidr, log)
 }
 
-func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, verification *models.VipVerification, log logrus.FieldLogger) (models.VipVerification, error) {
+func VerifyVip(
+	hosts []*models.Host,
+	machineNetworkCidr string,
+	vip string,
+	vipName string,
+	verification *models.VipVerification,
+	verifyVipFree bool,
+	log logrus.FieldLogger,
+) (models.VipVerification, error) {
 	if machineNetworkCidr == "" {
 		return models.VipVerificationUnverified, errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty", vipName, vip)
 	}
@@ -126,6 +134,11 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 	if ipIsBroadcast(vip, machineNetworkCidr) {
 		return models.VipVerificationFailed, errors.Errorf("%s <%s> is the broadcast address of machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
 	}
+
+	if !verifyVipFree {
+		return models.VipVerificationSucceeded, nil
+	}
+
 	var msg string
 	ret := VerifyVipFree(hosts, vip, machineNetworkCidr, verification, log)
 	switch ret {
@@ -144,7 +157,7 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 	return ret, errors.New(msg)
 }
 
-func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*models.IngressVip) error {
+func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*models.IngressVip, allowCommonVIP bool) error {
 	var (
 		err                     error
 		multiErr                error
@@ -179,7 +192,7 @@ func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*m
 		}
 		// Should also assert for duplicates between Ingress VIPs and API VIPs
 		_, found = seenApiVipAddresses[ipAddress]
-		if found {
+		if !allowCommonVIP && found {
 			err = errors.Errorf("The IP address \"%s\" appears both in apiVIPs and ingressVIPs", ipAddress)
 			multiErr = multierror.Append(multiErr, err)
 		}
@@ -194,14 +207,30 @@ func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*m
 // This function is called from places which assume it is OK for a VIP to be unverified.
 // The assumption is that VIPs are eventually verified by cluster validation
 // (i.e api-vips-valid, ingress-vips-valid)
-func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, log logrus.FieldLogger) error {
-	verification, err := VerifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", nil, log)
+func VerifyVips(
+	hosts []*models.Host,
+	machineNetworkCidr string,
+	apiVip string,
+	ingressVip string,
+	userManagedLoadBalancer bool,
+	log logrus.FieldLogger,
+) error {
+	// When using user managed load balancer, the VIPs are the load balancer IP (not virtual),
+	// therefore will not be free. In this case it is also allowed to have one IP for both API and Ingress.
+	shouldVerifyVIPIsFree := !userManagedLoadBalancer
+	allowCommonVIP := userManagedLoadBalancer
+
+	verification, err := VerifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", nil, shouldVerifyVIPIsFree, log)
 	// Error is ignored if the verification didn't fail
 	if verification != models.VipVerificationFailed {
-		verification, err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", nil, log)
+		verification, err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", nil, shouldVerifyVIPIsFree, log)
 	}
 	if verification != models.VipVerificationFailed {
-		return ValidateNoVIPAddressesDuplicates([]*models.APIVip{{IP: models.IP(apiVip)}}, []*models.IngressVip{{IP: models.IP(ingressVip)}})
+		return ValidateNoVIPAddressesDuplicates(
+			[]*models.APIVip{{IP: models.IP(apiVip)}},
+			[]*models.IngressVip{{IP: models.IP(ingressVip)}},
+			allowCommonVIP,
+		)
 	}
 	return err
 }

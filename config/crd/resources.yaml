@@ -436,6 +436,20 @@ spec:
                   type: string
                 maxItems: 2
                 type: array
+              loadBalancer:
+                description: LoadBalancer defines the load balancer used by the cluster
+                  for ingress traffic.
+                properties:
+                  type:
+                    default: ClusterManaged
+                    description: |-
+                      Type defines the type of load balancer used by the cluster, which can be managed by the user or by the
+                      cluster. The default value is ClusterManaged.
+                    enum:
+                    - ClusterManaged
+                    - UserManaged
+                    type: string
+                type: object
               manifestsConfigMapRef:
                 description: |-
                   ManifestsConfigMapRef is a reference to user-provided manifests to

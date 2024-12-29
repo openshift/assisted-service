@@ -95,6 +95,11 @@ const longerRequeueAfterOnError = 1 * time.Minute
 // not importing this code because it will create a lot of vendoring issues
 const ReconcilePauseAnnotation = "hive.openshift.io/reconcile-pause"
 
+var mapLoadBalancerTypes = map[hiveext.LoadBalancerType]string{
+	hiveext.LoadBalancerTypeClusterManaged: models.LoadBalancerTypeClusterManaged,
+	hiveext.LoadBalancerTypeUserManaged:    models.LoadBalancerTypeUserManaged,
+}
+
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
 	client.Client
@@ -1048,7 +1053,29 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 		update = true
 	}
+
+	if shouldUpdateLoadBalancer(clusterInstall, cluster) {
+		update = true
+		params.LoadBalancer = &models.LoadBalancer{Type: mapLoadBalancerTypes[clusterInstall.Spec.LoadBalancer.Type]}
+	}
+
 	return swag.Bool(update), nil
+}
+
+func shouldUpdateLoadBalancer(
+	clusterInstall *hiveext.AgentClusterInstall,
+	cluster *common.Cluster,
+) bool {
+	if clusterInstall.Spec.LoadBalancer == nil {
+		return false
+	}
+
+	convertedLoadBalancer, ok := mapLoadBalancerTypes[clusterInstall.Spec.LoadBalancer.Type]
+	if !ok {
+		return false
+	}
+
+	return cluster.LoadBalancer == nil || convertedLoadBalancer != cluster.LoadBalancer.Type
 }
 
 func (r *ClusterDeploymentsReconciler) updateIfNeeded(
@@ -1426,6 +1453,12 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 
 	if ignitionEndpoint != nil {
 		clusterParams.IgnitionEndpoint = ignitionEndpoint
+	}
+
+	if clusterInstall.Spec.LoadBalancer != nil {
+		if convertedType, ok := mapLoadBalancerTypes[clusterInstall.Spec.LoadBalancer.Type]; ok {
+			clusterParams.LoadBalancer = &models.LoadBalancer{Type: convertedType}
+		}
 	}
 
 	return clusterParams
