@@ -172,6 +172,9 @@ var Options struct {
 
 	// EnableXattrFallback is a boolean flag to enable en emulated fallback methoid of xattr on systems that do not support xattr.
 	EnableXattrFallback bool `envconfig:"ENABLE_XATTR_FALLBACK" default:"true"`
+
+	// EnableInstallerCacheMetrics is a boolean flag to enable the sending of installer cache metrics as events.
+	EnableInstallerCacheMetrics bool `envconfig:"ENABLE_INSTALLER_CACHE_METRICS" default:"true"`
 }
 
 func InitLogs(logLevel, logFormat string) *logrus.Logger {
@@ -312,7 +315,11 @@ func main() {
 	eventsHandler := createEventsHandler(crdEventsHandler, db, authzHandler, notificationStream, log)
 
 	prometheusRegistry := prometheus.DefaultRegisterer
-	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler)
+	var disabledMetrics []string
+	if !Options.EnableInstallerCacheMetrics {
+		disabledMetrics = append(disabledMetrics, metrics.MetricEventInstallerCacheReleaseMetrics)
+	}
+	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler, disabledMetrics)
 	if ocmClient != nil {
 		//inject the metric server to the ocm client for purpose of
 		//performance monitoring the calls to ACM. This could not be done
@@ -476,7 +483,7 @@ func main() {
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, providerRegistry, manifestsApi)
+	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, providerRegistry, manifestsApi, metricsManager)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient(), hostApi)
