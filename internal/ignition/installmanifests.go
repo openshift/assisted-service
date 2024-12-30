@@ -22,6 +22,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
@@ -111,7 +112,7 @@ var fileNames = [...]string{
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, providerRegistry registry.ProviderRegistry,
-	installerReleaseImageOverride, clusterTLSCertOverrideDir string, storageCapacityLimit int64, manifestApi manifestsapi.ManifestsAPI) Generator {
+	installerReleaseImageOverride, clusterTLSCertOverrideDir string, storageCapacityLimit int64, manifestApi manifestsapi.ManifestsAPI, eventsHandler eventsapi.Handler) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
@@ -126,7 +127,7 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		providerRegistry:              providerRegistry,
 		installerReleaseImageOverride: installerReleaseImageOverride,
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
-		installerCache:                installercache.New(installerDir, storageCapacityLimit, log),
+		installerCache:                installercache.New(installerDir, storageCapacityLimit, eventsHandler, log),
 		manifestApi:                   manifestApi,
 	}
 }
@@ -173,13 +174,13 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		system.NewLocalSystemInfo(),
 	)
 
-	release, err := g.installerCache.Get(g.installerReleaseImageOverride, g.releaseImageMirror,
-		g.cluster.PullSecret, ocRelease, g.cluster.OpenshiftVersion)
+	release, err := g.installerCache.Get(ctx, g.installerReleaseImageOverride, g.releaseImageMirror,
+		g.cluster.PullSecret, ocRelease, g.cluster.OpenshiftVersion, *g.cluster.ID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get installer path")
 	}
 	//cleanup resources at the end
-	defer release.Release()
+	defer release.Cleanup(ctx)
 
 	installerPath := release.Path
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")

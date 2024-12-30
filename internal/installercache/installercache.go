@@ -1,6 +1,7 @@
 package installercache
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -9,7 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-openapi/strfmt"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/oc"
+	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -28,7 +32,8 @@ type Installers struct {
 	// total capcity of the allowed storage (in bytes)
 	storageCapacity int64
 	// parent directory of the binary cache
-	cacheDir string
+	cacheDir      string
+	eventsHandler eventsapi.Handler
 }
 
 type fileInfo struct {
@@ -41,31 +46,65 @@ func (fi *fileInfo) Compare(other *fileInfo) bool {
 	return fi.info.ModTime().Unix() < other.info.ModTime().Unix()
 }
 
+const (
+	metricEventInstallerCacheRelease = "installercache.release.metrics"
+)
+
 type Release struct {
-	Path string
+	Path          string
+	eventsHandler eventsapi.Handler
+	// startTime is the time at which the request was made to fetch the release.
+	startTime time.Time
+	// clusterID is the UUID of the cluster for which the release is being fetched.
+	clusterID strfmt.UUID
+	// releaseId is the release that is being fetched, for example "4.10.67-x86_64".
+	releaseID string
+	// cached is `true` if the release was found in the cache, otherwise `false`.
+	cached bool
+	// extractDuration is the amount of time taken to perform extraction, zero if no extraction took place.
+	extractDuration float64
 }
 
-func (rl *Release) Release() {
+// Cleanup is called to signal that the caller has finished using the relase and that resources may be released.
+func (rl *Release) Cleanup(ctx context.Context) {
 	if err := os.Remove(rl.Path); err != nil {
 		logrus.New().WithError(err).Errorf("Failed to delete release link %s", rl.Path)
 	}
+	rl.eventsHandler.V2AddMetricsEvent(
+		ctx, &rl.clusterID, nil, nil, "", models.EventSeverityInfo,
+		metricEventInstallerCacheRelease,
+		time.Now(),
+		"release_id", rl.releaseID,
+		"start_time", rl.startTime.Format(time.RFC3339),
+		"end_time", time.Now().Format(time.RFC3339),
+		"cached", rl.cached,
+		"extract_duration", rl.extractDuration,
+	)
 }
 
 // New constructs an installer cache with a given storage capacity
-func New(cacheDir string, storageCapacity int64, log logrus.FieldLogger) *Installers {
+func New(cacheDir string, storageCapacity int64, eventsHandler eventsapi.Handler, log logrus.FieldLogger) *Installers {
 	return &Installers{
 		log:             log,
 		storageCapacity: storageCapacity,
 		cacheDir:        cacheDir,
+		eventsHandler:   eventsHandler,
 	}
 }
 
 // Get returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image. Tries the mirror release image first if it's set. It is safe for concurrent use. A cache of
 // binaries is maintained to reduce re-downloading of the same release.
-func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocRelease oc.Release, ocpVersion string) (*Release, error) {
+func (i *Installers) Get(ctx context.Context, releaseID, releaseIDMirror, pullSecret string, ocRelease oc.Release, ocpVersion string, clusterID strfmt.UUID) (*Release, error) {
 	i.Lock()
 	defer i.Unlock()
+
+	release := &Release{
+		eventsHandler: i.eventsHandler,
+		clusterID:     clusterID,
+		releaseID:     releaseID,
+		startTime:     time.Now(),
+	}
 
 	var workdir, binary, path string
 	var err error
@@ -75,19 +114,22 @@ func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 		return nil, err
 	}
 	if _, err = os.Stat(path); os.IsNotExist(err) {
+		extractStartTime := time.Now()
 		//evict older files if necessary
 		i.evict()
 
 		//extract the binary
 		_, err = ocRelease.Extract(i.log, releaseID, releaseIDMirror, i.cacheDir, pullSecret, ocpVersion)
 		if err != nil {
-			return &Release{}, err
+			return nil, err
 		}
+		release.extractDuration = time.Since(extractStartTime).Seconds()
 	} else {
+		release.cached = true
 		//update the file mtime to signal it was recently used
 		err = os.Chtimes(path, time.Now(), time.Now())
 		if err != nil {
-			return &Release{}, errors.Wrap(err, fmt.Sprintf("Failed to update release binary %s", path))
+			return nil, errors.Wrap(err, fmt.Sprintf("Failed to update release binary %s", path))
 		}
 	}
 	// return a new hard link to the binary file
@@ -97,9 +139,10 @@ func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 		"_"+binary)
 	err = os.Link(path, link)
 	if err != nil {
-		return &Release{}, errors.Wrap(err, fmt.Sprintf("Failed to create hard link to binary %s", path))
+		return nil, errors.Wrap(err, fmt.Sprintf("Failed to create hard link to binary %s", path))
 	}
-	return &Release{link}, nil
+	release.Path = link
+	return release, nil
 }
 
 // Walk through the cacheDir and list the files recursively.
