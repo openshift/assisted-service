@@ -1130,6 +1130,7 @@ var _ = Describe("Validations test", func() {
 		It("auto-assigned role", func() {
 
 			c := hostutil.GenerateTestCluster(clusterID)
+			c.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
 			c.DiskEncryption = &models.DiskEncryption{
 				EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
 				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
@@ -1159,7 +1160,7 @@ var _ = Describe("Validations test", func() {
 				eventstest.WithHostIdMatcher(h.ID.String()),
 				eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
 			))
-			err := m.RefreshRole(ctx, &h, db, swag.Int(common.MinMasterHostsNeededForInstallationInHaMode))
+			err := m.RefreshRole(ctx, &h, db)
 			Expect(err).ToNot(HaveOccurred())
 
 			mockAndRefreshStatusWithoutEvents(&h)

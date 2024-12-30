@@ -18,11 +18,17 @@ type odfClusterResourcesInfo struct {
 
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
 	var status string
+	log := o.log
+
+	if cluster.ID != nil {
+		log = log.WithField("cluster", cluster.ID.String())
+	}
 
 	mode := getODFDeploymentMode(cluster, o.config.ODFNumMinimumHosts)
+	log.Debugf("ODF validate cluster - mode: %s", string(mode))
 
 	if mode == unknown {
-		status = "A cluster with only masters or with a minimum of 3 workers is required."
+		status = "The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."
 		return api.Failure, status
 	}
 
