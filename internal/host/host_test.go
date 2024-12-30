@@ -2862,7 +2862,11 @@ var _ = Describe("AutoAssignRole", func() {
 			mockVersions,
 			false,
 		)
-		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId, Kind: swag.String(models.ClusterKindCluster)}}).Error).ShouldNot(HaveOccurred())
+		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{
+			ID:                &clusterId,
+			Kind:              swag.String(models.ClusterKindCluster),
+			ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
+		}}).Error).ShouldNot(HaveOccurred())
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
@@ -2923,7 +2927,7 @@ var _ = Describe("AutoAssignRole", func() {
 		if isSelected {
 			mockRoleSuggestionEvent(host)
 		}
-		selected, err := hapi.AutoAssignRole(ctx, host, db, swag.Int(common.MinMasterHostsNeededForInstallationInHaMode))
+		selected, err := hapi.AutoAssignRole(ctx, host, db)
 		Expect(selected).To(Equal(isSelected))
 		if success {
 			Expect(err).ShouldNot(HaveOccurred())

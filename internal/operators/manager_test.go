@@ -479,7 +479,7 @@ var _ = Describe("Operators manager", func() {
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
-					Reasons: []string{"A cluster with only masters or with a minimum of 3 workers is required."}},
+					Reasons: []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
@@ -808,6 +808,7 @@ func mockOperatorBase(operatorName string) *api.MockOperator {
 }
 
 func getMockHostWithDisks(sizeDiskA, sizeDiskB int64) *models.Host {
+	hostID := strfmt.UUID(uuid.New().String())
 	b, err := common.MarshalInventory(&models.Inventory{
 		CPU:    &models.CPU{Count: 8},
 		Memory: &models.Memory{UsableBytes: 64 * conversions.GiB},
@@ -815,5 +816,5 @@ func getMockHostWithDisks(sizeDiskA, sizeDiskB int64) *models.Host {
 			{SizeBytes: sizeDiskA * conversions.GB, DriveType: models.DriveTypeHDD, ID: common.TestDiskId},
 			{SizeBytes: sizeDiskB * conversions.GB, DriveType: models.DriveTypeSSD}}})
 	Expect(err).To(Not(HaveOccurred()))
-	return &models.Host{Inventory: b, Role: models.HostRoleMaster, InstallationDiskID: common.TestDiskId}
+	return &models.Host{ID: &hostID, Inventory: b, Role: models.HostRoleMaster, InstallationDiskID: common.TestDiskId}
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -15,84 +17,90 @@ import (
 )
 
 var (
-	diskID1 = "/dev/disk/by-id/test-disk-1"
-	diskID2 = "/dev/disk/by-id/test-disk-2"
-	diskID3 = "/dev/disk/by-id/test-disk-3"
+	diskID1   = "/dev/disk/by-id/test-disk-1"
+	diskID2   = "/dev/disk/by-id/test-disk-2"
+	diskID3   = "/dev/disk/by-id/test-disk-3"
+	clusterID = strfmt.UUID(uuid.New().String())
 )
+
+func getHostID() *strfmt.UUID {
+	id := strfmt.UUID(uuid.New().String())
+	return &id
+}
 
 var _ = Describe("Odf Operator", func() {
 	var (
 		ctx                 = context.TODO()
 		operator            = NewOdfOperator(common.GetTestLog())
-		masterWithThreeDisk = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+		masterWithThreeDisk = &models.Host{ID: getHostID(), Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 				}})}
-		masterWithThreeDiskSizeOfOneZero = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+		masterWithThreeDiskSizeOfOneZero = &models.Host{ID: getHostID(), Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 					{SizeBytes: 0 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 				}})}
-		masterWithNoDisk           = &models.Host{Role: models.HostRoleMaster, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB})}
-		masterWithNoInventory      = &models.Host{Role: models.HostRoleMaster}
-		masterWithInvalidInventory = &models.Host{Role: models.HostRoleMaster, Inventory: "invalid"}
-		masterWithOneDisk          = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+		masterWithNoDisk           = &models.Host{ID: getHostID(), Role: models.HostRoleMaster, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB})}
+		masterWithNoInventory      = &models.Host{ID: getHostID(), Role: models.HostRoleMaster}
+		masterWithInvalidInventory = &models.Host{ID: getHostID(), Role: models.HostRoleMaster, Inventory: "invalid"}
+		masterWithOneDisk          = &models.Host{ID: getHostID(), Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1}}})}
-		masterWithTwoSmallDisk = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+		masterWithTwoSmallDisk = &models.Host{ID: getHostID(), Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID1},
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID2}}})}
-		masterWithLessDiskSize = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+		masterWithLessDiskSize = &models.Host{ID: getHostID(), Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 				}})}
-		workerWithTwoDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
+		workerWithTwoDisk = &models.Host{ID: getHostID(), Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 				}})}
-		workerWithThreeDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
+		workerWithThreeDisk = &models.Host{ID: getHostID(), Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID3},
 				}})}
-		workerWithThreeDiskSizeOfOneZero = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
+		workerWithThreeDiskSizeOfOneZero = &models.Host{ID: getHostID(), Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 					{SizeBytes: 0 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID3},
 				}})}
-		workerWithNoDisk           = &models.Host{Role: models.HostRoleWorker, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB})}
-		workerWithNoInventory      = &models.Host{Role: models.HostRoleWorker}
-		workerWithInvalidInventory = &models.Host{Role: models.HostRoleWorker, Inventory: "invalid"}
-		workerWithLessDiskSize     = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
+		workerWithNoDisk           = &models.Host{ID: getHostID(), Role: models.HostRoleWorker, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB})}
+		workerWithNoInventory      = &models.Host{ID: getHostID(), Role: models.HostRoleWorker}
+		workerWithInvalidInventory = &models.Host{ID: getHostID(), Role: models.HostRoleWorker, Inventory: "invalid"}
+		workerWithLessDiskSize     = &models.Host{ID: getHostID(), Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 				}})}
-		workerWithTwoSmallDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
+		workerWithTwoSmallDisk = &models.Host{ID: getHostID(), Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID1},
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID2}}})}
-		autoAssignHost = &models.Host{Role: models.HostRoleAutoAssign, SuggestedRole: models.HostRoleAutoAssign, InstallationDiskID: diskID1,
+		autoAssignHost = &models.Host{ID: getHostID(), Role: models.HostRoleAutoAssign, SuggestedRole: models.HostRoleAutoAssign, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
@@ -106,7 +114,7 @@ var _ = Describe("Odf Operator", func() {
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("there is a single master",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 				}}},
 				masterWithThreeDisk,
@@ -117,7 +125,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are two masters and one worker",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithLessDiskSize,
 					masterWithOneDisk,
 					workerWithInvalidInventory,
@@ -130,7 +138,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 3 masters and 2 workers",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithLessDiskSize,
 					masterWithOneDisk,
@@ -145,7 +153,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 4 masters and 2 workers",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithInvalidInventory,
 					masterWithLessDiskSize,
@@ -161,7 +169,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("missing inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithNoInventory,
 				}}},
 				masterWithNoInventory,
@@ -172,7 +180,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithInvalidInventory,
 				}}},
 				masterWithInvalidInventory,
@@ -188,7 +196,7 @@ var _ = Describe("Odf Operator", func() {
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("there are 2 masters and 1 auto-assign - requirements for auto-assign",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithInvalidInventory, masterWithLessDiskSize, autoAssignHost,
 				}}},
 				autoAssignHost,
@@ -199,7 +207,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithInvalidInventory, masterWithLessDiskSize, autoAssignHost,
 				}}},
 				masterWithInvalidInventory,
@@ -207,7 +215,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 3 masters - reuqirements for 2 eligible disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDiskSizeOfOneZero, masterWithNoDisk, masterWithThreeDisk,
 				}}},
 				masterWithThreeDisk,
@@ -218,7 +226,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 4 masters - reuqirements for 1 eligible disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDiskSizeOfOneZero, masterWithNoDisk, masterWithThreeDisk, masterWithLessDiskSize,
 				}}},
 				masterWithThreeDiskSizeOfOneZero,
@@ -230,7 +238,7 @@ var _ = Describe("Odf Operator", func() {
 
 			// in compact mode one disk is still considered for CPU / memory requirements
 			table.Entry("there are 5 masters - reuqirements for 0 eligible disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDiskSizeOfOneZero, masterWithOneDisk, masterWithThreeDisk, masterWithLessDiskSize,
 				}}},
 				masterWithOneDisk,
@@ -246,7 +254,7 @@ var _ = Describe("Odf Operator", func() {
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("there are 3 masters, 3 workers and 1 auto-assign - requirements for auto-assign",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithInvalidInventory,
@@ -263,7 +271,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithInvalidInventory,
@@ -279,7 +287,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a worker with invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithInvalidInventory,
@@ -292,7 +300,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with 0 eligible disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithInvalidInventory,
@@ -308,7 +316,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a worker with 0 eligible disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithInvalidInventory,
@@ -324,7 +332,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with 1 eligible disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDiskSizeOfOneZero,
 					masterWithInvalidInventory,
@@ -340,7 +348,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a worker with 1 eligible disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithInvalidInventory,
@@ -356,7 +364,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with 2 eligible disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDiskSizeOfOneZero,
 					masterWithInvalidInventory,
@@ -372,7 +380,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a worker with 2 eligible disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithInvalidInventory,
@@ -395,15 +403,27 @@ var _ = Describe("Odf Operator", func() {
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("there is a single master",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 				}}},
 				masterWithThreeDisk,
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
 			),
 
+			table.Entry("there is a single auto-assign",
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
+					autoAssignHost,
+				}}},
+				autoAssignHost,
+				api.ValidationResult{
+					Status:       api.Pending,
+					ValidationId: operator.GetHostValidationID(),
+					Reasons:      []string{"Auto-assigning roles for hosts with ODF is allowed only for clusters with exactly three hosts. For other scenarios, please manually assign the host role as either a control plane node or a worker."},
+				},
+			),
+
 			table.Entry("there are two masters and one worker",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, workerWithTwoDisk,
 				}}},
 				workerWithTwoDisk,
@@ -411,7 +431,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 3 masters and 2 workers",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, workerWithTwoDisk, workerWithInvalidInventory,
 				}}},
 				workerWithTwoDisk,
@@ -419,7 +439,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 4 masters and 2 workers",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, masterWithOneDisk, workerWithTwoDisk, workerWithInvalidInventory,
 				}}},
 				workerWithTwoDisk,
@@ -427,7 +447,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("missing inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, masterWithOneDisk, workerWithTwoDisk, masterWithNoInventory,
 				}}},
 				masterWithNoInventory,
@@ -435,7 +455,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, masterWithOneDisk, workerWithTwoDisk, workerWithInvalidInventory,
 				}}},
 				workerWithInvalidInventory,
@@ -448,7 +468,7 @@ var _ = Describe("Odf Operator", func() {
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("there are 2 masters and 1 auto-assign - validate auto-assign",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithLessDiskSize, autoAssignHost,
 				}}},
 				autoAssignHost,
@@ -459,8 +479,20 @@ var _ = Describe("Odf Operator", func() {
 				},
 			),
 
+			table.Entry("there are 3 masters and 1 auto-assign - validate auto-assign",
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithLessDiskSize, masterWithInvalidInventory, autoAssignHost,
+				}}},
+				autoAssignHost,
+				api.ValidationResult{
+					Status:       api.Pending,
+					ValidationId: operator.GetHostValidationID(),
+					Reasons:      []string{"Auto-assigning roles for hosts with ODF is allowed only for clusters with exactly three hosts. For other scenarios, please manually assign the host role as either a control plane node or a worker."},
+				},
+			),
+
 			table.Entry("there is a master with missing inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithLessDiskSize, masterWithNoInventory,
 				}}},
 				masterWithNoInventory,
@@ -472,7 +504,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithLessDiskSize, masterWithInvalidInventory,
 				}}},
 				masterWithInvalidInventory,
@@ -484,7 +516,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 3 masters",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithThreeDisk,
@@ -492,7 +524,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 4 masters",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, masterWithLessDiskSize,
 				}}},
 				masterWithThreeDisk,
@@ -500,7 +532,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 5 masters",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, masterWithLessDiskSize, masterWithNoDisk,
 				}}},
 				masterWithThreeDisk,
@@ -508,7 +540,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with no disk",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithNoDisk,
@@ -520,7 +552,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with only one disk",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithOneDisk,
@@ -532,7 +564,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with disk of size zero",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithThreeDiskSizeOfOneZero,
 				}}},
 				masterWithThreeDiskSizeOfOneZero,
@@ -540,7 +572,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with 3 disks, one is too small",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize,
 				}}},
 				masterWithLessDiskSize,
@@ -548,7 +580,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with 2 small disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithTwoSmallDisk,
 				}}},
 				masterWithTwoSmallDisk,
@@ -564,7 +596,7 @@ var _ = Describe("Odf Operator", func() {
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("there are 3 masters, 3 workers and 1 auto-assign - validate auto-assign",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithInvalidInventory,
@@ -575,14 +607,14 @@ var _ = Describe("Odf Operator", func() {
 				}}},
 				autoAssignHost,
 				api.ValidationResult{
-					Status:       api.Failure,
+					Status:       api.Pending,
 					ValidationId: operator.GetHostValidationID(),
-					Reasons:      []string{"For ODF with more than 3 hosts, role must be assigned to master or worker."},
+					Reasons:      []string{"Auto-assigning roles for hosts with ODF is allowed only for clusters with exactly three hosts. For other scenarios, please manually assign the host role as either a control plane node or a worker."},
 				},
 			),
 
 			table.Entry("there is a master with missing inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithNoInventory,
@@ -599,7 +631,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a worker with missing inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithNoInventory,
@@ -616,7 +648,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithInvalidInventory,
@@ -633,7 +665,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a worker with invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithNoDisk,
 					masterWithNoInventory,
@@ -650,7 +682,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with with no disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				masterWithNoDisk,
@@ -658,7 +690,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a worker with no disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				workerWithNoDisk,
@@ -673,7 +705,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with 3 disks, one too small",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithThreeDiskSizeOfOneZero, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				masterWithThreeDiskSizeOfOneZero,
@@ -681,7 +713,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a worker with 3 disks, one too small",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithThreeDiskSizeOfOneZero,
 				}}},
 				workerWithThreeDiskSizeOfOneZero,
@@ -693,7 +725,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with 2 small disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithThreeDiskSizeOfOneZero, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				masterWithThreeDiskSizeOfOneZero,
@@ -701,7 +733,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a worker with 2 small disks",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithThreeDiskSizeOfOneZero,
 				}}},
 				workerWithTwoSmallDisk,
@@ -717,7 +749,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a master with disk of size zero",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithThreeDiskSizeOfOneZero,
 				}}},
 				masterWithThreeDiskSizeOfOneZero,
@@ -725,7 +757,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there is a worker with disk of size zero",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithThreeDiskSizeOfOneZero,
 				}}},
 				workerWithThreeDiskSizeOfOneZero,
@@ -740,68 +772,68 @@ var _ = Describe("Odf Operator", func() {
 			Expect(result).To(Equal(expectedResult))
 		},
 			table.Entry("there is a single master",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 				}}},
 				api.ValidationResult{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
-					Reasons:      []string{"A cluster with only masters or with a minimum of 3 workers is required."},
+					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
 				},
 			),
 
 			table.Entry("there are two masters and one worker",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, workerWithTwoDisk,
 				}}},
 				api.ValidationResult{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
-					Reasons:      []string{"A cluster with only masters or with a minimum of 3 workers is required."},
+					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
 				},
 			),
 
 			table.Entry("there are 3 masters and 2 workers",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, workerWithTwoDisk, workerWithInvalidInventory,
 				}}},
 				api.ValidationResult{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
-					Reasons:      []string{"A cluster with only masters or with a minimum of 3 workers is required."},
+					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
 				},
 			),
 
 			table.Entry("there are 4 masters and 2 workers",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, masterWithOneDisk, workerWithTwoDisk, workerWithInvalidInventory,
 				}}},
 				api.ValidationResult{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
-					Reasons:      []string{"A cluster with only masters or with a minimum of 3 workers is required."},
+					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
 				},
 			),
 
 			table.Entry("missing inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, masterWithOneDisk, workerWithTwoDisk, masterWithNoInventory,
 				}}},
 				api.ValidationResult{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
-					Reasons:      []string{"A cluster with only masters or with a minimum of 3 workers is required."},
+					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
 				},
 			),
 
 			table.Entry("invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, masterWithOneDisk, workerWithTwoDisk, workerWithInvalidInventory,
 				}}},
 				api.ValidationResult{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
-					Reasons:      []string{"A cluster with only masters or with a minimum of 3 workers is required."},
+					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
 				},
 			),
 		)
@@ -811,7 +843,7 @@ var _ = Describe("Odf Operator", func() {
 			Expect(result).To(Equal(expectedResult))
 		},
 			table.Entry("there are 2 masters and 1 auto-assign",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, autoAssignHost,
 				}}},
 				api.ValidationResult{
@@ -822,7 +854,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 3 masters - sufficient resources",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDisk, masterWithThreeDisk,
 				}}},
 				api.ValidationResult{
@@ -833,7 +865,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 4 masters - sufficient resources",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero,
 				}}},
 				api.ValidationResult{
@@ -844,7 +876,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 5 masters - sufficient resources",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk,
 				}}},
 				api.ValidationResult{
@@ -856,7 +888,7 @@ var _ = Describe("Odf Operator", func() {
 
 			// host's validation will fail
 			table.Entry("there are enough masters - one of the masters doesn't have eligible disk",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithOneDisk,
 				}}},
 				api.ValidationResult{
@@ -867,7 +899,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough masters - one of the masters doesn't have eligible disk",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithOneDisk,
 				}}},
 				api.ValidationResult{
@@ -878,7 +910,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough masters - one of the masters is missing inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithNoInventory,
 				}}},
 				api.ValidationResult{
@@ -889,7 +921,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough masters - one of the masters has invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithInvalidInventory,
 				}}},
 				api.ValidationResult{
@@ -900,7 +932,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough masters - not enough resources",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDiskSizeOfOneZero, masterWithThreeDiskSizeOfOneZero, masterWithNoDisk, masterWithNoDisk,
 				}}},
 				api.ValidationResult{
@@ -917,7 +949,7 @@ var _ = Describe("Odf Operator", func() {
 		},
 			// Will fail host validation
 			table.Entry("there are 3 masters, 3 workers and 1 auto-assign",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDiskSizeOfOneZero,
 					masterWithThreeDisk,
@@ -934,7 +966,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 3 masters and 3 workers - sufficient resources",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDisk,
 					masterWithThreeDisk,
@@ -950,7 +982,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are 4 masters and 4 workers - sufficient resources",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDisk,
 					masterWithThreeDisk,
@@ -968,7 +1000,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough masters - one of the masters doesn't have eligible disk",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDisk,
 					masterWithThreeDisk,
@@ -986,7 +1018,7 @@ var _ = Describe("Odf Operator", func() {
 
 			// host's validation will fail
 			table.Entry("there are enough workers - one of the workers doesn't have eligible disk",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDisk,
 					masterWithThreeDisk,
@@ -1003,7 +1035,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough masters - one of the masters is missing inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDisk,
 					masterWithNoInventory,
@@ -1019,7 +1051,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough workers - one of the workers is missing inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDisk,
 					masterWithNoInventory,
@@ -1035,7 +1067,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough masters - one of the masters has invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDisk,
 					masterWithInvalidInventory,
@@ -1051,7 +1083,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough workers - one of the workers has invalid inventory",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDisk,
 					masterWithThreeDisk,
@@ -1067,7 +1099,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough masters - not enough resources",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDisk,
 					masterWithNoDisk,
@@ -1083,7 +1115,7 @@ var _ = Describe("Odf Operator", func() {
 			),
 
 			table.Entry("there are enough workers - not enough resources",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 					masterWithThreeDisk,
 					masterWithThreeDisk,

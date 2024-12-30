@@ -51,7 +51,8 @@ func GenerateTestCluster(clusterID strfmt.UUID) common.Cluster {
 				EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
 				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 			},
-			OpenshiftVersion: lvm.LvmsMinOpenshiftVersion4_12,
+			OpenshiftVersion:  lvm.LvmsMinOpenshiftVersion4_12,
+			ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
 		},
 	}
 }
