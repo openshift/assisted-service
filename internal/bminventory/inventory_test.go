@@ -200,6 +200,38 @@ var (
 	imageServiceBaseURL = fmt.Sprintf("https://%s%s", imageServiceHost, imageServicePath)
 	fakePullSecret      = `{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"` // #nosec
 	serviceBaseURL      = "https://assisted.example.com:6008"
+	formattedInput      = "some formated input"
+	// output for flow involving generating nmconnection files
+	staticnetworkConfigOutput = []staticnetworkconfig.StaticNetworkConfigData{
+		{
+			FilePath:     "nic10.nmconnection",
+			FileContents: "nic10 nmconnection content",
+		},
+		{
+			FilePath:     "nic20.nmconnection",
+			FileContents: "nic10 nmconnection content",
+		},
+		{
+			FilePath:     "mac_interface.ini",
+			FileContents: "nic10=mac10\nnic20=mac20",
+		},
+	}
+	// output for flow involving nmpolicy and nmstate service files
+	staticNetworkConfigNmpolicyOutput = []staticnetworkconfig.StaticNetworkConfigData{
+		{
+			FilePath:     "nic10.yml",
+			FileContents: "nic10 nmpolicy content",
+		},
+		{
+			FilePath:     "nic20.yml",
+			FileContents: "nic10 nmpolicy content",
+		},
+		{
+			FilePath:     "mac_interface.ini",
+			FileContents: "nic10=mac10\nnic20=mac20",
+		},
+	}
+	ocpVersionInvolvingGenerateKeyfiles = "4.12"
 )
 
 type clusterIdMatcher struct {
@@ -11237,6 +11269,74 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 		Expect(db.Create(&infraEnv).Error).NotTo(HaveOccurred())
 		validateArchive(infraEnv)
 	})
+
+	Context("static networking enabled", func() {
+		validateArchiveStatNetFlow := func(infraEnv common.InfraEnv, isNewflow bool) {
+			params := installer.DownloadMinimalInitrdParams{InfraEnvID: id}
+			responsePayload := bm.DownloadMinimalInitrd(ctx, params).(*installer.DownloadMinimalInitrdOK).Payload
+
+			gzipReader, err := gzip.NewReader(responsePayload)
+			Expect(err).ToNot(HaveOccurred())
+
+			r := cpio.NewReader(gzipReader)
+			for {
+				hdr, err := r.Next()
+				if err == io.EOF {
+					break
+				}
+				Expect(err).ToNot(HaveOccurred())
+				switch hdr.Name {
+				case "/usr/local/bin/pre-network-manager-config.sh":
+					preNetMangerConfScriptBytes, err := io.ReadAll(r)
+					Expect(err).ToNot(HaveOccurred())
+					preNetMangerConfScriptContent := string(preNetMangerConfScriptBytes)
+					if isNewflow {
+						Expect(preNetMangerConfScriptContent).ToNot(ContainSubstring("function copy_physical_nics_files()"))
+						Expect(preNetMangerConfScriptContent).To(ContainSubstring("${NMSTATECTL} service"))
+					} else {
+						Expect(preNetMangerConfScriptContent).To(ContainSubstring("function copy_physical_nics_files()"))
+						Expect(preNetMangerConfScriptContent).ToNot(ContainSubstring("${NMSTATECTL} service"))
+					}
+				case "/etc/systemd/system/pre-network-manager-config.service":
+					preNetMangerConfServiceBytes, err := io.ReadAll(r)
+					Expect(err).ToNot(HaveOccurred())
+					preNetMangerConfServiceContent := string(preNetMangerConfServiceBytes)
+					if isNewflow {
+						Expect(preNetMangerConfServiceContent).ToNot(ContainSubstring("Before=coreos-copy-firstboot-network.service"))
+						Expect(preNetMangerConfServiceContent).To(ContainSubstring("After=nm-initrd.service"))
+					} else {
+						Expect(preNetMangerConfServiceContent).To(ContainSubstring("Before=coreos-copy-firstboot-network.service"))
+						Expect(preNetMangerConfServiceContent).ToNot(ContainSubstring("After=nm-initrd.service"))
+					}
+				case "/usr/local/bin/common_network_script.sh":
+					commonScriptBytes, err := io.ReadAll(r)
+					Expect(err).ToNot(HaveOccurred())
+					commonScriptContent := string(commonScriptBytes)
+					Expect(commonScriptContent).To(ContainSubstring("NM_CONFIG_DIR=${PATH_PREFIX}/etc/assisted/network"))
+				}
+			}
+		}
+		It("old flow involving generating nmconnection files", func() {
+			infraEnv := createInfraEnv(models.ImageTypeMinimalIso)
+			infraEnv.StaticNetworkConfig = formattedInput
+			infraEnv.OpenshiftVersion = ocpVersionInvolvingGenerateKeyfiles
+			infraEnv = applyProxy(infraEnv)
+			Expect(db.Create(&infraEnv).Error).NotTo(HaveOccurred())
+			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(formattedInput, infraEnv.OpenshiftVersion).Return(false, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
+			validateArchiveStatNetFlow(infraEnv, false)
+		})
+		It("new flow involving nmpolicy and nmstate service", func() {
+			infraEnv := createInfraEnv(models.ImageTypeMinimalIso)
+			infraEnv.StaticNetworkConfig = formattedInput
+			infraEnv.OpenshiftVersion = common.MinimalVersionForNmstatectl
+			infraEnv = applyProxy(infraEnv)
+			Expect(db.Create(&infraEnv).Error).NotTo(HaveOccurred())
+			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(formattedInput, infraEnv.OpenshiftVersion).Return(true, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigDataYAML(formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
+			validateArchiveStatNetFlow(infraEnv, true)
+		})
+	})
 })
 
 var _ = Describe("V2UploadClusterIngressCert test", func() {
@@ -12451,7 +12551,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		ctrl.Finish()
 	})
 
-	getResponse := func(fileName string, withMac bool, ipxeScriptType *string, discoveryIsoType string) middleware.Responder {
+	getResponse := func(fileName string, withMac bool, ipxeScriptType *string, discoveryIsoType string, infraEnvID strfmt.UUID) middleware.Responder {
 		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: fileName, DiscoveryIsoType: &discoveryIsoType}
 		if withMac {
 			params.Mac = toMac("f8:75:a4:a4:00:fe")
@@ -12460,8 +12560,8 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		return bm.V2DownloadInfraEnvFiles(ctx, params)
 	}
 
-	getResponseData := func(fileName string, withMac bool, ipxeScriptType *string, discoveryIsoType string) []byte {
-		response := getResponse(fileName, withMac, ipxeScriptType, discoveryIsoType)
+	getResponseData := func(fileName string, withMac bool, ipxeScriptType *string, discoveryIsoType string, infraEnvID strfmt.UUID) []byte {
+		response := getResponse(fileName, withMac, ipxeScriptType, discoveryIsoType, infraEnvID)
 		fileMw, ok := response.(*filemiddleware.FileMiddlewareResponder)
 		Expect(ok).To(BeTrue())
 		innerType, ok := fileMw.GetNext().(*installer.V2DownloadInfraEnvFilesOK)
@@ -12495,7 +12595,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 	It("should ensure the correct discovery iso type is passed to the ignition builder", func() {
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), "").Return(discovery_ignition_3_1, nil).Times(1)
-		body := getResponseData("discovery.ign", false, nil, "")
+		body := getResponseData("discovery.ign", false, nil, "", infraEnvID)
 		config, report, err := ign_3_1.Parse(body)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(report.IsFatal()).To(BeFalse())
@@ -12505,7 +12605,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 	It("returns discovery.ign successfully when asked to use full-iso", func() {
 		discoveryIsoType := string(models.ImageTypeFullIso)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), discoveryIsoType).Return(discovery_ignition_3_1, nil).Times(1)
-		body := getResponseData("discovery.ign", false, nil, discoveryIsoType)
+		body := getResponseData("discovery.ign", false, nil, discoveryIsoType, infraEnvID)
 		config, report, err := ign_3_1.Parse(body)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(report.IsFatal()).To(BeFalse())
@@ -12515,7 +12615,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 	It("returns discovery.ign successfully when asked to use minimal-iso", func() {
 		discoveryIsoType := string(models.ImageTypeMinimalIso)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), discoveryIsoType).Return(discovery_ignition_3_1, nil).Times(1)
-		body := getResponseData("discovery.ign", false, nil, discoveryIsoType)
+		body := getResponseData("discovery.ign", false, nil, discoveryIsoType, infraEnvID)
 		config, report, err := ign_3_1.Parse(body)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(report.IsFatal()).To(BeFalse())
@@ -12536,7 +12636,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 	It("returns ipxe-script successfully", func() {
 		mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-		content := getResponseData("ipxe-script", false, nil, "")
+		content := getResponseData("ipxe-script", false, nil, "", infraEnvID)
 		lines := strings.Split(string(content), "\n")
 
 		Expect(lines[0]).To(Equal("#!ipxe"))
@@ -12588,7 +12688,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		}
 		initialKernelArguments := `random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"`
 		mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
-		content := getResponseData("ipxe-script", false, nil, "")
+		content := getResponseData("ipxe-script", false, nil, "", infraEnvID)
 		lines := strings.Split(string(content), "\n")
 
 		Expect(lines[0]).To(Equal("#!ipxe"))
@@ -12607,7 +12707,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 			gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 		updateKernelArgs(kernelArguments...)
 		By("get ipxe script again")
-		content = getResponseData("ipxe-script", false, nil, "")
+		content = getResponseData("ipxe-script", false, nil, "", infraEnvID)
 		lines = strings.Split(string(content), "\n")
 
 		Expect(lines[0]).To(Equal("#!ipxe"))
@@ -12622,7 +12722,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 	It("returns ipxe-script successfully with mac", func() {
 		mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-		content := getResponseData("ipxe-script", true, nil, "")
+		content := getResponseData("ipxe-script", true, nil, "", infraEnvID)
 		lines := strings.Split(string(content), "\n")
 
 		Expect(lines[0]).To(Equal("#!ipxe"))
@@ -12716,7 +12816,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 			}
 			Expect(db.Create(&host).Error).ToNot(HaveOccurred())
 			mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-			content := getResponseData("ipxe-script", true, nil, "")
+			content := getResponseData("ipxe-script", true, nil, "", infraEnvID)
 			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
 			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
 			Expect(match).NotTo(BeNil())
@@ -12770,7 +12870,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 				}
 			}
 			Expect(db.Create(&host).Error).ToNot(HaveOccurred())
-			response := getResponse("ipxe-script", true, nil, "")
+			response := getResponse("ipxe-script", true, nil, "", infraEnvID)
 			verifyApiErrorString(response, http.StatusNotFound, "IPXE booting skipped")
 			Expect(db.Delete(&models.Host{ID: &id, InfraEnvID: infraEnvID}).Error).ToNot(HaveOccurred())
 		}
@@ -12788,7 +12888,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 			Expect(db.Create(&host).Error).ToNot(HaveOccurred())
 		}
 
-		response := getResponse("ipxe-script", true, swag.String(BootOrderControl), "")
+		response := getResponse("ipxe-script", true, swag.String(BootOrderControl), "", infraEnvID)
 		verifyApiErrorString(response, http.StatusInternalServerError, "Unexpected number of hosts")
 	})
 
@@ -12811,7 +12911,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		})
 
 		It("IPXE without mac with script type BootOrderControl", func() {
-			content := getResponseData("ipxe-script", false, swag.String(BootOrderControl), "")
+			content := getResponseData("ipxe-script", false, swag.String(BootOrderControl), "", infraEnvID)
 			chainRegex := regexp.MustCompile(`^chain +(.*file_name=ipxe-script&mac=[$]{net0/mac})`)
 			match := chainRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
 			Expect(match).NotTo(BeNil())
@@ -12825,7 +12925,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 		It("signs the initrd ipxe-script url correctly", func() {
 			mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-			content := getResponseData("ipxe-script", false, nil, "")
+			content := getResponseData("ipxe-script", false, nil, "", infraEnvID)
 			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
 			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
 			Expect(match).NotTo(BeNil())
@@ -12848,7 +12948,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 		It("signs the initrd ipxe-script url correctly", func() {
 			mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-			content := getResponseData("ipxe-script", false, nil, "")
+			content := getResponseData("ipxe-script", false, nil, "", infraEnvID)
 			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
 			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
 			Expect(match).NotTo(BeNil())
@@ -12858,6 +12958,36 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 			tok := initrdURL.Query().Get("image_token")
 			_, err = bm.authHandler.AuthImageAuth(tok)
 			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("static-network-config case", func() {
+		infraEnvWithStatNetID := strfmt.UUID(uuid.New().String())
+		infraEnvWithStatNet := common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:                  &infraEnvWithStatNetID,
+				StaticNetworkConfig: formattedInput,
+				PullSecretSet:       true,
+				Type:                common.ImageTypePtr(models.ImageTypeFullIso),
+			},
+			ImageTokenKey: testTokenKey,
+			PullSecret:    fakePullSecret,
+		}
+		It("old flow involving generating nmconnection files", func() {
+			infraEnvWithStatNet.OpenshiftVersion = ocpVersionInvolvingGenerateKeyfiles
+			Expect(db.Create(&infraEnvWithStatNet).Error).To(Succeed())
+			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(formattedInput, infraEnvWithStatNet.OpenshiftVersion).Return(false, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
+			content := getResponseData("static-network-config", false, nil, "", infraEnvWithStatNetID)
+			Expect(string(content)).To(ContainSubstring("/etc/assisted/network/nic10.nmconnection"))
+		})
+		It("new flow involving nmpolicy and nmstate service", func() {
+			infraEnvWithStatNet.OpenshiftVersion = common.MinimalVersionForNmstatectl
+			Expect(db.Create(&infraEnvWithStatNet).Error).To(Succeed())
+			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(formattedInput, infraEnvWithStatNet.OpenshiftVersion).Return(true, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigDataYAML(formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
+			content := getResponseData("static-network-config", false, nil, "", infraEnvWithStatNetID)
+			Expect(string(content)).To(ContainSubstring("/etc/assisted/network/nic10.yml"))
 		})
 	})
 })
