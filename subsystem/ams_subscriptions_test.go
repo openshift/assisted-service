@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -43,10 +44,10 @@ var _ = Describe("test AMS subscriptions", func() {
 
 		It("happy flow", func() {
 
-			clusterID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+			clusterID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			log.Infof("Register cluster %s", clusterID)
-			cc := getCommonCluster(ctx, clusterID)
+			cc := utils_test.TestContext.GetCommonCluster(ctx, clusterID)
 			Expect(cc.AmsSubscriptionID).To(Equal(FakeSubscriptionID))
 		})
 
@@ -59,7 +60,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("register cluster", func() {
-				_, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				_, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).To(HaveOccurred())
 			})
 
@@ -69,7 +70,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("register cluster", func() {
-				_, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				_, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -84,7 +85,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription (in 'reserved' status)", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -98,7 +99,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("delete 'reserved' subscription", func() {
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -110,7 +111,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -131,7 +132,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			By("delete subscription", func() {
 				// don't delete 'active' subscription
 				// we can't really check that because it is done in an external dependency (AMS) so we just check there are no errors in the flow
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})
@@ -143,7 +144,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -154,7 +155,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 
@@ -164,7 +165,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -176,7 +177,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -187,7 +188,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 
@@ -197,7 +198,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -211,14 +212,14 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
 
 			By("update subscription's display name", func() {
 				newClusterName := "ams-cluster-new-name"
-				_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						Name: &newClusterName,
@@ -235,7 +236,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -247,7 +248,7 @@ var _ = Describe("test AMS subscriptions", func() {
 
 			By("update subscription's display name", func() {
 				newClusterName := "ams-cluster-new-name"
-				_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						Name: &newClusterName,
@@ -263,7 +264,7 @@ var _ = Describe("test AMS subscriptions", func() {
 		waitForConsoleUrlUpdateInAMS := func(clusterID strfmt.UUID) {
 
 			waitFunc := func(ctx context.Context) (bool, error) {
-				c := getCommonCluster(ctx, clusterID)
+				c := utils_test.TestContext.GetCommonCluster(ctx, clusterID)
 				return c.IsAmsSubscriptionConsoleUrlSet, nil
 			}
 			err := wait.PollUntilContextTimeout(ctx, pollDefaultInterval, pollDefaultTimeout, false, waitFunc)
@@ -276,7 +277,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -288,17 +289,17 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("update subscription with console url", func() {
-				c := getCluster(clusterID)
+				c := utils_test.TestContext.GetCluster(clusterID)
 				for _, host := range c.Hosts {
-					updateProgress(*host.ID, host.InfraEnvID, models.HostStageDone)
+					utils_test.TestContext.UpdateProgress(*host.ID, host.InfraEnvID, models.HostStageDone)
 				}
-				waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
-				completeInstallation(agentBMClient, clusterID)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, utils_test.DefaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+				completeInstallation(utils_test.TestContext.AgentBMClient, clusterID)
 				waitForConsoleUrlUpdateInAMS(clusterID)
 			})
 
 			By("update subscription with status 'Active'", func() {
-				waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, clusterInstallingStateInfo)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, utils_test.DefaultWaitForClusterStateTimeout, clusterInstallingStateInfo)
 			})
 		})
 
@@ -310,7 +311,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -323,12 +324,12 @@ var _ = Describe("test AMS subscriptions", func() {
 			By("update subscription with openshfit (external) cluster ID", func() {
 				infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 				registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
-				reply, err = userBMClient.Installer.V2InstallCluster(context.Background(), &installer.V2InstallClusterParams{ClusterID: clusterID})
+				reply, err = utils_test.TestContext.UserBMClient.Installer.V2InstallCluster(context.Background(), &installer.V2InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c := reply.GetPayload()
 				Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
-				generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-				waitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusFailed)
+				utils_test.TestContext.GenerateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
+				utils_test.TestContext.WaitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusFailed)
 			})
 		})
 	})

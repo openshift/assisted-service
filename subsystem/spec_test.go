@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 )
 
 var _ = Describe("test spec endpoint", func() {
@@ -19,6 +20,6 @@ var _ = Describe("test spec endpoint", func() {
 		data, err := io.ReadAll(reply.Body)
 		Expect(err).To(BeNil())
 		reply.Body.Close()
-		Expect(isJSON(data)).To(BeTrue(), fmt.Sprintf("got %s", string(data)))
+		Expect(utils_test.IsJSON(data)).To(BeTrue(), fmt.Sprintf("got %s", string(data)))
 	})
 })
