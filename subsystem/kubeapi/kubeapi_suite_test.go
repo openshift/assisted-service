@@ -1,4 +1,4 @@
-package subsystem
+package kubeapi
 
 import (
 	"context"
@@ -17,7 +17,6 @@ import (
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
-	"github.com/openshift/assisted-service/client/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/subsystem/utils_test"
@@ -33,18 +32,8 @@ import (
 var log *logrus.Logger
 var wiremock *utils_test.WireMock
 var kubeClient k8sclient.Client
-var openshiftVersion string = "4.11"
-var snoVersion string = "4.11"
-var multiarchOpenshiftVersion string = "4.11.0-multi"
-var dualstackVipsOpenShiftVersion string = "4.12.0"
 var VipAutoAllocOpenshiftVersion string = "4.14.0"
-var SDNNetworkTypeOpenshiftVersion string = "4.14.0"
 var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
-
-const (
-	pollDefaultInterval = 1 * time.Millisecond
-	pollDefaultTimeout  = 30 * time.Second
-)
 
 var Options struct {
 	DBHost                  string        `envconfig:"DB_HOST"`
@@ -66,6 +55,11 @@ var Options struct {
 	DeregisterInactiveAfter time.Duration `envconfig:"DELETED_INACTIVE_AFTER" default:"480h"` // 20d
 	ReleaseSources          string        `envconfig:"RELEASE_SOURCES" default:""`
 }
+
+const (
+	pollDefaultInterval = 1 * time.Millisecond
+	pollDefaultTimeout  = 30 * time.Second
+)
 
 func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {
 	cfg := client.Config{
@@ -111,6 +105,8 @@ func init() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	userClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestToken))
+	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(utils_test.FakePS))
 
 	db, err := gorm.Open(postgres.Open(fmt.Sprintf("host=%s port=%s user=admin database=installer password=admin sslmode=disable",
 		Options.DBHost, Options.DBPort)), &gorm.Config{})
@@ -122,26 +118,17 @@ func init() {
 		setupKubeClient()
 	}
 
-	userClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestToken))
-	userClientCfg2 := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestToken2))
-	adminUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenAdmin))
-	unallowedUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenUnallowed))
-	editclusterClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenClusterEditor))
-	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(utils_test.FakePS))
-	agent2ClientCfg := clientcfg(auth.AgentAuthHeaderWriter(utils_test.FakePS2))
-	badAgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(utils_test.WrongPullSecret))
-
 	utils_test.TestContext = utils_test.NewSubsystemTestContext(
 		log,
 		db,
 		client.New(agentClientCfg),
 		client.New(userClientCfg),
-		client.New(agent2ClientCfg),
-		client.New(userClientCfg2),
-		client.New(adminUserClientCfg),
-		client.New(unallowedUserClientCfg),
-		client.New(editclusterClientCfg),
-		client.New(badAgentClientCfg),
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
 		pollDefaultInterval,
 		pollDefaultTimeout,
 		VipAutoAllocOpenshiftVersion,
@@ -169,17 +156,6 @@ func init() {
 			logrus.Fatal("Failed to init wiremock stubs, ", err)
 		}
 	}
-
-	// Use the default openshift version
-	if reply, err := utils_test.TestContext.UserBMClient.Versions.V2ListSupportedOpenshiftVersions(context.Background(),
-		&versions.V2ListSupportedOpenshiftVersionsParams{}); err == nil {
-		for openshiftVersionString, openshiftVersionStruct := range reply.GetPayload() {
-			if openshiftVersionStruct.Default {
-				openshiftVersion = openshiftVersionString
-				break
-			}
-		}
-	}
 }
 
 func TestSubsystem(t *testing.T) {
@@ -189,10 +165,16 @@ func TestSubsystem(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 	subsystemAfterEach(utils_test.TestContext) // make sure we start tests from scratch
-	RunSpecs(t, "Subsystem Suite")
+	RunSpecs(t, "Subsystem KubeAPI Suite")
 }
 
 func subsystemAfterEach(testContext *utils_test.SubsystemTestContext) {
-	testContext.DeregisterResources()
+	if Options.EnableKubeAPI {
+		printCRs(context.Background(), kubeClient)
+		cleanUpCRs(context.Background(), kubeClient)
+		verifyCleanUP(context.Background(), kubeClient)
+	} else {
+		testContext.DeregisterResources()
+	}
 	testContext.ClearDB()
 }

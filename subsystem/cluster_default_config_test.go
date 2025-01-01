@@ -7,17 +7,18 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 )
 
 var _ = Describe("V2GetClusterDefaultConfig", func() {
 
 	It("InactiveDeletionHours", func() {
-		res, err := userBMClient.Installer.V2GetClusterDefaultConfig(context.Background(), &installer.V2GetClusterDefaultConfigParams{})
+		res, err := utils_test.TestContext.UserBMClient.Installer.V2GetClusterDefaultConfig(context.Background(), &installer.V2GetClusterDefaultConfigParams{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.GetPayload().InactiveDeletionHours).To(Equal(int64(Options.DeregisterInactiveAfter.Hours())))
 	})
 	It("Default IPv4 networks", func() {
-		res, err := userBMClient.Installer.V2GetClusterDefaultConfig(context.Background(), &installer.V2GetClusterDefaultConfigParams{})
+		res, err := utils_test.TestContext.UserBMClient.Installer.V2GetClusterDefaultConfig(context.Background(), &installer.V2GetClusterDefaultConfigParams{})
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(res.GetPayload().ClusterNetworksIPV4[0].Cidr).To(Equal(models.Subnet("10.128.0.0/14")))
@@ -25,7 +26,7 @@ var _ = Describe("V2GetClusterDefaultConfig", func() {
 		Expect(res.GetPayload().ServiceNetworksIPV4[0].Cidr).To(Equal(models.Subnet("172.30.0.0/16")))
 	})
 	It("Default dual-stack networks", func() {
-		res, err := userBMClient.Installer.V2GetClusterDefaultConfig(context.Background(), &installer.V2GetClusterDefaultConfigParams{})
+		res, err := utils_test.TestContext.UserBMClient.Installer.V2GetClusterDefaultConfig(context.Background(), &installer.V2GetClusterDefaultConfigParams{})
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(res.GetPayload().ClusterNetworksDualstack[0].Cidr).To(Equal(models.Subnet("10.128.0.0/14")))
@@ -38,7 +39,7 @@ var _ = Describe("V2GetClusterDefaultConfig", func() {
 	})
 
 	It("Forbidden hostnames", func() {
-		res, err := userBMClient.Installer.V2GetClusterDefaultConfig(context.Background(), &installer.V2GetClusterDefaultConfigParams{})
+		res, err := utils_test.TestContext.UserBMClient.Installer.V2GetClusterDefaultConfig(context.Background(), &installer.V2GetClusterDefaultConfigParams{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(res.GetPayload().ForbiddenHostnames)).To(Equal(6))
 		Expect(res.GetPayload().ForbiddenHostnames[0]).To(Equal("localhost"))

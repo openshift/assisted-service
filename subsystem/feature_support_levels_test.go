@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 	"github.com/thoas/go-funk"
 )
 
@@ -28,7 +29,7 @@ var _ = Describe("Feature support levels API", func() {
 				PlatformType:     platformType,
 				CPUArchitecture:  cpuArchitecture,
 			}
-			supportedFeaturesOK, err := user2BMClient.Installer.GetSupportedFeatures(ctx, &params)
+			supportedFeaturesOK, err := utils_test.TestContext.User2BMClient.Installer.GetSupportedFeatures(ctx, &params)
 			if err != nil {
 				return nil, err
 			}
@@ -37,11 +38,11 @@ var _ = Describe("Feature support levels API", func() {
 		}
 
 		registerNewCluster := func(version, cpuArchitecture, highAvailabilityMode string, userManagedNetworking *bool) (*installer.V2RegisterClusterCreated, error) {
-			cluster, errRegisterCluster := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			cluster, errRegisterCluster := utils_test.TestContext.User2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                  swag.String("test-cluster"),
 					OpenshiftVersion:      swag.String(version),
-					PullSecret:            swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					PullSecret:            swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
 					BaseDNSDomain:         "example.com",
 					CPUArchitecture:       cpuArchitecture,
 					HighAvailabilityMode:  swag.String(highAvailabilityMode),
@@ -57,12 +58,12 @@ var _ = Describe("Feature support levels API", func() {
 		}
 
 		registerNewInfraEnv := func(id *strfmt.UUID, version, cpuArchitecture string) (*installer.RegisterInfraEnvCreated, error) {
-			infraEnv, errRegisterInfraEnv := user2BMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+			infraEnv, errRegisterInfraEnv := utils_test.TestContext.User2BMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("test-infra-env"),
 					OpenshiftVersion: version,
-					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
-					SSHAuthorizedKey: swag.String(sshPublicKey),
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
+					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
 					ImageType:        models.ImageTypeFullIso,
 					ClusterID:        id,
 					CPUArchitecture:  cpuArchitecture,
@@ -106,7 +107,7 @@ var _ = Describe("Feature support levels API", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 
-				_, err = user2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				_, err = utils_test.TestContext.User2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						UserManagedNetworking: swag.Bool(false),
 					},
@@ -125,7 +126,7 @@ var _ = Describe("Feature support levels API", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(infraEnv.Payload.CPUArchitecture).To(Equal("s390x"))
 
-				_, err = user2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				_, err = utils_test.TestContext.User2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						UserManagedNetworking: swag.Bool(false),
 					},
@@ -142,7 +143,7 @@ var _ = Describe("Feature support levels API", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 
-				_, err = user2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				_, err = utils_test.TestContext.User2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: "odf"},
@@ -164,7 +165,7 @@ var _ = Describe("Feature support levels API", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(common.ImageTypeValue(infraEnv.Payload.Type)).ToNot(Equal(models.ImageTypeMinimalIso))
 
-					updatedInfraEnv, err := user2BMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
+					updatedInfraEnv, err := utils_test.TestContext.User2BMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
 						InfraEnvID: *infraEnv.Payload.ID,
 						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 							ImageType: models.ImageTypeMinimalIso,
@@ -180,7 +181,7 @@ var _ = Describe("Feature support levels API", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(common.ImageTypeValue(infraEnv.Payload.Type)).ToNot(Equal(models.ImageTypeMinimalIso))
 
-					updatedInfraEnv, err := user2BMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
+					updatedInfraEnv, err := utils_test.TestContext.User2BMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
 						InfraEnvID: *infraEnv.Payload.ID,
 						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 							ImageType: models.ImageTypeMinimalIso,
@@ -196,7 +197,7 @@ var _ = Describe("Feature support levels API", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(common.ImageTypeValue(infraEnv.Payload.Type)).ToNot(Equal(models.ImageTypeMinimalIso))
 
-					_, err = user2BMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
+					_, err = utils_test.TestContext.User2BMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
 						InfraEnvID: *infraEnv.Payload.ID,
 						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
 							ImageType: models.ImageTypeMinimalIso,
@@ -258,7 +259,7 @@ var _ = Describe("Feature support levels API", func() {
 						OpenshiftVersion: version,
 						CPUArchitecture:  swag.String(arch),
 					}
-					response, err := userBMClient.Installer.GetSupportedFeatures(ctx, &params)
+					response, err := utils_test.TestContext.UserBMClient.Installer.GetSupportedFeatures(ctx, &params)
 					Expect(err).ShouldNot(HaveOccurred())
 
 					for featureID, supportLevel := range response.Payload.Features {
@@ -269,7 +270,7 @@ var _ = Describe("Feature support levels API", func() {
 				})
 
 				It(fmt.Sprintf("GetSupportedFeatures with empty CPU architectrue, OCP version %s", version), func() {
-					response, err := userBMClient.Installer.GetSupportedFeatures(ctx, &installer.GetSupportedFeaturesParams{OpenshiftVersion: version})
+					response, err := utils_test.TestContext.UserBMClient.Installer.GetSupportedFeatures(ctx, &installer.GetSupportedFeaturesParams{OpenshiftVersion: version})
 					Expect(err).ShouldNot(HaveOccurred())
 
 					for featureID, supportLevel := range response.Payload.Features {
@@ -288,7 +289,7 @@ var _ = Describe("Feature support levels API", func() {
 				version := "4.6"
 				params.OpenshiftVersion = version
 
-				response, err := userBMClient.Installer.GetSupportedArchitectures(ctx, &params)
+				response, err := utils_test.TestContext.UserBMClient.Installer.GetSupportedArchitectures(ctx, &params)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				architecturesSupportLevel := response.Payload.Architectures
@@ -304,7 +305,7 @@ var _ = Describe("Feature support levels API", func() {
 				version := "4.12"
 				params.OpenshiftVersion = version
 
-				response, err := userBMClient.Installer.GetSupportedArchitectures(ctx, &params)
+				response, err := utils_test.TestContext.UserBMClient.Installer.GetSupportedArchitectures(ctx, &params)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				architecturesSupportLevel := response.Payload.Architectures
@@ -320,7 +321,7 @@ var _ = Describe("Feature support levels API", func() {
 				version := "4.13"
 				params.OpenshiftVersion = version
 
-				response, err := userBMClient.Installer.GetSupportedArchitectures(ctx, &params)
+				response, err := utils_test.TestContext.UserBMClient.Installer.GetSupportedArchitectures(ctx, &params)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				architecturesSupportLevel := response.Payload.Architectures

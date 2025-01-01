@@ -17,9 +17,13 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
+	"gorm.io/gorm"
 )
 
 const psTemplate = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"%s\",\"email\":\"r@r.com\"}}}"
+
+var db *gorm.DB
 
 var _ = Describe("test authorization", func() {
 	ctx := context.Background()
@@ -39,40 +43,41 @@ var _ = Describe("test authorization", func() {
 	var capabilityReviewIgnoreValidationsAllowedUserStubID string
 
 	BeforeSuite(func() {
+		db = utils_test.TestContext.GetDB()
 		var err error
 		if Options.AuthType != auth.TypeRHSSO {
 			return
 		}
 
-		accessReviewUnallowedUserStubID, err = wiremock.createStubAccessReview(fakePayloadUnallowedUser, false)
+		accessReviewUnallowedUserStubID, err = wiremock.CreateStubAccessReview(utils_test.FakePayloadUnallowedUser, false)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		accessReviewAdminStubID, err = wiremock.createStubAccessReview(fakePayloadAdmin, true)
+		accessReviewAdminStubID, err = wiremock.CreateStubAccessReview(utils_test.FakePayloadAdmin, true)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewUnallowedUserStubID, err = wiremock.createStubBareMetalCapabilityReview(fakePayloadUnallowedUser, false)
+		capabilityReviewUnallowedUserStubID, err = wiremock.CreateStubBareMetalCapabilityReview(utils_test.FakePayloadUnallowedUser, false)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewAdminStubID, err = wiremock.createStubBareMetalCapabilityReview(fakePayloadAdmin, true)
+		capabilityReviewAdminStubID, err = wiremock.CreateStubBareMetalCapabilityReview(utils_test.FakePayloadAdmin, true)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewMultiarchNotallowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(
-			fakePayloadUsername, OrgId1, false,
+		capabilityReviewMultiarchNotallowedUserStubID, err = wiremock.CreateStubMultiarchCapabilityReview(
+			utils_test.FakePayloadUsername, utils_test.OrgId1, false,
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewMultiarchAllowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(
-			fakePayloadUsername2, OrgId2, true,
+		capabilityReviewMultiarchAllowedUserStubID, err = wiremock.CreateStubMultiarchCapabilityReview(
+			utils_test.FakePayloadUsername2, utils_test.OrgId2, true,
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewIgnoreValidationsNotallowedUserStubID, err = wiremock.createStubIgnoreValidationsCapabilityReview(
-			fakePayloadUsername, OrgId1, false,
+		capabilityReviewIgnoreValidationsNotallowedUserStubID, err = wiremock.CreateStubIgnoreValidationsCapabilityReview(
+			utils_test.FakePayloadUsername, utils_test.OrgId1, false,
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewIgnoreValidationsAllowedUserStubID, err = wiremock.createStubIgnoreValidationsCapabilityReview(
-			fakePayloadUsername2, OrgId2, true,
+		capabilityReviewIgnoreValidationsAllowedUserStubID, err = wiremock.CreateStubIgnoreValidationsCapabilityReview(
+			utils_test.FakePayloadUsername2, utils_test.OrgId2, true,
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -113,31 +118,31 @@ var _ = Describe("test authorization", func() {
 			Skip("auth is disabled")
 		}
 
-		userClusterID, err = registerCluster(ctx, userBMClient, "user-cluster", fmt.Sprintf(psTemplate, FakePS))
+		userClusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "user-cluster", fmt.Sprintf(psTemplate, utils_test.FakePS))
 		Expect(err).ShouldNot(HaveOccurred())
-		userClusterID2, err = registerCluster(ctx, user2BMClient, "user2-cluster", fmt.Sprintf(psTemplate, FakePS2))
+		userClusterID2, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.User2BMClient, "user2-cluster", fmt.Sprintf(psTemplate, utils_test.FakePS2))
 		Expect(err).ShouldNot(HaveOccurred())
-		userClusterID3, err = registerCluster(ctx, editclusterUserBMClient, "user3-cluster", fmt.Sprintf(psTemplate, FakePS3))
+		userClusterID3, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.EditclusterUserBMClient, "user3-cluster", fmt.Sprintf(psTemplate, utils_test.FakePS3))
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	Context("Ignoring validations", func() {
 		It("can't ignore validations if not permitted to do so", func() {
-			_, err := unallowedUserBMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{})
+			_, err := utils_test.TestContext.UnallowedUserBMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{})
 			Expect(err).Should(HaveOccurred())
 		})
 	})
 
 	Context("unallowed user", func() {
 		It("can't list clusters", func() {
-			_, err := unallowedUserBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
+			_, err := utils_test.TestContext.UnallowedUserBMClient.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 			Expect(err).Should(HaveOccurred())
 		})
 	})
 
 	Context("admin user", func() {
 		It("can get all clusters", func() {
-			resp, err := readOnlyAdminUserBMClient.Installer.V2ListClusters(
+			resp, err := utils_test.TestContext.ReadOnlyAdminUserBMClient.Installer.V2ListClusters(
 				ctx,
 				&installer.V2ListClustersParams{})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -145,7 +150,7 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("can't register/delete with read only admin", func() {
-			_, err := readOnlyAdminUserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
+			_, err := utils_test.TestContext.ReadOnlyAdminUserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2DeregisterClusterForbidden()))
 		})
@@ -159,31 +164,31 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("can delete cluster", func() {
-			_, err := editclusterUserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
+			_, err := utils_test.TestContext.EditclusterUserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can update cluster", func() {
-			_, err := editclusterUserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{ClusterID: userClusterID,
+			_, err := utils_test.TestContext.EditclusterUserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{ClusterID: userClusterID,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{Name: swag.String("update-test")}})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can update day2 cluster", func() {
 			// Install day1 cluster
-			clusterId, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+			clusterId, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			infraEnvID := registerInfraEnv(&clusterId, models.ImageTypeMinimalIso).ID
-			registerHostsAndSetRoles(clusterId, *infraEnvID, minHosts, "test-cluster", "example.com")
+			registerHostsAndSetRoles(clusterId, *infraEnvID, utils_test.MinHosts, "test-cluster", "example.com")
 			setClusterAsFinalizing(ctx, clusterId)
-			completeInstallationAndVerify(ctx, agentBMClient, clusterId, true)
+			completeInstallationAndVerify(ctx, utils_test.TestContext.AgentBMClient, clusterId, true)
 
 			// Get day1 cluster
 			c, err := common.GetClusterFromDB(db, clusterId, common.SkipEagerLoading)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Create day2 cluster
-			res, err := userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
+			res, err := utils_test.TestContext.UserBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
 				NewImportClusterParams: &models.ImportClusterParams{
 					Name:               swag.String("test-cluster"),
 					APIVipDnsname:      swag.String("api.test-cluster.example.com"),
@@ -194,7 +199,7 @@ var _ = Describe("test authorization", func() {
 
 			// Update day2 cluster by an editor user
 			day2ClusterId := *res.GetPayload().ID
-			_, err = editclusterUserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			_, err = utils_test.TestContext.EditclusterUserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 				ClusterID: day2ClusterId,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					APIVipDNSName: swag.String("some-dns-name"),
@@ -206,35 +211,35 @@ var _ = Describe("test authorization", func() {
 
 	Context("regular user", func() {
 		It("can get owned cluster", func() {
-			_, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID})
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't get not owned cluster", func() {
-			_, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID2})
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID2})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetClusterNotFound()))
 		})
 
 		It("can delete owned cluster", func() {
-			_, err := userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can get owned infra-env", func() {
 			infraEnvID := registerInfraEnv(&userClusterID, models.ImageTypeMinimalIso).ID
-			_, err := userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
+			_, err := utils_test.TestContext.UserBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't get not owned infra-env", func() {
 
-			request, err := user2BMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+			request, err := utils_test.TestContext.User2BMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("test-infra-env-2"),
 					OpenshiftVersion: openshiftVersion,
-					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
-					SSHAuthorizedKey: swag.String(sshPublicKey),
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
+					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
 					ImageType:        models.ImageTypeMinimalIso,
 					ClusterID:        &userClusterID2,
 				},
@@ -242,20 +247,20 @@ var _ = Describe("test authorization", func() {
 			Expect(err).NotTo(HaveOccurred())
 			infraEnvID2 := request.GetPayload().ID
 
-			_, err = userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID2})
+			_, err = utils_test.TestContext.UserBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID2})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewGetInfraEnvNotFound()))
 		})
 
 		It("can't update not owned cluster", func() {
-			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{ClusterID: userClusterID2,
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{ClusterID: userClusterID2,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{Name: swag.String("update-test")}})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterNotFound()))
 		})
 
 		It("can't update not owned cluster, can only read cluster", func() {
-			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{ClusterID: userClusterID3,
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{ClusterID: userClusterID3,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{Name: swag.String("update-test")}})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterForbidden()))
@@ -263,7 +268,7 @@ var _ = Describe("test authorization", func() {
 
 		It("can't get non-existent infra-env", func() {
 			infraEnvID := strfmt.UUID(uuid.New().String())
-			_, err := userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
+			_, err := utils_test.TestContext.UserBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewGetInfraEnvNotFound()))
 		})
@@ -271,29 +276,29 @@ var _ = Describe("test authorization", func() {
 
 	Context("agent", func() {
 		It("can get owned cluster", func() {
-			_, err := agentBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID})
+			_, err := utils_test.TestContext.AgentBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't get not owned cluster", func() {
-			_, err := agentBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID2})
+			_, err := utils_test.TestContext.AgentBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: userClusterID2})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetClusterNotFound()))
 		})
 
 		It("can get owned infra-env", func() {
 			infraEnvID := registerInfraEnv(&userClusterID, models.ImageTypeMinimalIso).ID
-			_, err := agentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
+			_, err := utils_test.TestContext.AgentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't get not owned infra-env", func() {
-			request, err := user2BMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+			request, err := utils_test.TestContext.User2BMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("test-infra-env-agent-2"),
 					OpenshiftVersion: openshiftVersion,
-					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
-					SSHAuthorizedKey: swag.String(sshPublicKey),
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
+					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
 					ImageType:        models.ImageTypeMinimalIso,
 					ClusterID:        &userClusterID2,
 				},
@@ -301,7 +306,7 @@ var _ = Describe("test authorization", func() {
 			Expect(err).NotTo(HaveOccurred())
 			infraEnvID2 := request.GetPayload().ID
 
-			_, err = agentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID2})
+			_, err = utils_test.TestContext.AgentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID2})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewGetInfraEnvNotFound()))
 		})
@@ -338,8 +343,8 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("try to fetch ignored validations when not allowed", func() {
-			createCluster(userBMClient, FakePS)
-			_, err := userBMClient.Installer.V2GetIgnoredValidations(ctx, &installer.V2GetIgnoredValidationsParams{
+			createCluster(utils_test.TestContext.UserBMClient, utils_test.FakePS)
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2GetIgnoredValidations(ctx, &installer.V2GetIgnoredValidationsParams{
 				ClusterID: *cluster.ID,
 			})
 			Expect(err).Should(HaveOccurred())
@@ -347,8 +352,8 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("attempt to ignore validations when allowed to ignore validations and request is valid", func() {
-			createCluster(user2BMClient, FakePS2)
-			_, err := user2BMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
+			createCluster(utils_test.TestContext.User2BMClient, utils_test.FakePS2)
+			_, err := utils_test.TestContext.User2BMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
 				ClusterID: *cluster.ID,
 				IgnoredValidations: &models.IgnoredValidations{
 					ClusterValidationIds: "[\"dns-domain-defined\"]",
@@ -356,7 +361,7 @@ var _ = Describe("test authorization", func() {
 				},
 			})
 			Expect(err).ShouldNot(HaveOccurred())
-			ignoredValidations, err := user2BMClient.Installer.V2GetIgnoredValidations(ctx, &installer.V2GetIgnoredValidationsParams{
+			ignoredValidations, err := utils_test.TestContext.User2BMClient.Installer.V2GetIgnoredValidations(ctx, &installer.V2GetIgnoredValidationsParams{
 				ClusterID: *cluster.ID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -365,8 +370,8 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("attempt to ignore validations with ID's that do not exist", func() {
-			createCluster(user2BMClient, FakePS2)
-			_, err := user2BMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
+			createCluster(utils_test.TestContext.User2BMClient, utils_test.FakePS2)
+			_, err := utils_test.TestContext.User2BMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
 				ClusterID: *cluster.ID,
 				IgnoredValidations: &models.IgnoredValidations{
 					ClusterValidationIds: "[\"all\", \"dns-domain-defined\", \"does-not-exist\"]",
@@ -385,8 +390,8 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("attempt to ignore validations when not allowed to ignore validations", func() {
-			createCluster(userBMClient, FakePS)
-			_, err := userBMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
+			createCluster(utils_test.TestContext.UserBMClient, utils_test.FakePS)
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
 				ClusterID: *cluster.ID,
 				IgnoredValidations: &models.IgnoredValidations{
 					ClusterValidationIds: "",
@@ -402,8 +407,8 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("Attempt to ignore a host validation that is not ignorable", func() {
-			createCluster(user2BMClient, FakePS2)
-			_, err := user2BMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
+			createCluster(utils_test.TestContext.User2BMClient, utils_test.FakePS2)
+			_, err := utils_test.TestContext.User2BMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
 				ClusterID: *cluster.ID,
 				IgnoredValidations: &models.IgnoredValidations{
 					ClusterValidationIds: "[\"api-vips-defined\",\"ingress-vips-defined\"]",
@@ -413,7 +418,7 @@ var _ = Describe("test authorization", func() {
 			Expect(err).Should(HaveOccurred())
 			Expect(marshalError(err)).To(ContainSubstring("unable to ignore the following host validations (connected,has-inventory)"))
 			Expect(marshalError(err)).To(ContainSubstring("unable to ignore the following cluster validations (api-vips-defined,ingress-vips-defined)"))
-			ignoredValidations, err := user2BMClient.Installer.V2GetIgnoredValidations(ctx, &installer.V2GetIgnoredValidationsParams{
+			ignoredValidations, err := utils_test.TestContext.User2BMClient.Installer.V2GetIgnoredValidations(ctx, &installer.V2GetIgnoredValidationsParams{
 				ClusterID: *cluster.ID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -422,24 +427,24 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("allowed to register a multiarch cluster", func() {
-			request, err := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			request, err := utils_test.TestContext.User2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					CPUArchitecture:  common.MultiCPUArchitecture,
 					Name:             swag.String("test-multiarch-cluster"),
 					OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
-					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
 				},
 			})
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(request.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 		})
 		It("not allowed to register a multiarch cluster", func() {
-			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					CPUArchitecture:  common.MultiCPUArchitecture,
 					Name:             swag.String("test-multiarch-cluster"),
 					OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
-					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS)),
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS)),
 				},
 			})
 			Expect(err).Should(HaveOccurred())
@@ -457,28 +462,28 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+		cID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(err).ToNot(HaveOccurred())
 		clusterID = cID
 		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
-		registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
+		registerHostsAndSetRoles(clusterID, *infraEnvID, utils_test.MinHosts, "test-cluster", "example.com")
 
 		setClusterAsFinalizing(ctx, clusterID)
-		res, err := agentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+		res, err := utils_test.TestContext.AgentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(utils_test.IngressCa)})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res).To(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertCreated()))
 	})
 
 	Context("/v2/clusters/{cluster_id}/credentials", func() {
 		It("Should not allow read-only-admins to download kubeconfig", func() {
-			_, err := readOnlyAdminUserBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
+			_, err := utils_test.TestContext.ReadOnlyAdminUserBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetCredentialsForbidden()))
 		})
 		It("Should allow 'user role' to download kubeconfig", func() {
-			completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
-			res, err := userBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
+			completeInstallationAndVerify(ctx, utils_test.TestContext.AgentBMClient, clusterID, true)
+			res, err := utils_test.TestContext.UserBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(res).To(BeAssignableToTypeOf(installer.NewV2GetCredentialsOK()))
 		})
@@ -491,13 +496,13 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		It(it, func() {
 			file, err := os.CreateTemp("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
-			_, err = readOnlyAdminUserBMClient.Installer.V2DownloadClusterCredentials(ctx, &installer.V2DownloadClusterCredentialsParams{ClusterID: clusterID, FileName: fileName}, file)
+			_, err = utils_test.TestContext.ReadOnlyAdminUserBMClient.Installer.V2DownloadClusterCredentials(ctx, &installer.V2DownloadClusterCredentialsParams{ClusterID: clusterID, FileName: fileName}, file)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2DownloadClusterCredentialsForbidden()))
 		})
 
 		It(it, func() {
-			_, err := readOnlyAdminUserBMClient.Installer.V2GetPresignedForClusterCredentials(ctx, &installer.V2GetPresignedForClusterCredentialsParams{ClusterID: clusterID, FileName: fileName})
+			_, err := utils_test.TestContext.ReadOnlyAdminUserBMClient.Installer.V2GetPresignedForClusterCredentials(ctx, &installer.V2GetPresignedForClusterCredentialsParams{ClusterID: clusterID, FileName: fileName})
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetPresignedForClusterCredentialsForbidden()))
 		})
@@ -507,12 +512,12 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		It(it, func() {
 			file, err := os.CreateTemp("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
-			_, err = userBMClient.Installer.V2DownloadClusterCredentials(ctx, &installer.V2DownloadClusterCredentialsParams{ClusterID: clusterID, FileName: fileName}, file)
+			_, err = utils_test.TestContext.UserBMClient.Installer.V2DownloadClusterCredentials(ctx, &installer.V2DownloadClusterCredentialsParams{ClusterID: clusterID, FileName: fileName}, file)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		it = fmt.Sprintf("Should allow cluster users to download '%v' via downloads/files-presigned endpoint", fileName)
 		It(it, func() {
-			_, err := userBMClient.Installer.V2GetPresignedForClusterCredentials(ctx, &installer.V2GetPresignedForClusterCredentialsParams{ClusterID: clusterID, FileName: fileName})
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2GetPresignedForClusterCredentials(ctx, &installer.V2GetPresignedForClusterCredentialsParams{ClusterID: clusterID, FileName: fileName})
 			Expect(err).NotTo(BeAssignableToTypeOf(installer.NewV2GetPresignedForClusterCredentialsForbidden()))
 		})
 
@@ -527,25 +532,25 @@ var _ = Describe("Cluster credentials should be accessed only by cluster owner",
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+		cID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 		Expect(err).ToNot(HaveOccurred())
 		clusterID = cID
 		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
-		registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
+		registerHostsAndSetRoles(clusterID, *infraEnvID, utils_test.MinHosts, "test-cluster", "example.com")
 		setClusterAsFinalizing(ctx, clusterID)
-		res, err := agentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+		res, err := utils_test.TestContext.AgentBMClient.Installer.V2UploadClusterIngressCert(ctx, &installer.V2UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(utils_test.IngressCa)})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res).To(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertCreated()))
-		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
+		completeInstallationAndVerify(ctx, utils_test.TestContext.AgentBMClient, clusterID, true)
 	})
 
 	It("Should not allow read-only-admins to get credentials", func() {
-		_, err := readOnlyAdminUserBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
+		_, err := utils_test.TestContext.ReadOnlyAdminUserBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(BeAssignableToTypeOf(installer.NewV2GetCredentialsForbidden()))
 	})
 	It("Should allow cluster user to get credentials", func() {
-		_, err := userBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
+		_, err := utils_test.TestContext.UserBMClient.Installer.V2GetCredentials(ctx, &installer.V2GetCredentialsParams{ClusterID: clusterID})
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 )
 
 var _ = Describe("manifests tests", func() {
@@ -62,12 +63,12 @@ spec:
 			ManifestSource: constants.ManifestSourceUserSupplied,
 		}
 
-		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+		registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(openshiftVersion),
 				PullSecret:       swag.String(pullSecret),
-				SSHPublicKey:     sshPublicKey,
+				SSHPublicKey:     utils_test.SshPublicKey,
 				BaseDNSDomain:    "example.com",
 			},
 		})
@@ -80,7 +81,7 @@ spec:
 		var originalFilesAmount int
 
 		By("List files before upload", func() {
-			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
+			response, err := utils_test.TestContext.UserBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: *cluster.ID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -88,7 +89,7 @@ spec:
 		})
 
 		By("upload", func() {
-			response, err := userBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{
+			response, err := utils_test.TestContext.UserBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{
 				ClusterID: *cluster.ID,
 				CreateManifestParams: &models.CreateManifestParams{
 					Content:  &base64Content,
@@ -102,7 +103,7 @@ spec:
 		})
 
 		By("List files after upload", func() {
-			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
+			response, err := utils_test.TestContext.UserBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: *cluster.ID,
 			})
 
@@ -123,7 +124,7 @@ spec:
 		By("download", func() {
 			buffer := new(bytes.Buffer)
 
-			_, err := userBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
+			_, err := utils_test.TestContext.UserBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
 				ClusterID: *cluster.ID,
 				FileName:  manifestFile.FileName,
 				Folder:    &manifestFile.Folder,
@@ -133,7 +134,7 @@ spec:
 		})
 
 		By("update only content without rename", func() {
-			_, err := userBMClient.Manifests.V2UpdateClusterManifest(ctx, &manifests.V2UpdateClusterManifestParams{
+			_, err := utils_test.TestContext.UserBMClient.Manifests.V2UpdateClusterManifest(ctx, &manifests.V2UpdateClusterManifestParams{
 				ClusterID: *cluster.ID,
 				UpdateManifestParams: &models.UpdateManifestParams{
 					UpdatedContent: &base64UpdateContent,
@@ -145,7 +146,7 @@ spec:
 		})
 
 		By("List files after update", func() {
-			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
+			response, err := utils_test.TestContext.UserBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: *cluster.ID,
 			})
 
@@ -166,7 +167,7 @@ spec:
 		By("download after update", func() {
 			buffer := new(bytes.Buffer)
 
-			_, err := userBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
+			_, err := utils_test.TestContext.UserBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
 				ClusterID: *cluster.ID,
 				FileName:  manifestFile.FileName,
 				Folder:    &manifestFile.Folder,
@@ -176,7 +177,7 @@ spec:
 		})
 
 		By("rename manifest", func() {
-			response, err := userBMClient.Manifests.V2UpdateClusterManifest(ctx, &manifests.V2UpdateClusterManifestParams{
+			response, err := utils_test.TestContext.UserBMClient.Manifests.V2UpdateClusterManifest(ctx, &manifests.V2UpdateClusterManifestParams{
 				ClusterID: *cluster.ID,
 				UpdateManifestParams: &models.UpdateManifestParams{
 					FileName:        manifestFile.FileName,
@@ -192,7 +193,7 @@ spec:
 
 		By("delete", func() {
 			fmt.Print("\nDelete\n")
-			_, err := userBMClient.Manifests.V2DeleteClusterManifest(ctx, &manifests.V2DeleteClusterManifestParams{
+			_, err := utils_test.TestContext.UserBMClient.Manifests.V2DeleteClusterManifest(ctx, &manifests.V2DeleteClusterManifestParams{
 				ClusterID: *cluster.ID,
 				FileName:  renamedManifestFile.FileName,
 				Folder:    &renamedManifestFile.Folder,
@@ -202,7 +203,7 @@ spec:
 
 		By("List files after delete", func() {
 			fmt.Print("\nList files after delete\n")
-			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
+			response, err := utils_test.TestContext.UserBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: *cluster.ID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -224,7 +225,7 @@ spec:
 		var non_exiting_id = strfmt.UUID(uuid.New().String())
 
 		It("create manifest returns not found", func() {
-			_, err := userBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{
+			_, err := utils_test.TestContext.UserBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{
 				ClusterID: non_exiting_id,
 				CreateManifestParams: &models.CreateManifestParams{
 					Content:  &base64Content,
@@ -236,7 +237,7 @@ spec:
 		})
 
 		It("update manifest returns not found", func() {
-			_, err := userBMClient.Manifests.V2UpdateClusterManifest(ctx, &manifests.V2UpdateClusterManifestParams{
+			_, err := utils_test.TestContext.UserBMClient.Manifests.V2UpdateClusterManifest(ctx, &manifests.V2UpdateClusterManifestParams{
 				ClusterID: non_exiting_id,
 				UpdateManifestParams: &models.UpdateManifestParams{
 					UpdatedContent: &base64Content,
@@ -248,7 +249,7 @@ spec:
 		})
 
 		It("list manifests returns not found", func() {
-			_, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
+			_, err := utils_test.TestContext.UserBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: non_exiting_id,
 			})
 			Expect(err).To(BeAssignableToTypeOf(manifests.NewV2ListClusterManifestsNotFound()))
@@ -258,7 +259,7 @@ spec:
 		It("download manifests returns not found", func() {
 			buffer := new(bytes.Buffer)
 
-			_, err := userBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
+			_, err := utils_test.TestContext.UserBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
 				ClusterID: non_exiting_id,
 				FileName:  manifestFile.FileName,
 				Folder:    &manifestFile.Folder,
@@ -267,7 +268,7 @@ spec:
 		})
 
 		It("delete manifests returns not found", func() {
-			_, err := userBMClient.Manifests.V2DeleteClusterManifest(ctx, &manifests.V2DeleteClusterManifestParams{
+			_, err := utils_test.TestContext.UserBMClient.Manifests.V2DeleteClusterManifest(ctx, &manifests.V2DeleteClusterManifestParams{
 				ClusterID: non_exiting_id,
 				FileName:  manifestFile.FileName,
 				Folder:    &manifestFile.Folder,
@@ -290,17 +291,17 @@ spec:
 		clusterID := *cluster.ID
 
 		By("install cluster", func() {
-			registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
-			reply, err := userBMClient.Installer.V2InstallCluster(context.Background(), &installer.V2InstallClusterParams{ClusterID: clusterID})
+			registerHostsAndSetRoles(clusterID, *infraEnvID, utils_test.MinHosts, "test-cluster", "example.com")
+			reply, err := utils_test.TestContext.UserBMClient.Installer.V2InstallCluster(context.Background(), &installer.V2InstallClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
 			c := reply.GetPayload()
 			Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
-			generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-			waitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusSuccess)
+			utils_test.TestContext.GenerateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
+			utils_test.TestContext.WaitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusSuccess)
 		})
 
 		By("list manifests", func() {
-			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
+			response, err := utils_test.TestContext.UserBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: clusterID,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -330,12 +331,12 @@ var _ = Describe("disk encryption", func() {
 
 		By("cluster creation", func() {
 
-			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
 					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
-					SSHPublicKey:     sshPublicKey,
+					SSHPublicKey:     utils_test.SshPublicKey,
 					BaseDNSDomain:    "example.com",
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
@@ -354,7 +355,7 @@ var _ = Describe("disk encryption", func() {
 
 		By("cluster update", func() {
 
-			updateClusterReply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			updateClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
@@ -568,12 +569,12 @@ spec:
 
 				By("register cluster", func() {
 
-					registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+					registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
 							Name:             swag.String("test-cluster"),
 							OpenshiftVersion: swag.String(openshiftVersion),
 							PullSecret:       swag.String(pullSecret),
-							SSHPublicKey:     sshPublicKey,
+							SSHPublicKey:     utils_test.SshPublicKey,
 							BaseDNSDomain:    "example.com",
 							DiskEncryption:   t.diskEncryption,
 						},
@@ -584,12 +585,12 @@ spec:
 
 				By("install cluster", func() {
 					infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
-					registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
-					reply, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
+					registerHostsAndSetRoles(clusterID, *infraEnvID, utils_test.MinHosts, "test-cluster", "example.com")
+					reply, err := utils_test.TestContext.UserBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
 					Expect(err).NotTo(HaveOccurred())
 					c := reply.GetPayload()
-					generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-					waitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusSuccess)
+					utils_test.TestContext.GenerateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
+					utils_test.TestContext.WaitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusSuccess)
 				})
 
 				By("verify manifests", func() {
@@ -597,7 +598,7 @@ spec:
 					for i, manifestName := range t.expectedManifestsNames {
 
 						manifest := &bytes.Buffer{}
-						_, err := userBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
+						_, err := utils_test.TestContext.UserBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
 							ClusterID: clusterID,
 							FileName:  manifestName,
 							Folder:    &openshiftFolder,
@@ -617,12 +618,12 @@ spec:
 })
 
 func verifyUsage(set bool, clusterID strfmt.UUID) {
-	getReply, err := userBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
+	getReply, err := utils_test.TestContext.UserBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
 	Expect(err).ToNot(HaveOccurred())
 	c := &common.Cluster{Cluster: *getReply.Payload}
 	if set {
-		verifyUsageSet(c.FeatureUsage, models.Usage{Name: usage.CustomManifest})
+		utils_test.VerifyUsageSet(c.FeatureUsage, models.Usage{Name: usage.CustomManifest})
 	} else {
-		verifyUsageNotSet(c.FeatureUsage, usage.CustomManifest)
+		utils_test.VerifyUsageNotSet(c.FeatureUsage, usage.CustomManifest)
 	}
 }

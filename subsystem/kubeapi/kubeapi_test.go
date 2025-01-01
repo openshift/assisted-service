@@ -1,4 +1,4 @@
-package subsystem
+package kubeapi
 
 import (
 	"bytes"
@@ -42,6 +42,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	agentv1 "github.com/openshift/hive/apis/hive/v1/agent"
@@ -147,17 +148,17 @@ var (
 func deployLocalObjectSecretIfNeeded(ctx context.Context, client k8sclient.Client) *corev1.LocalObjectReference {
 	err := client.Get(
 		ctx,
-		types.NamespacedName{Namespace: Options.Namespace, Name: pullSecretName},
+		types.NamespacedName{Namespace: Options.Namespace, Name: utils_test.PullSecretName},
 		&corev1.Secret{},
 	)
 	if apierrors.IsNotFound(err) {
 		data := map[string]string{corev1.DockerConfigJsonKey: pullSecret}
-		deploySecret(ctx, kubeClient, pullSecretName, data)
+		deploySecret(ctx, kubeClient, utils_test.PullSecretName, data)
 	} else {
 		Expect(err).To(BeNil())
 	}
 	return &corev1.LocalObjectReference{
-		Name: pullSecretName,
+		Name: utils_test.PullSecretName,
 	}
 }
 
@@ -363,7 +364,7 @@ func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 }
 
 func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, spec *hivev1.ClusterDeploymentSpec) {
-	GinkgoLogger(fmt.Sprintf("test '%s' creating cluster deployment '%s'", GinkgoT().Name(), spec.ClusterName))
+	utils_test.GinkgoLogger(fmt.Sprintf("test '%s' creating cluster deployment '%s'", GinkgoT().Name(), spec.ClusterName))
 	err := client.Create(ctx, &hivev1.ClusterDeployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterDeployment",
@@ -662,7 +663,7 @@ func configureLocalAgentClient(infraEnvID string) {
 	tok, err := gencrypto.LocalJWTForKey(infraEnvID, string(privKeyPEM), gencrypto.InfraEnvKey)
 	Expect(err).To(BeNil())
 
-	agentBMClient = client.New(clientcfg(auth.AgentAuthHeaderWriter(tok)))
+	utils_test.TestContext.AgentBMClient = client.New(clientcfg(auth.AgentAuthHeaderWriter(tok)))
 }
 
 func checkAgentCondition(ctx context.Context, hostId string, conditionType conditionsv1.ConditionType, reason string) {
@@ -680,10 +681,10 @@ func checkAgentCondition(ctx context.Context, hostId string, conditionType condi
 }
 
 func registerIPv6MasterNode(ctx context.Context, infraEnvID strfmt.UUID, name, ip string) *models.Host {
-	host := &registerHost(infraEnvID).Host
-	validHwInfoV6.Interfaces[0].IPV6Addresses = []string{ip}
-	generateEssentialHostStepsWithInventory(ctx, host, name, validHwInfoV6)
-	generateEssentialPrepareForInstallationSteps(ctx, host)
+	host := &utils_test.TestContext.RegisterHost(infraEnvID).Host
+	utils_test.ValidHwInfoV6.Interfaces[0].IPV6Addresses = []string{ip}
+	utils_test.TestContext.GenerateEssentialHostStepsWithInventory(ctx, host, name, utils_test.ValidHwInfoV6)
+	utils_test.TestContext.GenerateEssentialPrepareForInstallationSteps(ctx, host)
 	//update role as master
 	hostkey := types.NamespacedName{
 		Namespace: Options.Namespace,
@@ -762,7 +763,7 @@ func getDefaultAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.Ag
 			ServiceNetwork: []string{"172.30.0.0/16"},
 			NetworkType:    models.ClusterNetworkTypeOpenShiftSDN,
 		},
-		SSHPublicKey: sshPublicKey,
+		SSHPublicKey: utils_test.SshPublicKey,
 		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 3,
@@ -786,7 +787,7 @@ func getDefaultNonePlatformAgentClusterInstallSpec(clusterDeploymentName string)
 			NetworkType:           models.ClusterNetworkTypeOpenShiftSDN,
 			UserManagedNetworking: swag.Bool(true),
 		},
-		SSHPublicKey: sshPublicKey,
+		SSHPublicKey: utils_test.SshPublicKey,
 		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 3,
@@ -813,7 +814,7 @@ func getDefaultExternalPlatformAgentClusterInstallSpec(clusterDeploymentName str
 			PlatformName:           "oci",
 			CloudControllerManager: "External",
 		},
-		SSHPublicKey: sshPublicKey,
+		SSHPublicKey: utils_test.SshPublicKey,
 		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 3,
@@ -834,7 +835,7 @@ func getDefaultSNOAgentClusterInstallSpec(clusterDeploymentName string) *hiveext
 			ServiceNetwork: []string{"172.30.0.0/16"},
 			NetworkType:    models.ClusterNetworkTypeOVNKubernetes,
 		},
-		SSHPublicKey: sshPublicKey,
+		SSHPublicKey: utils_test.SshPublicKey,
 		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 1,
@@ -857,7 +858,7 @@ func getDefaultAgentClusterIPv6InstallSpec(clusterDeploymentName string) *hiveex
 			ServiceNetwork: []string{"2003:db8::/112"},
 			NetworkType:    models.ClusterNetworkTypeOVNKubernetes,
 		},
-		SSHPublicKey: sshPublicKey,
+		SSHPublicKey: utils_test.SshPublicKey,
 		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 3,
@@ -877,7 +878,7 @@ func getDefaultInfraEnvSpec(secretRef *corev1.LocalObjectReference,
 			Namespace: Options.Namespace,
 		},
 		PullSecretRef:    secretRef,
-		SSHAuthorizedKey: sshPublicKey,
+		SSHAuthorizedKey: utils_test.SshPublicKey,
 	}
 }
 
@@ -939,31 +940,31 @@ func printCRs(ctx context.Context, client k8sclient.Client) {
 		)
 
 		multiErr = multierror.Append(multiErr, client.List(ctx, &agentList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("Agent", agentList))
+		multiErr = multierror.Append(multiErr, utils_test.GinkgoResourceLogger("Agent", agentList))
 
 		multiErr = multierror.Append(multiErr, client.List(ctx, &aciList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("AgentClusterInstall", aciList))
+		multiErr = multierror.Append(multiErr, utils_test.GinkgoResourceLogger("AgentClusterInstall", aciList))
 
 		multiErr = multierror.Append(multiErr, client.List(ctx, &clusterDeploymentList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("ClusterDeployment", clusterDeploymentList))
+		multiErr = multierror.Append(multiErr, utils_test.GinkgoResourceLogger("ClusterDeployment", clusterDeploymentList))
 
 		multiErr = multierror.Append(multiErr, client.List(ctx, &clusterImageSetList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("ClusterImageSet", clusterImageSetList))
+		multiErr = multierror.Append(multiErr, utils_test.GinkgoResourceLogger("ClusterImageSet", clusterImageSetList))
 
 		multiErr = multierror.Append(multiErr, client.List(ctx, &infraEnvList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("InfraEnv", infraEnvList))
+		multiErr = multierror.Append(multiErr, utils_test.GinkgoResourceLogger("InfraEnv", infraEnvList))
 
 		multiErr = multierror.Append(multiErr, client.List(ctx, &nmStateConfigList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("NMStateConfig", nmStateConfigList))
+		multiErr = multierror.Append(multiErr, utils_test.GinkgoResourceLogger("NMStateConfig", nmStateConfigList))
 
 		multiErr = multierror.Append(multiErr, client.List(ctx, &classificationList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("AgentClassification", classificationList))
+		multiErr = multierror.Append(multiErr, utils_test.GinkgoResourceLogger("AgentClassification", classificationList))
 
 		multiErr = multierror.Append(multiErr, client.List(ctx, &bareMetalHostList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("BareMetalHost", bareMetalHostList))
+		multiErr = multierror.Append(multiErr, utils_test.GinkgoResourceLogger("BareMetalHost", bareMetalHostList))
 
 		multiErr = multierror.Append(multiErr, client.List(ctx, &PreprovisioningImageList, k8sclient.InNamespace(Options.Namespace)))
-		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("PreprovisioningImage", PreprovisioningImageList))
+		multiErr = multierror.Append(multiErr, utils_test.GinkgoResourceLogger("PreprovisioningImage", PreprovisioningImageList))
 
 		Expect(multiErr.ErrorOrNil()).To(BeNil())
 	}
@@ -1016,14 +1017,14 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Options.Namespace,
-			Name:      pullSecretName,
+			Name:      utils_test.PullSecretName,
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
 	}
 
 	psKey := types.NamespacedName{
 		Namespace: Options.Namespace,
-		Name:      pullSecretName,
+		Name:      utils_test.PullSecretName,
 	}
 
 	err := kubeClient.Get(ctx, psKey, &corev1.Secret{})
@@ -1161,7 +1162,7 @@ func createBMHCRDNameFromID(id string) string {
 
 const waitForReconcileTimeout = 30
 
-var _ = Describe("[kube-api]cluster installation", func() {
+var _ = Describe("cluster installation", func() {
 	if !Options.EnableKubeAPI {
 		return
 	}
@@ -1177,6 +1178,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		aciSNOSpec              *hiveext.AgentClusterInstallSpec
 		aciV6Spec               *hiveext.AgentClusterInstallSpec
 		secretRef               *corev1.LocalObjectReference
+		db                      *gorm.DB
 	)
 
 	BeforeEach(func() {
@@ -1195,6 +1197,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 		}
 		infraEnvSpec = getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+		db = utils_test.TestContext.GetDB()
 	})
 
 	Context("Cluster mirror registry", func() {
@@ -1406,8 +1409,8 @@ location = "%s"
 
 	It("Pull Secret validation error", func() {
 		By("setting pull secret with wrong data")
-		updateSecret(ctx, kubeClient, pullSecretName, map[string]string{
-			corev1.DockerConfigJsonKey: WrongPullSecret})
+		updateSecret(ctx, kubeClient, utils_test.PullSecretName, map[string]string{
+			corev1.DockerConfigJsonKey: utils_test.WrongPullSecret})
 
 		By("Create cluster")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -1441,16 +1444,16 @@ location = "%s"
 		By("register hosts")
 		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv6Addresses(3, defaultCIDRv6)
+		ips := hostutil.GenerateIPv6Addresses(3, utils_test.DefaultCIDRv6)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
 			host := registerIPv6MasterNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
-		generateVerifyVipsPostStepReply(ctx, hosts[0], []string{aciV6Spec.APIVIP}, []string{aciV6Spec.IngressVIP}, models.VipVerificationSucceeded)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateVerifyVipsPostStepReply(ctx, hosts[0], []string{aciV6Spec.APIVIP}, []string{aciV6Spec.IngressVIP}, models.VipVerificationSucceeded)
 		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
 		By("verify validations are successfull")
@@ -1523,10 +1526,10 @@ location = "%s"
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(3, utils_test.DefaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
+			host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -1538,9 +1541,9 @@ location = "%s"
 			agent := getAgentCRD(ctx, kubeClient, hostkey)
 			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
 		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
 		By("Approve Agents")
@@ -1601,10 +1604,10 @@ location = "%s"
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(3, utils_test.DefaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNodeWithInventory(ctx, *infraEnv.ID, hostname, ips[i], getDefaultNutanixInventory(ips[i]))
+			host := utils_test.TestContext.RegisterNodeWithInventory(ctx, *infraEnv.ID, hostname, ips[i], utils_test.TestContext.GetDefaultNutanixInventory(ips[i]))
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -1616,9 +1619,9 @@ location = "%s"
 			agent := getAgentCRD(ctx, kubeClient, hostkey)
 			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
 		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
 		By("Approve Agents")
@@ -1723,10 +1726,10 @@ location = "%s"
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(3, utils_test.DefaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNodeWithInventory(ctx, *infraEnv.ID, hostname, ips[i], getDefaultExternalInventory(ips[i]))
+			host := utils_test.TestContext.RegisterNodeWithInventory(ctx, *infraEnv.ID, hostname, ips[i], utils_test.TestContext.GetDefaultExternalInventory(ips[i]))
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -1738,10 +1741,10 @@ location = "%s"
 			agent := getAgentCRD(ctx, kubeClient, hostkey)
 			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
 		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
-			generateCommonDomainReply(ctx, h, clusterDeploymentSpec.ClusterName, clusterDeploymentSpec.BaseDomain)
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateCommonDomainReply(ctx, h, clusterDeploymentSpec.ClusterName, clusterDeploymentSpec.BaseDomain)
 		}
 
 		By("Approve Agents")
@@ -1798,10 +1801,10 @@ location = "%s"
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(3, utils_test.DefaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNodeWithInventory(ctx, *infraEnv.ID, hostname, ips[i], getDefaultVmwareInventory(ips[i]))
+			host := utils_test.TestContext.RegisterNodeWithInventory(ctx, *infraEnv.ID, hostname, ips[i], utils_test.TestContext.GetDefaultVmwareInventory(ips[i]))
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -1813,9 +1816,9 @@ location = "%s"
 			agent := getAgentCRD(ctx, kubeClient, hostkey)
 			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
 		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
 		By("Approve Agents")
@@ -1869,10 +1872,10 @@ location = "%s"
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(3, utils_test.DefaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
+			host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -1884,10 +1887,10 @@ location = "%s"
 			agent := getAgentCRD(ctx, kubeClient, hostkey)
 			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
 		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
-			generateCommonDomainReply(ctx, h, clusterDeploymentSpec.ClusterName, clusterDeploymentSpec.BaseDomain)
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateCommonDomainReply(ctx, h, clusterDeploymentSpec.ClusterName, clusterDeploymentSpec.BaseDomain)
 		}
 
 		By("Approve Agents")
@@ -1962,7 +1965,7 @@ location = "%s"
 		defer func() {
 			deleteSecret(ctx, kubeClient, ignitionTokenSecretName)
 		}()
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 
 		hostkey := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -2003,7 +2006,7 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 
 		hostkey := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -2161,10 +2164,10 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(*infraEnv.ID).Host
-		hwInfo := validHwInfo
-		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		host := &utils_test.TestContext.RegisterHost(*infraEnv.ID).Host
+		hwInfo := utils_test.ValidHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{utils_test.DefaultCIDRv4}
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
 
 		By("Verify agent and host are not bound")
 		h, err := common.GetHostFromDB(db, infraEnv.ID.String(), host.ID.String())
@@ -2204,10 +2207,10 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(*infraEnv.ID).Host
-		hwInfo := validHwInfo
-		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		host := &utils_test.TestContext.RegisterHost(*infraEnv.ID).Host
+		hwInfo := utils_test.ValidHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{utils_test.DefaultCIDRv4}
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
 
 		By("Verify agent inventory labels")
 		key := types.NamespacedName{
@@ -2224,9 +2227,9 @@ location = "%s"
 		Expect(agentLabels["inventory.agent-install.openshift.io/storage-hasnonrotationaldisk"]).To(Equal("true"))
 		Expect(agentLabels["inventory.agent-install.openshift.io/cpu-architecture"]).To(Equal("x86_64"))
 		Expect(agentLabels["inventory.agent-install.openshift.io/cpu-virtenabled"]).To(Equal("false"))
-		Expect(agentLabels["inventory.agent-install.openshift.io/host-manufacturer"]).To(Equal(validHwInfo.SystemVendor.Manufacturer))
-		Expect(agentLabels["inventory.agent-install.openshift.io/host-productname"]).To(Equal(validHwInfo.SystemVendor.ProductName))
-		Expect(agentLabels["inventory.agent-install.openshift.io/host-isvirtual"]).To(Equal(strconv.FormatBool(validHwInfo.SystemVendor.Virtual)))
+		Expect(agentLabels["inventory.agent-install.openshift.io/host-manufacturer"]).To(Equal(utils_test.ValidHwInfo.SystemVendor.Manufacturer))
+		Expect(agentLabels["inventory.agent-install.openshift.io/host-productname"]).To(Equal(utils_test.ValidHwInfo.SystemVendor.ProductName))
+		Expect(agentLabels["inventory.agent-install.openshift.io/host-isvirtual"]).To(Equal(strconv.FormatBool(utils_test.ValidHwInfo.SystemVendor.Virtual)))
 
 		By("Verify agent classification labels")
 		classificationXXL := v1beta1.AgentClassification{
@@ -2363,18 +2366,18 @@ location = "%s"
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(3, utils_test.DefaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
+			host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
 		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
 		By("Approve Agents")
@@ -2417,7 +2420,7 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2426,7 +2429,7 @@ location = "%s"
 			agent := getAgentCRD(ctx, kubeClient, key)
 			agent.Spec.Hostname = "newhostname"
 			agent.Spec.Approved = true
-			agent.Spec.InstallationDiskID = sdb.ID
+			agent.Spec.InstallationDiskID = utils_test.Sdb.ID
 			return kubeClient.Update(ctx, agent)
 		}, "30s", "10s").Should(BeNil())
 
@@ -2439,19 +2442,19 @@ location = "%s"
 			h, err := common.GetHostFromDB(db, infraEnv.ID.String(), host.ID.String())
 			Expect(err).To(BeNil())
 			return h.InstallationDiskID
-		}, "2m", "10s").Should(Equal(sdb.ID))
+		}, "2m", "10s").Should(Equal(utils_test.Sdb.ID))
 		Eventually(func() string {
 			return getAgentCRD(ctx, kubeClient, key).Status.InstallationDiskID
-		}, "2m", "10s").Should(Equal(sdb.ID))
+		}, "2m", "10s").Should(Equal(utils_test.Sdb.ID))
 		Eventually(func() string {
 			return getAgentCRD(ctx, kubeClient, key).Spec.InstallationDiskID
-		}, "2m", "10s").Should(Equal(sdb.ID))
+		}, "2m", "10s").Should(Equal(utils_test.Sdb.ID))
 		Eventually(func() bool {
 			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
 		}, "2m", "10s").Should(Equal(true))
 		Eventually(func() string {
 			return getAgentCRD(ctx, kubeClient, key).Status.Inventory.SystemVendor.Manufacturer
-		}, "2m", "10s").Should(Equal(validHwInfo.SystemVendor.Manufacturer))
+		}, "2m", "10s").Should(Equal(utils_test.ValidHwInfo.SystemVendor.Manufacturer))
 	})
 
 	It("deploy clusterDeployment with agent,bmh and ignition config override", func() {
@@ -2464,7 +2467,7 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2535,7 +2538,7 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2602,10 +2605,10 @@ location = "%s"
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(3, utils_test.DefaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
+			host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -2617,9 +2620,9 @@ location = "%s"
 			agent := getAgentCRD(ctx, kubeClient, hostkey)
 			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
 		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
 		By("Invalid ignition config - invalid json")
@@ -2679,7 +2682,7 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2742,7 +2745,7 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2801,7 +2804,7 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2882,7 +2885,7 @@ location = "%s"
 		}
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, &v1beta1.InfraEnvSpec{
 			PullSecretRef:         secretRef,
-			SSHAuthorizedKey:      sshPublicKey,
+			SSHAuthorizedKey:      utils_test.SshPublicKey,
 			AdditionalTrustBundle: additionalTrustCertificate,
 		})
 		Eventually(func() string {
@@ -3009,7 +3012,7 @@ location = "%s"
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
-				Name:      pullSecretName,
+				Name:      utils_test.PullSecretName,
 			},
 			StringData: data,
 			Type:       corev1.SecretTypeDockerConfigJson,
@@ -3056,9 +3059,9 @@ location = "%s"
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		ips := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)
-		generateFullMeshConnectivity(ctx, ips[0], host)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(1, utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], host)
 
 		key := types.NamespacedName{
 			Namespace: "default",
@@ -3069,7 +3072,7 @@ location = "%s"
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 
-		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Approve Agent")
 		Eventually(func() error {
@@ -3101,12 +3104,12 @@ location = "%s"
 			return true
 		}, "1m", "2s").Should(BeTrue())
 
-		updateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
+		utils_test.TestContext.UpdateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
 
 		By("Complete Installation")
-		completeInstallation(agentBMClient, *cluster.ID)
+		utils_test.TestContext.CompleteInstallation(*cluster.ID)
 		isSuccess := true
-		_, err = agentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
+		_, err = utils_test.TestContext.AgentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -3153,7 +3156,7 @@ location = "%s"
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
-				Name:      pullSecretName,
+				Name:      utils_test.PullSecretName,
 			},
 			StringData: data,
 			Type:       corev1.SecretTypeDockerConfigJson,
@@ -3564,10 +3567,10 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(*infraEnv.ID).Host
-		hwInfo := validHwInfo
-		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		host := &utils_test.TestContext.RegisterHost(*infraEnv.ID).Host
+		hwInfo := utils_test.ValidHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{utils_test.DefaultCIDRv4}
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
 
 		By("Verify agent is not bind")
 		hostKey := types.NamespacedName{
@@ -3704,10 +3707,10 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(*infraEnv.ID).Host
-		hwInfo := validHwInfo
-		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		host := &utils_test.TestContext.RegisterHost(*infraEnv.ID).Host
+		hwInfo := utils_test.ValidHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{utils_test.DefaultCIDRv4}
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
 
 		By("Create cluster")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -3742,9 +3745,9 @@ location = "%s"
 			return agent.ClusterID != nil
 		}, "30s", "1s").Should(BeTrue())
 
-		registerHostByUUID(host.InfraEnvID, *host.ID)
-		generateEssentialHostSteps(ctx, host, "hostname1", defaultCIDRv4)
-		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.RegisterHostByUUID(host.InfraEnvID, *host.ID)
+		utils_test.TestContext.GenerateEssentialHostSteps(ctx, host, "hostname1", utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Unbind Agent")
 		Eventually(func() error {
@@ -3782,10 +3785,10 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(*infraEnv.ID).Host
-		hwInfo := validHwInfo
-		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		host := &utils_test.TestContext.RegisterHost(*infraEnv.ID).Host
+		hwInfo := utils_test.ValidHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{utils_test.DefaultCIDRv4}
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
 
 		By("Create cluster")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -3820,9 +3823,9 @@ location = "%s"
 			return agent.ClusterID != nil
 		}, "30s", "1s").Should(BeTrue())
 
-		registerHostByUUID(host.InfraEnvID, *host.ID)
-		generateEssentialHostSteps(ctx, host, "hostname1", defaultCIDRv4)
-		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.RegisterHostByUUID(host.InfraEnvID, *host.ID)
+		utils_test.TestContext.GenerateEssentialHostSteps(ctx, host, "hostname1", utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Delete ClusterDeployment")
 		Expect(kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))).ShouldNot(HaveOccurred())
@@ -3852,12 +3855,12 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(*infraEnv.ID).Host
-		ips := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)
+		host := &utils_test.TestContext.RegisterHost(*infraEnv.ID).Host
+		ips := hostutil.GenerateIPv4Addresses(1, utils_test.DefaultCIDRv4)
 
-		hwInfo := validHwInfo
-		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		hwInfo := utils_test.ValidHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{utils_test.DefaultCIDRv4}
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
 
 		By("Create source CD")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -3892,11 +3895,11 @@ location = "%s"
 			return agent.ClusterID != nil
 		}, "30s", "1s").Should(BeTrue())
 
-		registerHostByUUID(host.InfraEnvID, *host.ID)
-		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
-		generateEssentialHostSteps(ctx, host, "hostname1", defaultCIDRv4)
-		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.RegisterHostByUUID(host.InfraEnvID, *host.ID)
+		hwInfo.Interfaces[0].IPV4Addresses = []string{utils_test.DefaultCIDRv4}
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		utils_test.TestContext.GenerateEssentialHostSteps(ctx, host, "hostname1", utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Create target CD")
 		targetCDSpec := getDefaultClusterDeploymentSpec(secretRef)
@@ -3927,9 +3930,9 @@ location = "%s"
 		}, "1m", "10s").Should(BeTrue())
 
 		By("Register to pool again")
-		registerHostByUUID(host.InfraEnvID, *host.ID)
-		generateFullMeshConnectivity(ctx, ips[0], host)
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		utils_test.TestContext.RegisterHostByUUID(host.InfraEnvID, *host.ID)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], host)
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
 
 		By("Wait for Agent State - binding")
 		Eventually(func() bool {
@@ -3937,10 +3940,10 @@ location = "%s"
 			return agent.Status.DebugInfo.State == models.HostStatusBinding
 		}, "1m", "10s").Should(BeTrue())
 
-		registerHostByUUID(host.InfraEnvID, *host.ID)
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
-		generateEssentialHostSteps(ctx, host, "hostname1", defaultCIDRv4)
-		generateDomainResolution(ctx, host, targetCDSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.RegisterHostByUUID(host.InfraEnvID, *host.ID)
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		utils_test.TestContext.GenerateEssentialHostSteps(ctx, host, "hostname1", utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, targetCDSpec.ClusterName, "hive.example.com")
 
 		By("Wait for Agent State - Known")
 		Eventually(func() bool {
@@ -4075,11 +4078,11 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(*infraEnv.ID).Host
-		ips := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)
-		hwInfo := validHwInfo
-		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		host := &utils_test.TestContext.RegisterHost(*infraEnv.ID).Host
+		ips := hostutil.GenerateIPv4Addresses(1, utils_test.DefaultCIDRv4)
+		hwInfo := utils_test.ValidHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{utils_test.DefaultCIDRv4}
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
 
 		By("Create cluster")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -4114,10 +4117,10 @@ location = "%s"
 			return agent.ClusterID != nil
 		}, "30s", "1s").Should(BeTrue())
 
-		registerHostByUUID(host.InfraEnvID, *host.ID)
-		generateFullMeshConnectivity(ctx, ips[0], host)
-		generateEssentialHostSteps(ctx, host, "hostname1", defaultCIDRv4)
-		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.RegisterHostByUUID(host.InfraEnvID, *host.ID)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], host)
+		utils_test.TestContext.GenerateEssentialHostSteps(ctx, host, "hostname1", utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Wait for Agent to be Known Bound")
 		Eventually(func() bool {
@@ -4172,12 +4175,12 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := &registerHost(*infraEnv.ID).Host
-		ips := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)
-		hwInfo := validHwInfo
-		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
-		generateFullMeshConnectivity(ctx, ips[0], host)
-		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+		host := &utils_test.TestContext.RegisterHost(*infraEnv.ID).Host
+		ips := hostutil.GenerateIPv4Addresses(1, utils_test.DefaultCIDRv4)
+		hwInfo := utils_test.ValidHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{utils_test.DefaultCIDRv4}
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], host)
+		utils_test.TestContext.GenerateHWPostStepReply(ctx, host, hwInfo, "hostname1")
 
 		By("Verify agent is not bind")
 		hostKey := types.NamespacedName{
@@ -4226,10 +4229,10 @@ location = "%s"
 			return agent.ClusterID != nil
 		}, "30s", "1s").Should(BeTrue())
 
-		registerHostByUUID(host.InfraEnvID, *host.ID)
-		generateEssentialHostSteps(ctx, host, "hostname1", defaultCIDRv4)
-		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
-		generateEssentialPrepareForInstallationSteps(ctx, host)
+		utils_test.TestContext.RegisterHostByUUID(host.InfraEnvID, *host.ID)
+		utils_test.TestContext.GenerateEssentialHostSteps(ctx, host, "hostname1", utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.GenerateEssentialPrepareForInstallationSteps(ctx, host)
 
 		By("Check ACI condition UnapprovedAgentsReason")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterUnapprovedAgentsReason)
@@ -4260,13 +4263,13 @@ location = "%s"
 
 		checkAgentCondition(ctx, host.ID.String(), v1beta1.InstalledCondition, v1beta1.InstallationInProgressReason)
 
-		updateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
+		utils_test.TestContext.UpdateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
 
 		By("Complete Installation")
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		completeInstallation(agentBMClient, *cluster.ID)
+		utils_test.TestContext.CompleteInstallation(*cluster.ID)
 		isSuccess := true
-		_, err := agentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
+		_, err := utils_test.TestContext.AgentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -4321,9 +4324,9 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		ips := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)
-		generateFullMeshConnectivity(ctx, ips[0], host)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(1, utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], host)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -4332,7 +4335,7 @@ location = "%s"
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
-		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		By("Check that ACI Event URL is valid")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
@@ -4432,7 +4435,7 @@ location = "%s"
 			models.HostStageWaitingForBootkube, models.HostStageWritingImageToDisk,
 			models.HostStageRebooting, models.HostStageJoined, models.HostStageDone,
 		}
-		updateHostProgressWithInfo(*host.ID, *infraEnv.ID, installProgress, installInfo)
+		utils_test.TestContext.UpdateHostProgressWithInfo(*host.ID, *infraEnv.ID, installProgress, installInfo)
 
 		Eventually(func() bool {
 			agent := getAgentCRD(ctx, kubeClient, key)
@@ -4448,9 +4451,9 @@ location = "%s"
 		}, "30s", "10s").Should(Equal(int64(80)))
 
 		By("Check ACI Logs URL exists")
-		kubeconfigFile, err := os.Open("test_kubeconfig")
+		kubeconfigFile, err := os.Open("../test_kubeconfig")
 		Expect(err).NotTo(HaveOccurred())
-		_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
+		_, err = utils_test.TestContext.AgentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
 			InfraEnvID: infraEnv.ID, HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
 		Expect(err).NotTo(HaveOccurred())
 		kubeconfigFile.Close()
@@ -4476,17 +4479,17 @@ location = "%s"
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
 
 		By("Upload cluster logs")
-		kubeconfigFile, err1 := os.Open("test_kubeconfig")
+		kubeconfigFile, err1 := os.Open("../test_kubeconfig")
 		Expect(err1).NotTo(HaveOccurred())
-		_, err1 = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
+		_, err1 = utils_test.TestContext.AgentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
 			InfraEnvID: infraEnv.ID, Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
 		Expect(err1).NotTo(HaveOccurred())
 		kubeconfigFile.Close()
 
 		By("Complete Installation")
-		completeInstallation(agentBMClient, *cluster.ID)
+		utils_test.TestContext.CompleteInstallation(*cluster.ID)
 		isSuccess := true
-		_, err = agentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
+		_, err = utils_test.TestContext.AgentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -4560,8 +4563,8 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", ips[0])
+		ips := hostutil.GenerateIPv4Addresses(2, utils_test.DefaultCIDRv4)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", ips[0])
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -4594,9 +4597,9 @@ location = "%s"
 		}
 		infraEnv2 := getInfraEnvFromDBByKubeKey(ctx, db, infraEnv2Key, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv2.ID.String())
-		h := &registerHostByUUID(*infraEnv2.ID, *host.ID).Host
-		generateEssentialHostSteps(ctx, h, "hostname2", ips[1])
-		generateEssentialPrepareForInstallationSteps(ctx, h)
+		h := &utils_test.TestContext.RegisterHostByUUID(*infraEnv2.ID, *host.ID).Host
+		utils_test.TestContext.GenerateEssentialHostSteps(ctx, h, "hostname2", ips[1])
+		utils_test.TestContext.GenerateEssentialPrepareForInstallationSteps(ctx, h)
 
 		By("Check Agent is updated with new ClusterDeployment")
 		Eventually(func() string {
@@ -4638,9 +4641,9 @@ location = "%s"
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		ips := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)
-		generateFullMeshConnectivity(ctx, ips[0], host)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(1, utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], host)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -4649,7 +4652,7 @@ location = "%s"
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
-		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		By("Approve Agent")
 		Eventually(func() error {
 			agent := getAgentCRD(ctx, kubeClient, key)
@@ -4699,18 +4702,18 @@ location = "%s"
 		for _, host := range hosts {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsPassingReason)
 		}
-		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(3, utils_test.DefaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
+			host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
 		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, host := range hosts {
-			generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
 		By("Approve Agents")
@@ -4747,13 +4750,13 @@ location = "%s"
 		}
 
 		for _, host := range hosts {
-			updateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
+			utils_test.TestContext.UpdateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
 		}
 
 		By("Complete Installation")
-		completeInstallation(agentBMClient, *cluster.ID)
+		utils_test.TestContext.CompleteInstallation(*cluster.ID)
 		isSuccess := true
-		_, err := agentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
+		_, err := utils_test.TestContext.AgentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -4812,15 +4815,15 @@ location = "%s"
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
 		hosts := make([]*models.Host, 0)
-		ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(5, utils_test.DefaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
+			host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 		By("Check ACI Logs URL is empty")
 		// Should not show the URL since no logs yet to be collected
@@ -4859,11 +4862,11 @@ location = "%s"
 
 		By("Upload hosts logs during installation")
 		for _, host := range hosts {
-			updateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
+			utils_test.TestContext.UpdateProgress(*host.ID, *infraEnv.ID, models.HostStageDone)
 
-			kubeconfigFile, err := os.Open("test_kubeconfig")
+			kubeconfigFile, err := os.Open("../test_kubeconfig")
 			Expect(err).NotTo(HaveOccurred())
-			_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
+			_, err = utils_test.TestContext.AgentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
 				InfraEnvID: infraEnv.ID, HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
 			Expect(err).NotTo(HaveOccurred())
 			kubeconfigFile.Close()
@@ -4876,9 +4879,9 @@ location = "%s"
 		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Upload cluster logs")
-		kubeconfigFile, err1 := os.Open("test_kubeconfig")
+		kubeconfigFile, err1 := os.Open("../test_kubeconfig")
 		Expect(err1).NotTo(HaveOccurred())
-		_, err1 = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
+		_, err1 = utils_test.TestContext.AgentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: *cluster.ID,
 			InfraEnvID: infraEnv.ID, Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
 		Expect(err1).NotTo(HaveOccurred())
 		kubeconfigFile.Close()
@@ -4926,9 +4929,9 @@ location = "%s"
 		}, "30s", "1s").Should(Equal(aciSpec.IngressVIP))
 
 		By("Complete Installation")
-		completeInstallation(agentBMClient, *cluster.ID)
+		utils_test.TestContext.CompleteInstallation(*cluster.ID)
 		isSuccess := true
-		_, err := agentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
+		_, err := utils_test.TestContext.AgentBMClient.Installer.V2CompleteInstallation(ctx, &installer.V2CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -4961,16 +4964,16 @@ location = "%s"
 
 		By("Add Day 2 host")
 		configureLocalAgentClient(infraEnv.ID.String())
-		day2Host1 := registerNode(ctx, *infraEnv.ID, "firsthostnameday2", ips[3])
-		generateApiVipPostStepReply(ctx, day2Host1, &cluster.Cluster, true)
-		generateFullMeshConnectivity(ctx, ips[3], day2Host1)
-		generateDomainResolution(ctx, day2Host1, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		day2Host1 := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "firsthostnameday2", ips[3])
+		utils_test.TestContext.GenerateApiVipPostStepReply(ctx, day2Host1, &cluster.Cluster, true)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[3], day2Host1)
+		utils_test.TestContext.GenerateDomainResolution(ctx, day2Host1, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Add a second Day 2 host")
-		day2Host2 := registerNode(ctx, *infraEnv.ID, "secondhostnameday2", ips[4])
-		generateApiVipPostStepReply(ctx, day2Host2, &cluster.Cluster, true)
-		generateFullMeshConnectivity(ctx, ips[4], day2Host2)
-		generateDomainResolution(ctx, day2Host2, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		day2Host2 := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "secondhostnameday2", ips[4])
+		utils_test.TestContext.GenerateApiVipPostStepReply(ctx, day2Host2, &cluster.Cluster, true)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[4], day2Host2)
+		utils_test.TestContext.GenerateDomainResolution(ctx, day2Host2, clusterDeploymentSpec.ClusterName, "hive.example.com")
 
 		By("Approve Day 2 agents")
 		k1 := types.NamespacedName{
@@ -5110,14 +5113,14 @@ spec:
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		ips := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)
-		generateFullMeshConnectivity(ctx, ips[0], host)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(1, utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], host)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
-		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		By("Approve Agent")
 		Eventually(func() error {
 			agent := getAgentCRD(ctx, kubeClient, key)
@@ -5180,14 +5183,14 @@ spec:
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		ips := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)
-		generateFullMeshConnectivity(ctx, ips[0], host)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(1, utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], host)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
-		generateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		By("Approve Agent")
 		Eventually(func() error {
 			agent := getAgentCRD(ctx, kubeClient, key)
@@ -5256,7 +5259,7 @@ spec:
 
 		By("Register a Host and validate that an agent CR was created")
 		configureLocalAgentClient(infraEnv.ID.String())
-		registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 		Eventually(func() int {
 			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
 		}, "2m", "2s").Should(Equal(1))
@@ -5541,12 +5544,12 @@ spec:
 		Expect(infraEnv).ToNot(BeNil())
 
 		configureLocalAgentClient(infraEnv.ID.String())
-		ips := hostutil.GenerateIPv4Addresses(5, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(5, utils_test.DefaultCIDRv4)
 		hosts := make([]*models.Host, 0)
 
 		for i := 0; i < 5; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			hosts = append(hosts, registerNode(ctx, *infraEnv.ID, hostname, ips[i]))
+			hosts = append(hosts, utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, hostname, ips[i]))
 		}
 
 		for _, host := range hosts {
@@ -5559,10 +5562,10 @@ spec:
 			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
 		}
 
-		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
 
 		for _, h := range hosts {
-			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
 		// approving the agents so the infraenv could be deregistered successfully
@@ -5609,7 +5612,7 @@ spec:
 	})
 })
 
-var _ = Describe("bmac reconcile flow", func() {
+var _ = PDescribe("bmac reconcile flow", func() { // Disabled until MGMT-19596 is resolved
 	if !Options.EnableKubeAPI {
 		return
 	}
@@ -5621,6 +5624,7 @@ var _ = Describe("bmac reconcile flow", func() {
 		bmhNsName   types.NamespacedName
 		agentNsName types.NamespacedName
 		infraNsName types.NamespacedName
+		db          *gorm.DB
 	)
 
 	BeforeEach(func() {
@@ -5641,7 +5645,7 @@ var _ = Describe("bmac reconcile flow", func() {
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 		agentNsName = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -5653,6 +5657,7 @@ var _ = Describe("bmac reconcile flow", func() {
 			Namespace: Options.Namespace,
 			Name:      createBMHCRDNameFromID(host.ID.String()),
 		}
+		db = utils_test.TestContext.GetDB()
 	})
 
 	Context("sno reconcile flow", func() {
@@ -5730,11 +5735,19 @@ var _ = Describe("bmac reconcile flow", func() {
 	})
 })
 
-var _ = Describe("PreprovisioningImage reconcile flow", func() {
+var _ = PDescribe("PreprovisioningImage reconcile flow", func() { // Disabled until MGMT-19596 is resolved
 	if !Options.EnableKubeAPI {
 		return
 	}
 	ctx := context.Background()
+
+	var (
+		db *gorm.DB
+	)
+
+	BeforeEach(func() {
+		db = utils_test.TestContext.GetDB()
+	})
 
 	It("will correctly set the image url after an invalid infraenv is corrected", func() {
 		infraNsName := types.NamespacedName{
@@ -5795,7 +5808,7 @@ var _ = Describe("PreprovisioningImage reconcile flow", func() {
 		// correct public key
 		Eventually(func() error {
 			infraEnv := getInfraEnvCRD(ctx, kubeClient, infraNsName)
-			infraEnv.Spec.SSHAuthorizedKey = sshPublicKey
+			infraEnv.Spec.SSHAuthorizedKey = utils_test.SshPublicKey
 			return kubeClient.Update(ctx, infraEnv)
 		}, "30s", "5s").Should(Succeed())
 
@@ -5820,6 +5833,7 @@ var _ = Describe("PreprovisioningImage reconcile flow", func() {
 			ppiNsName   types.NamespacedName
 			infraNsName types.NamespacedName
 			infraEnvKey types.NamespacedName
+			db          *gorm.DB
 		)
 
 		BeforeEach(func() {
@@ -5843,7 +5857,7 @@ var _ = Describe("PreprovisioningImage reconcile flow", func() {
 			}
 			infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 			configureLocalAgentClient(infraEnv.ID.String())
-			host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+			host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
 
 			ppiSpec := metal3_v1alpha1.PreprovisioningImageSpec{AcceptFormats: []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatISO}}
 			deployPPICRD(ctx, kubeClient, host.ID.String(), &ppiSpec)
@@ -5851,6 +5865,7 @@ var _ = Describe("PreprovisioningImage reconcile flow", func() {
 				Namespace: Options.Namespace,
 				Name:      host.ID.String(),
 			}
+			db = utils_test.TestContext.GetDB()
 		})
 
 		It("should trigger an infraenv update", func() {
@@ -5920,7 +5935,7 @@ var _ = Describe("PreprovisioningImage reconcile flow", func() {
 	})
 })
 
-var _ = Describe("restore Host by Agent flow", func() {
+var _ = PDescribe("restore Host by Agent flow", func() { // Disabled until MGMT-19596 is resolved
 	if !Options.EnableKubeAPI {
 		return
 	}
@@ -5936,6 +5951,7 @@ var _ = Describe("restore Host by Agent flow", func() {
 		clusterNsName         types.NamespacedName
 		aciSNOSpec            *hiveext.AgentClusterInstallSpec
 		secretRef             *corev1.LocalObjectReference
+		db                    *gorm.DB
 	)
 
 	BeforeEach(func() {
@@ -5958,6 +5974,7 @@ var _ = Describe("restore Host by Agent flow", func() {
 			Name:      "agent" + randomNameSuffix(),
 			Namespace: Options.Namespace,
 		}
+		db = utils_test.TestContext.GetDB()
 	})
 
 	It("Should restore a bound Host if missing", func() {
@@ -6086,13 +6103,13 @@ var _ = Describe("restore Host by Agent flow", func() {
 		Expect(*cluster.Status).Should(Equal(models.ClusterStatusAddingHosts))
 
 		By("Add Day 2 host")
-		ips := hostutil.GenerateIPv4Addresses(1, defaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(1, utils_test.DefaultCIDRv4)
 		configureLocalAgentClient(infraEnv.ID.String())
-		day2Host1 := registerNode(ctx, *infraEnv.ID, "firsthostnameday2", ips[0])
-		generateApiVipPostStepReply(ctx, day2Host1, &cluster.Cluster, true)
-		generateFullMeshConnectivity(ctx, ips[0], day2Host1)
-		generateDomainResolution(ctx, day2Host1, clusterDeploymentSpec.ClusterName, "hive.example.com")
-		generateCommonDomainReply(ctx, day2Host1, clusterDeploymentSpec.ClusterName, clusterDeploymentSpec.BaseDomain)
+		day2Host1 := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "firsthostnameday2", ips[0])
+		utils_test.TestContext.GenerateApiVipPostStepReply(ctx, day2Host1, &cluster.Cluster, true)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], day2Host1)
+		utils_test.TestContext.GenerateDomainResolution(ctx, day2Host1, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		utils_test.TestContext.GenerateCommonDomainReply(ctx, day2Host1, clusterDeploymentSpec.ClusterName, clusterDeploymentSpec.BaseDomain)
 
 		By("Approve Day 2 agents")
 		k1 := types.NamespacedName{

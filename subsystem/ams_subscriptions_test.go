@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -24,18 +25,18 @@ var _ = Describe("test AMS subscriptions", func() {
 	})
 
 	AfterEach(func() {
-		err := wiremock.createStubsForCreatingAMSSubscription(http.StatusOK)
+		err := wiremock.CreateStubsForCreatingAMSSubscription(http.StatusOK)
 		Expect(err).ToNot(HaveOccurred())
-		err = wiremock.createStubsForDeletingAMSSubscription(http.StatusOK)
-		Expect(err).ToNot(HaveOccurred())
-
-		err = wiremock.createStubsForGettingAMSSubscription(http.StatusOK, ocm.SubscriptionStatusReserved)
+		err = wiremock.CreateStubsForDeletingAMSSubscription(http.StatusOK)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateDisplayName)
+		err = wiremock.CreateStubsForGettingAMSSubscription(http.StatusOK, ocm.SubscriptionStatusReserved)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateOpenshiftClusterID)
+		err = wiremock.CreateStubsForUpdatingAMSSubscription(http.StatusOK, utils_test.SubscriptionUpdateDisplayName)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = wiremock.CreateStubsForUpdatingAMSSubscription(http.StatusOK, utils_test.SubscriptionUpdateOpenshiftClusterID)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -43,33 +44,33 @@ var _ = Describe("test AMS subscriptions", func() {
 
 		It("happy flow", func() {
 
-			clusterID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+			clusterID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			log.Infof("Register cluster %s", clusterID)
-			cc := getCommonCluster(ctx, clusterID)
-			Expect(cc.AmsSubscriptionID).To(Equal(FakeSubscriptionID))
+			cc := utils_test.TestContext.GetCommonCluster(ctx, clusterID)
+			Expect(cc.AmsSubscriptionID).To(Equal(utils_test.FakeSubscriptionID))
 		})
 
 		// ATTENTION: this test override a wiremock stub - DO NOT RUN IN PARALLEL
 		It("CreateSubscription failed", func() {
 
 			By("override wiremock stub to fail AMS call on Unauthorized error", func() {
-				err := wiremock.createStubsForCreatingAMSSubscription(http.StatusUnauthorized)
+				err := wiremock.CreateStubsForCreatingAMSSubscription(http.StatusUnauthorized)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("register cluster", func() {
-				_, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				_, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).To(HaveOccurred())
 			})
 
 			By("override wiremock stub to fail AMS call on ServiceUnavailable error", func() {
-				err := wiremock.createStubsForCreatingAMSSubscription(http.StatusServiceUnavailable)
+				err := wiremock.CreateStubsForCreatingAMSSubscription(http.StatusServiceUnavailable)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("register cluster", func() {
-				_, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				_, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -84,7 +85,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription (in 'reserved' status)", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -93,12 +94,12 @@ var _ = Describe("test AMS subscriptions", func() {
 				// we should delete the subscription, therefore, by making this AMS call fail and
 				// expect inventory failure on deregistering a clsuter we can make sure the service has
 				// try to delete the subscription
-				err = wiremock.createStubsForDeletingAMSSubscription(http.StatusUnauthorized)
+				err = wiremock.CreateStubsForDeletingAMSSubscription(http.StatusUnauthorized)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("delete 'reserved' subscription", func() {
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -110,13 +111,13 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
 
 			By("update subscription with 'active' status", func() {
-				err = wiremock.createStubsForGettingAMSSubscription(http.StatusOK, ocm.SubscriptionStatusActive)
+				err = wiremock.CreateStubsForGettingAMSSubscription(http.StatusOK, ocm.SubscriptionStatusActive)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -124,14 +125,14 @@ var _ = Describe("test AMS subscriptions", func() {
 				// we should not delete the subscription, therefore, by making this AMS call fail and
 				// expect inventory success on deregistering a clsuter we can make sure the service has
 				// not try to delete the subscription
-				err = wiremock.createStubsForDeletingAMSSubscription(http.StatusUnauthorized)
+				err = wiremock.CreateStubsForDeletingAMSSubscription(http.StatusUnauthorized)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("delete subscription", func() {
 				// don't delete 'active' subscription
 				// we can't really check that because it is done in an external dependency (AMS) so we just check there are no errors in the flow
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})
@@ -143,28 +144,28 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
 
 			By("override wiremock stub to fail AMS call", func() {
-				err = wiremock.createStubsForGettingAMSSubscription(http.StatusUnauthorized, ocm.SubscriptionStatusReserved)
+				err = wiremock.CreateStubsForGettingAMSSubscription(http.StatusUnauthorized, ocm.SubscriptionStatusReserved)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 
 			By("override wiremock stub to fail AMS call", func() {
-				err = wiremock.createStubsForGettingAMSSubscription(http.StatusServiceUnavailable, ocm.SubscriptionStatusReserved)
+				err = wiremock.CreateStubsForGettingAMSSubscription(http.StatusServiceUnavailable, ocm.SubscriptionStatusReserved)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -176,28 +177,28 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
 
 			By("override wiremock stub to fail AMS call", func() {
-				err = wiremock.createStubsForDeletingAMSSubscription(http.StatusUnauthorized)
+				err = wiremock.CreateStubsForDeletingAMSSubscription(http.StatusUnauthorized)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 
 			By("override wiremock stub to fail AMS call", func() {
-				err = wiremock.createStubsForDeletingAMSSubscription(http.StatusServiceUnavailable)
+				err = wiremock.CreateStubsForDeletingAMSSubscription(http.StatusServiceUnavailable)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("delete subscription", func() {
-				_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -211,14 +212,14 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
 
 			By("update subscription's display name", func() {
 				newClusterName := "ams-cluster-new-name"
-				_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						Name: &newClusterName,
@@ -235,19 +236,19 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
 
 			By("override wiremock stub to fail AMS call", func() {
-				err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusUnauthorized, subscriptionUpdateDisplayName)
+				err = wiremock.CreateStubsForUpdatingAMSSubscription(http.StatusUnauthorized, utils_test.SubscriptionUpdateDisplayName)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("update subscription's display name", func() {
 				newClusterName := "ams-cluster-new-name"
-				_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				_, err = utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						Name: &newClusterName,
@@ -263,7 +264,7 @@ var _ = Describe("test AMS subscriptions", func() {
 		waitForConsoleUrlUpdateInAMS := func(clusterID strfmt.UUID) {
 
 			waitFunc := func(ctx context.Context) (bool, error) {
-				c := getCommonCluster(ctx, clusterID)
+				c := utils_test.TestContext.GetCommonCluster(ctx, clusterID)
 				return c.IsAmsSubscriptionConsoleUrlSet, nil
 			}
 			err := wait.PollUntilContextTimeout(ctx, pollDefaultInterval, pollDefaultTimeout, false, waitFunc)
@@ -276,29 +277,29 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
 
 			By("update subscription with openshfit (external) cluster ID", func() {
 				infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
-				registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
+				registerHostsAndSetRoles(clusterID, *infraEnvID, utils_test.MinHosts, "test-cluster", "example.com")
 				setClusterAsInstalling(ctx, clusterID)
 			})
 
 			By("update subscription with console url", func() {
-				c := getCluster(clusterID)
+				c := utils_test.TestContext.GetCluster(clusterID)
 				for _, host := range c.Hosts {
-					updateProgress(*host.ID, host.InfraEnvID, models.HostStageDone)
+					utils_test.TestContext.UpdateProgress(*host.ID, host.InfraEnvID, models.HostStageDone)
 				}
-				waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
-				completeInstallation(agentBMClient, clusterID)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, utils_test.DefaultWaitForClusterStateTimeout, utils_test.ClusterFinalizingStateInfo)
+				completeInstallation(utils_test.TestContext.AgentBMClient, clusterID)
 				waitForConsoleUrlUpdateInAMS(clusterID)
 			})
 
 			By("update subscription with status 'Active'", func() {
-				waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, clusterInstallingStateInfo)
+				waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, utils_test.DefaultWaitForClusterStateTimeout, utils_test.ClusterInstallingStateInfo)
 			})
 		})
 
@@ -310,25 +311,25 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
 
 			By("override wiremock stub to fail AMS call", func() {
-				err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusUnauthorized, subscriptionUpdateOpenshiftClusterID)
+				err = wiremock.CreateStubsForUpdatingAMSSubscription(http.StatusUnauthorized, utils_test.SubscriptionUpdateOpenshiftClusterID)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			By("update subscription with openshfit (external) cluster ID", func() {
 				infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
-				registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
-				reply, err = userBMClient.Installer.V2InstallCluster(context.Background(), &installer.V2InstallClusterParams{ClusterID: clusterID})
+				registerHostsAndSetRoles(clusterID, *infraEnvID, utils_test.MinHosts, "test-cluster", "example.com")
+				reply, err = utils_test.TestContext.UserBMClient.Installer.V2InstallCluster(context.Background(), &installer.V2InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				c := reply.GetPayload()
 				Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
-				generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-				waitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusFailed)
+				utils_test.TestContext.GenerateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
+				utils_test.TestContext.WaitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusFailed)
 			})
 		})
 	})
