@@ -2716,6 +2716,55 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/operators/bundles:
+    get:
+      tags:
+        - operators
+      summary: Get list of bundle names
+      description: Retrieves a list of bundle names.
+      operationId: V2GetBundles
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/bundle'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/operators/bundles/{bundle_name}:
+    get:
+      tags:
+        - operators
+      summary: Get operator properties for a bundle
+      description: Retrieves an array of operator properties for the specified bundle.
+      operationId: V2GetBundleOperators
+      parameters:
+        - in: path
+          name: bundle_name
+          description: The name of the bundle.
+          required: true
+          type: string
+          enum: ['virtualization', 'openshiftai']
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: array
+            items:
+              type: string
+        "404":
+          description: Bundle not found
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/error'
+
   /v2/clusters/{cluster_id}/uploads/ingress-cert:
     post:
       tags:
@@ -4041,6 +4090,18 @@ definitions:
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: Time at which the operator was last updated.
+      bundles:
+        type: array
+        description: List of bundles associated with the operator. Can be empty.
+        items:
+          $ref: '#/definitions/bundle'
+        x-go-custom-tag: gorm:"type:text[]"
+        x-go-type:
+          type: StringArray
+          import:
+            package: github.com/lib/pq
+          hints:
+            noValidation: true
 
   operator-monitor-report:
     type: object
@@ -4081,6 +4142,11 @@ definitions:
     type: array
     items:
       $ref: '#/definitions/monitored-operator'
+
+  bundle:
+    type: string
+    enum: ['virtualization', 'openshiftai']
+    description: The name of the bundle.
 
   list-managed-domains:
     type: array

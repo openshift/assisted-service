@@ -18,6 +18,16 @@ import (
 // API is the interface of the operators client
 type API interface {
 	/*
+	   V2GetBundleOperators gets operator properties for a bundle
+
+	   Retrieves an array of operator properties for the specified bundle.*/
+	V2GetBundleOperators(ctx context.Context, params *V2GetBundleOperatorsParams) (*V2GetBundleOperatorsOK, error)
+	/*
+	   V2GetBundles gets list of bundle names
+
+	   Retrieves a list of bundle names.*/
+	V2GetBundles(ctx context.Context, params *V2GetBundlesParams) (*V2GetBundlesOK, error)
+	/*
 	   V2ListOfClusterOperators Lists operators to be monitored for a cluster.*/
 	V2ListOfClusterOperators(ctx context.Context, params *V2ListOfClusterOperatorsParams) (*V2ListOfClusterOperatorsOK, error)
 	/*
@@ -47,6 +57,60 @@ type Client struct {
 	transport runtime.ClientTransport
 	formats   strfmt.Registry
 	authInfo  runtime.ClientAuthInfoWriter
+}
+
+/*
+V2GetBundleOperators gets operator properties for a bundle
+
+Retrieves an array of operator properties for the specified bundle.
+*/
+func (a *Client) V2GetBundleOperators(ctx context.Context, params *V2GetBundleOperatorsParams) (*V2GetBundleOperatorsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2GetBundleOperators",
+		Method:             "GET",
+		PathPattern:        "/v2/operators/bundles/{bundle_name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetBundleOperatorsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetBundleOperatorsOK), nil
+
+}
+
+/*
+V2GetBundles gets list of bundle names
+
+Retrieves a list of bundle names.
+*/
+func (a *Client) V2GetBundles(ctx context.Context, params *V2GetBundlesParams) (*V2GetBundlesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "V2GetBundles",
+		Method:             "GET",
+		PathPattern:        "/v2/operators/bundles",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2GetBundlesReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2GetBundlesOK), nil
+
 }
 
 /*

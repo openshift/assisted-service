@@ -5717,6 +5717,79 @@ func init() {
         }
       }
     },
+    "/v2/operators/bundles": {
+      "get": {
+        "description": "Retrieves a list of bundle names.",
+        "tags": [
+          "operators"
+        ],
+        "summary": "Get list of bundle names",
+        "operationId": "V2GetBundles",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/bundle"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/operators/bundles/{bundle_name}": {
+      "get": {
+        "description": "Retrieves an array of operator properties for the specified bundle.",
+        "tags": [
+          "operators"
+        ],
+        "summary": "Get operator properties for a bundle",
+        "operationId": "V2GetBundleOperators",
+        "parameters": [
+          {
+            "enum": [
+              "virtualization",
+              "openshiftai"
+            ],
+            "type": "string",
+            "description": "The name of the bundle.",
+            "name": "bundle_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "404": {
+            "description": "Bundle not found",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/release-sources": {
       "get": {
         "security": [
@@ -6145,6 +6218,14 @@ func init() {
           "$ref": "#/definitions/secure-boot-state"
         }
       }
+    },
+    "bundle": {
+      "description": "The name of the bundle.",
+      "type": "string",
+      "enum": [
+        "virtualization",
+        "openshiftai"
+      ]
     },
     "cluster": {
       "type": "object",
@@ -9519,6 +9600,23 @@ func init() {
     "monitored-operator": {
       "type": "object",
       "properties": {
+        "bundles": {
+          "description": "List of bundles associated with the operator. Can be empty.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/bundle"
+          },
+          "x-go-custom-tag": "gorm:\"type:text[]\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "github.com/lib/pq"
+            },
+            "type": "StringArray"
+          }
+        },
         "cluster_id": {
           "description": "The cluster that this operator is associated with.",
           "type": "string",
@@ -16542,6 +16640,79 @@ func init() {
         }
       }
     },
+    "/v2/operators/bundles": {
+      "get": {
+        "description": "Retrieves a list of bundle names.",
+        "tags": [
+          "operators"
+        ],
+        "summary": "Get list of bundle names",
+        "operationId": "V2GetBundles",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/bundle"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/operators/bundles/{bundle_name}": {
+      "get": {
+        "description": "Retrieves an array of operator properties for the specified bundle.",
+        "tags": [
+          "operators"
+        ],
+        "summary": "Get operator properties for a bundle",
+        "operationId": "V2GetBundleOperators",
+        "parameters": [
+          {
+            "enum": [
+              "virtualization",
+              "openshiftai"
+            ],
+            "type": "string",
+            "description": "The name of the bundle.",
+            "name": "bundle_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "404": {
+            "description": "Bundle not found",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/release-sources": {
       "get": {
         "security": [
@@ -17088,6 +17259,14 @@ func init() {
           "$ref": "#/definitions/secure-boot-state"
         }
       }
+    },
+    "bundle": {
+      "description": "The name of the bundle.",
+      "type": "string",
+      "enum": [
+        "virtualization",
+        "openshiftai"
+      ]
     },
     "cluster": {
       "type": "object",
@@ -20420,6 +20599,23 @@ func init() {
     "monitored-operator": {
       "type": "object",
       "properties": {
+        "bundles": {
+          "description": "List of bundles associated with the operator. Can be empty.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/bundle"
+          },
+          "x-go-custom-tag": "gorm:\"type:text[]\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "github.com/lib/pq"
+            },
+            "type": "StringArray"
+          }
+        },
         "cluster_id": {
           "description": "The cluster that this operator is associated with.",
           "type": "string",

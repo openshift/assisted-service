@@ -120,6 +120,12 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2DownloadClusterLogsHandler: installer.V2DownloadClusterLogsHandlerFunc(func(params installer.V2DownloadClusterLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DownloadClusterLogs has not yet been implemented")
 		}),
+		OperatorsV2GetBundleOperatorsHandler: operators.V2GetBundleOperatorsHandlerFunc(func(params operators.V2GetBundleOperatorsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.V2GetBundleOperators has not yet been implemented")
+		}),
+		OperatorsV2GetBundlesHandler: operators.V2GetBundlesHandlerFunc(func(params operators.V2GetBundlesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.V2GetBundles has not yet been implemented")
+		}),
 		InstallerV2GetClusterDefaultConfigHandler: installer.V2GetClusterDefaultConfigHandlerFunc(func(params installer.V2GetClusterDefaultConfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetClusterDefaultConfig has not yet been implemented")
 		}),
@@ -424,6 +430,10 @@ type AssistedInstallAPI struct {
 	InstallerV2DownloadClusterFilesHandler installer.V2DownloadClusterFilesHandler
 	// InstallerV2DownloadClusterLogsHandler sets the operation handler for the v2 download cluster logs operation
 	InstallerV2DownloadClusterLogsHandler installer.V2DownloadClusterLogsHandler
+	// OperatorsV2GetBundleOperatorsHandler sets the operation handler for the v2 get bundle operators operation
+	OperatorsV2GetBundleOperatorsHandler operators.V2GetBundleOperatorsHandler
+	// OperatorsV2GetBundlesHandler sets the operation handler for the v2 get bundles operation
+	OperatorsV2GetBundlesHandler operators.V2GetBundlesHandler
 	// InstallerV2GetClusterDefaultConfigHandler sets the operation handler for the v2 get cluster default config operation
 	InstallerV2GetClusterDefaultConfigHandler installer.V2GetClusterDefaultConfigHandler
 	// InstallerV2GetClusterUISettingsHandler sets the operation handler for the v2 get cluster UI settings operation
@@ -702,6 +712,12 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2DownloadClusterLogsHandler == nil {
 		unregistered = append(unregistered, "installer.V2DownloadClusterLogsHandler")
+	}
+	if o.OperatorsV2GetBundleOperatorsHandler == nil {
+		unregistered = append(unregistered, "operators.V2GetBundleOperatorsHandler")
+	}
+	if o.OperatorsV2GetBundlesHandler == nil {
+		unregistered = append(unregistered, "operators.V2GetBundlesHandler")
 	}
 	if o.InstallerV2GetClusterDefaultConfigHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetClusterDefaultConfigHandler")
@@ -1078,6 +1094,14 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/logs"] = installer.NewV2DownloadClusterLogs(o.context, o.InstallerV2DownloadClusterLogsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/operators/bundles/{bundle_name}"] = operators.NewV2GetBundleOperators(o.context, o.OperatorsV2GetBundleOperatorsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/operators/bundles"] = operators.NewV2GetBundles(o.context, o.OperatorsV2GetBundlesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
