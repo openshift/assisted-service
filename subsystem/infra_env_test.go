@@ -314,11 +314,8 @@ var _ = Describe("Infra_Env", func() {
 		Expect(s.Size()).ShouldNot(Equal(0))
 	})
 
-	DescribeTable("download infra-env files static network config file", func(ocpVersion, arch string, skip bool) {
+	DescribeTable("download infra-env files static network config file", func(ocpVersion string) {
 		By("Patching the infra env with a static network config")
-		if skip {
-			Skip("skip since no ocp 4.19 yet")
-		}
 		netYaml := `interfaces:
 - ipv4:
     address:
@@ -338,7 +335,7 @@ var _ = Describe("Infra_Env", func() {
 				},
 			},
 		}
-		infraEnv = internalRegisterInfraEnv(nil, models.ImageTypeFullIso, arch, ocpVersion)
+		infraEnv = internalRegisterInfraEnv(nil, models.ImageTypeFullIso, "", ocpVersion)
 		infraEnvID = *infraEnv.ID
 		staticNetworkConfigs := []*models.HostStaticNetworkConfig{&staticNetworkConfig}
 		updateParams := &installer.UpdateInfraEnvParams{
@@ -357,15 +354,13 @@ var _ = Describe("Infra_Env", func() {
 		contents := buf.String()
 		Expect(len(contents)).ShouldNot(Equal(0))
 		Expect(contents).To(ContainSubstring("/etc/assisted/network/host0"))
-		if ocpVersion < common.MinimalVersionForNmstatectl || arch == common.ARM64CPUArchitecture {
+		if ocpVersion < common.MinimalVersionForNmstatectl {
 			Expect(contents).To(ContainSubstring("192.0.2.1/24"))
 		}
 		Expect(contents).To(ContainSubstring("eth0"))
 	},
-		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl, x86 arch", common.MinimalVersionForNmstatectl, common.X86CPUArchitecture, true),
-		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl, arm arch", common.MinimalVersionForNmstatectl, common.ARM64CPUArchitecture, true),
-		Entry("ocp versions less than MinimalVersionForNmstatectl, x86 arch", "4.12", common.X86CPUArchitecture, false),
-		Entry("ocp versions less than MinimalVersionForNmstatectl, arm arch", "4.12", common.ARM64CPUArchitecture, false),
+		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl", common.MinimalVersionForNmstatectl),
+		Entry("ocp versions less than MinimalVersionForNmstatectl", "4.12"),
 	)
 
 	It("download infra-env files invalid filename option", func() {
