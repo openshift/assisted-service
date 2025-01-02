@@ -120,6 +120,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2DownloadClusterLogsHandler: installer.V2DownloadClusterLogsHandlerFunc(func(params installer.V2DownloadClusterLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DownloadClusterLogs has not yet been implemented")
 		}),
+		OperatorsV2GetBundleHandler: operators.V2GetBundleHandlerFunc(func(params operators.V2GetBundleParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.V2GetBundle has not yet been implemented")
+		}),
 		InstallerV2GetClusterDefaultConfigHandler: installer.V2GetClusterDefaultConfigHandlerFunc(func(params installer.V2GetClusterDefaultConfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetClusterDefaultConfig has not yet been implemented")
 		}),
@@ -134,6 +137,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerV2GetPresignedForClusterFilesHandler: installer.V2GetPresignedForClusterFilesHandlerFunc(func(params installer.V2GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetPresignedForClusterFiles has not yet been implemented")
+		}),
+		OperatorsV2ListBundlesHandler: operators.V2ListBundlesHandlerFunc(func(params operators.V2ListBundlesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.V2ListBundles has not yet been implemented")
 		}),
 		ManifestsV2ListClusterManifestsHandler: manifests.V2ListClusterManifestsHandlerFunc(func(params manifests.V2ListClusterManifestsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation manifests.V2ListClusterManifests has not yet been implemented")
@@ -424,6 +430,8 @@ type AssistedInstallAPI struct {
 	InstallerV2DownloadClusterFilesHandler installer.V2DownloadClusterFilesHandler
 	// InstallerV2DownloadClusterLogsHandler sets the operation handler for the v2 download cluster logs operation
 	InstallerV2DownloadClusterLogsHandler installer.V2DownloadClusterLogsHandler
+	// OperatorsV2GetBundleHandler sets the operation handler for the v2 get bundle operation
+	OperatorsV2GetBundleHandler operators.V2GetBundleHandler
 	// InstallerV2GetClusterDefaultConfigHandler sets the operation handler for the v2 get cluster default config operation
 	InstallerV2GetClusterDefaultConfigHandler installer.V2GetClusterDefaultConfigHandler
 	// InstallerV2GetClusterUISettingsHandler sets the operation handler for the v2 get cluster UI settings operation
@@ -434,6 +442,8 @@ type AssistedInstallAPI struct {
 	InstallerV2GetPresignedForClusterCredentialsHandler installer.V2GetPresignedForClusterCredentialsHandler
 	// InstallerV2GetPresignedForClusterFilesHandler sets the operation handler for the v2 get presigned for cluster files operation
 	InstallerV2GetPresignedForClusterFilesHandler installer.V2GetPresignedForClusterFilesHandler
+	// OperatorsV2ListBundlesHandler sets the operation handler for the v2 list bundles operation
+	OperatorsV2ListBundlesHandler operators.V2ListBundlesHandler
 	// ManifestsV2ListClusterManifestsHandler sets the operation handler for the v2 list cluster manifests operation
 	ManifestsV2ListClusterManifestsHandler manifests.V2ListClusterManifestsHandler
 	// ManagedDomainsV2ListManagedDomainsHandler sets the operation handler for the v2 list managed domains operation
@@ -703,6 +713,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerV2DownloadClusterLogsHandler == nil {
 		unregistered = append(unregistered, "installer.V2DownloadClusterLogsHandler")
 	}
+	if o.OperatorsV2GetBundleHandler == nil {
+		unregistered = append(unregistered, "operators.V2GetBundleHandler")
+	}
 	if o.InstallerV2GetClusterDefaultConfigHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetClusterDefaultConfigHandler")
 	}
@@ -717,6 +730,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2GetPresignedForClusterFilesHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetPresignedForClusterFilesHandler")
+	}
+	if o.OperatorsV2ListBundlesHandler == nil {
+		unregistered = append(unregistered, "operators.V2ListBundlesHandler")
 	}
 	if o.ManifestsV2ListClusterManifestsHandler == nil {
 		unregistered = append(unregistered, "manifests.V2ListClusterManifestsHandler")
@@ -1081,6 +1097,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/v2/operators/bundles/{bundle_name}"] = operators.NewV2GetBundle(o.context, o.OperatorsV2GetBundleHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/v2/clusters/default-config"] = installer.NewV2GetClusterDefaultConfig(o.context, o.InstallerV2GetClusterDefaultConfigHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -1098,6 +1118,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/downloads/files-presigned"] = installer.NewV2GetPresignedForClusterFiles(o.context, o.InstallerV2GetPresignedForClusterFilesHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/operators/bundles"] = operators.NewV2ListBundles(o.context, o.OperatorsV2ListBundlesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
