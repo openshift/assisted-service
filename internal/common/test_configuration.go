@@ -49,7 +49,7 @@ type TestConfiguration struct {
 
 const TestDiskId = "/dev/disk/by-id/test-disk-id"
 const TestDiskPath = "/dev/test-disk"
-const MinimalVersionForNmstatectl = "4.19"
+const MinimalVersionForNmstatectl = "4.18"
 
 var (
 	OpenShiftVersion string = "4.6"
