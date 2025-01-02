@@ -197,10 +197,10 @@ func (mr *MockAPIMockRecorder) GetSupportedOperatorsByType(arg0 interface{}) *go
 }
 
 // ListBundles mocks base method.
-func (m *MockAPI) ListBundles() []string {
+func (m *MockAPI) ListBundles() []*models.Bundle {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListBundles")
-	ret0, _ := ret[0].([]string)
+	ret0, _ := ret[0].([]*models.Bundle)
 	return ret0
 }
 

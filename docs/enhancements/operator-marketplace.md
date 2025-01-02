@@ -43,7 +43,7 @@ As an API consumer, I want to retrieve a list of operators associated with a spe
 
   - **Method**: GET
   - **Path**: `/v2/operators/v1/bundles`
-  - **Response**: JSON array of bundles names.
+  - **Response**: JSON array of bundle objects.
 
 - **List Operators by Bundle Endpoint**:
 

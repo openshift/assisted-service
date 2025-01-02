@@ -828,10 +828,17 @@ var _ = Describe("Operators manager", func() {
 
 		It("ListBundle should return the list of available bundles", func() {
 			bundles := manager.ListBundles()
-			Expect(bundles).To(ConsistOf(
-				operatorscommon.BundleVirtualization,
-				operatorscommon.BundleOpenshiftai,
-			))
+			Expect(bundles).To(HaveLen(2))
+			for _, bundle := range bundles {
+				Expect(bundle.Name).To(BeElementOf(operatorscommon.BundleVirtualization, operatorscommon.BundleOpenshiftai))
+				// lso isn't part of any bundle
+				Expect(bundle.Operators).NotTo(ContainElement(lso.Operator.Name))
+				if bundle.Name == operatorscommon.BundleVirtualization {
+					Expect(bundle.Operators).To(ContainElements(odfOperator.GetName(), cnvOperator.GetName()))
+				} else {
+					Expect(bundle.Operators).To(ContainElements(oaiOperator.GetName(), serverlessOperator.GetName(), odfOperator.GetName()))
+				}
+			}
 		})
 
 		It("GetBundle should return the Bundle object with all the operators associated with the specific bundle", func() {
@@ -839,6 +846,7 @@ var _ = Describe("Operators manager", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError("bundle 'invalid bundle' is not supported"))
 			Expect(bundle).To(BeNil())
+
 			bundle, err = manager.GetBundle(operatorscommon.BundleVirtualization)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Operators).To(HaveLen(3))

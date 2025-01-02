@@ -5731,7 +5731,7 @@ func init() {
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "$ref": "#/definitions/bundle"
               }
             }
           },
@@ -16685,7 +16685,7 @@ func init() {
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "$ref": "#/definitions/bundle"
               }
             }
           },
