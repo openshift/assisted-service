@@ -13,6 +13,74 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+var _ = Describe("Disable selected metric events", func() {
+
+	var (
+		ctx     context.Context
+		server  *MetricsServer
+		ctrl    *gomock.Controller
+		handler *eventsapi.MockHandler
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		server = NewMetricsServer()
+		ctrl = gomock.NewController(GinkgoT())
+		handler = eventsapi.NewMockHandler(ctrl)
+	})
+
+	AfterEach(func() {
+		server.Close()
+		ctrl.Finish()
+	})
+
+	var disabledMetricsTest = func(disabledMetrics []string) {
+		manager := NewMetricsManager(server.Registry(), handler, disabledMetrics)
+		manager.InstallerReleaseCache(
+			ctx,
+			strfmt.UUID("68bc0049-1226-4132-acb1-b9898065474b"),
+			"4.21.x86_64",
+			time.Now(),
+			false,
+			10,
+		)
+		manager.ClusterInstallationFinished(
+			ctx,
+			"Test",
+			"Testing",
+			"123",
+			strfmt.UUID("68bc0049-1226-4132-acb1-b9898065474b"),
+			"",
+			strfmt.DateTime(time.Now()),
+		)
+	}
+
+	var expectMetricEvent = func(eventName string) {
+		handler.EXPECT().V2AddMetricsEvent(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			eventName,
+			gomock.Any(),
+			gomock.Any(),
+		).AnyTimes()
+	}
+
+	It("Should send a metric event if the event is not disabled", func() {
+		expectMetricEvent(MetricEventInstallerCacheReleaseMetrics)
+		expectMetricEvent(MetricEventClusterInstallationResults)
+		disabledMetricsTest(nil)
+	})
+
+	It("Should not send a metric event if the event is disabled", func() {
+		expectMetricEvent(MetricEventClusterInstallationResults)
+		disabledMetricsTest([]string{MetricEventInstallerCacheReleaseMetrics})
+	})
+})
+
 var _ = DescribeTable(
 	"Tests that label has been added as expected",
 	func(stage models.HostStage, expectedMetricRegex string) {
@@ -43,7 +111,7 @@ var _ = DescribeTable(
 		).AnyTimes()
 
 		// Create the metrics manager:
-		manager := NewMetricsManager(server.Registry(), handler)
+		manager := NewMetricsManager(server.Registry(), handler, nil)
 		manager.ReportHostInstallationMetrics(
 			ctx,
 			"4.10.18",

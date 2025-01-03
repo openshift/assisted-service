@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -37,10 +38,11 @@ type installGenerator struct {
 	workDir          string
 	providerRegistry registry.ProviderRegistry
 	manifestApi      manifestsapi.ManifestsAPI
+	metricsApi       metrics.API
 }
 
 func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string,
-	providerRegistry registry.ProviderRegistry, manifestApi manifestsapi.ManifestsAPI) *installGenerator {
+	providerRegistry registry.ProviderRegistry, manifestApi manifestsapi.ManifestsAPI, metricsApi metrics.API) *installGenerator {
 	return &installGenerator{
 		Config:           cfg,
 		log:              log,
@@ -48,6 +50,7 @@ func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir str
 		workDir:          filepath.Join(workDir, "install-config-generate"),
 		providerRegistry: providerRegistry,
 		manifestApi:      manifestApi,
+		metricsApi:       metricsApi,
 	}
 }
 
@@ -76,7 +79,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
 		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.Config.ClusterTLSCertOverrideDir, k.InstallerCacheCapacity, k.manifestApi)
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.Config.ClusterTLSCertOverrideDir, k.InstallerCacheCapacity, k.manifestApi, k.metricsApi)
 	}
 	err = generator.Generate(ctx, cfg)
 	if err != nil {

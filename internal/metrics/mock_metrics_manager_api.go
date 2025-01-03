@@ -169,6 +169,18 @@ func (mr *MockAPIMockRecorder) InstallationStarted() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallationStarted", reflect.TypeOf((*MockAPI)(nil).InstallationStarted))
 }
 
+// InstallerReleaseCache mocks base method.
+func (m *MockAPI) InstallerReleaseCache(ctx context.Context, clusterId strfmt.UUID, release string, startTime time.Time, cached bool, extractDuration float64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "InstallerReleaseCache", ctx, clusterId, release, startTime, cached, extractDuration)
+}
+
+// InstallerReleaseCache indicates an expected call of InstallerReleaseCache.
+func (mr *MockAPIMockRecorder) InstallerReleaseCache(ctx, clusterId, release, startTime, cached, extractDuration interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallerReleaseCache", reflect.TypeOf((*MockAPI)(nil).InstallerReleaseCache), ctx, clusterId, release, startTime, cached, extractDuration)
+}
+
 // MonitoredClusterCount mocks base method.
 func (m *MockAPI) MonitoredClusterCount(monitoredClusters int64) {
 	m.ctrl.T.Helper()

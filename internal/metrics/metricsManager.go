@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -64,6 +65,15 @@ const (
 )
 
 const (
+	MetricEventClusterInstallationResults   = "cluster.installation.results"
+	MetricEventHostStageDuration            = "host.stage.duration"
+	MetricEventHostMemCPU                   = "host.mem.cpu"
+	MetricEventDiskSizeType                 = "disk.size.type"
+	MetricEventNicSpeed                     = "nic.speed"
+	MetricEventInstallerCacheReleaseMetrics = "installercache.release.metrics"
+)
+
+const (
 	namespace                  = ""
 	subsystem                  = "service"
 	UnknownHWValue             = "Unknown"
@@ -94,6 +104,7 @@ type API interface {
 	FileSystemUsage(usageInPercentage float64)
 	MonitoredHostsCount(monitoredHosts int64)
 	MonitoredClusterCount(monitoredClusters int64)
+	InstallerReleaseCache(ctx context.Context, clusterId strfmt.UUID, release string, startTime time.Time, cached bool, extractDuration float64)
 }
 
 type MetricsManager struct {
@@ -119,11 +130,13 @@ type MetricsManager struct {
 	serviceLogicFilesystemUsagePercentage              *prometheus.GaugeVec
 	serviceLogicMonitoredHosts                         *prometheus.GaugeVec
 	serviceLogicMonitoredClusters                      *prometheus.GaugeVec
+
+	disabledMetrics []string
 }
 
 var _ API = &MetricsManager{}
 
-func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.Handler) *MetricsManager {
+func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.Handler, disabledMetrics []string) *MetricsManager {
 
 	m := &MetricsManager{
 		registry: registry,
@@ -280,6 +293,7 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 			Name:      counterMonitoredClusters,
 			Help:      counterDescriptionMonitoredClusters,
 		}, []string{hosts}),
+		disabledMetrics: disabledMetrics,
 	}
 
 	registry.MustRegister(
@@ -304,6 +318,14 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 		m.serviceLogicMonitoredClusters,
 	)
 	return m
+}
+
+func (m *MetricsManager) addMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	// Only store metric event if it is not blocked
+	if lo.Contains(m.disabledMetrics, msg) {
+		return
+	}
+	m.handler.V2AddMetricsEvent(ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime, props...)
 }
 
 func (m *MetricsManager) ClusterRegistered() {
@@ -332,7 +354,7 @@ func (m *MetricsManager) InstallationStarted() {
 
 func (m *MetricsManager) ClusterInstallationFinished(ctx context.Context, result string, prevState string, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
 	duration := time.Since(time.Time(installationStartedTime)).Seconds()
-	m.handler.V2AddMetricsEvent(ctx, &clusterID, nil, nil, "", models.EventSeverityInfo, "cluster.installation.results", time.Now(),
+	m.addMetricsEvent(ctx, &clusterID, nil, nil, "", models.EventSeverityInfo, MetricEventClusterInstallationResults, time.Now(),
 		"duration", duration, "result", result, "lastState", prevState)
 
 	log := logutil.FromContext(ctx, logrus.New())
@@ -389,7 +411,7 @@ func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clus
 			}
 			log.Infof("service Logic Host Installation Phase Seconds phase %s, vendor %s product %s disk %s result %s, duration %f",
 				string(previousProgress.CurrentStage), hwVendor, hwProduct, diskType, string(phaseResult), duration)
-			m.handler.V2AddMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, "host.stage.duration", time.Now(),
+			m.addMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, MetricEventHostStageDuration, time.Now(),
 				"result", string(phaseResult), "duration", duration, "host_stage", string(previousProgress.CurrentStage), "vendor", hwVendor, "product", hwProduct, "disk_type", diskType, "host_role", roleStr)
 
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
@@ -427,7 +449,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 	m.serviceLogicClusterHostRAMGb.WithLabelValues(roleStr, installationStageStr).
 		Observe(float64(bytesToGib(hwInfo.Memory.PhysicalBytes)))
 
-	m.handler.V2AddMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, "host.mem.cpu", time.Now(),
+	m.addMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, MetricEventHostMemCPU, time.Now(),
 		"host_result", installationStageStr, "host_role", roleStr, "mem_bytes", bytesToGib(hwInfo.Memory.PhysicalBytes),
 		"core_count", hwInfo.CPU.Count)
 
@@ -438,7 +460,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 		diskTypeStr := string(disk.DriveType) //+ "-" + disk.StorageController
 		log.Infof("service Logic Cluster Host DiskGb role %s, result %s diskType %s diskSize %d",
 			roleStr, installationStageStr, diskTypeStr, bytesToGib(disk.SizeBytes))
-		m.handler.V2AddMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, "disk.size.type", time.Now(),
+		m.addMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, MetricEventDiskSizeType, time.Now(),
 			"host_result", installationStageStr, "host_role", roleStr, "disk_type", diskTypeStr, "disk_size", bytesToGib(disk.SizeBytes))
 
 		m.serviceLogicClusterHostDiskGb.WithLabelValues(diskTypeStr, roleStr, installationStageStr).
@@ -448,7 +470,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 	for _, inter := range hwInfo.Interfaces {
 		log.Infof("service Logic Cluster Host NicGb role %s, result %s SpeedMbps %f",
 			roleStr, installationStageStr, float64(inter.SpeedMbps))
-		m.handler.V2AddMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, "nic.speed", time.Now(),
+		m.addMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, MetricEventNicSpeed, time.Now(),
 			"host_result", installationStageStr, "host_role", roleStr, "nic_speed", inter.SpeedMbps)
 
 		m.serviceLogicClusterHostNicGb.WithLabelValues(roleStr, installationStageStr).
@@ -466,6 +488,10 @@ func (m *MetricsManager) MonitoredHostsCount(monitoredHosts int64) {
 
 func (m *MetricsManager) MonitoredClusterCount(monitoredClusters int64) {
 	m.serviceLogicMonitoredClusters.WithLabelValues(clusters).Set(float64(monitoredClusters))
+}
+
+func (m *MetricsManager) InstallerReleaseCache(ctx context.Context, clusterId strfmt.UUID, release string, startTime time.Time, cached bool, extractDuration float64) {
+	m.addMetricsEvent(ctx, &clusterId, nil, nil, "", models.EventSeverityInfo, MetricEventInstallerCacheReleaseMetrics, time.Now(), "release", release, "start_time", startTime.Format(time.RFC3339), "cached", cached, "extract_duration", extractDuration)
 }
 
 func bytesToGib(bytes int64) int64 {
