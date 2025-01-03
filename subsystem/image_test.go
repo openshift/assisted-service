@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/client/versions"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 )
 
 var _ = Describe("system-test image tests", func() {
@@ -27,7 +28,7 @@ var _ = Describe("system-test image tests", func() {
 	)
 
 	BeforeEach(func() {
-		resp, err := userBMClient.Versions.V2ListSupportedOpenshiftVersions(
+		resp, err := utils_test.TestContext.UserBMClient.Versions.V2ListSupportedOpenshiftVersions(
 			ctx, &versions.V2ListSupportedOpenshiftVersionsParams{OnlyLatest: swag.Bool(true)},
 		)
 		Expect(err).NotTo(HaveOccurred())
@@ -41,7 +42,7 @@ var _ = Describe("system-test image tests", func() {
 				By(fmt.Sprintf("For version %s", ocpVersion))
 				By("Register Cluster")
 
-				registerResp, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				registerResp, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						Name:             swag.String("test-cluster"),
 						OpenshiftVersion: swag.String(ocpVersion),
@@ -63,12 +64,12 @@ var _ = Describe("system-test image tests", func() {
 				}
 
 				config := common.FormatStaticConfigHostYAML("eth0", "eth1", "192.0.2.155", "192.0.2.156", "192.0.2.1", macInterfaceMap)
-				getResp, err := userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
+				getResp, err := utils_test.TestContext.UserBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
 					InfraenvCreateParams: &models.InfraEnvCreateParams{
 						Name:                swag.String("iso-test-infra-env"),
 						OpenshiftVersion:    ocpVersion,
 						PullSecret:          swag.String(pullSecret),
-						SSHAuthorizedKey:    swag.String(sshPublicKey),
+						SSHAuthorizedKey:    swag.String(utils_test.SshPublicKey),
 						ImageType:           imageType,
 						StaticNetworkConfig: []*models.HostStaticNetworkConfig{config},
 						ClusterID:           &clusterID,
@@ -94,7 +95,7 @@ var _ = Describe("system-test image tests", func() {
 })
 
 func verifyEventExistence(ClusterID strfmt.UUID, message string) {
-	eventsReply, err := userBMClient.Events.V2ListEvents(context.TODO(), &events.V2ListEventsParams{
+	eventsReply, err := utils_test.TestContext.UserBMClient.Events.V2ListEvents(context.TODO(), &events.V2ListEventsParams{
 		ClusterID: &ClusterID,
 	})
 	Expect(err).NotTo(HaveOccurred())

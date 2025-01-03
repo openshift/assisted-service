@@ -11,12 +11,13 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 )
 
 var _ = Describe("Events tests", func() {
 
 	It("Match Event Name", func() {
-		c, err := userBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
+		c, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:     "fake.domain",
 				Name:              swag.String("test-v2events-cluster"),
@@ -28,7 +29,7 @@ var _ = Describe("Events tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		clusterId := *c.GetPayload().ID
 
-		evs, err := userBMClient.Events.V2ListEvents(context.TODO(), &events.V2ListEventsParams{
+		evs, err := utils_test.TestContext.UserBMClient.Events.V2ListEvents(context.TODO(), &events.V2ListEventsParams{
 			ClusterID:  &clusterId,
 			HostIds:    nil,
 			InfraEnvID: nil,

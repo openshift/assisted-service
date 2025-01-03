@@ -448,10 +448,10 @@ deploy-dev-infra: create-hub-cluster
 ########
 
 test:
-	$(MAKE) _run_subsystem_test AUTH_TYPE=rhsso ENABLE_ORG_TENANCY=true ENABLE_ORG_BASED_FEATURE_GATES=true
+	$(MAKE) _run_subsystem_test AUTH_TYPE=rhsso ENABLE_ORG_TENANCY=true ENABLE_ORG_BASED_FEATURE_GATES=true TEST="$(or $(TEST),'github.com/openshift/assisted-service/subsystem')"
 
 test-kube-api:
-	$(MAKE) _run_subsystem_test AUTH_TYPE=local FOCUS="$(or ${FOCUS},kube-api)"
+	$(MAKE) _run_subsystem_test AUTH_TYPE=local TEST="$(or $(TEST),'github.com/openshift/assisted-service/subsystem/kubeapi')"
 
 # Alias for test
 subsystem-test: test
@@ -490,7 +490,7 @@ _run_subsystem_test:
 	TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
 	TEST_TOKEN_EDITOR="$(shell cat $(BUILD_FOLDER)/auth-tokenClusterEditor)" \
 	RELEASE_SOURCES='$(or ${RELEASE_SOURCES},${DEFAULT_RELEASE_SOURCES})' \
-	$(MAKE) _test TEST_SCENARIO=subsystem TIMEOUT=120m TEST="$(or $(TEST),./subsystem/...)"
+	$(MAKE) _test TEST_SCENARIO=subsystem TIMEOUT=120m
 
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
 	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true ALLOW_CONVERGED_FLOW=true ISO_IMAGE_TYPE=minimal-iso
