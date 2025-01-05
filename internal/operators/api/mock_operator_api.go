@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	pq "github.com/lib/pq"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 )
@@ -50,6 +51,20 @@ func (m *MockOperator) GenerateManifests(arg0 *common.Cluster) (map[string][]byt
 func (mr *MockOperatorMockRecorder) GenerateManifests(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateManifests", reflect.TypeOf((*MockOperator)(nil).GenerateManifests), arg0)
+}
+
+// GetBundleLabels mocks base method.
+func (m *MockOperator) GetBundleLabels() pq.StringArray {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBundleLabels")
+	ret0, _ := ret[0].(pq.StringArray)
+	return ret0
+}
+
+// GetBundleLabels indicates an expected call of GetBundleLabels.
+func (mr *MockOperatorMockRecorder) GetBundleLabels() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBundleLabels", reflect.TypeOf((*MockOperator)(nil).GetBundleLabels))
 }
 
 // GetClusterValidationID mocks base method.

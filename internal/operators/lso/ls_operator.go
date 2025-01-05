@@ -3,6 +3,7 @@ package lso
 import (
 	"context"
 
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
@@ -102,4 +103,9 @@ func (l *lsOperator) GetPreflightRequirements(context context.Context, cluster *
 
 func (l *lsOperator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDLSO
+}
+
+// GetBundleLabels returns the bundle labels for the LSO operator
+func (l *lsOperator) GetBundleLabels() pq.StringArray {
+	return Operator.Bundles
 }

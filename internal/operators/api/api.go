@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
@@ -55,6 +56,8 @@ type Operator interface {
 	GetPreflightRequirements(ctx context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error)
 	// GetFeatureSupportID returns the operator unique feature-support ID
 	GetFeatureSupportID() models.FeatureSupportLevelID
+	// GetBundleLabels returns the bundles associated with the operator
+	GetBundleLabels() pq.StringArray
 }
 
 // Storage Operator provide a generic API for storage operators

@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
@@ -53,6 +54,7 @@ func (o *operator) GetName() string {
 	return Operator.Name
 }
 
+// GetFullName reports the full name of the Operator.
 func (o *operator) GetFullName() string {
 	return "multicluster engine"
 }
@@ -214,4 +216,9 @@ func GetMinDiskSizeGB(cluster *models.Cluster) int64 {
 		return lo.Sum(lo.Values(storageSizeGi))
 	}
 	return lo.Max(lo.Values(storageSizeGi))
+}
+
+// GetBundleLabels returns the bundle labels for the MCE operator
+func (o *operator) GetBundleLabels() pq.StringArray {
+	return Operator.Bundles
 }

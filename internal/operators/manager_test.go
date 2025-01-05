@@ -24,6 +24,8 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/odf"
+	"github.com/openshift/assisted-service/internal/operators/openshiftai"
+	"github.com/openshift/assisted-service/internal/operators/serverless"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -794,6 +796,51 @@ var _ = Describe("Operators manager", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(BeEquivalentTo(theError))
+		})
+	})
+
+	Context("Bundles", func() {
+		// we use the real operators here, as we want to test the manager's ability to group them into bundles
+		var (
+			manager                                                                *operators.Manager
+			cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator api.Operator
+		)
+		BeforeEach(func() {
+			cfg := cnv.Config{}
+			cnvOperator = cnv.NewCNVOperator(log, cfg)
+			// note that odf belongs to both Virtualization and Openshiftai bundles
+			odfOperator = odf.NewOdfOperator(log)
+			oaiOperator = openshiftai.NewOpenShiftAIOperator(log)
+			serverlessOperator = serverless.NewServerLessOperator(log)
+			// note that lso doesn't belongs to any bundle
+			lsoOperator = lso.NewLSOperator()
+
+			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, nil, cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator)
+		})
+
+		It("GetBundles should return the list of available bundles", func() {
+			bundles := manager.GetBundles()
+			Expect(bundles).To(ConsistOf(
+				models.BundleVirtualization,
+				models.BundleOpenshiftai,
+			))
+		})
+
+		It("GetOperatorsByBundle should return the operators associated with a specific bundle", func() {
+
+			operators, err := manager.GetOperatorsByBundle("invalid bundle")
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("bundle 'invalid bundle' is not supported"))
+			Expect(operators).To(HaveLen(0))
+			operators, err = manager.GetOperatorsByBundle(models.BundleVirtualization)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(operators).To(HaveLen(2))
+			Expect(operators).To(ContainElements(cnvOperator.GetName(), odfOperator.GetName()))
+
+			operators, err = manager.GetOperatorsByBundle(models.BundleOpenshiftai)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(operators).To(HaveLen(3))
+			Expect(operators).To(ContainElements(oaiOperator.GetName(), serverlessOperator.GetName(), odfOperator.GetName()))
 		})
 	})
 })

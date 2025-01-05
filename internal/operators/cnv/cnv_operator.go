@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
@@ -37,6 +38,7 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "hco-operatorhub",
 	TimeoutSeconds:   60 * 60,
+	Bundles:          pq.StringArray{string(models.BundleVirtualization)},
 }
 
 // NewCNVOperator creates new instance of a Container Native Virtualization installation plugin
@@ -332,4 +334,8 @@ func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string, d
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDCNV
+}
+
+func (o *operator) GetBundleLabels() pq.StringArray {
+	return Operator.Bundles
 }

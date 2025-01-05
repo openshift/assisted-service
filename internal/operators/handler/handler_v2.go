@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	restoperators "github.com/openshift/assisted-service/restapi/operations/operators"
 )
@@ -35,4 +36,20 @@ func (h *Handler) V2ListOperatorProperties(ctx context.Context, params restopera
 func (h *Handler) V2ListSupportedOperators(_ context.Context, _ restoperators.V2ListSupportedOperatorsParams) middleware.Responder {
 	return restoperators.NewV2ListSupportedOperatorsOK().
 		WithPayload(h.operatorsAPI.GetSupportedOperators())
+}
+
+// V2GetBundles Retrieves the list of supported bundles.
+func (h *Handler) V2GetBundles(_ context.Context, _ restoperators.V2GetBundlesParams) middleware.Responder {
+	return restoperators.NewV2GetBundlesOK().WithPayload(h.operatorsAPI.GetBundles())
+}
+
+// V2GetBundleOperators Retrieves the list of operators for a specific bundle.
+func (h *Handler) V2GetBundleOperators(ctx context.Context, params restoperators.V2GetBundleOperatorsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, h.log)
+	operators, err := h.operatorsAPI.GetOperatorsByBundle(models.Bundle(params.BundleName))
+	if err != nil {
+		log.Errorf("Failed to get operators for bundle %s: %v", params.BundleName, err)
+		return common.GenerateErrorResponder(err)
+	}
+	return restoperators.NewV2GetBundleOperatorsOK().WithPayload(operators)
 }
