@@ -137,3 +137,7 @@ func (o *operator) GetPreflightRequirements(context context.Context,
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDNODEFEATUREDISCOVERY
 }
+
+func (o *operator) GetBundleLabels() []string {
+	return []string(Operator.Bundles)
+}

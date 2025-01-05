@@ -52,6 +52,20 @@ func (mr *MockOperatorMockRecorder) GenerateManifests(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateManifests", reflect.TypeOf((*MockOperator)(nil).GenerateManifests), arg0)
 }
 
+// GetBundleLabels mocks base method.
+func (m *MockOperator) GetBundleLabels() []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBundleLabels")
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// GetBundleLabels indicates an expected call of GetBundleLabels.
+func (mr *MockOperatorMockRecorder) GetBundleLabels() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBundleLabels", reflect.TypeOf((*MockOperator)(nil).GetBundleLabels))
+}
+
 // GetClusterValidationID mocks base method.
 func (m *MockOperator) GetClusterValidationID() string {
 	m.ctrl.T.Helper()

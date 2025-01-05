@@ -79,6 +79,10 @@ type API interface {
 	GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error)
 	// EnsureOperatorPrerequisite Ensure that for the given operators has the base prerequisite for installation
 	EnsureOperatorPrerequisite(cluster *common.Cluster, openshiftVersion string, cpuArchitecture string, operators []*models.MonitoredOperator) error
+	// ListBundles returns the list of available bundles
+	ListBundles() []string
+	// GetBundle returns the Bundle object
+	GetBundle(bundleName string) (*models.Bundle, error)
 }
 
 // GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
@@ -513,4 +517,38 @@ func (mgr *Manager) EnsureOperatorPrerequisite(cluster *common.Cluster, openshif
 	}
 
 	return nil
+}
+
+// ListBundles returns a list of available bundles.
+func (mgr *Manager) ListBundles() []string {
+	return []string{
+		operatorscommon.BundleVirtualization,
+		operatorscommon.BundleOpenshiftai,
+	}
+}
+
+// GetBundle returns the Bundle object
+func (mgr *Manager) GetBundle(bundleName string) (*models.Bundle, error) {
+	if !mgr.isBundleValid(bundleName) {
+		return nil, fmt.Errorf("bundle '%s' is not supported", bundleName)
+	}
+	bundle := models.Bundle{Name: bundleName}
+	for _, operator := range mgr.olmOperators {
+		for _, operatorBundle := range operator.GetBundleLabels() {
+			if operatorBundle == bundle.Name {
+				bundle.Operators = append(bundle.Operators, operator.GetName())
+				break
+			}
+		}
+	}
+	return &bundle, nil
+}
+
+func (mgr *Manager) isBundleValid(bundleName string) bool {
+	for _, bundle := range mgr.ListBundles() {
+		if bundle == bundleName {
+			return true
+		}
+	}
+	return false
 }

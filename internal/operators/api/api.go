@@ -55,6 +55,8 @@ type Operator interface {
 	GetPreflightRequirements(ctx context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error)
 	// GetFeatureSupportID returns the operator unique feature-support ID
 	GetFeatureSupportID() models.FeatureSupportLevelID
+	// GetBundleLabels returns the list of bundles names associated with the operator
+	GetBundleLabels() []string
 }
 
 // Storage Operator provide a generic API for storage operators

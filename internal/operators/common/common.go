@@ -5,6 +5,15 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
 
+const (
+
+	// BundleVirtualization captures enum value "virtualization"
+	BundleVirtualization string = "virtualization"
+
+	// BundleOpenshiftai captures enum value "openshiftai"
+	BundleOpenshiftai string = "openshiftai"
+)
+
 // Returns count for disks that are not installion disk and fulfill size requirements (eligible disks) and
 // disks that are not installation disk (available disks)
 func NonInstallationDiskCount(disks []*models.Disk, installationDiskID string, minSizeGB int64) (int64, int64) {

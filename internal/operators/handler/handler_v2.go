@@ -36,3 +36,19 @@ func (h *Handler) V2ListSupportedOperators(_ context.Context, _ restoperators.V2
 	return restoperators.NewV2ListSupportedOperatorsOK().
 		WithPayload(h.operatorsAPI.GetSupportedOperators())
 }
+
+// V2GetBundles Retrieves the list of supported bundles.
+func (h *Handler) V2ListBundles(_ context.Context, _ restoperators.V2ListBundlesParams) middleware.Responder {
+	return restoperators.NewV2ListBundlesOK().WithPayload(h.operatorsAPI.ListBundles())
+}
+
+// V2GetBundle Retrieves the Bundle object for a specific bundleName.
+func (h *Handler) V2GetBundle(ctx context.Context, params restoperators.V2GetBundleParams) middleware.Responder {
+	log := logutil.FromContext(ctx, h.log)
+	bundle, err := h.operatorsAPI.GetBundle(params.BundleName)
+	if err != nil {
+		log.Errorf("Failed to get operators for bundle %s: %v", params.BundleName, err)
+		return common.GenerateErrorResponder(err)
+	}
+	return restoperators.NewV2GetBundleOK().WithPayload(bundle)
+}

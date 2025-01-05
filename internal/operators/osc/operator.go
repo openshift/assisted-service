@@ -182,3 +182,8 @@ func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDOSC
 }
+
+// GetBundleLabels returns the bundle labels for the OSC operator
+func (o *operator) GetBundleLabels() []string {
+	return []string(Operator.Bundles)
+}
