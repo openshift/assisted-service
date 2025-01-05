@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -794,6 +795,57 @@ var _ = Describe("Operators manager", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(BeEquivalentTo(theError))
+		})
+	})
+
+	Context("Bundles", func() {
+		const (
+			operatorName1 = "operator-1"
+			operatorName2 = "operator-2"
+			operatorName3 = "operator-3"
+			operatorName4 = "operator-4"
+		)
+		var (
+			manager                                    *operators.Manager
+			operator1, operator2, operator3, operator4 *api.MockOperator
+		)
+		BeforeEach(func() {
+			operator1 = mockOperatorBase(operatorName1)
+			operator1.EXPECT().GetBundleLabels().Return(pq.StringArray{string(models.BundleVirtualization)}).AnyTimes()
+			operator1.EXPECT().GetProperties().Return(models.OperatorProperties{}).AnyTimes()
+
+			operator2 = mockOperatorBase(operatorName2)
+			operator2.EXPECT().GetBundleLabels().Return(pq.StringArray{string(models.BundleVirtualization)}).AnyTimes()
+			operator2.EXPECT().GetProperties().Return(models.OperatorProperties{}).AnyTimes()
+
+			operator3 = mockOperatorBase(operatorName3)
+			operator3.EXPECT().GetBundleLabels().Return(pq.StringArray{string(models.BundleVirtualization), string(models.BundleOpenshiftai)}).AnyTimes()
+			operator3.EXPECT().GetProperties().Return(models.OperatorProperties{}).AnyTimes()
+
+			operator4 = mockOperatorBase(operatorName4)
+			operator4.EXPECT().GetBundleLabels().Return(pq.StringArray{string(models.BundleOpenshiftai)}).AnyTimes()
+			operator4.EXPECT().GetProperties().Return(models.OperatorProperties{}).AnyTimes()
+
+			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, nil, operator1, operator2, operator3, operator4)
+		})
+
+		It("GetBundles should return the list of available bundles", func() {
+			bundles := manager.GetBundles()
+			Expect(bundles).To(ConsistOf(
+				models.BundleVirtualization,
+				models.BundleOpenshiftai,
+			))
+		})
+
+		It("GetOperatorsByBundle should return the operators associated with a specific bundle", func() {
+
+			operators, err := manager.GetOperatorsByBundle(models.BundleVirtualization)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(operators).To(HaveLen(3))
+
+			operators, err = manager.GetOperatorsByBundle(models.BundleOpenshiftai)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(operators).To(HaveLen(2))
 		})
 	})
 })

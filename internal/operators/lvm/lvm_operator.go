@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
@@ -214,4 +215,9 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDLVM
+}
+
+// GetBundleLabels returns the bundle labels for the LVM operator
+func (o *operator) GetBundleLabels() pq.StringArray {
+	return Operator.Bundles
 }

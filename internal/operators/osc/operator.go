@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -181,4 +182,9 @@ func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDOSC
+}
+
+// GetBundleLabels returns the bundle labels for the OSC operator
+func (o *operator) GetBundleLabels() pq.StringArray {
+	return Operator.Bundles
 }

@@ -7,6 +7,7 @@ import (
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/authorino"
@@ -27,6 +28,7 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "rhods-operator",
 	TimeoutSeconds:   30 * 60,
+	Bundles:          pq.StringArray{string(models.BundleOpenshiftai)},
 }
 
 // operator is an OpenShift AI OLM operator plugin.
@@ -312,4 +314,8 @@ func (o *operator) GetSupportedArchitectures() []string {
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDOPENSHIFTAI
+}
+
+func (o *operator) GetBundleLabels() pq.StringArray {
+	return Operator.Bundles
 }

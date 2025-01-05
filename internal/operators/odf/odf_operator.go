@@ -7,6 +7,7 @@ import (
 	"unicode"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
@@ -24,6 +25,8 @@ var OcsOperator = models.MonitoredOperator{
 	Namespace:        "openshift-storage",
 	SubscriptionName: "ocs-operator",
 	TimeoutSeconds:   30 * 60,
+	Bundles: pq.StringArray{string(models.BundleVirtualization),
+		string(models.BundleOpenshiftai)},
 }
 
 // NewOcsOperator creates new ODFOperator
@@ -310,6 +313,11 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDODF
+}
+
+// GetBundleLabels returns the bundle labels for the ODF operator
+func (o *operator) GetBundleLabels() pq.StringArray {
+	return Operator.Bundles
 }
 
 func capitalizeFirstLetter(s string) string {

@@ -79,6 +79,20 @@ func (mr *MockAPIMockRecorder) GenerateManifests(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateManifests", reflect.TypeOf((*MockAPI)(nil).GenerateManifests), arg0, arg1)
 }
 
+// GetBundles mocks base method.
+func (m *MockAPI) GetBundles() []models.Bundle {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBundles")
+	ret0, _ := ret[0].([]models.Bundle)
+	return ret0
+}
+
+// GetBundles indicates an expected call of GetBundles.
+func (mr *MockAPIMockRecorder) GetBundles() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBundles", reflect.TypeOf((*MockAPI)(nil).GetBundles))
+}
+
 // GetMonitoredOperatorsList mocks base method.
 func (m *MockAPI) GetMonitoredOperatorsList() map[string]*models.MonitoredOperator {
 	m.ctrl.T.Helper()
@@ -121,6 +135,21 @@ func (m *MockAPI) GetOperatorProperties(arg0 string) (models.OperatorProperties,
 func (mr *MockAPIMockRecorder) GetOperatorProperties(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorProperties", reflect.TypeOf((*MockAPI)(nil).GetOperatorProperties), arg0)
+}
+
+// GetOperatorsByBundle mocks base method.
+func (m *MockAPI) GetOperatorsByBundle(arg0 models.Bundle) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOperatorsByBundle", arg0)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOperatorsByBundle indicates an expected call of GetOperatorsByBundle.
+func (mr *MockAPIMockRecorder) GetOperatorsByBundle(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorsByBundle", reflect.TypeOf((*MockAPI)(nil).GetOperatorsByBundle), arg0)
 }
 
 // GetPreflightRequirementsBreakdownForCluster mocks base method.

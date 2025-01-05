@@ -4,6 +4,7 @@ import (
 	"context"
 	"text/template"
 
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/templating"
@@ -17,6 +18,7 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "authorino-operator",
 	TimeoutSeconds:   30 * 60,
+	Bundles:          pq.StringArray{string(models.BundleOpenshiftai)},
 }
 
 // operator is an Authorino AI OLM operator plugin.
@@ -123,4 +125,9 @@ func (o *operator) GetPreflightRequirements(context context.Context,
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDAUTHORINO
+}
+
+// GetBundleLabels returns the bundle labels for the Authorino operator
+func (o *operator) GetBundleLabels() pq.StringArray {
+	return Operator.Bundles
 }

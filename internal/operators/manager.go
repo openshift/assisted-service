@@ -79,6 +79,10 @@ type API interface {
 	GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error)
 	// EnsureOperatorPrerequisite Ensure that for the given operators has the base prerequisite for installation
 	EnsureOperatorPrerequisite(cluster *common.Cluster, openshiftVersion string, cpuArchitecture string, operators []*models.MonitoredOperator) error
+	// GetBundles returns the list of available bundles
+	GetBundles() []models.Bundle
+	// GetOperatorsByBundle returns the operators associated with a specific bundle
+	GetOperatorsByBundle(bundleName models.Bundle) ([]string, error)
 }
 
 // GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
@@ -513,4 +517,27 @@ func (mgr *Manager) EnsureOperatorPrerequisite(cluster *common.Cluster, openshif
 	}
 
 	return nil
+}
+
+// GetBundles returns a list of available bundles.
+func (mgr *Manager) GetBundles() []models.Bundle {
+	return []models.Bundle{
+		models.BundleVirtualization,
+		models.BundleOpenshiftai,
+	}
+}
+
+// GetOperatorsByBundle returns the operators associated with a specific bundle
+func (mgr *Manager) GetOperatorsByBundle(bundleName models.Bundle) ([]string, error) {
+	var operators []string
+	for _, operator := range mgr.olmOperators {
+		for _, bundleStr := range operator.GetBundleLabels() {
+			bundle := models.Bundle(bundleStr)
+			if bundle == bundleName {
+				operators = append(operators, operator.GetName())
+				break
+			}
+		}
+	}
+	return operators, nil
 }

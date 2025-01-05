@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -176,4 +177,9 @@ func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDMTV
+}
+
+// GetBundleLabels returns the bundle labels for the MTV operator
+func (o *operator) GetBundleLabels() pq.StringArray {
+	return Operator.Bundles
 }
