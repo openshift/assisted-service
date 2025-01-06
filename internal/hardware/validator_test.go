@@ -220,7 +220,7 @@ var _ = Describe("Disk eligibility", func() {
 		cluster.OpenshiftVersion = "4.14.1"
 		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("Drive type is iSCSI, it must be one of HDD, SSD, Multipath, RAID."))
+		Expect(eligible).To(ContainElement("Drive type is iSCSI, it must be one of HDD, SSD, Multipath, RAID, FC."))
 
 		By("Check iSCSI is eligible on day2 cluster")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
@@ -252,12 +252,12 @@ var _ = Describe("Disk eligibility", func() {
 		cluster.OpenshiftVersion = "4.13.0"
 		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("Drive type is RAID, it must be one of HDD, SSD, Multipath."))
+		Expect(eligible).To(ContainElement("Drive type is RAID, it must be one of HDD, SSD, Multipath, FC."))
 
 		By("Check infra env RAID is not eligible")
 		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("Drive type is RAID, it must be one of HDD, SSD, Multipath."))
+		Expect(eligible).To(ContainElement("Drive type is RAID, it must be one of HDD, SSD, Multipath, FC."))
 	})
 
 	It("Check that FC multipath is eligible", func() {
@@ -325,15 +325,16 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(eligible).ToNot(BeEmpty())
 	})
 
-	It("Check if FC is not eligible on non-s390x", func() {
+	It("Check if FC is not eligible on non-s390x/x86_64", func() {
 		testDisk.DriveType = models.DriveTypeFC
+		inventory.CPU.Architecture = models.ClusterCPUArchitectureArm64
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).ToNot(BeEmpty())
 
-		By("Check infra env FC is only eligible for s390x")
+		By("Check infra env FC is only eligible for s390x/x86_64")
 		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
@@ -349,7 +350,23 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).To(BeEmpty())
 
-		By("Check infra env FC is only eligible for s390x")
+		By("Check infra env FC is eligible for s390x")
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
+	})
+
+	It("Check if FC is eligible for x86_64", func() {
+		testDisk.DriveType = models.DriveTypeFC
+		inventory.CPU.Architecture = models.ClusterCPUArchitectureX8664
+
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
+
+		By("Check infra env FC is eligible for x86_64")
 		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
