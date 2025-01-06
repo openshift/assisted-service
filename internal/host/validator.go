@@ -312,6 +312,9 @@ func (v *validator) isMtuValid(c *validationContext) (ValidationStatus, string) 
 	if c.inventory == nil {
 		return ValidationPending, "Missing host inventory"
 	}
+	if hostutil.IsDay2Host(c.host) {
+		return ValidationSuccess, "Day2 host is not required to be connected to other hosts in the cluster"
+	}
 	if common.IsSingleNodeCluster(c.cluster) {
 		return ValidationSuccessSuppressOutput, "The validation is not applicable to SNO"
 	}
