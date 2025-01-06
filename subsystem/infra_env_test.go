@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 )
 
 var registerInfraEnv = func(clusterID *strfmt.UUID, imageType models.ImageType) *models.InfraEnv {
@@ -36,12 +37,12 @@ var registerInfraEnvSpecificVersionAndArch = func(clusterID *strfmt.UUID, imageT
 }
 
 var internalRegisterInfraEnv = func(clusterID *strfmt.UUID, imageType models.ImageType, cpuArch, ocpVersion string) *models.InfraEnv {
-	request, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+	request, err := utils_test.TestContext.UserBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: &models.InfraEnvCreateParams{
 			Name:             swag.String("test-infra-env"),
 			OpenshiftVersion: ocpVersion,
 			PullSecret:       swag.String(pullSecret),
-			SSHAuthorizedKey: swag.String(sshPublicKey),
+			SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
 			ImageType:        imageType,
 			ClusterID:        clusterID,
 			CPUArchitecture:  cpuArch,
@@ -65,12 +66,12 @@ func validateKernelArgs(infraEnv *models.InfraEnv, expectedKargs models.KernelAr
 
 var _ = Describe("Register InfraEnv- kernel arguments", func() {
 	register := func(kernelArgs models.KernelArguments) (*installer.RegisterInfraEnvCreated, error) {
-		return userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+		return utils_test.TestContext.UserBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 			InfraenvCreateParams: &models.InfraEnvCreateParams{
 				Name:             swag.String("test-infra-env"),
 				OpenshiftVersion: openshiftVersion,
 				PullSecret:       swag.String(pullSecret),
-				SSHAuthorizedKey: swag.String(sshPublicKey),
+				SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
 				ImageType:        models.ImageTypeMinimalIso,
 				KernelArguments:  kernelArgs,
 			},
@@ -123,7 +124,7 @@ var _ = Describe("Infra_Env", func() {
 
 	BeforeEach(func() {
 		infraEnv = registerInfraEnv(nil, models.ImageTypeFullIso)
-		clusterResp, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+		clusterResp, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(openshiftVersion),
@@ -142,7 +143,7 @@ var _ = Describe("Infra_Env", func() {
 	})
 
 	getInfraEnv := func() {
-		resp, err := userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
+		resp, err := utils_test.TestContext.UserBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
 		Expect(err).NotTo(HaveOccurred())
 
 		infraEnv = resp.Payload
@@ -168,7 +169,7 @@ var _ = Describe("Infra_Env", func() {
 					KernelArguments: kargs1,
 				},
 			}
-			res, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+			res, err := utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
 			Expect(err).NotTo(HaveOccurred())
 			validateKernelArgs(res.Payload, kargs1)
 
@@ -188,7 +189,7 @@ var _ = Describe("Infra_Env", func() {
 				},
 			}
 			updateParams.InfraEnvUpdateParams.KernelArguments = kargs2
-			res, err = userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+			res, err = utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
 			Expect(err).NotTo(HaveOccurred())
 			validateKernelArgs(res.Payload, kargs2)
 
@@ -197,7 +198,7 @@ var _ = Describe("Infra_Env", func() {
 
 			// Need to update with some field other than kernel arguments
 			updateParams.InfraEnvUpdateParams.PullSecret = pullSecret
-			res, err = userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+			res, err = utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
 			Expect(err).NotTo(HaveOccurred())
 			validateKernelArgs(res.Payload, kargs2)
 
@@ -205,7 +206,7 @@ var _ = Describe("Infra_Env", func() {
 			// Return to default
 			updateParams.InfraEnvUpdateParams.PullSecret = ""
 			updateParams.InfraEnvUpdateParams.KernelArguments = make(models.KernelArguments, 0)
-			res, err = userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+			res, err = utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
 			Expect(err).NotTo(HaveOccurred())
 			validateKernelArgs(res.Payload, nil)
 		})
@@ -222,7 +223,7 @@ var _ = Describe("Infra_Env", func() {
 						},
 					},
 				}
-				_, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+				_, err := utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
 				Expect(err).To(HaveOccurred())
 			},
 			Entry("unsupported replace operation", models.KernelArgumentOperationReplace, "p1"),
@@ -239,7 +240,7 @@ var _ = Describe("Infra_Env", func() {
 				Proxy: &models.Proxy{NoProxy: swag.String("*")},
 			},
 		}
-		res, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+		res, err := utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
 		Expect(err).NotTo(HaveOccurred())
 		updateInfraEnv := res.Payload
 		Expect(swag.StringValue(updateInfraEnv.Proxy.NoProxy)).To(Equal("*"))
@@ -269,7 +270,7 @@ var _ = Describe("Infra_Env", func() {
 			},
 		}
 
-		res, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+		res, err := utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
 		Expect(err).NotTo(HaveOccurred())
 		updateInfraEnv := res.Payload
 		Expect(updateInfraEnv.SSHAuthorizedKey).To(Equal(newSshKey))
@@ -281,7 +282,7 @@ var _ = Describe("Infra_Env", func() {
 	})
 
 	It("download minimal-iso image success", func() {
-		_, err := userBMClient.Installer.UpdateInfraEnv(ctx,
+		_, err := utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx,
 			&installer.UpdateInfraEnvParams{InfraEnvID: infraEnvID,
 				InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso}})
 		Expect(err).NotTo(HaveOccurred())
@@ -291,7 +292,7 @@ var _ = Describe("Infra_Env", func() {
 
 	It("download minimal-initrd success", func() {
 		time.Sleep(time.Second * 10)
-		_, err := userBMClient.Installer.UpdateInfraEnv(ctx,
+		_, err := utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx,
 			&installer.UpdateInfraEnvParams{InfraEnvID: infraEnvID,
 				InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso}})
 		Expect(err).NotTo(HaveOccurred())
@@ -300,14 +301,14 @@ var _ = Describe("Infra_Env", func() {
 			log.Fatal(err)
 		}
 		defer os.Remove(file.Name())
-		_, _, err = userBMClient.Installer.DownloadMinimalInitrd(ctx, &installer.DownloadMinimalInitrdParams{InfraEnvID: infraEnvID}, file)
+		_, _, err = utils_test.TestContext.UserBMClient.Installer.DownloadMinimalInitrd(ctx, &installer.DownloadMinimalInitrdParams{InfraEnvID: infraEnvID}, file)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("download infra-env files discovery ignition file", func() {
 		file, err := os.CreateTemp("", "tmp")
 		Expect(err).NotTo(HaveOccurred())
-		_, err = userBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "discovery.ign"}, file)
+		_, err = utils_test.TestContext.UserBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "discovery.ign"}, file)
 		Expect(err).NotTo(HaveOccurred())
 		s, err := file.Stat()
 		Expect(err).NotTo(HaveOccurred())
@@ -344,11 +345,11 @@ var _ = Describe("Infra_Env", func() {
 				StaticNetworkConfig: staticNetworkConfigs,
 			},
 		}
-		_, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+		_, err := utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
 		Expect(err).NotTo(HaveOccurred())
 		By("Downloading the static network config archive")
 		buf := &bytes.Buffer{}
-		_, err = userBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "static-network-config"}, buf)
+		_, err = utils_test.TestContext.UserBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "static-network-config"}, buf)
 		Expect(err).NotTo(HaveOccurred())
 		By("Verifying the contents of the archive")
 		contents := buf.String()
@@ -366,12 +367,12 @@ var _ = Describe("Infra_Env", func() {
 	It("download infra-env files invalid filename option", func() {
 		file, err := os.CreateTemp("", "tmp")
 		Expect(err).NotTo(HaveOccurred())
-		_, err = userBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "bootstrap.ign"}, file)
+		_, err = utils_test.TestContext.UserBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "bootstrap.ign"}, file)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("can list infra-envs", func() {
-		resp, err := userBMClient.Installer.ListInfraEnvs(ctx, installer.NewListInfraEnvsParams())
+		resp, err := utils_test.TestContext.UserBMClient.Installer.ListInfraEnvs(ctx, installer.NewListInfraEnvsParams())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(resp.Payload)).To(Equal(2))
 		Expect(resp.Payload).To(ContainElement(infraEnv))
@@ -379,35 +380,35 @@ var _ = Describe("Infra_Env", func() {
 	})
 
 	It("can list infra-envs by cluster id", func() {
-		resp, err := userBMClient.Installer.ListInfraEnvs(ctx, &installer.ListInfraEnvsParams{ClusterID: &clusterID})
+		resp, err := utils_test.TestContext.UserBMClient.Installer.ListInfraEnvs(ctx, &installer.ListInfraEnvsParams{ClusterID: &clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(resp.Payload)).To(Equal(1))
 		Expect(resp.Payload[0]).To(Equal(infraEnv2))
 	})
 
 	It("deregister empty infra-env", func() {
-		_, err := userBMClient.Installer.DeregisterInfraEnv(ctx, &installer.DeregisterInfraEnvParams{InfraEnvID: infraEnvID})
+		_, err := utils_test.TestContext.UserBMClient.Installer.DeregisterInfraEnv(ctx, &installer.DeregisterInfraEnvParams{InfraEnvID: infraEnvID})
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("deregister non-empty infra-env should fail", func() {
-		hostID := strToUUID(uuid.New().String())
+		hostID := utils_test.StrToUUID(uuid.New().String())
 		// register to infra-env
-		_, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+		_, err := utils_test.TestContext.AgentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
 			InfraEnvID: infraEnvID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		_, err = userBMClient.Installer.DeregisterInfraEnv(ctx, &installer.DeregisterInfraEnvParams{InfraEnvID: infraEnvID})
+		_, err = utils_test.TestContext.UserBMClient.Installer.DeregisterInfraEnv(ctx, &installer.DeregisterInfraEnvParams{InfraEnvID: infraEnvID})
 
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("can get ipxe script", func() {
 		buf := &bytes.Buffer{}
-		_, err := userBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "ipxe-script"}, buf)
+		_, err := utils_test.TestContext.UserBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "ipxe-script"}, buf)
 		Expect(err).NotTo(HaveOccurred())
 
 		script := buf.String()
@@ -415,7 +416,7 @@ var _ = Describe("Infra_Env", func() {
 	})
 
 	It("can get ipxe script presigned url", func() {
-		res, err := userBMClient.Installer.GetInfraEnvPresignedFileURL(ctx, &installer.GetInfraEnvPresignedFileURLParams{InfraEnvID: infraEnvID, FileName: "ipxe-script"})
+		res, err := utils_test.TestContext.UserBMClient.Installer.GetInfraEnvPresignedFileURL(ctx, &installer.GetInfraEnvPresignedFileURLParams{InfraEnvID: infraEnvID, FileName: "ipxe-script"})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Payload).ToNot(BeNil())
 		u := res.Payload.URL
@@ -430,7 +431,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(script).To(HavePrefix("#!ipxe"))
 	})
 	It("ipxe with boot control", func() {
-		res, err := userBMClient.Installer.GetInfraEnvPresignedFileURL(ctx, &installer.GetInfraEnvPresignedFileURLParams{
+		res, err := utils_test.TestContext.UserBMClient.Installer.GetInfraEnvPresignedFileURL(ctx, &installer.GetInfraEnvPresignedFileURLParams{
 			InfraEnvID:     infraEnvID,
 			FileName:       "ipxe-script",
 			IpxeScriptType: swag.String(bminventory.BootOrderControl)})
@@ -461,9 +462,9 @@ var _ = Describe("Infra_Env", func() {
 		Expect(string(script)).To(MatchRegexp(`.*initrd --name initrd.*`))
 
 		By("Create host")
-		hostID := strToUUID(uuid.New().String())
+		hostID := utils_test.StrToUUID(uuid.New().String())
 		// register to infra-env
-		response, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+		response, err := utils_test.TestContext.AgentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
 			InfraEnvID: infraEnvID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
@@ -471,7 +472,7 @@ var _ = Describe("Infra_Env", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 		host := &response.Payload.Host
-		generateHWPostStepReply(context.Background(), host, getValidWorkerHwInfoWithCIDR("1.2.3.4/24"), "h1")
+		utils_test.TestContext.GenerateHWPostStepReply(context.Background(), host, utils_test.GetValidWorkerHwInfoWithCIDR("1.2.3.4/24"), "h1")
 
 		By("host is insufficient")
 		scriptResp, err = http.Get(url)
@@ -493,9 +494,9 @@ var _ = Describe("Infra_Env", func() {
 		Expect(db.Model(&models.Host{}).Where("id = ? and infra_env_id = ?", hostID.String(), infraEnvID.String()).
 			Update("status", models.HostStatusInsufficient).Error).ToNot(HaveOccurred())
 
-		hostID2 := strToUUID(uuid.New().String())
+		hostID2 := utils_test.StrToUUID(uuid.New().String())
 		// register to infra-env
-		response, err = agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+		response, err = utils_test.TestContext.AgentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
 			InfraEnvID: infraEnvID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID2,
@@ -503,7 +504,7 @@ var _ = Describe("Infra_Env", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 		host2 := &response.Payload.Host
-		generateHWPostStepReply(context.Background(), host2, getValidWorkerHwInfoWithCIDR("1.2.3.5/24"), "h2")
+		utils_test.TestContext.GenerateHWPostStepReply(context.Background(), host2, utils_test.GetValidWorkerHwInfoWithCIDR("1.2.3.5/24"), "h2")
 		scriptResp, err = http.Get(url)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(scriptResp.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -521,7 +522,7 @@ var _ = Describe("Infra_Env", func() {
 				StaticNetworkConfig: staticNetworkConfigs,
 			},
 		}
-		_, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+		_, err := utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -532,7 +533,7 @@ var _ = Describe("Infra_Env", func() {
 				OpenshiftVersion: swag.String("5.99"),
 			},
 		}
-		_, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+		_, err := utils_test.TestContext.UserBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
 		Expect(err).To(HaveOccurred())
 	})
 })

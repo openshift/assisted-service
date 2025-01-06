@@ -1,4 +1,4 @@
-package subsystem
+package utils_test
 
 import (
 	"bytes"
@@ -53,23 +53,23 @@ type subscription struct {
 }
 
 const (
-	wiremockMappingsPath                 string      = "/__admin/mappings"
-	capabilityReviewPath                 string      = "/api/authorizations/v1/capability_review"
-	accessReviewPath                     string      = "/api/authorizations/v1/access_review"
-	pullAuthPath                         string      = "/api/accounts_mgmt/v1/token_authorization"
-	clusterAuthzPath                     string      = "/api/accounts_mgmt/v1/cluster_authorizations"
-	subscriptionPrefix                   string      = "/api/accounts_mgmt/v1/subscriptions/"
-	accountsMgmtSearchPrefix             string      = "/api/accounts_mgmt/v1/accounts?search=username"
-	subscriptionUpdateOpenshiftClusterID string      = "subscription_update_openshift_cluster_id"
-	subscriptionUpdateStatusActive       string      = "subscription_update_status_active"
-	subscriptionUpdateDisplayName        string      = "subscription_update_display_name"
-	subscriptionUpdateConsoleUrl         string      = "subscription_update_console_url"
-	tokenPath                            string      = "/token"
-	fakePayloadUsername                  string      = "jdoe123@example.com"
-	fakePayloadUsername2                 string      = "bob@example.com"
-	fakePayloadAdmin                     string      = "admin@example.com"
-	fakePayloadUnallowedUser             string      = "unallowed@example.com"
-	fakePayloadClusterEditor             string      = "alice@example.com"
+	WiremockMappingsPath                 string      = "/__admin/mappings"
+	CapabilityReviewPath                 string      = "/api/authorizations/v1/capability_review"
+	AccessReviewPath                     string      = "/api/authorizations/v1/access_review"
+	PullAuthPath                         string      = "/api/accounts_mgmt/v1/token_authorization"
+	ClusterAuthzPath                     string      = "/api/accounts_mgmt/v1/cluster_authorizations"
+	SubscriptionPrefix                   string      = "/api/accounts_mgmt/v1/subscriptions/"
+	AccountsMgmtSearchPrefix             string      = "/api/accounts_mgmt/v1/accounts?search=username"
+	SubscriptionUpdateOpenshiftClusterID string      = "subscription_update_openshift_cluster_id"
+	SubscriptionUpdateStatusActive       string      = "subscription_update_status_active"
+	SubscriptionUpdateDisplayName        string      = "subscription_update_display_name"
+	SubscriptionUpdateConsoleUrl         string      = "subscription_update_console_url"
+	TokenPath                            string      = "/token"
+	FakePayloadUsername                  string      = "jdoe123@example.com"
+	FakePayloadUsername2                 string      = "bob@example.com"
+	FakePayloadAdmin                     string      = "admin@example.com"
+	FakePayloadUnallowedUser             string      = "unallowed@example.com"
+	FakePayloadClusterEditor             string      = "alice@example.com"
 	FakePS                               string      = "dXNlcjpwYXNzd29yZAo="
 	FakePS2                              string      = "dXNlcjI6cGFzc3dvcmQK"
 	FakePS3                              string      = "dXNlcjM6cGFzc3dvcmQ="
@@ -81,150 +81,150 @@ const (
 )
 
 var (
-	subscriptionPath string = filepath.Join(subscriptionPrefix, FakeSubscriptionID.String())
+	subscriptionPath string = filepath.Join(SubscriptionPrefix, FakeSubscriptionID.String())
 )
 
 func (w *WireMock) CreateWiremockStubsForOCM() error {
-	if err := w.createStubsForAccessReview(); err != nil {
+	if err := w.CreateStubsForAccessReview(); err != nil {
 		return err
 	}
 
-	if err := w.createStubsForCapabilityReview(); err != nil {
+	if err := w.CreateStubsForCapabilityReview(); err != nil {
 		return err
 	}
 
-	if err := w.createStubsForClusterEditor(); err != nil {
+	if err := w.CreateStubsForClusterEditor(); err != nil {
 		return err
 	}
 
-	if _, err := w.createStubTokenAuth(FakePS, fakePayloadUsername); err != nil {
+	if _, err := w.CreateStubTokenAuth(FakePS, FakePayloadUsername); err != nil {
 		return err
 	}
 
-	if _, err := w.createStubTokenAuth(FakePS2, fakePayloadUsername2); err != nil {
+	if _, err := w.CreateStubTokenAuth(FakePS2, FakePayloadUsername2); err != nil {
 		return err
 	}
 
-	if _, err := w.createStubTokenAuth(FakePS3, fakePayloadClusterEditor); err != nil {
+	if _, err := w.CreateStubTokenAuth(FakePS3, FakePayloadClusterEditor); err != nil {
 		return err
 	}
 
-	if _, err := w.createStubTokenAuth(FakeAdminPS, fakePayloadAdmin); err != nil {
+	if _, err := w.CreateStubTokenAuth(FakeAdminPS, FakePayloadAdmin); err != nil {
 		return err
 	}
 
-	if _, err := w.createStubToken(w.TestToken); err != nil {
+	if _, err := w.CreateStubToken(w.TestToken); err != nil {
 		return err
 	}
 
-	if err := w.createStubsForCreatingAMSSubscription(http.StatusOK); err != nil {
+	if err := w.CreateStubsForCreatingAMSSubscription(http.StatusOK); err != nil {
 		return err
 	}
 
-	if err := w.createStubsForGettingAMSSubscription(http.StatusOK, ocm.SubscriptionStatusReserved); err != nil {
+	if err := w.CreateStubsForGettingAMSSubscription(http.StatusOK, ocm.SubscriptionStatusReserved); err != nil {
 		return err
 	}
 
-	if err := w.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateDisplayName); err != nil {
+	if err := w.CreateStubsForUpdatingAMSSubscription(http.StatusOK, SubscriptionUpdateDisplayName); err != nil {
 		return err
 	}
 
-	if err := w.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateConsoleUrl); err != nil {
+	if err := w.CreateStubsForUpdatingAMSSubscription(http.StatusOK, SubscriptionUpdateConsoleUrl); err != nil {
 		return err
 	}
 
-	if err := w.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateOpenshiftClusterID); err != nil {
+	if err := w.CreateStubsForUpdatingAMSSubscription(http.StatusOK, SubscriptionUpdateOpenshiftClusterID); err != nil {
 		return err
 	}
 
-	if err := w.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateStatusActive); err != nil {
+	if err := w.CreateStubsForUpdatingAMSSubscription(http.StatusOK, SubscriptionUpdateStatusActive); err != nil {
 		return err
 	}
 
-	if err := w.createStubsForDeletingAMSSubscription(http.StatusOK); err != nil {
+	if err := w.CreateStubsForDeletingAMSSubscription(http.StatusOK); err != nil {
 		return err
 	}
 
-	if _, err := w.createOpenshiftUpdateServiceStubs(); err != nil {
+	if _, err := w.CreateOpenshiftUpdateServiceStubs(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (w *WireMock) createStubsForClusterEditor() error {
-	if _, err := w.createStubClusterEditorRequest(fakePayloadUsername,
+func (w *WireMock) CreateStubsForClusterEditor() error {
+	if _, err := w.CreateStubClusterEditorRequest(FakePayloadUsername,
 		FakeSubscriptionID.String(), "update", false); err != nil {
 		return err
 	}
-	if _, err := w.createStubClusterEditorRequest(fakePayloadUsername,
+	if _, err := w.CreateStubClusterEditorRequest(FakePayloadUsername,
 		FakeSubscriptionID.String(), "delete", false); err != nil {
 		return err
 	}
-	if _, err := w.createStubClusterEditorRequest(fakePayloadUsername2,
+	if _, err := w.CreateStubClusterEditorRequest(FakePayloadUsername2,
 		FakeSubscriptionID.String(), "update", false); err != nil {
 		return err
 	}
-	if _, err := w.createStubClusterEditorRequest(fakePayloadUsername2,
+	if _, err := w.CreateStubClusterEditorRequest(FakePayloadUsername2,
 		FakeSubscriptionID.String(), "delete", false); err != nil {
 		return err
 	}
-	if _, err := w.createStubClusterEditorRequest(fakePayloadClusterEditor,
+	if _, err := w.CreateStubClusterEditorRequest(FakePayloadClusterEditor,
 		FakeSubscriptionID.String(), "update", true); err != nil {
 		return err
 	}
-	if _, err := w.createStubClusterEditorRequest(fakePayloadClusterEditor,
+	if _, err := w.CreateStubClusterEditorRequest(FakePayloadClusterEditor,
 		FakeSubscriptionID.String(), "delete", true); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (w *WireMock) createStubsForAccessReview() error {
-	if _, err := w.createStubAccessReview(fakePayloadUsername, true); err != nil {
+func (w *WireMock) CreateStubsForAccessReview() error {
+	if _, err := w.CreateStubAccessReview(FakePayloadUsername, true); err != nil {
 		return err
 	}
-	if _, err := w.createStubAccessReview(fakePayloadUsername2, true); err != nil {
+	if _, err := w.CreateStubAccessReview(FakePayloadUsername2, true); err != nil {
 		return err
 	}
-	if _, err := w.createStubAccessReview(fakePayloadClusterEditor, true); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (w *WireMock) createStubsForCapabilityReview() error {
-	if _, err := w.createStubBareMetalCapabilityReview(fakePayloadUsername, false); err != nil {
-		return err
-	}
-	if _, err := w.createStubBareMetalCapabilityReview(fakePayloadUsername2, false); err != nil {
-		return err
-	}
-	if _, err := w.createStubBareMetalCapabilityReview(fakePayloadClusterEditor, false); err != nil {
-		return err
-	}
-	if _, err := w.createStubMultiarchCapabilityReview(fakePayloadUsername, OrgId1, false); err != nil {
-		return err
-	}
-	if _, err := w.createStubMultiarchCapabilityReview(fakePayloadUsername2, OrgId2, true); err != nil {
-		return err
-	}
-	if _, err := w.createStubIgnoreValidationsCapabilityReview(fakePayloadUsername, OrgId1, false); err != nil {
-		return err
-	}
-	if _, err := w.createStubIgnoreValidationsCapabilityReview(fakePayloadUsername2, OrgId2, true); err != nil {
-		return err
-	}
-	if _, err := w.createStubAccountsMgmt(fakePayloadUsername, OrgId1); err != nil {
-		return err
-	}
-	if _, err := w.createStubAccountsMgmt(fakePayloadUsername2, OrgId2); err != nil {
+	if _, err := w.CreateStubAccessReview(FakePayloadClusterEditor, true); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (w *WireMock) createStubsForCreatingAMSSubscription(resStatus int) error {
+func (w *WireMock) CreateStubsForCapabilityReview() error {
+	if _, err := w.CreateStubBareMetalCapabilityReview(FakePayloadUsername, false); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubBareMetalCapabilityReview(FakePayloadUsername2, false); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubBareMetalCapabilityReview(FakePayloadClusterEditor, false); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubMultiarchCapabilityReview(FakePayloadUsername, OrgId1, false); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubMultiarchCapabilityReview(FakePayloadUsername2, OrgId2, true); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubIgnoreValidationsCapabilityReview(FakePayloadUsername, OrgId1, false); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubIgnoreValidationsCapabilityReview(FakePayloadUsername2, OrgId2, true); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubAccountsMgmt(FakePayloadUsername, OrgId1); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubAccountsMgmt(FakePayloadUsername2, OrgId2); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (w *WireMock) CreateStubsForCreatingAMSSubscription(resStatus int) error {
 
 	type reservedResource struct{}
 
@@ -270,12 +270,12 @@ func (w *WireMock) createStubsForCreatingAMSSubscription(resStatus int) error {
 		return err
 	}
 
-	amsSubscriptionStub := w.createStubDefinition(clusterAuthzPath, "POST", string(reqBody), string(resBody), resStatus)
-	_, err = w.addStub(amsSubscriptionStub)
+	amsSubscriptionStub := w.CreateStubDefinition(ClusterAuthzPath, "POST", string(reqBody), string(resBody), resStatus)
+	_, err = w.AddStub(amsSubscriptionStub)
 	return err
 }
 
-func (w *WireMock) createStubsForGettingAMSSubscription(resStatus int, status string) error {
+func (w *WireMock) CreateStubsForGettingAMSSubscription(resStatus int, status string) error {
 
 	subResponse := subscription{
 		ID:     FakeSubscriptionID,
@@ -288,16 +288,16 @@ func (w *WireMock) createStubsForGettingAMSSubscription(resStatus int, status st
 		return err
 	}
 
-	amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "GET", "", string(resBody), resStatus)
-	_, err = w.addStub(amsSubscriptionStub)
+	amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "GET", "", string(resBody), resStatus)
+	_, err = w.AddStub(amsSubscriptionStub)
 	return err
 }
 
-func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateType string) error {
+func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateType string) error {
 
 	switch updateType {
 
-	case subscriptionUpdateDisplayName:
+	case SubscriptionUpdateDisplayName:
 
 		type subscriptionUpdateRequest struct {
 			DisplayName string `json:"display_name"`
@@ -323,11 +323,11 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 			return err
 		}
 
-		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
-		_, err = w.addStub(amsSubscriptionStub)
+		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
-	case subscriptionUpdateConsoleUrl:
+	case SubscriptionUpdateConsoleUrl:
 
 		type subscriptionUpdateRequest struct {
 			ConsoleUrl string `json:"console_url"`
@@ -353,11 +353,11 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 			return err
 		}
 
-		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
-		_, err = w.addStub(amsSubscriptionStub)
+		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
-	case subscriptionUpdateOpenshiftClusterID:
+	case SubscriptionUpdateOpenshiftClusterID:
 
 		type subscriptionUpdateRequest struct {
 			ExternalClusterID strfmt.UUID `json:"external_cluster_id"`
@@ -383,11 +383,11 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 			return err
 		}
 
-		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
-		_, err = w.addStub(amsSubscriptionStub)
+		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
-	case subscriptionUpdateStatusActive:
+	case SubscriptionUpdateStatusActive:
 
 		type subscriptionUpdateRequest struct {
 			Status string `json:"status"`
@@ -413,8 +413,8 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 			return err
 		}
 
-		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
-		_, err = w.addStub(amsSubscriptionStub)
+		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
 	default:
@@ -423,14 +423,14 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 	}
 }
 
-func (w *WireMock) createStubsForDeletingAMSSubscription(resStatus int) error {
+func (w *WireMock) CreateStubsForDeletingAMSSubscription(resStatus int) error {
 
-	amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "DELETE", "", "", resStatus)
-	_, err := w.addStub(amsSubscriptionStub)
+	amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "DELETE", "", "", resStatus)
+	_, err := w.AddStub(amsSubscriptionStub)
 	return err
 }
 
-func (w *WireMock) createStubToken(testToken string) (string, error) {
+func (w *WireMock) CreateStubToken(testToken string) (string, error) {
 	type TokenResponse struct {
 		AccessToken      string `json:"access_token,omitempty"`
 		Error            string `json:"error,omitempty"`
@@ -452,7 +452,7 @@ func (w *WireMock) createStubToken(testToken string) (string, error) {
 
 	tokenStub := &StubDefinition{
 		Request: &RequestDefinition{
-			URL:    tokenPath,
+			URL:    TokenPath,
 			Method: "POST",
 		},
 		Response: &ResponseDefinition{
@@ -464,10 +464,10 @@ func (w *WireMock) createStubToken(testToken string) (string, error) {
 		},
 	}
 
-	return w.addStub(tokenStub)
+	return w.AddStub(tokenStub)
 }
 
-func (w *WireMock) createStubBareMetalCapabilityReview(username string, result bool) (string, error) {
+func (w *WireMock) CreateStubBareMetalCapabilityReview(username string, result bool) (string, error) {
 	type CapabilityRequest struct {
 		Name     string `json:"capability"`
 		Type     string `json:"type"`
@@ -488,10 +488,10 @@ func (w *WireMock) createStubBareMetalCapabilityReview(username string, result b
 		Result: strconv.FormatBool(result),
 	}
 
-	return w.addCapabilityReviewStub(capabilityRequest, capabilityResponse)
+	return w.AddCapabilityReviewStub(capabilityRequest, capabilityResponse)
 }
 
-func (w *WireMock) createStubMultiarchCapabilityReview(username string, orgId string, result bool) (string, error) {
+func (w *WireMock) CreateStubMultiarchCapabilityReview(username string, orgId string, result bool) (string, error) {
 	type CapabilityRequest struct {
 		Name     string `json:"capability"`
 		Type     string `json:"type"`
@@ -513,10 +513,10 @@ func (w *WireMock) createStubMultiarchCapabilityReview(username string, orgId st
 	capabilityResponse := CapabilityResponse{
 		Result: strconv.FormatBool(result),
 	}
-	return w.addCapabilityReviewStub(capabilityRequest, capabilityResponse)
+	return w.AddCapabilityReviewStub(capabilityRequest, capabilityResponse)
 }
 
-func (w *WireMock) createStubIgnoreValidationsCapabilityReview(username string, orgId string, result bool) (string, error) {
+func (w *WireMock) CreateStubIgnoreValidationsCapabilityReview(username string, orgId string, result bool) (string, error) {
 	type CapabilityRequest struct {
 		Name     string `json:"capability"`
 		Type     string `json:"type"`
@@ -538,10 +538,10 @@ func (w *WireMock) createStubIgnoreValidationsCapabilityReview(username string, 
 	capabilityResponse := CapabilityResponse{
 		Result: strconv.FormatBool(result),
 	}
-	return w.addCapabilityReviewStub(capabilityRequest, capabilityResponse)
+	return w.AddCapabilityReviewStub(capabilityRequest, capabilityResponse)
 }
 
-func (w *WireMock) addCapabilityReviewStub(capabilityRequest interface{}, capabilityResponse interface{}) (string, error) {
+func (w *WireMock) AddCapabilityReviewStub(capabilityRequest interface{}, capabilityResponse interface{}) (string, error) {
 	var reqBody []byte
 	reqBody, err := json.Marshal(capabilityRequest)
 	if err != nil {
@@ -554,11 +554,11 @@ func (w *WireMock) addCapabilityReviewStub(capabilityRequest interface{}, capabi
 		return "", err
 	}
 
-	capabilityReviewStub := w.createStubDefinition(capabilityReviewPath, "POST", string(reqBody), string(resBody), 200)
-	return w.addStub(capabilityReviewStub)
+	capabilityReviewStub := w.CreateStubDefinition(CapabilityReviewPath, "POST", string(reqBody), string(resBody), 200)
+	return w.AddStub(capabilityReviewStub)
 }
 
-func (w *WireMock) createStubAccountsMgmt(username string, orgId string) (string, error) {
+func (w *WireMock) CreateStubAccountsMgmt(username string, orgId string) (string, error) {
 	type Organization struct {
 		ID string `json:"id"`
 	}
@@ -593,14 +593,14 @@ func (w *WireMock) createStubAccountsMgmt(username string, orgId string) (string
 		return "", err
 	}
 
-	accountsMgmtSearchPath := strings.Join([]string{accountsMgmtSearchPrefix, url.QueryEscape(fmt.Sprintf("='%s'", username))}, "")
-	accountsMgmtSearchStub := w.createStubDefinition(accountsMgmtSearchPath,
+	accountsMgmtSearchPath := strings.Join([]string{AccountsMgmtSearchPrefix, url.QueryEscape(fmt.Sprintf("='%s'", username))}, "")
+	accountsMgmtSearchStub := w.CreateStubDefinition(accountsMgmtSearchPath,
 		"GET", "", string(resBody), 200)
 
-	return w.addStub(accountsMgmtSearchStub)
+	return w.AddStub(accountsMgmtSearchStub)
 }
 
-func (w *WireMock) createStubClusterEditorRequest(username string, subscriptionId string, action string, allowed bool) (string, error) {
+func (w *WireMock) CreateStubClusterEditorRequest(username string, subscriptionId string, action string, allowed bool) (string, error) {
 	type AccessRequest struct {
 		ResourceType   string `json:"resource_type"`
 		Action         string `json:"action"`
@@ -635,11 +635,11 @@ func (w *WireMock) createStubClusterEditorRequest(username string, subscriptionI
 		return "", err
 	}
 
-	accessReviewStub := w.createStubDefinition(accessReviewPath, "POST", string(reqBody), string(resBody), 200)
-	return w.addStub(accessReviewStub)
+	accessReviewStub := w.CreateStubDefinition(AccessReviewPath, "POST", string(reqBody), string(resBody), 200)
+	return w.AddStub(accessReviewStub)
 }
 
-func (w *WireMock) createStubAccessReview(username string, allowed bool) (string, error) {
+func (w *WireMock) CreateStubAccessReview(username string, allowed bool) (string, error) {
 	type CapabilityRequest struct {
 		ResourceType string `json:"resource_type"`
 		Action       string `json:"action"`
@@ -672,11 +672,11 @@ func (w *WireMock) createStubAccessReview(username string, allowed bool) (string
 		return "", err
 	}
 
-	capabilityReviewStub := w.createStubDefinition(accessReviewPath, "POST", string(reqBody), string(resBody), 200)
-	return w.addStub(capabilityReviewStub)
+	capabilityReviewStub := w.CreateStubDefinition(AccessReviewPath, "POST", string(reqBody), string(resBody), 200)
+	return w.AddStub(capabilityReviewStub)
 }
 
-func (w *WireMock) createStubTokenAuth(token, username string) (string, error) {
+func (w *WireMock) CreateStubTokenAuth(token, username string) (string, error) {
 	type TokenAuthorizationRequest struct {
 		AuthorizationToken string `json:"authorization_token"`
 	}
@@ -717,11 +717,11 @@ func (w *WireMock) createStubTokenAuth(token, username string) (string, error) {
 		return "", err
 	}
 
-	tokenAuthStub := w.createStubDefinition(pullAuthPath, "POST", string(reqBody), string(resBody), 200)
-	return w.addStub(tokenAuthStub)
+	tokenAuthStub := w.CreateStubDefinition(PullAuthPath, "POST", string(reqBody), string(resBody), 200)
+	return w.AddStub(tokenAuthStub)
 }
 
-func (w *WireMock) createWrongStubTokenAuth(token string) (string, error) {
+func (w *WireMock) CreateWrongStubTokenAuth(token string) (string, error) {
 	type TokenAuthorizationRequest struct {
 		AuthorizationToken string `json:"authorization_token"`
 	}
@@ -760,11 +760,11 @@ func (w *WireMock) createWrongStubTokenAuth(token string) (string, error) {
 		return "", err
 	}
 
-	tokenAuthStub := w.createStubDefinition(pullAuthPath, "POST", string(reqBody), string(resBody), 404)
-	return w.addStub(tokenAuthStub)
+	tokenAuthStub := w.CreateStubDefinition(PullAuthPath, "POST", string(reqBody), string(resBody), 404)
+	return w.AddStub(tokenAuthStub)
 }
 
-func (w *WireMock) createOpenshiftUpdateServiceStubs() (string, error) {
+func (w *WireMock) CreateOpenshiftUpdateServiceStubs() (string, error) {
 	// OCP releases API needs amd64, arm64 instead of x86_64, aarch64 respectively
 	cpuArchMapToAPIArch := map[string]string{
 		common.X86CPUArchitecture:     common.AMD64CPUArchitecture,
@@ -805,8 +805,8 @@ func (w *WireMock) createOpenshiftUpdateServiceStubs() (string, error) {
 					return "", err
 				}
 
-				newStub := w.createStubDefinition(endpoint, "GET", "", string(resBody), 200)
-				_, err = w.addStub(newStub)
+				newStub := w.CreateStubDefinition(endpoint, "GET", "", string(resBody), 200)
+				_, err = w.AddStub(newStub)
 				if err != nil {
 					return "", err
 				}
@@ -817,7 +817,7 @@ func (w *WireMock) createOpenshiftUpdateServiceStubs() (string, error) {
 	return "", nil
 }
 
-func (w *WireMock) createStubDefinition(url, method, reqBody, resBody string, resStatus int) *StubDefinition {
+func (w *WireMock) CreateStubDefinition(url, method, reqBody, resBody string, resStatus int) *StubDefinition {
 	sd := &StubDefinition{
 		Request: &RequestDefinition{
 			URL:    url,
@@ -842,7 +842,7 @@ func (w *WireMock) createStubDefinition(url, method, reqBody, resBody string, re
 	return sd
 }
 
-func (w *WireMock) addStub(stub *StubDefinition) (string, error) {
+func (w *WireMock) AddStub(stub *StubDefinition) (string, error) {
 	requestBody, err := json.Marshal(stub)
 	if err != nil {
 		return "", err
@@ -850,7 +850,7 @@ func (w *WireMock) addStub(stub *StubDefinition) (string, error) {
 	var b bytes.Buffer
 	b.Write(requestBody)
 
-	resp, err := http.Post("http://"+w.OCMHost+wiremockMappingsPath, "application/json", &b)
+	resp, err := http.Post("http://"+w.OCMHost+WiremockMappingsPath, "application/json", &b)
 	if err != nil {
 		return "", err
 	}
@@ -867,7 +867,7 @@ func (w *WireMock) addStub(stub *StubDefinition) (string, error) {
 }
 
 func (w *WireMock) DeleteAllWiremockStubs() error {
-	req, err := http.NewRequest("DELETE", "http://"+w.OCMHost+wiremockMappingsPath, nil)
+	req, err := http.NewRequest("DELETE", "http://"+w.OCMHost+WiremockMappingsPath, nil)
 	if err != nil {
 		return err
 	}
@@ -877,7 +877,7 @@ func (w *WireMock) DeleteAllWiremockStubs() error {
 }
 
 func (w *WireMock) DeleteStub(stubID string) error {
-	req, err := http.NewRequest("DELETE", "http://"+w.OCMHost+wiremockMappingsPath+"/"+stubID, nil)
+	req, err := http.NewRequest("DELETE", "http://"+w.OCMHost+WiremockMappingsPath+"/"+stubID, nil)
 	if err != nil {
 		return err
 	}

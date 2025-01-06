@@ -7,7 +7,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
-	"github.com/openshift/assisted-service/subsystem"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 	"github.com/sirupsen/logrus"
 )
 
@@ -39,7 +39,7 @@ func main() {
 			log.Fatal("Fail to parse release sources, ", err)
 		}
 
-		wiremock := &subsystem.WireMock{
+		wiremock := &utils_test.WireMock{
 			OCMHost:        Options.OCMBaseURL,
 			ReleaseSources: releaseSources,
 		}

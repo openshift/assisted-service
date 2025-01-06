@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/serverless"
 	"github.com/openshift/assisted-service/internal/operators/servicemesh"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/subsystem/utils_test"
 )
 
 var _ = Describe("Operators endpoint tests", func() {
@@ -42,7 +43,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 	Context("supported-operators", func() {
 		It("should return all supported operators", func() {
-			reply, err := userBMClient.Operators.V2ListSupportedOperators(context.TODO(), opclient.NewV2ListSupportedOperatorsParams())
+			reply, err := utils_test.TestContext.UserBMClient.Operators.V2ListSupportedOperators(context.TODO(), opclient.NewV2ListSupportedOperatorsParams())
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(reply.GetPayload()).To(ConsistOf(
@@ -65,7 +66,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 		It("should provide operator properties", func() {
 			params := opclient.NewV2ListOperatorPropertiesParams().WithOperatorName(odf.Operator.Name)
-			reply, err := userBMClient.Operators.V2ListOperatorProperties(context.TODO(), params)
+			reply, err := utils_test.TestContext.UserBMClient.Operators.V2ListOperatorProperties(context.TODO(), params)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(reply.Payload).To(BeEquivalentTo(models.OperatorProperties{}))
@@ -74,7 +75,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 	Context("Create cluster", func() {
 		It("Have builtins", func() {
-			reply, err := userBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
+			reply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
 					OpenshiftVersion: swag.String(openshiftVersion),
@@ -94,7 +95,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		It("New OLM", func() {
 			newOperator := odf.Operator.Name
 
-			reply, err := userBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
+			reply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
 					OpenshiftVersion: swag.String(openshiftVersion),
@@ -109,7 +110,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 			cluster := reply.GetPayload()
 
-			getClusterReply, err := userBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(*cluster.ID))
+			getClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(*cluster.ID))
 			Expect(err).NotTo(HaveOccurred())
 
 			cluster = getClusterReply.GetPayload()
@@ -124,7 +125,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		BeforeEach(func() {
 			clusterCIDR := "10.128.0.0/14"
 			serviceCIDR := "172.30.0.0/16"
-			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
+			registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					BaseDNSDomain:     "example.com",
 					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
@@ -132,7 +133,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					Name:              swag.String("test-cluster"),
 					OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
 					PullSecret:        swag.String(pullSecret),
-					SSHPublicKey:      sshPublicKey,
+					SSHPublicKey:      utils_test.SshPublicKey,
 					VipDhcpAllocation: swag.Bool(true),
 					NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
 				},
@@ -145,7 +146,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 		It("Update OLMs", func() {
 			By("First time - operators is empty", func() {
-				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+				_, err := utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
@@ -155,17 +156,17 @@ var _ = Describe("Operators endpoint tests", func() {
 					ClusterID: clusterID,
 				})
 				Expect(err).ToNot(HaveOccurred())
-				getReply, err2 := userBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
+				getReply, err2 := utils_test.TestContext.UserBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
 				Expect(err2).ToNot(HaveOccurred())
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
 				Expect(operatorscommon.HasOperator(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
 				Expect(operatorscommon.HasOperator(c.MonitoredOperators, odf.Operator.Name)).Should(BeTrue())
-				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)}, models.Usage{Name: strings.ToUpper(odf.Operator.Name)})
+				utils_test.VerifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)}, models.Usage{Name: strings.ToUpper(odf.Operator.Name)})
 			})
 
 			By("Second time - operators is not empty", func() {
-				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+				_, err := utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
@@ -174,13 +175,13 @@ var _ = Describe("Operators endpoint tests", func() {
 					ClusterID: clusterID,
 				})
 				Expect(err).ToNot(HaveOccurred())
-				getReply, err := userBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
+				getReply, err := utils_test.TestContext.UserBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
 				Expect(err).ToNot(HaveOccurred())
 				c := &common.Cluster{Cluster: *getReply.Payload}
 
 				Expect(operatorscommon.HasOperator(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
 				Expect(operatorscommon.HasOperator(c.MonitoredOperators, odf.Operator.Name)).Should(BeFalse())
-				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)})
+				utils_test.VerifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)})
 			})
 		})
 
@@ -189,24 +190,24 @@ var _ = Describe("Operators endpoint tests", func() {
 				hInventory := models.Inventory{}
 				_ = json.Unmarshal([]byte(h.Inventory), &hInventory)
 				hInventory.CPU = &models.CPU{Count: cpucores}
-				generateEssentialHostStepsWithInventory(context.TODO(), h, h.RequestedHostname, &hInventory)
+				utils_test.TestContext.GenerateEssentialHostStepsWithInventory(context.TODO(), h, h.RequestedHostname, &hInventory)
 			}
 			By("add hosts with a minimal worker (cnv operator is not enabled)")
 			infraEnvID := registerInfraEnvSpecificVersion(&clusterID, models.ImageTypeMinimalIso, cluster.OpenshiftVersion).ID
 			hosts := registerHostsAndSetRolesDHCP(clusterID, *infraEnvID, 6, "test-cluster", "example.com")
 
-			worker := getHostV2(*infraEnvID, *hosts[5].ID)
+			worker := utils_test.TestContext.GetHostV2(*infraEnvID, *hosts[5].ID)
 			updateCpuCores(worker, 2)
 			for _, h := range hosts {
 				By(fmt.Sprintf("waiting for host %s to be ready", h.RequestedHostname))
-				waitForHostState(context.TODO(), models.HostStatusKnown, defaultWaitForHostStateTimeout, h)
+				waitForHostState(context.TODO(), models.HostStatusKnown, utils_test.DefaultWaitForHostStateTimeout, h)
 			}
 			By("waiting for the cluster to be ready")
-			waitForClusterState(context.TODO(), clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
-				IgnoreStateInfo)
+			waitForClusterState(context.TODO(), clusterID, models.ClusterStatusReady, utils_test.DefaultWaitForClusterStateTimeout,
+				utils_test.IgnoreStateInfo)
 
 			By("enable CNV operator")
-			_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					OlmOperators: []*models.OperatorCreateParams{
 						{Name: cnv.Operator.Name},
@@ -217,7 +218,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("check that the cluster move to insufficient immediately")
-			c := getCluster(clusterID)
+			c := utils_test.TestContext.GetCluster(clusterID)
 			Expect(*c.Status).To(Equal(models.ClusterStatusInsufficient))
 		})
 	})
@@ -237,18 +238,18 @@ var _ = Describe("Operators endpoint tests", func() {
 				}
 			}
 
-			cluster, err = user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			cluster, err = utils_test.TestContext.User2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                 swag.String("test-cluster"),
 					OpenshiftVersion:     swag.String(openshiftVersion),
 					HighAvailabilityMode: swag.String(highAvailabilityMode),
-					PullSecret:           swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					PullSecret:           swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
 					CPUArchitecture:      swag.StringValue(cpuArchitecture),
 					OlmOperators:         operators,
 					BaseDNSDomain:        "example.com",
 					ClusterNetworks:      []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:      []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-					SSHPublicKey:         sshPublicKey,
+					SSHPublicKey:         utils_test.SshPublicKey,
 					VipDhcpAllocation:    vipDhcpAllocation,
 					NetworkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
 				},
@@ -256,7 +257,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
-			Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+			Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(utils_test.ClusterInsufficientStateInfo))
 			Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 			return cluster
 		}
@@ -279,21 +280,21 @@ var _ = Describe("Operators endpoint tests", func() {
 					Name:             swag.String("infra-env-1"),
 					OpenshiftVersion: "4.13.0",
 					ClusterID:        cluster.Payload.ID,
-					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
-					SSHAuthorizedKey: swag.String(sshPublicKey),
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
+					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
 					CPUArchitecture:  models.ClusterCPUArchitectureS390x,
 				},
 			}
-			infraEnv, err := user2BMClient.Installer.RegisterInfraEnv(ctx, &infraEnvParams)
+			infraEnv, err := utils_test.TestContext.User2BMClient.Installer.RegisterInfraEnv(ctx, &infraEnvParams)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(infraEnv.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureS390x))
 
-			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err := utils_test.TestContext.Agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ops.GetPayload())).To(BeNumerically("==", 1))
 
 			// Update cluster with ODF operator
-			_, err = user2BMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+			_, err = utils_test.TestContext.User2BMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					OlmOperators: []*models.OperatorCreateParams{
 						{Name: odf.Operator.Name},
@@ -303,7 +304,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 			Expect(err).ShouldNot(HaveOccurred())
 
-			ops, err = agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err = utils_test.TestContext.Agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ops.GetPayload())).To(BeNumerically(">=", 3))
 
@@ -324,7 +325,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			))
 
 			// Verify that the cluster is updatable
-			_, err = user2BMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+			_, err = utils_test.TestContext.User2BMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					Name: swag.String("new-cluster-name"),
 				},
@@ -349,21 +350,21 @@ var _ = Describe("Operators endpoint tests", func() {
 					Name:             swag.String("infra-env-1"),
 					OpenshiftVersion: "4.13.0",
 					ClusterID:        cluster.Payload.ID,
-					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
-					SSHAuthorizedKey: swag.String(sshPublicKey),
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
+					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
 					CPUArchitecture:  models.ClusterCPUArchitectureArm64,
 				},
 			}
-			infraEnv, err := user2BMClient.Installer.RegisterInfraEnv(ctx, &infraEnvParams)
+			infraEnv, err := utils_test.TestContext.User2BMClient.Installer.RegisterInfraEnv(ctx, &infraEnvParams)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(infraEnv.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureArm64))
 
-			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err := utils_test.TestContext.Agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ops.GetPayload())).To(BeNumerically("==", 1))
 
 			// Update cluster with ODF operator
-			_, err = user2BMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+			_, err = utils_test.TestContext.User2BMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					OlmOperators: []*models.OperatorCreateParams{
 						{Name: lso.Operator.Name},
@@ -383,7 +384,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				nil,
 				nil,
 			)
-			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err := utils_test.TestContext.Agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ops.GetPayload())).To(BeNumerically(">=", 3))
@@ -413,7 +414,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				nil,
 				nil,
 			)
-			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err := utils_test.TestContext.Agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
 			Expect(err).ToNot(HaveOccurred())
 
@@ -436,7 +437,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				nil,
 				nil,
 			)
-			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err := utils_test.TestContext.Agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
 			Expect(err).ToNot(HaveOccurred())
 
@@ -457,7 +458,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		ctx := context.Background()
 		BeforeEach(func() {
 			var err error
-			cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			cluster, err = utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
 					OpenshiftVersion: swag.String(openshiftVersion),
@@ -471,12 +472,12 @@ var _ = Describe("Operators endpoint tests", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
-			Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+			Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(utils_test.ClusterInsufficientStateInfo))
 			Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 		})
 
 		It("should be all returned", func() {
-			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err := utils_test.TestContext.AgentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ops.GetPayload())).To(BeNumerically(">=", 3))
@@ -499,7 +500,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 
 		It("should selected be returned", func() {
-			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().
+			ops, err := utils_test.TestContext.AgentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().
 				WithClusterID(*cluster.Payload.ID).
 				WithOperatorName(&odf.Operator.Name))
 
@@ -509,9 +510,9 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 
 		It("should be updated", func() {
-			v2ReportMonitoredOperatorStatus(ctx, agentBMClient, *cluster.Payload.ID, odf.Operator.Name, models.OperatorStatusFailed, "4.12")
+			utils_test.TestContext.V2ReportMonitoredOperatorStatus(ctx, *cluster.Payload.ID, odf.Operator.Name, models.OperatorStatusFailed, "4.12")
 
-			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().
+			ops, err := utils_test.TestContext.AgentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().
 				WithClusterID(*cluster.Payload.ID).
 				WithOperatorName(&odf.Operator.Name))
 
@@ -526,16 +527,16 @@ var _ = Describe("Operators endpoint tests", func() {
 
 	Context("Installation", func() {
 		BeforeEach(func() {
-			cID, err := registerCluster(context.TODO(), userBMClient, "test-cluster", pullSecret)
+			cID, err := utils_test.TestContext.RegisterCluster(context.TODO(), utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			clusterID = cID
 			infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
-			registerHostsAndSetRoles(clusterID, *infraEnvID, minHosts, "test-cluster", "example.com")
+			registerHostsAndSetRoles(clusterID, *infraEnvID, utils_test.MinHosts, "test-cluster", "example.com")
 		})
 
 		It("All OLM operators available", func() {
 			By("Update OLM", func() {
-				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+				_, err := utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
@@ -547,18 +548,18 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Report operator available", func() {
-				v2ReportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusAvailable, "")
+				utils_test.TestContext.V2ReportMonitoredOperatorStatus(context.TODO(), clusterID, lso.Operator.Name, models.OperatorStatusAvailable, "")
 			})
 
 			By("Wait for cluster to be installed", func() {
 				setClusterAsFinalizing(context.TODO(), clusterID)
-				completeInstallationAndVerify(context.TODO(), agentBMClient, clusterID, true)
+				completeInstallationAndVerify(context.TODO(), utils_test.TestContext.AgentBMClient, clusterID, true)
 			})
 		})
 
 		It("Failed OLM Operator", func() {
 			By("Update OLM", func() {
-				_, err := userBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+				_, err := utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: lso.Operator.Name},
@@ -570,14 +571,14 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Report operator failed", func() {
-				v2ReportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusFailed, "")
+				utils_test.TestContext.V2ReportMonitoredOperatorStatus(context.TODO(), clusterID, lso.Operator.Name, models.OperatorStatusFailed, "")
 			})
 
 			By("Wait for cluster to be degraded", func() {
 				setClusterAsFinalizing(context.TODO(), clusterID)
-				completeInstallation(agentBMClient, clusterID)
+				completeInstallation(utils_test.TestContext.AgentBMClient, clusterID)
 				expectedStatusInfo := fmt.Sprintf("%s. Failed OLM operators: %s", cluster.StatusInfoDegraded, lso.Operator.Name)
-				waitForClusterState(context.TODO(), clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, expectedStatusInfo)
+				waitForClusterState(context.TODO(), clusterID, models.ClusterStatusInstalled, utils_test.DefaultWaitForClusterStateTimeout, expectedStatusInfo)
 			})
 		})
 	})
