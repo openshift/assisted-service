@@ -69,6 +69,7 @@ type InstructionConfig struct {
 	DiskCheckTimeout         time.Duration     `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
 	ImageAvailabilityTimeout time.Duration     `envconfig:"IMAGE_AVAILABILITY_TIMEOUT" default:"16m"`
 	DisabledSteps            []models.StepType `envconfig:"DISABLED_STEPS" default:""`
+	InstallToExistingRoot    bool              `envconfig:"INSTALL_TO_EXISTING_ROOT" default:"false"`
 	ReleaseImageMirror       string
 	CheckClusterVersion      bool
 	HostFSMountDir           string
@@ -78,7 +79,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	instructionConfig InstructionConfig, connectivityValidator connectivity.Validator, eventsHandler eventsapi.Handler,
 	versionHandler versions.Handler, osImages versions.OSImages, kubeApiEnabled bool) *InstructionManager {
 	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.AgentImage)
-	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler, instructionConfig.EnableSkipMcoReboot, !kubeApiEnabled)
+	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler, instructionConfig.EnableSkipMcoReboot, !kubeApiEnabled, instructionConfig.InstallToExistingRoot)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.AgentImage)
 	freeAddressesCmd := newFreeAddressesCmd(log, kubeApiEnabled)
 	stopCmd := NewStopInstallationCmd(log)
