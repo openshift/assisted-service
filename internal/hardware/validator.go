@@ -534,6 +534,10 @@ func (v *validator) getValidDeviceStorageTypes(hostArchitecture string, openshif
 		validTypes = append(validTypes, string(models.DriveTypeFC), string(models.DriveTypeECKDESE), string(models.DriveTypeECKD), string(models.DriveTypeFBA))
 	}
 
+	if hostArchitecture == models.ClusterCPUArchitectureX8664 {
+		validTypes = append(validTypes, string(models.DriveTypeFC))
+	}
+
 	return validTypes
 }
 

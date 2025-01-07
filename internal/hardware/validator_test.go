@@ -141,31 +141,31 @@ var _ = Describe("Disk eligibility", func() {
 	It("Check if SSD is eligible", func() {
 		testDisk.DriveType = models.DriveTypeSSD
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra env SSD is eligible")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 	})
 
 	It("Check if HDD is eligible", func() {
 		testDisk.DriveType = models.DriveTypeHDD
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra env HDD is eligible")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 	})
 
 	It("Check if iSCSI is eligible", func() {
@@ -187,54 +187,54 @@ var _ = Describe("Disk eligibility", func() {
 		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil).AnyTimes()
 
 		By("Check iSCSI is not eligible when host IPv4 address isn't set")
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("Host IP address is not available"))
+		Expect(notEligibleReasons).To(ContainElement("Host IP address is not available"))
 
 		By("Check iSCSI is eligible when host IPv4 address is not part of default network interface")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check iSCSI is not eligible when host IPv4 address is part of default network interface")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1.2.3.4"}
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("iSCSI host IP 1.2.3.4 is the same as host IP, they must be different"))
+		Expect(notEligibleReasons).To(ContainElement("iSCSI host IP 1.2.3.4 is the same as host IP, they must be different"))
 
 		By("Check iSCSI is eligible when host IPv6 address is not part of default network interface")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1002:db8::10"}
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check iSCSI is not eligible when host IPv6 address is part of default network interface")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1001:db8::10"}
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("iSCSI host IP 1001:db8::10 is the same as host IP, they must be different"))
+		Expect(notEligibleReasons).To(ContainElement("iSCSI host IP 1001:db8::10 is the same as host IP, they must be different"))
 
 		By("Check iSCSI on older version is not eligible")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
 		cluster.OpenshiftVersion = "4.14.1"
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("Drive type is iSCSI, it must be one of HDD, SSD, Multipath, RAID."))
+		Expect(notEligibleReasons).To(ContainElement("Drive type is iSCSI, it must be one of HDD, SSD, Multipath, RAID, FC."))
 
 		By("Check iSCSI is eligible on day2 cluster")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
 		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
 		cluster.OpenshiftVersion = ""
 		infraEnv.OpenshiftVersion = "4.16"
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra env iSCSI is eligible")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 	})
 
 	It("Check if RAID is eligible", func() {
@@ -244,20 +244,20 @@ var _ = Describe("Disk eligibility", func() {
 
 		By("Check RAID is eligible when openshift version is 4.14")
 		cluster.OpenshiftVersion = "4.14.0"
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check RAID on older version is not eligible")
 		cluster.OpenshiftVersion = "4.13.0"
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("Drive type is RAID, it must be one of HDD, SSD, Multipath."))
+		Expect(notEligibleReasons).To(ContainElement("Drive type is RAID, it must be one of HDD, SSD, Multipath, FC."))
 
 		By("Check infra env RAID is not eligible")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElement("Drive type is RAID, it must be one of HDD, SSD, Multipath."))
+		Expect(notEligibleReasons).To(ContainElement("Drive type is RAID, it must be one of HDD, SSD, Multipath, FC."))
 	})
 
 	It("Check that FC multipath is eligible", func() {
@@ -266,16 +266,16 @@ var _ = Describe("Disk eligibility", func() {
 		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeFC, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeFC, Holders: "dm-0"}}
 		inventory.Disks = allDisks
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra env FC multipath is eligible")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 	})
 
 	It("Check that iSCSI multipath is not eligible", func() {
@@ -284,16 +284,16 @@ var _ = Describe("Disk eligibility", func() {
 		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}}
 		inventory.Disks = allDisks
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 
 		By("Check infra env iSCSI multipath is not eligible")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 	})
 
 	It("Check that iSCSI is not eligible when its holder is Multipath.", func() {
@@ -304,11 +304,11 @@ var _ = Describe("Disk eligibility", func() {
 		allDisks := []*models.Disk{&testDisk, {Name: "sdc", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "dm-0", DriveType: models.DriveTypeMultipath}}
 		inventory.Disks = allDisks
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible[0]).To(Equal(iSCSIWithMultipathHolder))
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons[0]).To(Equal(iSCSIWithMultipathHolder))
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 	})
 	It("Check that iSCSI is not eligible on older version when its holder is Multipath.", func() {
 		testDisk.Name = "sdb"
@@ -318,143 +318,160 @@ var _ = Describe("Disk eligibility", func() {
 		allDisks := []*models.Disk{&testDisk, {Name: "sdc", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "dm-0", DriveType: models.DriveTypeMultipath}}
 		inventory.Disks = allDisks
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible[0]).To(ContainSubstring(fmt.Sprintf("Drive type is %s, it must be one of", models.DriveTypeISCSI)))
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons[0]).To(ContainSubstring(fmt.Sprintf("Drive type is %s, it must be one of", models.DriveTypeISCSI)))
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 	})
 
-	It("Check if FC is not eligible on non-s390x", func() {
+	It("Check if FC is not eligible on non-s390x/x86_64", func() {
 		testDisk.DriveType = models.DriveTypeFC
+		inventory.CPU.Architecture = models.ClusterCPUArchitectureArm64
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
-
-		By("Check infra env FC is only eligible for s390x")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
+
+		By("Check infra env FC is only eligible for s390x/x86_64")
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 	})
 
 	It("Check if FC is eligible for s390x", func() {
 		testDisk.DriveType = models.DriveTypeFC
 		inventory.CPU.Architecture = models.ClusterCPUArchitectureS390x
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
-		By("Check infra env FC is only eligible for s390x")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		By("Check infra env FC is eligible for s390x")
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
+	})
+
+	It("Check if FC is eligible for x86_64", func() {
+		testDisk.DriveType = models.DriveTypeFC
+		inventory.CPU.Architecture = models.ClusterCPUArchitectureX8664
+
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(BeEmpty())
+
+		By("Check infra env FC is eligible for x86_64")
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(BeEmpty())
 	})
 
 	It("Check if ECKD is not eligible on non-s390x", func() {
 		testDisk.DriveType = models.DriveTypeECKD
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 
 		By("Check infra env ECKD is only eligible for s390x")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 	})
 
 	It("Check if ECKD is eligible for s390x", func() {
 		testDisk.DriveType = models.DriveTypeECKD
 		inventory.CPU.Architecture = models.ClusterCPUArchitectureS390x
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra env ECKD is only eligible for s390x")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 	})
 
 	It("Check if FBA is not eligible on non-s390x", func() {
 		testDisk.DriveType = models.DriveTypeFBA
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 
 		By("Check infra env FBA is only eligible for s390x")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 	})
 
 	It("Check if FBA is eligible for s390x", func() {
 		testDisk.DriveType = models.DriveTypeFBA
 		inventory.CPU.Architecture = models.ClusterCPUArchitectureS390x
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra env FBA is only eligible for s390x")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 	})
 
 	It("Check that ODD is not eligible", func() {
 		testDisk.DriveType = models.DriveTypeODD
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 
 		By("Check infra-env ODD is not eligible")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 	})
 
 	It("Check that a big enough size is eligible", func() {
 		testDisk.SizeBytes = bigEnoughSize
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra-env a big enough size is eligible")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra env take a master configuration in case it is smaller than workers")
 		versionRequirements["default"].MasterRequirements.DiskSizeGb = minDiskSizeGb - 2
 		tooSmallSizeForWorker := conversions.GbToBytes(minDiskSizeGb) - 1
 		testDisk.SizeBytes = tooSmallSizeForWorker
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(BeEmpty())
+		Expect(notEligibleReasons).To(BeEmpty())
 
 		versionRequirements["default"].MasterRequirements.DiskSizeGb = minDiskSizeGb
 	})
@@ -462,31 +479,31 @@ var _ = Describe("Disk eligibility", func() {
 	It("Check that a small size is not eligible", func() {
 		testDisk.SizeBytes = tooSmallSize
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 
 		By("Check infra-env a small size is not eligible")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).ToNot(BeEmpty())
+		Expect(notEligibleReasons).ToNot(BeEmpty())
 	})
 
 	It("Check that existing non-eligibility reasons are preserved", func() {
 		existingReasons := []string{"Reason 1", "Reason 2"}
 		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ConsistOf(existingReasons))
+		Expect(notEligibleReasons).To(ConsistOf(existingReasons))
 
 		By("Check infra-env existing non-eligibility reasons are preserved")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ConsistOf(existingReasons))
+		Expect(notEligibleReasons).To(ConsistOf(existingReasons))
 	})
 
 	It("Check that a small size reason is added to existing reasons", func() {
@@ -495,18 +512,18 @@ var _ = Describe("Disk eligibility", func() {
 
 		testDisk.SizeBytes = tooSmallSize
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElements(existingReasons))
-		Expect(eligible).To(HaveLen(len(existingReasons) + 1))
+		Expect(notEligibleReasons).To(ContainElements(existingReasons))
+		Expect(notEligibleReasons).To(HaveLen(len(existingReasons) + 1))
 
 		By("Check infra env a small size reason is added to existing reasons")
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElements(existingReasons))
-		Expect(eligible).To(HaveLen(len(existingReasons) + 1))
+		Expect(notEligibleReasons).To(ContainElements(existingReasons))
+		Expect(notEligibleReasons).To(HaveLen(len(existingReasons) + 1))
 	})
 
 	It("Check that a old service reasons have been purged", func() {
@@ -516,16 +533,16 @@ var _ = Describe("Disk eligibility", func() {
 
 		testDisk.SizeBytes = tooSmallSize
 
-		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElements(existingReasons))
-		Expect(eligible).To(HaveLen(len(existingReasons) + 1))
+		Expect(notEligibleReasons).To(ContainElements(existingReasons))
+		Expect(notEligibleReasons).To(HaveLen(len(existingReasons) + 1))
 
 		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
-		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(eligible).To(ContainElements(existingReasons))
-		Expect(eligible).To(HaveLen(len(existingReasons) + 1))
+		Expect(notEligibleReasons).To(ContainElements(existingReasons))
+		Expect(notEligibleReasons).To(HaveLen(len(existingReasons) + 1))
 	})
 })
 
