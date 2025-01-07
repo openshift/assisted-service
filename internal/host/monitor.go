@@ -162,33 +162,45 @@ func (m *Manager) clusterHostMonitoring() int64 {
 			break
 		}
 
+		log.Debug("Started cluster host monitoring cycle")
+
 		for _, c := range clusters {
 			inventoryCache := make(InventoryCache)
 			sortedHosts, canRefreshRoles := SortHosts(c.Hosts)
 
+			log = log.WithField("cluster", c.ID.String())
+
 			for _, host := range sortedHosts {
+				log = log.WithField("host", host.ID.String())
 				if !m.leaderElector.IsLeader() {
-					m.log.Debugf("Not a leader, exiting cluster HostMonitoring")
+					log.Debug("Not a leader, exiting cluster HostMonitoring")
 					return monitored
 				}
 
 				monitored += 1
+
+				log.Debug("Started refreshing host status")
 				err = m.refreshStatusInternal(ctx, host, c, nil, inventoryCache, m.db)
 				if err != nil {
-					log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
+					log.WithError(err).Error("failed to refresh host state")
 				}
+				log.Debug("Finished refreshing host status")
+
 				//the refreshed role will be taken into account in the validations
 				//on the next monitor cycle. The roles will not be calculated until
 				//all the hosts in the cluster has inventory to avoid race condition
 				//with the reset auto-assign mechanism.
 				if canRefreshRoles {
-					err = m.refreshRoleInternal(ctx, host, m.db, false, swag.Int(int(c.ControlPlaneCount)))
+					log.Debug()
+					err = m.refreshRoleInternal(ctx, host, m.db, false)
 					if err != nil {
-						log.WithError(err).Errorf("failed to refresh host %s role", *host.ID)
+						log.WithError(err).Error("failed to refresh host role")
 					}
 				}
 			}
 		}
+
+		m.log.Debug("Finished cluster host monitoring cycle")
 	}
 	return monitored
 }

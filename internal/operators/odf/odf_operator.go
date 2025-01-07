@@ -126,14 +126,25 @@ func (o *operator) getValidDiskCount(
 // ValidateHost verifies whether this operator is valid for given host
 func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host, additionalOperatorRequirements *models.ClusterHostRequirementsDetails) (api.ValidationResult, error) {
 	mode := getODFDeploymentMode(&cluster.Cluster, o.config.ODFNumMinimumHosts)
-	hostEffectiveRole := common.GetEffectiveRole(host)
-	shouldHostRunODF, err := shouldHostRunODF(&cluster.Cluster, mode, hostEffectiveRole)
+	shouldHostRunODF, err := shouldHostRunODF(&cluster.Cluster, mode, host.Role)
+
+	log := o.log
+	if cluster.ID != nil {
+		log = log.WithField("cluster", cluster.ID.String())
+	}
+
+	if host.ID != nil {
+		log = log.WithField("host", host.ID.String())
+	}
+
+	log.Debugf("ODF validate host - host role: %s", host.Role)
+	log.Debugf("ODF validate host - mode: %s", string(mode))
 
 	// Host role is auto-assign in standard mode.
 	if err != nil {
 		status := fmt.Sprintf("%s.", capitalizeFirstLetter(err.Error()))
 		return api.ValidationResult{
-			Status:       api.Failure,
+			Status:       api.Pending,
 			ValidationId: o.GetHostValidationID(),
 			Reasons:      []string{status}}, nil
 	}
@@ -209,8 +220,19 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 // GetHostRequirements provides operator's requirements towards the host
 func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	mode := getODFDeploymentMode(&cluster.Cluster, o.config.ODFNumMinimumHosts)
-	hostEffectiveRole := common.GetEffectiveRole(host)
-	shouldHostRunODF, err := shouldHostRunODF(&cluster.Cluster, mode, hostEffectiveRole)
+	shouldHostRunODF, err := shouldHostRunODF(&cluster.Cluster, mode, host.Role)
+
+	log := o.log
+	if cluster.ID != nil {
+		log = log.WithField("cluster", cluster.ID.String())
+	}
+
+	if host.ID != nil {
+		log = log.WithField("host", host.ID.String())
+	}
+
+	log.Debugf("ODF validate host - host role: %s", host.Role)
+	log.Debugf("ODF validate host - mode: %s", string(mode))
 
 	// If the host is not going to run ODF workoads, we return 0 extra requirements for ODF.
 	if err != nil || shouldHostRunODF == nil || !*shouldHostRunODF {

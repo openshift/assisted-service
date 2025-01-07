@@ -1130,6 +1130,7 @@ var _ = Describe("Validations test", func() {
 		It("auto-assigned role", func() {
 
 			c := hostutil.GenerateTestCluster(clusterID)
+			c.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
 			c.DiskEncryption = &models.DiskEncryption{
 				EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
 				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
@@ -1159,7 +1160,7 @@ var _ = Describe("Validations test", func() {
 				eventstest.WithHostIdMatcher(h.ID.String()),
 				eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
 			))
-			err := m.RefreshRole(ctx, &h, db, swag.Int(common.MinMasterHostsNeededForInstallationInHaMode))
+			err := m.RefreshRole(ctx, &h, db)
 			Expect(err).ToNot(HaveOccurred())
 
 			mockAndRefreshStatusWithoutEvents(&h)
@@ -2607,19 +2608,24 @@ var _ = Describe("Validations test", func() {
 	})
 	Context("Is MTU Valid", func() {
 		var (
-			cluster common.Cluster
-			host    models.Host
+			cluster *common.Cluster
+			host    *models.Host
 		)
-		BeforeEach(func() {
-			cluster = hostutil.GenerateTestCluster(clusterID)
-			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+		DescribeTable("MTU validations across CMN and UMN", func(mtuReports []*models.MtuReport, validationStatus ValidationStatus, isUMN, isDay2 bool) {
 			mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
-			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusKnown, models.HostKindHost, models.HostRoleMaster)
-			host.Inventory = hostutil.GenerateMasterInventory()
-		})
-		DescribeTable("MTU validations across CMN and UMN", func(validationID validationID, mtuReports []*models.MtuReport, validationStatus ValidationStatus, isUMN bool) {
-			cluster.UserManagedNetworking = &isUMN
 
+			if isDay2 {
+				cluster = generateDay2Cluster()
+				host = getDay2Host()
+			} else {
+				day1Cluster := hostutil.GenerateTestCluster(clusterID)
+				cluster = &day1Cluster
+
+				day1Host := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusKnown, models.HostKindHost, models.HostRoleMaster)
+				host = &day1Host
+			}
+
+			cluster.UserManagedNetworking = &isUMN
 			mNet := []*models.MachineNetwork{
 				{
 					Cidr:      "1.2.3.1/24",
@@ -2633,36 +2639,37 @@ var _ = Describe("Validations test", func() {
 				HostID:    hostID,
 				MtuReport: mtuReports,
 			})
-
 			report, err := hostutil.MarshalConnectivityReport(connectivityReport)
 			Expect(err).To(BeNil())
 			host.Connectivity = report
-			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			host.Inventory = hostutil.GenerateMasterInventory()
+			Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
 
-			mockAndRefreshStatus(&host)
+			mockAndRefreshStatus(host)
 
-			refreshedHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
-
-			status, _, ok := getValidationResult(refreshedHost.ValidationsInfo, validationID)
+			refreshedHost := &hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			fmt.Println(host.ValidationsInfo)
+			status, _, ok := getValidationResult(refreshedHost.ValidationsInfo, IsMtuValid)
 			Expect(ok).To(BeTrue(), fmt.Sprintf("debuuging info: status %s, isOK: %t host: %#v cluster: %#v", status, ok, host, cluster))
 			Expect(status).To(Equal(validationStatus))
 		},
-			Entry("isMtuValidInMachineNetwork (CMN) - Happy flow - MTU reports in the machine network are successful", IsMtuValid, []*models.MtuReport{
+			Entry("isMtuValidInMachineNetwork (CMN) - Happy flow - MTU reports in the machine network are successful", []*models.MtuReport{
 				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
 				{MtuSuccessful: false, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
-			}, ValidationSuccess, false),
-			Entry("isMtuValidInMachineNetwork (CMN) - Bad flow - MTU reports in the machine network are unsuccessful", IsMtuValid, []*models.MtuReport{
+			}, ValidationSuccess, false, false),
+			Entry("isMtuValidInMachineNetwork (CMN) - Bad flow - MTU reports in the machine network are unsuccessful", []*models.MtuReport{
 				{MtuSuccessful: false, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
-			}, ValidationFailure, false),
-			Entry("isMtuValidAllInterfaces (UMN) - Happy flow - all Mtu reports successful", IsMtuValid, []*models.MtuReport{
+			}, ValidationFailure, false, false),
+			Entry("isMtuValidAllInterfaces (UMN) - Happy flow - all Mtu reports successful", []*models.MtuReport{
 				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
 				{MtuSuccessful: true, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
-			}, ValidationSuccess, true),
-			Entry("isMtuValidAllInterfaces (UMN) - Bad flow - all MTU reports are unsuccessful", IsMtuValid, []*models.MtuReport{
+			}, ValidationSuccess, true, false),
+			Entry("isMtuValidAllInterfaces (UMN) - Bad flow - all MTU reports are unsuccessful", []*models.MtuReport{
 				{MtuSuccessful: false, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
 				{MtuSuccessful: false, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
-			}, ValidationFailure, true),
+			}, ValidationFailure, true, false),
+			Entry("Day 2 cluster - the validation should be skipped", []*models.MtuReport{}, ValidationSuccess, false, true),
 		)
 	})
 })

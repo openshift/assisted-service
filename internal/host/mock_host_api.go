@@ -41,18 +41,18 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 }
 
 // AutoAssignRole mocks base method.
-func (m *MockAPI) AutoAssignRole(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB, arg3 *int) (bool, error) {
+func (m *MockAPI) AutoAssignRole(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AutoAssignRole", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "AutoAssignRole", arg0, arg1, arg2)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AutoAssignRole indicates an expected call of AutoAssignRole.
-func (mr *MockAPIMockRecorder) AutoAssignRole(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) AutoAssignRole(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AutoAssignRole", reflect.TypeOf((*MockAPI)(nil).AutoAssignRole), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AutoAssignRole", reflect.TypeOf((*MockAPI)(nil).AutoAssignRole), arg0, arg1, arg2)
 }
 
 // BindHost mocks base method.
@@ -370,17 +370,17 @@ func (mr *MockAPIMockRecorder) RefreshInventory(arg0, arg1, arg2, arg3 interface
 }
 
 // RefreshRole mocks base method.
-func (m *MockAPI) RefreshRole(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB, arg3 *int) error {
+func (m *MockAPI) RefreshRole(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshRole", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "RefreshRole", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RefreshRole indicates an expected call of RefreshRole.
-func (mr *MockAPIMockRecorder) RefreshRole(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) RefreshRole(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshRole", reflect.TypeOf((*MockAPI)(nil).RefreshRole), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshRole", reflect.TypeOf((*MockAPI)(nil).RefreshRole), arg0, arg1, arg2)
 }
 
 // RefreshStatus mocks base method.
