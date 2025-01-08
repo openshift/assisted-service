@@ -39,6 +39,8 @@ const (
 	counterFilesystemUsagePercentage              = "assisted_installer_filesystem_usage_percentage"
 	counterMonitoredHosts                         = "assisted_installer_monitored_hosts"
 	counterMonitoredClusters                      = "assisted_installer_monitored_clusters"
+	counterDirectoryUsagePercentage               = "assisted_installer_directory_usage_percentage"
+	counterDirectoryUsageGb                       = "assisted_installer_directory_usage_gb"
 )
 
 const (
@@ -61,6 +63,8 @@ const (
 	counterDescriptionFilesystemUsagePercentage              = "The percentage of the filesystem usage by the service"
 	counterDescriptionMonitoredHosts                         = "Number of hosts monitored by host monitor"
 	counterDescriptionMonitoredClusters                      = "Number of clusters monitored by cluster monitor"
+	counterDescriptionDirectoryUsagePercentage               = "The percentage of the free space in a directory that has been used"
+	counterDescriptionDirectoryUsageGb                       = "The amount of the free space in a directory that has been used in Gb"
 )
 
 const (
@@ -94,6 +98,7 @@ type API interface {
 	FileSystemUsage(usageInPercentage float64)
 	MonitoredHostsCount(monitoredHosts int64)
 	MonitoredClusterCount(monitoredClusters int64)
+	DirectoryUsageBytes(directory string, usedBytes uint64, usedPercentage float64)
 }
 
 type MetricsManager struct {
@@ -119,6 +124,8 @@ type MetricsManager struct {
 	serviceLogicFilesystemUsagePercentage              *prometheus.GaugeVec
 	serviceLogicMonitoredHosts                         *prometheus.GaugeVec
 	serviceLogicMonitoredClusters                      *prometheus.GaugeVec
+	serviceLogicDirectoryUsagePercentage               *prometheus.GaugeVec
+	serviceLogicDirectoryUsageGb                       *prometheus.GaugeVec
 }
 
 var _ API = &MetricsManager{}
@@ -280,6 +287,24 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 			Name:      counterMonitoredClusters,
 			Help:      counterDescriptionMonitoredClusters,
 		}, []string{hosts}),
+
+		serviceLogicDirectoryUsagePercentage: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterDirectoryUsagePercentage,
+				Help:      counterDescriptionDirectoryUsagePercentage,
+			}, []string{},
+		),
+
+		serviceLogicDirectoryUsageGb: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterDirectoryUsageGb,
+				Help:      counterDescriptionDirectoryUsageGb,
+			}, []string{},
+		),
 	}
 
 	registry.MustRegister(
@@ -302,6 +327,8 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 		m.serviceLogicFilesystemUsagePercentage,
 		m.serviceLogicMonitoredHosts,
 		m.serviceLogicMonitoredClusters,
+		m.serviceLogicDirectoryUsagePercentage,
+		m.serviceLogicDirectoryUsageGb,
 	)
 	return m
 }
@@ -466,6 +493,11 @@ func (m *MetricsManager) MonitoredHostsCount(monitoredHosts int64) {
 
 func (m *MetricsManager) MonitoredClusterCount(monitoredClusters int64) {
 	m.serviceLogicMonitoredClusters.WithLabelValues(clusters).Set(float64(monitoredClusters))
+}
+
+func (m *MetricsManager) DirectoryUsageBytes(directory string, usedBytes uint64, usedPercentage float64) {
+	m.serviceLogicDirectoryUsagePercentage.WithLabelValues(directory).Set(usedPercentage)
+	m.serviceLogicDirectoryUsageGb.WithLabelValues(directory).Set(float64(usedBytes) / float64(units.GiB))
 }
 
 func bytesToGib(bytes int64) int64 {
