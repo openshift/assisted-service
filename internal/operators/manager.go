@@ -294,7 +294,14 @@ func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster
 		pendingOperators[k] = struct{}{}
 	}
 
-	for _, clusterOperator := range cluster.MonitoredOperators {
+	operators := cluster.MonitoredOperators
+	dependentOperators, err := mgr.ResolveDependencies(cluster, operators)
+	if err != nil {
+		return nil, err
+	}
+	operators = append(operators, dependentOperators...)
+
+	for _, clusterOperator := range operators {
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
 			continue
 		}

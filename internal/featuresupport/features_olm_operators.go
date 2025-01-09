@@ -583,10 +583,10 @@ func (f *OpenShiftAIFeature) getIncompatibleArchitectures(_ *string) *[]models.A
 
 func (f *OpenShiftAIFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
-		// These aren't directly incompatible with OpenShift AI, rather with ODF, but the feature support
-		// mechanism doesn't currently understand operator dependencies, so we need to add these explicitly.
-		models.FeatureSupportLevelIDLVM,
-		models.FeatureSupportLevelIDSNO,
+		//// These aren't directly incompatible with OpenShift AI, rather with ODF, but the feature support
+		//// mechanism doesn't currently understand operator dependencies, so we need to add these explicitly.
+		//models.FeatureSupportLevelIDLVM,
+		//models.FeatureSupportLevelIDSNO,
 	}
 }
 
