@@ -5,6 +5,7 @@
 package controllers
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -36,16 +37,16 @@ func (m *MockSpokeClientCache) EXPECT() *MockSpokeClientCacheMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockSpokeClientCache) Get(arg0 *v1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+func (m *MockSpokeClientCache) Get(arg0 context.Context, arg1 *v1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0)
+	ret := m.ctrl.Call(m, "Get", arg0, arg1)
 	ret0, _ := ret[0].(spoke_k8s_client.SpokeK8sClient)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockSpokeClientCacheMockRecorder) Get(arg0 interface{}) *gomock.Call {
+func (mr *MockSpokeClientCacheMockRecorder) Get(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockSpokeClientCache)(nil).Get), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockSpokeClientCache)(nil).Get), arg0, arg1)
 }
