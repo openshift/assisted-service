@@ -262,6 +262,12 @@ type ManifestsAPI interface {
 
 /* OperatorsAPI  */
 type OperatorsAPI interface {
+	/* V2GetBundleOperators Get operator properties for a bundle */
+	V2GetBundleOperators(ctx context.Context, params operators.V2GetBundleOperatorsParams) middleware.Responder
+
+	/* V2GetBundles Get list of bundle names */
+	V2GetBundles(ctx context.Context, params operators.V2GetBundlesParams) middleware.Responder
+
 	/* V2ListOfClusterOperators Lists operators to be monitored for a cluster. */
 	V2ListOfClusterOperators(ctx context.Context, params operators.V2ListOfClusterOperatorsParams) middleware.Responder
 
@@ -535,6 +541,16 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2DownloadClusterLogs(ctx, params)
+	})
+	api.OperatorsV2GetBundleOperatorsHandler = operators.V2GetBundleOperatorsHandlerFunc(func(params operators.V2GetBundleOperatorsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.V2GetBundleOperators(ctx, params)
+	})
+	api.OperatorsV2GetBundlesHandler = operators.V2GetBundlesHandlerFunc(func(params operators.V2GetBundlesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.V2GetBundles(ctx, params)
 	})
 	api.InstallerV2GetClusterDefaultConfigHandler = installer.V2GetClusterDefaultConfigHandlerFunc(func(params installer.V2GetClusterDefaultConfigParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -5,6 +5,7 @@ import (
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/templating"
@@ -136,4 +137,8 @@ func (o *operator) GetPreflightRequirements(context context.Context,
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDNODEFEATUREDISCOVERY
+}
+
+func (o *operator) GetBundleLabels() pq.StringArray {
+	return Operator.Bundles
 }
