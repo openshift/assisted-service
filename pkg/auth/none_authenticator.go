@@ -27,6 +27,10 @@ func (a *NoneAuthenticator) EnableOrgTenancy() bool {
 	return false
 }
 
+func (a *NoneAuthenticator) EnableOcmAuthz() bool {
+	return false
+}
+
 func (a *NoneAuthenticator) EnableOrgBasedFeatureGates() bool {
 	return false
 }
