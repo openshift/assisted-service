@@ -1,0 +1,17 @@
+contentOrigin:
+  repofiles: ["./redhat.repo"]
+packages:
+  - libvirt-libs
+  - nmstate
+  - nmstate-devel
+  - nmstate-libs
+  - skopeo
+  - openshift-clients
+  - gcc
+  - git
+  - openssl-devel  
+arches:
+  - aarch64
+  - x86_64
+  - ppc64le
+  - s390x
