@@ -12,13 +12,9 @@ WORKDIR /app
 
 USER 0
 RUN INSTALL_PKGS="gcc git nmstate-devel openssl-devel" && \
-    subscription-manager refresh && \
-    dnf install -y $INSTALL_PKGS && \
+    dnf install -y $INSTALL_PKGS --nobest && \
     dnf clean all
 USER ${USER_UID}
-
-RUN go install github.com/google/go-licenses@v1.6.0
-RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
 
 ENV GOEXPERIMENT=strictfipsruntime
 ENV BUILD_TAGS="strictfipsruntime"
@@ -36,7 +32,7 @@ ARG version=latest
 ENV USER_UID=1001 \
     USER_NAME=assisted-installer
 
-COPY --from=builder /tmp/licenses /licenses
+COPY LICENSE /licenses/
 COPY --from=builder /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/ssl/certs/ca-bundle.crt
 COPY --from=builder /etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt /etc/ssl/certs/ca-bundle.trust.crt
 COPY --from=builder /app/build/assisted-service /assisted-service
@@ -46,7 +42,6 @@ COPY --from=builder /app/build/agent-installer-client /usr/local/bin/agent-insta
 RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-cluster-and-infraenv
 
 RUN INSTALL_PKGS="libvirt-libs nmstate nmstate-devel nmstate-libs skopeo openshift-clients" && \
-    subscription-manager refresh && \
     dnf install -y $INSTALL_PKGS && \
     dnf clean all && \
     rm -rf /var/cache/{yum,dnf}/* && \
@@ -76,6 +71,7 @@ LABEL com.redhat.component="multicluster-engine-assisted-service-8-container" \
       distribution-scope="public" \
       release="${release}" \
       vendor="Red Hat, Inc." \
+      io.openshift.tags="OpenShift 4" \
       upstream_commit="${version}" \
       org.label-schema.vcs-ref="${version}" \
       org.label-schema.vcs-url="https://github.com/openshift/assisted-service"

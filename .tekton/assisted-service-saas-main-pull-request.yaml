@@ -32,8 +32,10 @@ spec:
     value: .
   - name: build-args
     value:
-    - release={{target_branch}
+    - release={{target_branch}}
     - version={{revision}}
+  - name: build-source-image
+    value: "true"
   pipelineSpec:
     finally:
     - name: show-sbom
@@ -141,9 +143,6 @@ spec:
     - description: ""
       name: CHAINS-GIT_COMMIT
       value: $(tasks.clone-repository.results.commit)
-    - description: ""
-      name: JAVA_COMMUNITY_DEPENDENCIES
-      value: $(tasks.build-container.results.JAVA_COMMUNITY_DEPENDENCIES)
     tasks:
     - name: init
       params:
