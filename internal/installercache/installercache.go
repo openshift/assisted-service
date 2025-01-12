@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -32,8 +33,10 @@ type Installers struct {
 	// total capcity of the allowed storage (in bytes)
 	storageCapacity int64
 	// parent directory of the binary cache
-	cacheDir      string
-	eventsHandler eventsapi.Handler
+	cacheDir         string
+	eventsHandler    eventsapi.Handler
+	metricsAPI       metrics.API
+	fileSystemHelper FileSystemHelper
 }
 
 type fileInfo struct {
@@ -50,6 +53,14 @@ const (
 	metricEventInstallerCacheRelease = "installercache.release.metrics"
 )
 
+func (i *Installers) reportDiskUsageMetric() {
+	usedBytes, usedPercentage, err := i.fileSystemHelper.GetDiskUsageForDirectory(i.cacheDir)
+	if err != nil {
+		i.log.WithError(err).Errorf("failed to get disk usage stats for %s", i.cacheDir)
+	}
+	i.metricsAPI.DirectoryUsageBytes(i.cacheDir, usedBytes, usedPercentage)
+}
+
 type Release struct {
 	Path          string
 	eventsHandler eventsapi.Handler
@@ -65,7 +76,7 @@ type Release struct {
 	extractDuration float64
 }
 
-// Cleanup is called to signal that the caller has finished using the relase and that resources may be released.
+// Release is called to signal that the caller has finished using the relase and that resources may be released.
 func (rl *Release) Cleanup(ctx context.Context) {
 	if err := os.Remove(rl.Path); err != nil {
 		logrus.New().WithError(err).Errorf("Failed to delete release link %s", rl.Path)
@@ -83,12 +94,14 @@ func (rl *Release) Cleanup(ctx context.Context) {
 }
 
 // New constructs an installer cache with a given storage capacity
-func New(cacheDir string, storageCapacity int64, eventsHandler eventsapi.Handler, log logrus.FieldLogger) *Installers {
+func New(cacheDir string, storageCapacity int64, eventsHandler eventsapi.Handler, metricsAPI metrics.API, fileSystemHelper FileSystemHelper, log logrus.FieldLogger) *Installers {
 	return &Installers{
-		log:             log,
-		storageCapacity: storageCapacity,
-		cacheDir:        cacheDir,
-		eventsHandler:   eventsHandler,
+		log:              log,
+		storageCapacity:  storageCapacity,
+		cacheDir:         cacheDir,
+		eventsHandler:    eventsHandler,
+		metricsAPI:       metricsAPI,
+		fileSystemHelper: fileSystemHelper,
 	}
 }
 
@@ -98,6 +111,8 @@ func New(cacheDir string, storageCapacity int64, eventsHandler eventsapi.Handler
 func (i *Installers) Get(ctx context.Context, releaseID, releaseIDMirror, pullSecret string, ocRelease oc.Release, ocpVersion string, clusterID strfmt.UUID) (*Release, error) {
 	i.Lock()
 	defer i.Unlock()
+
+	i.reportDiskUsageMetric()
 
 	release := &Release{
 		eventsHandler: i.eventsHandler,

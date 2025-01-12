@@ -85,6 +85,18 @@ func (mr *MockAPIMockRecorder) ClusterValidationFailed(clusterValidationType int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterValidationFailed", reflect.TypeOf((*MockAPI)(nil).ClusterValidationFailed), clusterValidationType)
 }
 
+// DirectoryUsageBytes mocks base method.
+func (m *MockAPI) DirectoryUsageBytes(directory string, usedBytes uint64, usedPercentage float64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "DirectoryUsageBytes", directory, usedBytes, usedPercentage)
+}
+
+// DirectoryUsageBytes indicates an expected call of DirectoryUsageBytes.
+func (mr *MockAPIMockRecorder) DirectoryUsageBytes(directory, usedBytes, usedPercentage interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DirectoryUsageBytes", reflect.TypeOf((*MockAPI)(nil).DirectoryUsageBytes), directory, usedBytes, usedPercentage)
+}
+
 // DiskSyncDuration mocks base method.
 func (m *MockAPI) DiskSyncDuration(syncDuration int64) {
 	m.ctrl.T.Helper()

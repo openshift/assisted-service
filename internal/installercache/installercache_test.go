@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -59,12 +60,14 @@ var _ = Describe("release event", func() {
 
 var _ = Describe("installer cache", func() {
 	var (
-		ctrl          *gomock.Controller
-		mockRelease   *oc.MockRelease
-		manager       *Installers
-		cacheDir      string
-		eventsHandler *eventsapi.MockHandler
-		ctx           context.Context
+		ctrl             *gomock.Controller
+		mockRelease      *oc.MockRelease
+		manager          *Installers
+		cacheDir         string
+		eventsHandler    *eventsapi.MockHandler
+		ctx              context.Context
+		metricsAPI       *metrics.MockAPI
+		fileSystemHelper *MockFileSystemHelper
 	)
 
 	BeforeEach(func() {
@@ -73,13 +76,15 @@ var _ = Describe("installer cache", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
 		eventsHandler = eventsapi.NewMockHandler(ctrl)
+		metricsAPI = metrics.NewMockAPI(ctrl)
+		fileSystemHelper = NewMockFileSystemHelper(ctrl)
 
 		var err error
 		cacheDir, err = os.MkdirTemp("/tmp", "cacheDir")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(os.Mkdir(filepath.Join(cacheDir, "quay.io"), 0755)).To(Succeed())
 		Expect(os.Mkdir(filepath.Join(filepath.Join(cacheDir, "quay.io"), "release-dev"), 0755)).To(Succeed())
-		manager = New(cacheDir, 12, eventsHandler, logrus.New())
+		manager = New(cacheDir, 12, eventsHandler, metricsAPI, fileSystemHelper, logrus.New())
 		ctx = context.TODO()
 	})
 
@@ -92,6 +97,13 @@ var _ = Describe("installer cache", func() {
 			ctx, gomock.Any(), nil, nil, "", models.EventSeverityInfo, metricEventInstallerCacheRelease, gomock.Any(),
 			gomock.Any(),
 		).Times(1)
+	}
+
+	expectMetricsSent := func() {
+		usedBytes := uint64(1073741824)
+		usedPercentage := float64(2.29)
+		fileSystemHelper.EXPECT().GetDiskUsageForDirectory(cacheDir).Return(usedBytes, usedPercentage, nil).Times(1)
+		metricsAPI.EXPECT().DirectoryUsageBytes(cacheDir, usedBytes, usedPercentage)
 	}
 
 	testGet := func(releaseID, version string, clusterID strfmt.UUID, expectCached bool) (string, string) {
@@ -107,6 +119,7 @@ var _ = Describe("installer cache", func() {
 				err := os.WriteFile(fname, []byte("abcde"), 0600)
 				return "", err
 			})
+		expectMetricsSent()
 		l, err := manager.Get(ctx, releaseID, "mirror", "pull-secret", mockRelease, version, clusterID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(l.releaseID).To(Equal(releaseID))
@@ -197,6 +210,7 @@ var _ = Describe("installer cache", func() {
 				err := os.WriteFile(fname, []byte("abcde"), 0600)
 				return "", err
 			})
+		expectMetricsSent()
 		l, err := manager.Get(ctx, releaseID, releaseMirrorID, "pull-secret", mockRelease, version, clusterID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(l.releaseID).To(Equal(releaseID))
@@ -226,6 +240,7 @@ var _ = Describe("installer cache", func() {
 				err := os.WriteFile(fname, []byte("abcde"), 0600)
 				return "", err
 			})
+		expectMetricsSent()
 		l, err := manager.Get(ctx, releaseID, releaseMirrorID, "pull-secret", mockRelease, version, clusterID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(l.releaseID).To(Equal(releaseID))

@@ -8,7 +8,9 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/installercache"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -39,10 +41,12 @@ type installGenerator struct {
 	providerRegistry registry.ProviderRegistry
 	manifestApi      manifestsapi.ManifestsAPI
 	eventsHandler    eventsapi.Handler
+	metricsAPI       metrics.API
+	fileSystemHelper installercache.FileSystemHelper
 }
 
 func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string,
-	providerRegistry registry.ProviderRegistry, manifestApi manifestsapi.ManifestsAPI, eventsHandler eventsapi.Handler) *installGenerator {
+	providerRegistry registry.ProviderRegistry, manifestApi manifestsapi.ManifestsAPI, eventsHandler eventsapi.Handler, metricsAPI metrics.API, fileSystemHelper installercache.FileSystemHelper) *installGenerator {
 	return &installGenerator{
 		Config:           cfg,
 		log:              log,
@@ -51,6 +55,8 @@ func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir str
 		providerRegistry: providerRegistry,
 		manifestApi:      manifestApi,
 		eventsHandler:    eventsHandler,
+		metricsAPI:       metricsAPI,
+		fileSystemHelper: fileSystemHelper,
 	}
 }
 
@@ -79,7 +85,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
 		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.Config.ClusterTLSCertOverrideDir, k.InstallerCacheCapacity, k.manifestApi, k.eventsHandler)
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.Config.ClusterTLSCertOverrideDir, k.InstallerCacheCapacity, k.manifestApi, k.eventsHandler, k.metricsAPI, k.fileSystemHelper)
 	}
 	err = generator.Generate(ctx, cfg)
 	if err != nil {
