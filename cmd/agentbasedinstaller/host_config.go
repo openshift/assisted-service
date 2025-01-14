@@ -142,6 +142,17 @@ func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.
 		log.Infof("Selecting disk %s for installation", diskID)
 	} else {
 		log.Info("No disk found matching root device hints")
+
+		possibleDisks := []string{}
+		for _, disk := range inventory.Disks {
+			if !disk.InstallationEligibility.Eligible {
+				log.Infof("Disk %s is not eligible due to %s", disk.Path, disk.InstallationEligibility.NotEligibleReasons)
+				continue
+			}
+			diskStr := fmt.Sprintf("Disk - path: %s, by-path: %s, wwn: %s", disk.Path, disk.ByPath, disk.Wwn)
+			possibleDisks = append(possibleDisks, diskStr)
+		}
+		log.Info("Eligible disks: ", possibleDisks)
 	}
 
 	updateParams.DisksSelectedConfig = []*models.DiskConfigParams{
