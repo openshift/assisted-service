@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -23,12 +22,34 @@ var (
 	CacheLimitThreshold               = 0.8
 )
 
+// pathMutexes contains a map of mutexes by path so that multiple paths may be protected.
+type pathMutexes struct {
+	mutex   sync.Mutex             // Protect the map entries with a mutex
+	mutexes map[string]*sync.Mutex // A map entry for each path
+}
+
+// GetMutexForReleaseID returns the mutex for a specific releaseID
+func (r *pathMutexes) getMutex(releaseID string) *sync.Mutex {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	// Create a new Mutex if one does not already exist
+	if _, ok := r.mutexes[releaseID]; !ok {
+		r.mutexes[releaseID] = &sync.Mutex{}
+	}
+	return r.mutexes[releaseID]
+}
+
+func newPathMutexes() *pathMutexes {
+	return &pathMutexes{mutexes: make(map[string]*sync.Mutex)}
+}
+
 // Installers implements a thread safe LRU cache for ocp install binaries
 // on the pod's ephermal file system. The number of binaries stored is
 // limited by the storageCapacity parameter.
 type Installers struct {
-	sync.Mutex
-	log logrus.FieldLogger
+	pathMutexes *pathMutexes
+	log         logrus.FieldLogger
 	// total capcity of the allowed storage (in bytes)
 	storageCapacity int64
 	// parent directory of the binary cache
@@ -63,12 +84,16 @@ type Release struct {
 	cached bool
 	// extractDuration is the amount of time taken to perform extraction, zero if no extraction took place.
 	extractDuration float64
+	// releaseUnlocker allows the caller to unlock this (always locked) release
+	releaseUnlocker ReleaseUnlocker
 }
 
 // Cleanup is called to signal that the caller has finished using the relase and that resources may be released.
 func (rl *Release) Cleanup(ctx context.Context) {
-	if err := os.Remove(rl.Path); err != nil {
-		logrus.New().WithError(err).Errorf("Failed to delete release link %s", rl.Path)
+	// Now that all filesystem operations on the release are done, free the release lock
+	// The act of obtaining a release from Installers.Get provides a locked release.
+	if rl.releaseUnlocker != nil {
+		rl.releaseUnlocker.Unlock(rl.Path)
 	}
 	rl.eventsHandler.V2AddMetricsEvent(
 		ctx, &rl.clusterID, nil, nil, "", models.EventSeverityInfo,
@@ -89,30 +114,50 @@ func New(cacheDir string, storageCapacity int64, eventsHandler eventsapi.Handler
 		storageCapacity: storageCapacity,
 		cacheDir:        cacheDir,
 		eventsHandler:   eventsHandler,
+		pathMutexes:     newPathMutexes(),
 	}
+}
+
+type ReleaseUnlocker interface {
+	Unlock(path string)
+}
+
+func (i *Installers) Unlock(path string) {
+	i.pathMutexes.getMutex(path).Unlock()
 }
 
 // Get returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image. Tries the mirror release image first if it's set. It is safe for concurrent use. A cache of
 // binaries is maintained to reduce re-downloading of the same release.
 func (i *Installers) Get(ctx context.Context, releaseID, releaseIDMirror, pullSecret string, ocRelease oc.Release, ocpVersion string, clusterID strfmt.UUID) (*Release, error) {
-	i.Lock()
-	defer i.Unlock()
 
 	release := &Release{
-		eventsHandler: i.eventsHandler,
-		clusterID:     clusterID,
-		releaseID:     releaseID,
-		startTime:     time.Now(),
+		eventsHandler:   i.eventsHandler,
+		clusterID:       clusterID,
+		releaseID:       releaseID,
+		startTime:       time.Now(),
+		releaseUnlocker: i,
 	}
 
-	var workdir, binary, path string
+	var _, _, path string
 	var err error
 
-	workdir, binary, path, err = ocRelease.GetReleaseBinaryPath(releaseID, i.cacheDir, ocpVersion)
+	_, _, path, err = ocRelease.GetReleaseBinaryPath(releaseID, i.cacheDir, ocpVersion)
 	if err != nil {
 		return nil, err
 	}
+
+	// Lock a mutex for this specific release path.
+	i.pathMutexes.getMutex(path).Lock()
+
+	defer func() {
+		// Immediately unlock the release if there was an error.
+		// Otherwise leave it open to be closed when the caller calls the unlocker interface to unlock the resource.
+		if err != nil {
+			i.Unlock(path)
+		}
+	}()
+
 	if _, err = os.Stat(path); os.IsNotExist(err) {
 		extractStartTime := time.Now()
 		//evict older files if necessary
@@ -132,16 +177,7 @@ func (i *Installers) Get(ctx context.Context, releaseID, releaseIDMirror, pullSe
 			return nil, errors.Wrap(err, fmt.Sprintf("Failed to update release binary %s", path))
 		}
 	}
-	// return a new hard link to the binary file
-	// the caller should delete the hard link when
-	// it finishes working with the file
-	link := filepath.Join(workdir, "ln_"+fmt.Sprint(time.Now().Unix())+
-		"_"+binary)
-	err = os.Link(path, link)
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("Failed to create hard link to binary %s", path))
-	}
-	release.Path = link
+	release.Path = path
 	return release, nil
 }
 
@@ -158,7 +194,6 @@ func (i *Installers) evict() {
 
 	// store the file paths
 	files := NewPriorityQueue(&fileInfo{})
-	links := make([]*fileInfo, 0)
 	var totalSize int64
 
 	// visit process the file/dir pointed by path and store relevant
@@ -171,13 +206,8 @@ func (i *Installers) evict() {
 		if !info.Mode().IsRegular() {
 			return nil
 		}
-		//find hard links
-		if strings.HasPrefix(info.Name(), "ln_") {
-			links = append(links, &fileInfo{path, info})
-			return nil
-		}
 
-		//save the other files based on their mod time
+		// add the other files to the queue based on their mod time
 		files.Add(&fileInfo{path, info})
 		totalSize += info.Size()
 		return nil
@@ -185,25 +215,13 @@ func (i *Installers) evict() {
 
 	err := filepath.Walk(i.cacheDir, visit)
 	if err != nil {
-		if !os.IsNotExist(err) { //ignore first invocation where the cacheDir does not exist
+		if !os.IsNotExist(err) { // ignore first invocation where the cacheDir does not exist
 			i.log.WithError(err).Errorf("release binary eviction failed to inspect directory %s", i.cacheDir)
 		}
 		return
 	}
 
-	//prune the hard links just in case the deletion of resources
-	//in ignition.go did not succeeded as expected
-	for idx := 0; idx < len(links); idx++ {
-		finfo := links[idx]
-		//Allow a grace period of 5 minutes from the link creation time
-		//to ensure the link is not being used.
-		grace := time.Now().Add(DeleteGracePeriod).Unix()
-		if finfo.info.ModTime().Unix() < grace {
-			os.Remove(finfo.path)
-		}
-	}
-
-	//delete the oldest file if necessary
+	// delete the oldest file if necessary
 	for totalSize >= int64(float64(i.storageCapacity)*CacheLimitThreshold) {
 		finfo, _ := files.Pop()
 		totalSize -= finfo.info.Size()
@@ -215,6 +233,11 @@ func (i *Installers) evict() {
 }
 
 func (i *Installers) evictFile(filePath string) error {
+	// Make sure that this mutex is not locked elsewhere before we delete the file.
+	// This will make sure that the release is not in use by another process.
+	i.pathMutexes.getMutex(filePath).Lock()
+	defer i.Unlock(filePath)
+
 	i.log.Infof("evicting binary file %s due to storage pressure", filePath)
 	err := os.Remove(filePath)
 	if err != nil {
