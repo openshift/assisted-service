@@ -208,6 +208,15 @@ func DerefClusterNetworks(obj interface{}) []*models.ClusterNetwork {
 	}
 }
 
+func DerefClusterLoadBalancer(obj interface{}) *models.LoadBalancer {
+	switch v := obj.(type) {
+	case *models.LoadBalancer:
+		return v
+	default:
+		return nil
+	}
+}
+
 func GetMachineNetworkCidrs(cluster *common.Cluster) (ret []string) {
 	for _, n := range cluster.MachineNetworks {
 		ret = append(ret, string(n.Cidr))

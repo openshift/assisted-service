@@ -121,6 +121,9 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, "The Cluster Machine CIDR is not required: User Managed Networking"
 	}
+	if network.IsLoadBalancerUserManaged(c.cluster) {
+		return ValidationSuccess, "Calculating machine network CIDR is not enabled: User Managed Load Balancer"
+	}
 	if len(c.cluster.APIVips) == 0 && len(c.cluster.IngressVips) == 0 {
 		return ValidationPending, "The Machine Network CIDR, API virtual IPs, or Ingress virtual IPs are undefined."
 	}
@@ -214,12 +217,6 @@ func (v *clusterValidator) areApiVipsDefined(c *clusterPreprocessContext) (Valid
 }
 
 func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper VipsWrapper) (ValidationStatus, string) {
-	var (
-		multiErr *multierror.Error
-		msg      string
-	)
-
-	name := strings.ToLower(vipsWrapper.Name()) + " vips"
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: User Managed Networking", vipsWrapper.Name())
 	}
@@ -236,21 +233,35 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 		return ValidationPending, "Hosts have not been discovered yet"
 	}
 
-	// When using user managed load balancer, the VIPs are the load balancer IP (not virtual),
-	// therefore will not be free
-	shouldVerifyVIPIsFree := !network.IsLoadBalancerUserManaged(c.cluster)
+	if !network.IsLoadBalancerUserManaged(c.cluster) {
+		return validateVipsClusterManagedLoadBalancer(c, vipsWrapper, v.log)
+	}
+
+	return validateVipsUserManagedLoadBalancer(c, vipsWrapper, v.log)
+}
+
+func validateVipsClusterManagedLoadBalancer(
+	c *clusterPreprocessContext, vipsWrapper VipsWrapper, log logrus.FieldLogger,
+) (ValidationStatus, string) {
+	var (
+		multiErr *multierror.Error
+		msg      string
+	)
+
+	name := strings.ToLower(vipsWrapper.Name()) + " vips"
 
 	failed := false
 	for i := 0; i != vipsWrapper.Len(); i++ {
-		verification, err := network.VerifyVip(
+		verification, err := network.VerifyVipWithSingleMachineNetwork(
 			c.cluster.Hosts,
 			network.GetMachineCidrById(c.cluster, i),
 			vipsWrapper.IP(i),
 			name,
 			vipsWrapper.Verification(i),
-			shouldVerifyVIPIsFree,
-			v.log,
+			true,
+			log,
 		)
+
 		failed = failed || verification != models.VipVerificationSucceeded
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
@@ -265,6 +276,34 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 	}
 
 	return ValidationSuccess, fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", name, strings.Join(vipsWrapper.GetVips(), `, `))
+}
+
+func validateVipsUserManagedLoadBalancer(
+	c *clusterPreprocessContext, vipsWrapper VipsWrapper, log logrus.FieldLogger,
+) (ValidationStatus, string) {
+	if vipsWrapper.Len() == 0 {
+		return ValidationPending, fmt.Sprintf("%s virtual IPs are undefined.", vipsWrapper.Name())
+	}
+
+	name := strings.ToLower(vipsWrapper.Name()) + " vip"
+	verification, err := network.VerifyVipWithMachineNetworkList(
+		c.cluster.Hosts,
+		c.cluster.MachineNetworks,
+		vipsWrapper.IP(0),
+		name,
+		vipsWrapper.Verification(0),
+		false,
+		log,
+	)
+
+	if verification != models.VipVerificationSucceeded {
+		if err != nil {
+			return ValidationFailure, err.Error()
+		}
+		return ValidationFailure, fmt.Sprintf("%s %s is invalid", name, vipsWrapper.IP(0))
+	}
+
+	return ValidationSuccess, fmt.Sprintf("%s %s is valid", name, vipsWrapper.IP(0))
 }
 
 func (v *clusterValidator) areApiVipsValid(c *clusterPreprocessContext) (ValidationStatus, string) {

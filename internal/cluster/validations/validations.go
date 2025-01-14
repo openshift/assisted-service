@@ -481,7 +481,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 	if err != nil {
 		return err
 	}
-	err = ValidateDualStackNetworks(targetConfiguration, false)
+	err = ValidateDualStackNetworks(targetConfiguration, false, false)
 	if err != nil {
 		return err
 	}
@@ -504,11 +504,16 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 			targetConfiguration.APIVips, targetConfiguration.IngressVips); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-	} else {
+	} else if !network.IsLoadBalancerUserManaged(&targetConfiguration) {
 		if len(targetConfiguration.MachineNetworks) > 0 {
 			for i := range targetConfiguration.APIVips { // len of APIVips and IngressVips should be the same. asserted above.
-				err = network.VerifyVips(nil, string(targetConfiguration.MachineNetworks[i].Cidr),
-					string(targetConfiguration.APIVips[i].IP), string(targetConfiguration.IngressVips[i].IP), network.IsLoadBalancerUserManaged(&targetConfiguration), nil)
+				err = network.VerifyVipsForClusterManagedLoadBalancer(
+					nil,
+					string(targetConfiguration.MachineNetworks[i].Cidr),
+					string(targetConfiguration.APIVips[i].IP),
+					string(targetConfiguration.IngressVips[i].IP),
+					nil,
+				)
 				if err != nil {
 					multiErr = multierror.Append(multiErr, err)
 				}
@@ -519,6 +524,18 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 		} else if reqDualStack {
 			return errors.New("Dual-stack cluster cannot be created with empty Machine Networks")
 		}
+	} else {
+		if len(targetConfiguration.MachineNetworks) == 0 || len(targetConfiguration.APIVips) == 0 || len(targetConfiguration.IngressVips) == 0 {
+			return nil
+		}
+
+		return network.VerifyVipsForUserManangedLoadBalancer(
+			nil,
+			targetConfiguration.MachineNetworks,
+			string(targetConfiguration.APIVips[0].IP),
+			string(targetConfiguration.IngressVips[0].IP),
+			nil,
+		)
 	}
 
 	return nil
@@ -552,10 +569,11 @@ func ValidateVIPsWereNotSetDhcpMode(apiVips []*models.APIVip, ingressVips []*mod
 	return nil
 }
 
-func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool) error {
+func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool, alreadyUserManagedLoadBalancer bool) error {
 	var machineNetworks []*models.MachineNetwork
 	var serviceNetworks []*models.ServiceNetwork
 	var clusterNetworks []*models.ClusterNetwork
+	var clusterLoadBalancer *models.LoadBalancer
 	var err error
 	var ipv4, ipv6 bool
 	reqDualStack := false
@@ -563,6 +581,15 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool)
 	machineNetworks = network.DerefMachineNetworks(funk.Get(clusterParams, "MachineNetworks"))
 	serviceNetworks = network.DerefServiceNetworks(funk.Get(clusterParams, "ServiceNetworks"))
 	clusterNetworks = network.DerefClusterNetworks(funk.Get(clusterParams, "ClusterNetworks"))
+	clusterLoadBalancer = network.DerefClusterLoadBalancer(funk.Get(clusterParams, "LoadBalancer"))
+
+	var targetLoadBalancerType string = models.LoadBalancerTypeClusterManaged
+	if alreadyUserManagedLoadBalancer {
+		targetLoadBalancerType = models.LoadBalancerTypeUserManaged
+	}
+	if clusterLoadBalancer != nil {
+		targetLoadBalancerType = clusterLoadBalancer.Type
+	}
 
 	ipv4, ipv6, err = network.GetAddressFamilies(machineNetworks)
 	if err != nil {
@@ -612,7 +639,7 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool)
 			}
 		}
 	} else {
-		if len(machineNetworks) > 1 {
+		if len(machineNetworks) > 1 && targetLoadBalancerType == models.LoadBalancerTypeClusterManaged {
 			err := errors.Errorf("Single-stack cluster cannot contain multiple Machine Networks")
 			return err
 		}

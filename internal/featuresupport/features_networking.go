@@ -173,12 +173,15 @@ func (feature *DualStackFeature) getFeatureActiveLevel(cluster *common.Cluster, 
 }
 
 func (feature *DualStackFeature) getIncompatibleFeatures(openshiftVersion string) *[]models.FeatureSupportLevelID {
-	if isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion); isNotSupported || err != nil {
-		return &[]models.FeatureSupportLevelID{
-			models.FeatureSupportLevelIDVSPHEREINTEGRATION,
-		}
+	unsupportedFeatures := []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
 	}
-	return nil
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion); isNotSupported || err != nil {
+		unsupportedFeatures = append(unsupportedFeatures, models.FeatureSupportLevelIDVSPHEREINTEGRATION)
+	}
+
+	return &unsupportedFeatures
 }
 
 func (feature *DualStackFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
@@ -231,6 +234,7 @@ func (feature *DualStackVipsFeature) getFeatureActiveLevel(cluster *common.Clust
 func (feature *DualStackVipsFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
 	}
 }
 
@@ -501,6 +505,8 @@ func (feature *UserManagedLoadBalancerFeature) getIncompatibleFeatures(string) *
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+		models.FeatureSupportLevelIDDUALSTACK,
+		models.FeatureSupportLevelIDDUALSTACKVIPS,
 	}
 }
 

@@ -4340,7 +4340,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
-						"Setting Machine network CIDR is forbidden when cluster is not in vip-dhcp-allocation mode")
+						"Setting the Machine Network CIDR is forbidden when the cluster is neither in VIP DHCP allocation mode nor using a user-managed load balance")
 				})
 				It("Machine network CIDR in non dhcp non interactive", func() {
 					mockClusterUpdatability(2)
@@ -8117,368 +8117,279 @@ var _ = Describe("V2UpdateCluster", func() {
 	})
 
 	Context("load_balancer", func() {
-
 		BeforeEach(func() {
-			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
-			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-			mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
 		})
 
-		Context("should succeed", func() {
-			It("when updating to user managed load balancer with common VIP", func() {
-				apiVIPs := []*models.APIVip{
-					{IP: "192.168.127.10"},
-				}
-
-				ingressVIPs := []*models.IngressVip{
-					{IP: "192.168.127.10"},
-				}
-
-				cluster := &common.Cluster{
-					Cluster: models.Cluster{
-						ID:               &clusterID,
-						OpenshiftVersion: common.MinimumVersionForUserManagedLoadBalancerFeature,
-						Platform: &models.Platform{
-							Type: models.PlatformTypeBaremetal.Pointer(),
-						},
-						CPUArchitecture: common.X86CPUArchitecture,
-						MachineNetworks: []*models.MachineNetwork{
-							{ClusterID: clusterID, Cidr: "192.168.127.0/24"},
-						},
-						Hosts: []*models.Host{
-							{
-								ID: &masterHostId1,
-								Inventory: common.GenerateTestInventoryWithNetwork(
-									common.NetAddress{
-										IPv4Address: []string{"192.168.127.12/24"},
-									},
-								)},
-						},
-						LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
+		DescribeTable("different update scenarios for focused on load balancer type with machine networks and vips", func(
+			clusterLoadBalancer *models.LoadBalancer,
+			newLoadBalancer *models.LoadBalancer,
+			clusterAPIVIPs []*models.APIVip,
+			newAPIVIPs []*models.APIVip,
+			clusterIngressVIPs []*models.IngressVip,
+			newIngressVIPs []*models.IngressVip,
+			clusterMachineNetworks []*models.MachineNetwork,
+			newMachineNetworks []*models.MachineNetwork,
+			errString *string,
+		) {
+			cluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               &clusterID,
+					OpenshiftVersion: common.MinimumVersionForUserManagedLoadBalancerFeature,
+					Platform: &models.Platform{
+						Type: models.PlatformTypeBaremetal.Pointer(),
 					},
-				}
-
-				err := db.Create(cluster).Error
-				Expect(err).ShouldNot(HaveOccurred())
-
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-
-				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.V2ClusterUpdateParams{
-						APIVips:      apiVIPs,
-						IngressVips:  ingressVIPs,
-						LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+					CPUArchitecture: common.X86CPUArchitecture,
+					Hosts: []*models.Host{
+						{
+							ID: &masterHostId1,
+							Inventory: common.GenerateTestInventoryWithNetwork(
+								common.NetAddress{
+									IPv4Address: []string{"192.168.127.12/24"},
+								},
+							)},
 					},
-				})
+					LoadBalancer:    clusterLoadBalancer,
+					MachineNetworks: clusterMachineNetworks,
+					APIVips:         clusterAPIVIPs,
+					IngressVips:     clusterIngressVIPs,
+				},
+			}
+			err := db.Create(cluster).Error
+			Expect(err).ShouldNot(HaveOccurred())
 
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-				actual := reply.(*installer.V2UpdateClusterCreated)
-				responseCluster := actual.Payload
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).AnyTimes()
+			if errString == nil {
+				mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			}
 
+			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					LoadBalancer:    newLoadBalancer,
+					APIVips:         newAPIVIPs,
+					IngressVips:     newIngressVIPs,
+					MachineNetworks: newMachineNetworks,
+				},
+			})
+
+			if errString != nil {
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					*errString,
+				)
+				return
+			}
+
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+			actual := reply.(*installer.V2UpdateClusterCreated)
+			responseCluster := actual.Payload
+
+			if newLoadBalancer != nil {
 				Expect(responseCluster.LoadBalancer).ToNot(BeNil())
-				Expect(responseCluster.LoadBalancer.Type).To(BeEquivalentTo(models.LoadBalancerTypeUserManaged))
-
-				Expect(responseCluster.APIVips).To(ContainElement(apiVIPs[0]))
-				Expect(responseCluster.IngressVips).To(ContainElement(ingressVIPs[0]))
-			})
-		})
-
-		It("when updating to common VIP, while cluster is already with user managed load balancer", func() {
-			apiVIPs := []*models.APIVip{
-				{IP: "192.168.127.10"},
+				Expect(responseCluster.LoadBalancer.Type).To(BeEquivalentTo(newLoadBalancer.Type))
+			} else {
+				Expect(responseCluster.LoadBalancer).To(Equal(clusterLoadBalancer))
 			}
 
-			ingressVIPs := []*models.IngressVip{
-				{IP: "192.168.127.10"},
+			if newAPIVIPs != nil {
+				Expect(len(responseCluster.APIVips)).To(Equal(len(newAPIVIPs)))
+				Expect(*responseCluster.APIVips[0]).To(Equal(*newAPIVIPs[0]))
+			} else {
+				if clusterAPIVIPs == nil {
+					Expect(responseCluster.APIVips).To(Equal([]*models.APIVip{}))
+				} else {
+					Expect(responseCluster.APIVips).To(Equal(clusterAPIVIPs))
+				}
 			}
 
-			cluster := &common.Cluster{
-				Cluster: models.Cluster{
-					ID:               &clusterID,
-					OpenshiftVersion: common.MinimumVersionForUserManagedLoadBalancerFeature,
-					Platform: &models.Platform{
-						Type: models.PlatformTypeBaremetal.Pointer(),
-					},
-					CPUArchitecture: common.X86CPUArchitecture,
-					MachineNetworks: []*models.MachineNetwork{
-						{ClusterID: clusterID, Cidr: "192.168.127.0/24"},
-					},
-					Hosts: []*models.Host{
-						{
-							ID: &masterHostId1,
-							Inventory: common.GenerateTestInventoryWithNetwork(
-								common.NetAddress{
-									IPv4Address: []string{"192.168.127.12/24"},
-								},
-							)},
-					},
-					LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
-				},
+			if newIngressVIPs != nil {
+				Expect(len(responseCluster.IngressVips)).To(Equal(len(newIngressVIPs)))
+				Expect(*responseCluster.IngressVips[0]).To(Equal(*newIngressVIPs[0]))
+			} else {
+				if clusterIngressVIPs == nil {
+					Expect(responseCluster.IngressVips).To(Equal([]*models.IngressVip{}))
+				} else {
+					Expect(responseCluster.IngressVips).To(Equal(clusterIngressVIPs))
+				}
 			}
 
-			err := db.Create(cluster).Error
-			Expect(err).ShouldNot(HaveOccurred())
-
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-
-			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-				ClusterID: clusterID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					APIVips:     apiVIPs,
-					IngressVips: ingressVIPs,
-				},
-			})
-
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-			actual := reply.(*installer.V2UpdateClusterCreated)
-			responseCluster := actual.Payload
-
-			Expect(responseCluster.LoadBalancer).ToNot(BeNil())
-			Expect(responseCluster.LoadBalancer.Type).To(BeEquivalentTo(models.LoadBalancerTypeUserManaged))
-
-			Expect(responseCluster.APIVips).To(ContainElement(apiVIPs[0]))
-			Expect(responseCluster.IngressVips).To(ContainElement(ingressVIPs[0]))
-		})
-
-		It("when updating to distinct VIPs, while cluster is with user managed load balancer", func() {
-			apiVIPs := []*models.APIVip{
-				{IP: "192.168.127.10"},
+			if newMachineNetworks != nil {
+				Expect(len(responseCluster.MachineNetworks)).To(Equal(len(newMachineNetworks)))
+				for k := range newMachineNetworks {
+					Expect(*responseCluster.MachineNetworks[k]).To(Equal(*newMachineNetworks[k]))
+				}
+			} else {
+				if clusterMachineNetworks == nil {
+					Expect(responseCluster.MachineNetworks).To(Equal([]*models.MachineNetwork{}))
+				} else {
+					Expect(responseCluster.MachineNetworks).To(Equal(cluster.MachineNetworks))
+				}
 			}
+		},
+			Entry("update load_balancer type to user-managed when it is nil should succeed",
+				nil,
+				&models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			),
 
-			ingressVIPs := []*models.IngressVip{
-				{IP: "192.168.127.11"},
-			}
+			Entry("update load_balancer type to user-managed when it is cluster-managed should succeed",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
+				&models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			),
 
-			cluster := &common.Cluster{
-				Cluster: models.Cluster{
-					ID:               &clusterID,
-					OpenshiftVersion: common.MinimumVersionForUserManagedLoadBalancerFeature,
-					Platform: &models.Platform{
-						Type: models.PlatformTypeBaremetal.Pointer(),
-					},
-					CPUArchitecture: common.X86CPUArchitecture,
-					MachineNetworks: []*models.MachineNetwork{
-						{ClusterID: clusterID, Cidr: "192.168.127.0/24"},
-					},
-					Hosts: []*models.Host{
-						{
-							ID: &masterHostId1,
-							Inventory: common.GenerateTestInventoryWithNetwork(
-								common.NetAddress{
-									IPv4Address: []string{"192.168.127.12/24"},
-								},
-							)},
-					},
-					LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
-				},
-			}
+			Entry("update load_balancer type to cluster-managed when it is nil should succeed",
+				nil,
+				&models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			),
 
-			err := db.Create(cluster).Error
-			Expect(err).ShouldNot(HaveOccurred())
+			Entry("update load_balancer type to cluster-managed when it is user-managed should succeed",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				&models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			),
 
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
+			Entry("update load_balancer type to user-managed when it is user-managed should succeed",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				&models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			),
 
-			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-				ClusterID: clusterID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					APIVips:     apiVIPs,
-					IngressVips: ingressVIPs,
-				},
-			})
+			Entry("update load_balancer type to cluster-managed when it is cluster-managed should succeed",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
+				&models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			),
 
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-			actual := reply.(*installer.V2UpdateClusterCreated)
-			responseCluster := actual.Payload
+			Entry("adding machine networks with cluster-managed load balancer should fail",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				[]*models.MachineNetwork{{ClusterID: clusterID, Cidr: "192.168.127.0/24"}},
+				swag.String("Setting the Machine Network CIDR is forbidden when the cluster is neither"+
+					" in VIP DHCP allocation mode nor using a user-managed load balance"),
+			),
 
-			Expect(responseCluster.LoadBalancer).ToNot(BeNil())
-			Expect(responseCluster.LoadBalancer.Type).To(BeEquivalentTo(models.LoadBalancerTypeUserManaged))
+			Entry("adding machine networks with user-managed load balancer should succeed",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				[]*models.MachineNetwork{{ClusterID: clusterID, Cidr: "192.168.127.0/24"}},
+				nil,
+			),
 
-			Expect(responseCluster.APIVips).To(ContainElement(apiVIPs[0]))
-			Expect(responseCluster.IngressVips).To(ContainElement(ingressVIPs[0]))
-		})
+			Entry("adding common VIPs with cluster-managed load balancer should fail",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
+				nil,
+				nil,
+				[]*models.APIVip{{ClusterID: clusterID, IP: "192.168.127.1"}},
+				nil,
+				[]*models.IngressVip{{ClusterID: clusterID, IP: "192.168.127.1"}},
+				[]*models.MachineNetwork{{ClusterID: clusterID, Cidr: "192.168.127.0/24"}},
+				nil,
+				swag.String("appears both in apiVIPs and ingressVIPs"),
+			),
 
-		It("when updating to distinct VIPs, while cluster is with cluster managed load balancer", func() {
-			apiVIPs := []*models.APIVip{
-				{IP: "192.168.127.10"},
-			}
+			Entry("adding common VIPs with user-managed load balancer should succeed",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				nil,
+				nil,
+				[]*models.APIVip{{ClusterID: clusterID, IP: "192.168.127.1"}},
+				nil,
+				[]*models.IngressVip{{ClusterID: clusterID, IP: "192.168.127.1"}},
+				nil,
+				[]*models.MachineNetwork{{ClusterID: clusterID, Cidr: "192.168.127.0/24"}},
+				nil,
+			),
 
-			ingressVIPs := []*models.IngressVip{
-				{IP: "192.168.127.11"},
-			}
+			Entry("update to multiple machine networks with user-managed load balancer should succeed",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				nil,
+				nil,
+				[]*models.APIVip{{ClusterID: clusterID, IP: "192.168.127.1"}},
+				nil,
+				[]*models.IngressVip{{ClusterID: clusterID, IP: "192.168.127.1"}},
+				nil,
+				[]*models.MachineNetwork{{ClusterID: clusterID, Cidr: "192.168.127.0/24"}, {ClusterID: clusterID, Cidr: "192.168.128.0/24"}},
+				nil,
+			),
 
-			cluster := &common.Cluster{
-				Cluster: models.Cluster{
-					ID:               &clusterID,
-					OpenshiftVersion: common.MinimumVersionForUserManagedLoadBalancerFeature,
-					Platform: &models.Platform{
-						Type: models.PlatformTypeBaremetal.Pointer(),
-					},
-					CPUArchitecture: common.X86CPUArchitecture,
-					MachineNetworks: []*models.MachineNetwork{
-						{ClusterID: clusterID, Cidr: "192.168.127.0/24"},
-					},
-					Hosts: []*models.Host{
-						{
-							ID: &masterHostId1,
-							Inventory: common.GenerateTestInventoryWithNetwork(
-								common.NetAddress{
-									IPv4Address: []string{"192.168.127.12/24"},
-								},
-							)},
-					},
-					LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
-				},
-			}
+			Entry("update to multiple machine networks such that only one satisfies the requirements with user-managed load balancer should succeed",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				nil,
+				nil,
+				[]*models.APIVip{{ClusterID: clusterID, IP: "192.168.127.1"}},
+				nil,
+				[]*models.IngressVip{{ClusterID: clusterID, IP: "192.168.127.1"}},
+				nil,
+				[]*models.MachineNetwork{{ClusterID: clusterID, Cidr: "192.168.127.0/24"}, {ClusterID: clusterID, Cidr: "192.168.128.0/24"}},
+				nil,
+			),
 
-			err := db.Create(cluster).Error
-			Expect(err).ShouldNot(HaveOccurred())
-
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-
-			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-				ClusterID: clusterID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					APIVips:     apiVIPs,
-					IngressVips: ingressVIPs,
-				},
-			})
-
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-			actual := reply.(*installer.V2UpdateClusterCreated)
-			responseCluster := actual.Payload
-
-			Expect(responseCluster.LoadBalancer).ToNot(BeNil())
-			Expect(responseCluster.LoadBalancer.Type).To(BeEquivalentTo(models.LoadBalancerTypeUserManaged))
-
-			Expect(responseCluster.APIVips).To(ContainElement(apiVIPs[0]))
-			Expect(responseCluster.IngressVips).To(ContainElement(ingressVIPs[0]))
-		})
-	})
-
-	Context("should fail", func() {
-		It("when updating to cluster managed load balancer with common VIP", func() {
-			cluster := &common.Cluster{
-				Cluster: models.Cluster{
-					ID:               &clusterID,
-					OpenshiftVersion: common.MinimumVersionForUserManagedLoadBalancerFeature,
-					Platform: &models.Platform{
-						Type: models.PlatformTypeBaremetal.Pointer(),
-					},
-					CPUArchitecture: common.X86CPUArchitecture,
-					LoadBalancer:    &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
-				},
-			}
-
-			err := db.Create(cluster).Error
-			Expect(err).ShouldNot(HaveOccurred())
-
-			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-				ClusterID: clusterID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					APIVips: []*models.APIVip{
-						{IP: "192.168.127.10"},
-					},
-					IngressVips: []*models.IngressVip{
-						{IP: "192.168.127.10"},
-					},
-					LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
-				},
-			})
-
-			verifyApiErrorString(
-				reply,
-				http.StatusBadRequest,
-				"The IP address \"192.168.127.10\" appears both in apiVIPs and ingressVIPs",
-			)
-		})
-
-		It("when updating to VIPs outside of the machine network, while cluster is with cluster managed load balancer", func() {
-			cluster := &common.Cluster{
-				Cluster: models.Cluster{
-					ID:               &clusterID,
-					OpenshiftVersion: common.MinimumVersionForUserManagedLoadBalancerFeature,
-					Platform: &models.Platform{
-						Type: models.PlatformTypeBaremetal.Pointer(),
-					},
-					CPUArchitecture: common.X86CPUArchitecture,
-					LoadBalancer:    &models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged},
-					MachineNetworks: []*models.MachineNetwork{
-						{Cidr: "192.168.127.0/24"},
-					},
-				},
-			}
-
-			err := db.Create(cluster).Error
-			Expect(err).ShouldNot(HaveOccurred())
-
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-
-			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-				ClusterID: clusterID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					APIVips: []*models.APIVip{
-						{IP: "192.168.128.10"},
-					},
-					IngressVips: []*models.IngressVip{
-						{IP: "192.168.128.11"},
-					},
-				},
-			})
-
-			verifyApiErrorString(
-				reply,
-				http.StatusBadRequest,
-				"Calculate machine network CIDR: No suitable matching CIDR found for VIP 192.168.128.10",
-			)
-		})
-
-		It("when updating to VIPs outside of the machine network, while cluster is with user managed load balancer", func() {
-			apiVIPs := []*models.APIVip{
-				{IP: "192.168.128.10"},
-			}
-
-			ingressVIPs := []*models.IngressVip{
-				{IP: "192.168.128.11"},
-			}
-
-			cluster := &common.Cluster{
-				Cluster: models.Cluster{
-					ID:               &clusterID,
-					OpenshiftVersion: common.MinimumVersionForUserManagedLoadBalancerFeature,
-					Platform: &models.Platform{
-						Type: models.PlatformTypeBaremetal.Pointer(),
-					},
-					CPUArchitecture: common.X86CPUArchitecture,
-					LoadBalancer:    &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
-					MachineNetworks: []*models.MachineNetwork{
-						{Cidr: "192.168.127.0/24"},
-					},
-				},
-			}
-
-			err := db.Create(cluster).Error
-			Expect(err).ShouldNot(HaveOccurred())
-
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-
-			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-				ClusterID: clusterID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					APIVips:     apiVIPs,
-					IngressVips: ingressVIPs,
-				},
-			})
-
-			verifyApiErrorString(
-				reply,
-				http.StatusBadRequest,
-				"Calculate machine network CIDR: No suitable matching CIDR found for VIP 192.168.128.10",
-			)
-		})
+			Entry("update to multiple machine networks such that none satisfies the requirements with user-managed load balancer should fail",
+				&models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				nil,
+				nil,
+				[]*models.APIVip{{ClusterID: clusterID, IP: "192.168.127.1"}},
+				nil,
+				[]*models.IngressVip{{ClusterID: clusterID, IP: "192.168.127.1"}},
+				nil,
+				[]*models.MachineNetwork{{ClusterID: clusterID, Cidr: "192.168.126.0/24"}, {ClusterID: clusterID, Cidr: "192.168.128.0/24"}},
+				swag.String("failed verification: none of the machine networks is satisfying the requirements"),
+			),
+		)
 	})
 })
 
@@ -16472,12 +16383,49 @@ location = "%s"
 				Expect(responseCluster.APIVips).To(ContainElement(apiVips[0]))
 				Expect(responseCluster.IngressVips).To(ContainElement(ingressVIPs[0]))
 			})
+
+			It("when registering cluster with user managed load balancer and VIPs inside second machine network", func() {
+				apiVips := []*models.APIVip{
+					{IP: "192.168.128.1"},
+				}
+				ingressVIPs := []*models.IngressVip{
+					{IP: "192.168.128.2"},
+				}
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion: swag.String(common.MinimumVersionForUserManagedLoadBalancerFeature),
+						CPUArchitecture:  common.X86CPUArchitecture,
+						Platform: &models.Platform{
+							Type: models.PlatformTypeBaremetal.Pointer(),
+						},
+						LoadBalancer: &models.LoadBalancer{
+							Type: models.LoadBalancerTypeUserManaged,
+						},
+						APIVips:     apiVips,
+						IngressVips: ingressVIPs,
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "192.168.127.0/24"},
+							{Cidr: "192.168.128.0/30"},
+						},
+					},
+				})
+
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				responseCluster := actual.Payload
+
+				Expect(responseCluster.LoadBalancer).ToNot(BeNil())
+				Expect(responseCluster.LoadBalancer.Type).To(BeEquivalentTo(models.LoadBalancerTypeUserManaged))
+
+				Expect(responseCluster.APIVips).To(ContainElement(apiVips[0]))
+				Expect(responseCluster.IngressVips).To(ContainElement(ingressVIPs[0]))
+			})
 		})
 
 		Context("should fail", func() {
-			It("when registering cluster with user managed load balancer and VIPs outside machine network", func() {
+			It("when registering cluster with user managed load balancer and API VIP outside all machine networks", func() {
 				apiVips := []*models.APIVip{
-					{IP: "192.168.128.10"},
+					{IP: "192.168.129.10"},
 				}
 				ingressVIPs := []*models.IngressVip{
 					{IP: "192.168.128.11"},
@@ -16496,6 +16444,7 @@ location = "%s"
 						IngressVips: ingressVIPs,
 						MachineNetworks: []*models.MachineNetwork{
 							{Cidr: "192.168.127.0/24"},
+							{Cidr: "192.168.128.0/24"},
 						},
 					},
 				})
@@ -16503,7 +16452,50 @@ location = "%s"
 				verifyApiErrorString(
 					reply,
 					http.StatusBadRequest,
-					"api-vip <192.168.128.10> does not belong to machine-network-cidr <192.168.127.0/24>",
+					"api-vip '192.168.129.10' failed verification: "+
+						"none of the machine networks is satisfying the requirements, description: "+
+						"machine network CIDR <192.168.127.0/24> verification failed: "+
+						"api-vip <192.168.129.10> does not belong to machine-network-cidr <192.168.127.0/24>; "+
+						"machine network CIDR <192.168.128.0/24> verification failed: "+
+						"api-vip <192.168.129.10> does not belong to machine-network-cidr <192.168.128.0/24>",
+				)
+			})
+
+			It("when registering cluster with user managed load balancer and Ingress VIP outside all machine networks", func() {
+				apiVips := []*models.APIVip{
+					{IP: "192.168.129.10"},
+				}
+				ingressVIPs := []*models.IngressVip{
+					{IP: "192.168.127.11"},
+				}
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion: swag.String(common.MinimumVersionForUserManagedLoadBalancerFeature),
+						CPUArchitecture:  common.X86CPUArchitecture,
+						Platform: &models.Platform{
+							Type: models.PlatformTypeBaremetal.Pointer(),
+						},
+						LoadBalancer: &models.LoadBalancer{
+							Type: models.LoadBalancerTypeUserManaged,
+						},
+						APIVips:     apiVips,
+						IngressVips: ingressVIPs,
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "192.168.128.0/24"},
+							{Cidr: "192.168.129.0/24"},
+						},
+					},
+				})
+
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					"ingress-vip '192.168.127.11' failed verification: "+
+						"none of the machine networks is satisfying the requirements, description: "+
+						"machine network CIDR <192.168.128.0/24> verification failed: "+
+						"ingress-vip <192.168.127.11> does not belong to machine-network-cidr <192.168.128.0/24>; "+
+						"machine network CIDR <192.168.129.0/24> verification failed: "+
+						"ingress-vip <192.168.127.11> does not belong to machine-network-cidr <192.168.129.0/24>",
 				)
 			})
 
@@ -16536,6 +16528,39 @@ location = "%s"
 					reply,
 					http.StatusBadRequest,
 					"api-vip <192.168.128.10> does not belong to machine-network-cidr <192.168.127.0/24>",
+				)
+			})
+
+			It("when cluster managed load balancer with multiple machine networks provided", func() {
+				apiVips := []*models.APIVip{
+					{IP: "192.168.127.10"},
+				}
+				ingressVIPs := []*models.IngressVip{
+					{IP: "192.168.127.11"},
+				}
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion: swag.String(common.MinimumVersionForUserManagedLoadBalancerFeature),
+						CPUArchitecture:  common.X86CPUArchitecture,
+						Platform: &models.Platform{
+							Type: models.PlatformTypeBaremetal.Pointer(),
+						},
+						LoadBalancer: &models.LoadBalancer{
+							Type: models.LoadBalancerTypeClusterManaged,
+						},
+						APIVips:     apiVips,
+						IngressVips: ingressVIPs,
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "192.168.127.0/24"},
+							{Cidr: "192.168.128.0/24"},
+						},
+					},
+				})
+
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					"Single-stack cluster cannot contain multiple Machine Networks",
 				)
 			})
 

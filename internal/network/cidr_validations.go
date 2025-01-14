@@ -14,6 +14,9 @@ const MinMaskDelta = 7
 // Minimum mask size for Machine CIDR to allow at least 16 addresses
 const MinMachineMaskDelta = 4
 
+// Minimum mask size for Machine CIDR to allow at least 4 addresses
+const MinUserManagedLoadBalancerMachineMaskDelta = 2
+
 // Minimum mask size for Machine CIDR to allow at least 2 addresses
 const MinSNOMachineMaskDelta = 1
 
@@ -78,10 +81,12 @@ func VerifyClusterOrServiceCIDR(cidrStr string) error {
 	return verifySubnetCIDR(cidrStr, MinMaskDelta)
 }
 
-func VerifyMachineCIDR(cidrStr string, isSNO bool) error {
+func VerifyMachineCIDR(cidrStr string, isSNO bool, isUserManagedLoadBalancer bool) error {
 	maskDelta := MinMachineMaskDelta
 	if isSNO {
 		maskDelta = MinSNOMachineMaskDelta
+	} else if isUserManagedLoadBalancer {
+		maskDelta = MinUserManagedLoadBalancerMachineMaskDelta
 	}
 	return verifySubnetCIDR(cidrStr, maskDelta)
 }
