@@ -310,7 +310,10 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 	// append kargs depending on installation drive type
 	installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(host))
 	if installationDisk != nil {
-		installerArgs = appendMultipathArgs(installerArgs, installationDisk)
+		installerArgs, err = appendMultipathArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
+		if err != nil {
+			return "", err
+		}
 		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
 		if err != nil {
 			return "", err
@@ -380,7 +383,9 @@ func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inve
 	}
 
 	// enable iSCSI on boot
-	installerArgs = append(installerArgs, "--append-karg", "rd.iscsi.firmware=1")
+	if !lo.Contains(installerArgs, "rd.iscsi.firmware=1") {
+		installerArgs = append(installerArgs, "--append-karg", "rd.iscsi.firmware=1")
+	}
 
 	if hasUserConfiguredIP {
 		return installerArgs, nil
@@ -401,16 +406,30 @@ func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inve
 	if iSCSIHostIP.Is6() {
 		dhcp = "dhcp6"
 	}
-	installerArgs = append(installerArgs, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp))
+
+	netArgs := fmt.Sprintf("ip=%s:%s", nic.Name, dhcp)
+	if !lo.Contains(installerArgs, fmt.Sprintf("ip=%s:%s", nic.Name, dhcp)) {
+		installerArgs = append(installerArgs, "--append-karg", netArgs)
+	}
 
 	return installerArgs, nil
 }
 
-func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk) []string {
+func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasUserConfiguredIP bool) ([]string, error) {
 	if installationDisk.DriveType != models.DriveTypeMultipath {
-		return installerArgs
+		return installerArgs, nil
 	}
-	return append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
+
+	installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
+	var err error
+	iSCSIDisks := hostutil.GetDisksOfHolderByType(inventory.Disks, installationDisk, models.DriveTypeISCSI)
+	for _, iscsiDisk := range iSCSIDisks {
+		installerArgs, err = appendISCSIArgs(installerArgs, iscsiDisk, inventory, hasUserConfiguredIP)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return installerArgs, nil
 }
 
 func appends390xArgs(inventory *models.Inventory, installerArgs []string, log logrus.FieldLogger) ([]string, bool) {

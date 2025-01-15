@@ -778,17 +778,18 @@ var _ = Describe("disk encryption manifest", func() {
 
 var _ = Describe("nic reaaply manifest", func() {
 	var (
-		ctx                   = context.Background()
-		log                   *logrus.Logger
-		ctrl                  *gomock.Controller
-		manifestsApi          *manifestsapi.MockManifestsAPI
-		manifestsGeneratorApi ManifestsGeneratorAPI
-		db                    *gorm.DB
-		dbName                string
-		clusterId             strfmt.UUID
-		cluster               common.Cluster
-		hostWithiSCSI         models.Host
-		hostWithSSD           models.Host
+		ctx                    = context.Background()
+		log                    *logrus.Logger
+		ctrl                   *gomock.Controller
+		manifestsApi           *manifestsapi.MockManifestsAPI
+		manifestsGeneratorApi  ManifestsGeneratorAPI
+		db                     *gorm.DB
+		dbName                 string
+		clusterId              strfmt.UUID
+		cluster                common.Cluster
+		hostWithiSCSI          models.Host
+		hostWithMultipathiSCSI models.Host
+		hostWithSSD            models.Host
 	)
 
 	BeforeEach(func() {
@@ -839,7 +840,57 @@ var _ = Describe("nic reaaply manifest", func() {
 			cluster.Cluster.Hosts = []*models.Host{&hostWithiSCSI, &hostWithSSD}
 			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
 		})
-		It("not added when no hosts installs on an iSCSI drive", func() {
+		It("added when one of the host installs on an Multipath iSCSI drive", func() {
+			inventory := fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"name": "dm-0"
+				},
+				{
+					"id": "other-id",
+					"drive_type": "%s",
+					"holders": "dm-0"
+				}
+			]
+		}`, models.DriveTypeMultipath, models.DriveTypeISCSI)
+
+			hostWithMultipathiSCSI = models.Host{
+				Inventory:          inventory,
+				InstallationDiskID: "install-id",
+			}
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Times(2).Return(&models.Manifest{
+				FileName: "manifest.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil)
+			cluster.Cluster.Hosts = []*models.Host{&hostWithMultipathiSCSI, &hostWithSSD}
+			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
+		})
+		It("not added when one of the host installs on an Multipath FC drive", func() {
+			inventory := fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"name": "dm-0"
+				},
+				{
+					"id": "other-id",
+					"drive_type": "%s",
+					"holders": "dm-0"
+				}
+			]
+		}`, models.DriveTypeMultipath, models.DriveTypeFC)
+
+			hostWithMultipathFC := models.Host{
+				Inventory:          inventory,
+				InstallationDiskID: "install-id",
+			}
+			cluster.Cluster.Hosts = []*models.Host{&hostWithMultipathFC, &hostWithSSD}
+			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
+		})
+		It("not added when no hosts installs on an iSCSI/ Multipath iSCSI drive", func() {
 			cluster.Cluster.Hosts = []*models.Host{&hostWithSSD, &hostWithSSD}
 			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
 		})

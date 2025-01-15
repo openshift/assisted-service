@@ -30,7 +30,6 @@ const (
 	tooSmallDiskTemplate       = "Disk is too small (disk only has %s, but %s are required)"
 	wrongDriveTypeTemplate     = "Drive type is %s, it must be one of %s."
 	wrongMultipathTypeTemplate = "Multipath device has path of type %s, it must be %s"
-	iSCSIWithMultipathHolder   = "iSCSI disk with a multipath holder is not eligible"
 	wrongISCSINetworkTemplate  = "iSCSI host IP %s is the same as host IP, they must be different"
 )
 
@@ -147,13 +146,13 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(v.getValidDeviceStorageTypes(hostArchitecture, clusterVersion), ", ")))
 	}
 
-	// We only allow multipath if all paths are FC
 	if disk.DriveType == models.DriveTypeMultipath {
 		for _, inventoryDisk := range inventory.Disks {
-			if lo.Contains(strings.Split(inventoryDisk.Holders, ","), disk.Name) {
-				if inventoryDisk.DriveType != models.DriveTypeFC {
+			if strings.Contains(inventoryDisk.Holders, disk.Name) {
+				// We only allow multipath if all paths are FC/ iSCSI
+				if inventoryDisk.DriveType != models.DriveTypeFC && inventoryDisk.DriveType != models.DriveTypeISCSI {
 					notEligibleReasons = append(notEligibleReasons,
-						fmt.Sprintf(wrongMultipathTypeTemplate, inventoryDisk.DriveType, string(models.DriveTypeFC)))
+						fmt.Sprintf(wrongMultipathTypeTemplate, inventoryDisk.DriveType, strings.Join([]string{string(models.DriveTypeFC), string(models.DriveTypeISCSI)}, ", ")))
 					break
 				}
 			}
@@ -161,11 +160,6 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	}
 
 	if disk.DriveType == models.DriveTypeISCSI {
-		err := areISCSIHoldersValid(disk, inventory)
-		if err != nil {
-			notEligibleReasons = append(notEligibleReasons, err.Error())
-		}
-
 		// Check if network is configured properly to install on iSCSI boot drive
 		err = isISCSINetworkingValid(disk, inventory)
 		if err != nil {
@@ -174,27 +168,6 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	}
 
 	return notEligibleReasons, nil
-}
-
-// Validate holders of iSCSI disk. We do not allow iSCSI disk with multipath holder.
-func areISCSIHoldersValid(disk *models.Disk, inventory *models.Inventory) error {
-	multipathDiskNamesMap := make(map[string]struct{})
-	for _, inventoryDisk := range inventory.Disks {
-		if inventoryDisk.DriveType == models.DriveTypeMultipath {
-			multipathDiskNamesMap[inventoryDisk.Name] = struct{}{}
-		}
-	}
-
-	// Check if the iSCSI disk has any holders that are multipath disks
-	holders := strings.Split(disk.Holders, ",")
-	for _, holder := range holders {
-		if _, exists := multipathDiskNamesMap[holder]; exists {
-			return fmt.Errorf(iSCSIWithMultipathHolder)
-		}
-	}
-
-	return nil
-
 }
 
 // isISCSINetworkingValid checks if the iSCSI disk is not connected through the

@@ -360,3 +360,13 @@ func GetIgnitionEndpoint(cluster *common.Cluster, host *models.Host) (string, er
 	}
 	return ignitionEndpointUrl, nil
 }
+
+func GetDisksOfHolderByType(allDisks []*models.Disk, holderDisk *models.Disk, driveTypeFilter models.DriveType) []*models.Disk {
+	disksOfHolder := []*models.Disk{}
+	for _, disk := range allDisks {
+		if disk.DriveType == driveTypeFilter && strings.Contains(disk.Holders, holderDisk.Name) {
+			disksOfHolder = append(disksOfHolder, disk)
+		}
+	}
+	return disksOfHolder
+}
