@@ -12,7 +12,9 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	auth "github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/pkg/testutil"
 	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 )
@@ -682,6 +684,27 @@ var _ = Describe("Machine Network amount and order", func() {
 			}
 		})
 	}
+})
+
+var _ = Describe("Parse functions", func() {
+	var log = testutil.Log()
+	Context("ParseMirrorRegistries", func() {
+		It("doesn't add anything to public registries if mirror registries is empty", func() {
+			registries := map[string]bool{"test.com": false, "example.com": true}
+			ParseMirrorRegistries(log, registries, nil)
+			Expect(registries).To(Equal(map[string]bool{"test.com": false, "example.com": true}))
+		})
+		It("adds to registries if there are mirror registries", func() {
+			registries := map[string]bool{"test.com": false, "example.com": true}
+			ParseMirrorRegistries(log, registries, []mirrorregistries.RegistriesConf{{Location: "redhat.io"}})
+			Expect(registries).To(Equal(map[string]bool{"test.com": false, "example.com": true, "redhat.io": true}))
+		})
+		It("modifies registries if mirror registries contains one from the registries list", func() {
+			registries := map[string]bool{"test.com": false, "example.com": true}
+			ParseMirrorRegistries(log, registries, []mirrorregistries.RegistriesConf{{Location: "test.com"}})
+			Expect(registries).To(Equal(map[string]bool{"test.com": true, "example.com": true}))
+		})
+	})
 })
 
 func TestCluster(t *testing.T) {
