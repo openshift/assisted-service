@@ -339,6 +339,15 @@ func main() {
 
 	publicRegistries := map[string]bool{}
 	validations.ParsePublicRegistries(publicRegistries, Options.ValidationsConfig.PublicRegistries)
+	if mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		var mirrorRegistries []mirrorregistries.RegistriesConf
+		if mirrorRegistries, err = mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries(); err != nil {
+			log.WithError(err).Warnf("failed to parse mirror registries provided to assisted-service, check your mirror registry config map")
+		} else {
+			validations.ParseMirrorRegistries(log, publicRegistries, mirrorRegistries)
+		}
+	}
+
 	pullSecretValidator, err := validations.NewPullSecretValidator(
 		publicRegistries,
 		authHandler,
