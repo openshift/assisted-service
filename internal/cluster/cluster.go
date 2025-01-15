@@ -426,6 +426,13 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 }
 
 func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error {
+	// With user-managed load balancer we can't calculate the
+	// machine network as the vips might be outside the hosts subnets.
+	// It should be set by the user manually.
+	if network.IsLoadBalancerUserManaged(cluster) {
+		return nil
+	}
+
 	primaryMachineNetwork, err := network.CalculateMachineNetworkCIDR(
 		network.GetApiVipById(cluster, 0), network.GetIngressVipById(cluster, 0), cluster.Hosts, false)
 	if err != nil {

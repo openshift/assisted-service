@@ -666,13 +666,25 @@ func (v *validator) belongsToMachineCidr(c *validationContext) (ValidationStatus
 	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
 		return ValidationSuccess, "No machine network CIDR validation needed: Day2 cluster"
 	}
+
 	if c.inventory == nil || !network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationPending, "Missing inventory or machine network CIDR"
 	}
-	if !network.IsHostInPrimaryMachineNetCidr(v.log, c.cluster, c.host) {
-		return ValidationFailure, "Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks"
+
+	if !network.IsLoadBalancerUserManaged(c.cluster) {
+		if !network.IsHostInAllMachineNetworksCidr(v.log, c.cluster, c.host) {
+			return ValidationFailure, "Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks"
+		}
+
+		return ValidationSuccess, "Host belongs to all machine network CIDRs"
 	}
-	return ValidationSuccess, "Host belongs to all machine network CIDRs"
+
+	// user-managed load balancer
+	if !network.IsHostInAtLeastOneMachineNetworkCidr(v.log, c.cluster, c.host) {
+		return ValidationFailure, "Host does not belong to any machine network CIDR. Verify that the host belongs to at least one CIDR listed under machine networks"
+	}
+
+	return ValidationSuccess, "Host belongs to at least one machine network CIDR"
 }
 
 func getRealHostname(host *models.Host, inventory *models.Inventory) string {
@@ -739,8 +751,6 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 		return ValidationFailure
 	}
 
-	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
-	//           entries using the same IP stack.
 	areNetworksEqual := func(ipnet1, ipnet2 *net.IPNet) bool {
 		return ipnet1.IP.Equal(ipnet2.IP) && bytes.Equal(ipnet1.Mask, ipnet2.Mask)
 	}
@@ -761,16 +771,31 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 		return nil
 	}
 
+	// For cluster-managed load balancer, each machine network should be a majority group.
+	// For user-managed load balancer, it is sufficient to have at least one machine network as majority group.
 	for _, machineNet := range c.cluster.MachineNetworks {
 		_, machineIpnet, err := net.ParseCIDR(string(machineNet.Cidr))
 		if err != nil {
 			return ValidationError
 		}
 		if !funk.Contains(groupForNetwork(machineIpnet), *c.host.ID) {
+			if network.IsLoadBalancerUserManaged(c.cluster) {
+				continue
+			}
 			return ValidationFailure
+		} else {
+			if network.IsLoadBalancerUserManaged(c.cluster) {
+				return ValidationSuccess
+			}
 		}
 	}
 
+	// We haven't found any machine network which is a majority group
+	if network.IsLoadBalancerUserManaged(c.cluster) {
+		return ValidationFailure
+	}
+
+	// all machine networks are a majority group
 	return ValidationSuccess
 }
 

@@ -34,24 +34,32 @@ var _ = Describe("CIDR validations", func() {
 	})
 	Context("Verify CIDRs", func() {
 		It("Machine CIDR 24 OK", func() {
-			Expect(VerifyMachineCIDR("1.2.3.0/24", false)).ToNot(HaveOccurred())
+			Expect(VerifyMachineCIDR("1.2.3.0/24", false, false)).ToNot(HaveOccurred())
 		})
 		It("Machine CIDR 26 OK", func() {
-			Expect(VerifyMachineCIDR("1.2.3.128/26", false)).ToNot(HaveOccurred())
+			Expect(VerifyMachineCIDR("1.2.3.128/26", false, false)).ToNot(HaveOccurred())
 		})
 		It("Machine CIDR 29 Fail", func() {
-			Expect(VerifyMachineCIDR("1.2.3.128/29", false)).To(HaveOccurred())
+			Expect(VerifyMachineCIDR("1.2.3.128/29", false, false)).To(HaveOccurred())
 		})
 		It("Machine CIDR 27 OK", func() {
-			Expect(VerifyMachineCIDR("1.2.3.128/27", false)).ToNot(HaveOccurred())
+			Expect(VerifyMachineCIDR("1.2.3.128/27", false, false)).ToNot(HaveOccurred())
 		})
 
 		It("Machine CIDR 31 Ok for SNO", func() {
-			Expect(VerifyMachineCIDR("1.2.3.128/31", true)).ToNot(HaveOccurred())
+			Expect(VerifyMachineCIDR("1.2.3.128/31", true, false)).ToNot(HaveOccurred())
 		})
 
 		It("Machine CIDR 32 Fail for SNO", func() {
-			Expect(VerifyMachineCIDR("1.2.3.128/32", true)).To(HaveOccurred())
+			Expect(VerifyMachineCIDR("1.2.3.128/32", true, false)).To(HaveOccurred())
+		})
+
+		It("Machine CIDR 30 Ok for user managed load balancer", func() {
+			Expect(VerifyMachineCIDR("1.2.3.128/30", false, true)).ToNot(HaveOccurred())
+		})
+
+		It("Machine CIDR 31 Fail for user managed load balancer", func() {
+			Expect(VerifyMachineCIDR("1.2.3.128/31", false, true)).To(HaveOccurred())
 		})
 
 		It("Service CIDR 26 Fail", func() {

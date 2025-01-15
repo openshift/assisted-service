@@ -332,8 +332,30 @@ var _ = Describe("areVipsValid", func() {
 	ingressContext := loopContext{name: "Ingress", function: validator.areIngressVipsValid}
 	for _, lc := range []loopContext{apiContext, ingressContext} {
 		lcontext := lc
-		Context(fmt.Sprintf("%s vips validation", lcontext.name), func() {
-			It("Vips undefined", func() {
+		Context(fmt.Sprintf("- %s vips validation:", lcontext.name), func() {
+			It("user-managed networking", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:                    &clusterID,
+					UserManagedNetworking: swag.Bool(true),
+				}}
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationSuccess))
+				Expect(message).Should(Equal(fmt.Sprintf("%s virtual IPs are not required: User Managed Networking", lcontext.name)))
+			})
+
+			It("SNO", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:                   &clusterID,
+					HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+				}}
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationSuccess))
+				Expect(message).Should(Equal(fmt.Sprintf("%s virtual IPs are not required: SNO", lcontext.name)))
+			})
+
+			It("vips undefined", func() {
 				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 				}}
@@ -342,6 +364,7 @@ var _ = Describe("areVipsValid", func() {
 				Expect(status).Should(Equal(ValidationPending))
 				Expect(message).Should(Equal(fmt.Sprintf("%s virtual IPs are undefined.", lcontext.name)))
 			})
+
 			It("vips defined - no hosts", func() {
 				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 					ID:          &clusterID,
@@ -353,12 +376,43 @@ var _ = Describe("areVipsValid", func() {
 				Expect(status).Should(Equal(ValidationPending))
 				Expect(message).Should(Equal("Hosts have not been discovered yet"))
 			})
-			It("vips defined - with hosts", func() {
+
+			It("cluster-managed load balancer - vip outside machine network", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: []*models.MachineNetwork{{Cidr: "1.2.4.0/24"}},
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.5"}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.6"}},
+					Hosts:           hosts,
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationFailure))
+				Expect(message).Should(ContainSubstring("does not belong to machine-network-cidr"))
+			})
+
+			It("cluster-managed load balancer - vip is the broadcast address in machine network", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.255"}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.255"}},
+					Hosts:           hosts,
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationFailure))
+				Expect(message).Should(ContainSubstring("is the broadcast address of machine-network-cidr"))
+			})
+
+			It("cluster-managed load balancer - no free addresses", func() {
 				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 					ID:              &clusterID,
 					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
-					APIVips:         clearApiVipsVerfication(common.TestDualStackNetworking.APIVips),
-					IngressVips:     clearIngressVIpsVerification(common.TestDualStackNetworking.IngressVips),
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.5"}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.6"}},
 					Hosts:           hosts,
 				}}
 				preprocessContext.hasHostsWithInventories = true
@@ -367,7 +421,183 @@ var _ = Describe("areVipsValid", func() {
 				Expect(status).Should(Equal(ValidationFailure))
 				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1.2.3.[56]> are not verified yet", strings.ToLower(lcontext.name))))
 			})
-			It("ipv4 vips verified", func() {
+
+			It("cluster-managed load balancer - vips in the free addresses list", func() {
+				hosts = []*models.Host{
+					{
+						FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses(
+							"1.2.3.0/24", "1.2.3.5", "1.2.3.6",
+						)),
+					},
+					{
+						FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses(
+							"1.2.3.0/24", "1.2.3.5", "1.2.3.6",
+						)),
+					},
+					{
+						FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses(
+							"1.2.3.0/24", "1.2.3.5", "1.2.3.6",
+						)),
+					},
+				}
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.5"}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.6"}},
+					Hosts:           hosts,
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationSuccess))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips 1.2.3.[56] belongs to the Machine CIDR and is not in use.", strings.ToLower(lcontext.name))))
+			})
+
+			It("cluster-managed load balancer - verification succeeded already", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.5", Verification: models.NewVipVerification(models.VipVerificationSucceeded)}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.6", Verification: models.NewVipVerification(models.VipVerificationSucceeded)}},
+					Hosts:           hosts,
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationSuccess))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips 1.2.3.[56] belongs to the Machine CIDR and is not in use.", strings.ToLower(lcontext.name))))
+			})
+
+			It("cluster-managed load balancer - verification failed already", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.5", Verification: models.NewVipVerification(models.VipVerificationFailed)}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.6", Verification: models.NewVipVerification(models.VipVerificationFailed)}},
+					Hosts:           hosts,
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationFailure))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1.2.3.[56]> is already in use in cidr 1.2.3.0/24", strings.ToLower(lcontext.name))))
+			})
+
+			It("user-managed load balancer - vip outside machine network", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: []*models.MachineNetwork{{Cidr: "1.2.4.0/24"}},
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.5"}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.6"}},
+					Hosts:           hosts,
+					LoadBalancer:    &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationFailure))
+				Expect(message).Should(ContainSubstring("does not belong to machine-network-cidr"))
+			})
+
+			It("user-managed load balancer - vip is the broadcast address in machine network", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.255"}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.255"}},
+					Hosts:           hosts,
+					LoadBalancer:    &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationFailure))
+				Expect(message).Should(ContainSubstring("is the broadcast address of machine-network-cidr"))
+			})
+
+			It("user-managed load balancer - no free addresses", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.5"}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.6"}},
+					Hosts:           hosts,
+					LoadBalancer:    &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationSuccess))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vip 1.2.3.[56] is valid", strings.ToLower(lcontext.name))))
+			})
+
+			It("user-managed load balancer - vips in the free addresses list", func() {
+				hosts = []*models.Host{
+					{
+						FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses(
+							"1.2.3.0/24", "1.2.3.5", "1.2.3.6",
+						)),
+					},
+					{
+						FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses(
+							"1.2.3.0/24", "1.2.3.5", "1.2.3.6",
+						)),
+					},
+					{
+						FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses(
+							"1.2.3.0/24", "1.2.3.5", "1.2.3.6",
+						)),
+					},
+				}
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.5"}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.6"}},
+					Hosts:           hosts,
+					LoadBalancer:    &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationSuccess))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vip 1.2.3.[56] is valid", strings.ToLower(lcontext.name))))
+			})
+
+			It("user-managed load balancer - verification succeeded already", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.5", Verification: models.NewVipVerification(models.VipVerificationSucceeded)}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.6", Verification: models.NewVipVerification(models.VipVerificationSucceeded)}},
+					Hosts:           hosts,
+					LoadBalancer:    &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationSuccess))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vip 1.2.3.[56] is valid", strings.ToLower(lcontext.name))))
+			})
+
+			It("user-managed load balancer - verification failed already", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "1.2.3.5", Verification: models.NewVipVerification(models.VipVerificationFailed)}},
+					IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "1.2.3.6", Verification: models.NewVipVerification(models.VipVerificationFailed)}},
+					Hosts:           hosts,
+					LoadBalancer:    &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationSuccess))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vip 1.2.3.[56] is valid", strings.ToLower(lcontext.name))))
+			})
+
+			It("ipv6 vips verified", func() {
 				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 					ID:              &clusterID,
 					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
@@ -381,20 +611,7 @@ var _ = Describe("areVipsValid", func() {
 				Expect(status).Should(Equal(ValidationFailure))
 				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1001:db8::6[45]> are not verified yet", strings.ToLower(lcontext.name))))
 			})
-			It("ipv4 vips verified", func() {
-				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
-					ID:              &clusterID,
-					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
-					APIVips:         append(common.TestIPv4Networking.APIVips, clearApiVipsVerfication(common.TestIPv6Networking.APIVips)...),
-					IngressVips:     append(common.TestIPv4Networking.IngressVips, clearIngressVIpsVerification(common.TestIPv6Networking.IngressVips)...),
-					Hosts:           hosts,
-				}}
-				preprocessContext.hasHostsWithInventories = true
 
-				status, message := lcontext.function(preprocessContext)
-				Expect(status).Should(Equal(ValidationFailure))
-				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1001:db8::6[45]> are not verified yet", strings.ToLower(lcontext.name))))
-			})
 			It("all successful", func() {
 				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 					ID:              &clusterID,
@@ -409,6 +626,7 @@ var _ = Describe("areVipsValid", func() {
 				Expect(status).Should(Equal(ValidationSuccess))
 				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips 1.2.3.[56], 1001:db8::6[45] belongs to the Machine CIDR and is not in use", strings.ToLower(lcontext.name))))
 			})
+
 			It("ipv4 verification failed", func() {
 				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 					ID:              &clusterID,
@@ -891,5 +1109,33 @@ var _ = Describe("SufficientMastersCount", func() {
 			Expect(status).To(Equal(ValidationFailure))
 			Expect(message).To(Equal("Single-node clusters must have a single control plane node and no workers."))
 		})
+	})
+})
+
+var _ = Describe("isMachineCidrEqualsToCalculatedCidr", func() {
+	var (
+		validator clusterValidator
+		clusterID strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		clusterID = strfmt.UUID(uuid.New().String())
+		validator = clusterValidator{log: logrus.New()}
+	})
+
+	It("should pass validation with user-managed load balancer cluster", func() {
+		preprocessContext := &clusterPreprocessContext{
+			clusterId: clusterID,
+			cluster: &common.Cluster{
+				Cluster: models.Cluster{
+					ID:           &clusterID,
+					LoadBalancer: &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				},
+			},
+		}
+
+		status, msg := validator.isMachineCidrEqualsToCalculatedCidr(preprocessContext)
+		Expect(status).To(Equal(ValidationSuccess))
+		Expect(msg).To(Equal("Calculating machine network CIDR is not enabled: User Managed Load Balancer"))
 	})
 })
