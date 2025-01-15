@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -31,6 +33,13 @@ func ParsePublicRegistries(publicRegistries map[string]bool, publicRegistriesLit
 	}
 
 	for _, registry := range strings.Split(publicRegistriesLiteral, ",") {
+		publicRegistries[registry] = true
+	}
+}
+
+func ParseMirrorRegistries(log logrus.FieldLogger, publicRegistries map[string]bool, mirrorRegistries []mirrorregistries.RegistriesConf) {
+	for _, mirrorRegistry := range mirrorRegistries {
+		registry := ParseBaseRegistry(mirrorRegistry.Location)
 		publicRegistries[registry] = true
 	}
 }
