@@ -2703,6 +2703,21 @@ paths:
             type: array
             items:
               type: string
+              enum:
+              - 'lso'
+              - 'mtv'
+              - 'openshift_ai'
+              - 'osc'
+              - 'servicemesh'
+              - 'authorino'
+              - 'cnv'
+              - 'nvidia_gpu'
+              - 'pipelines'
+              - 'odf'
+              - 'lvm'
+              - 'mce'
+              - 'node_feature_discovery'
+              - 'serverless'
         "401":
           description: Unauthorized.
           schema:
@@ -4860,7 +4875,9 @@ definitions:
         x-nullable: true
       olm_operators:
         type: array
-        description: List of OLM operators to be installed.
+        description: |
+          List of OLM operators to be installed.
+          For the full list of supported operators, check the endpoint `/v2/supported-operators`:
         items:
           $ref: '#/definitions/operator-create-params'
       hyperthreading:
@@ -5053,7 +5070,9 @@ definitions:
         x-nullable: true
       olm_operators:
         type: array
-        description: List of OLM operators to be installed.
+        description: |
+          List of OLM operators to be installed.
+          For the full list of supported operators, check the endpoint `/v2/supported-operators`:
         items:
           $ref: '#/definitions/operator-create-params'
       hyperthreading:

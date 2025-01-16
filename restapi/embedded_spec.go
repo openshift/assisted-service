@@ -5932,7 +5932,23 @@ func init() {
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "lso",
+                  "mtv",
+                  "openshift_ai",
+                  "osc",
+                  "servicemesh",
+                  "authorino",
+                  "cnv",
+                  "nvidia_gpu",
+                  "pipelines",
+                  "odf",
+                  "lvm",
+                  "mce",
+                  "node_feature_discovery",
+                  "serverless"
+                ]
               }
             }
           },
@@ -6733,7 +6749,7 @@ func init() {
           "type": "string"
         },
         "olm_operators": {
-          "description": "List of OLM operators to be installed.",
+          "description": "List of OLM operators to be installed.\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
           "type": "array",
           "items": {
             "$ref": "#/definitions/operator-create-params"
@@ -10616,7 +10632,7 @@ func init() {
           "x-nullable": true
         },
         "olm_operators": {
-          "description": "List of OLM operators to be installed.",
+          "description": "List of OLM operators to be installed.\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
           "type": "array",
           "items": {
             "$ref": "#/definitions/operator-create-params"
@@ -16757,7 +16773,23 @@ func init() {
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "lso",
+                  "mtv",
+                  "openshift_ai",
+                  "osc",
+                  "servicemesh",
+                  "authorino",
+                  "cnv",
+                  "nvidia_gpu",
+                  "pipelines",
+                  "odf",
+                  "lvm",
+                  "mce",
+                  "node_feature_discovery",
+                  "serverless"
+                ]
               }
             }
           },
@@ -17676,7 +17708,7 @@ func init() {
           "type": "string"
         },
         "olm_operators": {
-          "description": "List of OLM operators to be installed.",
+          "description": "List of OLM operators to be installed.\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
           "type": "array",
           "items": {
             "$ref": "#/definitions/operator-create-params"
@@ -21491,7 +21523,7 @@ func init() {
           "x-nullable": true
         },
         "olm_operators": {
-          "description": "List of OLM operators to be installed.",
+          "description": "List of OLM operators to be installed.\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
           "type": "array",
           "items": {
             "$ref": "#/definitions/operator-create-params"
