@@ -2703,6 +2703,21 @@ paths:
             type: array
             items:
               type: string
+              enum:
+              - 'lso'
+              - 'mtv'
+              - 'openshift_ai'
+              - 'osc'
+              - 'servicemesh'
+              - 'authorino'
+              - 'cnv'
+              - 'nvidia_gpu'
+              - 'pipelines'
+              - 'odf'
+              - 'lvm'
+              - 'mce'
+              - 'node_feature_discovery'
+              - 'serverless'
         "401":
           description: Unauthorized.
           schema:

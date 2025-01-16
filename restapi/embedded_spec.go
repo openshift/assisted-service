@@ -5932,7 +5932,23 @@ func init() {
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "lso",
+                  "mtv",
+                  "openshift_ai",
+                  "osc",
+                  "servicemesh",
+                  "authorino",
+                  "cnv",
+                  "nvidia_gpu",
+                  "pipelines",
+                  "odf",
+                  "lvm",
+                  "mce",
+                  "node_feature_discovery",
+                  "serverless"
+                ]
               }
             }
           },
@@ -16757,7 +16773,23 @@ func init() {
             "schema": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "lso",
+                  "mtv",
+                  "openshift_ai",
+                  "osc",
+                  "servicemesh",
+                  "authorino",
+                  "cnv",
+                  "nvidia_gpu",
+                  "pipelines",
+                  "odf",
+                  "lvm",
+                  "mce",
+                  "node_feature_discovery",
+                  "serverless"
+                ]
               }
             }
           },
