@@ -1,22 +1,28 @@
 package metrics
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("OS disk stats helper", func() {
 
 	var (
 		tempDir         string
-		diskStatsHelper *OSDiskStatsHelper = NewOSDiskStatsHelper()
+		log             *logrus.Logger
+		diskStatsHelper *OSDiskStatsHelper
 	)
 
 	BeforeEach(func() {
+		log = logrus.New()
+		log.SetOutput(io.Discard)
+		diskStatsHelper = NewOSDiskStatsHelper(log)
 		var err error
 		tempDir, err = os.MkdirTemp("", "disk_stats_helper_test")
 		Expect(err).ToNot(HaveOccurred())

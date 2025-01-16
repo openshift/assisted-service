@@ -1417,6 +1417,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		}()
 
 		if err = b.generateClusterInstallConfig(asyncCtx, *cluster, clusterInfraenvs); err != nil {
+			log.WithError(err).Errorf("failed to generate cluster install config for cluster %s", cluster.ID.String())
 			return
 		}
 		log.Infof("generated ignition for cluster %s", cluster.ID.String())

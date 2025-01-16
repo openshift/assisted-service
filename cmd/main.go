@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
+	"github.com/openshift/assisted-service/internal/installercache"
 	internaljson "github.com/openshift/assisted-service/internal/json"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -166,6 +167,7 @@ var Options struct {
 	PauseProvisionedBMHs                 bool          `envconfig:"PAUSE_PROVISIONED_BMHS" default:"true"`
 	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
 	BMACConfig                           controllers.BMACConfig
+	InstallerCacheConfig                 installercache.Config
 
 	// EnableSoftTimeouts is a boolean flag to enable Soft timeouts by assisted installer
 	EnableSoftTimeouts bool `envconfig:"ENABLE_SOFT_TIMEOUTS" default:"false"`
@@ -315,7 +317,8 @@ func main() {
 	metricsManagerConfig := &metrics.MetricsManagerConfig{
 		DirectoryUsageMonitorConfig: metrics.DirectoryUsageMonitorConfig{
 			Directories: []string{Options.WorkDir}}}
-	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler, metrics.NewOSDiskStatsHelper(), metricsManagerConfig, log)
+	diskStatsHelper := metrics.NewOSDiskStatsHelper(log)
+	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler, diskStatsHelper, metricsManagerConfig, log)
 	if ocmClient != nil {
 		//inject the metric server to the ocm client for purpose of
 		//performance monitoring the calls to ACM. This could not be done
@@ -488,7 +491,11 @@ func main() {
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, providerRegistry, manifestsApi, eventsHandler)
+	Options.InstallerCacheConfig.CacheDir = filepath.Join(Options.GeneratorConfig.GetWorkingDirectory(), "installercache")
+	installerCache, err := installercache.New(Options.InstallerCacheConfig, eventsHandler, diskStatsHelper, log)
+	failOnError(err, "failed to instantiate installercache")
+
+	generator := generator.New(log, objectHandler, Options.GeneratorConfig, providerRegistry, manifestsApi, eventsHandler, installerCache)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient(), hostApi)
