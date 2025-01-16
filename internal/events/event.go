@@ -427,11 +427,6 @@ func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParam
 
 	events := []*common.Event{}
 
-	// add authorization check to query
-	if e.authz != nil {
-		tx = e.authz.OwnedBy(ctx, tx)
-	}
-
 	tx = e.prepareEventsTable(ctx, tx, params.ClusterID, params.HostIds, params.InfraEnvID, params.Severities, params.Message, params.DeletedHosts)
 	if tx == nil {
 		return make([]*common.Event, 0), &common.EventSeverityCount{}, swag.Int64(0), nil
@@ -470,6 +465,11 @@ func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParam
 		return make([]*common.Event, 0), eventSeverityCount, &eventCount, nil
 	}
 
+	// if we need to apply authorization check then repackage tx as a subquery
+	// this is to ensure that user_name and org_id are unambiguous
+	if e.authz != nil {
+		tx = e.authz.OwnedBy(ctx, cleanQuery.Table("(?) as s", tx))
+	}
 	err = tx.Offset(int(*params.Offset)).Limit(int(*params.Limit)).Find(&events).Error
 	if err != nil {
 		return nil, nil, nil, err
