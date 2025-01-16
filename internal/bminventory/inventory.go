@@ -2224,7 +2224,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 		interactivity == Interactive &&
 		!reqDualStack &&
 		!network.IsLoadBalancerUserManaged(&targetConfiguration) {
-		err := errors.New("Setting the Machine Network CIDR is forbidden when the cluster is neither in VIP DHCP allocation mode nor using a user-managed load balance")
+		err := errors.New("Setting the Machine Network CIDR is forbidden when the cluster is neither in VIP DHCP allocation mode nor using a user-managed load balancer")
 		log.WithError(err).Warnf("Set Machine Network CIDR")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}

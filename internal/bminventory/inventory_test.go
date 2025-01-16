@@ -4340,7 +4340,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
-						"Setting the Machine Network CIDR is forbidden when the cluster is neither in VIP DHCP allocation mode nor using a user-managed load balance")
+						"Setting the Machine Network CIDR is forbidden when the cluster is neither in VIP DHCP allocation mode nor using a user-managed load balancer")
 				})
 				It("Machine network CIDR in non dhcp non interactive", func() {
 					mockClusterUpdatability(2)
@@ -8315,7 +8315,7 @@ var _ = Describe("V2UpdateCluster", func() {
 				nil,
 				[]*models.MachineNetwork{{ClusterID: clusterID, Cidr: "192.168.127.0/24"}},
 				swag.String("Setting the Machine Network CIDR is forbidden when the cluster is neither"+
-					" in VIP DHCP allocation mode nor using a user-managed load balance"),
+					" in VIP DHCP allocation mode nor using a user-managed load balancer"),
 			),
 
 			Entry("adding machine networks with user-managed load balancer should succeed",
