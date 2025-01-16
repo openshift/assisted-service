@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
+	"github.com/openshift/assisted-service/internal/installercache"
 	internaljson "github.com/openshift/assisted-service/internal/json"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -476,7 +477,10 @@ func main() {
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, providerRegistry, manifestsApi, eventsHandler)
+	installGeneratorWorkDir := filepath.Join(Options.WorkDir, "install-config-generate")
+	installerCacheDir := filepath.Join(installGeneratorWorkDir, "installercache")
+	installerCache := installercache.New(installerCacheDir, 5, eventsHandler, log)
+	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, providerRegistry, manifestsApi, eventsHandler, installGeneratorWorkDir, installerCache)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient(), hostApi)

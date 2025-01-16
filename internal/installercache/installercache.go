@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/google/uuid"
 )
 
 var (
@@ -135,8 +136,7 @@ func (i *Installers) Get(ctx context.Context, releaseID, releaseIDMirror, pullSe
 	// return a new hard link to the binary file
 	// the caller should delete the hard link when
 	// it finishes working with the file
-	link := filepath.Join(workdir, "ln_"+fmt.Sprint(time.Now().Unix())+
-		"_"+binary)
+	link := filepath.Join(workdir, fmt.Sprintf("ln_%d_%s_%s", time.Now().Unix(), uuid.NewString(), binary))
 	err = os.Link(path, link)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Failed to create hard link to binary %s", path))

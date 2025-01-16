@@ -3,11 +3,11 @@ package generator
 import (
 	"context"
 	"os"
-	"path/filepath"
 
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/installercache"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -39,18 +39,20 @@ type installGenerator struct {
 	providerRegistry registry.ProviderRegistry
 	manifestApi      manifestsapi.ManifestsAPI
 	eventsHandler    eventsapi.Handler
+	installerCache   *installercache.Installers
 }
 
 func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string,
-	providerRegistry registry.ProviderRegistry, manifestApi manifestsapi.ManifestsAPI, eventsHandler eventsapi.Handler) *installGenerator {
+	providerRegistry registry.ProviderRegistry, manifestApi manifestsapi.ManifestsAPI, eventsHandler eventsapi.Handler, installGeneratorWorkdir string, installerCache *installercache.Installers) *installGenerator {
 	return &installGenerator{
 		Config:           cfg,
 		log:              log,
 		s3Client:         s3Client,
-		workDir:          filepath.Join(workDir, "install-config-generate"),
+		workDir:          installGeneratorWorkdir,
 		providerRegistry: providerRegistry,
 		manifestApi:      manifestApi,
 		eventsHandler:    eventsHandler,
+		installerCache:   installerCache,
 	}
 }
 
@@ -71,15 +73,13 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		}
 	}()
 
-	installerCacheDir := filepath.Join(k.workDir, "installercache")
-
 	// runs openshift-install to generate ignition files, then modifies them as necessary
 	var generator ignition.Generator
 	if k.Config.DummyIgnition {
 		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.Config.ClusterTLSCertOverrideDir, k.InstallerCacheCapacity, k.manifestApi, k.eventsHandler)
+		generator = ignition.NewGenerator(clusterWorkDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.Config.ClusterTLSCertOverrideDir, k.manifestApi, k.eventsHandler, k.installerCache)
 	}
 	err = generator.Generate(ctx, cfg)
 	if err != nil {

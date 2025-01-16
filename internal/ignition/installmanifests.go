@@ -85,7 +85,6 @@ type installerGenerator struct {
 	cluster                       *common.Cluster
 	releaseImage                  string
 	releaseImageMirror            string
-	installerDir                  string
 	serviceCACert                 string
 	encodedDhcpFileContents       string
 	s3Client                      s3wrapper.API
@@ -110,16 +109,15 @@ var fileNames = [...]string{
 }
 
 // NewGenerator returns a generator that can generate ignition files
-func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
+func NewGenerator(workDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, providerRegistry registry.ProviderRegistry,
-	installerReleaseImageOverride, clusterTLSCertOverrideDir string, storageCapacityLimit int64, manifestApi manifestsapi.ManifestsAPI, eventsHandler eventsapi.Handler) Generator {
+	installerReleaseImageOverride, clusterTLSCertOverrideDir string, manifestApi manifestsapi.ManifestsAPI, eventsHandler eventsapi.Handler, installerCache *installercache.Installers) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
 		releaseImage:                  releaseImage,
 		releaseImageMirror:            releaseImageMirror,
 		workDir:                       workDir,
-		installerDir:                  installerDir,
 		serviceCACert:                 serviceCACert,
 		s3Client:                      s3Client,
 		enableMetal3Provisioning:      true,
@@ -127,7 +125,7 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		providerRegistry:              providerRegistry,
 		installerReleaseImageOverride: installerReleaseImageOverride,
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
-		installerCache:                installercache.New(installerDir, storageCapacityLimit, eventsHandler, log),
+		installerCache:                installerCache,
 		manifestApi:                   manifestApi,
 	}
 }
