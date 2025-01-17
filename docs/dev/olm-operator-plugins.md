@@ -12,6 +12,18 @@
 To implement support for a new OLM operator plugin you need to make following changes:
 
  1. Introduce new validation IDs for the new operator in the [swagger specification](../../swagger.yaml):
+    - for feature support level:
+      ```yaml
+      feature-support-level-id:
+        type: string
+        enum:
+          - 'SNO'
+          ...
+          - 'LVM'
+          - 'ODF'
+          - 'LSO'
+          - 'CNV'
+      ```
     - for host validation:
       ```yaml
       host-validation-id:
@@ -40,7 +52,7 @@ To implement support for a new OLM operator plugin you need to make following ch
     ```shell script
     skipper make generate
     ```
- 1. Add the new validation IDs to proper category - "operators":
+ 1. Create and add the new validation IDs to proper category - "operators":
     - for [cluster validation](../../internal/cluster/validation_id.go):
       ```go
       func (v validationID) category() (string, error) {
@@ -67,7 +79,26 @@ To implement support for a new OLM operator plugin you need to make following ch
       		...,
       		If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(AreOdfRequirementsSatisfied), If(AreLvmRequirementsSatisfied))
       ```
- 1. Implement the [`Operator` interface](../../internal/operators/api/api.go)
+ 1. Add the new feature to the OLM operators list and implement the [SupportLevelFeature interface](../../internal/featuresupport/support_level_feature.go)
+    - add feature to the [support level list](../../internal/featuresupport/feature_support_level.go):
+      ```go
+	      // Olm Operators features
+	      models.FeatureSupportLevelIDLVM:                  (&LvmFeature{}).New(),
+        ...
+	      models.FeatureSupportLevelIDMCE:                  (&MceFeature{}).New(),
+	      models.FeatureSupportLevelIDODF:                  (&OdfFeature{}).New(),
+	      models.FeatureSupportLevelIDMTV:                  (&MtvFeature{}).New(),
+	      models.FeatureSupportLevelIDOSC:                  (&OscFeature{}).New(),
+      ```
+    - implement the interface at the end of [olm operators](../../internal/featuresupport/features_olm_operators.go) 
+      Your custom code shall reflect the requirements of this new feature by means of Openshift version and target platform (`getSupportLevel`), CPU architecture (`getIncompatibleArchitectures`), and compatibility with existing features (`getIncompatibleFeatures`).
+    - in case of any such incompatibilities, add the feature also to the `getIncompatibleFeatures` methods of all the affected types:
+      - [for misc features](../../internal/featuresupport/features_misc.go)
+      - [for networking features](../../internal/featuresupport/features_pnetworking.go)
+      - [for other existing operators](../../internal/featuresupport/features_olm_operators.go)
+      - [for platforms](../../internal/featuresupport/features_platforms.go)
+
+ 1. Implement the [Operator interface](../../internal/operators/api/api.go)
  1. Plug the new `Operator` implementation in the [OperatorManager constructor](../../internal/operators/builder.go):
     ```go
     func NewManager(log logrus.FieldLogger) Manager {

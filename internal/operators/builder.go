@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
+	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
@@ -58,6 +59,7 @@ func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, o
 		openshiftai.NewOpenShiftAIOperator(log),
 		authorino.NewAuthorinoOperator(log),
 		osc.NewOscOperator(log),
+		nmstate.NewNmstateOperator(log),
 	)
 }
 

@@ -7044,7 +7044,8 @@ func init() {
         "servicemesh-requirements-satisfied",
         "serverless-requirements-satisfied",
         "openshift-ai-requirements-satisfied",
-        "authorino-requirements-satisfied"
+        "authorino-requirements-satisfied",
+        "nmstate-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -7897,7 +7898,8 @@ func init() {
         "OPENSHIFT_AI",
         "NON_STANDARD_HA_CONTROL_PLANE",
         "AUTHORINO",
-        "USER_MANAGED_LOAD_BALANCER"
+        "USER_MANAGED_LOAD_BALANCER",
+        "NMSTATE"
       ]
     },
     "finalizing-stage": {
@@ -8523,7 +8525,8 @@ func init() {
         "serverless-requirements-satisfied",
         "openshift-ai-requirements-satisfied",
         "authorino-requirements-satisfied",
-        "mtu-valid"
+        "mtu-valid",
+        "nmstate-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -18113,7 +18116,8 @@ func init() {
         "servicemesh-requirements-satisfied",
         "serverless-requirements-satisfied",
         "openshift-ai-requirements-satisfied",
-        "authorino-requirements-satisfied"
+        "authorino-requirements-satisfied",
+        "nmstate-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -18933,7 +18937,8 @@ func init() {
         "OPENSHIFT_AI",
         "NON_STANDARD_HA_CONTROL_PLANE",
         "AUTHORINO",
-        "USER_MANAGED_LOAD_BALANCER"
+        "USER_MANAGED_LOAD_BALANCER",
+        "NMSTATE"
       ]
     },
     "finalizing-stage": {
@@ -19559,7 +19564,8 @@ func init() {
         "serverless-requirements-satisfied",
         "openshift-ai-requirements-satisfied",
         "authorino-requirements-satisfied",
-        "mtu-valid"
+        "mtu-valid",
+        "nmstate-requirements-satisfied"
       ]
     },
     "host_network": {

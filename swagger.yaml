@@ -4248,6 +4248,7 @@ definitions:
       - 'NON_STANDARD_HA_CONTROL_PLANE'
       - 'AUTHORINO'
       - 'USER_MANAGED_LOAD_BALANCER'
+      - 'NMSTATE'
 
   architecture-support-level-id:
     type: string
@@ -6655,6 +6656,7 @@ definitions:
       - 'openshift-ai-requirements-satisfied'
       - 'authorino-requirements-satisfied'
       - 'mtu-valid'
+      - 'nmstate-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -7032,6 +7034,7 @@ definitions:
       - 'serverless-requirements-satisfied'
       - 'openshift-ai-requirements-satisfied'
       - 'authorino-requirements-satisfied'
+      - 'nmstate-requirements-satisfied'
 
   logs_type:
     type: string

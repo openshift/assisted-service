@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
 	"github.com/openshift/assisted-service/internal/operators/serverless"
@@ -450,7 +451,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(14))
+			Expect(results).To(HaveLen(15))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -466,6 +467,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDServerlessRequirementsSatisfied), Reasons: []string{"serverless is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
 			))
 		})
 
@@ -478,7 +480,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(14))
+			Expect(results).To(HaveLen(15))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
@@ -495,6 +497,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDServerlessRequirementsSatisfied), Reasons: []string{"serverless is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
 			))
 		})
 	})
@@ -506,7 +509,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(14))
+			Expect(results).To(HaveLen(15))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -522,6 +525,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDServerlessRequirementsSatisfied), Reasons: []string{"serverless is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
 			))
 		})
 
@@ -533,7 +537,7 @@ var _ = Describe("Operators manager", func() {
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(14))
+			Expect(results).To(HaveLen(15))
 
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
@@ -550,6 +554,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDServerlessRequirementsSatisfied), Reasons: []string{"serverless is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
 			))
 		})
 
@@ -695,6 +700,7 @@ var _ = Describe("Operators manager", func() {
 				"serverless",
 				"servicemesh",
 				"authorino",
+				"nmstate",
 			))
 		})
 
@@ -803,8 +809,8 @@ var _ = Describe("Operators manager", func() {
 	Context("Bundles", func() {
 		// we use the real operators here, as we want to test the manager's ability to group them into bundles
 		var (
-			manager                                                                *operators.Manager
-			cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator api.Operator
+			manager                                                                                 *operators.Manager
+			cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator, nmstateOperator api.Operator
 		)
 		BeforeEach(func() {
 			cfg := cnv.Config{}
@@ -812,11 +818,12 @@ var _ = Describe("Operators manager", func() {
 			// note that odf belongs to both Virtualization and Openshiftai bundles
 			odfOperator = odf.NewOdfOperator(log)
 			oaiOperator = openshiftai.NewOpenShiftAIOperator(log)
+			nmstateOperator = nmstate.NewNmstateOperator(log)
 			serverlessOperator = serverless.NewServerLessOperator(log)
 			// note that lso doesn't belongs to any bundle
 			lsoOperator = lso.NewLSOperator()
 
-			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, nil, cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator)
+			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, nil, cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator, nmstateOperator)
 		})
 
 		It("ListBundle should return the list of available bundles", func() {
@@ -834,9 +841,9 @@ var _ = Describe("Operators manager", func() {
 			Expect(bundle).To(BeNil())
 			bundle, err = manager.GetBundle(operatorscommon.BundleVirtualization)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(bundle.Operators).To(HaveLen(2))
-			Expect(bundle.Operators).To(HaveLen(2))
-			Expect(bundle.Operators).To(ContainElements(cnvOperator.GetName(), odfOperator.GetName()))
+			Expect(bundle.Operators).To(HaveLen(3))
+			Expect(bundle.Operators).To(HaveLen(3))
+			Expect(bundle.Operators).To(ContainElements(cnvOperator.GetName(), odfOperator.GetName(), nmstateOperator.GetName()))
 
 			bundle, err = manager.GetBundle(operatorscommon.BundleOpenshiftai)
 			Expect(err).ToNot(HaveOccurred())

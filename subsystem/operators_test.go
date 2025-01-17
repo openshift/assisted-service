@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
+	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
@@ -61,6 +62,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				serverless.Operator.Name,
 				openshiftai.Operator.Name,
 				authorino.Operator.Name,
+				nmstate.Operator.Name,
 			))
 		})
 

@@ -187,6 +187,7 @@ func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) *[]mod
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
 		models.FeatureSupportLevelIDOSC,
+		models.FeatureSupportLevelIDNMSTATE,
 	}
 }
 
@@ -298,6 +299,7 @@ func (feature *OciIntegrationFeature) getIncompatibleFeatures(string) *[]models.
 		models.FeatureSupportLevelIDFULLISO,
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
+		models.FeatureSupportLevelIDNMSTATE,
 	}
 }
 
@@ -349,6 +351,7 @@ func (feature *ExternalPlatformFeature) getIncompatibleFeatures(string) *[]model
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
+		models.FeatureSupportLevelIDNMSTATE,
 	}
 }
 
