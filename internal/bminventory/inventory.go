@@ -59,6 +59,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
@@ -176,7 +177,7 @@ type InstallerInternals interface {
 	GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error)
 	HostWithCollectedLogsExists(clusterId strfmt.UUID) (bool, error)
 	GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*common.Host, error)
-	ValidatePullSecret(secret string, username string, releaseImageURL string) error
+	ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error
 	GetInfraEnvInternal(ctx context.Context, params installer.GetInfraEnvParams) (*common.InfraEnv, error)
 	V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) error
 	CreateHostInKubeKeyNamespace(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error
@@ -288,8 +289,8 @@ func NewBareMetalInventory(
 	}
 }
 
-func (b *bareMetalInventory) ValidatePullSecret(secret string, username string, releaseImageURL string) error {
-	return b.secretValidator.ValidatePullSecret(secret, username, releaseImageURL)
+func (b *bareMetalInventory) ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error {
+	return b.secretValidator.ValidatePullSecret(additionalPublicRegistries, secret, username, releaseImageURL)
 }
 
 func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.FieldLogger) (string, error) {
@@ -668,8 +669,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	mirroredRegistries := extractMirroredRegistriesFromConfig(log, mirrorRegistryConfiguration)
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
-	err = b.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), *releaseImage.URL)
+	err = b.ValidatePullSecret(mirroredRegistries, pullSecret, ocm.UserNameFromContext(ctx), *releaseImage.URL)
 	if err != nil {
 		err = errors.Wrap(secretValidationToUserError(err), "pull secret for new cluster is invalid")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -1881,7 +1883,15 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 	log := logutil.FromContext(ctx, b.log)
 
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
-		if err := b.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), cluster.OcpReleaseImage); err != nil {
+		var mirroredRegistries []string
+		if cluster.MirrorRegistryConfiguration != "" {
+			mirrorRegistriesConfig, err := cluster.GetMirrorRegistryConfiguration()
+			if err != nil {
+				b.log.WithError(err).Warnf("failed to get saved cluster mirror registry configuration while updating cluster params")
+			}
+			mirroredRegistries = extractMirroredRegistriesFromConfig(log, mirrorRegistriesConfig)
+		}
+		if err := b.ValidatePullSecret(mirroredRegistries, *params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), cluster.OcpReleaseImage); err != nil {
 			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
 			return installer.V2UpdateClusterParams{}, err
 		}
@@ -4868,8 +4878,9 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 			infraEnv.ProxyHash = infraEnvProxyHash
 		}
 
+		mirroredRegistries := extractMirroredRegistriesFromConfig(log, mirrorRegistryConfiguration)
 		pullSecret := swag.StringValue(params.InfraenvCreateParams.PullSecret)
-		err = b.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), "")
+		err = b.ValidatePullSecret(mirroredRegistries, pullSecret, ocm.UserNameFromContext(ctx), "")
 		if err != nil {
 			err = errors.Wrap(secretValidationToUserError(err), "pull secret for new infraEnv is invalid")
 			return common.NewApiError(http.StatusBadRequest, err)
@@ -5113,15 +5124,34 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		params.InfraEnvUpdateParams.PullSecret = pullSecretBackup
 	}
 
-	if params, err = b.validateAndUpdateInfraEnvParams(ctx, &params); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
 	err = b.db.Transaction(func(tx *gorm.DB) error {
 		if infraEnv, err = common.GetInfraEnvFromDB(tx, params.InfraEnvID); err != nil {
 			log.WithError(err).Errorf("failed to get infraEnv: %s", params.InfraEnvID)
 			return common.NewApiError(http.StatusNotFound, err)
 		}
+
+		var cluster *common.Cluster
+		clusterId := infraEnv.ClusterID
+		if clusterId != "" {
+			cluster, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: clusterId})
+			if err != nil {
+				// We don't want to fail here if cluster is not found. It's not responsibility of this place
+				// to verify that, so if there is a real issue with non-existing cluster it will be detected
+				// and raised by someone else.
+				cluster = nil
+				log.WithError(err).Warnf("failed to find cluster with ID %s specified by InfraEnv when updating InfraEnv %s", clusterId.String(), params.InfraEnvID)
+			}
+		}
+
+		var mirrorRegistriesConfig *common.MirrorRegistryConfiguration
+		if mirrorRegistriesConfig, err = infraEnv.GetMirrorRegistryConfiguration(); err != nil {
+			b.log.WithError(err).Warnf("failed to get saved mirror registry configuration for infraenv while updating infraenv params")
+		}
+
+		if params, err = b.validateAndUpdateInfraEnvParams(ctx, &params, mirrorRegistriesConfig); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
 		if params.InfraEnvUpdateParams.Proxy != nil {
 			if err = validateProxySettings(params.InfraEnvUpdateParams.Proxy.HTTPProxy,
 				params.InfraEnvUpdateParams.Proxy.HTTPSProxy,
@@ -5168,17 +5198,6 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
-		var cluster *common.Cluster
-		clusterId := infraEnv.ClusterID
-		if clusterId != "" {
-			cluster, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: clusterId})
-			if err != nil {
-				// We don't want to fail here if cluster is not found. It's not responsability of this place
-				// to verify that, so if there is a real issue with non-existing cluster it will be detected
-				// and raised by someone else.
-				cluster = nil
-			}
-		}
 		if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, openshiftVersion); err != nil {
 			return err
 		}
@@ -5319,12 +5338,13 @@ func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, param
 	return nil
 }
 
-func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context, params *installer.UpdateInfraEnvParams) (installer.UpdateInfraEnvParams, error) {
+func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context, params *installer.UpdateInfraEnvParams, mirrorRegistryConfig *common.MirrorRegistryConfiguration) (installer.UpdateInfraEnvParams, error) {
 
 	log := logutil.FromContext(ctx, b.log)
 
 	if params.InfraEnvUpdateParams.PullSecret != "" {
-		if err := b.ValidatePullSecret(params.InfraEnvUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), ""); err != nil {
+		mirroredRegistries := extractMirroredRegistriesFromConfig(log, mirrorRegistryConfig)
+		if err := b.ValidatePullSecret(mirroredRegistries, params.InfraEnvUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), ""); err != nil {
 			log.WithError(err).Errorf("Pull secret for infraEnv %s is invalid", params.InfraEnvID)
 			return installer.UpdateInfraEnvParams{}, err
 		}
@@ -6750,4 +6770,25 @@ func getDefaultHighAvailabilityAndMasterCountParams(highAvailabilityMode *string
 
 	// both are set
 	return highAvailabilityMode, controlPlaneCount
+}
+
+// extractMirroredRegistriesFromConfig takes a MirrorRegistryConfiguration and returns a list of source
+// registries.
+func extractMirroredRegistriesFromConfig(log logrus.FieldLogger, mirrorRegistryConfig *common.MirrorRegistryConfiguration) []string {
+	var sourceRegistries []string
+	if mirrorRegistryConfig == nil {
+		return sourceRegistries
+	}
+
+	registryConfigs, err := mirrorregistries.ExtractLocationMirrorDataFromRegistriesFromToml(mirrorRegistryConfig.RegistriesConf)
+	if err != nil {
+		// Failure to extract the registry configs indicate a problem with the mirror registry configuration
+		// which is checked and handled elsewhere.
+		log.WithError(err).Warnf("failed to extract location from saved cluster mirror registry configuration")
+	}
+	for _, registryConfig := range registryConfigs {
+		registry := validations.ParseBaseRegistry(registryConfig.Location)
+		sourceRegistries = append(sourceRegistries, registry)
+	}
+	return sourceRegistries
 }
