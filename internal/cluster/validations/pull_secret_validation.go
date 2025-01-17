@@ -24,7 +24,7 @@ const (
 //
 //go:generate mockgen -source=pull_secret_validation.go -package=validations -destination=mock_pull_secret_validation.go
 type PullSecretValidator interface {
-	ValidatePullSecret(secret string, username string, releaseImageURL string) error
+	ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error
 }
 
 func ParsePublicRegistries(publicRegistries map[string]bool, publicRegistriesLiteral string) {
@@ -200,10 +200,15 @@ func validateRegistryWithAuth(registry string, credentials map[string]PullSecret
 }
 
 // ValidatePullSecret validates that a pull secret is well formed and contains all required data
-func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string, releaseImageURL string) error {
+func (v *registryPullSecretValidator) ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error {
 	creds, err := ParsePullSecret(secret)
 	if err != nil {
 		return err
+	}
+
+	ignorableRegistries := v.publicRegistries
+	for _, registry := range additionalPublicRegistries {
+		ignorableRegistries[registry] = true
 	}
 
 	// only check for cloud creds if we're authenticating against Red Hat SSO
@@ -225,12 +230,14 @@ func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username
 	}
 
 	for registry := range v.registriesWithAuth {
-		if err = validateRegistryWithAuth(registry, creds); err != nil {
-			return err
+		if !ignorableRegistries[registry] {
+			if err = validateRegistryWithAuth(registry, creds); err != nil {
+				return err
+			}
 		}
 	}
 
-	registryWithAuth, err := getRegistryAuthStatus(v.publicRegistries, releaseImageURL)
+	registryWithAuth, err := getRegistryAuthStatus(ignorableRegistries, releaseImageURL)
 	if err != nil {
 		return err
 	}
