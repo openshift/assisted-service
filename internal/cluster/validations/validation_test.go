@@ -136,6 +136,14 @@ var _ = Describe("Pull secret validation", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
+		It("pull secret accepted when it doesn't contain auths for additional ignored registries", func() {
+			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "quay.io/testing:latest", "ignore.com/image:v1")
+			Expect(err).ShouldNot(HaveOccurred())
+			additionalIgnoredRegistries = []string{"ignore.com"}
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, validSecretFormat, "", "")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
 		It("pull secret accepted when release image is specified and its registry credentials exists", func() {
 			publicRegistries := map[string]bool{}
 			validator, err := NewPullSecretValidator(publicRegistries, authHandlerDisabled, "quay.io/testing:latest")
