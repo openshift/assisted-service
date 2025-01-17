@@ -2155,6 +2155,37 @@ var _ = Describe("cluster", func() {
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 			})
+			Context("mirror registry is configured", func() {
+				It("should successfully update if the pull secret auth does not contain a mirrored registry", func() {
+					pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}" // #nosec
+					mirrorRegistryConfig, _ := getMirrorRegistryConfigurations(getSecureRegistryToml("fake-registry.example.com", "fake-mirror-registry.example.com"), "fake-certificate")
+					mirrorRegistryConfigStr, err := common.ConvertMirrorRegistryConfigToString(mirrorRegistryConfig)
+					Expect(err).ShouldNot(HaveOccurred())
+					clusterID = strfmt.UUID(uuid.New().String())
+					cluster := &common.Cluster{Cluster: models.Cluster{
+						ID: &clusterID,
+						Platform: &models.Platform{
+							Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+						},
+						OpenshiftVersion: "4.12",
+						CPUArchitecture:  common.DefaultCPUArchitecture,
+						OcpReleaseImage:  "fake-registry.example.com/ocp/release:4.18",
+					},
+						MirrorRegistryConfiguration: mirrorRegistryConfigStr,
+					}
+					err = db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
+					mockSuccess()
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							PullSecret: &pullSecret,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				})
+			})
 		})
 
 		It("update cluster day1 with APIVipDNSName failed", func() {
@@ -9182,42 +9213,13 @@ var _ = Describe("infraEnvs", func() {
 				sourceRegistry            = "quay.io"
 				mirrorRegistry            = "example-user-registry.com"
 			)
-
-			getSecureRegistryToml := func() string {
-				return fmt.Sprintf(`
-[[registry]]
-location = "%s"
-
-[[registry.mirror]]
-location = "%s"
-`,
-					sourceRegistry,
-					mirrorRegistry,
-				)
-			}
-
-			getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
-				imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
-				Expect(err).To(Not(HaveOccurred()))
-
-				mirrors := &common.MirrorRegistryConfiguration{
-					ImageDigestMirrors: imageDigestMirrors,
-					ImageTagMirrors:    imageTagMirrors,
-					Insecure:           insecure,
-					CaBundleCrt:        certificate,
-					RegistriesConf:     registriesToml,
-				}
-
-				return mirrors, imageDigestMirrors
-			}
-
 			It("Validate mirror registry saved on DB", func() {
 				mockInfraEnvRegisterSuccess()
 				MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
 
-				conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+				conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(sourceRegistry, mirrorRegistry), mirrorRegistryCertificate)
 				reply, err := bm.RegisterInfraEnvInternal(ctx, nil, conf, installer.RegisterInfraEnvParams{
 					InfraenvCreateParams: &models.InfraEnvCreateParams{
 						Name:             swag.String("some-infra-env-name"),
@@ -9242,6 +9244,7 @@ location = "%s"
 				Expect(len(mirrorRegistryConf.Insecure)).To(Equal(0))
 				Expect(len(mirrorRegistryConf.ImageTagMirrors)).To(Equal(0))
 			})
+
 		})
 	})
 
@@ -13909,19 +13912,6 @@ var _ = Describe("RegisterCluster", func() {
 			mirrorRegistry            = "example-user-registry.com"
 		)
 
-		getSecureRegistryToml := func() string {
-			return fmt.Sprintf(`
-[[registry]]
-location = "%s"
-
-[[registry.mirror]]
-location = "%s"
-`,
-				sourceRegistry,
-				mirrorRegistry,
-			)
-		}
-
 		getClusterCreateParams := func() *models.ClusterCreateParams {
 			return &models.ClusterCreateParams{
 				Name:                 swag.String("some-cluster-name"),
@@ -13932,25 +13922,10 @@ location = "%s"
 			}
 		}
 
-		getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
-			imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
-			Expect(err).To(Not(HaveOccurred()))
-
-			mirrors := &common.MirrorRegistryConfiguration{
-				ImageDigestMirrors: imageDigestMirrors,
-				ImageTagMirrors:    imageTagMirrors,
-				Insecure:           insecure,
-				CaBundleCrt:        certificate,
-				RegistriesConf:     registriesToml,
-			}
-
-			return mirrors, imageDigestMirrors
-		}
-
 		It("Validate mirror registry saved on DB", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
-			conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(sourceRegistry, mirrorRegistry), mirrorRegistryCertificate)
 			params := getClusterCreateParams()
 			c, err := bm.RegisterClusterInternal(ctx, nil, conf, installer.V2RegisterClusterParams{NewClusterParams: params})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -13969,6 +13944,17 @@ location = "%s"
 
 			Expect(len(mirrorRegistryConf.Insecure)).To(Equal(0))
 			Expect(len(mirrorRegistryConf.ImageTagMirrors)).To(Equal(0))
+		})
+		Context("Pull secret validation", func() {
+			It("Successfully validates the pull secret if it does not contain auth for a mirrored registry", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+				conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml("fake-registry.example.com", mirrorRegistry), mirrorRegistryCertificate)
+				params := getClusterCreateParams()
+				params.OcpReleaseImage = "fake-registry.example.com/ocp/release:4.18"
+				_, err := bm.RegisterClusterInternal(ctx, nil, conf, installer.V2RegisterClusterParams{NewClusterParams: params})
+				Expect(err).ShouldNot(HaveOccurred())
+			})
 		})
 	})
 
@@ -20280,4 +20266,32 @@ func createClusterWithMonitoredOperator(db *gorm.DB, operator models.MonitoredOp
 	c.MonitoredOperators = append(c.MonitoredOperators, &operator)
 	Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 	return &c
+}
+
+func getSecureRegistryToml(src, mirror string) string {
+	return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+`,
+		src,
+		mirror,
+	)
+}
+
+func getMirrorRegistryConfigurations(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
+	imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
+	Expect(err).To(Not(HaveOccurred()))
+
+	mirrors := &common.MirrorRegistryConfiguration{
+		ImageDigestMirrors: imageDigestMirrors,
+		ImageTagMirrors:    imageTagMirrors,
+		Insecure:           insecure,
+		CaBundleCrt:        certificate,
+		RegistriesConf:     registriesToml,
+	}
+
+	return mirrors, imageDigestMirrors
 }
