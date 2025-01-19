@@ -482,7 +482,7 @@ func (r *ClusterDeploymentsReconciler) spokeKubeClient(ctx context.Context, clus
 		r.Log.WithError(err).Errorf("failed to label kubeconfig secret %s", namespacedName)
 		return nil, err
 	}
-	return r.SpokeK8sClientFactory.CreateFromSecret(secret)
+	return r.SpokeK8sClientFactory.CreateFromSecret(clusterDeployment, secret)
 }
 
 func (r *ClusterDeploymentsReconciler) updateWorkerMcpPaused(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, clusterDeployment *hivev1.ClusterDeployment) error {

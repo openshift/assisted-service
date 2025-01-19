@@ -9,7 +9,8 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	spoke_k8s_client "github.com/openshift/assisted-service/internal/spoke_k8s_client"
-	v1 "k8s.io/api/core/v1"
+	v1 "github.com/openshift/hive/apis/hive/v1"
+	v10 "k8s.io/api/core/v1"
 )
 
 // MockSpokeClientCache is a mock of SpokeClientCache interface.
@@ -36,16 +37,16 @@ func (m *MockSpokeClientCache) EXPECT() *MockSpokeClientCacheMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockSpokeClientCache) Get(arg0 *v1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+func (m *MockSpokeClientCache) Get(arg0 *v1.ClusterDeployment, arg1 *v10.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0)
+	ret := m.ctrl.Call(m, "Get", arg0, arg1)
 	ret0, _ := ret[0].(spoke_k8s_client.SpokeK8sClient)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockSpokeClientCacheMockRecorder) Get(arg0 interface{}) *gomock.Call {
+func (mr *MockSpokeClientCacheMockRecorder) Get(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockSpokeClientCache)(nil).Get), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockSpokeClientCache)(nil).Get), arg0, arg1)
 }

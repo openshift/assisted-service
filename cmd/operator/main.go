@@ -160,7 +160,11 @@ func main() {
 	}
 
 	log := logrus.New()
-	spokeClientFactory := spoke_k8s_client.NewSpokeK8sClientFactory(log)
+	spokeClientFactory, err := spoke_k8s_client.NewFactory(log, nil)
+	if err != nil {
+		log.WithError(err).Error("failed to create spoke client factory")
+		os.Exit(1)
+	}
 	spokeClientCache := controllers.NewSpokeClientCache(spokeClientFactory)
 
 	c, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})

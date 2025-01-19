@@ -339,7 +339,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) createSpokeClient(ctx context.
 	}
 
 	// Create spoke cluster client using kubeconfig secret
-	spokeClient, err := hr.SpokeClients.Get(kubeconfigSecret)
+	spokeClient, err := hr.SpokeClients.Get(nil, kubeconfigSecret)
 	if err != nil {
 		reason := aiv1beta1.ReasonSpokeClientCreationFailure
 		msg := fmt.Sprintf("Failed to create kubeconfig client: %s", err.Error())

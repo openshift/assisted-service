@@ -602,7 +602,7 @@ var _ = Describe("agent reconcile", func() {
 				Expect(c.Create(ctx, host)).To(BeNil())
 				createKubeconfigSecret(clusterDeployment.Name)
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
-				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
 				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(nil, k8serrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Node"}, commonHost.RequestedHostname)).Times(1)
 
 				result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -632,7 +632,7 @@ var _ = Describe("agent reconcile", func() {
 				Expect(c.Create(ctx, host)).To(BeNil())
 				createKubeconfigSecret(clusterDeployment.Name)
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
-				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
 				node := &corev1.Node{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -680,7 +680,7 @@ var _ = Describe("agent reconcile", func() {
 				Expect(c.Create(ctx, host)).To(BeNil())
 				createKubeconfigSecret(clusterDeployment.Name)
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
-				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
 				node := &corev1.Node{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -979,7 +979,7 @@ var _ = Describe("agent reconcile", func() {
 			expectDBClusterWithKubeKeys()
 
 			mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
-			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&authzv1.Role{})).Return(nil)
@@ -1010,7 +1010,7 @@ var _ = Describe("agent reconcile", func() {
 			createKubeconfigSecret()
 			expectDBClusterWithKubeKeys()
 
-			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(nil, errors.New("failed to create client"))
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to create client"))
 
 			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -1024,7 +1024,7 @@ var _ = Describe("agent reconcile", func() {
 			expectDBClusterWithKubeKeys()
 
 			mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
-			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&authzv1.Role{})).Return(nil)
@@ -1406,7 +1406,7 @@ var _ = Describe("agent reconcile", func() {
 			schemes := GetKubeClientSchemes()
 			fakeClient := fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 			spokeClient = fakeSpokeK8sClient{Client: fakeClient}
-			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(spokeClient, nil).AnyTimes()
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(spokeClient, nil).AnyTimes()
 			node := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: agentHostname}}
 			Expect(spokeClient.Create(ctx, node)).To(Succeed())
 		}
@@ -1471,7 +1471,7 @@ var _ = Describe("agent reconcile", func() {
 			Expect(c.Create(ctx, agent)).To(Succeed())
 
 			mockSpokeClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
-			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockSpokeClient, nil).AnyTimes()
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockSpokeClient, nil).AnyTimes()
 			mockSpokeClient.EXPECT().Get(gomock.Any(), client.ObjectKey{Name: agentHostname}, gomock.Any()).Return(fmt.Errorf("get-failed"))
 
 			result, err := hr.Reconcile(ctx, newHostRequest(agent))
@@ -3167,7 +3167,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			Expect(c.Create(ctx, host)).To(BeNil())
 			if t.createClient {
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
-				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil)
 				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(t.node, t.nodeError).Times(t.getNodeCount)
 				if t.csrs != nil {
 					mockClient.EXPECT().ListCsrs(gomock.Any()).Return(t.csrs, nil)
@@ -4013,8 +4013,8 @@ var _ = Describe("spokeKubeClient", func() {
 		}
 		Expect(c.Create(ctx, secret)).To(Succeed())
 
-		mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Do(
-			func(s *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+		mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Do(
+			func(_ *hivev1.ClusterDeployment, s *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
 				Expect(s.Name).To(Equal(adminSecretName))
 				return nil, nil
 			},
@@ -4048,8 +4048,8 @@ var _ = Describe("spokeKubeClient", func() {
 		}
 		Expect(c.Create(ctx, secret)).To(Succeed())
 
-		mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Do(
-			func(s *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+		mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Do(
+			func(_ *hivev1.ClusterDeployment, s *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
 				Expect(s.Name).To(Equal(secretName))
 				return nil, nil
 			},
@@ -4187,8 +4187,8 @@ var _ = Describe("handleAgentFinalizer", func() {
 				},
 			).AnyTimes()
 
-			mockClientFactory.EXPECT().CreateFromSecret(gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
-				func(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				func(_ *hivev1.ClusterDeployment, secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
 					Expect(secret.Data["kubeconfig"]).To(Equal([]byte("definitely_a_kubeconfig")))
 					return fakeSpokeClient, nil
 				},

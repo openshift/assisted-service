@@ -52,8 +52,8 @@ var _ = Context("with kubeconfig test secret", func() {
 
 	Describe("Get", func() {
 		It("successfully creates a new client", func() {
-			mockSpokeFactory.EXPECT().CreateFromSecret(kubeconfigSecret).Return(mockSpokeClient, nil)
-			client, err := clientCache.Get(kubeconfigSecret)
+			mockSpokeFactory.EXPECT().CreateFromSecret(gomock.Any(), kubeconfigSecret).Return(mockSpokeClient, nil)
+			client, err := clientCache.Get(nil, kubeconfigSecret)
 
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(client).To(Equal(mockSpokeClient))
@@ -61,37 +61,37 @@ var _ = Context("with kubeconfig test secret", func() {
 
 		It("successfully returns an existing client", func() {
 			// create a client
-			mockSpokeFactory.EXPECT().CreateFromSecret(kubeconfigSecret).Return(mockSpokeClient, nil)
-			client, err := clientCache.Get(kubeconfigSecret)
+			mockSpokeFactory.EXPECT().CreateFromSecret(gomock.Any(), kubeconfigSecret).Return(mockSpokeClient, nil)
+			client, err := clientCache.Get(nil, kubeconfigSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(client).To(Equal(mockSpokeClient))
 
 			// get created client
-			client, err = clientCache.Get(kubeconfigSecret)
+			client, err = clientCache.Get(nil, kubeconfigSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(client).To(Equal(mockSpokeClient))
 		})
 
 		It("successfully creates a new client on hash mismatch", func() {
 			// create a client
-			mockSpokeFactory.EXPECT().CreateFromSecret(kubeconfigSecret).Return(mockSpokeClient, nil)
-			client, err := clientCache.Get(kubeconfigSecret)
+			mockSpokeFactory.EXPECT().CreateFromSecret(gomock.Any(), kubeconfigSecret).Return(mockSpokeClient, nil)
+			client, err := clientCache.Get(nil, kubeconfigSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(client).To(Equal(mockSpokeClient))
 
 			// create a client from a new kubeconfig
 			newKubeconfigSecret := kubeconfigSecret.DeepCopy()
 			newKubeconfigSecret.Data["kubeconfig"] = []byte("new")
-			mockSpokeFactory.EXPECT().CreateFromSecret(newKubeconfigSecret).Return(mockSpokeClient, nil)
-			client, err = clientCache.Get(newKubeconfigSecret)
+			mockSpokeFactory.EXPECT().CreateFromSecret(gomock.Any(), newKubeconfigSecret).Return(mockSpokeClient, nil)
+			client, err = clientCache.Get(nil, newKubeconfigSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(client).To(Equal(mockSpokeClient))
 		})
 
 		It("fails due failure on create client from secret", func() {
-			mockSpokeFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(nil, errors.New("error"))
+			mockSpokeFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(nil, errors.New("error"))
 
-			_, err := clientCache.Get(kubeconfigSecret)
+			_, err := clientCache.Get(nil, kubeconfigSecret)
 
 			Expect(err).Should(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring("Failed to create client using secret"))
