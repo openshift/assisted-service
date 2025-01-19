@@ -200,6 +200,26 @@ var _ = Describe("Validations", func() {
 	})
 })
 
+var _ = Describe("Get Disks of Holder", func() {
+	holder1 := models.Disk{DriveType: models.DriveTypeMultipath, Name: "dm-0"}
+	holder2 := models.Disk{DriveType: models.DriveTypeMultipath, Name: "dm-1"}
+	disksOfHolder1 := []models.Disk{{DriveType: models.DriveTypeISCSI, Name: "sda", Holders: "dm-0"}, {DriveType: models.DriveTypeISCSI, Name: "sdb", Holders: "dm-0"}}
+	disksOfHolder2 := []models.Disk{{DriveType: models.DriveTypeFC, Name: "sda", Holders: "dm-1"}}
+	disks := []*models.Disk{&holder1, &holder2, &disksOfHolder1[0], &disksOfHolder1[1], &disksOfHolder2[0]}
+
+	It("All disks", func() {
+		allDisks := GetAllDisksOfHolder(disks, &holder1)
+		Expect(len(allDisks)).To(Equal(2))
+		Expect(allDisks).Should(ContainElement(&disksOfHolder1[0]))
+		Expect(allDisks).Should(ContainElement(&disksOfHolder1[1]))
+	})
+	It("Filtered by type", func() {
+		filteredDisks := GetDisksOfHolderByType(disks, &holder2, models.DriveTypeFC)
+		Expect(len(filteredDisks)).To(Equal(1))
+		Expect(filteredDisks).Should(ContainElement(&disksOfHolder2[0]))
+	})
+})
+
 func TestHostUtil(t *testing.T) {
 	RegisterFailHandler(Fail)
 	common.InitializeDBTest()

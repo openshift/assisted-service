@@ -27,10 +27,12 @@ import (
 )
 
 const (
-	tooSmallDiskTemplate       = "Disk is too small (disk only has %s, but %s are required)"
-	wrongDriveTypeTemplate     = "Drive type is %s, it must be one of %s."
-	wrongMultipathTypeTemplate = "Multipath device has path of type %s, it must be %s"
-	wrongISCSINetworkTemplate  = "iSCSI host IP %s is the same as host IP, they must be different"
+	tooSmallDiskTemplate                    = "Disk is too small (disk only has %s, but %s are required)"
+	wrongDriveTypeTemplate                  = "Drive type is %s, it must be one of %s."
+	wrongMultipathTypeTemplate              = "Multipath device has path of unsupported type. It must be %s"
+	mixedTypesInMultipath                   = "Multipath device has paths of different types, but they must all be the same type"
+	wrongISCSINetworkTemplate               = "iSCSI host IP %s is the same as host IP, they must be different"
+	ErrsInIscsiDisableMultipathInstallation = "Installation on multipath device is not possible due to errors on at least one iSCSI disk"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
@@ -53,7 +55,7 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 	diskEligibilityMatchers := []*regexp.Regexp{
 		compileDiskReasonTemplate(tooSmallDiskTemplate, ".*", ".*"),
 		compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*"),
-		compileDiskReasonTemplate(wrongMultipathTypeTemplate, ".*", ".*"),
+		compileDiskReasonTemplate(wrongMultipathTypeTemplate, ".*"),
 	}
 
 	return &validator{
@@ -147,13 +149,32 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	}
 
 	if disk.DriveType == models.DriveTypeMultipath {
-		for _, inventoryDisk := range inventory.Disks {
-			if strings.Contains(inventoryDisk.Holders, disk.Name) {
-				// We only allow multipath if all paths are FC/ iSCSI
-				if inventoryDisk.DriveType != models.DriveTypeFC && inventoryDisk.DriveType != models.DriveTypeISCSI {
-					notEligibleReasons = append(notEligibleReasons,
-						fmt.Sprintf(wrongMultipathTypeTemplate, inventoryDisk.DriveType, strings.Join([]string{string(models.DriveTypeFC), string(models.DriveTypeISCSI)}, ", ")))
-					break
+		fcDisks := hostutil.GetDisksOfHolderByType(inventory.Disks, disk, models.DriveTypeFC)
+		iSCSIDisks := hostutil.GetDisksOfHolderByType(inventory.Disks, disk, models.DriveTypeISCSI)
+		// We only allow multipath if all paths are FC/ iSCSI
+		if len(fcDisks) == 0 && len(iSCSIDisks) == 0 {
+			notEligibleReasons = append(notEligibleReasons,
+				fmt.Sprintf(wrongMultipathTypeTemplate, strings.Join([]string{string(models.DriveTypeFC), string(models.DriveTypeISCSI)}, ", ")))
+			// Return since further checks are unnecessary
+			return notEligibleReasons, nil
+		}
+		// We only allow multipath if all paths are of the same type
+		if len(fcDisks) > 0 && len(fcDisks) != len(hostutil.GetAllDisksOfHolder(inventory.Disks, disk)) {
+			notEligibleReasons = append(notEligibleReasons, mixedTypesInMultipath)
+		} else if len(iSCSIDisks) > 0 && len(iSCSIDisks) != len(hostutil.GetAllDisksOfHolder(inventory.Disks, disk)) {
+			notEligibleReasons = append(notEligibleReasons, mixedTypesInMultipath)
+		}
+		for _, iSCSIDisk := range iSCSIDisks {
+			// If errors are detected on iSCSI disks, multipath is not allowed
+			if !lo.Contains(notEligibleReasons, ErrsInIscsiDisableMultipathInstallation) {
+				if iSCSIDisk.DriveType == models.DriveTypeISCSI {
+					// check if iSCSI boot drive is valid
+					isiSCSIValid := v.IsValidStorageDeviceType(iSCSIDisk, hostArchitecture, clusterVersion)
+					// Check if network is configured properly to install on iSCSI boot drive
+					err = isISCSINetworkingValid(iSCSIDisk, inventory)
+					if err != nil || !isiSCSIValid {
+						notEligibleReasons = append(notEligibleReasons, ErrsInIscsiDisableMultipathInstallation)
+					}
 				}
 			}
 		}
