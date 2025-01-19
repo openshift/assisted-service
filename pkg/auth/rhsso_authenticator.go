@@ -26,6 +26,7 @@ type RHSSOAuthenticator struct {
 	KeyMap                       map[string]*rsa.PublicKey
 	AdminUsers                   []string
 	OrgTenancyEnabled            bool
+	OcmAuthzEnabled              bool
 	OrgBasedFunctionalityEnabled bool
 	utils                        AUtilsInteface
 	log                          logrus.FieldLogger
@@ -37,6 +38,7 @@ func NewRHSSOAuthenticator(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldL
 	a := &RHSSOAuthenticator{
 		AdminUsers:                   cfg.AdminUsers,
 		OrgTenancyEnabled:            cfg.EnableOrgTenancy,
+		OcmAuthzEnabled:              cfg.EnableOcmAuthz,
 		OrgBasedFunctionalityEnabled: cfg.EnableOrgBasedFeatureGates,
 		utils:                        NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
 		client:                       ocmCLient,
@@ -58,6 +60,10 @@ func (a *RHSSOAuthenticator) AuthType() AuthType {
 
 func (a *RHSSOAuthenticator) EnableOrgTenancy() bool {
 	return a.OrgTenancyEnabled
+}
+
+func (a *RHSSOAuthenticator) EnableOcmAuthz() bool {
+	return a.OcmAuthzEnabled
 }
 
 func (a *RHSSOAuthenticator) EnableOrgBasedFeatureGates() bool {

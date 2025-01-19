@@ -90,6 +90,7 @@ DISABLED_HOST_VALIDATIONS := $(or ${DISABLED_HOST_VALIDATIONS}, "")
 DISABLED_STEPS := $(or ${DISABLED_STEPS}, "")
 DISABLE_TLS := $(or ${DISABLE_TLS},false)
 ENABLE_ORG_TENANCY := $(or ${ENABLE_ORG_TENANCY},False)
+ENABLE_OCM_AUTHZ := $(or ${ENABLE_OCM_AUTHZ},False)
 ALLOW_CONVERGED_FLOW := $(or ${ALLOW_CONVERGED_FLOW}, false)
 ENABLE_ORG_BASED_FEATURE_GATES := $(or ${ENABLE_ORG_BASED_FEATURE_GATES},False)
 KIND_EXPERIMENTAL_PROVIDER=podman
@@ -338,7 +339,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
 		--disk-encryption-support $(DISK_ENCRYPTION_SUPPORT) --hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' \
 		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)" --disabled-steps "$(DISABLED_STEPS)" \
-		--enable-org-tenancy $(ENABLE_ORG_TENANCY) \
+		--enable-org-tenancy $(ENABLE_ORG_TENANCY) --enable-ocm-authz $(ENABLE_OCM_AUTHZ)\
 		--enable-org-based-feature-gate $(ENABLE_ORG_BASED_FEATURE_GATES) $(ALLOW_CONVERGED_FLOW_CMD) $(DISABLE_TLS_CMD)
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
