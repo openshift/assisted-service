@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"os"
 	"testing"
@@ -293,15 +294,83 @@ var _ = Describe("Disk eligibility", func() {
 		testDisk.DriveType = models.DriveTypeMultipath
 		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}}
 		inventory.Disks = allDisks
+		cluster.OpenshiftVersion = "4.15.0"
+		hostInventory, _ := common.UnmarshalInventory(host.Inventory)
 
+		// Add a default IPv6 route
+		inventory.Routes = append(hostInventory.Routes, &models.Route{
+			Family:      int32(common.IPv6),
+			Interface:   "eth0",
+			Gateway:     "fe80:db8::1",
+			Destination: "::",
+			Metric:      600,
+		})
+		inventory.Interfaces = hostInventory.Interfaces
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil).AnyTimes()
+
+		By("Check Multipath iSCSI is not eligible when host IPv4 address isn't set")
 		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(errsInIscsiDisableMultipathInstallation))
 
+		By("Check Multipath iSCSI is eligible when host IPv4 address is not part of default network interface")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
+		}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(BeEmpty(), fmt.Sprintf("Debug info: inventory: %s", host.Inventory))
+
+		By("Check Multipath iSCSI is not eligible when host IPv4 address is part of default network interface")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "1.2.3.4"}
+		}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(errsInIscsiDisableMultipathInstallation))
+
+		By("Check Multipath iSCSI is eligible when host IPv6 address is not part of default network interface")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "1002:db8::10"}
+		}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(BeEmpty())
+
+		By("Check Multipath iSCSI is not eligible when host IPv6 address is part of default network interface")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "1001:db8::10"}
+		}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(errsInIscsiDisableMultipathInstallation))
+
+		By("Check Multipath iSCSI on older version is not eligible")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
+		}
+		cluster.OpenshiftVersion = "4.14.1"
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(errsInIscsiDisableMultipathInstallation))
+
+		By("Check Multipath iSCSI is eligible on day2 cluster")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
+		}
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		cluster.OpenshiftVersion = ""
+		infraEnv.OpenshiftVersion = "4.16"
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra env Multipath iSCSI is eligible")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
+		}
 		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
-
 		Expect(err).ToNot(HaveOccurred())
 		Expect(notEligibleReasons).To(BeEmpty())
 	})

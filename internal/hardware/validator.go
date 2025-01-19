@@ -27,10 +27,11 @@ import (
 )
 
 const (
-	tooSmallDiskTemplate       = "Disk is too small (disk only has %s, but %s are required)"
-	wrongDriveTypeTemplate     = "Drive type is %s, it must be one of %s."
-	wrongMultipathTypeTemplate = "Multipath device has path of type %s, it must be %s"
-	wrongISCSINetworkTemplate  = "iSCSI host IP %s is the same as host IP, they must be different"
+	tooSmallDiskTemplate                    = "Disk is too small (disk only has %s, but %s are required)"
+	wrongDriveTypeTemplate                  = "Drive type is %s, it must be one of %s."
+	wrongMultipathTypeTemplate              = "Multipath device has path of type %s, it must be %s"
+	wrongISCSINetworkTemplate               = "iSCSI host IP %s is the same as host IP, they must be different"
+	errsInIscsiDisableMultipathInstallation = "Installation on multipath device is not possible due to errors on at least one iSCSI disk"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
@@ -154,6 +155,20 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 					notEligibleReasons = append(notEligibleReasons,
 						fmt.Sprintf(wrongMultipathTypeTemplate, inventoryDisk.DriveType, fmt.Sprintf("%s or %s", string(models.DriveTypeFC), string(models.DriveTypeISCSI))))
 					break
+				}
+				// If errors are detected on iSCSI disks, multipath is not allowed
+				if !lo.Contains(notEligibleReasons, errsInIscsiDisableMultipathInstallation) {
+					if inventoryDisk.DriveType == models.DriveTypeISCSI {
+						// check if iSCSI boot drive is valid
+						if !v.IsValidStorageDeviceType(inventoryDisk, hostArchitecture, clusterVersion) {
+							notEligibleReasons = append(notEligibleReasons, errsInIscsiDisableMultipathInstallation)
+						}
+						// Check if network is configured properly to install on iSCSI boot drive
+						err = isISCSINetworkingValid(inventoryDisk, inventory)
+						if err != nil {
+							notEligibleReasons = append(notEligibleReasons, errsInIscsiDisableMultipathInstallation)
+						}
+					}
 				}
 			}
 		}
