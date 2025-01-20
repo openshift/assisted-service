@@ -37,7 +37,6 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockOperatorManager = operators.NewMockAPI(ctrl)
-		mockOperatorManager.EXPECT().ValidateCluster(ctx, gomock.Any())
 		db, dbName = common.PrepareTestDB()
 		preprocessor = newRefreshPreprocessor(
 			logrus.New(),
@@ -47,6 +46,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 	})
 
 	AfterEach(func() {
+		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
 
@@ -87,6 +87,27 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		}
 	}
 
+	mockNoChangeInOperatorDependencies := func() {
+		mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ *common.Cluster, previousOperators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+				return previousOperators, nil
+			},
+		).AnyTimes()
+	}
+
+	mockAddedOperatorDependencies := func(addedOperators ...*models.MonitoredOperator) {
+		mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ *common.Cluster, previousOperators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+				currentOperators := append(previousOperators, addedOperators...)
+				return currentOperators, nil
+			},
+		).AnyTimes()
+	}
+
+	mockOperatorValidationsSuccess := func() {
+		mockOperatorManager.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	}
+
 	Context("Skipping Validations", func() {
 
 		cantBeIgnored := common.NonIgnorableClusterValidations
@@ -122,6 +143,8 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		})
 
 		It("Should allow permitted ignorable validations to be ignored", func() {
+			mockNoChangeInOperatorDependencies()
+			mockOperatorValidationsSuccess()
 			validationContext.cluster.IgnoredClusterValidations = "[\"network-type-valid\", \"ingress-vips-valid\", \"ingress-vips-defined\"]"
 			conditions, _, _ := preprocessor.preprocess(ctx, validationContext)
 			Expect(conditions).ToNot(BeEmpty())
@@ -136,6 +159,8 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		})
 
 		It("Should allow all permitted ignorable validations to be ignored", func() {
+			mockNoChangeInOperatorDependencies()
+			mockOperatorValidationsSuccess()
 			validationContext.cluster.IgnoredClusterValidations = "[\"all\"]"
 			conditions, _, _ := preprocessor.preprocess(ctx, validationContext)
 			Expect(conditions).ToNot(BeEmpty())
@@ -148,6 +173,8 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		})
 
 		It("Should never allow a specific mandatory validation to be ignored", func() {
+			mockNoChangeInOperatorDependencies()
+			mockOperatorValidationsSuccess()
 			validationContext.cluster.IgnoredClusterValidations = "[\"all\"]"
 			conditions, _, _ := preprocessor.preprocess(ctx, validationContext)
 			for _, unskippableHostValidation := range cantBeIgnored {
@@ -155,6 +182,47 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 				Expect(unskippableHostValidationPresent).To(BeTrue(), unskippableHostValidation+" was not present as expected")
 				Expect(unskippableHostValidationSkipped).To(BeFalse(), unskippableHostValidation+" was ignored when this should not be possible")
 			}
+		})
+	})
+
+	Context("Recalculate operator dependencies", func() {
+		var validationContext *clusterPreprocessContext
+
+		BeforeEach(func() {
+			createCluster()
+			validationContext = newClusterValidationContext(cluster, db)
+		})
+
+		AfterEach(func() {
+			deleteCluster()
+		})
+
+		It("Adds new dependency", func() {
+			// Prepare the operators API so that it will add a new operator dependency:
+			mockAddedOperatorDependencies(
+				&models.MonitoredOperator{
+					Name: "myoperator",
+				},
+			)
+			mockOperatorValidationsSuccess()
+			_, _, err := preprocessor.preprocess(ctx, validationContext)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the new dependency has been added to the cluster in memory:
+			var operator *models.MonitoredOperator
+			for _, current := range cluster.MonitoredOperators {
+				if current.Name == "myoperator" {
+					operator = current
+				}
+			}
+			Expect(operator).ToNot(BeNil())
+
+			// Check that the new dependency has been saved to the database:
+			err = db.Where(&models.MonitoredOperator{
+				ClusterID: clusterID,
+				Name:      "myoperator",
+			}).First(&models.MonitoredOperator{}).Error
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
