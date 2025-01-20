@@ -119,16 +119,24 @@ type MetricsManager struct {
 	serviceLogicFilesystemUsagePercentage              *prometheus.GaugeVec
 	serviceLogicMonitoredHosts                         *prometheus.GaugeVec
 	serviceLogicMonitoredClusters                      *prometheus.GaugeVec
+	collectors                                         []prometheus.Collector
 }
 
 var _ API = &MetricsManager{}
 
-func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.Handler) *MetricsManager {
+type DirectoryUsageMonitorConfig struct {
+	Directories []string
+}
+
+type MetricsManagerConfig struct {
+	DirectoryUsageMonitorConfig DirectoryUsageMonitorConfig
+}
+
+func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.Handler, diskStatsHelper DiskStatsHelper, metricsManagerConfig *MetricsManagerConfig, log *logrus.Logger) *MetricsManager {
 
 	m := &MetricsManager{
 		registry: registry,
 		handler:  eventsHandler,
-
 		serviceLogicClusterCreation: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: namespace,
@@ -282,6 +290,8 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 		}, []string{hosts}),
 	}
 
+	m.collectors = append(m.collectors, newDirectoryUsageCollector(metricsManagerConfig.DirectoryUsageMonitorConfig.Directories, diskStatsHelper, log))
+
 	registry.MustRegister(
 		m.serviceLogicClusterCreation,
 		m.serviceLogicClusterInstallationStarted,
@@ -303,6 +313,11 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 		m.serviceLogicMonitoredHosts,
 		m.serviceLogicMonitoredClusters,
 	)
+
+	for _, collector := range m.collectors {
+		registry.MustRegister(collector)
+	}
+
 	return m
 }
 

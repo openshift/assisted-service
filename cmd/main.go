@@ -312,7 +312,10 @@ func main() {
 	eventsHandler := createEventsHandler(crdEventsHandler, db, authzHandler, notificationStream, log)
 
 	prometheusRegistry := prometheus.DefaultRegisterer
-	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler)
+	metricsManagerConfig := &metrics.MetricsManagerConfig{
+		DirectoryUsageMonitorConfig: metrics.DirectoryUsageMonitorConfig{
+			Directories: []string{Options.WorkDir}}}
+	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler, metrics.NewOSDiskStatsHelper(), metricsManagerConfig, log)
 	if ocmClient != nil {
 		//inject the metric server to the ocm client for purpose of
 		//performance monitoring the calls to ACM. This could not be done

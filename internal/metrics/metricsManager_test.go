@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 var _ = DescribeTable(
@@ -43,7 +44,10 @@ var _ = DescribeTable(
 		).AnyTimes()
 
 		// Create the metrics manager:
-		manager := NewMetricsManager(server.Registry(), handler)
+		metricsManagerConfig := &MetricsManagerConfig{
+			DirectoryUsageMonitorConfig: DirectoryUsageMonitorConfig{
+				Directories: []string{"/data"}}}
+		manager := NewMetricsManager(server.Registry(), handler, NewOSDiskStatsHelper(), metricsManagerConfig, logrus.New())
 		manager.ReportHostInstallationMetrics(
 			ctx,
 			"4.10.18",
