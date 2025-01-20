@@ -139,7 +139,7 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 }
 
 func (g *installerGenerator) allocateNodeIpsIfNeeded(log logrus.FieldLogger) {
-	if common.IsMultiNodeNonePlatformCluster(g.cluster) {
+	if common.IsMultiNodeNonePlatformCluster(g.cluster) || network.IsLoadBalancerUserManaged(g.cluster) {
 		nodeIpAllocations, err := network.GenerateNonePlatformAddressAllocation(g.cluster, log)
 		if err != nil {
 			log.WithError(err).Warnf("failed to generate ip address allocation for cluster %s", *g.cluster.ID)
@@ -333,7 +333,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 func (g *installerGenerator) addBootstrapKubeletIpIfRequired(log logrus.FieldLogger, envVars []string) ([]string, error) {
 	// setting bootstrap kubelet node ip
 	log.Debugf("Adding bootstrap ip to env vars")
-	if !common.IsMultiNodeNonePlatformCluster(g.cluster) {
+	if !common.IsMultiNodeNonePlatformCluster(g.cluster) && !network.IsLoadBalancerUserManaged(g.cluster) {
 		bootstrapIp, err := network.GetPrimaryMachineCIDRIP(common.GetBootstrapHost(g.cluster), g.cluster)
 		if err != nil {
 			log.WithError(err).Warn("Failed to get bootstrap primary ip for kubelet service update.")
@@ -1100,7 +1100,7 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 			return errors.Wrapf(errP, "Failed to parse machine cidr for node ip hint content")
 		}
 		setFileInIgnition(config, nodeIpHintFile, fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", ip), false, 420, true)
-	} else if g.nodeIpAllocations != nil && common.IsMultiNodeNonePlatformCluster(g.cluster) {
+	} else if g.nodeIpAllocations != nil && (common.IsMultiNodeNonePlatformCluster(g.cluster) || network.IsLoadBalancerUserManaged(g.cluster)) {
 		allocation, ok := g.nodeIpAllocations[lo.FromPtr(host.ID)]
 		if ok {
 			setFileInIgnition(config, nodeIpHintFile, fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", allocation.HintIp), false, 420, true)

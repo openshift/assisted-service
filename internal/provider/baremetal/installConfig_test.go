@@ -1,6 +1,8 @@
 package baremetal
 
 import (
+	"github.com/go-openapi/strfmt"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
@@ -164,6 +166,157 @@ var _ = Describe("AddPlatformToInstallConfig", func() {
 			err := provider.AddPlatformToInstallConfig(cfg, cluster, infraEnvs)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("load balancer type is set to unsupported value 'unsupported'"))
+		})
+	})
+
+	Context("getHostMachineNetworkInterfaceMACAddress", func() {
+		var (
+			hostID = strfmt.UUID(uuid.New().String())
+		)
+
+		It("returns an error when no machine networks found", func() {
+			cluster.Hosts = []*models.Host{
+				{
+					ID:        &hostID,
+					Inventory: common.GenerateTestInventory(),
+				},
+			}
+
+			err := provider.AddPlatformToInstallConfig(cfg, cluster, infraEnvs)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Failed to find machine networks for baremetal cluster"))
+		})
+
+		It("returns an error when no host interface IP is contained within any machine network", func() {
+			cluster.Hosts = []*models.Host{
+				{
+					ID:        &hostID,
+					Inventory: common.GenerateTestInventory(),
+				},
+			}
+
+			cluster.MachineNetworks = []*models.MachineNetwork{
+				{Cidr: "1.2.4.0/24"},
+				{Cidr: "1.2.2.0/24"},
+			}
+
+			err := provider.AddPlatformToInstallConfig(cfg, cluster, infraEnvs)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Failed to find a network interface matching any machine network"))
+		})
+
+		It("returns the correct MAC addresses", func() {
+			cluster.Hosts = []*models.Host{
+				{
+					ID: &hostID,
+					Inventory: common.GenerateTestInventoryWithMutate(
+						func(i *models.Inventory) {
+							i.Interfaces = []*models.Interface{
+								{
+									Name: "eth0",
+									IPV4Addresses: []string{
+										"1.2.3.4/24",
+										"1.2.4.4/24",
+									},
+									IPV6Addresses: []string{
+										"1001:db8::10/120",
+									},
+									MacAddress: "AA:BB:CC:DD:EE:FF",
+								},
+								{
+									Name: "eth1",
+									IPV4Addresses: []string{
+										"1.2.5.4/24",
+										"1.2.6.4/24",
+									},
+									IPV6Addresses: []string{
+										"1001:db8::10/120",
+									},
+									MacAddress: "11:22:33:44:55:66",
+								},
+							}
+						},
+					),
+				},
+				{
+					ID: &hostID,
+					Inventory: common.GenerateTestInventoryWithMutate(
+						func(i *models.Inventory) {
+							i.Interfaces = []*models.Interface{
+								{
+									Name: "eth0",
+									IPV4Addresses: []string{
+										"1.2.7.4/24",
+										"1.2.8.4/24",
+									},
+									IPV6Addresses: []string{
+										"1001:db8::10/120",
+									},
+									MacAddress: "AA:BB:CC:DD:EE:FF",
+								},
+								{
+									Name: "eth1",
+									IPV4Addresses: []string{
+										"1.2.9.4/24",
+										"1.2.10.4/24",
+									},
+									IPV6Addresses: []string{
+										"1001:db8::10/120",
+									},
+									MacAddress: "11:22:33:44:55:66",
+								},
+							}
+						},
+					),
+				},
+				{
+					ID: &hostID,
+					Inventory: common.GenerateTestInventoryWithMutate(
+						func(i *models.Inventory) {
+							i.Interfaces = []*models.Interface{
+								{
+									Name: "eth0",
+									IPV4Addresses: []string{
+										"1.2.11.4/24",
+										"1.2.12.4/24",
+									},
+									IPV6Addresses: []string{
+										"1001:db8::10/120",
+									},
+									MacAddress: "AA:BB:CC:DD:EE:FF",
+								},
+								{
+									Name: "eth1",
+									IPV4Addresses: []string{
+										"1.2.13.4/24",
+										"1.2.14.4/24",
+									},
+									IPV6Addresses: []string{
+										"1001:db8::10/120",
+									},
+									MacAddress: "11:22:33:44:55:66",
+								},
+							}
+						},
+					),
+				},
+			}
+
+			cluster.MachineNetworks = []*models.MachineNetwork{
+				{Cidr: "1.2.3.0/24"},
+				{Cidr: "1.2.8.0/24"},
+				{Cidr: "1.2.14.0/24"},
+			}
+
+			cfg.ControlPlane.Replicas = 2
+
+			err := provider.AddPlatformToInstallConfig(cfg, cluster, infraEnvs)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.Platform.Baremetal.Hosts).To(HaveLen(3))
+			Expect(cfg.Platform.Baremetal.Hosts[0].BootMACAddress).To(Equal("AA:BB:CC:DD:EE:FF"))
+			Expect(cfg.Platform.Baremetal.Hosts[1].BootMACAddress).To(Equal("AA:BB:CC:DD:EE:FF"))
+			Expect(cfg.Platform.Baremetal.Hosts[2].BootMACAddress).To(Equal("11:22:33:44:55:66"))
 		})
 	})
 })

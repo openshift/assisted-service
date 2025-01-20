@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 )
 
 func (p *baremetalProvider) AddPlatformToInstallConfig(
@@ -36,6 +37,7 @@ func (p *baremetalProvider) AddPlatformToInstallConfig(
 		}
 		return hostutil.GetHostnameForMsg(sortedHosts[i]) < hostutil.GetHostnameForMsg(sortedHosts[j])
 	})
+
 	for _, host := range sortedHosts {
 		hostName := hostutil.GetHostnameForMsg(host)
 		p.Log.Infof("Host name is %s", hostName)
@@ -49,33 +51,11 @@ func (p *baremetalProvider) AddPlatformToInstallConfig(
 			return err
 		}
 
-		if len(cluster.MachineNetworks) == 0 {
-			err = errors.Errorf("Failed to find machine networks for baremetal cluster %s", cluster.ID)
-			p.Log.Error(err)
-			return err
+		macAddress, err := p.getHostMachineNetworkInterfaceMACAddress(cluster, &inventory)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get host %s machine network interface MAC address", lo.FromPtr(host.ID))
 		}
-
-		for _, iface := range inventory.Interfaces {
-			// We are looking for the NIC that matches the first Machine Network configured
-			// for the cluster. This is to ensure that BootMACAddress belongs to the NIC that
-			// is really used and not to any fake interface even if this interface has IPs.
-			ipAddressses := append(iface.IPV4Addresses, iface.IPV6Addresses...)
-			for _, ip := range ipAddressses {
-				overlap, _ := network.NetworksOverlap(ip, string(cluster.MachineNetworks[0].Cidr))
-				if overlap {
-					hosts[yamlHostIdx].BootMACAddress = iface.MacAddress
-					break
-				}
-			}
-		}
-		if hosts[yamlHostIdx].BootMACAddress == "" {
-			err = errors.Errorf("Failed to find a network interface matching machine network (%s) for host %s",
-				cluster.MachineNetworks[0].Cidr,
-				hostutil.GetHostnameForMsg(host),
-			)
-			p.Log.Error(err)
-			return err
-		}
+		hosts[yamlHostIdx].BootMACAddress = lo.FromPtr(macAddress)
 
 		hosts[yamlHostIdx].BootMode = "UEFI"
 		if inventory.Boot != nil && inventory.Boot.CurrentBootMode != "uefi" {
@@ -140,6 +120,37 @@ func (p *baremetalProvider) AddPlatformToInstallConfig(
 	}
 
 	return nil
+}
+
+func (p *baremetalProvider) getHostMachineNetworkInterfaceMACAddress(cluster *common.Cluster, inventory *models.Inventory) (*string, error) {
+	if len(cluster.MachineNetworks) == 0 {
+		err := errors.Errorf("Failed to find machine networks for baremetal cluster %s", cluster.ID)
+		p.Log.Error(err)
+		return nil, err
+	}
+
+	for _, iface := range inventory.Interfaces {
+		// We are looking for the NIC that matches the first Machine Network configured
+		// for the cluster. This is to ensure that BootMACAddress belongs to the NIC that
+		// is really used and not to any fake interface even if this interface has IPs.
+		ipAddressses := append(iface.IPV4Addresses, iface.IPV6Addresses...)
+		for _, ip := range ipAddressses {
+			for _, machineNetwork := range cluster.MachineNetworks {
+				if machineNetwork == nil {
+					continue
+				}
+
+				overlap, _ := network.NetworksOverlap(ip, string(machineNetwork.Cidr))
+				if overlap {
+					return swag.String(iface.MacAddress), nil
+				}
+			}
+		}
+	}
+
+	err := errors.Errorf("Failed to find a network interface matching any machine network")
+	p.Log.Error(err)
+	return nil, err
 }
 
 func (p baremetalProvider) addLoadBalancer(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {

@@ -784,3 +784,60 @@ func CreateMachineNetworksArray(machineCidr string) []*models.MachineNetwork {
 	}
 	return []*models.MachineNetwork{{Cidr: models.Subnet(machineCidr)}}
 }
+
+func SetBootStrapHostIPRelatedMachineNetworkFirst(cluster *common.Cluster, log logrus.FieldLogger) ([]*models.MachineNetwork, error) {
+	if cluster == nil {
+		return nil, errors.New("given cluster is nil")
+	}
+
+	if cluster.ID == nil {
+		return cluster.MachineNetworks, errors.New("given cluster ID is nil")
+	}
+
+	bootstrapHost := common.GetBootstrapHost(cluster)
+	if bootstrapHost == nil {
+		return cluster.MachineNetworks, fmt.Errorf("cluster %s has no bootstrap host", cluster.ID.String())
+	}
+
+	var (
+		bootstrapHostRelatedMachineNetwork      *models.MachineNetwork
+		bootstrapHostRelatedMachineNetworkIndex int
+	)
+
+	for index, machineNetwork := range cluster.MachineNetworks {
+		if machineNetwork == nil {
+			continue
+		}
+
+		_, ipNet, err := net.ParseCIDR(string(machineNetwork.Cidr))
+		if err != nil {
+			return cluster.MachineNetworks, errors.Wrapf(err, "failed to parse machine cidr: %s", string(machineNetwork.Cidr))
+		}
+
+		if belongsToNetwork(log, bootstrapHost, ipNet) {
+			bootstrapHostRelatedMachineNetwork = machineNetwork
+			bootstrapHostRelatedMachineNetworkIndex = index
+		}
+	}
+	if bootstrapHostRelatedMachineNetwork == nil {
+		return cluster.MachineNetworks, fmt.Errorf("none of the machine network cidrs contain any of the bootstrap host IPs")
+	}
+
+	// first element - we are good
+	if bootstrapHostRelatedMachineNetworkIndex == 0 {
+		return cluster.MachineNetworks, nil
+	}
+
+	newMachineNetworks := append([]*models.MachineNetwork{bootstrapHostRelatedMachineNetwork},
+		cluster.MachineNetworks[:bootstrapHostRelatedMachineNetworkIndex]...,
+	)
+
+	// last element
+	if bootstrapHostRelatedMachineNetworkIndex == len(cluster.MachineNetworks)-1 {
+		return newMachineNetworks, nil
+	}
+
+	newMachineNetworks = append(newMachineNetworks, cluster.MachineNetworks[bootstrapHostRelatedMachineNetworkIndex+1:]...)
+
+	return newMachineNetworks, nil
+}
