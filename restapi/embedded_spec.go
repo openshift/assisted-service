@@ -7053,7 +7053,9 @@ func init() {
         "serverless-requirements-satisfied",
         "openshift-ai-requirements-satisfied",
         "authorino-requirements-satisfied",
-        "nmstate-requirements-satisfied"
+        "nmstate-requirements-satisfied",
+        "amd-gpu-requirements-satisfied",
+        "kmm-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -7907,7 +7909,9 @@ func init() {
         "NON_STANDARD_HA_CONTROL_PLANE",
         "AUTHORINO",
         "USER_MANAGED_LOAD_BALANCER",
-        "NMSTATE"
+        "NMSTATE",
+        "AMD_GPU",
+        "KMM"
       ]
     },
     "finalizing-stage": {
@@ -8534,7 +8538,9 @@ func init() {
         "openshift-ai-requirements-satisfied",
         "authorino-requirements-satisfied",
         "mtu-valid",
-        "nmstate-requirements-satisfied"
+        "nmstate-requirements-satisfied",
+        "amd-gpu-requirements-satisfied",
+        "kmm-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -18137,7 +18143,9 @@ func init() {
         "serverless-requirements-satisfied",
         "openshift-ai-requirements-satisfied",
         "authorino-requirements-satisfied",
-        "nmstate-requirements-satisfied"
+        "nmstate-requirements-satisfied",
+        "amd-gpu-requirements-satisfied",
+        "kmm-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -18958,7 +18966,9 @@ func init() {
         "NON_STANDARD_HA_CONTROL_PLANE",
         "AUTHORINO",
         "USER_MANAGED_LOAD_BALANCER",
-        "NMSTATE"
+        "NMSTATE",
+        "AMD_GPU",
+        "KMM"
       ]
     },
     "finalizing-stage": {
@@ -19585,7 +19595,9 @@ func init() {
         "openshift-ai-requirements-satisfied",
         "authorino-requirements-satisfied",
         "mtu-valid",
-        "nmstate-requirements-satisfied"
+        "nmstate-requirements-satisfied",
+        "amd-gpu-requirements-satisfied",
+        "kmm-requirements-satisfied"
       ]
     },
     "host_network": {
