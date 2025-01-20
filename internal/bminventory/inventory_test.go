@@ -344,6 +344,18 @@ func mockUsageReports() {
 	mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 }
 
+func mockOperatorValidationsSuccess(mock *operators.MockAPI) {
+	mock.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+}
+
+func mockNoChangeInOperatorDependencies(mock *operators.MockAPI) {
+	mock.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ *common.Cluster, previousOperators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+			return previousOperators, nil
+		},
+	).AnyTimes()
+}
+
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	common.InitializeDBTest()
@@ -1956,7 +1968,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("happy flow", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockStream, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, mockStream, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -1974,7 +1986,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("create non ha cluster fail, release version is lower than minimal", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			insufficientOpenShiftVersionForNoneHA := "4.7"
 			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
@@ -1986,7 +1998,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("create non ha cluster fail, release version is pre-release and lower than minimal", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			insufficientOpenShiftVersionForNoneHA := "4.7.0-fc.1"
 			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
@@ -1998,7 +2010,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("create non ha cluster success, release version is greater than minimal", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -2016,7 +2028,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("create non ha cluster success, release version is pre-release and greater than minimal", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -2035,7 +2047,7 @@ var _ = Describe("cluster", func() {
 		It("create non ha cluster fail, explicitly disabled UserManagedNetworking", func() {
 			errStr := "Can't set none platform with user-managed-networking disabled"
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
@@ -2048,7 +2060,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("create non ha cluster fail, explicitly enabled VipDhcpAllocation", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
@@ -2063,7 +2075,7 @@ var _ = Describe("cluster", func() {
 	})
 	It("create non ha cluster success, release version is ci-release and greater than minimal", func() {
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 
 		mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 		noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -2190,7 +2202,8 @@ var _ = Describe("cluster", func() {
 
 		It("update cluster day1 with APIVipDNSName failed", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false)
+			mockNoChangeInOperatorDependencies(mockOperators)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false, nil)
 
 			mockClusterRegisterSuccess(true)
 
@@ -2219,7 +2232,8 @@ var _ = Describe("cluster", func() {
 			func(openshiftVersion, networkType string) {
 				cpuArchitecture := "irrelevant"
 				mockOperators := operators.NewMockAPI(ctrl)
-				bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false)
+				mockNoChangeInOperatorDependencies(mockOperators)
+				bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false, nil)
 
 				mockClusterRegisterSuccessWithVersion(cpuArchitecture, openshiftVersion)
 
@@ -2267,7 +2281,8 @@ var _ = Describe("cluster", func() {
 			func(openshiftVersion, networkType string) {
 				cpuArchitecture := "irrelevant"
 				mockOperators := operators.NewMockAPI(ctrl)
-				bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false)
+				mockNoChangeInOperatorDependencies(mockOperators)
+				bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false, nil)
 
 				mockClusterRegisterSuccessWithVersion(cpuArchitecture, openshiftVersion)
 				clusterCreateParams := &models.ClusterCreateParams{
@@ -2362,7 +2377,7 @@ var _ = Describe("cluster", func() {
 				BeforeEach(func() {
 					openshiftVersion = "4.12.0"
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-						db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+						db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 				})
 				Context("RegisterCluster - Multiple-VIPs Support", func() {
 
@@ -11285,8 +11300,9 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		mockOperators := operators.NewMockAPI(ctrl)
+		mockNoChangeInOperatorDependencies(mockOperators)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, commontesting.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false)
+			db, commontesting.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -13104,7 +13120,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 		mockUsageReports()
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
@@ -13741,7 +13757,7 @@ var _ = Describe("RegisterCluster", func() {
 		Expect(cfg.DiskEncryptionSupport).Should(BeTrue())
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperatorManager, nil, nil, nil, nil, nil, false)
+			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperatorManager, nil, nil, nil, nil, nil, false, nil)
 		mockUsageReports()
 	})
 
@@ -15067,7 +15083,7 @@ var _ = Describe("RegisterCluster", func() {
 			var c *models.Cluster
 			diskEncryptionBm := createInventory(db, cfg)
 			diskEncryptionBm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperatorManager, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperatorManager, nil, nil, nil, nil, nil, false, nil)
 
 			By("Register cluster", func() {
 
@@ -15086,6 +15102,7 @@ var _ = Describe("RegisterCluster", func() {
 
 			By("Update cluster with full object", func() {
 
+				mockNoChangeInOperatorDependencies(mockOperatorManager)
 				mockOperatorManager.EXPECT().ValidateCluster(ctx, gomock.Any())
 				mockEvents.EXPECT().SendClusterEvent(ctx, gomock.Any())
 
@@ -15106,6 +15123,7 @@ var _ = Describe("RegisterCluster", func() {
 
 			By("Update cluster with partial object", func() {
 
+				mockNoChangeInOperatorDependencies(mockOperatorManager)
 				mockOperatorManager.EXPECT().ValidateCluster(ctx, gomock.Any())
 
 				reply := diskEncryptionBm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -15124,6 +15142,7 @@ var _ = Describe("RegisterCluster", func() {
 
 			By("Update cluster with emtpy object", func() {
 
+				mockNoChangeInOperatorDependencies(mockOperatorManager)
 				mockOperatorManager.EXPECT().ValidateCluster(ctx, gomock.Any())
 
 				reply := diskEncryptionBm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -15168,7 +15187,7 @@ var _ = Describe("RegisterCluster", func() {
 			cfg.DiskEncryptionSupport = false
 			bm = createInventory(db, cfg)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 			mockUsageReports()
 		})
 
@@ -15391,7 +15410,7 @@ var _ = Describe("RegisterCluster", func() {
 			cfg.DiskEncryptionSupport = false
 			bm = createInventory(db, cfg)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 			mockUsageReports()
 		})
 
@@ -15848,7 +15867,7 @@ var _ = Describe("RegisterCluster", func() {
 			db, dbName = common.PrepareTestDB()
 			bm = createInventory(db, Config{})
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 			cfg := auth.GetConfigRHSSO()
 			cfg.EnableOrgBasedFeatureGates = true
 			mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
@@ -15904,7 +15923,7 @@ var _ = Describe("RegisterCluster", func() {
 			db, dbName = common.PrepareTestDB()
 			bm = createInventory(db, Config{})
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 		})
 
 		Context("with EnableOrgBasedFeatureGates true", func() {
@@ -16252,7 +16271,7 @@ var _ = Describe("RegisterCluster", func() {
 			db, dbName = common.PrepareTestDB()
 			bm = createInventory(db, cfg)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 		})
 
 		AfterEach(func() {
@@ -16600,7 +16619,7 @@ var _ = Describe("AMS subscriptions", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 		mockUsageReports()
 	})
 
@@ -16661,7 +16680,7 @@ var _ = Describe("AMS subscriptions", func() {
 		It("deregister cluster that don't have 'Reserved' subscriptions", func() {
 			mockS3Client = s3wrapper.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, mockS3Client, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, mockS3Client, nil, nil, nil, false, nil)
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
@@ -16683,10 +16702,12 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster name happy flow", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false)
+			mockNoChangeInOperatorDependencies(mockOperators)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false, nil)
 
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
+			mockOperatorValidationsSuccess(mockOperators)
 
 			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.Name = swag.String(clusterName)
@@ -16699,7 +16720,6 @@ var _ = Describe("AMS subscriptions", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			newClusterName := "ams-cluster-new-name"
-			mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any())
 			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
 				eventstest.WithClusterIdMatcher(c.ID.String())))
@@ -16716,7 +16736,8 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster name with same name", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false)
+			mockNoChangeInOperatorDependencies(mockOperators)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false, nil)
 
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
@@ -16746,7 +16767,8 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster without name field", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false)
+			mockNoChangeInOperatorDependencies(mockOperators)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false, nil)
 
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
@@ -16856,7 +16878,7 @@ var _ = Describe("AMS subscriptions", func() {
 		It("register and deregister cluster happy flow - nil OCM client", func() {
 			mockS3Client = s3wrapper.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, mockS3Client, nil, nil, nil, false)
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, mockS3Client, nil, nil, nil, false, nil)
 			bm.ocmClient = nil
 			mockClusterRegisterSuccess(true)
 
@@ -18902,7 +18924,8 @@ var _ = Describe("Platform tests", func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		mockOperators := operators.NewMockAPI(ctrl)
-		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false)
+		mockNoChangeInOperatorDependencies(mockOperators)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil, false, nil)
 		bm.ocmClient = nil
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.Name = swag.String("cluster")

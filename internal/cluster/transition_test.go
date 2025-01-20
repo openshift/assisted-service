@@ -71,7 +71,7 @@ var _ = Describe("Transition tests", func() {
 
 	Context("cancel_installation", func() {
 		BeforeEach(func() {
-			capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), eventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
+			capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), eventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false, nil)
 		})
 
 		It("cancel_installation", func() {
@@ -368,7 +368,7 @@ var _ = Describe("Transition tests", func() {
 					mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, models.ClusterStatusFinalizing, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 				}
 
-				capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), eventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api, nil, nil, nil, false)
+				capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), eventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api, nil, nil, nil, false, nil)
 
 				// Test
 				clusterAfterRefresh, err := capi.RefreshStatus(ctx, &c, db)
@@ -416,7 +416,7 @@ var _ = Describe("Cancel cluster installation", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		uploadClient = uploader.NewClient(&uploader.Config{EnableDataCollection: false}, nil, logrus.New(), nil)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false, nil)
 	})
 
 	AfterEach(func() {
@@ -493,7 +493,7 @@ var _ = Describe("Reset cluster", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEventsHandler, nil, nil, nil, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEventsHandler, nil, nil, nil, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false, nil)
 	})
 
 	AfterEach(func() {
@@ -711,7 +711,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1608,7 +1608,7 @@ var _ = Describe("Refresh Cluster - Same networks", func() {
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1875,7 +1875,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		dnsApi := dns.NewDNSHandler(nil, common.GetTestLog())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil, false)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil, false, nil)
 
 		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		hid1 = strfmt.UUID(uuid.New().String())
@@ -2118,7 +2118,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -3150,7 +3150,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -3876,7 +3876,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -4247,7 +4247,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
 					ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{}}
 					clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-						mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api, nil, nil, nil, false)
+						mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api, nil, nil, nil, false, nil)
 					if !t.requiresAMSUpdate {
 						cluster.IsAmsSubscriptionConsoleUrlSet = true
 					}
@@ -4351,7 +4351,7 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		clusterApi = NewManager(logTimeoutConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
@@ -4493,7 +4493,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil, false, nil)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -4797,7 +4797,7 @@ var _ = Describe("Single node", func() {
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		dnsApi := dns.NewDNSHandler(nil, common.GetTestLog())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil, false)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil, false, nil)
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
@@ -5103,7 +5103,7 @@ var _ = Describe("installation timeout", func() {
 		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, true)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, true, nil)
 	})
 	createCluster := func(status, statusInfo string, installStartedAt time.Time) *common.Cluster {
 		id := strfmt.UUID(uuid.NewString())
@@ -5221,7 +5221,7 @@ var _ = Describe("finalizing timeouts", func() {
 	Context("soft timeouts disabled", func() {
 		BeforeEach(func() {
 			clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-				mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false)
+				mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, false, nil)
 		})
 		for _, st := range finalizingStages {
 			stage := st
@@ -5259,7 +5259,7 @@ var _ = Describe("finalizing timeouts", func() {
 	Context("soft timeouts enabled", func() {
 		BeforeEach(func() {
 			clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-				mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, true)
+				mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil, true, nil)
 
 		})
 		It("finalizing status timeout not active", func() {

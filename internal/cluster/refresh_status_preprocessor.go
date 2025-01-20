@@ -2,7 +2,9 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -11,6 +13,8 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	operatorcommon "github.com/openshift/assisted-service/internal/operators/common"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -34,9 +38,10 @@ type refreshPreprocessor struct {
 	validations  []validation
 	conditions   []condition
 	operatorsAPI operators.API
+	usageAPI     usage.API
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsAPI operators.API) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsAPI operators.API, usageAPI usage.API) *refreshPreprocessor {
 	v := clusterValidator{
 		log:     log,
 		hostAPI: hostAPI,
@@ -47,6 +52,7 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsA
 		validations:  newValidations(&v),
 		conditions:   newConditions(&v),
 		operatorsAPI: operatorsAPI,
+		usageAPI:     usageAPI,
 	}
 }
 
@@ -84,6 +90,17 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 			Message: message,
 		})
 	}
+
+	// Before validating the operators we need to recalculate the dependencies because changes in the hosts may
+	// imply changes in the dependencies between operators. For example, if the OpenShift AI operator is enabled and
+	// a new host with an NVIDIA GPU has been discovered, then the NVIDIA GPU operator will need to be added as a
+	// dependency, and then we will need to validate that secure boot is disabled.
+	err = r.recalculateOperatorDependencies(c)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to recalculate operator dependencies for cluster '%s'", c.clusterId)
+		return nil, nil, err
+	}
+
 	// Validate operators
 	results, err := r.operatorsAPI.ValidateCluster(ctx, c.cluster)
 	if err != nil {
@@ -122,6 +139,103 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 		}
 	}
 	return stateMachineInput, validationsOutput, nil
+}
+
+// recalculateOperatorDependencies calculates the operator dependencies and updates the database and the passed cluster
+// accordingly.
+func (r *refreshPreprocessor) recalculateOperatorDependencies(c *clusterPreprocessContext) error {
+	// Calculate and save the operators that have been added, updated or deleted:
+	previousOperators := c.cluster.MonitoredOperators
+	currentOperators, err := r.operatorsAPI.ResolveDependencies(c.cluster, c.cluster.MonitoredOperators)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to resolve operator dependencies for cluster '%s'",
+			c.clusterId,
+		)
+	}
+	var addedOperators, updatedOperators, deletedOperators []*models.MonitoredOperator
+	for _, currentOperator := range currentOperators {
+		if currentOperator.ClusterID == "" {
+			currentOperator.ClusterID = c.clusterId
+		}
+		previousOperator := operatorcommon.GetOperator(previousOperators, currentOperator.Name)
+		if previousOperator != nil {
+			if !reflect.DeepEqual(currentOperator, previousOperator) {
+				updatedOperators = append(updatedOperators, currentOperator)
+			}
+		} else {
+			addedOperators = append(addedOperators, currentOperator)
+		}
+	}
+	for _, previousOperator := range previousOperators {
+		if !operatorcommon.HasOperator(currentOperators, previousOperator.Name) {
+			deletedOperators = append(deletedOperators, previousOperator)
+		}
+	}
+	for _, addedOperator := range addedOperators {
+		err = c.db.Save(addedOperator).Error
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"failed to add operator '%s' to cluster '%s'",
+				addedOperator.Name, *c.cluster.ID,
+			)
+		}
+	}
+	for _, updatedOperator := range updatedOperators {
+		err = c.db.Save(updatedOperator).Error
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"failed to update operator '%s' for cluster '%s'",
+				updatedOperator.Name, *c.cluster.ID,
+			)
+		}
+	}
+	for _, deletedOperator := range deletedOperators {
+		err = c.db.Delete(deletedOperator).Error
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"failed to delete operator '%s' from cluster '%s'",
+				deletedOperator.Name,
+				c.clusterId,
+			)
+		}
+	}
+	c.cluster.MonitoredOperators = currentOperators
+
+	// If any operator has been added or deleted then we need to update the corresponding feature usage:
+	if r.usageAPI != nil && (len(addedOperators) > 0 || len(deletedOperators) > 0) {
+		var usages usage.FeatureUsage
+		usages, err = usage.Unmarshal(c.cluster.FeatureUsage)
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"failed to read feature usage from cluster '%s'",
+				c.clusterId,
+			)
+		}
+		for _, addedOperator := range addedOperators {
+			r.usageAPI.Add(usages, strings.ToUpper(addedOperator.Name), nil)
+		}
+		for _, deletedOperator := range deletedOperators {
+			r.usageAPI.Remove(usages, strings.ToUpper(deletedOperator.Name))
+		}
+		data, err := json.Marshal(usages)
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"failed to write feature usage to cluster '%s'",
+				c.clusterId,
+			)
+		}
+		c.cluster.FeatureUsage = string(data)
+		r.usageAPI.Save(c.db, c.clusterId, usages)
+	}
+
+	return nil
 }
 
 // sortByValidationResultID sorts results by models.ClusterValidationID

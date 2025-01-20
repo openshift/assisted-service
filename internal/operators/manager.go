@@ -379,13 +379,13 @@ func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models
 		if op.OperatorType != models.OperatorTypeOlm {
 			continue
 		}
-		mgr.log.Infof("Attempting to resolve %s operator dependencies", op.Name)
+		mgr.log.Debugf("Attempting to resolve %s operator dependencies", op.Name)
 		deps, err := mgr.olmOperators[op.Name].GetDependencies(cluster)
 		if err != nil {
 			return map[string]bool{}, err
 		}
 		visited[op.Name] = true
-		mgr.log.Infof("Dependencies found for %s operator: %+v ", op.Name, deps)
+		mgr.log.Debugf("Dependencies found for %s operator: %+v ", op.Name, deps)
 		for _, dep := range deps {
 			fifo.PushBack(dep)
 		}
