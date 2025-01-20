@@ -66,32 +66,27 @@ fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
     # Disconnected hypershift requires:
+    export OCP_MIRROR_REGISTRY="${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
     # 1. pull secret in hypershift namespace for the hypershift operator
     oc get namespace hypershift || oc create namespace hypershift
     oc get secret "${ASSISTED_PULLSECRET_NAME}" -n hypershift || \
       oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n hypershift
-    # 2. mirrored hypershift operator image to local registry
-    HYPERSHIFT_LOCAL_IMAGE="${LOCAL_REGISTRY}/localimages/hypershift:latest"
+    # 2. mirrored hypershift operator image to local mirror registry
+    HYPERSHIFT_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_repository_only ${HYPERSHIFT_IMAGE}):hypershift"
     oc image mirror -a "${PULL_SECRET_FILE}" "${HYPERSHIFT_IMAGE}" "${HYPERSHIFT_LOCAL_IMAGE}"
     export HYPERSHIFT_IMAGE="${HYPERSHIFT_LOCAL_IMAGE}"
-    export CONTROL_PLANE_OPERATOR_IMAGE=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for hypershift)
-    # 3. the hypershift cli must be available on the local environment
-    #id=$(podman create $HYPERSHIFT_LOCAL_IMAGE)
-    #mkdir -p ./hypershift-cli
-    #podman cp $id:/usr/bin/hypershift ./hypershift-cli
-    #export PATH="$PATH":"$PWD"/hypershift-cli
-    # 4. mirrored capi agent image to local registry
+    # 3. mirrored CAPI provider agent image to local mirror registry
     if [ ! -z "$PROVIDER_IMAGE" ]
     then
-      export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/localimages/cluster-api-provider-agent:latest"
+      export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_repository_only ${PROVIDER_IMAGE}):capi"
       oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
       export PROVIDER_IMAGE="${PROVIDER_LOCAL_IMAGE}"
     fi
-    # 5. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
+    # 4. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
     # registry). Note that older versions of OpenShift, before OpenShift 4.14, don't support this ImageDigestMirrorSet
     # object, instead they use the now deprecated ImageContentSourcePolicy. So we need to check which one is supported
     # by the server.
-    export OCP_MIRROR_REGISTRY="${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
+    
     if oc get crd imagedigestmirrorsets.config.openshift.io &>/dev/null; then
       cat << EOM > mirrors-config.yaml
 apiVersion: config.openshift.io/v1
@@ -124,7 +119,7 @@ spec:
 EOM
     fi
     oc apply --wait=true -f mirrors-config.yaml
-    # 6. Image content source for hosted cluster to be passed in through the hypershift create command
+    # 5. Image content source for hosted cluster to be passed in through the hypershift create command
   cat << EOM >> /tmp/ics-hc.yaml
 - mirrors:
   - ${OCP_MIRROR_REGISTRY}
@@ -135,14 +130,21 @@ EOM
 EOM
     export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources /tmp/ics-hc.yaml"
     export EXTRA_HYPERSHIFT_CLI_MOUNTS="$EXTRA_HYPERSHIFT_CLI_MOUNTS -v /tmp/ics-hc.yaml:/tmp/ics-hc.yaml"
-    # 7. Machine config operator image must be added to hypershift operator's pod's arguments
+    # 6. Machine config operator image in the local mirror registry must be added to hypershift operator's pod's arguments
     export MCO_IMAGE=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for machine-config-operator)
     export LOCAL_MCO_IMAGE="${OCP_MIRROR_REGISTRY}@$(oc image info $MCO_IMAGE -ojson | jq -r '.digest')"
+    
     # the disconnected openshift release image will also be used as release-image flag for hypershift create cluster command
     export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
-    # disconnected requires the additional trust bundle containing the local registry certificate
+    # disconnected requires the additional trust bundle containing the local mirror registry certificate 
+    # be added as a flag when creating the hosted cluster
     export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --additional-trust-bundle /etc/pki/ca-trust/source/anchors/${REGISTRY_CRT}"
+    # and be added as a volume mount when running the hypershift CLI
     export EXTRA_HYPERSHIFT_CLI_MOUNTS="$EXTRA_HYPERSHIFT_CLI_MOUNTS -v ${REGISTRY_DIR}/certs/${REGISTRY_CRT}:/etc/pki/ca-trust/source/anchors/${REGISTRY_CRT}"
+
+    # 7. reference the control plane operator image in the mirrored registry which will be added as a CLI flag when creating the hosted cluster
+    export CONTROL_PLANE_OPERATOR_IMAGE=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for hypershift)
+    export CONTROL_PLANE_OPERATOR_IMAGE="${OCP_MIRROR_REGISTRY}@$(oc image info $CONTROL_PLANE_OPERATOR_IMAGE -ojson | jq -r '.digest')"
 fi
 
 # TODO: make SSH public key configurable
@@ -252,6 +254,7 @@ export KUBECONFIG=/tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
 
 wait_for_object_amount node ${SPOKE_CONTROLPLANE_AGENTS} 10
 echo "Worker nodes have been detected successfuly in the created cluster!"
+oc get node 
 
 echo "verify the BMH on the HUB cluster is detached"
 export KUBECONFIG=${HUB_KUBECONFIG}
@@ -261,6 +264,20 @@ if [ $(oc get baremetalhost -n ${SPOKE_NAMESPACE} -o json | jq -c '.items[].meta
   oc get baremetalhost -n "${SPOKE_NAMESPACE}"
   return 1
 fi
+
+echo "Collecting state of Hypershift cluster before destroying"
+echo "HostedCluster"
+oc get hostedcluster -A -oyaml
+echo "NodePool"
+oc get nodepool -A -oyaml
+echo "AgentMachine"
+oc get agentmachine -A -oyaml
+echo "Agent"
+oc get agent -A -oyaml
+echo "InfraEnv"
+oc get infraenv -A -oyaml
+echo "BMH"
+oc get bmh -A -oyaml
 
 echo "Destroy the hosted cluster"
 hypershift_cli hypershift destroy cluster agent --name $ASSISTED_CLUSTER_NAME --namespace $SPOKE_NAMESPACE --cluster-grace-period 60m
