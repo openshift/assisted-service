@@ -70,24 +70,20 @@ if [ "${DISCONNECTED}" = "true" ]; then
     oc get namespace hypershift || oc create namespace hypershift
     oc get secret "${ASSISTED_PULLSECRET_NAME}" -n hypershift || \
       oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n hypershift
-    # 2. mirrored hypershift operator image to local registry
-    HYPERSHIFT_LOCAL_IMAGE="${LOCAL_REGISTRY}/localimages/hypershift:latest"
+    # 2. mirrored hypershift operator image to mirror registry
+    HYPERSHIFT_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${HYPERSHIFT_IMAGE})"
     oc image mirror -a "${PULL_SECRET_FILE}" "${HYPERSHIFT_IMAGE}" "${HYPERSHIFT_LOCAL_IMAGE}"
     export HYPERSHIFT_IMAGE="${HYPERSHIFT_LOCAL_IMAGE}"
     export CONTROL_PLANE_OPERATOR_IMAGE=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for hypershift)
-    # 3. the hypershift cli must be available on the local environment
-    #id=$(podman create $HYPERSHIFT_LOCAL_IMAGE)
-    #mkdir -p ./hypershift-cli
-    #podman cp $id:/usr/bin/hypershift ./hypershift-cli
-    #export PATH="$PATH":"$PWD"/hypershift-cli
-    # 4. mirrored capi agent image to local registry
+    export CONTROL_PLANE_OPERATOR_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${CONTROL_PLANE_OPERATOR_IMAGE})"
+    # 3. mirrored capi agent image to local registry
     if [ ! -z "$PROVIDER_IMAGE" ]
     then
-      export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/localimages/cluster-api-provider-agent:latest"
+      export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${PROVIDER_IMAGE})"
       oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
       export PROVIDER_IMAGE="${PROVIDER_LOCAL_IMAGE}"
     fi
-    # 5. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
+    # 4. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
     # registry). Note that older versions of OpenShift, before OpenShift 4.14, don't support this ImageDigestMirrorSet
     # object, instead they use the now deprecated ImageContentSourcePolicy. So we need to check which one is supported
     # by the server.
@@ -261,6 +257,20 @@ if [ $(oc get baremetalhost -n ${SPOKE_NAMESPACE} -o json | jq -c '.items[].meta
   oc get baremetalhost -n "${SPOKE_NAMESPACE}"
   return 1
 fi
+
+echo "Collecting state of Hypershift cluster before destroying"
+echo "HostedCluster"
+oc get hostedcluster -A -oyaml
+echo "NodePool"
+oc get nodepool -A -oyaml
+echo "AgentMachine"
+oc get agentmachine -A -oyaml
+echo "Agent"
+oc get agent -A -oyaml
+echo "InfraEnv"
+oc get infraenv -A -oyaml
+echo "BMH"
+oc get bmh -A -oyaml
 
 echo "Destroy the hosted cluster"
 hypershift_cli hypershift destroy cluster agent --name $ASSISTED_CLUSTER_NAME --namespace $SPOKE_NAMESPACE --cluster-grace-period 60m
