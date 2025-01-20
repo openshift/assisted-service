@@ -2459,7 +2459,7 @@ var _ = Describe("Validations test", func() {
 				Expect(status).To(Equal(ValidationError))
 				Expect(message).To(Equal(expectedMessage))
 			},
-			Entry("iSCSI is nil", nil, "iSCSI installation disk is missing host IP address"),
+			Entry("iSCSI is nil", nil, "iSCSI disk is missing host IP address"),
 			Entry("Host IP address is empty", &models.Iscsi{}, "Cannot find network interface associated to iSCSI host IP address"),
 			Entry("Host IP address is invalid", &models.Iscsi{HostIPAddress: "invalid"}, "Cannot find network interface associated to iSCSI host IP address"),
 		)
