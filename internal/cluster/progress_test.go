@@ -50,7 +50,13 @@ var _ = Describe("Progress bar test", func() {
 		mockOperatorApi = operators.NewMockAPI(ctrl)
 		mockDnsApi = dns.NewMockDNSApi(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
-			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, mockOperatorApi, nil, nil, mockDnsApi, nil, nil, false)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, mockOperatorApi, nil, nil, mockDnsApi, nil, nil, false, nil)
+
+		mockOperatorApi.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ *common.Cluster, previousOperators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+				return previousOperators, nil
+			},
+		).AnyTimes()
 	})
 
 	AfterEach(func() {

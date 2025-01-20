@@ -117,3 +117,13 @@ func executeTemplate(
 
 	return
 }
+
+func GetOperator(operators []*models.MonitoredOperator, operatorName string) *models.MonitoredOperator {
+	for _, o := range operators {
+		if o.Name == operatorName {
+			return o
+		}
+	}
+	return nil
+}
+
