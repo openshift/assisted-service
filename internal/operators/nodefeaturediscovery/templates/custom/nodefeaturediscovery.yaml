@@ -24,3 +24,26 @@ spec:
           - "12"
           deviceLabelFields:
           - "vendor"
+          - "device"
+        custom:
+        - name: amd-gpu
+          labels:
+            feature.node.kubernetes.io/amd-gpu: "true"
+          matchAny:
+          - matchFeatures:
+            - feature: pci.device
+              matchExpressions:
+                vendor:
+                  op: In
+                  value:
+                  - "1002"
+                device:
+                  op: In
+                  value:
+                  - "74a0" # MI300A
+                  - "74a1" # MI300X
+                  - "740f" # MI210
+                  - "7408" # MI250X
+                  - "740c" # MI250/MI250X
+                  - "738c" # MI100
+                  - "738e" # MI100
