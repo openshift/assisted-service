@@ -2,6 +2,7 @@ package nvidiagpu
 
 import (
 	"context"
+	"strings"
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
@@ -89,7 +90,66 @@ func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster)
 		Status:       api.Success,
 		ValidationId: o.GetClusterValidationID(),
 	}
+
+	// Check that there is at least one supported GPU:
+	if o.config.RequireGPU {
+		var gpuList []*models.Gpu
+		gpuList, err = o.gpusInCluster(cluster)
+		if err != nil {
+			return
+		}
+		var supportedGpuCount int64
+		for _, gpu := range gpuList {
+			if o.isSupportedGpu(gpu) {
+				supportedGpuCount++
+			}
+		}
+		if supportedGpuCount == 0 {
+			result.Reasons = append(
+				result.Reasons,
+				"The NVIDIA GPU operator requires at least one supported NVIDIA GPU, but there is "+
+					"none in the discovered hosts.",
+			)
+		}
+	}
+
+	if len(result.Reasons) > 0 {
+		result.Status = api.Failure
+	}
 	return
+}
+
+func (o *operator) gpusInCluster(cluster *common.Cluster) (result []*models.Gpu, err error) {
+	for _, host := range cluster.Hosts {
+		var gpus []*models.Gpu
+		gpus, err = o.gpusInHost(host)
+		if err != nil {
+			return
+		}
+		result = append(result, gpus...)
+	}
+	return
+}
+
+func (o *operator) gpusInHost(host *models.Host) (result []*models.Gpu, err error) {
+	if host.Inventory == "" {
+		return
+	}
+	inventory, err := common.UnmarshalInventory(host.Inventory)
+	if err != nil {
+		return
+	}
+	result = inventory.Gpus
+	return
+}
+
+func (o *operator) isSupportedGpu(gpu *models.Gpu) bool {
+	for _, supportedGpu := range o.config.SupportedGPUs {
+		if strings.EqualFold(gpu.VendorID, supportedGpu) {
+			return true
+		}
+	}
+	return false
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and CPU.
