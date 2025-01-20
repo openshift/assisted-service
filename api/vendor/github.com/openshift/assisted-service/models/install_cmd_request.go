@@ -38,6 +38,9 @@ type InstallCmdRequest struct {
 	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$
 	ControllerImage *string `json:"controller_image"`
 
+	// CoreOS container image to use if installing to the local device
+	CoreosImage string `json:"coreos_image,omitempty"`
+
 	// List of disks to format
 	DisksToFormat []string `json:"disks_to_format"`
 

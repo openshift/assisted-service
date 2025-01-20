@@ -32,7 +32,7 @@ var _ = Describe("disk_performance", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
-		dCmd = NewDiskPerfCheckCmd(common.GetTestLog(), "quay.io/example/agent:latest", mockValidator, 600)
+		dCmd = NewDiskPerfCheckCmd(common.GetTestLog(), "quay.io/example/agent:latest", mockValidator, 600, false)
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -54,6 +54,13 @@ var _ = Describe("disk_performance", func() {
 		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ToNot(HaveOccurred())
 		Expect(stepReply).To(BeNil())
+	})
+
+	It("returns no steps when installToExistingRoot is true", func() {
+		dCmd.installToExistingRoot = true
+		steps, err := dCmd.GetSteps(ctx, &host)
+		Expect(steps).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {

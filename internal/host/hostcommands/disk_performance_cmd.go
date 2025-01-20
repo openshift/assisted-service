@@ -15,21 +15,26 @@ import (
 
 type diskPerfCheckCmd struct {
 	baseCmd
-	hwValidator        hardware.Validator
-	diskPerfCheckImage string
-	timeoutSeconds     float64
+	hwValidator           hardware.Validator
+	diskPerfCheckImage    string
+	timeoutSeconds        float64
+	installToExistingRoot bool
 }
 
-func NewDiskPerfCheckCmd(log logrus.FieldLogger, diskPerfCheckImage string, hwValidator hardware.Validator, timeoutSeconds float64) *diskPerfCheckCmd {
+func NewDiskPerfCheckCmd(log logrus.FieldLogger, diskPerfCheckImage string, hwValidator hardware.Validator, timeoutSeconds float64, installToExistingRoot bool) *diskPerfCheckCmd {
 	return &diskPerfCheckCmd{
-		baseCmd:            baseCmd{log: log},
-		diskPerfCheckImage: diskPerfCheckImage,
-		hwValidator:        hwValidator,
-		timeoutSeconds:     timeoutSeconds,
+		baseCmd:               baseCmd{log: log},
+		diskPerfCheckImage:    diskPerfCheckImage,
+		hwValidator:           hwValidator,
+		timeoutSeconds:        timeoutSeconds,
+		installToExistingRoot: installToExistingRoot,
 	}
 }
 
 func (c *diskPerfCheckCmd) GetSteps(_ context.Context, host *models.Host) ([]*models.Step, error) {
+	if c.installToExistingRoot {
+		return nil, nil
+	}
 	bootDevice, err := hardware.GetBootDevice(c.hwValidator, host)
 	if err != nil {
 		return nil, err

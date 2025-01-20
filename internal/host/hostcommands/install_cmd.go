@@ -41,28 +41,31 @@ const (
 
 type installCmd struct {
 	baseCmd
-	db                  *gorm.DB
-	hwValidator         hardware.Validator
-	ocRelease           oc.Release
-	instructionConfig   InstructionConfig
-	eventsHandler       eventsapi.Handler
-	versionsHandler     versions.Handler
-	enableSkipMcoReboot bool
-	notifyNumReboots    bool
+	db                    *gorm.DB
+	hwValidator           hardware.Validator
+	ocRelease             oc.Release
+	instructionConfig     InstructionConfig
+	eventsHandler         eventsapi.Handler
+	versionsHandler       versions.Handler
+	enableSkipMcoReboot   bool
+	notifyNumReboots      bool
+	installToExistingRoot bool
 }
 
 func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
-	instructionConfig InstructionConfig, eventsHandler eventsapi.Handler, versionsHandler versions.Handler, enableSkipMcoReboot, notifyNumReboots bool) *installCmd {
+	instructionConfig InstructionConfig, eventsHandler eventsapi.Handler, versionsHandler versions.Handler,
+	enableSkipMcoReboot, notifyNumReboots, installToExistingRoot bool) *installCmd {
 	return &installCmd{
-		baseCmd:             baseCmd{log: log},
-		db:                  db,
-		hwValidator:         hwValidator,
-		ocRelease:           ocRelease,
-		instructionConfig:   instructionConfig,
-		eventsHandler:       eventsHandler,
-		versionsHandler:     versionsHandler,
-		enableSkipMcoReboot: enableSkipMcoReboot,
-		notifyNumReboots:    notifyNumReboots,
+		baseCmd:               baseCmd{log: log},
+		db:                    db,
+		hwValidator:           hwValidator,
+		ocRelease:             ocRelease,
+		instructionConfig:     instructionConfig,
+		eventsHandler:         eventsHandler,
+		versionsHandler:       versionsHandler,
+		enableSkipMcoReboot:   enableSkipMcoReboot,
+		notifyNumReboots:      notifyNumReboots,
+		installToExistingRoot: installToExistingRoot,
 	}
 }
 
@@ -149,6 +152,15 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		if err != nil {
 			return "", err
 		}
+
+		if i.installToExistingRoot {
+			request.CoreosImage, err = i.ocRelease.GetCoreOSImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+			if err != nil {
+				return "", err
+			}
+			i.log.Infof("installing to disk with CoreOS image %s", request.CoreosImage)
+		}
+
 		i.log.Infof("Install command releaseImage: %s, mcoImage: %s", *releaseImage.URL, request.McoImage)
 
 		mustGatherMap, err := i.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)

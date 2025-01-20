@@ -33,6 +33,7 @@ const (
 	ironicAgentImageName           = "ironic-agent"
 	mustGatherImageName            = "must-gather"
 	okdRPMSImageName               = "okd-rpms"
+	coreosImageName                = "rhel-coreos"
 	DefaultTries                   = 5
 	DefaltRetryDelay               = time.Second * 5
 	staticInstallerRequiredVersion = "4.16.0-0.alpha"
@@ -57,6 +58,7 @@ type Release interface {
 	GetIronicAgentImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetOKDRPMSImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
+	GetCoreOSImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) ([]string, error)
@@ -120,6 +122,11 @@ func (r *release) GetOKDRPMSImage(log logrus.FieldLogger, releaseImage string, r
 // GetMustGatherImage gets must-gather image URL from the release image or releaseImageMirror, if provided.
 func (r *release) GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
 	return r.getImageByName(log, mustGatherImageName, releaseImage, releaseImageMirror, pullSecret)
+}
+
+// GetCoreOSImage gets rhel-coreos image URL from the release image or releaseImageMirror, if provided.
+func (r *release) GetCoreOSImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
+	return r.getImageByName(log, coreosImageName, releaseImage, releaseImageMirror, pullSecret)
 }
 
 func (r *release) getImageByName(log logrus.FieldLogger, imageName, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
