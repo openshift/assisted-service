@@ -507,6 +507,7 @@ func (feature *UserManagedLoadBalancerFeature) getIncompatibleFeatures(string) *
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 		models.FeatureSupportLevelIDDUALSTACK,
 		models.FeatureSupportLevelIDDUALSTACKVIPS,
+		models.FeatureSupportLevelIDSNO,
 	}
 }
 

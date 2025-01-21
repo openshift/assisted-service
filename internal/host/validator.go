@@ -751,6 +751,8 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 		return ValidationFailure
 	}
 
+	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
+	//           entries using the same IP stack.
 	areNetworksEqual := func(ipnet1, ipnet2 *net.IPNet) bool {
 		return ipnet1.IP.Equal(ipnet2.IP) && bytes.Equal(ipnet1.Mask, ipnet2.Mask)
 	}
@@ -771,31 +773,16 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 		return nil
 	}
 
-	// For cluster-managed load balancer, each machine network should be a majority group.
-	// For user-managed load balancer, it is sufficient to have at least one machine network as majority group.
 	for _, machineNet := range c.cluster.MachineNetworks {
 		_, machineIpnet, err := net.ParseCIDR(string(machineNet.Cidr))
 		if err != nil {
 			return ValidationError
 		}
 		if !funk.Contains(groupForNetwork(machineIpnet), *c.host.ID) {
-			if network.IsLoadBalancerUserManaged(c.cluster) {
-				continue
-			}
 			return ValidationFailure
-		} else {
-			if network.IsLoadBalancerUserManaged(c.cluster) {
-				return ValidationSuccess
-			}
 		}
 	}
 
-	// We haven't found any machine network which is a majority group
-	if network.IsLoadBalancerUserManaged(c.cluster) {
-		return ValidationFailure
-	}
-
-	// all machine networks are a majority group
 	return ValidationSuccess
 }
 
@@ -845,7 +832,7 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) (ValidationStat
 	}
 
 	var status ValidationStatus
-	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) || network.IsLoadBalancerUserManaged(c.cluster) {
 		status = v.belongsToL3MajorityGroup(c, connectivity)
 	} else {
 		status = v.belongsToL2MajorityGroup(c, connectivity.MajorityGroups)

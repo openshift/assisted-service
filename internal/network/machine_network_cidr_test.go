@@ -2,8 +2,10 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
+	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -700,7 +702,6 @@ var _ = Describe("inventory", func() {
 	})
 
 	Context("IsHostInAllMachineNetworksCidr", func() {
-
 		var log logrus.FieldLogger
 
 		BeforeEach(func() {
@@ -723,6 +724,7 @@ var _ = Describe("inventory", func() {
 			Entry("Host doesn't belong to all machine network CIDRs", []*models.Interface{createInterface("1.2.3.4/24")}, []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "2001:db8::a1/120"}}, false),
 		)
 	})
+
 	Context("IsInterfaceInPrimaryMachineNetCidr", func() {
 
 		var log logrus.FieldLogger
@@ -747,7 +749,242 @@ var _ = Describe("inventory", func() {
 			Entry("Interface doesn't belong to any machine network CIDRs", createInterface("1.2.3.4/24", "2001:db8::a1/48"), []*models.MachineNetwork{{Cidr: "5.6.7.8/24"}, {Cidr: "2001:db9::/48"}}, false),
 		)
 	})
+
+	Context("SetBootStrapHostIPRelatedMachineNetworkFirst", func() {
+		var (
+			log    *logrus.Logger
+			logger logrus.FieldLogger
+		)
+
+		BeforeEach(func() {
+			log = logrus.New()
+			logger = log
+		})
+
+		Context("Error Scenarios", func() {
+			It("should return error when cluster is nil", func() {
+				machineNets, err := SetBootStrapHostIPRelatedMachineNetworkFirst(nil, logger)
+				Expect(machineNets).To(BeNil())
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("given cluster is nil"))
+			})
+
+			It("should return error when cluster.ID is nil", func() {
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						MachineNetworks: []*models.MachineNetwork{createMachineNetwork("1.2.3.0/24")},
+					},
+				}
+
+				machineNets, err := SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, logger)
+				Expect(machineNets).To(Equal(cluster.MachineNetworks))
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("given cluster ID is nil"))
+			})
+
+			It("should return error when no bootstrap host is found", func() {
+				clusterID := strToUUID("01234567-89ab-cdef-0123-456789abcdef")
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:              clusterID,
+						MachineNetworks: []*models.MachineNetwork{createMachineNetwork("1.2.3.0/24")},
+						Hosts:           []*models.Host{createHost(false, []string{"1.2.3.10/24"}, nil)},
+					},
+				}
+				machineNets, err := SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, logger)
+				Expect(machineNets).To(Equal(cluster.MachineNetworks))
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("cluster %s has no bootstrap host", clusterID.String())))
+			})
+
+			It("should return error if machine network CIDR is invalid (parse error)", func() {
+				clusterID := strToUUID("22234567-89ab-cdef-0123-456789abcdef")
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID: clusterID,
+						MachineNetworks: []*models.MachineNetwork{
+							createMachineNetwork("not-a-valid-cidr"),
+							createMachineNetwork("1.2.3.0/24"),
+						},
+						Hosts: []*models.Host{
+							createHost(true, []string{"1.2.3.10/24"}, nil),
+						},
+					},
+				}
+				machineNets, err := SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, logger)
+
+				Expect(machineNets).To(Equal(cluster.MachineNetworks))
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("failed to parse machine cidr: not-a-valid-cidr"))
+			})
+
+			It("should return error if no machine network matches the bootstrap host IP", func() {
+				clusterID := strToUUID("33334567-89ab-cdef-0123-456789abcdef")
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID: clusterID,
+						MachineNetworks: []*models.MachineNetwork{
+							createMachineNetwork("10.10.0.0/24"),
+							createMachineNetwork("192.168.100.0/24"),
+						},
+						Hosts: []*models.Host{
+							createHost(true, []string{"172.16.0.10/24"}, nil),
+						},
+					},
+				}
+				machineNets, err := SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, logger)
+				Expect(machineNets).To(Equal(cluster.MachineNetworks))
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("none of the machine network cidrs contain any of the bootstrap host IPs"))
+			})
+		})
+
+		Context("Success Scenarios", func() {
+			It("should do nothing if the matched machine network is already the first in the list", func() {
+				clusterID := strToUUID("44434567-89ab-cdef-0123-456789abcdef")
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID: clusterID,
+						MachineNetworks: []*models.MachineNetwork{
+							createMachineNetwork("1.2.3.0/24"),
+							createMachineNetwork("192.168.100.0/24"),
+						},
+						Hosts: []*models.Host{
+							createHost(true, []string{"1.2.3.10/24"}, nil),
+						},
+					},
+				}
+
+				newNets, err := SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(newNets).To(Equal(cluster.MachineNetworks))
+			})
+
+			It("should move the matched machine network to first position if it is last", func() {
+				clusterID := strToUUID("55534567-89ab-cdef-0123-456789abcdef")
+				net1 := createMachineNetwork("1.2.3.0/24")
+				net2 := createMachineNetwork("192.168.100.0/24")
+				net3 := createMachineNetwork("10.10.10.0/24")
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:              clusterID,
+						MachineNetworks: []*models.MachineNetwork{net1, net2, net3},
+						Hosts: []*models.Host{
+							createHost(true, []string{"10.10.10.55/24"}, nil),
+						},
+					},
+				}
+
+				newNets, err := SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(newNets)).To(Equal(3))
+				Expect(newNets[0]).To(Equal(net3))
+				Expect(newNets[1]).To(Equal(net1))
+				Expect(newNets[2]).To(Equal(net2))
+			})
+
+			It("should move the matched machine network to first position if it is in the middle", func() {
+				clusterID := strToUUID("66634567-89ab-cdef-0123-456789abcdef")
+				net1 := createMachineNetwork("1.2.3.0/24")
+				net2 := createMachineNetwork("192.168.100.0/24")
+				net3 := createMachineNetwork("10.10.10.0/24")
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:              clusterID,
+						MachineNetworks: []*models.MachineNetwork{net1, net2, net3},
+						Hosts: []*models.Host{
+							createHost(true, []string{"192.168.100.20/24"}, nil),
+						},
+					},
+				}
+
+				newNets, err := SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(newNets)).To(Equal(3))
+
+				Expect(newNets[0]).To(Equal(net2))
+				Expect(newNets[1]).To(Equal(net1))
+				Expect(newNets[2]).To(Equal(net3))
+			})
+
+			It("should handle nil machine network entries gracefully (skip them)", func() {
+				clusterID := strToUUID("77734567-89ab-cdef-0123-456789abcdef")
+				net1 := createMachineNetwork("1.2.3.0/24")
+
+				var netNil *models.MachineNetwork
+				net3 := createMachineNetwork("10.10.10.0/24")
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:              clusterID,
+						MachineNetworks: []*models.MachineNetwork{net1, netNil, net3},
+						Hosts: []*models.Host{
+							createHost(true, []string{"10.10.10.55/24"}, nil),
+						},
+					},
+				}
+
+				newNets, err := SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(newNets)).To(Equal(3))
+
+				Expect(newNets[0]).To(Equal(net3))
+				Expect(newNets[1]).To(Equal(net1))
+				Expect(newNets[2]).To(BeNil())
+			})
+
+			Context("Edge Cases", func() {
+				It("multiple networks match the bootstrap host's IP (it will pick the last match)", func() {
+					clusterID := strToUUID("88834567-89ab-cdef-0123-456789abcdef")
+					net1 := createMachineNetwork("1.2.0.0/16")
+					net2 := createMachineNetwork("1.2.3.0/24")
+					net3 := createMachineNetwork("192.168.0.0/24")
+					cluster := &common.Cluster{
+						Cluster: models.Cluster{
+							ID:              clusterID,
+							MachineNetworks: []*models.MachineNetwork{net1, net2, net3},
+							Hosts: []*models.Host{
+								createHost(true, []string{"1.2.3.4/24"}, nil),
+							},
+						},
+					}
+
+					newNets, err := SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, logger)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(len(newNets)).To(Equal(3))
+					Expect(newNets[0]).To(Equal(net2))
+					Expect(newNets[1]).To(Equal(net1))
+					Expect(newNets[2]).To(Equal(net3))
+				})
+			})
+		})
+	})
 })
+
+func strToUUID(uuidStr string) *strfmt.UUID {
+	uid := strfmt.UUID(uuidStr)
+	return &uid
+}
+
+func createMachineNetwork(cidr string) *models.MachineNetwork {
+	return &models.MachineNetwork{Cidr: models.Subnet(cidr)}
+}
+
+func createHost(bootstrap bool, ipv4Addresses, ipv6Addresses []string) *models.Host {
+	inv := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name:          "test-nic",
+				IPV4Addresses: ipv4Addresses,
+				IPV6Addresses: ipv6Addresses,
+			},
+		},
+	}
+	invBytes, _ := json.Marshal(&inv)
+	return &models.Host{
+		Bootstrap: bootstrap,
+		Inventory: string(invBytes),
+	}
+}
 
 func TestMachineNetworkCidr(t *testing.T) {
 	RegisterFailHandler(Fail)
