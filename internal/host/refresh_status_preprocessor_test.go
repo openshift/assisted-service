@@ -77,6 +77,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 			disabledHostValidations,
 			mockProviderRegistry,
 			mockVersions,
+			false,
 		)
 	})
 
