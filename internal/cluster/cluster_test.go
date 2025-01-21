@@ -51,6 +51,14 @@ func getDefaultConfig() Config {
 	return cfg
 }
 
+func mockNoChangeInOperatorDependencies(mock *operators.MockAPI) {
+	mock.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ *common.Cluster, previousOperators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+			return previousOperators, nil
+		},
+	).AnyTimes()
+}
+
 var _ = Describe("stateMachine", func() {
 	var (
 		ctx                = context.Background()
@@ -73,6 +81,8 @@ var _ = Describe("stateMachine", func() {
 		mockOperators = operators.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), nil, mockEventsUploader, nil, nil, nil, dummy, mockOperators, nil, mockS3Client, nil, nil, nil, false)
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -165,6 +175,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 		mockEventsUploader.EXPECT().UploadEvents(gomock.Any(), &id, mockEvents).AnyTimes()
 		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockMetric.EXPECT().MonitoredClusterCount(int64(1)).AnyTimes()
+		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
@@ -767,6 +778,7 @@ var _ = Describe("lease timeout event", func() {
 
 		mockMetric.EXPECT().MonitoredClusterCount(int64(1)).AnyTimes()
 		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
+		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
@@ -892,6 +904,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 
 		mockMetric.EXPECT().MonitoredClusterCount(int64(1)).AnyTimes()
 		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
+		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
@@ -1463,6 +1476,8 @@ var _ = Describe("VerifyRegisterHost", func() {
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
 			nil, nil, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false)
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -1526,6 +1541,8 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
 			nil, nil, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false)
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -1586,6 +1603,8 @@ var _ = Describe("CancelInstallation", func() {
 			ID:         &id,
 			Status:     swag.String(models.ClusterStatusInsufficient),
 			StatusInfo: swag.String(StatusInfoInsufficient)}}
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -1664,6 +1683,8 @@ var _ = Describe("ResetCluster", func() {
 		dummy := &leader.DummyElector{}
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), eventsHandler, nil, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false)
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -1904,6 +1925,8 @@ var _ = Describe("PrepareForInstallation", func() {
 		mockOperators := operators.NewMockAPI(ctrl)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEventsHandler, nil, nil, mockMetric, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false)
 		clusterId = strfmt.UUID(uuid.New().String())
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -2005,6 +2028,8 @@ var _ = Describe("HandlePreInstallationChanges", func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 		cluster := &common.Cluster{Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusPreparingForInstallation)}}
 		Expect(db.Create(cluster).Error).ShouldNot(HaveOccurred())
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -2080,6 +2105,8 @@ var _ = Describe("SetVipsData", func() {
 		mockOperators := operators.NewMockAPI(ctrl)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false)
 		clusterId = strfmt.UUID(uuid.New().String())
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -2282,6 +2309,7 @@ var _ = Describe("Majority groups", func() {
 
 		mockMetricApi.EXPECT().MonitoredClusterCount(int64(1)).AnyTimes()
 		mockMetricApi.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
+		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
@@ -2390,6 +2418,8 @@ var _ = Describe("validate vips response", func() {
 		ingressV4Vip = "1.2.3.6"
 		apiV6Vip = "1001:db8::100"
 		ingressV6Vip = "1001:db8::101"
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	createPayload := func(response models.VerifyVipsResponse) string {
@@ -2610,6 +2640,7 @@ var _ = Describe("ready_state", func() {
 			eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
 			eventstest.WithClusterIdMatcher(cluster.ID.String()))).AnyTimes()
 
+		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
@@ -2714,6 +2745,7 @@ var _ = Describe("insufficient_state", func() {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName),
 			eventstest.WithClusterIdMatcher(id.String()))).AnyTimes()
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -2765,6 +2797,8 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 			},
 		}
 		Expect(db.Create(&cl).Error).NotTo(HaveOccurred())
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -2888,6 +2922,7 @@ var _ = Describe("Cluster tarred files", func() {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 		mockManifestApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil)
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -3000,6 +3035,8 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 			Status: swag.String(models.ClusterStatusReady),
 		}}
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+
+		mockNoChangeInOperatorDependencies(mockOperatorMgr)
 	})
 
 	AfterEach(func() {
@@ -3125,6 +3162,8 @@ var _ = Describe("Deregister inactive clusters", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), eventsHandler, nil, nil, mockMetric, nil, dummy, mockOperators, nil, mockS3Client, nil, nil, nil, false)
 		c = registerCluster()
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -3268,6 +3307,8 @@ var _ = Describe("Permanently delete clusters", func() {
 		c1 = registerCluster()
 		c2 = registerCluster()
 		c3 = registerCluster()
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -3329,6 +3370,8 @@ var _ = Describe("Get cluster by Kube key", func() {
 			Namespace: kubeKeyNamespace,
 			Name:      kubeKeyName,
 		}
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -3937,6 +3980,8 @@ var _ = Describe("detectAndStoreCollidingIPsForCluster(cluster *common.Cluster, 
 		ctrl = gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false)
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -4016,6 +4061,8 @@ var _ = Describe("UploadEvents", func() {
 		mockOperators := operators.NewMockAPI(ctrl)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, mockEventsHandler, mockEventsUploader, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false)
 		mockEventsUploader.EXPECT().IsEnabled().Return(true).AnyTimes()
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
@@ -4118,6 +4165,8 @@ var _ = Describe("ResetClusterFiles", func() {
 		mockManifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
 		mockObjectHandler = s3wrapper.NewMockAPI(ctrl)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, dummy, mockOperators, nil, mockObjectHandler, nil, nil, mockManifestsApi, false)
+
+		mockNoChangeInOperatorDependencies(mockOperators)
 	})
 
 	AfterEach(func() {
