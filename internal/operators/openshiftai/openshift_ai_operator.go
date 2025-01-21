@@ -7,9 +7,11 @@ import (
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/authorino"
+	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/pipelines"
@@ -27,6 +29,7 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "rhods-operator",
 	TimeoutSeconds:   30 * 60,
+	Bundles:          pq.StringArray{operatorscommon.BundleOpenshiftai},
 }
 
 // operator is an OpenShift AI OLM operator plugin.
@@ -312,4 +315,9 @@ func (o *operator) GetSupportedArchitectures() []string {
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDOPENSHIFTAI
+}
+
+// GetBundleLabels returns the bundle labels for the LSO operator
+func (l *operator) GetBundleLabels() []string {
+	return []string(Operator.Bundles)
 }

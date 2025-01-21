@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
@@ -37,6 +39,7 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "hco-operatorhub",
 	TimeoutSeconds:   60 * 60,
+	Bundles:          pq.StringArray{operatorscommon.BundleVirtualization},
 }
 
 // NewCNVOperator creates new instance of a Container Native Virtualization installation plugin
@@ -332,4 +335,9 @@ func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string, d
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDCNV
+}
+
+// GetBundleLabels returns the bundle labels for the Authorino operator
+func (o *operator) GetBundleLabels() []string {
+	return []string(Operator.Bundles)
 }

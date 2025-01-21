@@ -103,3 +103,8 @@ func (l *lsOperator) GetPreflightRequirements(context context.Context, cluster *
 func (l *lsOperator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDLSO
 }
+
+// GetBundleLabels returns the bundle labels for the LSO operator
+func (l *lsOperator) GetBundleLabels() []string {
+	return []string(Operator.Bundles)
+}

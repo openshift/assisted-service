@@ -5,8 +5,10 @@ import (
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -18,6 +20,7 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "serverless-operator",
 	TimeoutSeconds:   30 * 60,
+	Bundles:          pq.StringArray{operatorscommon.BundleOpenshiftai},
 }
 
 // operator is an serverless OLM operator plugin.
@@ -137,4 +140,8 @@ func (o *operator) GetPreflightRequirements(context context.Context,
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDSERVERLESS
+}
+
+func (o *operator) GetBundleLabels() []string {
+	return []string(Operator.Bundles)
 }

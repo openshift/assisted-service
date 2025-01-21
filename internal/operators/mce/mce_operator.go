@@ -53,6 +53,7 @@ func (o *operator) GetName() string {
 	return Operator.Name
 }
 
+// GetFullName reports the full name of the Operator.
 func (o *operator) GetFullName() string {
 	return "multicluster engine"
 }
@@ -214,4 +215,9 @@ func GetMinDiskSizeGB(cluster *models.Cluster) int64 {
 		return lo.Sum(lo.Values(storageSizeGi))
 	}
 	return lo.Max(lo.Values(storageSizeGi))
+}
+
+// GetBundleLabels returns the bundle labels for the LSO operator
+func (l *operator) GetBundleLabels() []string {
+	return []string(Operator.Bundles)
 }

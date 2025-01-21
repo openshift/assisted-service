@@ -79,6 +79,21 @@ func (mr *MockAPIMockRecorder) GenerateManifests(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateManifests", reflect.TypeOf((*MockAPI)(nil).GenerateManifests), arg0, arg1)
 }
 
+// GetBundle mocks base method.
+func (m *MockAPI) GetBundle(arg0 string) (*models.Bundle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBundle", arg0)
+	ret0, _ := ret[0].(*models.Bundle)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBundle indicates an expected call of GetBundle.
+func (mr *MockAPIMockRecorder) GetBundle(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBundle", reflect.TypeOf((*MockAPI)(nil).GetBundle), arg0)
+}
+
 // GetMonitoredOperatorsList mocks base method.
 func (m *MockAPI) GetMonitoredOperatorsList() map[string]*models.MonitoredOperator {
 	m.ctrl.T.Helper()
@@ -179,6 +194,20 @@ func (m *MockAPI) GetSupportedOperatorsByType(arg0 models.OperatorType) []*model
 func (mr *MockAPIMockRecorder) GetSupportedOperatorsByType(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedOperatorsByType", reflect.TypeOf((*MockAPI)(nil).GetSupportedOperatorsByType), arg0)
+}
+
+// ListBundles mocks base method.
+func (m *MockAPI) ListBundles() []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBundles")
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// ListBundles indicates an expected call of ListBundles.
+func (mr *MockAPIMockRecorder) ListBundles() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBundles", reflect.TypeOf((*MockAPI)(nil).ListBundles))
 }
 
 // ResolveDependencies mocks base method.
