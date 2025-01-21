@@ -656,13 +656,121 @@ var _ = Describe("createHostIgnitions", func() {
 			config, _, err := config_32.Parse(ignBytes)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Validating nodeip hint was not added")
+			By("Validating nodeip hint was added")
 			var f *config_32_types.File
 			for fileidx, file := range config.Storage.Files {
 				if file.Node.Path == nodeIpHintFile {
 					f = &config.Storage.Files[fileidx]
 					Expect(*f.Node.User.Name).To(Equal("root"))
 					Expect(*f.FileEmbedded1.Contents.Source).To(Equal(fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", "3.3.3.0")))
+					Expect(*f.FileEmbedded1.Mode).To(Equal(420))
+					Expect(*f.Node.Overwrite).To(Equal(true))
+				}
+			}
+		}
+	})
+
+	It("user-managed load balancer: expect hint to be created when node-ip allocations exist", func() {
+		cluster.Hosts = []*models.Host{
+			{
+				RequestedHostname: "master0.example.com",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				RequestedHostname: "master1.example.com",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				RequestedHostname: "master2.example.com",
+				Role:              models.HostRoleMaster,
+			},
+		}
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged}
+
+		// create an ID for each host
+		for _, host := range cluster.Hosts {
+			id := strfmt.UUID(uuid.New().String())
+			host.ID = &id
+		}
+
+		g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5, manifestsAPI, eventsHandler).(*installerGenerator)
+		g.nodeIpAllocations = make(map[strfmt.UUID]*network.NodeIpAllocation)
+
+		for i, h := range cluster.Hosts {
+			g.nodeIpAllocations[*h.ID] = &network.NodeIpAllocation{
+				NodeIp: fmt.Sprintf("3.3.3.%d", i+1),
+				HintIp: "3.3.3.0",
+				Cidr:   "3.3.3.0/24",
+			}
+		}
+		err := g.createHostIgnitions()
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, host := range cluster.Hosts {
+			ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", host.Role, host.ID)))
+			Expect(err).NotTo(HaveOccurred())
+			config, _, err := config_32.Parse(ignBytes)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Validating nodeip hint was added")
+			var f *config_32_types.File
+			for fileidx, file := range config.Storage.Files {
+				if file.Node.Path == nodeIpHintFile {
+					f = &config.Storage.Files[fileidx]
+					Expect(*f.Node.User.Name).To(Equal("root"))
+					Expect(*f.FileEmbedded1.Contents.Source).To(Equal(fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", "3.3.3.0")))
+					Expect(*f.FileEmbedded1.Mode).To(Equal(420))
+					Expect(*f.Node.Overwrite).To(Equal(true))
+				}
+			}
+		}
+	})
+
+	It("cluster-managed load balancer: expect hint to be created when node-ip allocations exist", func() {
+		cluster.Hosts = []*models.Host{
+			{
+				RequestedHostname: "master0.example.com",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				RequestedHostname: "master1.example.com",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				RequestedHostname: "master2.example.com",
+				Role:              models.HostRoleMaster,
+			},
+		}
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged}
+		cluster.MachineNetworks = []*models.MachineNetwork{
+			{Cidr: "192.168.127.0/24"},
+		}
+
+		// create an ID for each host
+		for _, host := range cluster.Hosts {
+			id := strfmt.UUID(uuid.New().String())
+			host.ID = &id
+		}
+
+		g := NewGenerator(workDir, "", cluster, "", "", "", "", nil, logrus.New(), nil, "", "", 5, manifestsAPI, eventsHandler).(*installerGenerator)
+		err := g.createHostIgnitions()
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, host := range cluster.Hosts {
+			ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", host.Role, host.ID)))
+			Expect(err).NotTo(HaveOccurred())
+			config, _, err := config_32.Parse(ignBytes)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Validating nodeip hint was not added")
+			var f *config_32_types.File
+			for fileidx, file := range config.Storage.Files {
+				if file.Node.Path == nodeIpHintFile {
+					f = &config.Storage.Files[fileidx]
+					Expect(*f.Node.User.Name).To(Equal("root"))
+					Expect(*f.FileEmbedded1.Contents.Source).To(Equal(fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", "192.168.127.0")))
 					Expect(*f.FileEmbedded1.Mode).To(Equal(420))
 					Expect(*f.Node.Overwrite).To(Equal(true))
 				}
@@ -1562,6 +1670,25 @@ var _ = Describe("Set kubelet node ip", func() {
 	It("UMN platform bootstrap kubelet ip should be set when node-ip-allocations exist", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		generator.nodeIpAllocations = map[strfmt.UUID]*network.NodeIpAllocation{
+			*cluster.Hosts[0].ID: {
+				NodeIp: "192.168.126.11",
+				HintIp: "192.168.126.0",
+				Cidr:   "192.168.126.0/24",
+			},
+		}
+		basicEnvVars, err = generator.addBootstrapKubeletIpIfRequired(generator.log, basicEnvVars)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(basicEnvVars).Should(ContainElement("OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP=192.168.126.11"))
+	})
+	It("cluster-managed load balancer - bootstrap kubelet ip should be set when machine networks exist", func() {
+		cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged}
+		basicEnvVars, err = generator.addBootstrapKubeletIpIfRequired(generator.log, basicEnvVars)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(basicEnvVars).Should(ContainElement("OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP=192.168.126.10"))
+	})
+	It("user-managed load balancer - bootstrap kubelet ip should be set when node-ip-allocations exist", func() {
+		cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged}
 		generator.nodeIpAllocations = map[strfmt.UUID]*network.NodeIpAllocation{
 			*cluster.Hosts[0].ID: {
 				NodeIp: "192.168.126.11",

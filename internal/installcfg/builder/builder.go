@@ -8,9 +8,11 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
@@ -241,6 +243,19 @@ func (i *installConfigBuilder) applyConfigOverrides(overrides string, cfg *insta
 }
 
 func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) (*installcfg.InstallerConfigBaremetal, error) {
+	// We need to ensure the first machine network CIDR containing one of the bootstrap host IPs.
+	// This is necessary because the cluster-etcd-operator component relies on this specific configuration.
+	// In most flows this is indirectly happens, but for cluster with user-managed load balancer there might
+	// be more than one machine network for the nodes, which requires manual set.
+	// reference - https://github.com/openshift/cluster-etcd-operator/blob/cee7f9bbea0fce240a74872e3c3baf069bc5eaac/pkg/cmd/render/render.go#L490
+	if network.IsLoadBalancerUserManaged(cluster) {
+		var err error
+		cluster.MachineNetworks, err = network.SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, i.log)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to set the bootstap host related machine network as the first machine network element")
+		}
+	}
+
 	cfg, err := i.getBasicInstallConfig(cluster)
 	if err != nil {
 		return nil, err

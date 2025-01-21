@@ -106,6 +106,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "master",
 			Inventory: getInventoryStr("hostname0", "bootMode", true, true),
+			Bootstrap: true,
 		}
 		id = strfmt.UUID(uuid.New().String())
 		host2 = models.Host{
@@ -673,6 +674,46 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		assertBaremetalHostBMCConfig(result)
+	})
+
+	It("cluster-managed load balancer should not move bootstrap host machine network to the first element", func() {
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+
+		cluster.MachineNetworks = []*models.MachineNetwork{
+			{Cidr: "1.2.4.0/24"},
+			{Cidr: "1.2.3.0/24"},
+		}
+		cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged}
+
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(result.Networking.MachineNetwork).To(HaveLen(2))
+		Expect(result.Networking.MachineNetwork[0].Cidr).To(Equal("1.2.4.0/24"))
+	})
+
+	It("user-managed load balancer should move bootstrap host machine network to the first element", func() {
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+
+		cluster.MachineNetworks = []*models.MachineNetwork{
+			{Cidr: "1.2.4.0/24"},
+			{Cidr: "1.2.3.0/24"},
+		}
+		cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged}
+
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(result.Networking.MachineNetwork).To(HaveLen(2))
+		Expect(result.Networking.MachineNetwork[0].Cidr).To(Equal("1.2.3.0/24"))
 	})
 
 	Context("networking", func() {

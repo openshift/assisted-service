@@ -263,7 +263,7 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			cluster.Platform = createBaremetalPlatformParams()
 			err := providerRegistry.AddPlatformToInstallConfig(&cfg, &cluster, nil)
 			Expect(err).ToNot(BeNil())
-			Expect(err.Error()).Should(ContainSubstring("Failed to find a network interface matching machine network"))
+			Expect(err.Error()).Should(ContainSubstring("Failed to find a network interface matching any machine network"))
 		})
 		It("fails for cluster without machine networks", func() {
 			cfg := getInstallerConfigBaremetal()
