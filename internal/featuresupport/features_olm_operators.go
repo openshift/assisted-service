@@ -3,6 +3,7 @@ package featuresupport
 import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 )
@@ -101,6 +102,9 @@ func (feature *LvmFeature) getIncompatibleArchitectures(_ *string) *[]models.Arc
 		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
 	}
 }
+func (feature *LvmFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // OdfFeature
 type OdfFeature struct{}
@@ -143,6 +147,9 @@ func (feature *OdfFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 		return activeLevelActive
 	}
 	return activeLevelNotActive
+}
+func (feature *OdfFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // CnvFeature
@@ -201,6 +208,32 @@ func (feature *CnvFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	}
 	return activeLevelNotActive
 }
+func (feature *CnvFeature) getFeatureDependencies(cluster *common.Cluster) []models.FeatureSupportLevelID {
+
+	// Disable lso for ARM deployment as it's not supported
+	// to allow CNV ARM operator
+	if cluster.CPUArchitecture == common.ARM64CPUArchitecture || cluster.CPUArchitecture == common.MultiCPUArchitecture {
+		return []models.FeatureSupportLevelID{}
+	}
+
+	if cluster.OpenshiftVersion == "" {
+		return []models.FeatureSupportLevelID{
+			models.FeatureSupportLevelIDLSO,
+		}
+	}
+
+	// SNO
+	if common.IsSingleNodeCluster(cluster) {
+		if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion); isGreaterOrEqual {
+			return []models.FeatureSupportLevelID{
+				models.FeatureSupportLevelIDLVM,
+			}
+		}
+	}
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDLSO,
+	}
+}
 
 // LsoFeature
 type LsoFeature struct{}
@@ -240,6 +273,9 @@ func (feature *LsoFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 		return activeLevelActive
 	}
 	return activeLevelNotActive
+}
+func (feature *LsoFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // MceFeature
@@ -289,6 +325,9 @@ func (feature *MceFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 		return activeLevelActive
 	}
 	return activeLevelNotActive
+}
+func (feature *MceFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // MtvFeature
@@ -344,6 +383,11 @@ func (feature *MtvFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	}
 	return activeLevelNotActive
 }
+func (feature *MtvFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDCNV,
+	}
+}
 
 // NodeFeatureDiscoveryFeature describes the support for the node feature discovery operator.
 type NodeFeatureDiscoveryFeature struct{}
@@ -389,6 +433,9 @@ func (f *NodeFeatureDiscoveryFeature) getFeatureActiveLevel(cluster *common.Clus
 	}
 	return activeLevelNotActive
 }
+func (feature *NodeFeatureDiscoveryFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // NvidiaGPUFeature describes the support for the NVIDIA GPU operator.
 type NvidiaGPUFeature struct{}
@@ -431,6 +478,9 @@ func (f *NvidiaGPUFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	}
 	return activeLevelNotActive
 }
+func (feature *NvidiaGPUFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // PipelinesFeature describes the support for the pipelines operator.
 type PipelinesFeature struct{}
@@ -468,6 +518,9 @@ func (f *PipelinesFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 		return activeLevelActive
 	}
 	return activeLevelNotActive
+}
+func (feature *PipelinesFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // ServiceMeshFeature describes the support for the service mesh operator.
@@ -507,6 +560,9 @@ func (f *ServiceMeshFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *m
 	}
 	return activeLevelNotActive
 }
+func (feature *ServiceMeshFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // ServerLessFeature describes the support for the serverless operator.
 type ServerLessFeature struct{}
@@ -544,6 +600,9 @@ func (f *ServerLessFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mo
 		return activeLevelActive
 	}
 	return activeLevelNotActive
+}
+func (feature *ServerLessFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // OpenShiftAPIFeature describes the support for the OpenShift API operator.
@@ -596,6 +655,9 @@ func (f *OpenShiftAIFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *m
 	}
 	return activeLevelNotActive
 }
+func (feature *OpenShiftAIFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // AuthorinoFeature describes the support for the Authorino operator.
 type AuthorinoFeature struct{}
@@ -631,6 +693,9 @@ func (f *AuthorinoFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 		return activeLevelActive
 	}
 	return activeLevelNotActive
+}
+func (feature *AuthorinoFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // OscFeature
@@ -685,4 +750,7 @@ func (feature *OscFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 		return activeLevelActive
 	}
 	return activeLevelNotActive
+}
+func (feature *OscFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }

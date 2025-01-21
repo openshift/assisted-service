@@ -61,6 +61,10 @@ func (feature *VipAutoAllocFeature) getFeatureActiveLevel(cluster *common.Cluste
 	return activeLevelNotActive
 }
 
+func (feature *VipAutoAllocFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
+
 // ClusterManagedNetworkingFeature - DEPRECATED
 type ClusterManagedNetworkingFeature struct {
 	umnFeature UserManagedNetworkingFeature
@@ -134,6 +138,9 @@ func (feature *ClusterManagedNetworkingFeature) getIncompatibleFeatures(string) 
 		models.FeatureSupportLevelIDEXTERNALPLATFORM,
 	}
 }
+func (feature *ClusterManagedNetworkingFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // DualStackFeature
 type DualStackFeature struct{}
@@ -186,6 +193,9 @@ func (feature *DualStackFeature) getIncompatibleFeatures(openshiftVersion string
 
 func (feature *DualStackFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
 	return nil
+}
+func (feature *DualStackFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // DualStackVipsFeature
@@ -240,6 +250,9 @@ func (feature *DualStackVipsFeature) getIncompatibleFeatures(string) *[]models.F
 
 func (feature *DualStackVipsFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
 	return nil
+}
+func (feature *DualStackVipsFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // UserManagedNetworkingFeature
@@ -301,6 +314,9 @@ func (feature *UserManagedNetworkingFeature) getFeatureActiveLevel(cluster *comm
 	}
 	return activeLevelNotActive
 }
+func (feature *UserManagedNetworkingFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // PlatformManagedNetworkingFeature
 type PlatformManagedNetworkingFeature struct{}
@@ -357,6 +373,10 @@ func (feature *PlatformManagedNetworkingFeature) getFeatureActiveLevel(cluster *
 	return activeLevelNotActive
 }
 
+func (feature *PlatformManagedNetworkingFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
+
 // SDNNetworkTypeFeature
 type SDNNetworkTypeFeature struct{}
 
@@ -409,6 +429,9 @@ func (feature *SDNNetworkTypeFeature) Validate(cluster *common.Cluster, updatePa
 
 func (feature *SDNNetworkTypeFeature) hasValidOpenshiftVersion(openshiftVersion string) bool {
 	return openshiftVersionLessThan("4.15", openshiftVersion)
+}
+func (feature *SDNNetworkTypeFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // OVNNetworkTypeFeature
@@ -470,6 +493,9 @@ func openshiftVersionLessThan(targetVersion, openshiftVersion string) bool {
 
 	return openshiftVersion == "" || err == nil && isAvailable
 }
+func (feature *OVNNetworkTypeFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // UserManagedLoadBalancerFeature
 type UserManagedLoadBalancerFeature struct{}
@@ -525,4 +551,7 @@ func (feature *UserManagedLoadBalancerFeature) getFeatureActiveLevel(cluster *co
 	}
 
 	return activeLevelNotActive
+}
+func (feature *UserManagedLoadBalancerFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }

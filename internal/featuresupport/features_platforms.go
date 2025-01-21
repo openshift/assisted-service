@@ -89,6 +89,9 @@ func (feature *BaremetalPlatformFeature) getIncompatibleFeatures(string) *[]mode
 func (feature *BaremetalPlatformFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
 	return nil
 }
+func (feature *BaremetalPlatformFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // NonePlatformFeature
 type NonePlatformFeature struct{}
@@ -131,6 +134,9 @@ func (feature *NonePlatformFeature) getIncompatibleFeatures(string) *[]models.Fe
 
 func (feature *NonePlatformFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
 	return nil
+}
+func (feature *NonePlatformFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // NutanixIntegrationFeature
@@ -197,6 +203,9 @@ func (feature *NutanixIntegrationFeature) getIncompatibleArchitectures(_ *string
 		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
 	}
 }
+func (feature *NutanixIntegrationFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // VsphereIntegrationFeature
 type VsphereIntegrationFeature struct{}
@@ -258,6 +267,9 @@ func (feature *VsphereIntegrationFeature) getIncompatibleArchitectures(_ *string
 		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
 	}
 }
+func (feature *VsphereIntegrationFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // OciIntegrationFeature
 type OciIntegrationFeature struct{}
@@ -315,6 +327,9 @@ func (feature *OciIntegrationFeature) getFeatureActiveLevel(cluster *common.Clus
 
 	return activeLevelNotActive
 }
+func (feature *OciIntegrationFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
 
 // ExternalPlatformFeature
 type ExternalPlatformFeature struct{}
@@ -362,4 +377,7 @@ func (feature *ExternalPlatformFeature) getFeatureActiveLevel(cluster *common.Cl
 	}
 
 	return activeLevelNotActive
+}
+func (feature *ExternalPlatformFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
