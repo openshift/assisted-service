@@ -101,6 +101,8 @@ type ClusterCreateParams struct {
 	OcpReleaseImage string `json:"ocp_release_image,omitempty"`
 
 	// List of OLM operators to be installed.
+	// For the full list of supported operators, check the endpoint `/v2/supported-operators`:
+	//
 	OlmOperators []*OperatorCreateParams `json:"olm_operators"`
 
 	// Version of the OpenShift cluster.
