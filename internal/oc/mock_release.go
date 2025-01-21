@@ -49,6 +49,21 @@ func (mr *MockReleaseMockRecorder) Extract(log, releaseImage, releaseImageMirror
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockRelease)(nil).Extract), log, releaseImage, releaseImageMirror, cacheDir, pullSecret, ocpVersion)
 }
 
+// GetCoreOSImage mocks base method.
+func (m *MockRelease) GetCoreOSImage(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCoreOSImage", log, releaseImage, releaseImageMirror, pullSecret)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCoreOSImage indicates an expected call of GetCoreOSImage.
+func (mr *MockReleaseMockRecorder) GetCoreOSImage(log, releaseImage, releaseImageMirror, pullSecret interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCoreOSImage", reflect.TypeOf((*MockRelease)(nil).GetCoreOSImage), log, releaseImage, releaseImageMirror, pullSecret)
+}
+
 // GetImageArchitecture mocks base method.
 func (m *MockRelease) GetImageArchitecture(log logrus.FieldLogger, image, pullSecret string) ([]string, error) {
 	m.ctrl.T.Helper()
