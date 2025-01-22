@@ -15,7 +15,7 @@ type Config struct {
 	ControllerImage string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-controller:latest"`
 
 	// SupportedGPUS is a comma separated list of vendor identifiers of supported GPUs. For examaple, to enable
-	// support for NVIDIA and Virtio GPUS the value should be `10de,1af4`. By default only NVIDIA GPUs are
-	// supported.
-	SupportedGPUs []string `envconfig:"OPENSHIFT_AI_SUPPORTED_GPUS" default:"10de"`
+	// support for Virtio GPUs the value should be `1af4`. Note that this is intended to help with testing, and
+	// NVIDIA GPUs are supported by default and don't need to be explicitly included here.
+	SupportedGPUs []string `envconfig:"OPENSHIFT_AI_SUPPORTED_GPUS" default:""`
 }

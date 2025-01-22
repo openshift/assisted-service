@@ -3,6 +3,7 @@ package openshiftai
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -68,19 +69,25 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(c *common.Cluster) (result []string, err error) {
-	// TODO: We shold probably add the node feature discovery and NVIDIA GPU operators only if there is at least one
-	// NVIDIA GPU in the cluster, but unfortunatelly this is calculated and saved to the database only when the
-	// cluster is created or updated via the API, and at that point we don't have the host inventory yet to
-	// determine if there are NVIDIA GPU.
+	// Add the dependencies that don't depend on any condition:
 	result = []string{
 		authorino.Operator.Name,
-		nvidiagpu.Operator.Name,
 		odf.Operator.Name,
 		pipelines.Operator.Name,
 		serverless.Operator.Name,
 		servicemesh.Operator.Name,
 	}
-	return result, nil
+
+	// If there are NVIDIA GPUs in the inventory then add the NVIDIA GPU operator as a dependency:
+	gpus, err := o.gpusInCluster(c)
+	if err != nil {
+		return
+	}
+	if slices.ContainsFunc(gpus, nvidiagpu.IsSupportedGpu) {
+		result = append(result, nvidiagpu.Operator.Name)
+	}
+
+	return
 }
 
 // GetClusterValidationID returns cluster validation ID for the operator.
@@ -170,6 +177,12 @@ func (o *operator) gpusInHost(host *models.Host) (result []*models.Gpu, err erro
 }
 
 func (o *operator) isSupportedGpu(gpu *models.Gpu) (result bool, err error) {
+	// We support NVIDIA GPUs, but for testing purposes we also support any GPU whose vendor is listed in the
+	// optional OPENSHIFT_AI_SUPPORTED_GPUS configuration setting.
+	if nvidiagpu.IsSupportedGpu(gpu) {
+		result = true
+		return
+	}
 	for _, supportedGpu := range o.config.SupportedGPUs {
 		if strings.EqualFold(gpu.VendorID, supportedGpu) {
 			result = true

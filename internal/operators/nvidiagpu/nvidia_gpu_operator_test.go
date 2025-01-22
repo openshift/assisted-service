@@ -45,7 +45,7 @@ var _ = Describe("Operator", func() {
 			"With GPU and secure boot enabled",
 			&models.Inventory{
 				Gpus: []*models.Gpu{{
-					VendorID: nvidiaVendorID,
+					VendorID: VendorID,
 				}},
 				Boot: &models.Boot{
 					SecureBootState: models.SecureBootStateEnabled,
@@ -64,7 +64,7 @@ var _ = Describe("Operator", func() {
 			"With GPU and secure boot disabled",
 			&models.Inventory{
 				Gpus: []*models.Gpu{{
-					VendorID: nvidiaVendorID,
+					VendorID: VendorID,
 				}},
 				Boot: &models.Boot{
 					SecureBootState: models.SecureBootStateDisabled,
@@ -80,7 +80,7 @@ var _ = Describe("Operator", func() {
 			"With GPU and secure boot not supported",
 			&models.Inventory{
 				Gpus: []*models.Gpu{{
-					VendorID: nvidiaVendorID,
+					VendorID: VendorID,
 				}},
 				Boot: &models.Boot{
 					SecureBootState: models.SecureBootStateNotSupported,
@@ -96,7 +96,7 @@ var _ = Describe("Operator", func() {
 			"With GPU and secure boot state unknown",
 			&models.Inventory{
 				Gpus: []*models.Gpu{{
-					VendorID: nvidiaVendorID,
+					VendorID: VendorID,
 				}},
 				Boot: &models.Boot{
 					SecureBootState: models.SecureBootStateUnknown,

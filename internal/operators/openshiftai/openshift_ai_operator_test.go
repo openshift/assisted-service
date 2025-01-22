@@ -2,16 +2,21 @@ package openshiftai
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
+
+const virtIOVendorID = "1a4f"
 
 var _ = Describe("Operator", func() {
 	var (
@@ -131,7 +136,7 @@ var _ = Describe("Operator", func() {
 			"NVIDIA is supported by default",
 			nil,
 			&models.Gpu{
-				VendorID: "10de",
+				VendorID: nvidiagpu.VendorID,
 			},
 			true,
 		),
@@ -139,27 +144,27 @@ var _ = Describe("Operator", func() {
 			"Virtio isn't supported by default",
 			nil,
 			&models.Gpu{
-				VendorID: "1af4",
+				VendorID: virtIOVendorID,
 			},
 			false,
 		),
 		Entry(
-			"Virtio is supported if explicitly added",
+			"VirtIO is supported if explicitly added",
 			map[string]string{
-				"OPENSHIFT_AI_SUPPORTED_GPUS": "10de,1af4",
+				"OPENSHIFT_AI_SUPPORTED_GPUS": nvidiagpu.VendorID + "," + virtIOVendorID,
 			},
 			&models.Gpu{
-				VendorID: "1af4",
+				VendorID: virtIOVendorID,
 			},
 			true,
 		),
 		Entry(
 			"Order isn't relevant",
 			map[string]string{
-				"OPENSHIFT_AI_SUPPORTED_GPUS": "1af4,10de",
+				"OPENSHIFT_AI_SUPPORTED_GPUS": virtIOVendorID + "," + nvidiagpu.VendorID,
 			},
 			&models.Gpu{
-				VendorID: "10de",
+				VendorID: nvidiagpu.VendorID,
 			},
 			true,
 		),
@@ -167,9 +172,115 @@ var _ = Describe("Operator", func() {
 			"Case isn't relevant",
 			nil,
 			&models.Gpu{
-				VendorID: "10DE",
+				VendorID: strings.ToUpper(nvidiagpu.VendorID),
+			},
+			true,
+		),
+		Entry(
+			"NVIDIA is supported even if not explicitly added",
+			map[string]string{
+				"OPENSHIFT_AI_SUPPORTED_GPUS": virtIOVendorID,
+			},
+			&models.Gpu{
+				VendorID: nvidiagpu.VendorID,
 			},
 			true,
 		),
 	)
+
+	It("Adds the NVIDIA GPU operator if there is one host with an NVIDIA GPU", func() {
+		inventory := &models.Inventory{
+			Gpus: []*models.Gpu{
+				{
+					VendorID: nvidiagpu.VendorID,
+				},
+			},
+		}
+		data, err := json.Marshal(inventory)
+		Expect(err).ToNot(HaveOccurred())
+		host := &models.Host{
+			Inventory: string(data),
+		}
+		cluster := &common.Cluster{
+			Cluster: models.Cluster{
+				Hosts: []*models.Host{
+					host,
+				},
+			},
+		}
+		dependencies, err := operator.GetDependencies(cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dependencies).To(ContainElement(nvidiagpu.Operator.Name))
+	})
+
+	It("Doesn't add the NVIDIA GPU operator if there are no hosts", func() {
+		cluster := &common.Cluster{
+			Cluster: models.Cluster{},
+		}
+		dependencies, err := operator.GetDependencies(cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dependencies).ToNot(ContainElement(nvidiagpu.Operator.Name))
+	})
+
+	It("Doesn't add the NVIDIA GPU operator if there is no inventory", func() {
+		host := &models.Host{
+			Inventory: "",
+		}
+		cluster := &common.Cluster{
+			Cluster: models.Cluster{
+				Hosts: []*models.Host{
+					host,
+				},
+			},
+		}
+		dependencies, err := operator.GetDependencies(cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dependencies).ToNot(ContainElement(nvidiagpu.Operator.Name))
+	})
+
+	It("Doesn't add the NVIDIA GPU operator if there are hosts but no GPUs", func() {
+		inventory := &models.Inventory{
+			Gpus: []*models.Gpu{},
+		}
+		data, err := json.Marshal(inventory)
+		Expect(err).ToNot(HaveOccurred())
+		host := &models.Host{
+			Inventory: string(data),
+		}
+		cluster := &common.Cluster{
+			Cluster: models.Cluster{
+				Hosts: []*models.Host{
+					host,
+				},
+			},
+		}
+		dependencies, err := operator.GetDependencies(cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dependencies).ToNot(ContainElement(nvidiagpu.Operator.Name))
+	})
+
+	It("Doesn't add the NVIDIA GPU operator if there aren't NVIDIA GPUs", func() {
+		inventory := &models.Inventory{
+			Gpus: []*models.Gpu{
+				{
+					VendorID: virtIOVendorID,
+				},
+			},
+		}
+		data, err := json.Marshal(inventory)
+		Expect(err).ToNot(HaveOccurred())
+		host := &models.Host{
+			Inventory: string(data),
+		}
+		cluster := &common.Cluster{
+			Cluster: models.Cluster{
+				Hosts: []*models.Host{
+					host,
+				},
+			},
+		}
+		dependencies, err := operator.GetDependencies(cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dependencies).ToNot(ContainElement(nvidiagpu.Operator.Name))
+	})
 })

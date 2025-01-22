@@ -2,6 +2,8 @@ package nvidiagpu
 
 import (
 	"context"
+	"slices"
+	"strings"
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
@@ -15,8 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// nvidiaVendorID is the PCI vendor identifier of NVIDIA devices.
-const nvidiaVendorID = "10de"
+// VendorID is the PCI vendor identifier of NVIDIA devices.
+const VendorID = "10de"
 
 var Operator = models.MonitoredOperator{
 	Namespace:        "nvidia-gpu-operator",
@@ -130,12 +132,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 }
 
 func (o *operator) hasNvidiaGPU(inventory *models.Inventory) bool {
-	for _, gpu := range inventory.Gpus {
-		if gpu.VendorID == nvidiaVendorID {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(inventory.Gpus, IsSupportedGpu)
 }
 
 func (o *operator) isSecureBootEnabled(inventory *models.Inventory) bool {
@@ -192,4 +189,8 @@ func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 
 func (o *operator) GetBundleLabels() []string {
 	return []string(Operator.Bundles)
+}
+
+func IsSupportedGpu(gpu *models.Gpu) bool {
+	return strings.EqualFold(gpu.VendorID, VendorID)
 }
