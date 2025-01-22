@@ -284,13 +284,12 @@ func boolValue(b bool) ValidationStatus {
 }
 
 type validator struct {
-	log                   logrus.FieldLogger
-	hwValidatorCfg        *hardware.ValidatorCfg
-	hwValidator           hardware.Validator
-	operatorsAPI          operators.API
-	providerRegistry      registry.ProviderRegistry
-	versionHandler        versions.Handler
-	installToExistingRoot bool
+	log              logrus.FieldLogger
+	hwValidatorCfg   *hardware.ValidatorCfg
+	hwValidator      hardware.Validator
+	operatorsAPI     operators.API
+	providerRegistry registry.ProviderRegistry
+	versionHandler   versions.Handler
 }
 
 func (v *validator) isMediaConnected(c *validationContext) (ValidationStatus, string) {
