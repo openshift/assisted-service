@@ -43,15 +43,14 @@ type refreshPreprocessor struct {
 
 func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator,
 	operatorsApi operators.API, disabledHostValidations DisabledHostValidations, providerRegistry registry.ProviderRegistry,
-	versionHandler versions.Handler, installToExistingRoot bool) *refreshPreprocessor {
+	versionHandler versions.Handler) *refreshPreprocessor {
 	v := &validator{
-		log:                   log,
-		hwValidatorCfg:        hwValidatorCfg,
-		hwValidator:           hwValidator,
-		operatorsAPI:          operatorsApi,
-		providerRegistry:      providerRegistry,
-		versionHandler:        versionHandler,
-		installToExistingRoot: installToExistingRoot,
+		log:              log,
+		hwValidatorCfg:   hwValidatorCfg,
+		hwValidator:      hwValidator,
+		operatorsAPI:     operatorsApi,
+		providerRegistry: providerRegistry,
+		versionHandler:   versionHandler,
 	}
 	return &refreshPreprocessor{
 		log:                     log,
