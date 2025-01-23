@@ -34,15 +34,15 @@ func (m *MockPullSecretValidator) EXPECT() *MockPullSecretValidatorMockRecorder 
 }
 
 // ValidatePullSecret mocks base method.
-func (m *MockPullSecretValidator) ValidatePullSecret(secret, username, releaseImageURL string) error {
+func (m *MockPullSecretValidator) ValidatePullSecret(additionalPublicRegistries []string, secret, username, releaseImageURL string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidatePullSecret", secret, username, releaseImageURL)
+	ret := m.ctrl.Call(m, "ValidatePullSecret", additionalPublicRegistries, secret, username, releaseImageURL)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ValidatePullSecret indicates an expected call of ValidatePullSecret.
-func (mr *MockPullSecretValidatorMockRecorder) ValidatePullSecret(secret, username, releaseImageURL interface{}) *gomock.Call {
+func (mr *MockPullSecretValidatorMockRecorder) ValidatePullSecret(additionalPublicRegistries, secret, username, releaseImageURL interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidatePullSecret", reflect.TypeOf((*MockPullSecretValidator)(nil).ValidatePullSecret), secret, username, releaseImageURL)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidatePullSecret", reflect.TypeOf((*MockPullSecretValidator)(nil).ValidatePullSecret), additionalPublicRegistries, secret, username, releaseImageURL)
 }

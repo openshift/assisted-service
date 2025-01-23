@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -22,7 +24,7 @@ const (
 //
 //go:generate mockgen -source=pull_secret_validation.go -package=validations -destination=mock_pull_secret_validation.go
 type PullSecretValidator interface {
-	ValidatePullSecret(secret string, username string, releaseImageURL string) error
+	ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error
 }
 
 func ParsePublicRegistries(publicRegistries map[string]bool, publicRegistriesLiteral string) {
@@ -31,6 +33,13 @@ func ParsePublicRegistries(publicRegistries map[string]bool, publicRegistriesLit
 	}
 
 	for _, registry := range strings.Split(publicRegistriesLiteral, ",") {
+		publicRegistries[registry] = true
+	}
+}
+
+func ParseMirrorRegistries(log logrus.FieldLogger, publicRegistries map[string]bool, mirrorRegistries []mirrorregistries.RegistriesConf) {
+	for _, mirrorRegistry := range mirrorRegistries {
+		registry := ParseBaseRegistry(mirrorRegistry.Location)
 		publicRegistries[registry] = true
 	}
 }
@@ -191,10 +200,15 @@ func validateRegistryWithAuth(registry string, credentials map[string]PullSecret
 }
 
 // ValidatePullSecret validates that a pull secret is well formed and contains all required data
-func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string, releaseImageURL string) error {
+func (v *registryPullSecretValidator) ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error {
 	creds, err := ParsePullSecret(secret)
 	if err != nil {
 		return err
+	}
+
+	ignorableRegistries := v.publicRegistries
+	for _, registry := range additionalPublicRegistries {
+		ignorableRegistries[registry] = true
 	}
 
 	// only check for cloud creds if we're authenticating against Red Hat SSO
@@ -216,19 +230,27 @@ func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username
 	}
 
 	for registry := range v.registriesWithAuth {
-		if err = validateRegistryWithAuth(registry, creds); err != nil {
-			return err
+		if !ignorableRegistries[registry] {
+			if err = validateRegistryWithAuth(registry, creds); err != nil {
+				return &PullSecretError{
+					Msg: fmt.Sprintf("%s, ignorable registries used for pull secret validation: %+v",
+						err.Error(), ignorableRegistries),
+				}
+			}
 		}
 	}
 
-	registryWithAuth, err := getRegistryAuthStatus(v.publicRegistries, releaseImageURL)
+	registryWithAuth, err := getRegistryAuthStatus(ignorableRegistries, releaseImageURL)
 	if err != nil {
 		return err
 	}
 
 	if registryWithAuth != nil {
 		if err := validateRegistryWithAuth(*registryWithAuth, creds); err != nil {
-			return err
+			return &PullSecretError{
+				Msg: fmt.Sprintf("%s, ignorable registries used for pull secret validation: %+v",
+					err.Error(), ignorableRegistries),
+			}
 		}
 	}
 

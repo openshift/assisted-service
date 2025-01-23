@@ -261,7 +261,7 @@ func toMac(macStr string) *strfmt.MAC {
 }
 
 func mockClusterRegisterSteps() {
-	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 	mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
@@ -286,7 +286,7 @@ func mockClusterRegisterSuccessWithVersion(cpuArchitecture, openshiftVersion str
 		Version:          swag.String(openshiftVersion),
 		SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 	}
-	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 	mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -316,7 +316,7 @@ func mockInfraEnvRegisterSuccess() {
 	mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
 	mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
 	mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("", nil).Times(1)
-	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 	mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 		eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
@@ -2155,6 +2155,37 @@ var _ = Describe("cluster", func() {
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 			})
+			Context("mirror registry is configured", func() {
+				It("should successfully update if the pull secret auth does not contain a mirrored registry", func() {
+					pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}" // #nosec
+					mirrorRegistryConfig, _ := getMirrorRegistryConfigurations(getSecureRegistryToml("fake-registry.example.com", "fake-mirror-registry.example.com"), "fake-certificate")
+					mirrorRegistryConfigStr, err := common.ConvertMirrorRegistryConfigToString(mirrorRegistryConfig)
+					Expect(err).ShouldNot(HaveOccurred())
+					clusterID = strfmt.UUID(uuid.New().String())
+					cluster := &common.Cluster{Cluster: models.Cluster{
+						ID: &clusterID,
+						Platform: &models.Platform{
+							Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+						},
+						OpenshiftVersion: "4.12",
+						CPUArchitecture:  common.DefaultCPUArchitecture,
+						OcpReleaseImage:  "fake-registry.example.com/ocp/release:4.18",
+					},
+						MirrorRegistryConfiguration: mirrorRegistryConfigStr,
+					}
+					err = db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
+					mockSuccess()
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							PullSecret: &pullSecret,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				})
+			})
 		})
 
 		It("update cluster day1 with APIVipDNSName failed", func() {
@@ -3109,7 +3140,7 @@ var _ = Describe("cluster", func() {
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.2")}}
 					err := "the second element of apiVIPs must be an IPv6 address. got: 8.8.8.8"
 
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3131,7 +3162,7 @@ var _ = Describe("cluster", func() {
 					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					apiVip := "1.2.3.100"
 					ingressVip := "1.2.3.101"
@@ -3160,7 +3191,7 @@ var _ = Describe("cluster", func() {
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
 					err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
 
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3181,7 +3212,7 @@ var _ = Describe("cluster", func() {
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
 					err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
 
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3202,7 +3233,7 @@ var _ = Describe("cluster", func() {
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}, {IP: models.IP("8.8.8.4")}}
 					err := "apiVIPs supports 2 vips. got: 3"
 
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3223,7 +3254,7 @@ var _ = Describe("cluster", func() {
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("invalid ingressVip 2")}}
 					multiErr := "4 errors occurred:\n\t* Could not parse VIP ip invalid apiVip\n\t* Could not parse VIP ip invalid apiVip 2\n\t* Could not parse VIP ip invalid ingressVip\n\t* Could not parse VIP ip invalid ingressVip 2"
 
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3244,7 +3275,7 @@ var _ = Describe("cluster", func() {
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
 					multiErr := "1 error occurred:\n\t* Could not parse VIP ip invalid apiVip\n"
 
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3265,7 +3296,7 @@ var _ = Describe("cluster", func() {
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
 					err := "configuration must include the same number of apiVIPs (got 2) and ingressVIPs (got 1)"
 
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3286,7 +3317,7 @@ var _ = Describe("cluster", func() {
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::3")}}
 					err := "The IP address \"1.2.3.100\" appears multiple times in apiVIPs"
 
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3307,7 +3338,7 @@ var _ = Describe("cluster", func() {
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP(ingressVip)}}
 					err := "The IP address \"1.2.3.101\" appears multiple times in ingressVIPs"
 
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3327,7 +3358,7 @@ var _ = Describe("cluster", func() {
 					ingressVips := []*models.IngressVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::4")}}
 					err := "The IP address \"1.2.3.100\" appears both in apiVIPs and ingressVIPs"
 
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -8985,7 +9016,7 @@ var _ = Describe("infraEnvs", func() {
 				*common.TestDefaultConfig.OsImage.OpenshiftVersion,
 				*common.TestDefaultConfig.OsImage.CPUArchitecture).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("", nil).Times(1)
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
@@ -9113,7 +9144,7 @@ var _ = Describe("infraEnvs", func() {
 
 			mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
 			mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
@@ -9149,7 +9180,7 @@ var _ = Describe("infraEnvs", func() {
 
 			mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("", nil).Times(1)
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(largeDiscoveryIgnition, nil).AnyTimes()
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName))).Times(1)
@@ -9182,42 +9213,13 @@ var _ = Describe("infraEnvs", func() {
 				sourceRegistry            = "quay.io"
 				mirrorRegistry            = "example-user-registry.com"
 			)
-
-			getSecureRegistryToml := func() string {
-				return fmt.Sprintf(`
-[[registry]]
-location = "%s"
-
-[[registry.mirror]]
-location = "%s"
-`,
-					sourceRegistry,
-					mirrorRegistry,
-				)
-			}
-
-			getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
-				imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
-				Expect(err).To(Not(HaveOccurred()))
-
-				mirrors := &common.MirrorRegistryConfiguration{
-					ImageDigestMirrors: imageDigestMirrors,
-					ImageTagMirrors:    imageTagMirrors,
-					Insecure:           insecure,
-					CaBundleCrt:        certificate,
-					RegistriesConf:     registriesToml,
-				}
-
-				return mirrors, imageDigestMirrors
-			}
-
 			It("Validate mirror registry saved on DB", func() {
 				mockInfraEnvRegisterSuccess()
 				MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
 
-				conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+				conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(sourceRegistry, mirrorRegistry), mirrorRegistryCertificate)
 				reply, err := bm.RegisterInfraEnvInternal(ctx, nil, conf, installer.RegisterInfraEnvParams{
 					InfraenvCreateParams: &models.InfraEnvCreateParams{
 						Name:             swag.String("some-infra-env-name"),
@@ -9242,6 +9244,7 @@ location = "%s"
 				Expect(len(mirrorRegistryConf.Insecure)).To(Equal(0))
 				Expect(len(mirrorRegistryConf.ImageTagMirrors)).To(Equal(0))
 			})
+
 		})
 	})
 
@@ -10309,7 +10312,7 @@ location = "%s"
 					prevURL = newURL
 
 					By("updating pull secret")
-					mockSecretValidator.EXPECT().ValidatePullSecret("mypullsecret", gomock.Any(), gomock.Any()).Return(nil)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), "mypullsecret", gomock.Any(), gomock.Any()).Return(nil)
 					params.PullSecret = "mypullsecret"
 					newURL = updateInfraEnv(params)
 					Expect(newURL).ToNot(Equal(prevURL))
@@ -13909,19 +13912,6 @@ var _ = Describe("RegisterCluster", func() {
 			mirrorRegistry            = "example-user-registry.com"
 		)
 
-		getSecureRegistryToml := func() string {
-			return fmt.Sprintf(`
-[[registry]]
-location = "%s"
-
-[[registry.mirror]]
-location = "%s"
-`,
-				sourceRegistry,
-				mirrorRegistry,
-			)
-		}
-
 		getClusterCreateParams := func() *models.ClusterCreateParams {
 			return &models.ClusterCreateParams{
 				Name:                 swag.String("some-cluster-name"),
@@ -13932,25 +13922,10 @@ location = "%s"
 			}
 		}
 
-		getMirrorRegistryConfigurations := func(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
-			imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
-			Expect(err).To(Not(HaveOccurred()))
-
-			mirrors := &common.MirrorRegistryConfiguration{
-				ImageDigestMirrors: imageDigestMirrors,
-				ImageTagMirrors:    imageTagMirrors,
-				Insecure:           insecure,
-				CaBundleCrt:        certificate,
-				RegistriesConf:     registriesToml,
-			}
-
-			return mirrors, imageDigestMirrors
-		}
-
 		It("Validate mirror registry saved on DB", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
-			conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(sourceRegistry, mirrorRegistry), mirrorRegistryCertificate)
 			params := getClusterCreateParams()
 			c, err := bm.RegisterClusterInternal(ctx, nil, conf, installer.V2RegisterClusterParams{NewClusterParams: params})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -13969,6 +13944,17 @@ location = "%s"
 
 			Expect(len(mirrorRegistryConf.Insecure)).To(Equal(0))
 			Expect(len(mirrorRegistryConf.ImageTagMirrors)).To(Equal(0))
+		})
+		Context("Pull secret validation", func() {
+			It("Successfully validates the pull secret if it does not contain auth for a mirrored registry", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+				conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml("fake-registry.example.com", mirrorRegistry), mirrorRegistryCertificate)
+				params := getClusterCreateParams()
+				params.OcpReleaseImage = "fake-registry.example.com/ocp/release:4.18"
+				_, err := bm.RegisterClusterInternal(ctx, nil, conf, installer.V2RegisterClusterParams{NewClusterParams: params})
+				Expect(err).ShouldNot(HaveOccurred())
+			})
 		})
 	})
 
@@ -14498,7 +14484,7 @@ location = "%s"
 
 	Context("ValidateIncompatibleFeatures", func() {
 		It("s390x on 4.13 OCP version", func() {
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 			mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockMetric.EXPECT().ClusterRegistered().Times(1)
@@ -14609,7 +14595,7 @@ location = "%s"
 		})
 
 		It("Sno is compatible with s390x on 4.13", func() {
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 			mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockMetric.EXPECT().ClusterRegistered().Times(1)
@@ -14737,7 +14723,7 @@ location = "%s"
 		})
 
 		It("s390x on 4.13 OCP version", func() {
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 			mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockMetric.EXPECT().ClusterRegistered().Times(1)
@@ -15621,7 +15607,7 @@ location = "%s"
 	})
 
 	It("cluster api failed to register with invalid pull secret", func() {
-		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).
+		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(errors.New("error")).Times(1)
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
@@ -15696,7 +15682,7 @@ location = "%s"
 	})
 
 	It("Register cluster with arm64 CPU architecture as multiarch if multiarch release image used", func() {
-		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
 			CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 			CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
@@ -15937,7 +15923,7 @@ location = "%s"
 			})
 
 			It("Register a cluster with multi CPU architecture - success", func() {
-				mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
 					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
@@ -20280,4 +20266,32 @@ func createClusterWithMonitoredOperator(db *gorm.DB, operator models.MonitoredOp
 	c.MonitoredOperators = append(c.MonitoredOperators, &operator)
 	Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 	return &c
+}
+
+func getSecureRegistryToml(src, mirror string) string {
+	return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+
+[[registry.mirror]]
+location = "%s"
+`,
+		src,
+		mirror,
+	)
+}
+
+func getMirrorRegistryConfigurations(registriesToml, certificate string) (*common.MirrorRegistryConfiguration, []configv1.ImageDigestMirrors) {
+	imageDigestMirrors, imageTagMirrors, insecure, err := mirrorregistries.GetImageRegistries(registriesToml)
+	Expect(err).To(Not(HaveOccurred()))
+
+	mirrors := &common.MirrorRegistryConfiguration{
+		ImageDigestMirrors: imageDigestMirrors,
+		ImageTagMirrors:    imageTagMirrors,
+		Insecure:           insecure,
+		CaBundleCrt:        certificate,
+		RegistriesConf:     registriesToml,
+	}
+
+	return mirrors, imageDigestMirrors
 }

@@ -12,7 +12,9 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	auth "github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/pkg/testutil"
 	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 )
@@ -39,6 +41,7 @@ var _ = Describe("Pull secret validation", func() {
 
 	var secretValidator PullSecretValidator
 	var secretValidatorWithNoAuth PullSecretValidator
+	var additionalIgnoredRegistries []string
 
 	log := logrus.New()
 	authHandlerDisabled := auth.NewNoneAuthenticator(log.WithField("pkg", "auth"))
@@ -61,35 +64,35 @@ var _ = Describe("Pull secret validation", func() {
 		})
 
 		It("valid format", func() {
-			err := secretValidatorWithNoAuth.ValidatePullSecret(validSecretFormat, "", "")
+			err := secretValidatorWithNoAuth.ValidatePullSecret(additionalIgnoredRegistries, validSecretFormat, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("empty secret", func() {
-			err := secretValidatorWithNoAuth.ValidatePullSecret("", "", "")
+			err := secretValidatorWithNoAuth.ValidatePullSecret(additionalIgnoredRegistries, "", "", "")
 			Expect(err).Should(HaveOccurred())
 		})
 		It("invalid format for the auth", func() {
-			err := secretValidatorWithNoAuth.ValidatePullSecret(invalidAuthFormat, "", "")
+			err := secretValidatorWithNoAuth.ValidatePullSecret(additionalIgnoredRegistries, invalidAuthFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("invalid format", func() {
-			err := secretValidatorWithNoAuth.ValidatePullSecret(invalidSecretFormat, "", "")
+			err := secretValidatorWithNoAuth.ValidatePullSecret(additionalIgnoredRegistries, invalidSecretFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("invalid format - non-string", func() {
-			err := secretValidatorWithNoAuth.ValidatePullSecret(invalidStrSecretFormat, "", "")
+			err := secretValidatorWithNoAuth.ValidatePullSecret(additionalIgnoredRegistries, invalidStrSecretFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("valid format - Invalid user", func() {
-			err := secretValidator.ValidatePullSecret(validSecretFormat, "NotSameUser@example.com", "")
+			err := secretValidator.ValidatePullSecret(additionalIgnoredRegistries, validSecretFormat, "NotSameUser@example.com", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
 		It("valid format - Valid user", func() {
-			err := secretValidator.ValidatePullSecret(validSecretFormat, userName, "")
+			err := secretValidator.ValidatePullSecret(additionalIgnoredRegistries, validSecretFormat, userName, "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("Add RH Reg PullSecret ", func() {
@@ -104,21 +107,21 @@ var _ = Describe("Pull secret validation", func() {
 	})
 
 	Context("test registries", func() {
-
+		var additionalIgnoredRegistries []string
 		const pullSecDocker = "{\"auths\":{\"docker.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
 		const pullSecLegacyDocker = "{\"auths\":{\"https://index.docker.io/v1/\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
 
 		It("pull secret accepted when it contains all required registries", func() {
 			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "quay.io/testing:latest", "registry.redhat.io/image:v1")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(validSecretFormat, "", "")
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, validSecretFormat, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("pull secret accepted even if it does not contain registry.stage.redhat.io", func() {
 			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "quay.io/testing:latest", "registry.stage.redhat.io/special:v1")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(validSecretFormat, "", "")
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, validSecretFormat, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -129,7 +132,15 @@ var _ = Describe("Pull secret validation", func() {
 			}
 			validator, err := NewPullSecretValidator(publicRegistries, authHandlerDisabled, "quay.io/testing:latest", "ignore.com/image:v1", "something.com/container:X")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(validSecretFormat, "", "")
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, validSecretFormat, "", "")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("pull secret accepted when it doesn't contain auths for additional ignored registries", func() {
+			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "quay.io/testing:latest", "ignore.com/image:v1")
+			Expect(err).ShouldNot(HaveOccurred())
+			additionalIgnoredRegistries = []string{"ignore.com"}
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, validSecretFormat, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -137,7 +148,7 @@ var _ = Describe("Pull secret validation", func() {
 			publicRegistries := map[string]bool{}
 			validator, err := NewPullSecretValidator(publicRegistries, authHandlerDisabled, "quay.io/testing:latest")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(validPullSecretWithCIToken, "", "registry.ci/test:latest")
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, validPullSecretWithCIToken, "", "registry.ci/test:latest")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -145,42 +156,42 @@ var _ = Describe("Pull secret validation", func() {
 			publicRegistries := map[string]bool{}
 			validator, err := NewPullSecretValidator(publicRegistries, authHandlerDisabled, "quay.io/testing:latest")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(validSecretFormat, "", "registry.ci/test:latest")
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, validSecretFormat, "", "registry.ci/test:latest")
 			Expect(err).Should(HaveOccurred())
 		})
 
 		It("docker.io auth is accepted when there is an image from docker.io", func() {
 			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "docker.io/testing:latest")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(pullSecDocker, "", "")
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, pullSecDocker, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("legacy DockerHub auth is accepted when there is an image from docker.io", func() {
 			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "docker.io/testing:latest")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(pullSecLegacyDocker, "", "")
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, pullSecLegacyDocker, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("docker.io auth is accepted when there is an image with default registry", func() {
 			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "local:v1")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(pullSecDocker, "", "")
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, pullSecDocker, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("legacy DockerHub auth is accepted when there is an image with default registry", func() {
 			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "local:v2")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(pullSecLegacyDocker, "", "")
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, pullSecLegacyDocker, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("error when pull secret does not contain required registry", func() {
 			validator, err := NewPullSecretValidator(map[string]bool{}, authHandlerDisabled, "quay.io/testing:latest", "required.com/image:v1")
 			Expect(err).ShouldNot(HaveOccurred())
-			err = validator.ValidatePullSecret(validSecretFormat, "", "")
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, validSecretFormat, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
@@ -682,6 +693,27 @@ var _ = Describe("Machine Network amount and order", func() {
 			}
 		})
 	}
+})
+
+var _ = Describe("Parse functions", func() {
+	var log = testutil.Log()
+	Context("ParseMirrorRegistries", func() {
+		It("doesn't add anything to public registries if mirror registries is empty", func() {
+			registries := map[string]bool{"test.com": false, "example.com": true}
+			ParseMirrorRegistries(log, registries, nil)
+			Expect(registries).To(Equal(map[string]bool{"test.com": false, "example.com": true}))
+		})
+		It("adds to registries if there are mirror registries", func() {
+			registries := map[string]bool{"test.com": false, "example.com": true}
+			ParseMirrorRegistries(log, registries, []mirrorregistries.RegistriesConf{{Location: "redhat.io"}})
+			Expect(registries).To(Equal(map[string]bool{"test.com": false, "example.com": true, "redhat.io": true}))
+		})
+		It("modifies registries if mirror registries contains one from the registries list", func() {
+			registries := map[string]bool{"test.com": false, "example.com": true}
+			ParseMirrorRegistries(log, registries, []mirrorregistries.RegistriesConf{{Location: "test.com"}})
+			Expect(registries).To(Equal(map[string]bool{"test.com": true, "example.com": true}))
+		})
+	})
 })
 
 func TestCluster(t *testing.T) {
