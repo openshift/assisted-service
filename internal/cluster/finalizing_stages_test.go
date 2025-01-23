@@ -32,7 +32,6 @@ var _ = DescribeTable("finalizing stage timeouts",
 			olmStages = []models.FinalizingStage{
 				models.FinalizingStageWaitingForOlmOperatorsCsvInitialization,
 				models.FinalizingStageWaitingForOlmOperatorsCsv,
-				models.FinalizingStageWaitingForOLMOperatorSetupJobs,
 			}
 			nonOlmStages = funk.Subtract(finalizingStages, olmStages).([]models.FinalizingStage)
 			toSeconds    = func(d time.Duration) int64 {
