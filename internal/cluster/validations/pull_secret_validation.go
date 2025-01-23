@@ -232,7 +232,10 @@ func (v *registryPullSecretValidator) ValidatePullSecret(additionalPublicRegistr
 	for registry := range v.registriesWithAuth {
 		if !ignorableRegistries[registry] {
 			if err = validateRegistryWithAuth(registry, creds); err != nil {
-				return err
+				return &PullSecretError{
+					Msg: fmt.Sprintf("%s, ignorable registries used for pull secret validation: %+v",
+						err.Error(), ignorableRegistries),
+				}
 			}
 		}
 	}
@@ -244,7 +247,10 @@ func (v *registryPullSecretValidator) ValidatePullSecret(additionalPublicRegistr
 
 	if registryWithAuth != nil {
 		if err := validateRegistryWithAuth(*registryWithAuth, creds); err != nil {
-			return err
+			return &PullSecretError{
+				Msg: fmt.Sprintf("%s, ignorable registries used for pull secret validation: %+v",
+					err.Error(), ignorableRegistries),
+			}
 		}
 	}
 
