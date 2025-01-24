@@ -88,6 +88,7 @@ type InfraEnvSpec struct {
 
 	// CpuArchitecture specifies the target CPU architecture. Default is x86_64
 	// +kubebuilder:default=x86_64
+	// +kubebuilder:validation:Enum=arm64;ppc64le;x86_64;s390x
 	// +optional
 	CpuArchitecture string `json:"cpuArchitecture,omitempty"`
 

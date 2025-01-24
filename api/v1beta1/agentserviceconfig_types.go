@@ -37,6 +37,7 @@ type OSImage struct {
 	// Deprecated: this field is ignored (will be removed in a future release).
 	RootFSUrl string `json:"rootFSUrl"`
 	// The CPU architecture of the image (x86_64/arm64/etc).
+	// +kubebuilder:validation:Enum=arm64;ppc64le;x86_64;s390x
 	// +optional
 	CPUArchitecture string `json:"cpuArchitecture"`
 }
