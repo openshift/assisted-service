@@ -6118,6 +6118,9 @@ definitions:
         type: string
       secure_boot_state:
         $ref: '#/definitions/secure-boot-state'
+      device_type:
+        type: string
+        enum: [persistent, ephemeral]
 
   system_vendor:
     type: object

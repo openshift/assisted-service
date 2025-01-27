@@ -155,6 +155,7 @@ type HostDisk struct {
 type HostBoot struct {
 	CurrentBootMode string `json:"currentBootMode,omitempty"`
 	PxeInterface    string `json:"pxeInterface,omitempty"`
+	DeviceType      string `json:"deviceType,omitempty"`
 }
 
 type HostSystemVendor struct {

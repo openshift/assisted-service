@@ -1383,6 +1383,7 @@ func (r *AgentReconciler) updateInventoryAndLabels(log logrus.FieldLogger, ctx c
 		agent.Status.Inventory.Boot = aiv1beta1.HostBoot{
 			CurrentBootMode: inventory.Boot.CurrentBootMode,
 			PxeInterface:    inventory.Boot.PxeInterface,
+			DeviceType:      inventory.Boot.DeviceType,
 		}
 	}
 	if inventory.SystemVendor != nil {

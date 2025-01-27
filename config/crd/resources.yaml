@@ -1013,6 +1013,8 @@ spec:
                     properties:
                       currentBootMode:
                         type: string
+                      deviceType:
+                        type: string
                       pxeInterface:
                         type: string
                     type: object

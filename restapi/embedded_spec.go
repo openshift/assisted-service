@@ -6220,6 +6220,13 @@ func init() {
         "current_boot_mode": {
           "type": "string"
         },
+        "device_type": {
+          "type": "string",
+          "enum": [
+            "persistent",
+            "ephemeral"
+          ]
+        },
         "pxe_interface": {
           "type": "string"
         },
@@ -17281,6 +17288,13 @@ func init() {
         },
         "current_boot_mode": {
           "type": "string"
+        },
+        "device_type": {
+          "type": "string",
+          "enum": [
+            "persistent",
+            "ephemeral"
+          ]
         },
         "pxe_interface": {
           "type": "string"
