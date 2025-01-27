@@ -3,6 +3,14 @@ parameters:
 - name: JOBID
   generate: expression
   from: "[0-9a-f]{7}"
+- name: MEMORY_REQUEST
+  value: 256Mi
+- name: CPU_REQUEST
+  value: 10m
+- name: MEMORY_LIMIT
+  value: 512Mi
+- name: CPU_LIMIT
+  value: 100m
 apiVersion: v1
 kind: Template
 metadata:
@@ -29,6 +37,13 @@ objects:
               - --user
               - $(USER):$(TOKEN)
               - $(URL)?OFFLINE_TOKEN_CRED=$(OFFLINE_TOKEN_CRED)&PULL_SECRET_CRED=$(PULL_SECRET_CRED)&ASSISTED_SERVICE_URL=$(ASSISTED_SERVICE_URL)&CLUSTER_NAME=assisted-test-cluster-${JOBID}
+            resources:
+              requests:
+                memory: ${MEMORY_REQUEST}
+                cpu: ${CPU_REQUEST}
+              limits:
+                memory: ${MEMORY_LIMIT}
+                cpu: ${CPU_LIMIT}
             env:
               - name: URL
                 valueFrom:
