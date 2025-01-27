@@ -340,6 +340,7 @@ func main() {
 	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
 		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler, osImages, Options.EnableKubeAPI)
 
+	addMirrorRegistriesToPublicRegistries(log, mirrorRegistriesBuilder)
 	images := []string{
 		Options.ReleaseImageMirror,
 		Options.BMConfig.AgentDockerImg,
@@ -891,6 +892,16 @@ func startPPROF(log *logrus.Logger) {
 		err := srv.ListenAndServe()
 		if err != nil {
 			log.Errorf("Failed to start pprof: %s", err)
+		}
+	}
+}
+
+func addMirrorRegistriesToPublicRegistries(log logrus.FieldLogger, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder) {
+	if mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		if mirrorRegistries, err := mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries(); err != nil {
+			log.WithError(err).Warnf("failed to parse mirror registries provided to assisted-service, check your mirror registry config map")
+		} else {
+			Options.ValidationsConfig.PublicRegistries = validations.ParseMirrorRegistries(log, Options.ValidationsConfig.PublicRegistries, mirrorRegistries)
 		}
 	}
 }
