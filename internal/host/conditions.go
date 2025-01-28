@@ -41,8 +41,8 @@ func (v *validator) isInstallationDiskSpeedCheckSuccessful(c *validationContext)
 		return true
 	}
 
-	// Disk speed check is skipped when installing to the local disk
-	if v.installToExistingRoot {
+	// Disk speed check is skipped when installing to the existing root
+	if c.inventory != nil && c.inventory.Boot != nil && c.inventory.Boot.DeviceType == models.BootDeviceTypePersistent {
 		return true
 	}
 

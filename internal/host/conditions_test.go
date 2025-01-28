@@ -34,8 +34,8 @@ var _ = Describe("isInstallationDiskSpeedCheckSuccessful", func() {
 		Expect(v.isInstallationDiskSpeedCheckSuccessful(validationCtx)).To(BeTrue())
 	})
 
-	It("returns true when installToExistingRoot is set", func() {
-		v.installToExistingRoot = true
+	It("returns true when the boot disk is persistent", func() {
+		validationCtx.inventory = &models.Inventory{Boot: &models.Boot{DeviceType: models.BootDeviceTypePersistent}}
 		Expect(v.isInstallationDiskSpeedCheckSuccessful(validationCtx)).To(BeTrue())
 	})
 

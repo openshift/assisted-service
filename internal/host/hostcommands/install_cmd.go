@@ -41,31 +41,29 @@ const (
 
 type installCmd struct {
 	baseCmd
-	db                    *gorm.DB
-	hwValidator           hardware.Validator
-	ocRelease             oc.Release
-	instructionConfig     InstructionConfig
-	eventsHandler         eventsapi.Handler
-	versionsHandler       versions.Handler
-	enableSkipMcoReboot   bool
-	notifyNumReboots      bool
-	installToExistingRoot bool
+	db                  *gorm.DB
+	hwValidator         hardware.Validator
+	ocRelease           oc.Release
+	instructionConfig   InstructionConfig
+	eventsHandler       eventsapi.Handler
+	versionsHandler     versions.Handler
+	enableSkipMcoReboot bool
+	notifyNumReboots    bool
 }
 
 func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
 	instructionConfig InstructionConfig, eventsHandler eventsapi.Handler, versionsHandler versions.Handler,
-	enableSkipMcoReboot, notifyNumReboots, installToExistingRoot bool) *installCmd {
+	enableSkipMcoReboot, notifyNumReboots bool) *installCmd {
 	return &installCmd{
-		baseCmd:               baseCmd{log: log},
-		db:                    db,
-		hwValidator:           hwValidator,
-		ocRelease:             ocRelease,
-		instructionConfig:     instructionConfig,
-		eventsHandler:         eventsHandler,
-		versionsHandler:       versionsHandler,
-		enableSkipMcoReboot:   enableSkipMcoReboot,
-		notifyNumReboots:      notifyNumReboots,
-		installToExistingRoot: installToExistingRoot,
+		baseCmd:             baseCmd{log: log},
+		db:                  db,
+		hwValidator:         hwValidator,
+		ocRelease:           ocRelease,
+		instructionConfig:   instructionConfig,
+		eventsHandler:       eventsHandler,
+		versionsHandler:     versionsHandler,
+		enableSkipMcoReboot: enableSkipMcoReboot,
+		notifyNumReboots:    notifyNumReboots,
 	}
 }
 
@@ -153,7 +151,7 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 			return "", err
 		}
 
-		if i.installToExistingRoot {
+		if inventory != nil && inventory.Boot != nil && inventory.Boot.DeviceType == models.BootDeviceTypePersistent {
 			request.CoreosImage, err = i.ocRelease.GetCoreOSImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
 			if err != nil {
 				return "", err

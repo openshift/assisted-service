@@ -71,7 +71,7 @@ var _ = Describe("installcmd", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
-		installCmd = NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true, false)
+		installCmd = NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true)
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeFull)
 		clusterId = *cluster.ID
 		infraEnv = createInfraEnvInDb(db, clusterId)
@@ -109,7 +109,7 @@ var _ = Describe("installcmd", func() {
 	})
 	DescribeTable("enable MCO reboot values",
 		func(enableMcoReboot bool, version string, architecture string, expected bool) {
-			installCommand := NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, enableMcoReboot, true, false)
+			installCommand := NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, enableMcoReboot, true)
 			mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
 			mockGetReleaseImage(1)
 			mockImages(1)
@@ -133,7 +133,7 @@ var _ = Describe("installcmd", func() {
 
 	DescribeTable("notify num reboots",
 		func(notifyNumReboots bool) {
-			installCommand := NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, true, notifyNumReboots, false)
+			installCommand := NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, true, notifyNumReboots)
 			mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
 			mockGetReleaseImage(1)
 			mockImages(1)
@@ -423,7 +423,7 @@ var _ = Describe("installcmd arguments", func() {
 	Context("configuration_params", func() {
 		It("check_cluster_version_is_false_by_default", func() {
 			config := &InstructionConfig{}
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true, true, false)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -435,7 +435,7 @@ var _ = Describe("installcmd arguments", func() {
 			config := &InstructionConfig{
 				CheckClusterVersion: false,
 			}
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true, true, false)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -447,7 +447,7 @@ var _ = Describe("installcmd arguments", func() {
 			config := &InstructionConfig{
 				CheckClusterVersion: true,
 			}
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true, true, false)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -456,7 +456,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 
 		It("verify high-availability-mode is None", func() {
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true, false)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -469,7 +469,7 @@ var _ = Describe("installcmd arguments", func() {
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true, false)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -479,7 +479,7 @@ var _ = Describe("installcmd arguments", func() {
 
 		It("no must-gather , mco and openshift version in day2 installation", func() {
 			db.Model(&cluster).Update("kind", models.ClusterKindAddHostsCluster)
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true, false)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -489,14 +489,15 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(request.MustGatherImage).To(BeEmpty())
 		})
 
-		It("provides the coreos image when installToExistingRoot is set", func() {
+		It("provides the coreos image when the boot device is persistent", func() {
+			host.Inventory = `{"boot": {"device_type": "persistent"}}`
 			testCoreOSImage := "example.com/coreos/image:latest"
 			mockRelease = oc.NewMockRelease(ctrl)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 			mockRelease.EXPECT().GetCoreOSImage(gomock.Any(), *common.TestDefaultConfig.ReleaseImage.URL, gomock.Any(), gomock.Any()).Return(testCoreOSImage, nil).AnyTimes()
 
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true, true)
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
@@ -513,7 +514,7 @@ var _ = Describe("installcmd arguments", func() {
 
 		BeforeEach(func() {
 			instructionConfig = DefaultInstructionConfig
-			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true, false)
+			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true)
 		})
 
 		It("valid installer args", func() {
@@ -593,7 +594,7 @@ var _ = Describe("installcmd arguments", func() {
 
 		BeforeEach(func() {
 			instructionConfig = DefaultInstructionConfig
-			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true, false)
+			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true)
 		})
 
 		It("single argument with ocp image only", func() {
@@ -625,7 +626,7 @@ var _ = Describe("installcmd arguments", func() {
 
 		BeforeEach(func() {
 			instructionConfig = DefaultInstructionConfig
-			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true, false)
+			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions, true, true)
 		})
 		It("no-proxy without httpProxy", func() {
 			args := installCmd.getProxyArguments("t-cluster", "proxy.org", "", "", "domain.com,192.168.1.0/24")

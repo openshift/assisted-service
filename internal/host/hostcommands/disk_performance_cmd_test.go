@@ -2,6 +2,7 @@ package hostcommands
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
@@ -32,7 +33,7 @@ var _ = Describe("disk_performance", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
-		dCmd = NewDiskPerfCheckCmd(common.GetTestLog(), "quay.io/example/agent:latest", mockValidator, 600, false)
+		dCmd = NewDiskPerfCheckCmd(common.GetTestLog(), "quay.io/example/agent:latest", mockValidator, 600)
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -56,8 +57,11 @@ var _ = Describe("disk_performance", func() {
 		Expect(stepReply).To(BeNil())
 	})
 
-	It("returns no steps when installToExistingRoot is true", func() {
-		dCmd.installToExistingRoot = true
+	It("returns no steps when boot device is persistent", func() {
+		inventory := &models.Inventory{Boot: &models.Boot{DeviceType: models.BootDeviceTypePersistent}}
+		invBytes, err := json.Marshal(inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host.Inventory = string(invBytes)
 		steps, err := dCmd.GetSteps(ctx, &host)
 		Expect(steps).To(BeNil())
 		Expect(err).ToNot(HaveOccurred())
