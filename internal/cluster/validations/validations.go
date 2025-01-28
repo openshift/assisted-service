@@ -24,10 +24,12 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/tang"
 	"github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"golang.org/x/crypto/ssh"
 )
@@ -948,4 +950,19 @@ func ValidatePlatformCapability(platform *models.Platform, ctx context.Context, 
 	}
 
 	return nil
+}
+
+func ParseMirrorRegistries(log logrus.FieldLogger, publicRegistries string, mirrorRegistries []mirrorregistries.RegistriesConf) string {
+	for _, mirrorRegistry := range mirrorRegistries {
+		registry := ParseBaseRegistry(mirrorRegistry.Location)
+		log.Debugf("Adding mirror registry %s to public registries list", registry)
+		publicRegistries = fmt.Sprintf("%s%s%s", publicRegistries, ignoreListSeparator, registry)
+	}
+	return publicRegistries
+}
+
+// ParseBaseRegistry extracts the base domain for a registry.
+func ParseBaseRegistry(registry string) string {
+	registryParts := strings.Split(strings.TrimSpace(registry), "/")
+	return registryParts[0]
 }

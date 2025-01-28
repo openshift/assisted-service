@@ -12,7 +12,9 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	auth "github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/pkg/testutil"
 	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 )
@@ -646,3 +648,19 @@ func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")
 }
+
+var _ = Describe("Parse functions", func() {
+	var log = testutil.Log()
+	Context("ParseMirrorRegistries", func() {
+		It("doesn't add anything to public registries if mirror registries is empty", func() {
+			registries := "test.com,example.com"
+			registriesAfterParsing := ParseMirrorRegistries(log, registries, nil)
+			Expect(registriesAfterParsing).To(Equal("test.com,example.com"))
+		})
+		It("adds to registries if there are mirror registries", func() {
+			registries := "example.com"
+			registriesAfterParsing := ParseMirrorRegistries(log, registries, []mirrorregistries.RegistriesConf{{Location: "redhat.io"}})
+			Expect(registriesAfterParsing).To(Equal("example.com,redhat.io"))
+		})
+	})
+})
