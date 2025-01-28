@@ -180,6 +180,8 @@ parameters:
   value: 10m
 - name: ENVOY_MEMORY_LIMIT
   value: 512Mi
+- name: ENVOY_CPU_LIMIT
+  value: "8"
 - name: ENVOY_TIMEOUT
   value: "30s"
 - name: SVC_TARGET_PORT
@@ -278,6 +280,7 @@ objects:
                 cpu: ${ENVOY_CPU_REQUEST}
               limits:
                 memory: ${ENVOY_MEMORY_LIMIT}
+                cpu: ${ENVOY_CPU_LIMIT}
           - name: assisted-service
             image: ${ASSISTED_SERVICE_IMAGE}:${IMAGE_TAG}
             imagePullPolicy: Always
