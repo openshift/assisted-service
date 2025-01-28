@@ -130,6 +130,13 @@ func (b *bareMetalInventory) V2GetClusterInstallConfig(ctx context.Context, para
 		return common.GenerateErrorResponder(fmt.Errorf("Failed to get cluster %s: %w", params.ClusterID, err))
 	}
 
+	if common.IsDay2Cluster(cluster) {
+		return common.GenerateErrorResponderWithDefault(
+			fmt.Errorf("The install config is not available because this cluster resource is used only for adding additional hosts to an existing cluster"),
+			http.StatusBadRequest,
+		)
+	}
+
 	clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
 	if err != nil {
 		return common.GenerateErrorResponder(fmt.Errorf("Failed to get cluster %s infraenvs: %w", params.ClusterID, err))
