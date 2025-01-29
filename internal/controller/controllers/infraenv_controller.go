@@ -642,18 +642,38 @@ func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.Infra
 	if err != nil {
 		return err
 	}
-	baseURL, err := url.Parse(r.ServiceBaseURL)
+	scriptURL, err := url.Parse(r.ServiceBaseURL)
 	if err != nil {
 		return err
 	}
 	// ASC may be configured to use http in ipxe artifact URLs so that all ipxe clients could consume those
 	if r.InsecureIPXEURLs {
-		baseURL.Scheme = "http"
+		scriptURL.Scheme = "http"
 	}
-	baseURL.Path = path.Join(baseURL.Path, filesURL.Path)
-	baseURL.RawQuery = filesURL.RawQuery
+	scriptURL.Path = path.Join(scriptURL.Path, filesURL.Path)
+	scriptURL.RawQuery = filesURL.RawQuery
 
-	infraEnv.Status.BootArtifacts.IpxeScriptURL, err = signURL(baseURL.String(), r.AuthType, infraEnvID, gencrypto.InfraEnvKey)
+	infraEnv.Status.BootArtifacts.IpxeScriptURL, err = signURL(scriptURL.String(), r.AuthType, infraEnvID, gencrypto.InfraEnvKey)
+	if err != nil {
+		return err
+	}
+
+	builder = &installer.V2DownloadInfraEnvFilesURL{
+		InfraEnvID: strfmt.UUID(infraEnvID),
+		FileName:   "discovery.ign",
+	}
+	filesURL, err = builder.Build()
+	if err != nil {
+		return err
+	}
+	ignitionURL, err := url.Parse(r.ServiceBaseURL)
+	if err != nil {
+		return err
+	}
+	ignitionURL.Path = path.Join(ignitionURL.Path, filesURL.Path)
+	ignitionURL.RawQuery = filesURL.RawQuery
+
+	infraEnv.Status.BootArtifacts.DiscoveryIgnitionURL, err = signURL(ignitionURL.String(), r.AuthType, infraEnvID, gencrypto.InfraEnvKey)
 	if err != nil {
 		return err
 	}
