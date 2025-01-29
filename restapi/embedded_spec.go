@@ -9082,6 +9082,11 @@ func init() {
           "type": "string",
           "format": "uuid"
         },
+        "control_plane_count": {
+          "description": "The number of controller nodes in the cluster. The default value is 3.\nSet it for at least 2 for a Highly-Available cluster.\n",
+          "type": "integer",
+          "x-nullable": true
+        },
         "controller_image": {
           "description": "Assisted installer controller image",
           "type": "string",
@@ -20122,6 +20127,11 @@ func init() {
           "description": "Cluster id",
           "type": "string",
           "format": "uuid"
+        },
+        "control_plane_count": {
+          "description": "The number of controller nodes in the cluster. The default value is 3.\nSet it for at least 2 for a Highly-Available cluster.\n",
+          "type": "integer",
+          "x-nullable": true
         },
         "controller_image": {
           "description": "Assisted installer controller image",

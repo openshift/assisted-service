@@ -6804,6 +6804,12 @@ definitions:
         description: |
           Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
           over multiple master nodes whereas 'None' installs a full cluster over one node.
+      control_plane_count:
+        type: integer
+        x-nullable: true
+        description: |
+          The number of controller nodes in the cluster. The default value is 3.
+          Set it for at least 2 for a Highly-Available cluster.
       proxy:
         $ref: "#/definitions/proxy"
       check_cvo:

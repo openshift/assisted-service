@@ -33,6 +33,11 @@ type InstallCmdRequest struct {
 	// Format: uuid
 	ClusterID *strfmt.UUID `json:"cluster_id"`
 
+	// The number of controller nodes in the cluster. The default value is 3.
+	// Set it for at least 2 for a Highly-Available cluster.
+	//
+	ControlPlaneCount *int64 `json:"control_plane_count,omitempty"`
+
 	// Assisted installer controller image
 	// Required: true
 	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$
