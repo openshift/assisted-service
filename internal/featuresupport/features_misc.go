@@ -71,6 +71,10 @@ func (feature *SnoFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	return activeLevelNotActive
 }
 
+func (feature *SnoFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
+
 // CustomManifestFeature
 type CustomManifestFeature struct{}
 
@@ -100,6 +104,9 @@ func (feature *CustomManifestFeature) getIncompatibleArchitectures(_ *string) *[
 
 func (feature *CustomManifestFeature) getFeatureActiveLevel(_ *common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	return activeLeveNotRelevant
+}
+func (feature *CustomManifestFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // SingleNodeExpansionFeature
@@ -140,6 +147,9 @@ func (feature *SingleNodeExpansionFeature) getIncompatibleFeatures(string) *[]mo
 
 func (feature *SingleNodeExpansionFeature) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
 	return feature.snoFeature.getIncompatibleArchitectures(openshiftVersion)
+}
+func (feature *SingleNodeExpansionFeature) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // MinimalIso
@@ -195,6 +205,9 @@ func (feature *MinimalIso) getFeatureActiveLevel(_ *common.Cluster, infraEnv *mo
 		return activeLevelNotActive
 	}
 	return activeLevelNotActive
+}
+func (feature *MinimalIso) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // FullIso
@@ -258,6 +271,10 @@ func (feature *FullIso) getFeatureActiveLevel(_ *common.Cluster, infraEnv *model
 	return activeLevelNotActive
 }
 
+func (feature *FullIso) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
+
 // Skip MCO reboot
 type skipMcoReboot struct{}
 
@@ -301,6 +318,9 @@ func (f *skipMcoReboot) getFeatureActiveLevel(cluster *common.Cluster, infraEnv 
 		}
 	}
 	return activeLevelActive
+}
+func (feature *skipMcoReboot) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }
 
 // Non-standard HA OCP Control Plane
@@ -357,4 +377,7 @@ func (f *NonStandardHAControlPlane) getFeatureActiveLevel(cluster *common.Cluste
 	}
 
 	return activeLevelNotActive
+}
+func (feature *NonStandardHAControlPlane) getFeatureDependencies(_ *common.Cluster) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
 }

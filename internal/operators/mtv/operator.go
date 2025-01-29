@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/operators/api"
-	"github.com/openshift/assisted-service/internal/operators/cnv"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -53,7 +52,8 @@ func (o *operator) GetFullName() string {
 }
 
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	return []string{cnv.Operator.Name}, nil
+	featureDependencies := featuresupport.GetFeatureDependencies(o.GetFeatureSupportID(), cluster)
+	return operatorscommon.GetListOperatorByFeature(featureDependencies), nil
 }
 
 // GetClusterValidationID returns cluster validation ID for the Operator

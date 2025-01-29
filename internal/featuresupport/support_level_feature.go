@@ -26,6 +26,8 @@ type SupportLevelFeature interface {
 	getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID
 	// getFeatureActiveLevel - Get the feature status, if it's active, not-active or not relevant (in cases where there is no meaning for that feature to be active)
 	getFeatureActiveLevel(cluster *common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel
+	// getFeatureDependencies
+	getFeatureDependencies(cluster *common.Cluster) []models.FeatureSupportLevelID
 }
 
 type SupportLevelFilters struct {
