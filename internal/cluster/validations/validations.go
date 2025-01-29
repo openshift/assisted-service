@@ -138,6 +138,12 @@ func ParseRegistry(image string) (string, error) {
 	return reference.Domain(parsed), nil
 }
 
+// ParseBaseRegistry extracts the base domain for a registry.
+func ParseBaseRegistry(registry string) string {
+	registryParts := strings.Split(strings.TrimSpace(registry), "/")
+	return registryParts[0]
+}
+
 // ValidateVipDHCPAllocationWithIPv6 returns an error in case of VIP DHCP allocation
 // being used with IPv6 machine network
 func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCIDR string) error {
