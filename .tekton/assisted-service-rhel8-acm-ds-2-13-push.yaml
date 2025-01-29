@@ -10,10 +10,10 @@ metadata:
       == "release-ocm-2.13"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: assisted-service-rhel8-mce-downstream-2-13
-    appstudio.openshift.io/component: assisted-service-rhel8-mce-downstream-2-13
+    appstudio.openshift.io/application: assisted-installer-application-acm-ds-2-13
+    appstudio.openshift.io/component: assisted-service-rhel8-acm-ds-2-13
     pipelines.appstudio.openshift.io/type: build
-  name: assisted-service-rhel8-mce-downstream-2-13-on-push
+  name: assisted-service-rhel8-acm-ds-2-13-on-push
   namespace: assisted-installer-tenant
 spec:
   params:
@@ -22,7 +22,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-service-rhel8-mce-downstream-2-13/assisted-service-rhel8-mce-downstream-2-13:{{revision}}
+    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-installer-application-acm-ds-2-13/assisted-service-rhel8-acm-ds-2-13:{{revision}}
   - name: build-platforms
     value:
     - linux/x86_64

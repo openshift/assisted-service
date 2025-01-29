@@ -11,10 +11,10 @@ metadata:
       == "master"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: assisted-service-rhel9-mce-downstream-main
-    appstudio.openshift.io/component: assisted-service-rhel9-mce-downstream-main
+    appstudio.openshift.io/application: assisted-installer-application-acm-ds-main
+    appstudio.openshift.io/component: assisted-service-rhel9-acm-ds-main
     pipelines.appstudio.openshift.io/type: build
-  name: assisted-service-rhel9-mce-downstream-main-on-pull-request
+  name: assisted-service-rhel9-acm-ds-main-on-pull-request
   namespace: assisted-installer-tenant
 spec:
   params:
@@ -23,7 +23,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-service-rhel9-mce-downstream-main/assisted-service-rhel9-mce-downstream-main:on-pr-{{revision}}
+    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-installer-application-acm-ds-main/assisted-service-rhel9-acm-ds-main:on-pr-{{revision}}
   - name: image-expires-after
     value: 5d
   - name: build-platforms
