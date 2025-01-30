@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
+	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
@@ -3619,6 +3620,14 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			CPUCores: 8,
 			RAMMib:   conversions.GibToMib(32),
 		}
+		masterNMStateRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: nmstate.MasterCPU,
+			RAMMib:   nmstate.MasterMemory,
+		}
+		workerNMStateRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: nmstate.WorkerCPU,
+			RAMMib:   nmstate.WorkerMemory,
+		}
 	)
 
 	BeforeEach(func() {
@@ -3646,7 +3655,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-		Expect(requirements.Operators).To(HaveLen(14))
+		Expect(requirements.Operators).To(HaveLen(15))
 		for _, op := range requirements.Operators {
 			switch op.OperatorName {
 			case lso.Operator.Name:
@@ -3685,6 +3694,15 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 				continue // lvm operator is tested separately
 			case authorino.Operator.Name:
 				continue
+			case nmstate.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterNMStateRequirements),
+					fmt.Sprintf("expected: CPUCores: %d,RAMMib: %d, masterMTVRequirements: CPUCores: %d,RAMMib: %d",
+						op.Requirements.Master.Quantitative.CPUCores, op.Requirements.Master.Quantitative.RAMMib,
+						masterNMStateRequirements.CPUCores, masterNMStateRequirements.RAMMib))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerNMStateRequirements),
+					fmt.Sprintf("expected: CPUCores: %d,RAMMib: %d, workerMTVRequirements: CPUCores: %d,RAMMib: %d",
+						op.Requirements.Worker.Quantitative.CPUCores, op.Requirements.Worker.Quantitative.RAMMib,
+						workerNMStateRequirements.CPUCores, workerNMStateRequirements.RAMMib))
 			default:
 				Fail("Unexpected operator")
 			}

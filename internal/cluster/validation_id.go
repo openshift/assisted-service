@@ -43,6 +43,7 @@ const (
 	IsServerLessRequirementsSatisfied           = ValidationID(models.ClusterValidationIDServerlessRequirementsSatisfied)
 	IsOpenShiftAIRequirementsSatisfied          = ValidationID(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied)
 	IsAuthorinoRequirementsSatisfied            = ValidationID(models.ClusterValidationIDAuthorinoRequirementsSatisfied)
+	IsNmstateRequirementsSatisfied              = ValidationID(models.ClusterValidationIDNmstateRequirementsSatisfied)
 )
 
 func (v ValidationID) Category() (string, error) {
@@ -68,7 +69,8 @@ func (v ValidationID) Category() (string, error) {
 		IsServiceMeshRequirementsSatisfied,
 		IsServerLessRequirementsSatisfied,
 		IsOpenShiftAIRequirementsSatisfied,
-		IsAuthorinoRequirementsSatisfied:
+		IsAuthorinoRequirementsSatisfied,
+		IsNmstateRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected cluster validation id %s", string(v)))

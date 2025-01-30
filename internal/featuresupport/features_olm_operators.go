@@ -686,3 +686,57 @@ func (feature *OscFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	}
 	return activeLevelNotActive
 }
+
+// NmstateFeature
+type NmstateFeature struct{}
+
+func (feature *NmstateFeature) New() SupportLevelFeature {
+	return &NmstateFeature{}
+}
+
+func (feature *NmstateFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDNMSTATE
+}
+
+func (feature *NmstateFeature) GetName() string {
+	return "Nmstate node network configuration"
+}
+
+func (feature *NmstateFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeNutanix || *filters.PlatformType == models.PlatformTypeExternal) {
+		return models.SupportLevelUnavailable
+	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.12", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *NmstateFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+	}
+}
+
+func (feature *NmstateFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+		models.FeatureSupportLevelIDEXTERNALPLATFORM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+	}
+}
+
+func (feature *NmstateFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("nmstate", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}

@@ -6565,6 +6565,7 @@ var allValidationIDs = []validationID{
 	AreServerLessRequirementsSatisfied,
 	AreOpenShiftAIRequirementsSatisfied,
 	AreAuthorinoRequirementsSatisfied,
+	AreNmstateRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{
