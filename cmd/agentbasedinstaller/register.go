@@ -26,6 +26,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -41,7 +42,7 @@ func GetPullSecret(pullSecretPath string) (string, error) {
 }
 
 func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, clusterDeploymentPath string,
-	agentClusterInstallPath string, clusterImageSetPath string, releaseImageMirror string) (*models.Cluster, error) {
+	agentClusterInstallPath string, clusterImageSetPath string, releaseImageMirror string, operatorInstallPath string) (*models.Cluster, error) {
 
 	var result *models.Cluster
 	log.Info("Registering cluster")
@@ -87,7 +88,21 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	log.Info("releaseImage: " + releaseImage)
 	log.Infof("releaseImage version %s cpuarch %s", releaseImageVersion, releaseImageCPUArch)
 
-	clusterParams := controllers.CreateClusterParams(&cd, &aci, pullSecret, releaseImageVersion, releaseImageCPUArch, nil)
+	var operatorInfo []*models.OperatorCreateParams
+	fileInfo, err := os.Stat(operatorInstallPath)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	if fileInfo != nil {
+		var operatorList []models.OperatorCreateParams
+		if operatorInfoErr := getFileData(operatorInstallPath, &operatorList); operatorInfoErr != nil {
+			return nil, operatorInfoErr
+		}
+
+		operatorInfo = operatorsToArray(operatorList)
+	}
+
+	clusterParams := controllers.CreateClusterParams(&cd, &aci, pullSecret, releaseImageVersion, releaseImageCPUArch, nil, operatorInfo)
 
 	if aci.Spec.Networking.NetworkType != "" {
 		clusterParams.NetworkType = &aci.Spec.Networking.NetworkType
@@ -335,4 +350,10 @@ func processNMStateConfig(log log.FieldLogger, infraEnv aiv1beta1.InfraEnv, nmSt
 		NetworkYaml:     string(nmStateConfig.Spec.NetConfig.Raw),
 	})
 	return staticNetworkConfig, nil
+}
+
+func operatorsToArray(entries []models.OperatorCreateParams) []*models.OperatorCreateParams {
+	return funk.Map(entries, func(entry models.OperatorCreateParams) *models.OperatorCreateParams {
+		return &models.OperatorCreateParams{Name: entry.Name, Properties: entry.Properties}
+	}).([]*models.OperatorCreateParams)
 }

@@ -42,8 +42,8 @@ import (
 const failureOutputPath = "/var/run/agent-installer/host-config-failures"
 
 var Options struct {
-	ServiceBaseUrl   string `envconfig:"SERVICE_BASE_URL" default:""`
-	UserAuthToken    string `envconfig:"USER_AUTH_TOKEN" default:""`
+	ServiceBaseUrl string `envconfig:"SERVICE_BASE_URL" default:""`
+	UserAuthToken  string `envconfig:"USER_AUTH_TOKEN" default:""`
 }
 
 var RegisterOptions struct {
@@ -56,6 +56,7 @@ var RegisterOptions struct {
 	ImageTypeISO            string `envconfig:"IMAGE_TYPE_ISO" default:"full-iso"`
 	ReleaseImageMirror      string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	ExtraManifests          string `envconfig:"EXTRA_MANIFESTS_PATH" default:"/extra-manifests"`
+	OperatorInstallFile     string `envconfig:"OPERATOR_INSTALL_FILE" default:"/manifests/operators.yaml"`
 }
 
 var ConfigureOptions struct {
@@ -132,7 +133,7 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 	}
 
 	modelsCluster, err := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
-		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror)
+		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile)
 	if err != nil {
 		log.Fatal("Failed to register cluster with assisted-service: ", err)
 	}
@@ -168,7 +169,7 @@ func registerCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	}
 
 	modelsCluster, err := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
-		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror)
+		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile)
 	if err != nil {
 		log.Fatal("Failed to register cluster with assisted-service: ", err)
 	}
