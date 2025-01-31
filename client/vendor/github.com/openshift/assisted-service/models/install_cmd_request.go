@@ -34,8 +34,9 @@ type InstallCmdRequest struct {
 	ClusterID *strfmt.UUID `json:"cluster_id"`
 
 	// The number of controller nodes in the cluster. The default value is 3.
-	// Set it for at least 2 for a Highly-Available cluster.
 	//
+	// Maximum: 5
+	// Minimum: 0
 	ControlPlaneCount *int64 `json:"control_plane_count,omitempty"`
 
 	// Assisted installer controller image
@@ -115,6 +116,10 @@ func (m *InstallCmdRequest) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateControlPlaneCount(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateControllerImage(formats); err != nil {
 		res = append(res, err)
 	}
@@ -173,6 +178,22 @@ func (m *InstallCmdRequest) validateClusterID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *InstallCmdRequest) validateControlPlaneCount(formats strfmt.Registry) error {
+	if swag.IsZero(m.ControlPlaneCount) { // not required
+		return nil
+	}
+
+	if err := validate.MinimumInt("control_plane_count", "body", *m.ControlPlaneCount, 0, false); err != nil {
+		return err
+	}
+
+	if err := validate.MaximumInt("control_plane_count", "body", *m.ControlPlaneCount, 5, false); err != nil {
 		return err
 	}
 
