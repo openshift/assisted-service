@@ -4752,7 +4752,7 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 		}
 	}
 
-	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraenvCreateParams.IgnitionConfigOverride); err != nil {
+	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraenvCreateParams.IgnitionConfigOverride, nil); err != nil {
 		return err
 	}
 
@@ -4918,7 +4918,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			}
 		}
 
-		if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraEnvUpdateParams.IgnitionConfigOverride); err != nil {
+		if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraEnvUpdateParams.IgnitionConfigOverride, internalIgnitionConfig); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
@@ -5137,7 +5137,7 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context
 	return *params, nil
 }
 
-func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context, ignitionConfigOverride string) error {
+func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context, ignitionConfigOverride string, internalIgnitionOverride *string) error {
 
 	log := logutil.FromContext(ctx, b.log)
 
@@ -5219,6 +5219,14 @@ func (b *bareMetalInventory) updateInfraEnvKernelArguments(params installer.Upda
 	if infraEnv.ClusterID != "" {
 		if err := b.setDiscoveryKernelArgumentsUsage(db, infraEnv.ClusterID, params.InfraEnvUpdateParams.KernelArguments); err != nil {
 			log.WithError(err).Warnf("failed to set discovery kernel arguments usage for cluster %s", infraEnv.ClusterID)
+		}
+	}
+
+	if internalIgnitionOverride != nil && *internalIgnitionOverride != "" {
+		_, err := ignition.ParseToLatest([]byte(*internalIgnitionOverride))
+		if err != nil {
+			log.WithError(err).Errorf("Failed to parse internal ignition config patch %s", *internalIgnitionOverride)
+			return err
 		}
 	}
 

@@ -9503,6 +9503,15 @@ var _ = Describe("infraEnvs", func() {
 				Expect(pathList[5]).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 			})
 
+			It("fails when the internal ignition config is invalid", func() {
+				invalidIgnition := "{\"foo\": \"bar\"}"
+				_, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID:           infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
+				}, &invalidIgnition, nil)
+				Expect(err).To(HaveOccurred())
+			})
+
 			Context("with rhsso auth", func() {
 				BeforeEach(func() {
 					_, cert := auth.GetTokenAndCert(false)
