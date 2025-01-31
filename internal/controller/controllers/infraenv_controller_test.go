@@ -383,6 +383,40 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(scriptURL.Query().Has("ipxe_script_type")).To(BeFalse())
 	})
 
+	It("sets the discovery ignition boot artifact url", func() {
+		dbInfraEnv := &common.InfraEnv{
+			GeneratedAt: strfmt.DateTime(time.Now()),
+			InfraEnv: models.InfraEnv{
+				ID:              &sId,
+				CPUArchitecture: infraEnvArch,
+				DownloadURL:     "https://images.example.com/images/best-image",
+			},
+		}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil, nil).Return(dbInfraEnv, nil).Times(1)
+		kubeInfraEnv := newInfraEnvImage("myInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{
+			PullSecretRef: &corev1.LocalObjectReference{Name: "pull-secret"},
+		})
+		Expect(c.Create(ctx, kubeInfraEnv)).To(Succeed())
+
+		_, err := ir.Reconcile(ctx, newInfraEnvRequest(kubeInfraEnv))
+		Expect(err).ToNot(HaveOccurred())
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "myInfraEnv",
+		}
+		Expect(c.Get(ctx, key, kubeInfraEnv)).To(BeNil())
+
+		ignitionURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.DiscoveryIgnitionURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ignitionURL.Scheme).To(Equal("https"))
+		Expect(ignitionURL.Host).To(Equal("www.acme.com"))
+		Expect(ignitionURL.Path).To(Equal(fmt.Sprintf("/api/assisted-install/v2/infra-envs/%s/downloads/files", sId)))
+		Expect(ignitionURL.Query().Get("file_name")).To(Equal("discovery.ign"))
+	})
+
 	Context("discovery kernel arguments", func() {
 		encodeKernelArguments := func(kargs []aiv1beta1.KernelArgument) *string {
 			internalKargs := internalKernelArgs(kargs)

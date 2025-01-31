@@ -304,6 +304,10 @@ spec:
               bootArtifacts:
                 description: BootArtifacts specifies the URLs for each boot artifact
                 properties:
+                  discoveryIgnitionURL:
+                    description: DiscoveryIgnitionURL specifies an HTTP/S URL that
+                      contains the discovery ignition
+                    type: string
                   initrd:
                     description: InitrdURL specifies an HTTP/S URL that contains the
                       initrd

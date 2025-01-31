@@ -202,6 +202,9 @@ type BootArtifacts struct {
 	// IpxeScriptURL specifies an HTTP/S URL that contains the iPXE script
 	// +optional
 	IpxeScriptURL string `json:"ipxeScript"`
+	// DiscoveryIgnitionURL specifies an HTTP/S URL that contains the discovery ignition
+	// +optional
+	DiscoveryIgnitionURL string `json:"discoveryIgnitionURL"`
 }
 
 // +kubebuilder:object:root=true
