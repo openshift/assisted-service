@@ -5956,10 +5956,8 @@ definitions:
         items:
           $ref: '#/definitions/service_network'
       forbidden_hostnames:
-        description: This provides a list of forbidden hostnames. If this list is empty or not present, this implies that the UI should fall back to a hard coded list.
-        type: array
-        items:
-          type: string
+        description: This provides a regex pattern of forbidden hostnames.
+        type: string
 
   infra_error:
     type: object

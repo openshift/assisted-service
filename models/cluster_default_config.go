@@ -35,8 +35,8 @@ type ClusterDefaultConfig struct {
 	// cluster networks ipv4
 	ClusterNetworksIPV4 []*ClusterNetwork `json:"cluster_networks_ipv4"`
 
-	// This provides a list of forbidden hostnames. If this list is empty or not present, this implies that the UI should fall back to a hard coded list.
-	ForbiddenHostnames []string `json:"forbidden_hostnames"`
+	// This provides a regex pattern of forbidden hostnames.
+	ForbiddenHostnames string `json:"forbidden_hostnames,omitempty"`
 
 	// inactive deletion hours
 	InactiveDeletionHours int64 `json:"inactive_deletion_hours,omitempty"`

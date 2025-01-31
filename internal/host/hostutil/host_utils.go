@@ -25,18 +25,10 @@ import (
 )
 
 const (
-	MaxHostnameLength = 63
-	HostnamePattern   = "^[a-z0-9][a-z0-9-]{0,62}(?:[.][a-z0-9-]{1,63})*$"
+	MaxHostnameLength        = 253
+	HostnamePattern          = `^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.?$`
+	ForbiddenHostnamePattern = `^(localhost(\..*)?|.*\.localhost\..*)$`
 )
-
-var ForbiddenHostnames = []string{
-	"localhost",
-	"localhost.localdomain",
-	"localhost4",
-	"localhost4.localdomain4",
-	"localhost6",
-	"localhost6.localdomain6",
-}
 
 func GetCurrentHostName(host *models.Host) (string, error) {
 	var inventory models.Inventory
@@ -78,16 +70,20 @@ func ValidateHostname(hostname string) error {
 	if len(hostname) > MaxHostnameLength {
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("hostname is too long, must be 63 characters or less. Hostname: %s has %d characters", hostname, len(hostname)))
 	}
-	b, err := regexp.MatchString(HostnamePattern, hostname)
+	valid, err := regexp.MatchString(HostnamePattern, hostname)
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Matching hostname"))
 	}
-	if !b {
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Hostname does not pass required regex validation: %s. Hostname: %s", HostnamePattern, hostname))
+	if !valid {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("hostname does not pass required regex validation: %s. Hostname: %s", HostnamePattern, hostname))
 	}
 
-	if funk.ContainsString(ForbiddenHostnames, hostname) {
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("The host name %s is forbidden", hostname))
+	forbidden, err := regexp.MatchString(ForbiddenHostnamePattern, hostname)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Matching forbidden hostname"))
+	}
+	if forbidden {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("hostname is forbidden: %s. Hostname: %s", ForbiddenHostnamePattern, hostname))
 	}
 
 	return nil

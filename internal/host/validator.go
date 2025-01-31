@@ -700,10 +700,13 @@ func (v *validator) isHostnameValid(c *validationContext) (ValidationStatus, str
 	}
 
 	if err := hostutil.ValidateHostname(getRealHostname(c.host, c.inventory)); err != nil {
-		if funk.ContainsString(hostutil.ForbiddenHostnames, getRealHostname(c.host, c.inventory)) {
-			return ValidationFailure, fmt.Sprintf("The host name %s is forbidden", getRealHostname(c.host, c.inventory))
-		}
-		return ValidationFailure, fmt.Sprintf("Hostname %s is forbidden, hostname should match pattern %s", getRealHostname(c.host, c.inventory), hostutil.HostnamePattern)
+		return ValidationFailure, fmt.Sprintf(
+			"Hostname %s is forbidden, hostname cannot be longer than %v, "+
+				"should match pattern %s, and cannot match forbidden pattern %s",
+			getRealHostname(c.host, c.inventory),
+			hostutil.MaxHostnameLength,
+			hostutil.HostnamePattern,
+			hostutil.ForbiddenHostnamePattern)
 	}
 	return ValidationSuccess, fmt.Sprintf("Hostname %s is allowed", getRealHostname(c.host, c.inventory))
 }

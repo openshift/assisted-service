@@ -41,12 +41,6 @@ var _ = Describe("V2GetClusterDefaultConfig", func() {
 	It("Forbidden hostnames", func() {
 		res, err := utils_test.TestContext.UserBMClient.Installer.V2GetClusterDefaultConfig(context.Background(), &installer.V2GetClusterDefaultConfigParams{})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(len(res.GetPayload().ForbiddenHostnames)).To(Equal(6))
-		Expect(res.GetPayload().ForbiddenHostnames[0]).To(Equal("localhost"))
-		Expect(res.GetPayload().ForbiddenHostnames[1]).To(Equal("localhost.localdomain"))
-		Expect(res.GetPayload().ForbiddenHostnames[2]).To(Equal("localhost4"))
-		Expect(res.GetPayload().ForbiddenHostnames[3]).To(Equal("localhost4.localdomain4"))
-		Expect(res.GetPayload().ForbiddenHostnames[4]).To(Equal("localhost6"))
-		Expect(res.GetPayload().ForbiddenHostnames[5]).To(Equal("localhost6.localdomain6"))
+		Expect(res.GetPayload().ForbiddenHostnames).To(Equal(`^localhost(?:\d*\.localdomain\d*)?$`))
 	})
 })
