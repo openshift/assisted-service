@@ -348,13 +348,6 @@ func deleteBMHForMachine(ctx context.Context, spokeClient client.Client, machine
 		return errors.Wrapf(err, "failed to delete BMH %s", bmhNSName)
 	}
 
-	// TODO: remove this once OCPBUGS-7581 is fixed
-	patch := client.MergeFrom(bmh.DeepCopy())
-	bmh.ObjectMeta.Finalizers = nil
-	if err = client.IgnoreNotFound(spokeClient.Patch(ctx, bmh, patch)); err != nil {
-		return errors.Wrapf(err, "failed to remove BMH %s finalizers", bmhNSName)
-	}
-
 	return nil
 }
 
