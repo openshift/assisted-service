@@ -967,6 +967,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		Kind:               swag.String(models.ClusterKindAddHostsCluster),
 		Name:               clusterName,
 		OpenshiftClusterID: common.StrFmtUUIDVal(params.NewImportClusterParams.OpenshiftClusterID),
+		OpenshiftVersion:   params.NewImportClusterParams.OpenshiftVersion,
 		UserName:           ocm.UserNameFromContext(ctx),
 		OrgID:              ocm.OrgIDFromContext(ctx),
 		EmailDomain:        ocm.EmailDomainFromContext(ctx),

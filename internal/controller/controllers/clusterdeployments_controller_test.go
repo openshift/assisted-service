@@ -3387,6 +3387,7 @@ var _ = Describe("cluster reconcile", func() {
 			V2ImportClusterInternal := func(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
 				params installer.V2ImportClusterParams) (*common.Cluster, error) {
 				Expect(string(*params.NewImportClusterParams.OpenshiftClusterID)).To(Equal(cid))
+				Expect(params.NewImportClusterParams.OpenshiftVersion).To(Equal(ocpVersion))
 				return clusterReply, nil
 			}
 			mockInstallerInternal.EXPECT().
