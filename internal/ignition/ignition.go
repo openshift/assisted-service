@@ -1265,9 +1265,9 @@ func ParseToLatest(content []byte) (*config_latest_types.Config, error) {
 		// TODO(deprecate-ignition-3.1.0)
 		// We always want to work with the object of the type v3.2 but carry a value of v3.1 inside.
 		// For this reason we are translating the config to v3.2 and manually override the Version.
-		configBackwards, _, err := config_31.Parse(content)
+		configBackwards, report, err := config_31.Parse(content)
 		if err != nil {
-			return nil, errors.Errorf("error parsing ignition: %v", err)
+			return nil, errors.Errorf("error parsing ignition: %v, error report: %s", err, report.String())
 		}
 		config = config_latest_trans.Translate(configBackwards)
 		config.Ignition.Version = "3.1.0"
