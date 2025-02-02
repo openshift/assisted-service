@@ -51,7 +51,7 @@ V2ListBundlesOK describes a response with status code 200, with default header v
 Success
 */
 type V2ListBundlesOK struct {
-	Payload []string
+	Payload []*models.Bundle
 }
 
 // IsSuccess returns true when this v2 list bundles o k response has a 2xx status code
@@ -87,7 +87,7 @@ func (o *V2ListBundlesOK) String() string {
 	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesOK  %+v", 200, o.Payload)
 }
 
-func (o *V2ListBundlesOK) GetPayload() []string {
+func (o *V2ListBundlesOK) GetPayload() []*models.Bundle {
 	return o.Payload
 }
 

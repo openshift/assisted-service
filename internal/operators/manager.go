@@ -31,6 +31,8 @@ const controllerManifestFile = "custom_manifests.json"
 
 var storageOperatorsPriority = []string{odf.Operator.Name, lvm.Operator.Name}
 
+var validBundles = []string{operatorscommon.BundleVirtualization, operatorscommon.BundleOpenshiftai}
+
 // Manifest store the operator manifest used by assisted-installer to create CRs of the OLM.
 type Manifest struct {
 	// Name of the operator the CR manifest we want create
@@ -80,7 +82,7 @@ type API interface {
 	// EnsureOperatorPrerequisite Ensure that for the given operators has the base prerequisite for installation
 	EnsureOperatorPrerequisite(cluster *common.Cluster, openshiftVersion string, cpuArchitecture string, operators []*models.MonitoredOperator) error
 	// ListBundles returns the list of available bundles
-	ListBundles() []string
+	ListBundles() []*models.Bundle
 	// GetBundle returns the Bundle object
 	GetBundle(bundleName string) (*models.Bundle, error)
 }
@@ -520,11 +522,17 @@ func (mgr *Manager) EnsureOperatorPrerequisite(cluster *common.Cluster, openshif
 }
 
 // ListBundles returns a list of available bundles.
-func (mgr *Manager) ListBundles() []string {
-	return []string{
-		operatorscommon.BundleVirtualization,
-		operatorscommon.BundleOpenshiftai,
+func (mgr *Manager) ListBundles() []*models.Bundle {
+	var bundles []*models.Bundle
+	for _, bundleName := range validBundles {
+		bundle, err := mgr.GetBundle(bundleName)
+		if err != nil {
+			mgr.log.Error(err)
+			continue
+		}
+		bundles = append(bundles, bundle)
 	}
+	return bundles
 }
 
 // GetBundle returns the Bundle object
@@ -545,7 +553,7 @@ func (mgr *Manager) GetBundle(bundleName string) (*models.Bundle, error) {
 }
 
 func (mgr *Manager) isBundleValid(bundleName string) bool {
-	for _, bundle := range mgr.ListBundles() {
+	for _, bundle := range validBundles {
 		if bundle == bundleName {
 			return true
 		}
