@@ -12237,6 +12237,19 @@ var _ = Describe("GetClusterInstallConfig", func() {
 		_, ok := response.(*installer.V2GetClusterInstallConfigOK)
 		Expect(ok).To(BeTrue())
 	})
+
+	It("fail to get install config for Day2 cluster", func() {
+		c.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		db.Save(&c)
+
+		params := installer.V2GetClusterInstallConfigParams{ClusterID: clusterID}
+		response := bm.V2GetClusterInstallConfig(ctx, params)
+
+		errorResponse, ok := response.(*common.ApiErrorResponse)
+		Expect(ok).To(BeTrue(), "Expected response to be ApiErrorResponse but got %T", response)
+		Expect(int(errorResponse.StatusCode())).To(Equal(http.StatusBadRequest))
+	})
+
 })
 
 var _ = Describe("UpdateClusterInstallConfig", func() {
