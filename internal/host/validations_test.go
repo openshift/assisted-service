@@ -2347,6 +2347,14 @@ var _ = Describe("Validations test", func() {
 			cluster common.Cluster
 			host    models.Host
 		)
+
+		standaloneiSCSIDisks := func(iscsi *models.Iscsi) []*models.Disk {
+			return []*models.Disk{{ID: "install-disk", DriveType: models.DriveTypeISCSI, Iscsi: iscsi}}
+		}
+		multipathiSCSIDisks := func(iscsi *models.Iscsi) []*models.Disk {
+			return []*models.Disk{{ID: "install-disk", Name: "dm-0", DriveType: models.DriveTypeMultipath}, {Name: "sda", DriveType: models.DriveTypeISCSI, Holders: "dm-0", Iscsi: iscsi}, {Name: "sdb", DriveType: models.DriveTypeISCSI, Holders: "dm-0", Iscsi: iscsi}}
+		}
+
 		BeforeEach(func() {
 			cluster = hostutil.GenerateTestCluster(clusterID)
 			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
@@ -2379,7 +2387,7 @@ var _ = Describe("Validations test", func() {
 			_, _, ok := getValidationResult(refreshedHost.ValidationsInfo, NoIscsiNicBelongsToMachineCidr)
 			Expect(ok).To(BeFalse())
 		})
-		It("Not iSCSI drive", func() {
+		It("Not iSCSI/ Multipath iSCSI drives", func() {
 			var inventory models.Inventory
 			err := json.Unmarshal([]byte(host.Inventory), &inventory)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -2401,20 +2409,13 @@ var _ = Describe("Validations test", func() {
 			_, _, ok := getValidationResult(refreshedHost.ValidationsInfo, NoIscsiNicBelongsToMachineCidr)
 			Expect(ok).To(BeFalse())
 		})
-		It("iSCSI drive - no network interface set with host IP", func() {
+		DescribeTable("iSCSI / Multipath iSCSI drive - no network interface set with host IP", func(disks []*models.Disk) {
 			var inventory models.Inventory
 			err := json.Unmarshal([]byte(host.Inventory), &inventory)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			host.InstallationDiskID = "install-disk"
-			inventory.Disks = []*models.Disk{
-				{
-					ID:        "install-disk",
-					DriveType: models.DriveTypeISCSI,
-					Iscsi: &models.Iscsi{
-						HostIPAddress: "99.99.99.99",
-					}},
-			}
+			inventory.Disks = disks
 
 			inventoryByte, _ := json.Marshal(inventory)
 			host.Inventory = string(inventoryByte)
@@ -2429,22 +2430,19 @@ var _ = Describe("Validations test", func() {
 			Expect(ok).To(BeTrue())
 			Expect(status).To(Equal(ValidationError))
 			Expect(message).To(Equal("Cannot find network interface associated to iSCSI host IP address"))
-		})
+		},
+			Entry("Standalone iSCSI", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "99.99.99.99"})),
+			Entry("Multipath iSCSI", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "99.99.99.99"})),
+		)
 		DescribeTable(
-			"iSCSI drive - malformed iSCSI properties",
-			func(iSCSI *models.Iscsi, expectedMessage string) {
+			"iSCSI / Multipath iSCSI drive - malformed iSCSI properties",
+			func(disks []*models.Disk, expectedMessage string) {
 				var inventory models.Inventory
 				err := json.Unmarshal([]byte(host.Inventory), &inventory)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				host.InstallationDiskID = "install-disk"
-				inventory.Disks = []*models.Disk{
-					{
-						ID:        "install-disk",
-						DriveType: models.DriveTypeISCSI,
-						Iscsi:     iSCSI,
-					},
-				}
+				inventory.Disks = disks
 
 				inventoryByte, _ := json.Marshal(inventory)
 				host.Inventory = string(inventoryByte)
@@ -2460,27 +2458,22 @@ var _ = Describe("Validations test", func() {
 				Expect(status).To(Equal(ValidationError))
 				Expect(message).To(Equal(expectedMessage))
 			},
-			Entry("iSCSI is nil", nil, "iSCSI installation disk is missing host IP address"),
-			Entry("Host IP address is empty", &models.Iscsi{}, "Cannot find network interface associated to iSCSI host IP address"),
-			Entry("Host IP address is invalid", &models.Iscsi{HostIPAddress: "invalid"}, "Cannot find network interface associated to iSCSI host IP address"),
+			Entry("Standalone iSCSI - iSCSI is nil", standaloneiSCSIDisks(nil), "iSCSI disk is missing host IP address"),
+			Entry("Multipath iSCSI - iSCSI is nil", multipathiSCSIDisks(nil), "iSCSI disk is missing host IP address"),
+			Entry("Standalone iSCSI - Host IP address is empty", standaloneiSCSIDisks(&models.Iscsi{}), "Cannot find network interface associated to iSCSI host IP address"),
+			Entry("Multipath iSCSI - Host IP address is empty", multipathiSCSIDisks(&models.Iscsi{}), "Cannot find network interface associated to iSCSI host IP address"),
+			Entry("Standalone iSCSI - Host IP address is invalid", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "invalid"}), "Cannot find network interface associated to iSCSI host IP address"),
+			Entry("Multipath iSCSI - Host IP address is invalid", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "invalid"}), "Cannot find network interface associated to iSCSI host IP address"),
 		)
 		DescribeTable(
-			"iSCSI drive - machine networks",
-			func(iSCSIHostIPAdress string, machineNetworks []*models.MachineNetwork, interfaces []*models.Interface, expectedStatus ValidationStatus, expectedMessage string) {
+			"iSCSI / Multipath iSCSI drive - machine networks",
+			func(disks []*models.Disk, machineNetworks []*models.MachineNetwork, interfaces []*models.Interface, expectedStatus ValidationStatus, expectedMessage string) {
 				var inventory models.Inventory
 				err := json.Unmarshal([]byte(host.Inventory), &inventory)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				host.InstallationDiskID = "install-disk"
-				inventory.Disks = []*models.Disk{
-					{
-						ID:        "install-disk",
-						DriveType: models.DriveTypeISCSI,
-						Iscsi: &models.Iscsi{
-							HostIPAddress: iSCSIHostIPAdress,
-						},
-					},
-				}
+				inventory.Disks = disks
 				inventory.Interfaces = interfaces
 
 				inventoryByte, _ := json.Marshal(inventory)
@@ -2497,9 +2490,11 @@ var _ = Describe("Validations test", func() {
 				Expect(message).To(Equal(expectedMessage))
 				Expect(status).To(Equal(expectedStatus))
 			},
-			Entry("Machine networks is nil", "192.168.1.1", nil, nil, ValidationPending, "Missing inventory or machine network CIDR"),
-			Entry("Machine networks is empty", "192.168.1.1", []*models.MachineNetwork{}, nil, ValidationPending, "Missing inventory or machine network CIDR"),
-			Entry("Machine networks IPv4 overlaps with host IPv4 address", "192.168.1.1",
+			Entry("Standalone iSCSI - Machine networks is nil", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}), nil, nil, ValidationPending, "Missing inventory or machine network CIDR"),
+			Entry("Multipath iSCSI - Machine networks is nil", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}), nil, nil, ValidationPending, "Missing inventory or machine network CIDR"),
+			Entry("Standalone iSCSI - Machine networks is empty", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}), []*models.MachineNetwork{}, nil, ValidationPending, "Missing inventory or machine network CIDR"),
+			Entry("Multipath iSCSI - Machine networks is empty", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}), []*models.MachineNetwork{}, nil, ValidationPending, "Missing inventory or machine network CIDR"),
+			Entry("Standalone iSCSI - Machine networks IPv4 overlaps with host IPv4 address", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
 				[]*models.MachineNetwork{
 					{
 						Cidr:      "192.168.1.0/24",
@@ -2512,7 +2507,20 @@ var _ = Describe("Validations test", func() {
 					},
 				},
 				ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"),
-			Entry("Machine networks IPv6 overlaps with host IPv6 address", "2001:0db8:85a3::8a2e:0370:7334",
+			Entry("Multipath iSCSI - Machine networks IPv4 overlaps with host IPv4 address", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "192.168.1.0/24",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV4Addresses: []string{"192.168.1.1/24"},
+					},
+				},
+				ValidationFailure, fmt.Sprintf("%s: Network interface connected to iSCSI disk (%s) cannot belong to machine network CIDRs", hardware.ErrsInIscsiDisableMultipathInstallation, "sda, sdb")),
+			Entry("Standalone iSCSI - Machine networks IPv6 overlaps with host IPv6 address", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "2001:0db8:85a3::8a2e:0370:7334"}),
 				[]*models.MachineNetwork{
 					{
 						Cidr:      "2001:0db8:85a3::/48",
@@ -2525,7 +2533,20 @@ var _ = Describe("Validations test", func() {
 					},
 				},
 				ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"),
-			Entry("Machine networks IPv6 uses the same interface as host IPv4 address", "192.168.1.1",
+			Entry("Multipath iSCSI - Machine networks IPv6 overlaps with host IPv6 address", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "2001:0db8:85a3::8a2e:0370:7334"}),
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "2001:0db8:85a3::/48",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV6Addresses: []string{"2001:0db8:85a3::8a2e:0370:7334/48"},
+					},
+				},
+				ValidationFailure, fmt.Sprintf("%s: Network interface connected to iSCSI disk (%s) cannot belong to machine network CIDRs", hardware.ErrsInIscsiDisableMultipathInstallation, "sda, sdb")),
+			Entry("Standalone iSCSI - Machine networks IPv6 uses the same interface as host IPv4 address", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
 				[]*models.MachineNetwork{
 					{
 						Cidr:      "2001:0db8:85a3::/48",
@@ -2539,7 +2560,21 @@ var _ = Describe("Validations test", func() {
 					},
 				},
 				ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"),
-			Entry("Machine networks IPv4 uses the same interface as host IPv6 address", "2001:0db8:85a3::8a2e:0370:7334",
+			Entry("Multipath iSCSI - Machine networks IPv6 uses the same interface as host IPv4 address", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "2001:0db8:85a3::/48",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV4Addresses: []string{"192.168.1.1/24"},
+						IPV6Addresses: []string{"2001:0db8:85a3::8a2e:0370:7334/48"},
+					},
+				},
+				ValidationFailure, fmt.Sprintf("%s: Network interface connected to iSCSI disk (%s) cannot belong to machine network CIDRs", hardware.ErrsInIscsiDisableMultipathInstallation, "sda, sdb")),
+			Entry("Standalone iSCSI - Machine networks IPv4 uses the same interface as host IPv6 address", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "2001:0db8:85a3::8a2e:0370:7334"}),
 				[]*models.MachineNetwork{
 					{
 						Cidr:      "192.168.1.1/24",
@@ -2553,7 +2588,21 @@ var _ = Describe("Validations test", func() {
 					},
 				},
 				ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"),
-			Entry("Machine networks IPv4 and host IPv4 address use different interfaces", "192.168.1.1",
+			Entry("Multipath iSCSI - Machine networks IPv4 uses the same interface as host IPv6 address", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "2001:0db8:85a3::8a2e:0370:7334"}),
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "192.168.1.1/24",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV4Addresses: []string{"192.168.1.1/24"},
+						IPV6Addresses: []string{"2001:0db8:85a3::8a2e:0370:7334/48"},
+					},
+				},
+				ValidationFailure, fmt.Sprintf("%s: Network interface connected to iSCSI disk (%s) cannot belong to machine network CIDRs", hardware.ErrsInIscsiDisableMultipathInstallation, "sda, sdb")),
+			Entry("Standalone iSCSI - Machine networks IPv4 and host IPv4 address use different interfaces", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
 				[]*models.MachineNetwork{
 					{
 						Cidr:      "192.168.2.1/24",
@@ -2569,7 +2618,44 @@ var _ = Describe("Validations test", func() {
 					},
 				},
 				ValidationSuccess, "Network interface connected to iSCSI disk does not belong to machine network CIDRs"),
-			Entry("Machine networks IPv4/IPv6 and host IPv4 address use different interfaces", "192.168.1.1",
+			Entry("Multipath iSCSI - Machine networks IPv4 and host IPv4 address use different interfaces", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "192.168.2.1/24",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV4Addresses: []string{"192.168.1.1/24"},
+					},
+					{
+						IPV4Addresses: []string{"192.168.2.1/24"},
+					},
+				},
+				ValidationSuccess, "Network interface connected to iSCSI disk does not belong to machine network CIDRs"),
+			Entry("Standalone iSCSI - Machine networks IPv4/IPv6 and host IPv4 address use different interfaces", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
+				[]*models.MachineNetwork{
+					{
+						Cidr:      "192.168.2.1/24",
+						ClusterID: clusterID,
+					},
+					{
+						Cidr:      "2001:0db8:85a3::/48",
+						ClusterID: clusterID,
+					},
+				},
+				[]*models.Interface{
+					{
+						IPV4Addresses: []string{"192.168.1.1/24"},
+					},
+					{
+						IPV4Addresses: []string{"192.168.2.1/24"},
+						IPV6Addresses: []string{"2001:0db8:85a3::8a2e:0370:7334/48"},
+					},
+				},
+				ValidationSuccess, "Network interface connected to iSCSI disk does not belong to machine network CIDRs"),
+			Entry("Multipath iSCSI - Machine networks IPv4/IPv6 and host IPv4 address use different interfaces", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
 				[]*models.MachineNetwork{
 					{
 						Cidr:      "192.168.2.1/24",

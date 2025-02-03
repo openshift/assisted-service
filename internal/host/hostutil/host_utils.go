@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
@@ -359,4 +360,19 @@ func GetIgnitionEndpoint(cluster *common.Cluster, host *models.Host) (string, er
 		ignitionEndpointUrl = url.String()
 	}
 	return ignitionEndpointUrl, nil
+}
+
+func GetDisksOfHolderByType(allDisks []*models.Disk, holderDisk *models.Disk, driveTypeFilter models.DriveType) []*models.Disk {
+	disksOfHolder := GetAllDisksOfHolder(allDisks, holderDisk)
+	return lo.Filter(disksOfHolder, func(d *models.Disk, _ int) bool { return d.DriveType == driveTypeFilter })
+}
+
+func GetAllDisksOfHolder(allDisks []*models.Disk, holderDisk *models.Disk) []*models.Disk {
+	disksOfHolder := []*models.Disk{}
+	for _, disk := range allDisks {
+		if strings.Contains(disk.Holders, holderDisk.Name) {
+			disksOfHolder = append(disksOfHolder, disk)
+		}
+	}
+	return disksOfHolder
 }

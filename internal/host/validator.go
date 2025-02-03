@@ -1929,19 +1929,26 @@ func (v *validator) noIscsiNicBelongsToMachineCidr(c *validationContext) (Valida
 		return ValidationSuccessSuppressOutput, ""
 	}
 
-	if installationDisk.DriveType != models.DriveTypeISCSI {
-		// Validation is not relevant in this case
-		return ValidationSuccessSuppressOutput, ""
-	}
-
 	if c.inventory == nil || !network.IsMachineCidrAvailable(c.cluster) {
 		return ValidationPending, "Missing inventory or machine network CIDR"
 	}
 
+	if installationDisk.DriveType == models.DriveTypeISCSI {
+		return v.standaloneiSCSI(c, installationDisk)
+	} else if installationDisk.DriveType == models.DriveTypeMultipath {
+		return v.multipathiSCSI(c, installationDisk)
+	} else {
+		// Validation is not relevant in this case
+		return ValidationSuccessSuppressOutput, ""
+	}
+}
+
+// standaloneiSCSI - Related to the noIscsiNicBelongsToMachineCidr validation. This is executed when the installation disk is an iSCSI disk.
+func (v *validator) standaloneiSCSI(c *validationContext, installationDisk *models.Disk) (ValidationStatus, string) {
 	if installationDisk.Iscsi == nil {
 		// If this is nil, the disk shouldn't have passed the eligilibily test in the first place
-		v.log.Warn("iSCSI installation disk is missing host IP address")
-		return ValidationError, "iSCSI installation disk is missing host IP address"
+		v.log.Warn("iSCSI disk is missing host IP address")
+		return ValidationError, "iSCSI disk is missing host IP address"
 	}
 
 	nic, err := network.FindInterfaceByIPString(installationDisk.Iscsi.HostIPAddress, c.inventory.Interfaces)
@@ -1956,4 +1963,24 @@ func (v *validator) noIscsiNicBelongsToMachineCidr(c *validationContext) (Valida
 	}
 
 	return ValidationSuccess, "Network interface connected to iSCSI disk does not belong to machine network CIDRs"
+}
+
+// multipathiSCSI - Related to the noIscsiNicBelongsToMachineCidr validation. This is executed when the installation disk is a multipath disk serving as a holder for iSCSI drives.
+func (v *validator) multipathiSCSI(c *validationContext, installationDisk *models.Disk) (ValidationStatus, string) {
+	var status ValidationStatus
+	msg := ""
+	var iSCSIDisksWithErrors []string
+	iSCSIDisks := hostutil.GetDisksOfHolderByType(c.inventory.Disks, installationDisk, models.DriveTypeISCSI)
+	for _, iscsiDisk := range iSCSIDisks {
+		status, msg = v.standaloneiSCSI(c, iscsiDisk)
+		if status == ValidationError {
+			return ValidationError, msg
+		} else if status == ValidationFailure {
+			iSCSIDisksWithErrors = append(iSCSIDisksWithErrors, iscsiDisk.Name)
+		}
+	}
+	if len(iSCSIDisksWithErrors) > 0 {
+		return ValidationFailure, fmt.Sprintf("%s: Network interface connected to iSCSI disk (%s) cannot belong to machine network CIDRs", hardware.ErrsInIscsiDisableMultipathInstallation, strings.Join(iSCSIDisksWithErrors, ", "))
+	}
+	return ValidationSuccess, msg
 }

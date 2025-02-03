@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/alecthomas/units"
@@ -235,6 +236,17 @@ var _ = Describe("Disk eligibility", func() {
 		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(notEligibleReasons).To(BeEmpty())
+
+		By("Check that iSCSI is eligible when its holder is Multipath.", func() {
+			testDisk.Holders = "dm-0"
+			allDisks := []*models.Disk{&testDisk, {Name: "iscsi0", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "dm-0", DriveType: models.DriveTypeMultipath}}
+			inventory.Disks = allDisks
+
+			notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(notEligibleReasons).To(BeEmpty())
+		})
 	})
 
 	It("Check if RAID is eligible", func() {
@@ -278,53 +290,119 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(notEligibleReasons).To(BeEmpty())
 	})
 
-	It("Check that iSCSI multipath is not eligible", func() {
+	It("Check that mixed types under multipath isn't eligible", func() {
+		testDisk.Name = "dm-0"
+		testDisk.DriveType = models.DriveTypeMultipath
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil).AnyTimes()
+
+		By("Most of iSCSI, few of FC")
+		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeFC, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "sdc", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}}
+		inventory.Disks = allDisks
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(mixedTypesInMultipath))
+
+		By("Most of FC, few of iSCSI")
+		allDisks = []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeFC, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeFC, Holders: "dm-0"}, {Name: "sdc", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}}
+		inventory.Disks = allDisks
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(mixedTypesInMultipath))
+	})
+	It("Check that Multipath with anything other than FC/iSCSI is not eligible.", func() {
+		testDisk.Name = "dm-0"
+		testDisk.DriveType = models.DriveTypeMultipath
+		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeUnknown, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeUnknown, Holders: "dm-0"}}
+		inventory.Disks = allDisks
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(fmt.Sprintf(wrongMultipathTypeTemplate, strings.Join([]string{string(models.DriveTypeFC), string(models.DriveTypeISCSI)}, ", "))))
+	})
+	It("Check that Multipath iSCSI is eligible", func() {
 		testDisk.Name = "dm-0"
 		testDisk.DriveType = models.DriveTypeMultipath
 		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}}
 		inventory.Disks = allDisks
-
-		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(notEligibleReasons).ToNot(BeEmpty())
-
-		By("Check infra env iSCSI multipath is not eligible")
-		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(notEligibleReasons).ToNot(BeEmpty())
-	})
-
-	It("Check that iSCSI is not eligible when its holder is Multipath.", func() {
-		testDisk.Name = "sdb"
-		testDisk.Holders = "dm-0"
 		cluster.OpenshiftVersion = "4.15.0"
-		testDisk.DriveType = models.DriveTypeISCSI
-		allDisks := []*models.Disk{&testDisk, {Name: "sdc", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "dm-0", DriveType: models.DriveTypeMultipath}}
-		inventory.Disks = allDisks
+		hostInventory, _ := common.UnmarshalInventory(host.Inventory)
 
+		// Add a default IPv6 route
+		inventory.Routes = append(hostInventory.Routes, &models.Route{
+			Family:      int32(common.IPv6),
+			Interface:   "eth0",
+			Gateway:     "fe80:db8::1",
+			Destination: "::",
+			Metric:      600,
+		})
+		inventory.Interfaces = hostInventory.Interfaces
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil).AnyTimes()
+
+		By("Check Multipath iSCSI is not eligible when host IPv4 address isn't set")
 		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
-
 		Expect(err).ToNot(HaveOccurred())
-		Expect(notEligibleReasons[0]).To(Equal(iSCSIWithMultipathHolder))
-		Expect(notEligibleReasons).ToNot(BeEmpty())
-	})
-	It("Check that iSCSI is not eligible on older version when its holder is Multipath.", func() {
-		testDisk.Name = "sdb"
-		testDisk.Holders = "dm-0"
+		Expect(notEligibleReasons).To(ContainElement(ErrsInIscsiDisableMultipathInstallation))
+
+		By("Check Multipath iSCSI is eligible when host IPv4 address is not part of default network interface")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
+		}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(BeEmpty(), fmt.Sprintf("Debug info: inventory: %s", host.Inventory))
+
+		By("Check Multipath iSCSI is not eligible when host IPv4 address is part of default network interface")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "1.2.3.4"}
+		}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(ErrsInIscsiDisableMultipathInstallation))
+
+		By("Check Multipath iSCSI is eligible when host IPv6 address is not part of default network interface")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "1002:db8::10"}
+		}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(BeEmpty())
+
+		By("Check Multipath iSCSI is not eligible when host IPv6 address is part of default network interface")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "1001:db8::10"}
+		}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(ErrsInIscsiDisableMultipathInstallation))
+
+		By("Check Multipath iSCSI on older version is not eligible")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
+		}
 		cluster.OpenshiftVersion = "4.14.1"
-		testDisk.DriveType = models.DriveTypeISCSI
-		allDisks := []*models.Disk{&testDisk, {Name: "sdc", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "dm-0", DriveType: models.DriveTypeMultipath}}
-		inventory.Disks = allDisks
-
-		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
-
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(notEligibleReasons[0]).To(ContainSubstring(fmt.Sprintf("Drive type is %s, it must be one of", models.DriveTypeISCSI)))
-		Expect(notEligibleReasons).ToNot(BeEmpty())
-	})
+		Expect(notEligibleReasons).To(ContainElement(ErrsInIscsiDisableMultipathInstallation))
 
+		By("Check Multipath iSCSI is eligible on day2 cluster")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
+		}
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		cluster.OpenshiftVersion = ""
+		infraEnv.OpenshiftVersion = "4.16"
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(BeEmpty())
+
+		By("Check infra env Multipath iSCSI is eligible")
+		for _, disk := range allDisks {
+			disk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
+		}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(BeEmpty())
+	})
 	It("Check if FC is not eligible on non-s390x/x86_64", func() {
 		testDisk.DriveType = models.DriveTypeFC
 		inventory.CPU.Architecture = models.ClusterCPUArchitectureArm64

@@ -555,12 +555,16 @@ spec:
 
             [Service]
             Type=oneshot
-            ExecStart=-/bin/sh -c '                                                      \
-            lsblk -o NAME,TRAN,MOUNTPOINTS --json | jq -e \'.blockdevices[] | select(.tran == "iscsi") | select(.children) | .children[].mountpoints | select(.) | index("/sysroot") | select(.)\' > /dev/null; \
-            if [ $? = 0 ];                                                               \
-            then                                                                         \
-                echo "iSCSI boot volume detected, force network reconfiguration...";     \
-                nmcli -t -f DEVICE device status | xargs -l nmcli device reapply;        \
+            ExecStart=-/bin/sh -c ' set -x; \
+            # Query to detect multipath iSCSI boot volumes \
+            MULTIPATH=".blockdevices[] | select(.tran == \\\"iscsi\\\") | select(.children) | .children[] | select(.children) | .children[].mountpoints | select(.) | index(\\\"/sysroot\\\")"; \
+            # Query to detect standalone iSCSI boot volumes \
+            ISCSI_ALONE=".blockdevices[] | select(.tran == \\\"iscsi\\\") | select(.children) | .children[].mountpoints | select(.) | index(\\\"/sysroot\\\")"; \
+            (lsblk -o NAME,TRAN,MOUNTPOINTS --json | jq -e "$MULTIPATH" > /dev/null) || (lsblk -o NAME,TRAN,MOUNTPOINTS --json | jq -e "$ISCSI_ALONE" > /dev/null); \
+            if [ $? = 0 ]; \
+            then \
+                echo "iSCSI OR multipath iSCSI boot volume detected, force network reconfiguration..."; \
+                nmcli -t -f DEVICE device status | xargs -l nmcli device reapply; \
             fi'
             ExecStartPost=-systemctl disable iscsi-nic-reapply.service
 
@@ -569,11 +573,16 @@ spec:
 `
 
 func (m *ManifestsGenerator) AddNicReapply(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
-	// Add this manifest only is one of the host is installting on an iSCSI boot drive
+	// Add this manifest only if one of the host is installing on an iSCSI / multiapth + iSCSI boot drive
 	_, isUsingISCSIBootDrive := lo.Find(c.Cluster.Hosts, func(h *models.Host) bool {
-		installationDisk, err := hostutil.GetHostInstallationDisk(h)
+		inventory, err := common.UnmarshalInventory(h.Inventory)
 		if err != nil {
 			return false
+		}
+		installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(h))
+		if installationDisk.DriveType == models.DriveTypeMultipath {
+			iSCSIDisks := hostutil.GetDisksOfHolderByType(inventory.Disks, installationDisk, models.DriveTypeISCSI)
+			return len(iSCSIDisks) > 0
 		}
 		return installationDisk.DriveType == models.DriveTypeISCSI
 	})
