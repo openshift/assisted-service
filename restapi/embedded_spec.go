@@ -6741,8 +6741,7 @@ func init() {
         "control_plane_count": {
           "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
           "type": "integer",
-          "default": 3,
-          "maximum": 5
+          "x-nullable": true
         },
         "cpu_architecture": {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
@@ -9084,10 +9083,8 @@ func init() {
           "format": "uuid"
         },
         "control_plane_count": {
-          "description": "The number of controller nodes in the cluster. The default value is 3.\n",
-          "type": "integer",
-          "default": 3,
-          "maximum": 5
+          "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
+          "type": "integer"
         },
         "controller_image": {
           "description": "Assisted installer controller image",
@@ -10674,7 +10671,6 @@ func init() {
         "control_plane_count": {
           "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
           "type": "integer",
-          "maximum": 5,
           "x-nullable": true
         },
         "disk_encryption": {
@@ -17821,9 +17817,7 @@ func init() {
         "control_plane_count": {
           "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
           "type": "integer",
-          "default": 3,
-          "maximum": 5,
-          "minimum": 0
+          "x-nullable": true
         },
         "cpu_architecture": {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
@@ -20134,11 +20128,8 @@ func init() {
           "format": "uuid"
         },
         "control_plane_count": {
-          "description": "The number of controller nodes in the cluster. The default value is 3.\n",
-          "type": "integer",
-          "default": 3,
-          "maximum": 5,
-          "minimum": 0
+          "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
+          "type": "integer"
         },
         "controller_image": {
           "description": "Assisted installer controller image",
@@ -21688,8 +21679,6 @@ func init() {
         "control_plane_count": {
           "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
           "type": "integer",
-          "maximum": 5,
-          "minimum": 0,
           "x-nullable": true
         },
         "disk_encryption": {

@@ -46,8 +46,6 @@ type V2ClusterUpdateParams struct {
 	ClusterNetworks []*ClusterNetwork `json:"cluster_networks"`
 
 	// Specifies the required number of control plane nodes that should be part of the cluster.
-	// Maximum: 5
-	// Minimum: 0
 	ControlPlaneCount *int64 `json:"control_plane_count,omitempty"`
 
 	// Installation disks encryption mode and host roles to be applied.
@@ -146,10 +144,6 @@ func (m *V2ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateClusterNetworks(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateControlPlaneCount(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -286,22 +280,6 @@ func (m *V2ClusterUpdateParams) validateClusterNetworks(formats strfmt.Registry)
 			}
 		}
 
-	}
-
-	return nil
-}
-
-func (m *V2ClusterUpdateParams) validateControlPlaneCount(formats strfmt.Registry) error {
-	if swag.IsZero(m.ControlPlaneCount) { // not required
-		return nil
-	}
-
-	if err := validate.MinimumInt("control_plane_count", "body", *m.ControlPlaneCount, 0, false); err != nil {
-		return err
-	}
-
-	if err := validate.MaximumInt("control_plane_count", "body", *m.ControlPlaneCount, 5, false); err != nil {
-		return err
 	}
 
 	return nil

@@ -4873,12 +4873,6 @@ definitions:
         description: |
           (DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
           over multiple master nodes whereas 'None' installs a full cluster over one node.
-      control_plane_count:
-        type: integer
-        minimum: 0
-        maximum: 5
-        default: 3
-        description: Specifies the required number of control plane nodes that should be part of the cluster.
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
@@ -5008,6 +5002,10 @@ definitions:
       tags:
         type: string
         description: A comma-separated list of tags that are associated to the cluster.
+        x-nullable: true
+      control_plane_count:
+        type: integer
+        description: Specifies the required number of control plane nodes that should be part of the cluster.
         x-nullable: true
       load_balancer:
         $ref: '#/definitions/load_balancer'
@@ -5192,8 +5190,6 @@ definitions:
         x-nullable: true
       control_plane_count:
         type: integer
-        minimum: 0
-        maximum: 5
         description: Specifies the required number of control plane nodes that should be part of the cluster.
         x-nullable: true
       load_balancer:
@@ -5256,9 +5252,6 @@ definitions:
         description: |
           Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
           over multiple master nodes whereas 'None' installs a full cluster over one node.
-      control_plane_count:
-        type: integer
-        description: Specifies the required number of control plane nodes that should be part of the cluster.
       id:
         type: string
         format: uuid
@@ -5579,6 +5572,9 @@ definitions:
       org_soft_timeouts_enabled:
         type: boolean
         description: Indication if organization soft timeouts is enabled for the cluster.
+      control_plane_count:
+        type: integer
+        description: Specifies the required number of control plane nodes that should be part of the cluster.
       load_balancer:
         $ref: '#/definitions/load_balancer'
 
@@ -6810,11 +6806,7 @@ definitions:
           over multiple master nodes whereas 'None' installs a full cluster over one node.
       control_plane_count:
         type: integer
-        minimum: 0
-        maximum: 5
-        default: 3
-        description: |
-          The number of controller nodes in the cluster. The default value is 3.
+        description: Specifies the required number of control plane nodes that should be part of the cluster.
       proxy:
         $ref: "#/definitions/proxy"
       check_cvo:
