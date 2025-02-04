@@ -3,20 +3,13 @@ package openshiftai
 import (
 	"context"
 	"fmt"
-	"strings"
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
-	"github.com/openshift/assisted-service/internal/operators/authorino"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
-	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
-	"github.com/openshift/assisted-service/internal/operators/odf"
-	"github.com/openshift/assisted-service/internal/operators/pipelines"
-	"github.com/openshift/assisted-service/internal/operators/serverless"
-	"github.com/openshift/assisted-service/internal/operators/servicemesh"
 	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -68,19 +61,7 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(c *common.Cluster) (result []string, err error) {
-	// TODO: We shold probably add the node feature discovery and NVIDIA GPU operators only if there is at least one
-	// NVIDIA GPU in the cluster, but unfortunatelly this is calculated and saved to the database only when the
-	// cluster is created or updated via the API, and at that point we don't have the host inventory yet to
-	// determine if there are NVIDIA GPU.
-	result = []string{
-		authorino.Operator.Name,
-		nvidiagpu.Operator.Name,
-		odf.Operator.Name,
-		pipelines.Operator.Name,
-		serverless.Operator.Name,
-		servicemesh.Operator.Name,
-	}
-	return result, nil
+	return nil, nil
 }
 
 // GetClusterValidationID returns cluster validation ID for the operator.
@@ -110,71 +91,10 @@ func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster)
 		)
 	}
 
-	// Check that there is at least one supported GPU:
-	if o.config.RequireGPU {
-		var gpuList []*models.Gpu
-		gpuList, err = o.gpusInCluster(cluster)
-		if err != nil {
-			return
-		}
-		var supportedGpuCount int64
-		for _, gpu := range gpuList {
-			var isSupported bool
-			isSupported, err = o.isSupportedGpu(gpu)
-			if err != nil {
-				return
-			}
-			if isSupported {
-				supportedGpuCount++
-			}
-		}
-		if supportedGpuCount == 0 {
-			result.Reasons = append(
-				result.Reasons,
-				"OpenShift AI requires at least one supported GPU, but there is none in the "+
-					"discovered hosts.",
-			)
-		}
-	}
-
 	if len(result.Reasons) > 0 {
 		result.Status = api.Failure
 	} else {
 		result.Status = api.Success
-	}
-	return
-}
-
-func (o *operator) gpusInCluster(cluster *common.Cluster) (result []*models.Gpu, err error) {
-	for _, host := range cluster.Hosts {
-		var gpus []*models.Gpu
-		gpus, err = o.gpusInHost(host)
-		if err != nil {
-			return
-		}
-		result = append(result, gpus...)
-	}
-	return
-}
-
-func (o *operator) gpusInHost(host *models.Host) (result []*models.Gpu, err error) {
-	if host.Inventory == "" {
-		return
-	}
-	inventory, err := common.UnmarshalInventory(host.Inventory)
-	if err != nil {
-		return
-	}
-	result = inventory.Gpus
-	return
-}
-
-func (o *operator) isSupportedGpu(gpu *models.Gpu) (result bool, err error) {
-	for _, supportedGpu := range o.config.SupportedGPUs {
-		if strings.EqualFold(gpu.VendorID, supportedGpu) {
-			result = true
-			return
-		}
 	}
 	return
 }
