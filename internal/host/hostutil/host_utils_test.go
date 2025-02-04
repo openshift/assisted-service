@@ -1,6 +1,7 @@
 package hostutil
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -88,22 +89,29 @@ var _ = Describe("Validation", func() {
 		}
 	})
 
+	section := strings.Repeat("a", 63) + "."
+	endsection := strings.Repeat("a", 61)
 	It("Should allow permitted hostnames", func() {
 		for _, hostName := range []string{
 			"foobar",
 			"foobar.local",
 			"arbitrary.hostname",
+			strings.Repeat(section, 3) + endsection, // 253 chars
 		} {
 			err := ValidateHostname(hostName)
 			Expect(err).NotTo(HaveOccurred())
 		}
 	})
 
-	It("Should not allow hostnames longer than 63 characters", func() {
+	It("Should not allow hostnames violating naming rules", func() {
 		for _, hostName := range []string{
-			"foobar.local.arbitrary.hostname.longer.than.64-characters.inthis.name",
-			"foobar1234-foobar1234-foobar1234-foobar1234-foobar1234-foobar1234-foobar1234",
-			"this-host.name-iss.exactly-64.characters.long.so.itt-should.fail",
+			strings.Repeat(section, 3) + endsection + "a",  // more than 253 chars
+			"toolong-2nd-section." + "a" + section + "com", // has section longer than 63 chars
+			"-invalid-start.com",                           // starts with hyphen
+			"invalid-end.com.",                             // ends with dot
+			"two..dots.com",                                // double dots
+			"UPPERCASE.com",                                // uppercase letters
+			"invalid$.com",                                 // special character `$`
 		} {
 			err := ValidateHostname(hostName)
 			Expect(err).To(HaveOccurred())
