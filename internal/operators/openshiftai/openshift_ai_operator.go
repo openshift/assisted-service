@@ -29,7 +29,9 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "rhods-operator",
 	TimeoutSeconds:   30 * 60,
-	Bundles:          pq.StringArray{operatorscommon.BundleOpenshiftai},
+	Bundles: pq.StringArray{
+		operatorscommon.BundleOpenShiftAINVIDIA,
+	},
 }
 
 // operator is an OpenShift AI OLM operator plugin.

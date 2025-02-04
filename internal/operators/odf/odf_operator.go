@@ -46,8 +46,10 @@ var Operator = models.MonitoredOperator{
 	Namespace:        "openshift-storage",
 	SubscriptionName: "odf-operator",
 	TimeoutSeconds:   30 * 60,
-	Bundles: pq.StringArray{operatorscommon.BundleVirtualization,
-		operatorscommon.BundleOpenshiftai},
+	Bundles: pq.StringArray{
+		operatorscommon.BundleVirtualization,
+		operatorscommon.BundleOpenShiftAINVIDIA,
+	},
 }
 
 // NewOdfOperator creates new ODFOperator

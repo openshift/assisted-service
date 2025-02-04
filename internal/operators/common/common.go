@@ -10,8 +10,15 @@ const (
 	// BundleVirtualization captures enum value "virtualization"
 	BundleVirtualization string = "virtualization"
 
-	// BundleOpenshiftai captures enum value "openshiftai"
-	BundleOpenshiftai string = "openshiftai"
+	// BundleOpenShiftAInvidia captures enum value "openshift-ai-nvidia"
+	BundleOpenShiftAINVIDIA string = "openshift-ai-nvidia"
+)
+
+var (
+	BundleDescriptions = map[string]string{
+		BundleVirtualization:    "Virtualization",
+		BundleOpenShiftAINVIDIA: "OpenShift AI with NVIDIA GPUs",
+	}
 )
 
 // Returns count for disks that are not installion disk and fulfill size requirements (eligible disks) and

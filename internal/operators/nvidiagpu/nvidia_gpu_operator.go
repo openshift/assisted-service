@@ -24,7 +24,9 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "gpu-operator-certified",
 	TimeoutSeconds:   30 * 60,
-	Bundles:          pq.StringArray{operatorscommon.BundleOpenshiftai},
+	Bundles: pq.StringArray{
+		operatorscommon.BundleOpenShiftAINVIDIA,
+	},
 }
 
 // operator is an NVIDIA GPU OLM operator plugin.

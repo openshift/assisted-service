@@ -17,6 +17,9 @@ import (
 // swagger:model bundle
 type Bundle struct {
 
+	// Short description of the bundle, for example `OpenShift AI with NVIDIA GPUs`.
+	Description string `json:"description,omitempty"`
+
 	// The name of the bundle.
 	Name string `json:"name,omitempty"`
 

@@ -19,7 +19,9 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "authorino-operator",
 	TimeoutSeconds:   30 * 60,
-	Bundles:          pq.StringArray{operatorscommon.BundleOpenshiftai},
+	Bundles: pq.StringArray{
+		operatorscommon.BundleOpenShiftAINVIDIA,
+	},
 }
 
 // operator is an Authorino AI OLM operator plugin.
