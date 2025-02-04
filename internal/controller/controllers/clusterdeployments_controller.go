@@ -217,7 +217,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 			return r.createNewCluster(ctx, log, req.NamespacedName, pullSecret, releaseImage, clusterDeployment, clusterInstall)
 		}
 
-		return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
+		return r.createNewDay2Cluster(ctx, log, req.NamespacedName, releaseImage, clusterDeployment, clusterInstall)
 	}
 	if err != nil {
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
@@ -1410,6 +1410,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	ctx context.Context,
 	log logrus.FieldLogger,
 	key types.NamespacedName,
+	releaseImage *models.ReleaseImage,
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
 
@@ -1421,6 +1422,9 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	clusterParams := &models.ImportClusterParams{
 		APIVipDnsname: swag.String(apiVipDnsname),
 		Name:          swag.String(spec.ClusterName),
+	}
+	if releaseImage != nil && releaseImage.OpenshiftVersion != nil {
+		clusterParams.OpenshiftVersion = *releaseImage.OpenshiftVersion
 	}
 
 	// add optional parameter
