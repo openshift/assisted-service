@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/mtv"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
@@ -809,8 +810,8 @@ var _ = Describe("Operators manager", func() {
 	Context("Bundles", func() {
 		// we use the real operators here, as we want to test the manager's ability to group them into bundles
 		var (
-			manager                                                                                 *operators.Manager
-			cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator, nmstateOperator api.Operator
+			manager                                                                                              *operators.Manager
+			cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator, nmstateOperator, mtvOperator api.Operator
 		)
 		BeforeEach(func() {
 			cfg := cnv.Config{}
@@ -822,8 +823,9 @@ var _ = Describe("Operators manager", func() {
 			serverlessOperator = serverless.NewServerLessOperator(log)
 			// note that lso doesn't belongs to any bundle
 			lsoOperator = lso.NewLSOperator()
+			mtvOperator = mtv.NewMTVOperator(log)
 
-			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, nil, cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator, nmstateOperator)
+			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, nil, cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator, nmstateOperator, mtvOperator)
 		})
 
 		It("ListBundle should return the list of available bundles", func() {
@@ -834,7 +836,7 @@ var _ = Describe("Operators manager", func() {
 				// lso isn't part of any bundle
 				Expect(bundle.Operators).NotTo(ContainElement(lso.Operator.Name))
 				if bundle.Name == operatorscommon.BundleVirtualization {
-					Expect(bundle.Operators).To(ContainElements(odfOperator.GetName(), cnvOperator.GetName()))
+					Expect(bundle.Operators).To(ContainElements(mtvOperator.GetName(), cnvOperator.GetName()))
 				} else {
 					Expect(bundle.Operators).To(ContainElements(oaiOperator.GetName(), serverlessOperator.GetName(), odfOperator.GetName()))
 				}
@@ -850,8 +852,7 @@ var _ = Describe("Operators manager", func() {
 			bundle, err = manager.GetBundle(operatorscommon.BundleVirtualization)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Operators).To(HaveLen(3))
-			Expect(bundle.Operators).To(HaveLen(3))
-			Expect(bundle.Operators).To(ContainElements(cnvOperator.GetName(), odfOperator.GetName(), nmstateOperator.GetName()))
+			Expect(bundle.Operators).To(ContainElements(cnvOperator.GetName(), mtvOperator.GetName(), nmstateOperator.GetName()))
 
 			bundle, err = manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA)
 			Expect(err).ToNot(HaveOccurred())
