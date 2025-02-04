@@ -265,6 +265,22 @@ func (r *ClusterDeploymentsReconciler) validateClusterDeployment(clusterDeployme
 	return nil
 }
 
+func (r *ClusterDeploymentsReconciler) getPullSecret(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall) (string, error) {
+	if clusterDeployment.Spec.PullSecretRef == nil || clusterDeployment.Spec.PullSecretRef.Name == "" {
+		// Pull secret is not required for already installed clusters
+		if isInstalled(clusterDeployment, clusterInstall) {
+			return "", nil
+		}
+		return "", newInputError("PullSecret is required for ClusterDeployment %s/%s", clusterDeployment.Name, clusterDeployment.Namespace)
+	}
+	// Ensure the pull secret is valid
+	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(clusterDeployment.Namespace, clusterDeployment.Spec.PullSecretRef))
+	if err != nil {
+		return "", errors.WithMessagef(err, "failed to validate pull secret for ClusterDeployment %s/%s", clusterDeployment.Name, clusterDeployment.Namespace)
+	}
+	return pullSecret, nil
+}
+
 func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.Context, log logrus.FieldLogger, req ctrl.Request,
 	clusterInstall *hiveext.AgentClusterInstall) (*ctrl.Result, error) {
 	if clusterInstall.ObjectMeta.DeletionTimestamp.IsZero() { // clusterInstall not being deleted
@@ -1420,6 +1436,49 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	clusterParams := &models.ImportClusterParams{
 		APIVipDnsname: swag.String(apiVipDnsname),
 		Name:          swag.String(spec.ClusterName),
+	}
+
+	// In newer versions, starting with ACM 2.11, it is mandatory to have a cluster image set for importing
+	// clusters, but we don't want to require that in ACM 2.10, that is why this code checks and emits warnings
+	// instead of hard errors.
+	if clusterInstall.Spec.ImageSetRef == nil || clusterInstall.Spec.ImageSetRef.Name == "" {
+		log.Warnf(
+			"Cluster install '%s' doesn't haave an image set reference, it won't be possible to "+
+				"determine the OpenShift version",
+			clusterInstall.Name,
+		)
+	} else {
+		pullSecret, err := r.getPullSecret(ctx, clusterDeployment, clusterInstall)
+		if err != nil {
+			log.WithError(err).Errorf(
+				"Failed to get pull secret for cluster deployment '%s'",
+				clusterDeployment.Name,
+			)
+			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
+		}
+		if pullSecret == "" {
+			log.Warnf(
+				"Cluster deployment '%s' doesn't have a pull secret, it won't be possible determine "+
+					"the OpenShift version",
+				clusterDeployment.Name,
+			)
+		} else {
+			releaseImage, err := r.getReleaseImage(ctx, log, clusterInstall.Spec, pullSecret)
+			if err != nil {
+				log.WithError(err).Warnf(
+					"Failed to get release image for cluster install '%s'",
+					clusterInstall.Name,
+				)
+			} else if releaseImage == nil {
+				log.Warnf(
+					"Can't determine release image for cluster install '%s', it won't be "+
+						"possible to determine the OpenShift version",
+					clusterInstall.Name,
+				)
+			} else {
+				clusterParams.OpenshiftVersion = *releaseImage.OpenshiftVersion
+			}
+		}
 	}
 
 	// add optional parameter

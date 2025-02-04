@@ -3203,6 +3203,8 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil).AnyTimes()
 		})
 
 		It("success", func() {
@@ -3223,6 +3225,7 @@ var _ = Describe("cluster reconcile", func() {
 			V2ImportClusterInternal := func(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
 				params installer.V2ImportClusterParams) (*common.Cluster, error) {
 				Expect(string(*params.NewImportClusterParams.OpenshiftClusterID)).To(Equal(cid))
+				Expect(params.NewImportClusterParams.OpenshiftVersion).To(Equal(ocpVersion))
 				return clusterReply, nil
 			}
 			mockInstallerInternal.EXPECT().
@@ -4143,6 +4146,14 @@ var _ = Describe("day2 cluster", func() {
 		cr                             *ClusterDeploymentsReconciler
 		mockVersions                   *versions.MockHandler
 		dbCluster                      *common.Cluster
+		ocpReleaseVersion              = "4.8.0"
+		ocpVersion                     = "4.8"
+		releaseImage                   = &models.ReleaseImage{
+			CPUArchitecture:  &common.TestDefaultConfig.CPUArchitecture,
+			OpenshiftVersion: &ocpVersion,
+			URL:              &releaseImageUrl,
+			Version:          &ocpReleaseVersion,
+		}
 	)
 
 	BeforeEach(func() {
@@ -4232,6 +4243,8 @@ var _ = Describe("day2 cluster", func() {
 
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
 		mockInstallerInternal.EXPECT().V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 		By("first time will create the cluster")
 		request := newClusterDeploymentRequest(cd)
@@ -4240,7 +4253,6 @@ var _ = Describe("day2 cluster", func() {
 		Expect(result).To(Equal(ctrl.Result{}))
 
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(dbCluster, nil)
-		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockInstallerInternal.EXPECT().GetKnownApprovedHosts(gomock.Any()).Return(nil, nil)
 		// expected not to be called
 		mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).Times(0)
