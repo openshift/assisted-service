@@ -504,7 +504,6 @@ func (feature *UserManagedLoadBalancerFeature) getIncompatibleFeatures(string) *
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
-		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 		models.FeatureSupportLevelIDDUALSTACK,
 		models.FeatureSupportLevelIDDUALSTACKVIPS,
 		models.FeatureSupportLevelIDSNO,
