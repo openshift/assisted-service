@@ -31,7 +31,10 @@ const controllerManifestFile = "custom_manifests.json"
 
 var storageOperatorsPriority = []string{odf.Operator.Name, lvm.Operator.Name}
 
-var validBundles = []string{operatorscommon.BundleVirtualization, operatorscommon.BundleOpenshiftai}
+var validBundles = []string{
+	operatorscommon.BundleVirtualization,
+	operatorscommon.BundleOpenShiftAINVIDIA,
+}
 
 // Manifest store the operator manifest used by assisted-installer to create CRs of the OLM.
 type Manifest struct {
@@ -540,7 +543,10 @@ func (mgr *Manager) GetBundle(bundleName string) (*models.Bundle, error) {
 	if !mgr.isBundleValid(bundleName) {
 		return nil, fmt.Errorf("bundle '%s' is not supported", bundleName)
 	}
-	bundle := models.Bundle{Name: bundleName}
+	bundle := models.Bundle{
+		Name:        bundleName,
+		Description: operatorscommon.BundleDescriptions[bundleName],
+	}
 	for _, operator := range mgr.olmOperators {
 		for _, operatorBundle := range operator.GetBundleLabels() {
 			if operatorBundle == bundle.Name {

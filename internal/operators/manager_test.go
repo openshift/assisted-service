@@ -815,7 +815,7 @@ var _ = Describe("Operators manager", func() {
 		BeforeEach(func() {
 			cfg := cnv.Config{}
 			cnvOperator = cnv.NewCNVOperator(log, cfg)
-			// note that odf belongs to both Virtualization and Openshiftai bundles
+			// note that odf belongs to both Virtualization and Openshift AI bundles
 			odfOperator = odf.NewOdfOperator(log)
 			oaiOperator = openshiftai.NewOpenShiftAIOperator(log)
 			nmstateOperator = nmstate.NewNmstateOperator(log)
@@ -830,7 +830,7 @@ var _ = Describe("Operators manager", func() {
 			bundles := manager.ListBundles()
 			Expect(bundles).To(HaveLen(2))
 			for _, bundle := range bundles {
-				Expect(bundle.Name).To(BeElementOf(operatorscommon.BundleVirtualization, operatorscommon.BundleOpenshiftai))
+				Expect(bundle.Name).To(BeElementOf(operatorscommon.BundleVirtualization, operatorscommon.BundleOpenShiftAINVIDIA))
 				// lso isn't part of any bundle
 				Expect(bundle.Operators).NotTo(ContainElement(lso.Operator.Name))
 				if bundle.Name == operatorscommon.BundleVirtualization {
@@ -853,10 +853,22 @@ var _ = Describe("Operators manager", func() {
 			Expect(bundle.Operators).To(HaveLen(3))
 			Expect(bundle.Operators).To(ContainElements(cnvOperator.GetName(), odfOperator.GetName(), nmstateOperator.GetName()))
 
-			bundle, err = manager.GetBundle(operatorscommon.BundleOpenshiftai)
+			bundle, err = manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Operators).To(HaveLen(3))
 			Expect(bundle.Operators).To(ContainElements(oaiOperator.GetName(), serverlessOperator.GetName(), odfOperator.GetName()))
+		})
+
+		It("OpenShift AI NVIDIA bundle should have a description", func() {
+			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bundle.Description).ToNot(BeEmpty())
+		})
+
+		It("Virtualization bundle should have a description", func() {
+			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bundle.Description).ToNot(BeEmpty())
 		})
 	})
 })

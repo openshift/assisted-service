@@ -20,7 +20,9 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "openshift-pipelines-operator-rh",
 	TimeoutSeconds:   30 * 60,
-	Bundles:          pq.StringArray{operatorscommon.BundleOpenshiftai},
+	Bundles: pq.StringArray{
+		operatorscommon.BundleOpenShiftAINVIDIA,
+	},
 }
 
 // operator is an pipelines OLM operator plugin.

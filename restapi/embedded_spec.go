@@ -6238,6 +6238,10 @@ func init() {
     "bundle": {
       "type": "object",
       "properties": {
+        "description": {
+          "description": "Short description of the bundle, for example ` + "`" + `OpenShift AI with NVIDIA GPUs` + "`" + `.",
+          "type": "string"
+        },
         "name": {
           "description": "The name of the bundle.",
           "type": "string"
@@ -17310,6 +17314,10 @@ func init() {
     "bundle": {
       "type": "object",
       "properties": {
+        "description": {
+          "description": "Short description of the bundle, for example ` + "`" + `OpenShift AI with NVIDIA GPUs` + "`" + `.",
+          "type": "string"
+        },
         "name": {
           "description": "The name of the bundle.",
           "type": "string"

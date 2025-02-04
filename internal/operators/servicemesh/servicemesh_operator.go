@@ -20,7 +20,9 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "servicemeshoperator",
 	TimeoutSeconds:   30 * 60,
-	Bundles:          pq.StringArray{operatorscommon.BundleOpenshiftai},
+	Bundles: pq.StringArray{
+		operatorscommon.BundleOpenShiftAINVIDIA,
+	},
 }
 
 // operator is an service mesh OLM operator plugin.
