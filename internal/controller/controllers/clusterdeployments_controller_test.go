@@ -1278,7 +1278,7 @@ var _ = Describe("cluster reconcile", func() {
 			cpuArch := "x86_64"
 			openshiftVersion := "4.10.0-rc1"
 
-			params := CreateClusterParams(cluster, aci, pullSecretString, openshiftVersion, cpuArch, nil)
+			params := CreateClusterParams(cluster, aci, pullSecretString, openshiftVersion, cpuArch, nil, nil)
 			Expect(params.Name).To(Equal(&cluster.Spec.ClusterName))
 			Expect(params.BaseDNSDomain).To(Equal(cluster.Spec.BaseDomain))
 			Expect(params.PullSecret).To(Equal(&pullSecretString))

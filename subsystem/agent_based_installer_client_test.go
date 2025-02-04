@@ -23,7 +23,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
 			"../docs/hive-integration/crds/clusterDeployment.yaml",
 			"../docs/hive-integration/crds/agentClusterInstall.yaml",
-			"../docs/hive-integration/crds/clusterImageSet.yaml", "")
+			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "")
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
 		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
@@ -45,7 +45,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
 			"../docs/hive-integration/crds/clusterDeployment.yaml",
 			"../docs/hive-integration/crds/agentClusterInstall-with-installconfig-overrides.yaml",
-			"../docs/hive-integration/crds/clusterImageSet.yaml", "")
+			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "")
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
 		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
@@ -68,7 +68,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
 			"file-does-not-exist",
 			"../docs/hive-integration/crds/agentClusterInstall.yaml",
-			"../docs/hive-integration/crds/clusterImageSet.yaml", "")
+			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "")
 		Expect(registerClusterErr).To(HaveOccurred())
 		Expect(modelCluster).To(BeNil())
 	})

@@ -1377,7 +1377,7 @@ func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, l
 
 func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall,
 	pullSecret string, releaseImageVersion string, releaseImageCPUArch string,
-	ignitionEndpoint *models.IgnitionEndpoint) *models.ClusterCreateParams {
+	ignitionEndpoint *models.IgnitionEndpoint, olmOperators []*models.OperatorCreateParams) *models.ClusterCreateParams {
 	spec := clusterDeployment.Spec
 	platform, _ := getPlatform(clusterInstall.Spec)
 
@@ -1385,7 +1385,6 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
 		OpenshiftVersion:      &releaseImageVersion,
-		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(false),
 		APIVips:               ApiVipsEntriesToArray(clusterInstall.Spec.APIVIPs),
@@ -1461,6 +1460,10 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		}
 	}
 
+	if len(olmOperators) != 0 {
+		clusterParams.OlmOperators = olmOperators
+	}
+
 	return clusterParams
 }
 
@@ -1487,7 +1490,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	}
 
 	clusterParams := CreateClusterParams(clusterDeployment, clusterInstall, pullSecret, *releaseImage.Version,
-		*releaseImage.CPUArchitecture, ignitionEndpoint)
+		*releaseImage.CPUArchitecture, ignitionEndpoint, nil)
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, mirrorRegistryConfiguration, installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,
