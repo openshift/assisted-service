@@ -994,7 +994,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		Entry(
 			"vsphere platform",
 			[]SupportLevelFeature{&VsphereIntegrationFeature{}},
-			false,
+			true,
 		),
 
 		Entry(
@@ -1006,6 +1006,24 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		Entry(
 			"user managed networking",
 			[]SupportLevelFeature{&UserManagedNetworkingFeature{}},
+			false,
+		),
+
+		Entry(
+			"SNO",
+			[]SupportLevelFeature{&UserManagedNetworkingFeature{}},
+			false,
+		),
+
+		Entry(
+			"dual stack",
+			[]SupportLevelFeature{&DualStackFeature{}},
+			false,
+		),
+
+		Entry(
+			"dual stack vips",
+			[]SupportLevelFeature{&DualStackVipsFeature{}},
 			false,
 		),
 
