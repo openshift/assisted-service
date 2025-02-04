@@ -9082,6 +9082,10 @@ func init() {
           "type": "string",
           "format": "uuid"
         },
+        "control_plane_count": {
+          "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
+          "type": "integer"
+        },
         "controller_image": {
           "description": "Assisted installer controller image",
           "type": "string",
@@ -20122,6 +20126,10 @@ func init() {
           "description": "Cluster id",
           "type": "string",
           "format": "uuid"
+        },
+        "control_plane_count": {
+          "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
+          "type": "integer"
         },
         "controller_image": {
           "description": "Assisted installer controller image",

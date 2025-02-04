@@ -6804,6 +6804,9 @@ definitions:
         description: |
           Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
           over multiple master nodes whereas 'None' installs a full cluster over one node.
+      control_plane_count:
+        type: integer
+        description: Specifies the required number of control plane nodes that should be part of the cluster.
       proxy:
         $ref: "#/definitions/proxy"
       check_cvo:

@@ -33,6 +33,9 @@ type InstallCmdRequest struct {
 	// Format: uuid
 	ClusterID *strfmt.UUID `json:"cluster_id"`
 
+	// Specifies the required number of control plane nodes that should be part of the cluster.
+	ControlPlaneCount int64 `json:"control_plane_count,omitempty"`
+
 	// Assisted installer controller image
 	// Required: true
 	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$
