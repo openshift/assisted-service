@@ -73,11 +73,15 @@ const (
 	AgentLabelCpuArchitecture            = InventoryLabelPrefix + "cpu-architecture"
 	AgentLabelCpuVirtEnabled             = InventoryLabelPrefix + "cpu-virtenabled"
 	AgentInventoryAnnotation             = "agent." + aiv1beta1.Group + "/inventory"
+	AgentCurrentStageAnnotation          = "agent." + aiv1beta1.Group + "/current-stage"
 	AgentRoleAnnotation                  = "agent." + aiv1beta1.Group + "/role"
+	AgentValidationsInfoAnnotation       = "agent." + aiv1beta1.Group + "/validations-info"
 	AgentLabelHostManufacturer           = InventoryLabelPrefix + "host-manufacturer"
 	AgentLabelHostProductName            = InventoryLabelPrefix + "host-productname"
 	AgentLabelHostIsVirtual              = InventoryLabelPrefix + "host-isvirtual"
 	AgentLabelClusterDeploymentNamespace = BaseLabelPrefix + "clusterdeployment-namespace"
+
+	defaultRequeue = 1 * time.Minute
 )
 
 // AgentReconciler reconciles a Agent object
@@ -155,7 +159,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 			}
 			// Requeuing as the associated Host should exist now
 			log.Infof("Restored a Host for agent %s", agent.Name)
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}, nil
 		} else {
 			log.WithError(err).Errorf("failed to retrieve Host %s from backend", agent.Name)
 			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
@@ -246,9 +250,11 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 func updateAnnotations(log logrus.FieldLogger, agent *v1beta1.Agent, h *models.Host) bool {
 	updated := false
 	updated = setAgentAnnotation(log, agent, AgentStateAnnotation, swag.StringValue(h.Status))
-	updated = updated || setAgentAnnotation(log, agent, AgentRoleAnnotation, string(h.Role))
-	if h.Inventory != "" {
-		updated = updated || setAgentAnnotation(log, agent, AgentInventoryAnnotation, h.Inventory)
+	updated = setAgentAnnotation(log, agent, AgentRoleAnnotation, string(h.Role)) || updated
+	updated = setAgentAnnotation(log, agent, AgentInventoryAnnotation, h.Inventory) || updated
+	updated = setAgentAnnotation(log, agent, AgentValidationsInfoAnnotation, h.ValidationsInfo) || updated
+	if h.Progress != nil {
+		updated = setAgentAnnotation(log, agent, AgentCurrentStageAnnotation, string(h.Progress.CurrentStage))
 	}
 	return updated
 }
@@ -1775,6 +1781,7 @@ func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strf
 	hostrole := agent.Annotations[AgentRoleAnnotation]
 	role := models.HostRole(hostrole)
 	inventory := agent.Annotations[AgentInventoryAnnotation]
+	validationsInfo := agent.Annotations[AgentValidationsInfoAnnotation]
 
 	// Fetch State
 	var hostStatus string
@@ -1791,16 +1798,25 @@ func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strf
 	// Create Host model
 	hostID := strfmt.UUID(agent.Name)
 	host := &models.Host{
-		ID:            &hostID,
-		Kind:          swag.String(models.HostKindHost),
-		RegisteredAt:  strfmt.DateTime(agent.CreationTimestamp.Time),
-		CheckedInAt:   strfmt.DateTime(agent.CreationTimestamp.Time),
-		Role:          role,
-		SuggestedRole: role,
-		ClusterID:     clusterID,
-		InfraEnvID:    infraEnvID,
-		Status:        &hostStatus,
-		Inventory:     inventory,
+		ID:              &hostID,
+		Kind:            swag.String(models.HostKindHost),
+		RegisteredAt:    strfmt.DateTime(agent.CreationTimestamp.Time),
+		CheckedInAt:     strfmt.DateTime(agent.CreationTimestamp.Time),
+		Role:            role,
+		SuggestedRole:   role,
+		ClusterID:       clusterID,
+		InfraEnvID:      infraEnvID,
+		Status:          &hostStatus,
+		Inventory:       inventory,
+		ValidationsInfo: validationsInfo,
+	}
+
+	// Fetch Current Stage
+	if stage, has_annotation := agent.GetAnnotations()[AgentCurrentStageAnnotation]; has_annotation {
+		currentStage := models.HostStage(stage)
+		if err := currentStage.Validate(nil); err == nil {
+			host.Progress = &models.HostProgressInfo{CurrentStage: currentStage}
+		}
 	}
 
 	return host, nil
