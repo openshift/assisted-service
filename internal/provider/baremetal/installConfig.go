@@ -114,9 +114,8 @@ func (p *baremetalProvider) AddPlatformToInstallConfig(
 	// here because older versions will just ignore it.
 	cfg.Platform.Baremetal.AdditionalNTPServers = ntpServers
 
-	err = p.addLoadBalancer(cfg, cluster)
-	if err != nil {
-		return err
+	if err := p.addLoadBalancer(cfg, cluster); err != nil {
+		return errors.Wrap(err, "failed to set bare metal's cluster install-config.yaml load balancer as user-managed")
 	}
 
 	return nil
