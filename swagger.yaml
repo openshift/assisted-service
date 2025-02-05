@@ -2750,7 +2750,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /v2/operators/bundles/{bundle_name}:
+  /v2/operators/bundles/{id}:
     get:
       tags:
         - operators
@@ -2759,8 +2759,8 @@ paths:
       operationId: V2GetBundle
       parameters:
         - in: path
-          name: bundle_name
-          description: The name of the bundle.
+          name: id
+          description: Identifier of the bundle, for example, `virtualization` or `openshift-ai-nvidia`.
           required: true
           type: string
       responses:
@@ -4104,7 +4104,7 @@ definitions:
         description: Time at which the operator was last updated.
       bundles:
         type: array
-        description: List of bundles associated with the operator. Can be empty.
+        description: List of identifier of the bundles associated with the operator. Can be empty.
         items:
           type: string
         x-go-custom-tag: gorm:"type:text[]"
@@ -4158,11 +4158,17 @@ definitions:
   bundle:
     type: object
     properties:
-      name:
-        description: The name of the bundle.
+      id:
+        description: Unique identifier of the bundle, for example `virtualization` or `openshift-ai-nvidia`.
+        type: string
+      title:
+        description: |
+          Short human friendly description for the bundle, usually only a few words, for example `Virtualization` or
+          `OpenShift AI (NVIDIA)`.
         type: string
       description:
-        description: Short description of the bundle, for example `OpenShift AI with NVIDIA GPUs`.
+        description: |
+          Longer human friendly description for the bundle, usually one or more sentences.
         type: string
       operators:
         description: List of operators associated with the bundle.

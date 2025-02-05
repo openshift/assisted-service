@@ -31,11 +31,6 @@ const controllerManifestFile = "custom_manifests.json"
 
 var storageOperatorsPriority = []string{odf.Operator.Name, lvm.Operator.Name}
 
-var validBundles = []string{
-	operatorscommon.BundleVirtualization,
-	operatorscommon.BundleOpenShiftAINVIDIA,
-}
-
 // Manifest store the operator manifest used by assisted-installer to create CRs of the OLM.
 type Manifest struct {
 	// Name of the operator the CR manifest we want create
@@ -87,7 +82,7 @@ type API interface {
 	// ListBundles returns the list of available bundles
 	ListBundles() []*models.Bundle
 	// GetBundle returns the Bundle object
-	GetBundle(bundleName string) (*models.Bundle, error)
+	GetBundle(bundleID string) (*models.Bundle, error)
 }
 
 // GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
@@ -527,42 +522,45 @@ func (mgr *Manager) EnsureOperatorPrerequisite(cluster *common.Cluster, openshif
 // ListBundles returns a list of available bundles.
 func (mgr *Manager) ListBundles() []*models.Bundle {
 	var bundles []*models.Bundle
-	for _, bundleName := range validBundles {
-		bundle, err := mgr.GetBundle(bundleName)
+	for _, basicBundleDetails := range operatorscommon.Bundles {
+		completeBundleDeetails, err := mgr.GetBundle(basicBundleDetails.ID)
 		if err != nil {
 			mgr.log.Error(err)
 			continue
 		}
-		bundles = append(bundles, bundle)
+		bundles = append(bundles, completeBundleDeetails)
 	}
 	return bundles
 }
 
 // GetBundle returns the Bundle object
-func (mgr *Manager) GetBundle(bundleName string) (*models.Bundle, error) {
-	if !mgr.isBundleValid(bundleName) {
-		return nil, fmt.Errorf("bundle '%s' is not supported", bundleName)
-	}
-	bundle := models.Bundle{
-		Name:        bundleName,
-		Description: operatorscommon.BundleDescriptions[bundleName],
+func (mgr *Manager) GetBundle(bundleID string) (*models.Bundle, error) {
+	bundle, ok := mgr.lookupBundle(bundleID)
+	if !ok {
+		return nil, fmt.Errorf("bundle '%s' is not supported", bundleID)
 	}
 	for _, operator := range mgr.olmOperators {
 		for _, operatorBundle := range operator.GetBundleLabels() {
-			if operatorBundle == bundle.Name {
+			if operatorBundle == bundleID {
 				bundle.Operators = append(bundle.Operators, operator.GetName())
 				break
 			}
 		}
 	}
-	return &bundle, nil
+	return bundle, nil
 }
 
-func (mgr *Manager) isBundleValid(bundleName string) bool {
-	for _, bundle := range validBundles {
-		if bundle == bundleName {
-			return true
+// lookupBundle tries to find a bundle with the given identifier. Returns a pointer to the basic information of the
+// bundle and a boolean flag indicating if it was found. Note that the result does not contain the list of operators
+// that are part of the bundle.
+func (mgr *Manager) lookupBundle(bundleID string) (result *models.Bundle, ok bool) {
+	for _, bundle := range operatorscommon.Bundles {
+		if bundle.ID == bundleID {
+			result = new(models.Bundle)
+			*result = *bundle
+			ok = true
+			return
 		}
 	}
-	return false
+	return
 }

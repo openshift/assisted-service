@@ -86,11 +86,11 @@ func (o *V2GetBundleOK) IsCode(code int) bool {
 }
 
 func (o *V2GetBundleOK) Error() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles/{bundle_name}][%d] v2GetBundleOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetBundleOK) String() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles/{bundle_name}][%d] v2GetBundleOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetBundleOK) GetPayload() *models.Bundle {
@@ -149,11 +149,11 @@ func (o *V2GetBundleNotFound) IsCode(code int) bool {
 }
 
 func (o *V2GetBundleNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles/{bundle_name}][%d] v2GetBundleNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetBundleNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles/{bundle_name}][%d] v2GetBundleNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetBundleNotFound) GetPayload() *models.Error {
@@ -212,11 +212,11 @@ func (o *V2GetBundleInternalServerError) IsCode(code int) bool {
 }
 
 func (o *V2GetBundleInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles/{bundle_name}][%d] v2GetBundleInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetBundleInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles/{bundle_name}][%d] v2GetBundleInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetBundleInternalServerError) GetPayload() *models.Error {

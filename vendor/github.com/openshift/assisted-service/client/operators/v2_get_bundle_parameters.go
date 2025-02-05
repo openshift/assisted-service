@@ -61,11 +61,11 @@ V2GetBundleParams contains all the parameters to send to the API endpoint
 */
 type V2GetBundleParams struct {
 
-	/* BundleName.
+	/* ID.
 
-	   The name of the bundle.
+	   Identifier of the bundle, for example, `virtualization` or `openshift-ai-nvidia`.
 	*/
-	BundleName string
+	ID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -120,15 +120,15 @@ func (o *V2GetBundleParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithBundleName adds the bundleName to the v2 get bundle params
-func (o *V2GetBundleParams) WithBundleName(bundleName string) *V2GetBundleParams {
-	o.SetBundleName(bundleName)
+// WithID adds the id to the v2 get bundle params
+func (o *V2GetBundleParams) WithID(id string) *V2GetBundleParams {
+	o.SetID(id)
 	return o
 }
 
-// SetBundleName adds the bundleName to the v2 get bundle params
-func (o *V2GetBundleParams) SetBundleName(bundleName string) {
-	o.BundleName = bundleName
+// SetID adds the id to the v2 get bundle params
+func (o *V2GetBundleParams) SetID(id string) {
+	o.ID = id
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -139,8 +139,8 @@ func (o *V2GetBundleParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 	}
 	var res []error
 
-	// path param bundle_name
-	if err := r.SetPathParam("bundle_name", o.BundleName); err != nil {
+	// path param id
+	if err := r.SetPathParam("id", o.ID); err != nil {
 		return err
 	}
 

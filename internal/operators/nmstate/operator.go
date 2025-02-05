@@ -25,7 +25,9 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: SubscriptionName,
 	TimeoutSeconds:   60 * 60,
-	Bundles:          pq.StringArray{operatorscommon.BundleVirtualization},
+	Bundles: pq.StringArray{
+		operatorscommon.BundleVirtualization.ID,
+	},
 }
 
 // New NMSTATEperator creates new instance of a Local Storage Operator installation plugin

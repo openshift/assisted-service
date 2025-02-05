@@ -28,7 +28,9 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: Subscription,
 	TimeoutSeconds:   60 * 60,
-	Bundles:          pq.StringArray{operatorscommon.BundleVirtualization},
+	Bundles: pq.StringArray{
+		operatorscommon.BundleVirtualization.ID,
+	},
 }
 
 func NewMTVOperator(log logrus.FieldLogger) *operator {

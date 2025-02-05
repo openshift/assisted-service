@@ -47,7 +47,7 @@ var Operator = models.MonitoredOperator{
 	SubscriptionName: "odf-operator",
 	TimeoutSeconds:   30 * 60,
 	Bundles: pq.StringArray{
-		operatorscommon.BundleOpenShiftAINVIDIA,
+		operatorscommon.BundleOpenShiftAINVIDIA.ID,
 	},
 }
 

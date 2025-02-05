@@ -69,7 +69,7 @@ func (a *Client) V2GetBundle(ctx context.Context, params *V2GetBundleParams) (*V
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2GetBundle",
 		Method:             "GET",
-		PathPattern:        "/v2/operators/bundles/{bundle_name}",
+		PathPattern:        "/v2/operators/bundles/{id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
