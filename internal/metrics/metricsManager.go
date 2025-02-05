@@ -117,8 +117,8 @@ type MetricsManager struct {
 	serviceLogicClusterValidationFailed                *prometheus.CounterVec
 	serviceLogicClusterValidationChanged               *prometheus.CounterVec
 	serviceLogicFilesystemUsagePercentage              *prometheus.GaugeVec
-	serviceLogicMonitoredHosts                         *prometheus.GaugeVec
-	serviceLogicMonitoredClusters                      *prometheus.GaugeVec
+	serviceLogicMonitoredHosts                         *prometheus.CounterVec
+	serviceLogicMonitoredClusters                      *prometheus.CounterVec
 	collectors                                         []prometheus.Collector
 }
 
@@ -275,19 +275,21 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 			}, []string{},
 		),
 
-		serviceLogicMonitoredHosts: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Subsystem: subsystem,
-			Name:      counterMonitoredHosts,
-			Help:      counterDescriptionMonitoredHosts,
-		}, []string{hosts}),
+		serviceLogicMonitoredHosts: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterMonitoredHosts,
+				Help:      counterDescriptionMonitoredHosts,
+			}, []string{hosts}),
 
-		serviceLogicMonitoredClusters: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Subsystem: subsystem,
-			Name:      counterMonitoredClusters,
-			Help:      counterDescriptionMonitoredClusters,
-		}, []string{hosts}),
+		serviceLogicMonitoredClusters: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterMonitoredClusters,
+				Help:      counterDescriptionMonitoredClusters,
+			}, []string{hosts}),
 	}
 
 	m.collectors = append(m.collectors, newDirectoryUsageCollector(metricsManagerConfig.DirectoryUsageMonitorConfig.Directories, diskStatsHelper, log))
@@ -476,11 +478,11 @@ func (m *MetricsManager) FileSystemUsage(usageInPercentage float64) {
 }
 
 func (m *MetricsManager) MonitoredHostsCount(monitoredHosts int64) {
-	m.serviceLogicMonitoredHosts.WithLabelValues(hosts).Set(float64(monitoredHosts))
+	m.serviceLogicMonitoredHosts.WithLabelValues(hosts).Add(float64(monitoredHosts))
 }
 
 func (m *MetricsManager) MonitoredClusterCount(monitoredClusters int64) {
-	m.serviceLogicMonitoredClusters.WithLabelValues(clusters).Set(float64(monitoredClusters))
+	m.serviceLogicMonitoredClusters.WithLabelValues(clusters).Add(float64(monitoredClusters))
 }
 
 func bytesToGib(bytes int64) int64 {
