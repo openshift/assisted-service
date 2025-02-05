@@ -12678,7 +12678,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 
 		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
 		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
-		Expect(actual.Payload.OpenshiftVersion).To(BeEmpty())
+		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 		Expect(actual.Payload.OcpReleaseImage).To(BeEmpty())
 		Expect(actual.Payload.OpenshiftClusterID).To(Equal(openshiftClusterID))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ImportClusterCreated()))
@@ -12705,7 +12705,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 
 		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
 		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
-		Expect(actual.Payload.OpenshiftVersion).To(BeEmpty())
+		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 		Expect(actual.Payload.OcpReleaseImage).To(BeEmpty())
 		Expect(actual.Payload.OpenshiftClusterID).To(Equal(openshiftClusterID))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2ImportClusterCreated()))
