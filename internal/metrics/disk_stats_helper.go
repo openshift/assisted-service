@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -15,11 +16,12 @@ type DiskStatsHelper interface {
 }
 
 type OSDiskStatsHelper struct {
+	log *logrus.Logger
 }
 
 //go:generate mockgen -source=disk_stats_helper.go -package=metrics -destination=mock_disk_stats_helper.go
-func NewOSDiskStatsHelper() *OSDiskStatsHelper {
-	return &OSDiskStatsHelper{}
+func NewOSDiskStatsHelper(log *logrus.Logger) *OSDiskStatsHelper {
+	return &OSDiskStatsHelper{log: log}
 }
 
 func (c *OSDiskStatsHelper) getUsedBytesInDirectory(directory string) (uint64, error) {
@@ -28,6 +30,14 @@ func (c *OSDiskStatsHelper) getUsedBytesInDirectory(directory string) (uint64, e
 	seenInodes := make(map[uint64]bool)
 	err := filepath.Walk(directory, func(path string, fileInfo os.FileInfo, err error) error {
 		if err != nil {
+			if _, ok := err.(*os.PathError); ok {
+				// it's possible to encounter a path error if a file has been deleted since we obtained the file list
+				// in cases where deletion occurs outside of Mutex protection, such as when we clean up an installercache.Release, this can be expected
+				// we can safely count this as 'zero sized' in these cases
+				c.log.WithError(err).Warnf("could not stat file %s because it was deleted before we could walk it - assuming zero size", path)
+				// return nil to ignore the error.
+				return nil
+			}
 			return err
 		}
 		// We need to ensure that the size check is based on inodes and not just the sizes gleaned from files.

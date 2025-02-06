@@ -47,7 +47,7 @@ var _ = DescribeTable(
 		metricsManagerConfig := &MetricsManagerConfig{
 			DirectoryUsageMonitorConfig: DirectoryUsageMonitorConfig{
 				Directories: []string{"/data"}}}
-		manager := NewMetricsManager(server.Registry(), handler, NewOSDiskStatsHelper(), metricsManagerConfig, logrus.New())
+		manager := NewMetricsManager(server.Registry(), handler, NewOSDiskStatsHelper(logrus.New()), metricsManagerConfig, logrus.New())
 		manager.ReportHostInstallationMetrics(
 			ctx,
 			"4.10.18",
