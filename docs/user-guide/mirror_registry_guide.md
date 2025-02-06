@@ -1,8 +1,7 @@
 
-# Using the Mirror Registry Feature in Assisted Service
+# Using the Per-Cluster Mirror Registry Feature in Assisted Service
 
-This guide explains how to use the new mirror registry feature in the Assisted Service. It assumes familiarity with deploying new clusters using Assisted CRDs.
-
+This guide explains how to use the new mirror registry feature in the Assisted Service. This mirror registry configuration can be scoped to a cluster. It assumes familiarity with deploying new clusters using Assisted CRDs.
 **Note:** This feature is currently supported when Assisted Service is running in KubeAPI mode.
 
 ## Overview
@@ -153,6 +152,9 @@ oc adm release mirror \
   --insecure=$INSECURE
 ```
 
+- **Version Matching:** Ensure that the OpenShift version in the mirror registry matches the version specified in the image set configuration.
+
+
 #### 6.2 Mirror Assisted Installer Images
 
 These images are required for the discovery step:
@@ -259,5 +261,4 @@ For each cluster, simply adjust the `REGISTRY_IP`, `REGISTRY_PORT`, and `REGISTR
 
 ## Notes
 
-- **Version Matching:** Ensure that the OpenShift version in the mirror registry matches the version specified in the image set configuration.
 - **Insecure Registry:** Insecure mirror registry support is currently a work in progress (WIP).
