@@ -14,7 +14,7 @@ import (
 
 // V2GetBundleURL generates an URL for the v2 get bundle operation
 type V2GetBundleURL struct {
-	BundleName string
+	ID string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -40,13 +40,13 @@ func (o *V2GetBundleURL) SetBasePath(bp string) {
 func (o *V2GetBundleURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/v2/operators/bundles/{bundle_name}"
+	var _path = "/v2/operators/bundles/{id}"
 
-	bundleName := o.BundleName
-	if bundleName != "" {
-		_path = strings.Replace(_path, "{bundle_name}", bundleName, -1)
+	id := o.ID
+	if id != "" {
+		_path = strings.Replace(_path, "{id}", id, -1)
 	} else {
-		return nil, errors.New("bundleName is required on V2GetBundleURL")
+		return nil, errors.New("id is required on V2GetBundleURL")
 	}
 
 	_basePath := o._basePath

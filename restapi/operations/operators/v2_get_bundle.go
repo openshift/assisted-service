@@ -30,7 +30,7 @@ func NewV2GetBundle(ctx *middleware.Context, handler V2GetBundleHandler) *V2GetB
 }
 
 /*
-	V2GetBundle swagger:route GET /v2/operators/bundles/{bundle_name} operators v2GetBundle
+	V2GetBundle swagger:route GET /v2/operators/bundles/{id} operators v2GetBundle
 
 # Get operator properties for a bundle
 

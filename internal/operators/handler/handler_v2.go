@@ -45,9 +45,9 @@ func (h *Handler) V2ListBundles(_ context.Context, _ restoperators.V2ListBundles
 // V2GetBundle Retrieves the Bundle object for a specific bundleName.
 func (h *Handler) V2GetBundle(ctx context.Context, params restoperators.V2GetBundleParams) middleware.Responder {
 	log := logutil.FromContext(ctx, h.log)
-	bundle, err := h.operatorsAPI.GetBundle(params.BundleName)
+	bundle, err := h.operatorsAPI.GetBundle(params.ID)
 	if err != nil {
-		log.Errorf("Failed to get operators for bundle %s: %v", params.BundleName, err)
+		log.Errorf("Failed to get operators for bundle %s: %v", params.ID, err)
 		return common.GenerateErrorResponder(err)
 	}
 	return restoperators.NewV2GetBundleOK().WithPayload(bundle)

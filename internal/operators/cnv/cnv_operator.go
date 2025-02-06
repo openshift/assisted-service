@@ -39,7 +39,9 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "hco-operatorhub",
 	TimeoutSeconds:   60 * 60,
-	Bundles:          pq.StringArray{operatorscommon.BundleVirtualization},
+	Bundles: pq.StringArray{
+		operatorscommon.BundleVirtualization.ID,
+	},
 }
 
 // NewCNVOperator creates new instance of a Container Native Virtualization installation plugin

@@ -21,7 +21,7 @@ var Operator = models.MonitoredOperator{
 	SubscriptionName: "servicemeshoperator",
 	TimeoutSeconds:   30 * 60,
 	Bundles: pq.StringArray{
-		operatorscommon.BundleOpenShiftAINVIDIA,
+		operatorscommon.BundleOpenShiftAINVIDIA.ID,
 	},
 }
 

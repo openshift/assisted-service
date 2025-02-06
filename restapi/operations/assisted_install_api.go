@@ -1097,7 +1097,7 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/v2/operators/bundles/{bundle_name}"] = operators.NewV2GetBundle(o.context, o.OperatorsV2GetBundleHandler)
+	o.handlers["GET"]["/v2/operators/bundles/{id}"] = operators.NewV2GetBundle(o.context, o.OperatorsV2GetBundleHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

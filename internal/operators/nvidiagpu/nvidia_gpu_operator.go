@@ -25,7 +25,7 @@ var Operator = models.MonitoredOperator{
 	SubscriptionName: "gpu-operator-certified",
 	TimeoutSeconds:   30 * 60,
 	Bundles: pq.StringArray{
-		operatorscommon.BundleOpenShiftAINVIDIA,
+		operatorscommon.BundleOpenShiftAINVIDIA.ID,
 	},
 }
 

@@ -5744,7 +5744,7 @@ func init() {
         }
       }
     },
-    "/v2/operators/bundles/{bundle_name}": {
+    "/v2/operators/bundles/{id}": {
       "get": {
         "description": "Retrieves an array of operator properties for the specified bundle.",
         "tags": [
@@ -5755,8 +5755,8 @@ func init() {
         "parameters": [
           {
             "type": "string",
-            "description": "The name of the bundle.",
-            "name": "bundle_name",
+            "description": "Identifier of the bundle, for example, ` + "`" + `virtualization` + "`" + ` or ` + "`" + `openshift-ai-nvidia` + "`" + `.",
+            "name": "id",
             "in": "path",
             "required": true
           }
@@ -6239,11 +6239,11 @@ func init() {
       "type": "object",
       "properties": {
         "description": {
-          "description": "Short description of the bundle, for example ` + "`" + `OpenShift AI with NVIDIA GPUs` + "`" + `.",
+          "description": "Longer human friendly description for the bundle, usually one or more sentences.\n",
           "type": "string"
         },
-        "name": {
-          "description": "The name of the bundle.",
+        "id": {
+          "description": "Unique identifier of the bundle, for example ` + "`" + `virtualization` + "`" + ` or ` + "`" + `openshift-ai-nvidia` + "`" + `.",
           "type": "string"
         },
         "operators": {
@@ -6252,6 +6252,10 @@ func init() {
           "items": {
             "type": "string"
           }
+        },
+        "title": {
+          "description": "Short human friendly description for the bundle, usually only a few words, for example ` + "`" + `Virtualization` + "`" + ` or\n` + "`" + `OpenShift AI (NVIDIA)` + "`" + `.\n",
+          "type": "string"
         }
       }
     },
@@ -9640,7 +9644,7 @@ func init() {
       "type": "object",
       "properties": {
         "bundles": {
-          "description": "List of bundles associated with the operator. Can be empty.",
+          "description": "List of identifier of the bundles associated with the operator. Can be empty.",
           "type": "array",
           "items": {
             "type": "string"
@@ -16706,7 +16710,7 @@ func init() {
         }
       }
     },
-    "/v2/operators/bundles/{bundle_name}": {
+    "/v2/operators/bundles/{id}": {
       "get": {
         "description": "Retrieves an array of operator properties for the specified bundle.",
         "tags": [
@@ -16717,8 +16721,8 @@ func init() {
         "parameters": [
           {
             "type": "string",
-            "description": "The name of the bundle.",
-            "name": "bundle_name",
+            "description": "Identifier of the bundle, for example, ` + "`" + `virtualization` + "`" + ` or ` + "`" + `openshift-ai-nvidia` + "`" + `.",
+            "name": "id",
             "in": "path",
             "required": true
           }
@@ -17319,11 +17323,11 @@ func init() {
       "type": "object",
       "properties": {
         "description": {
-          "description": "Short description of the bundle, for example ` + "`" + `OpenShift AI with NVIDIA GPUs` + "`" + `.",
+          "description": "Longer human friendly description for the bundle, usually one or more sentences.\n",
           "type": "string"
         },
-        "name": {
-          "description": "The name of the bundle.",
+        "id": {
+          "description": "Unique identifier of the bundle, for example ` + "`" + `virtualization` + "`" + ` or ` + "`" + `openshift-ai-nvidia` + "`" + `.",
           "type": "string"
         },
         "operators": {
@@ -17332,6 +17336,10 @@ func init() {
           "items": {
             "type": "string"
           }
+        },
+        "title": {
+          "description": "Short human friendly description for the bundle, usually only a few words, for example ` + "`" + `Virtualization` + "`" + ` or\n` + "`" + `OpenShift AI (NVIDIA)` + "`" + `.\n",
+          "type": "string"
         }
       }
     },
@@ -20678,7 +20686,7 @@ func init() {
       "type": "object",
       "properties": {
         "bundles": {
-          "description": "List of bundles associated with the operator. Can be empty.",
+          "description": "List of identifier of the bundles associated with the operator. Can be empty.",
           "type": "array",
           "items": {
             "type": "string"

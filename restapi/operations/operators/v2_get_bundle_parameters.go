@@ -30,11 +30,11 @@ type V2GetBundleParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The name of the bundle.
+	/*Identifier of the bundle, for example, `virtualization` or `openshift-ai-nvidia`.
 	  Required: true
 	  In: path
 	*/
-	BundleName string
+	ID string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -46,8 +46,8 @@ func (o *V2GetBundleParams) BindRequest(r *http.Request, route *middleware.Match
 
 	o.HTTPRequest = r
 
-	rBundleName, rhkBundleName, _ := route.Params.GetOK("bundle_name")
-	if err := o.bindBundleName(rBundleName, rhkBundleName, route.Formats); err != nil {
+	rID, rhkID, _ := route.Params.GetOK("id")
+	if err := o.bindID(rID, rhkID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 	if len(res) > 0 {
@@ -56,8 +56,8 @@ func (o *V2GetBundleParams) BindRequest(r *http.Request, route *middleware.Match
 	return nil
 }
 
-// bindBundleName binds and validates parameter BundleName from path.
-func (o *V2GetBundleParams) bindBundleName(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindID binds and validates parameter ID from path.
+func (o *V2GetBundleParams) bindID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -65,7 +65,7 @@ func (o *V2GetBundleParams) bindBundleName(rawData []string, hasKey bool, format
 
 	// Required: true
 	// Parameter is provided by construction from the route
-	o.BundleName = raw
+	o.ID = raw
 
 	return nil
 }

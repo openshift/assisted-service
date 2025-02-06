@@ -832,10 +832,10 @@ var _ = Describe("Operators manager", func() {
 			bundles := manager.ListBundles()
 			Expect(bundles).To(HaveLen(2))
 			for _, bundle := range bundles {
-				Expect(bundle.Name).To(BeElementOf(operatorscommon.BundleVirtualization, operatorscommon.BundleOpenShiftAINVIDIA))
+				Expect(bundle.ID).To(BeElementOf(operatorscommon.BundleVirtualization.ID, operatorscommon.BundleOpenShiftAINVIDIA.ID))
 				// lso isn't part of any bundle
 				Expect(bundle.Operators).NotTo(ContainElement(lso.Operator.Name))
-				if bundle.Name == operatorscommon.BundleVirtualization {
+				if bundle.ID == operatorscommon.BundleVirtualization.ID {
 					Expect(bundle.Operators).To(ContainElements(mtvOperator.GetName(), cnvOperator.GetName()))
 				} else {
 					Expect(bundle.Operators).To(ContainElements(oaiOperator.GetName(), serverlessOperator.GetName(), odfOperator.GetName()))
@@ -849,27 +849,39 @@ var _ = Describe("Operators manager", func() {
 			Expect(err).To(MatchError("bundle 'invalid bundle' is not supported"))
 			Expect(bundle).To(BeNil())
 
-			bundle, err = manager.GetBundle(operatorscommon.BundleVirtualization)
+			bundle, err = manager.GetBundle(operatorscommon.BundleVirtualization.ID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Operators).To(HaveLen(3))
 			Expect(bundle.Operators).To(ContainElements(cnvOperator.GetName(), mtvOperator.GetName(), nmstateOperator.GetName()))
 
-			bundle, err = manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA)
+			bundle, err = manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA.ID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Operators).To(HaveLen(3))
 			Expect(bundle.Operators).To(ContainElements(oaiOperator.GetName(), serverlessOperator.GetName(), odfOperator.GetName()))
 		})
 
 		It("OpenShift AI NVIDIA bundle should have a description", func() {
-			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA)
+			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA.ID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Description).ToNot(BeEmpty())
 		})
 
+		It("OpenShift AI NVIDIA bundle should have a title", func() {
+			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bundle.Title).ToNot(BeEmpty())
+		})
+
 		It("Virtualization bundle should have a description", func() {
-			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization)
+			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization.ID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Description).ToNot(BeEmpty())
+		})
+
+		It("Virtualization bundle should have a title", func() {
+			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bundle.Title).ToNot(BeEmpty())
 		})
 	})
 })

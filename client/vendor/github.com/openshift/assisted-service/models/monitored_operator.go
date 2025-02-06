@@ -20,7 +20,7 @@ import (
 // swagger:model monitored-operator
 type MonitoredOperator struct {
 
-	// List of bundles associated with the operator. Can be empty.
+	// List of identifier of the bundles associated with the operator. Can be empty.
 	Bundles pq.StringArray `json:"bundles" gorm:"type:text[]"`
 
 	// The cluster that this operator is associated with.
