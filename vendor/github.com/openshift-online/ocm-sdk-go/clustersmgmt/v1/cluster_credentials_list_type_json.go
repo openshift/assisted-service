@@ -60,7 +60,7 @@ func UnmarshalClusterCredentialsList(source interface{}) (items []*ClusterCreden
 	return
 }
 
-// readClusterCredentialsList reads list of values of the ''cluster_credentials' type from
+// readClusterCredentialsList reads list of values of the ”cluster_credentials' type from
 // the given iterator.
 func readClusterCredentialsList(iterator *jsoniter.Iterator) []*ClusterCredentials {
 	list := []*ClusterCredentials{}

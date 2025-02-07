@@ -34,8 +34,6 @@ func NewAddOnParameterOption() *AddOnParameterOptionBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *AddOnParameterOptionBuilder) Name(value string) *AddOnParameterOptionBuilder {
 	b.name = value
 	b.bitmap_ |= 1
@@ -43,8 +41,6 @@ func (b *AddOnParameterOptionBuilder) Name(value string) *AddOnParameterOptionBu
 }
 
 // Value sets the value of the 'value' attribute to the given value.
-//
-//
 func (b *AddOnParameterOptionBuilder) Value(value string) *AddOnParameterOptionBuilder {
 	b.value = value
 	b.bitmap_ |= 2

@@ -60,7 +60,7 @@ func UnmarshalUpgradePolicyStateList(source interface{}) (items []*UpgradePolicy
 	return
 }
 
-// readUpgradePolicyStateList reads list of values of the ''upgrade_policy_state' type from
+// readUpgradePolicyStateList reads list of values of the ”upgrade_policy_state' type from
 // the given iterator.
 func readUpgradePolicyStateList(iterator *jsoniter.Iterator) []*UpgradePolicyState {
 	list := []*UpgradePolicyState{}

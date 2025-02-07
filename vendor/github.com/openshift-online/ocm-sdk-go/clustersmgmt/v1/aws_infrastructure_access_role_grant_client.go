@@ -166,16 +166,12 @@ func (r *AWSInfrastructureAccessRoleGrantPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AWSInfrastructureAccessRoleGrantPollResponse) Body() *AWSInfrastructureAccessRoleGrant {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AWSInfrastructureAccessRoleGrantPollResponse) GetBody() (value *AWSInfrastructureAccessRoleGrant, ok bool) {
 	return r.response.GetBody()
 }
@@ -382,8 +378,6 @@ func (r *AWSInfrastructureAccessRoleGrantGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AWSInfrastructureAccessRoleGrantGetResponse) Body() *AWSInfrastructureAccessRoleGrant {
 	if r == nil {
 		return nil
@@ -393,8 +387,6 @@ func (r *AWSInfrastructureAccessRoleGrantGetResponse) Body() *AWSInfrastructureA
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AWSInfrastructureAccessRoleGrantGetResponse) GetBody() (value *AWSInfrastructureAccessRoleGrant, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

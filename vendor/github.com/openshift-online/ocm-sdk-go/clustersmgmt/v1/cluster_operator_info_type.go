@@ -24,8 +24,6 @@ import (
 )
 
 // ClusterOperatorInfo represents the values of the 'cluster_operator_info' type.
-//
-//
 type ClusterOperatorInfo struct {
 	bitmap_   uint32
 	condition ClusterOperatorState

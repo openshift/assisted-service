@@ -32,8 +32,6 @@ const SupportCaseResponseLinkKind = "SupportCaseResponseLink"
 const SupportCaseResponseNilKind = "SupportCaseResponseNil"
 
 // SupportCaseResponse represents the values of the 'support_case_response' type.
-//
-//
 type SupportCaseResponse struct {
 	bitmap_        uint32
 	id             string

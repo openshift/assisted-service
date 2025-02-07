@@ -43,8 +43,6 @@ type ResourceReviewPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
-//
-//
 func (r *ResourceReviewPostServerRequest) Request() *ResourceReviewRequest {
 	if r == nil {
 		return nil
@@ -54,8 +52,6 @@ func (r *ResourceReviewPostServerRequest) Request() *ResourceReviewRequest {
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ResourceReviewPostServerRequest) GetRequest() (value *ResourceReviewRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -72,8 +68,6 @@ type ResourceReviewPostServerResponse struct {
 }
 
 // Review sets the value of the 'review' parameter.
-//
-//
 func (r *ResourceReviewPostServerResponse) Review(value *ResourceReview) *ResourceReviewPostServerResponse {
 	r.review = value
 	return r

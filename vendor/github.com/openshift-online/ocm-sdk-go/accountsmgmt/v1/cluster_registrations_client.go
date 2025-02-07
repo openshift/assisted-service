@@ -83,8 +83,6 @@ func (r *ClusterRegistrationsPostRequest) Header(name string, value interface{})
 }
 
 // Request sets the value of the 'request' parameter.
-//
-//
 func (r *ClusterRegistrationsPostRequest) Request(value *ClusterRegistrationRequest) *ClusterRegistrationsPostRequest {
 	r.request = value
 	return r
@@ -186,8 +184,6 @@ func (r *ClusterRegistrationsPostResponse) Error() *errors.Error {
 }
 
 // Response returns the value of the 'response' parameter.
-//
-//
 func (r *ClusterRegistrationsPostResponse) Response() *ClusterRegistrationResponse {
 	if r == nil {
 		return nil
@@ -197,8 +193,6 @@ func (r *ClusterRegistrationsPostResponse) Response() *ClusterRegistrationRespon
 
 // GetResponse returns the value of the 'response' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ClusterRegistrationsPostResponse) GetResponse() (value *ClusterRegistrationResponse, ok bool) {
 	ok = r != nil && r.response != nil
 	if ok {

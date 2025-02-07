@@ -38,8 +38,6 @@ func NewGithubIdentityProvider() *GithubIdentityProviderBuilder {
 }
 
 // CA sets the value of the 'CA' attribute to the given value.
-//
-//
 func (b *GithubIdentityProviderBuilder) CA(value string) *GithubIdentityProviderBuilder {
 	b.ca = value
 	b.bitmap_ |= 1
@@ -47,8 +45,6 @@ func (b *GithubIdentityProviderBuilder) CA(value string) *GithubIdentityProvider
 }
 
 // ClientID sets the value of the 'client_ID' attribute to the given value.
-//
-//
 func (b *GithubIdentityProviderBuilder) ClientID(value string) *GithubIdentityProviderBuilder {
 	b.clientID = value
 	b.bitmap_ |= 2
@@ -56,8 +52,6 @@ func (b *GithubIdentityProviderBuilder) ClientID(value string) *GithubIdentityPr
 }
 
 // ClientSecret sets the value of the 'client_secret' attribute to the given value.
-//
-//
 func (b *GithubIdentityProviderBuilder) ClientSecret(value string) *GithubIdentityProviderBuilder {
 	b.clientSecret = value
 	b.bitmap_ |= 4
@@ -65,8 +59,6 @@ func (b *GithubIdentityProviderBuilder) ClientSecret(value string) *GithubIdenti
 }
 
 // Hostname sets the value of the 'hostname' attribute to the given value.
-//
-//
 func (b *GithubIdentityProviderBuilder) Hostname(value string) *GithubIdentityProviderBuilder {
 	b.hostname = value
 	b.bitmap_ |= 8
@@ -74,8 +66,6 @@ func (b *GithubIdentityProviderBuilder) Hostname(value string) *GithubIdentityPr
 }
 
 // Organizations sets the value of the 'organizations' attribute to the given values.
-//
-//
 func (b *GithubIdentityProviderBuilder) Organizations(values ...string) *GithubIdentityProviderBuilder {
 	b.organizations = make([]string, len(values))
 	copy(b.organizations, values)
@@ -84,8 +74,6 @@ func (b *GithubIdentityProviderBuilder) Organizations(values ...string) *GithubI
 }
 
 // Teams sets the value of the 'teams' attribute to the given values.
-//
-//
 func (b *GithubIdentityProviderBuilder) Teams(values ...string) *GithubIdentityProviderBuilder {
 	b.teams = make([]string, len(values))
 	copy(b.teams, values)

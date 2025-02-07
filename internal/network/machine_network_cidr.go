@@ -1,6 +1,7 @@
 package network
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -17,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func getVIPInterfaceNetwork(vip net.IP, addresses []string) *net.IPNet {
+func getVIPInterfaceNetwork(ctx context.Context, vip net.IP, addresses []string) *net.IPNet {
 	for _, addr := range addresses {
 		_, ipnet, err := net.ParseCIDR(addr)
 		if err != nil {
@@ -36,7 +37,7 @@ func getVIPInterfaceNetwork(vip net.IP, addresses []string) *net.IPNet {
  * The goal of this function is to find the first network that one of the vips belongs to it.
  * This network is returned as a result.
  */
-func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*models.Host, isMatchRequired bool) (string, error) {
+func CalculateMachineNetworkCIDR(ctx context.Context, apiVip string, ingressVip string, hosts []*models.Host, isMatchRequired bool) (string, error) {
 	var ip string
 	if apiVip != "" {
 		ip = apiVip
@@ -51,17 +52,16 @@ func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*mode
 		return "", errors.Errorf("Could not parse VIP ip %s", ip)
 	}
 	for _, h := range hosts {
-		var inventory models.Inventory
-		err := json.Unmarshal([]byte(h.Inventory), &inventory)
+		inventory, err := common.UnmarshalInventory(ctx, h.Inventory)
 		if err != nil {
 			continue
 		}
 		for _, intf := range inventory.Interfaces {
 			var ipnet *net.IPNet
 			if isIPv4 {
-				ipnet = getVIPInterfaceNetwork(parsedVipAddr, intf.IPV4Addresses)
+				ipnet = getVIPInterfaceNetwork(ctx, parsedVipAddr, intf.IPV4Addresses)
 			} else {
-				ipnet = getVIPInterfaceNetwork(parsedVipAddr, intf.IPV6Addresses)
+				ipnet = getVIPInterfaceNetwork(ctx, parsedVipAddr, intf.IPV6Addresses)
 			}
 			if ipnet != nil {
 				return ipnet.String(), nil
@@ -74,7 +74,7 @@ func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*mode
 	return "", errors.Errorf("No suitable matching CIDR found for VIP %s", ip)
 }
 
-func ipInCidr(ipStr, cidrStr string) bool {
+func ipInCidr(ctx context.Context, ipStr, cidrStr string) bool {
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		return false
@@ -86,7 +86,7 @@ func ipInCidr(ipStr, cidrStr string) bool {
 	return ipnet.Contains(ip)
 }
 
-func ipIsBroadcast(ipStr, cidrStr string) bool {
+func ipIsBroadcast(ctx context.Context, ipStr, cidrStr string) bool {
 	// Broadcast addresses are only used for IPv4, so if this is not IPv4, don't do this check.
 	if !IsIPv4Addr(ipStr) {
 		return false
@@ -103,7 +103,7 @@ func ipIsBroadcast(ipStr, cidrStr string) bool {
 	return ip.Equal(broadcastAddress)
 }
 
-func VerifyVipFree(hosts []*models.Host, vip string, machineNetworkCidr string, verification *models.VipVerification, log logrus.FieldLogger) models.VipVerification {
+func VerifyVipFree(ctx context.Context, hosts []*models.Host, vip string, machineNetworkCidr string, verification *models.VipVerification, log logrus.FieldLogger) models.VipVerification {
 	if verification != nil {
 		switch *verification {
 		case models.VipVerificationSucceeded, models.VipVerificationFailed:
@@ -113,10 +113,10 @@ func VerifyVipFree(hosts []*models.Host, vip string, machineNetworkCidr string, 
 			break
 		}
 	}
-	return IpInFreeList(hosts, vip, machineNetworkCidr, log)
+	return IpInFreeList(ctx, hosts, vip, machineNetworkCidr, log)
 }
 
-func VerifyVipWithSingleMachineNetwork(
+func VerifyVipWithSingleMachineNetwork(ctx context.Context,
 	hosts []*models.Host,
 	machineNetworkCidr string,
 	vip string,
@@ -128,10 +128,10 @@ func VerifyVipWithSingleMachineNetwork(
 	if machineNetworkCidr == "" {
 		return models.VipVerificationUnverified, errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty", vipName, vip)
 	}
-	if !ipInCidr(vip, machineNetworkCidr) {
+	if !ipInCidr(ctx, vip, machineNetworkCidr) {
 		return models.VipVerificationFailed, errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
 	}
-	if ipIsBroadcast(vip, machineNetworkCidr) {
+	if ipIsBroadcast(ctx, vip, machineNetworkCidr) {
 		return models.VipVerificationFailed, errors.Errorf("%s <%s> is the broadcast address of machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
 	}
 
@@ -140,7 +140,7 @@ func VerifyVipWithSingleMachineNetwork(
 	}
 
 	var msg string
-	ret := VerifyVipFree(hosts, vip, machineNetworkCidr, verification, log)
+	ret := VerifyVipFree(ctx, hosts, vip, machineNetworkCidr, verification, log)
 	switch ret {
 	case models.VipVerificationSucceeded:
 		return ret, nil
@@ -157,7 +157,7 @@ func VerifyVipWithSingleMachineNetwork(
 	return ret, errors.New(msg)
 }
 
-func VerifyVipWithMachineNetworkList(
+func VerifyVipWithMachineNetworkList(ctx context.Context,
 	hosts []*models.Host,
 	machineNetworks []*models.MachineNetwork,
 	vip string,
@@ -181,6 +181,7 @@ func VerifyVipWithMachineNetworkList(
 		}
 
 		currentVerfication, err := VerifyVipWithSingleMachineNetwork(
+			ctx,
 			hosts,
 			string(machineNetwork.Cidr),
 			vip,
@@ -215,7 +216,7 @@ func VerifyVipWithMachineNetworkList(
 	return resultVerification, err
 }
 
-func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*models.IngressVip, allowCommonVIP bool) error {
+func ValidateNoVIPAddressesDuplicates(ctx context.Context, apiVips []*models.APIVip, ingressVips []*models.IngressVip, allowCommonVIP bool) error {
 	var (
 		err                     error
 		multiErr                error
@@ -265,20 +266,21 @@ func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*m
 // VerifyVipsForClusterManangedLoadBalancer is called from places which assume it is OK for a VIP to be unverified.
 // The assumption is that VIPs are eventually verified by cluster validation
 // (i.e api-vips-valid, ingress-vips-valid)
-func VerifyVipsForClusterManagedLoadBalancer(
+func VerifyVipsForClusterManagedLoadBalancer(ctx context.Context,
 	hosts []*models.Host,
 	machineNetworkCidr string,
 	apiVip string,
 	ingressVip string,
 	log logrus.FieldLogger,
 ) error {
-	verification, err := VerifyVipWithSingleMachineNetwork(hosts, machineNetworkCidr, apiVip, "api-vip", nil, true, log)
+	verification, err := VerifyVipWithSingleMachineNetwork(ctx, hosts, machineNetworkCidr, apiVip, "api-vip", nil, true, log)
 	// Error is ignored if the verification didn't fail
 	if verification != models.VipVerificationFailed {
-		verification, err = VerifyVipWithSingleMachineNetwork(hosts, machineNetworkCidr, ingressVip, "ingress-vip", nil, true, log)
+		verification, err = VerifyVipWithSingleMachineNetwork(ctx, hosts, machineNetworkCidr, ingressVip, "ingress-vip", nil, true, log)
 	}
 	if verification != models.VipVerificationFailed {
 		return ValidateNoVIPAddressesDuplicates(
+			ctx,
 			[]*models.APIVip{{IP: models.IP(apiVip)}},
 			[]*models.IngressVip{{IP: models.IP(ingressVip)}},
 			false,
@@ -290,21 +292,22 @@ func VerifyVipsForClusterManagedLoadBalancer(
 // VerifyVipsForUserManangedLoadBalancer is called from places which assume it is OK for a VIP to be unverified.
 // The assumption is that VIPs are eventually verified by cluster validation
 // (i.e api-vips-valid, ingress-vips-valid)
-func VerifyVipsForUserManangedLoadBalancer(
+func VerifyVipsForUserManangedLoadBalancer(ctx context.Context,
 	hosts []*models.Host,
 	machineNetworks []*models.MachineNetwork,
 	apiVip string,
 	ingressVip string,
 	log logrus.FieldLogger,
 ) error {
-	verification, err := VerifyVipWithMachineNetworkList(hosts, machineNetworks, apiVip, "api-vip", nil, false, log)
+	verification, err := VerifyVipWithMachineNetworkList(ctx, hosts, machineNetworks, apiVip, "api-vip", nil, false, log)
 	// Error is ignored if the verification didn't fail
 	fmt.Println(verification, err)
 	if verification != models.VipVerificationFailed {
-		verification, err = VerifyVipWithMachineNetworkList(hosts, machineNetworks, ingressVip, "ingress-vip", nil, false, log)
+		verification, err = VerifyVipWithMachineNetworkList(ctx, hosts, machineNetworks, ingressVip, "ingress-vip", nil, false, log)
 	}
 	if verification != models.VipVerificationFailed {
 		return ValidateNoVIPAddressesDuplicates(
+			ctx,
 			[]*models.APIVip{{IP: models.IP(apiVip)}},
 			[]*models.IngressVip{{IP: models.IP(ingressVip)}},
 			true,
@@ -313,7 +316,7 @@ func VerifyVipsForUserManangedLoadBalancer(
 	return err
 }
 
-func findMatchingIPForFamily(ipnet *net.IPNet, addresses []string) (bool, string) {
+func findMatchingIPForFamily(ctx context.Context, ipnet *net.IPNet, addresses []string) (bool, string) {
 	for _, addr := range addresses {
 		ip, _, err := net.ParseCIDR(addr)
 		if err != nil {
@@ -326,19 +329,18 @@ func findMatchingIPForFamily(ipnet *net.IPNet, addresses []string) (bool, string
 	return false, ""
 }
 
-func findMatchingIP(ipnet *net.IPNet, intf *models.Interface, isIPv4 bool) (bool, string) {
+func findMatchingIP(ctx context.Context, ipnet *net.IPNet, intf *models.Interface, isIPv4 bool) (bool, string) {
 	if isIPv4 {
-		return findMatchingIPForFamily(ipnet, intf.IPV4Addresses)
+		return findMatchingIPForFamily(ctx, ipnet, intf.IPV4Addresses)
 	} else {
-		return findMatchingIPForFamily(ipnet, intf.IPV6Addresses)
+		return findMatchingIPForFamily(ctx, ipnet, intf.IPV6Addresses)
 	}
 }
 
-func getMachineCIDRObj(host *models.Host, machineNetworkCidr string, obj string) (string, error) {
-	var inventory models.Inventory
-	var err error
+func getMachineCIDRObj(ctx context.Context, host *models.Host, machineNetworkCidr string, obj string) (string, error) {
 	isIPv4 := IsIPV4CIDR(machineNetworkCidr)
-	if err = json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
+	if err != nil {
 		return "", err
 	}
 	_, ipNet, err := net.ParseCIDR(machineNetworkCidr)
@@ -346,7 +348,7 @@ func getMachineCIDRObj(host *models.Host, machineNetworkCidr string, obj string)
 		return "", err
 	}
 	for _, intf := range inventory.Interfaces {
-		found, addr := findMatchingIP(ipNet, intf, isIPv4)
+		found, addr := findMatchingIP(ctx, ipNet, intf, isIPv4)
 		if found {
 			switch obj {
 			case "interface":
@@ -361,23 +363,23 @@ func getMachineCIDRObj(host *models.Host, machineNetworkCidr string, obj string)
 	return "", errors.Errorf("No matching interface found for host %s", host.ID.String())
 }
 
-func GetPrimaryMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string, error) {
+func GetPrimaryMachineCIDRInterface(ctx context.Context, host *models.Host, cluster *common.Cluster) (string, error) {
 	primaryMachineCidr := ""
 	if IsMachineCidrAvailable(cluster) {
 		primaryMachineCidr = GetMachineCidrById(cluster, 0)
 	}
-	return getMachineCIDRObj(host, primaryMachineCidr, "interface")
+	return getMachineCIDRObj(ctx, host, primaryMachineCidr, "interface")
 }
 
-func GetPrimaryMachineCIDRIP(host *models.Host, cluster *common.Cluster) (string, error) {
+func GetPrimaryMachineCIDRIP(ctx context.Context, host *models.Host, cluster *common.Cluster) (string, error) {
 	primaryMachineCidr := ""
 	if IsMachineCidrAvailable(cluster) {
 		primaryMachineCidr = GetMachineCidrById(cluster, 0)
 	}
-	return getMachineCIDRObj(host, primaryMachineCidr, "ip")
+	return getMachineCIDRObj(ctx, host, primaryMachineCidr, "ip")
 }
 
-func IpInCidr(ipAddr, cidr string) (bool, error) {
+func IpInCidr(ctx context.Context, ipAddr, cidr string) (bool, error) {
 	_, ipNet, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return false, err
@@ -389,23 +391,22 @@ func IpInCidr(ipAddr, cidr string) (bool, error) {
 	return ipNet.Contains(ip), nil
 }
 
-func belongsToNetwork(log logrus.FieldLogger, h *models.Host, machineIpnet *net.IPNet) bool {
-	var inventory models.Inventory
-	err := json.Unmarshal([]byte(h.Inventory), &inventory)
+func belongsToNetwork(ctx context.Context, log logrus.FieldLogger, h *models.Host, machineIpnet *net.IPNet) bool {
+	inventory, err := common.UnmarshalInventory(ctx, h.Inventory)
 	if err != nil {
 		log.WithError(err).Warnf("Error unmarshalling host %s inventory %s", h.ID, h.Inventory)
 		return false
 	}
 	isIPv4 := IsIPV4CIDR(machineIpnet.String())
 	for _, intf := range inventory.Interfaces {
-		if found, _ := findMatchingIP(machineIpnet, intf, isIPv4); found {
+		if found, _ := findMatchingIP(ctx, machineIpnet, intf, isIPv4); found {
 			return true
 		}
 	}
 	return false
 }
 
-func GetPrimaryMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster) ([]*models.Host, error) {
+func GetPrimaryMachineCIDRHosts(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) ([]*models.Host, error) {
 	if !IsMachineCidrAvailable(cluster) {
 		return nil, errors.New("Machine network CIDR was not set in cluster")
 	}
@@ -415,7 +416,7 @@ func GetPrimaryMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster)
 	}
 	ret := make([]*models.Host, 0)
 	for _, h := range cluster.Hosts {
-		if belongsToNetwork(log, h, machineIpnet) {
+		if belongsToNetwork(ctx, log, h, machineIpnet) {
 			ret = append(ret, h)
 		}
 	}
@@ -423,7 +424,7 @@ func GetPrimaryMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster)
 }
 
 // GetPrimaryMachineCidrForUserManagedNetwork used to get the primary machine cidr in case of none platform and sno
-func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.FieldLogger) string {
+func GetPrimaryMachineCidrForUserManagedNetwork(ctx context.Context, cluster *common.Cluster, log logrus.FieldLogger) string {
 	if IsMachineCidrAvailable(cluster) {
 		return GetMachineCidrById(cluster, 0)
 	}
@@ -434,7 +435,7 @@ func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log log
 		return ""
 	}
 
-	networks := GetInventoryNetworks([]*models.Host{bootstrap}, log)
+	networks := GetInventoryNetworks(ctx, []*models.Host{bootstrap}, log)
 	if len(networks) > 0 {
 		// if there is ipv4 network, return it or return the first one
 		for _, network := range networks {
@@ -447,7 +448,7 @@ func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log log
 	return ""
 }
 
-func GetSecondaryMachineCidr(cluster *common.Cluster) (string, error) {
+func GetSecondaryMachineCidr(ctx context.Context, cluster *common.Cluster) (string, error) {
 	var secondaryMachineCidr string
 
 	if IsMachineCidrAvailable(cluster) {
@@ -461,7 +462,7 @@ func GetSecondaryMachineCidr(cluster *common.Cluster) (string, error) {
 
 // GetMachineNetworksFromBoostrapHost used to collect machine networks from the cluster's bootstrap host.
 // The function will get at most one IPv4 and one IPv6 network.
-func GetMachineNetworksFromBoostrapHost(cluster *common.Cluster, log logrus.FieldLogger) []*models.MachineNetwork {
+func GetMachineNetworksFromBoostrapHost(ctx context.Context, cluster *common.Cluster, log logrus.FieldLogger) []*models.MachineNetwork {
 	if IsMachineCidrAvailable(cluster) {
 		return cluster.MachineNetworks
 	}
@@ -472,7 +473,7 @@ func GetMachineNetworksFromBoostrapHost(cluster *common.Cluster, log logrus.Fiel
 		return []*models.MachineNetwork{}
 	}
 
-	networks := GetInventoryNetworks([]*models.Host{bootstrap}, log)
+	networks := GetInventoryNetworks(ctx, []*models.Host{bootstrap}, log)
 	var v4net, v6net string
 	res := []*models.MachineNetwork{}
 	if len(networks) > 0 {
@@ -496,13 +497,13 @@ func GetMachineNetworksFromBoostrapHost(cluster *common.Cluster, log logrus.Fiel
 	return res
 }
 
-func GetIpForSingleNodeInstallation(cluster *common.Cluster, log logrus.FieldLogger) (string, error) {
+func GetIpForSingleNodeInstallation(ctx context.Context, cluster *common.Cluster, log logrus.FieldLogger) (string, error) {
 	bootstrap := common.GetBootstrapHost(cluster)
 	if bootstrap == nil {
 		return "", errors.Errorf("no bootstrap host were found in cluster")
 	}
-	cidr := GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
-	hostIp, err := getMachineCIDRObj(bootstrap, cidr, "ip")
+	cidr := GetPrimaryMachineCidrForUserManagedNetwork(ctx, cluster, log)
+	hostIp, err := getMachineCIDRObj(ctx, bootstrap, cidr, "ip")
 	if hostIp == "" || err != nil {
 		msg := "failed to get ip for single node installation"
 		if err != nil {
@@ -514,13 +515,11 @@ func GetIpForSingleNodeInstallation(cluster *common.Cluster, log logrus.FieldLog
 	return hostIp, nil
 }
 
-func GetInventoryNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
-	var err error
+func GetInventoryNetworks(ctx context.Context, hosts []*models.Host, log logrus.FieldLogger) []string {
 	cidrs := make(map[string]bool)
 	for _, h := range hosts {
 		if h.Inventory != "" {
-			var inventory models.Inventory
-			err = json.Unmarshal([]byte(h.Inventory), &inventory)
+			inventory, err := common.UnmarshalInventory(ctx, h.Inventory)
 			if err != nil {
 				log.WithError(err).Warnf("Unmarshal inventory %s", h.Inventory)
 				continue
@@ -554,8 +553,8 @@ func GetInventoryNetworks(hosts []*models.Host, log logrus.FieldLogger) []string
 	return ret
 }
 
-func GetInventoryNetworksByFamily(hosts []*models.Host, log logrus.FieldLogger) (map[AddressFamily][]string, error) {
-	networks := GetInventoryNetworks(hosts, log)
+func GetInventoryNetworksByFamily(ctx context.Context, hosts []*models.Host, log logrus.FieldLogger) (map[AddressFamily][]string, error) {
+	networks := GetInventoryNetworks(ctx, hosts, log)
 	ret := make(map[AddressFamily][]string)
 	for _, n := range networks {
 		family, err := CidrToAddressFamily(n)
@@ -567,8 +566,7 @@ func GetInventoryNetworksByFamily(hosts []*models.Host, log logrus.FieldLogger) 
 	return ret, nil
 }
 
-func GetDefaultRouteNetworkByFamily(h *models.Host, networks map[AddressFamily][]string, log logrus.FieldLogger) (map[AddressFamily]string, error) {
-	var err error
+func GetDefaultRouteNetworkByFamily(ctx context.Context, h *models.Host, networks map[AddressFamily][]string, log logrus.FieldLogger) (map[AddressFamily]string, error) {
 	ret := make(map[AddressFamily]string)
 
 	//start with dummy route
@@ -576,8 +574,7 @@ func GetDefaultRouteNetworkByFamily(h *models.Host, networks map[AddressFamily][
 	defaultRoutev6 := &models.Route{Metric: math.MaxInt32}
 
 	if h.Inventory != "" {
-		var inventory models.Inventory
-		err = json.Unmarshal([]byte(h.Inventory), &inventory)
+		inventory, err := common.UnmarshalInventory(ctx, h.Inventory)
 		if err != nil {
 			log.WithError(err).Warnf("Unmarshal inventory %s", h.Inventory)
 			return ret, err
@@ -607,13 +604,13 @@ func GetDefaultRouteNetworkByFamily(h *models.Host, networks map[AddressFamily][
 		//if the default route gateway is located in one of the cidrs
 		//in the inventory networks then return this network (per family)
 		for _, cidr := range networks[IPv4] {
-			if ipInCidr(defaultRoutev4.Gateway, cidr) {
+			if ipInCidr(ctx, defaultRoutev4.Gateway, cidr) {
 				ret[IPv4] = cidr
 				break
 			}
 		}
 		for _, cidr := range networks[IPv6] {
-			if ipInCidr(defaultRoutev6.Gateway, cidr) {
+			if ipInCidr(ctx, defaultRoutev6.Gateway, cidr) {
 				ret[IPv6] = cidr
 				break
 			}
@@ -625,7 +622,7 @@ func GetDefaultRouteNetworkByFamily(h *models.Host, networks map[AddressFamily][
 }
 
 // Parse the Machine Network CIDRs into IPNet
-func parseMachineNetworks(machineNetworks []*models.MachineNetwork) ([]*net.IPNet, error) {
+func parseMachineNetworks(ctx context.Context, machineNetworks []*models.MachineNetwork) ([]*net.IPNet, error) {
 	var parsedCidr []*net.IPNet
 	for _, machineNet := range machineNetworks {
 		_, machineIpnet, err := net.ParseCIDR(string(machineNet.Cidr))
@@ -639,38 +636,38 @@ func parseMachineNetworks(machineNetworks []*models.MachineNetwork) ([]*net.IPNe
 }
 
 // IsHostInAllMachineNetworksCidr Check if a host belongs to all the networks specified as Machine Networks.
-func IsHostInAllMachineNetworksCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
-	return forEachMachineNetwork(log, cluster, func(agg bool, machineIpnet *net.IPNet, index int) bool {
+func IsHostInAllMachineNetworksCidr(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
+	return forEachMachineNetwork(ctx, log, cluster, func(agg bool, machineIpnet *net.IPNet, index int) bool {
 		// initialize agg to true the first time this function is called
 		if index == 0 {
 			agg = true
 		}
 
-		return agg && belongsToNetwork(log, host, machineIpnet)
+		return agg && belongsToNetwork(ctx, log, host, machineIpnet)
 	})
 }
 
-func IsHostInAtLeastOneMachineNetworkCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
-	return forEachMachineNetwork(log, cluster, func(agg bool, machineIpnet *net.IPNet, index int) bool {
+func IsHostInAtLeastOneMachineNetworkCidr(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
+	return forEachMachineNetwork(ctx, log, cluster, func(agg bool, machineIpnet *net.IPNet, index int) bool {
 		// initialize agg to false the first time this function is called
 		if index == 0 {
 			agg = false
 		}
 
-		return agg || belongsToNetwork(log, host, machineIpnet)
+		return agg || belongsToNetwork(ctx, log, host, machineIpnet)
 	})
 }
 
 // Check if an interface is part of one of the networks specified as Machine Networks
-func IsInterfaceInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, nic *models.Interface) bool {
-	return forEachMachineNetwork(log, cluster, func(agg bool, machineIpnet *net.IPNet, index int) bool {
+func IsInterfaceInPrimaryMachineNetCidr(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, nic *models.Interface) bool {
+	return forEachMachineNetwork(ctx, log, cluster, func(agg bool, machineIpnet *net.IPNet, index int) bool {
 		// initialize agg to false the first time this function is called
 		if index == 0 {
 			agg = false
 		}
 
 		isIPv4 := IsIPV4CIDR(machineIpnet.String())
-		found, _ := findMatchingIP(machineIpnet, nic, isIPv4)
+		found, _ := findMatchingIP(ctx, machineIpnet, nic, isIPv4)
 		return agg || found
 	})
 }
@@ -678,12 +675,12 @@ func IsInterfaceInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.
 type machineNetworkCheckFunc func(bool, *net.IPNet, int) bool
 
 // Function calling a given check fonction on each of the networks specified in cluster's Machine Networks.
-func forEachMachineNetwork(log logrus.FieldLogger, cluster *common.Cluster, checkFunc machineNetworkCheckFunc) bool {
+func forEachMachineNetwork(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, checkFunc machineNetworkCheckFunc) bool {
 	if !IsMachineCidrAvailable(cluster) {
 		return false
 	}
 
-	machineNetwork, err := parseMachineNetworks(cluster.MachineNetworks)
+	machineNetwork, err := parseMachineNetworks(ctx, cluster.MachineNetworks)
 	if err != nil {
 		log.WithError(err).Warn("Failed to parse machine networks")
 		return false
@@ -708,7 +705,7 @@ func (s IPSet) Intersect(other IPSet) IPSet {
 	return ret
 }
 
-func freeAddressesUnmarshal(network, freeAddressesStr string, prefix *string) (IPSet, error) {
+func freeAddressesUnmarshal(ctx context.Context, network, freeAddressesStr string, prefix *string) (IPSet, error) {
 	var unmarshaled models.FreeNetworksAddresses
 	err := json.Unmarshal([]byte(freeAddressesStr), &unmarshaled)
 	if err != nil {
@@ -728,7 +725,7 @@ func freeAddressesUnmarshal(network, freeAddressesStr string, prefix *string) (I
 	return nil, errors.Errorf("No network %s found", network)
 }
 
-func MakeFreeAddressesSet(hosts []*models.Host, network string, prefix *string, log logrus.FieldLogger) IPSet {
+func MakeFreeAddressesSet(ctx context.Context, hosts []*models.Host, network string, prefix *string, log logrus.FieldLogger) IPSet {
 	var (
 		availableFreeAddresses []string
 		sets                   = make([]IPSet, 0)
@@ -744,7 +741,7 @@ func MakeFreeAddressesSet(hosts []*models.Host, network string, prefix *string, 
 	}
 	// Create IP sets from each of the hosts free-addresses
 	for _, a := range availableFreeAddresses {
-		s, err := freeAddressesUnmarshal(network, a, prefix)
+		s, err := freeAddressesUnmarshal(ctx, network, a, prefix)
 		if err != nil {
 			log.WithError(err).Debugf("Unmarshal free addresses for network %s", network)
 			continue
@@ -765,8 +762,8 @@ func MakeFreeAddressesSet(hosts []*models.Host, network string, prefix *string, 
 }
 
 // This is best effort validation.  Therefore, validation will be done only if there are IPs in free list
-func IpInFreeList(hosts []*models.Host, vipIPStr, network string, log logrus.FieldLogger) models.VipVerification {
-	freeSet := MakeFreeAddressesSet(hosts, network, nil, log)
+func IpInFreeList(ctx context.Context, hosts []*models.Host, vipIPStr, network string, log logrus.FieldLogger) models.VipVerification {
+	freeSet := MakeFreeAddressesSet(ctx, hosts, network, nil, log)
 	if len(freeSet) > 0 {
 		_, isFree := freeSet[strfmt.IPv4(vipIPStr)]
 		if isFree {
@@ -778,14 +775,14 @@ func IpInFreeList(hosts []*models.Host, vipIPStr, network string, log logrus.Fie
 	return models.VipVerificationUnverified
 }
 
-func CreateMachineNetworksArray(machineCidr string) []*models.MachineNetwork {
+func CreateMachineNetworksArray(ctx context.Context, machineCidr string) []*models.MachineNetwork {
 	if machineCidr == "" {
 		return []*models.MachineNetwork{}
 	}
 	return []*models.MachineNetwork{{Cidr: models.Subnet(machineCidr)}}
 }
 
-func SetBootStrapHostIPRelatedMachineNetworkFirst(cluster *common.Cluster, log logrus.FieldLogger) ([]*models.MachineNetwork, error) {
+func SetBootStrapHostIPRelatedMachineNetworkFirst(ctx context.Context, cluster *common.Cluster, log logrus.FieldLogger) ([]*models.MachineNetwork, error) {
 	if cluster == nil {
 		return nil, errors.New("given cluster is nil")
 	}
@@ -814,7 +811,7 @@ func SetBootStrapHostIPRelatedMachineNetworkFirst(cluster *common.Cluster, log l
 			return cluster.MachineNetworks, errors.Wrapf(err, "failed to parse machine cidr: %s", string(machineNetwork.Cidr))
 		}
 
-		if belongsToNetwork(log, bootstrapHost, ipNet) {
+		if belongsToNetwork(ctx, log, bootstrapHost, ipNet) {
 			bootstrapHostRelatedMachineNetwork = machineNetwork
 			bootstrapHostRelatedMachineNetworkIndex = index
 		}

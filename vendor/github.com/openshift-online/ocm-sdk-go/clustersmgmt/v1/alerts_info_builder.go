@@ -33,8 +33,6 @@ func NewAlertsInfo() *AlertsInfoBuilder {
 }
 
 // Alerts sets the value of the 'alerts' attribute to the given values.
-//
-//
 func (b *AlertsInfoBuilder) Alerts(values ...*AlertInfoBuilder) *AlertsInfoBuilder {
 	b.alerts = make([]*AlertInfoBuilder, len(values))
 	copy(b.alerts, values)

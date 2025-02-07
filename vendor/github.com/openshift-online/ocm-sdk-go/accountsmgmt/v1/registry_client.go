@@ -156,16 +156,12 @@ func (r *RegistryPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RegistryPollResponse) Body() *Registry {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RegistryPollResponse) GetBody() (value *Registry, ok bool) {
 	return r.response.GetBody()
 }
@@ -278,8 +274,6 @@ func (r *RegistryGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RegistryGetResponse) Body() *Registry {
 	if r == nil {
 		return nil
@@ -289,8 +283,6 @@ func (r *RegistryGetResponse) Body() *Registry {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RegistryGetResponse) GetBody() (value *Registry, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

@@ -34,8 +34,6 @@ func NewSSHCredentials() *SSHCredentialsBuilder {
 }
 
 // PrivateKey sets the value of the 'private_key' attribute to the given value.
-//
-//
 func (b *SSHCredentialsBuilder) PrivateKey(value string) *SSHCredentialsBuilder {
 	b.privateKey = value
 	b.bitmap_ |= 1
@@ -43,8 +41,6 @@ func (b *SSHCredentialsBuilder) PrivateKey(value string) *SSHCredentialsBuilder 
 }
 
 // PublicKey sets the value of the 'public_key' attribute to the given value.
-//
-//
 func (b *SSHCredentialsBuilder) PublicKey(value string) *SSHCredentialsBuilder {
 	b.publicKey = value
 	b.bitmap_ |= 2

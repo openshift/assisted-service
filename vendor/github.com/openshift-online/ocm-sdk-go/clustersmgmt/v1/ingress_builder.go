@@ -59,8 +59,6 @@ func (b *IngressBuilder) HREF(value string) *IngressBuilder {
 }
 
 // DNSName sets the value of the 'DNS_name' attribute to the given value.
-//
-//
 func (b *IngressBuilder) DNSName(value string) *IngressBuilder {
 	b.dnsName = value
 	b.bitmap_ |= 8
@@ -77,13 +75,15 @@ func (b *IngressBuilder) DNSName(value string) *IngressBuilder {
 //
 // [source,json]
 // ----
-// {
-//   "cloud_provider": {
-//     "kind": "CloudProviderLink",
-//     "id": "123",
-//     "href": "/api/clusters_mgmt/v1/cloud_providers/123"
-//   }
-// }
+//
+//	{
+//	  "cloud_provider": {
+//	    "kind": "CloudProviderLink",
+//	    "id": "123",
+//	    "href": "/api/clusters_mgmt/v1/cloud_providers/123"
+//	  }
+//	}
+//
 // ----
 //
 // When a cluster is created this is optional, and if used it should contain the
@@ -91,11 +91,13 @@ func (b *IngressBuilder) DNSName(value string) *IngressBuilder {
 //
 // [source,json]
 // ----
-// {
-//   "cloud_provider": {
-//     "id": "123",
-//   }
-// }
+//
+//	{
+//	  "cloud_provider": {
+//	    "id": "123",
+//	  }
+//	}
+//
 // ----
 //
 // If not included, then the cluster will be created using the default cloud
@@ -117,8 +119,6 @@ func (b *IngressBuilder) Cluster(value *ClusterBuilder) *IngressBuilder {
 }
 
 // Default sets the value of the 'default' attribute to the given value.
-//
-//
 func (b *IngressBuilder) Default(value bool) *IngressBuilder {
 	b.default_ = value
 	b.bitmap_ |= 32
@@ -135,8 +135,6 @@ func (b *IngressBuilder) Listening(value ListeningMethod) *IngressBuilder {
 }
 
 // RouteSelectors sets the value of the 'route_selectors' attribute to the given value.
-//
-//
 func (b *IngressBuilder) RouteSelectors(value map[string]string) *IngressBuilder {
 	b.routeSelectors = value
 	if value != nil {

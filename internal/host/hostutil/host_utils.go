@@ -1,6 +1,7 @@
 package hostutil
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -135,7 +136,7 @@ func GetHostInstallationPath(host *models.Host) string {
 }
 
 func GetHostInstallationDisk(host *models.Host) (*models.Disk, error) {
-	inventory, err := common.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(context.Background(), host.Inventory)
 
 	if err != nil {
 		return nil, err
@@ -258,7 +259,7 @@ func MarshalConnectivityReport(report *models.ConnectivityReport) (string, error
 	}
 }
 
-func UnmarshalConnectivityReport(reportStr string) (*models.ConnectivityReport, error) {
+func UnmarshalConnectivityReport(ctx context.Context, reportStr string) (*models.ConnectivityReport, error) {
 	var report models.ConnectivityReport
 
 	if err := json.Unmarshal([]byte(reportStr), &report); err != nil {

@@ -42,8 +42,6 @@ type TermsReviewPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
-//
-//
 func (r *TermsReviewPostServerRequest) Request() *TermsReviewRequest {
 	if r == nil {
 		return nil
@@ -53,8 +51,6 @@ func (r *TermsReviewPostServerRequest) Request() *TermsReviewRequest {
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *TermsReviewPostServerRequest) GetRequest() (value *TermsReviewRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -71,8 +67,6 @@ type TermsReviewPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
-//
-//
 func (r *TermsReviewPostServerResponse) Response(value *TermsReviewResponse) *TermsReviewPostServerResponse {
 	r.response = value
 	return r

@@ -418,7 +418,7 @@ func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log lo
 }
 
 func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
-	hostIp, err := GetIpForSingleNodeInstallation(cluster, log)
+	hostIp, err := GetIpForSingleNodeInstallation(context.Background(), cluster, log)
 	if err != nil {
 		return nil, err
 	}
@@ -575,7 +575,7 @@ spec:
 func (m *ManifestsGenerator) AddNicReapply(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 	// Add this manifest only if one of the host is installing on an iSCSI / multiapth + iSCSI boot drive
 	_, isUsingISCSIBootDrive := lo.Find(c.Cluster.Hosts, func(h *models.Host) bool {
-		inventory, err := common.UnmarshalInventory(h.Inventory)
+		inventory, err := common.UnmarshalInventory(ctx, h.Inventory)
 		if err != nil {
 			return false
 		}

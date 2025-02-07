@@ -60,7 +60,7 @@ func UnmarshalPlanList(source interface{}) (items []*Plan, err error) {
 	return
 }
 
-// readPlanList reads list of values of the ''plan' type from
+// readPlanList reads list of values of the ”plan' type from
 // the given iterator.
 func readPlanList(iterator *jsoniter.Iterator) []*Plan {
 	list := []*Plan{}

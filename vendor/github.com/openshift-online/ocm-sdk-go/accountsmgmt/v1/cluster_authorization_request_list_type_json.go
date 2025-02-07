@@ -60,7 +60,7 @@ func UnmarshalClusterAuthorizationRequestList(source interface{}) (items []*Clus
 	return
 }
 
-// readClusterAuthorizationRequestList reads list of values of the ''cluster_authorization_request' type from
+// readClusterAuthorizationRequestList reads list of values of the ”cluster_authorization_request' type from
 // the given iterator.
 func readClusterAuthorizationRequestList(iterator *jsoniter.Iterator) []*ClusterAuthorizationRequest {
 	list := []*ClusterAuthorizationRequest{}

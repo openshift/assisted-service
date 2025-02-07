@@ -60,7 +60,7 @@ func UnmarshalSKUList(source interface{}) (items []*SKU, err error) {
 	return
 }
 
-// readSKUList reads list of values of the ''SKU' type from
+// readSKUList reads list of values of the ”SKU' type from
 // the given iterator.
 func readSKUList(iterator *jsoniter.Iterator) []*SKU {
 	list := []*SKU{}

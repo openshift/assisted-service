@@ -212,16 +212,12 @@ func (r *SubscriptionPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *SubscriptionPollResponse) Body() *Subscription {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SubscriptionPollResponse) GetBody() (value *Subscription, ok bool) {
 	return r.response.GetBody()
 }
@@ -428,8 +424,6 @@ func (r *SubscriptionGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *SubscriptionGetResponse) Body() *Subscription {
 	if r == nil {
 		return nil
@@ -439,8 +433,6 @@ func (r *SubscriptionGetResponse) Body() *Subscription {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SubscriptionGetResponse) GetBody() (value *Subscription, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

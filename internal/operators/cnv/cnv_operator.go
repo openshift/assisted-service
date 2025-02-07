@@ -116,7 +116,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		o.log.Info("Empty Inventory of host with hostID ", host.ID)
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}}, nil
 	}
-	inventory, err := common.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID()}, err
@@ -190,7 +190,7 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 	}
 
 	if common.IsSingleNodeCluster(cluster) {
-		overhead, err := o.getDevicesMemoryOverhead(host)
+		overhead, err := o.getDevicesMemoryOverhead(ctx, host)
 		if err != nil {
 			log.WithError(err).WithField("inventory", host.Inventory).Errorf("Cannot parse inventory for host %v", host.ID)
 			return nil, err
@@ -211,7 +211,7 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 
 func (o *operator) getWorkerRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host, preflightRequirements *models.OperatorHardwareRequirements) (*models.ClusterHostRequirementsDetails, error) {
 	log := logutil.FromContext(ctx, o.log)
-	overhead, err := o.getDevicesMemoryOverhead(host)
+	overhead, err := o.getDevicesMemoryOverhead(ctx, host)
 	if err != nil {
 		log.WithError(err).WithField("inventory", host.Inventory).Errorf("Cannot parse inventory for host %v", host.ID)
 		return nil, err
@@ -267,11 +267,11 @@ func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.C
 	return &requirements, nil
 }
 
-func (o *operator) getDevicesMemoryOverhead(host *models.Host) (int64, error) {
+func (o *operator) getDevicesMemoryOverhead(ctx context.Context, host *models.Host) (int64, error) {
 	if host.Inventory == "" {
 		return 0, nil
 	}
-	inventory, err := common.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		return 0, err
 	}

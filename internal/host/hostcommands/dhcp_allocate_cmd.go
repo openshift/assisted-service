@@ -33,7 +33,7 @@ func asMAC(macStr string) *strfmt.MAC {
 }
 
 func (f *dhcpAllocateCmd) prepareParam(host *models.Host, cluster *common.Cluster) (string, error) {
-	nic, err := network.GetPrimaryMachineCIDRInterface(host, cluster)
+	nic, err := network.GetPrimaryMachineCIDRInterface(context.Background(), host, cluster)
 	if err != nil {
 		return "", err
 	}

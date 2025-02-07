@@ -107,7 +107,7 @@ func (h *handler) updateDNSRecordSet(log logrus.FieldLogger, cluster *common.Clu
 	apiVip := network.GetApiVipById(cluster, 0)
 	ingressVip := network.GetIngressVipById(cluster, 0)
 	if common.IsSingleNodeCluster(cluster) {
-		apiVip, err = network.GetIpForSingleNodeInstallation(cluster, log)
+		apiVip, err = network.GetIpForSingleNodeInstallation(context.Background(), cluster, log)
 		if err != nil {
 			log.WithError(err).Errorf("failed to find ip for single node installation")
 			return false, err

@@ -42,8 +42,6 @@ type SelfFeatureReviewPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
-//
-//
 func (r *SelfFeatureReviewPostServerRequest) Request() *SelfFeatureReviewRequest {
 	if r == nil {
 		return nil
@@ -53,8 +51,6 @@ func (r *SelfFeatureReviewPostServerRequest) Request() *SelfFeatureReviewRequest
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SelfFeatureReviewPostServerRequest) GetRequest() (value *SelfFeatureReviewRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -71,8 +67,6 @@ type SelfFeatureReviewPostServerResponse struct {
 }
 
 // Request sets the value of the 'request' parameter.
-//
-//
 func (r *SelfFeatureReviewPostServerResponse) Request(value *SelfFeatureReviewResponse) *SelfFeatureReviewPostServerResponse {
 	r.request = value
 	return r

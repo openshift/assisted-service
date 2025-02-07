@@ -1236,7 +1236,7 @@ func (b *bareMetalInventory) getIgnitionConfigForLogging(ctx context.Context, in
 }
 
 func (b *bareMetalInventory) refreshAllHostsOnInstall(ctx context.Context, cluster *common.Cluster) error {
-	err := b.setMajorityGroupForCluster(cluster.ID, b.db)
+	err := b.setMajorityGroupForCluster(ctx, cluster.ID, b.db)
 	if err != nil {
 		return err
 	}
@@ -1312,7 +1312,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	// auto select hosts roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
 		var updated bool
-		sortedHosts, canRefreshRoles := host.SortHosts(cluster.Hosts)
+		sortedHosts, canRefreshRoles := host.SortHosts(ctx, cluster.Hosts)
 		if canRefreshRoles {
 			for i := range sortedHosts {
 				updated, err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx)
@@ -1801,7 +1801,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 }
 
 func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) error {
-	err := b.setMajorityGroupForCluster(cluster.ID, tx)
+	err := b.setMajorityGroupForCluster(ctx, cluster.ID, tx)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to set cluster %s majority groups", cluster.ID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
@@ -2138,7 +2138,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 			}
 		}
 
-		b.updateClusterNetworkVMUsage(cluster, params.ClusterUpdateParams, usages, log)
+		b.updateClusterNetworkVMUsage(ctx, cluster, params.ClusterUpdateParams, usages, log)
 
 		b.updateClusterCPUFeatureUsage(cluster.CPUArchitecture, usages)
 
@@ -2195,7 +2195,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Conte
 	return nil
 }
 
-func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
+func (b *bareMetalInventory) updateNonDhcpNetworkParams(ctx context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
 	// In order to check if the cluster is dual-stack or single-stack we are building a structure
 	// that is a merge of the current cluster configuration and new configuration coming from
 	// V2UpdateClusterParams. This ensures that the reqDualStack flag reflects a desired state and
@@ -2248,7 +2248,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 		return err
 	}
 
-	err = network.ValidateNoVIPAddressesDuplicates(
+	err = network.ValidateNoVIPAddressesDuplicates(ctx,
 		targetConfiguration.APIVips, targetConfiguration.IngressVips, network.IsLoadBalancerUserManaged(&targetConfiguration),
 	)
 	if err != nil {
@@ -2261,6 +2261,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 		// require that user explicitly provides all the Machine Networks.
 		if reqDualStack {
 			return b.updateNonDhcpDualStackNetworkParams(
+				ctx,
 				cluster,
 				params,
 				&targetConfiguration,
@@ -2269,6 +2270,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 		}
 
 		return b.updateNonDhcpSingleStackNetworkParams(
+			ctx,
 			cluster,
 			params,
 			&targetConfiguration,
@@ -2280,6 +2282,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 }
 
 func (b *bareMetalInventory) updateNonDhcpDualStackNetworkParams(
+	ctx context.Context,
 	cluster *common.Cluster,
 	params installer.V2UpdateClusterParams,
 	targetConfiguration *common.Cluster,
@@ -2291,7 +2294,7 @@ func (b *bareMetalInventory) updateNonDhcpDualStackNetworkParams(
 	if params.ClusterUpdateParams.MachineNetworks != nil {
 		primaryMachineNetworkCidr = string(params.ClusterUpdateParams.MachineNetworks[0].Cidr)
 	} else {
-		primaryMachineNetworkCidr = network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
+		primaryMachineNetworkCidr = network.GetPrimaryMachineCidrForUserManagedNetwork(ctx, cluster, log)
 	}
 
 	err := network.VerifyMachineNetworksDualStack(targetConfiguration.MachineNetworks, true)
@@ -2300,12 +2303,13 @@ func (b *bareMetalInventory) updateNonDhcpDualStackNetworkParams(
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	secondaryMachineNetworkCidr, err = network.GetSecondaryMachineCidr(targetConfiguration)
+	secondaryMachineNetworkCidr, err = network.GetSecondaryMachineCidr(ctx, targetConfiguration)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if err = network.VerifyVipsForClusterManagedLoadBalancer(
+		ctx,
 		cluster.Hosts,
 		primaryMachineNetworkCidr,
 		network.GetApiVipById(targetConfiguration, 0),
@@ -2318,6 +2322,7 @@ func (b *bareMetalInventory) updateNonDhcpDualStackNetworkParams(
 
 	if len(targetConfiguration.IngressVips) == 2 && len(targetConfiguration.APIVips) == 2 { // in case there's a second set of VIPs
 		if err = network.VerifyVipsForClusterManagedLoadBalancer(
+			ctx,
 			cluster.Hosts,
 			secondaryMachineNetworkCidr,
 			network.GetApiVipById(targetConfiguration, 1),
@@ -2333,6 +2338,7 @@ func (b *bareMetalInventory) updateNonDhcpDualStackNetworkParams(
 }
 
 func (b *bareMetalInventory) updateNonDhcpSingleStackNetworkParams(
+	ctx context.Context,
 	cluster *common.Cluster,
 	params installer.V2UpdateClusterParams,
 	targetConfiguration *common.Cluster,
@@ -2341,6 +2347,7 @@ func (b *bareMetalInventory) updateNonDhcpSingleStackNetworkParams(
 	if !network.IsLoadBalancerUserManaged(targetConfiguration) {
 		matchRequired := (network.GetApiVipById(targetConfiguration, 0) != "" || network.GetIngressVipById(targetConfiguration, 0) != "")
 		primaryMachineNetworkCidr, err := network.CalculateMachineNetworkCIDR(
+			ctx,
 			network.GetApiVipById(targetConfiguration, 0),
 			network.GetIngressVipById(targetConfiguration, 0),
 			cluster.Hosts,
@@ -2362,6 +2369,7 @@ func (b *bareMetalInventory) updateNonDhcpSingleStackNetworkParams(
 		}
 
 		if err = network.VerifyVipsForClusterManagedLoadBalancer(
+			ctx,
 			cluster.Hosts,
 			primaryMachineNetworkCidr,
 			network.GetApiVipById(targetConfiguration, 0),
@@ -2376,6 +2384,7 @@ func (b *bareMetalInventory) updateNonDhcpSingleStackNetworkParams(
 	}
 
 	if err := network.VerifyVipsForUserManangedLoadBalancer(
+		ctx,
 		cluster.Hosts,
 		targetConfiguration.MachineNetworks,
 		network.GetApiVipById(targetConfiguration, 0),
@@ -2427,7 +2436,7 @@ func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncry
 	b.setUsage(swag.StringValue(c.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
 }
 
-func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) error {
+func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) error {
 	var err error
 	updates := map[string]interface{}{}
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
@@ -2448,7 +2457,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		return err
 	}
 
-	if err = b.updateNetworkParams(params, cluster, updates, usages, db, log, interactivity); err != nil {
+	if err = b.updateNetworkParams(ctx, params, cluster, updates, usages, db, log, interactivity); err != nil {
 		return err
 	}
 
@@ -2779,7 +2788,7 @@ func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClust
 // 1. Bare metal installation
 // 2. None-platform multi-node
 // 3. None-platform single-node (Machine CIDR must be defined)
-func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{},
+func (b *bareMetalInventory) updateNetworkParams(ctx context.Context, params installer.V2UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{},
 	usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
 	var err error
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
@@ -2844,7 +2853,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 		} else {
 			// The primary Machine CIDR can be calculated on not none-platform machines
 			// (the machines are on the same network)
-			err = b.updateNonDhcpNetworkParams(cluster, params, log, interactivity)
+			err = b.updateNonDhcpNetworkParams(ctx, cluster, params, log, interactivity)
 		}
 		if err != nil {
 			return err
@@ -3008,7 +3017,7 @@ func (b *bareMetalInventory) updateClusterTags(params installer.V2UpdateClusterP
 	return nil
 }
 
-func (b *bareMetalInventory) updateClusterNetworkVMUsage(cluster *common.Cluster, updateParams *models.V2ClusterUpdateParams, usages map[string]models.Usage, log logrus.FieldLogger) {
+func (b *bareMetalInventory) updateClusterNetworkVMUsage(ctx context.Context, cluster *common.Cluster, updateParams *models.V2ClusterUpdateParams, usages map[string]models.Usage, log logrus.FieldLogger) {
 	platform := cluster.Platform
 	usageEnable := true
 
@@ -3036,7 +3045,7 @@ func (b *bareMetalInventory) updateClusterNetworkVMUsage(cluster *common.Cluster
 		vmHosts := make([]string, 0)
 
 		for _, host := range cluster.Hosts {
-			hostInventory, err := common.UnmarshalInventory(host.Inventory)
+			hostInventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 			if err != nil {
 				err = errors.Wrap(err, "Failed to update usage flag for 'Cluster managed network with VMs'.")
 				log.Error(err)
@@ -3139,7 +3148,7 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 	//role calculation. This reset is needed because operators may affect
 	//the role assignment logic.
 	if len(updateOLMOperators) > 0 || len(removedOLMOperators) > 0 {
-		if count, reset_err := common.ResetAutoAssignRoles(db, params.ClusterID.String()); reset_err != nil {
+		if count, reset_err := common.ResetAutoAssignRoles(ctx, db, params.ClusterID.String()); reset_err != nil {
 			log.WithError(err).Errorf("fail to reset auto-assign role in cluster %s", params.ClusterID.String())
 			return common.NewApiError(http.StatusInternalServerError, reset_err)
 		} else {
@@ -3554,13 +3563,13 @@ func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, 
 		primaryMachineCIDR = network.GetMachineCidrById(cluster, 0)
 	}
 
-	isApiVipInMachineCIDR, err := network.IpInCidr(apiVip, primaryMachineCIDR)
+	isApiVipInMachineCIDR, err := network.IpInCidr(ctx, apiVip, primaryMachineCIDR)
 	if err != nil {
 		log.WithError(err).Warn("Ip in CIDR for API VIP")
 		return err
 	}
 
-	isIngressVipInMachineCIDR, err := network.IpInCidr(ingressVip, primaryMachineCIDR)
+	isIngressVipInMachineCIDR, err := network.IpInCidr(ctx, ingressVip, primaryMachineCIDR)
 	if err != nil {
 		log.WithError(err).Warn("Ip in CIDR for Ingress VIP")
 		return err
@@ -3819,8 +3828,8 @@ func filterReply(expected interface{}, input string) (string, error) {
 	return string(reply), nil
 }
 
-func (b *bareMetalInventory) setMajorityGroupForCluster(clusterID *strfmt.UUID, db *gorm.DB) error {
-	return b.clusterApi.SetConnectivityMajorityGroupsForCluster(*clusterID, db)
+func (b *bareMetalInventory) setMajorityGroupForCluster(ctx context.Context, clusterID *strfmt.UUID, db *gorm.DB) error {
+	return b.clusterApi.SetConnectivityMajorityGroupsForCluster(ctx, *clusterID, db)
 }
 
 func (b *bareMetalInventory) detectAndStoreCollidingIPsForCluster(clusterID *strfmt.UUID, db *gorm.DB) error {

@@ -156,16 +156,12 @@ func (r *SKUPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *SKUPollResponse) Body() *SKU {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SKUPollResponse) GetBody() (value *SKU, ok bool) {
 	return r.response.GetBody()
 }
@@ -278,8 +274,6 @@ func (r *SKUGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *SKUGetResponse) Body() *SKU {
 	if r == nil {
 		return nil
@@ -289,8 +283,6 @@ func (r *SKUGetResponse) Body() *SKU {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SKUGetResponse) GetBody() (value *SKU, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

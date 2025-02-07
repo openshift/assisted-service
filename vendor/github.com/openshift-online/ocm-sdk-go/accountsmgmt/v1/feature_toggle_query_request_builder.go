@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // FeatureToggleQueryRequestBuilder contains the data and logic needed to build 'feature_toggle_query_request' objects.
-//
-//
 type FeatureToggleQueryRequestBuilder struct {
 	bitmap_        uint32
 	organizationID string
@@ -33,8 +31,6 @@ func NewFeatureToggleQueryRequest() *FeatureToggleQueryRequestBuilder {
 }
 
 // OrganizationID sets the value of the 'organization_ID' attribute to the given value.
-//
-//
 func (b *FeatureToggleQueryRequestBuilder) OrganizationID(value string) *FeatureToggleQueryRequestBuilder {
 	b.organizationID = value
 	b.bitmap_ |= 1

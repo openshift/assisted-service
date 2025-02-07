@@ -60,7 +60,7 @@ func UnmarshalAdminCredentialsList(source interface{}) (items []*AdminCredential
 	return
 }
 
-// readAdminCredentialsList reads list of values of the ''admin_credentials' type from
+// readAdminCredentialsList reads list of values of the ”admin_credentials' type from
 // the given iterator.
 func readAdminCredentialsList(iterator *jsoniter.Iterator) []*AdminCredentials {
 	list := []*AdminCredentials{}

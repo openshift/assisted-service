@@ -36,8 +36,6 @@ const AccountLinkKind = "AccountLink"
 const AccountNilKind = "AccountNil"
 
 // Account represents the values of the 'account' type.
-//
-//
 type Account struct {
 	bitmap_        uint32
 	id             string
@@ -115,8 +113,6 @@ func (o *Account) Empty() bool {
 
 // BanCode returns the value of the 'ban_code' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) BanCode() string {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.banCode
@@ -126,8 +122,6 @@ func (o *Account) BanCode() string {
 
 // GetBanCode returns the value of the 'ban_code' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetBanCode() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -138,8 +132,6 @@ func (o *Account) GetBanCode() (value string, ok bool) {
 
 // BanDescription returns the value of the 'ban_description' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) BanDescription() string {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.banDescription
@@ -149,8 +141,6 @@ func (o *Account) BanDescription() string {
 
 // GetBanDescription returns the value of the 'ban_description' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetBanDescription() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -161,8 +151,6 @@ func (o *Account) GetBanDescription() (value string, ok bool) {
 
 // Banned returns the value of the 'banned' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) Banned() bool {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.banned
@@ -172,8 +160,6 @@ func (o *Account) Banned() bool {
 
 // GetBanned returns the value of the 'banned' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetBanned() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -184,8 +170,6 @@ func (o *Account) GetBanned() (value bool, ok bool) {
 
 // CreatedAt returns the value of the 'created_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) CreatedAt() time.Time {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.createdAt
@@ -195,8 +179,6 @@ func (o *Account) CreatedAt() time.Time {
 
 // GetCreatedAt returns the value of the 'created_at' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetCreatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -207,8 +189,6 @@ func (o *Account) GetCreatedAt() (value time.Time, ok bool) {
 
 // Email returns the value of the 'email' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) Email() string {
 	if o != nil && o.bitmap_&128 != 0 {
 		return o.email
@@ -218,8 +198,6 @@ func (o *Account) Email() string {
 
 // GetEmail returns the value of the 'email' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetEmail() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
@@ -230,8 +208,6 @@ func (o *Account) GetEmail() (value string, ok bool) {
 
 // FirstName returns the value of the 'first_name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) FirstName() string {
 	if o != nil && o.bitmap_&256 != 0 {
 		return o.firstName
@@ -241,8 +217,6 @@ func (o *Account) FirstName() string {
 
 // GetFirstName returns the value of the 'first_name' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetFirstName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
@@ -253,8 +227,6 @@ func (o *Account) GetFirstName() (value string, ok bool) {
 
 // Labels returns the value of the 'labels' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) Labels() []*Label {
 	if o != nil && o.bitmap_&512 != 0 {
 		return o.labels
@@ -264,8 +236,6 @@ func (o *Account) Labels() []*Label {
 
 // GetLabels returns the value of the 'labels' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetLabels() (value []*Label, ok bool) {
 	ok = o != nil && o.bitmap_&512 != 0
 	if ok {
@@ -276,8 +246,6 @@ func (o *Account) GetLabels() (value []*Label, ok bool) {
 
 // LastName returns the value of the 'last_name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) LastName() string {
 	if o != nil && o.bitmap_&1024 != 0 {
 		return o.lastName
@@ -287,8 +255,6 @@ func (o *Account) LastName() string {
 
 // GetLastName returns the value of the 'last_name' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetLastName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1024 != 0
 	if ok {
@@ -299,8 +265,6 @@ func (o *Account) GetLastName() (value string, ok bool) {
 
 // Organization returns the value of the 'organization' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) Organization() *Organization {
 	if o != nil && o.bitmap_&2048 != 0 {
 		return o.organization
@@ -310,8 +274,6 @@ func (o *Account) Organization() *Organization {
 
 // GetOrganization returns the value of the 'organization' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetOrganization() (value *Organization, ok bool) {
 	ok = o != nil && o.bitmap_&2048 != 0
 	if ok {
@@ -322,8 +284,6 @@ func (o *Account) GetOrganization() (value *Organization, ok bool) {
 
 // ServiceAccount returns the value of the 'service_account' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) ServiceAccount() bool {
 	if o != nil && o.bitmap_&4096 != 0 {
 		return o.serviceAccount
@@ -333,8 +293,6 @@ func (o *Account) ServiceAccount() bool {
 
 // GetServiceAccount returns the value of the 'service_account' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetServiceAccount() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&4096 != 0
 	if ok {
@@ -345,8 +303,6 @@ func (o *Account) GetServiceAccount() (value bool, ok bool) {
 
 // UpdatedAt returns the value of the 'updated_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) UpdatedAt() time.Time {
 	if o != nil && o.bitmap_&8192 != 0 {
 		return o.updatedAt
@@ -356,8 +312,6 @@ func (o *Account) UpdatedAt() time.Time {
 
 // GetUpdatedAt returns the value of the 'updated_at' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetUpdatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&8192 != 0
 	if ok {
@@ -368,8 +322,6 @@ func (o *Account) GetUpdatedAt() (value time.Time, ok bool) {
 
 // Username returns the value of the 'username' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Account) Username() string {
 	if o != nil && o.bitmap_&16384 != 0 {
 		return o.username
@@ -379,8 +331,6 @@ func (o *Account) Username() string {
 
 // GetUsername returns the value of the 'username' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Account) GetUsername() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&16384 != 0
 	if ok {

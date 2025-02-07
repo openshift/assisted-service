@@ -60,7 +60,7 @@ func UnmarshalRegistryCredentialList(source interface{}) (items []*RegistryCrede
 	return
 }
 
-// readRegistryCredentialList reads list of values of the ''registry_credential' type from
+// readRegistryCredentialList reads list of values of the ”registry_credential' type from
 // the given iterator.
 func readRegistryCredentialList(iterator *jsoniter.Iterator) []*RegistryCredential {
 	list := []*RegistryCredential{}

@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -250,7 +251,7 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, cluster
 	// reference - https://github.com/openshift/cluster-etcd-operator/blob/cee7f9bbea0fce240a74872e3c3baf069bc5eaac/pkg/cmd/render/render.go#L490
 	if network.IsLoadBalancerUserManaged(cluster) {
 		var err error
-		cluster.MachineNetworks, err = network.SetBootStrapHostIPRelatedMachineNetworkFirst(cluster, i.log)
+		cluster.MachineNetworks, err = network.SetBootStrapHostIPRelatedMachineNetworkFirst(context.Background(), cluster, i.log)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to set the bootstap host related machine network as the first machine network element")
 		}

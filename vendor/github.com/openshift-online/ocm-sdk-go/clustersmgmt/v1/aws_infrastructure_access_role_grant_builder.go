@@ -59,8 +59,6 @@ func (b *AWSInfrastructureAccessRoleGrantBuilder) HREF(value string) *AWSInfrast
 }
 
 // ConsoleURL sets the value of the 'console_URL' attribute to the given value.
-//
-//
 func (b *AWSInfrastructureAccessRoleGrantBuilder) ConsoleURL(value string) *AWSInfrastructureAccessRoleGrantBuilder {
 	b.consoleURL = value
 	b.bitmap_ |= 8
@@ -90,8 +88,6 @@ func (b *AWSInfrastructureAccessRoleGrantBuilder) State(value AWSInfrastructureA
 }
 
 // StateDescription sets the value of the 'state_description' attribute to the given value.
-//
-//
 func (b *AWSInfrastructureAccessRoleGrantBuilder) StateDescription(value string) *AWSInfrastructureAccessRoleGrantBuilder {
 	b.stateDescription = value
 	b.bitmap_ |= 64
@@ -99,8 +95,6 @@ func (b *AWSInfrastructureAccessRoleGrantBuilder) StateDescription(value string)
 }
 
 // UserARN sets the value of the 'user_ARN' attribute to the given value.
-//
-//
 func (b *AWSInfrastructureAccessRoleGrantBuilder) UserARN(value string) *AWSInfrastructureAccessRoleGrantBuilder {
 	b.userARN = value
 	b.bitmap_ |= 128

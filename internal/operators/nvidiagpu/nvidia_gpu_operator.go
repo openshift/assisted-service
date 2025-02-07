@@ -108,7 +108,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		}
 		return
 	}
-	inventory, err := common.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		result.Status = api.Pending
 		result.Reasons = []string{

@@ -86,8 +86,6 @@ func (b *FlavourBuilder) GCP(value *GCPFlavourBuilder) *FlavourBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *FlavourBuilder) Name(value string) *FlavourBuilder {
 	b.name = value
 	b.bitmap_ |= 32

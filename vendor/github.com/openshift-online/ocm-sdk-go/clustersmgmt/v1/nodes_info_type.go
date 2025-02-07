@@ -34,8 +34,6 @@ func (o *NodesInfo) Empty() bool {
 
 // Nodes returns the value of the 'nodes' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *NodesInfo) Nodes() []*NodeInfo {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.nodes
@@ -45,8 +43,6 @@ func (o *NodesInfo) Nodes() []*NodeInfo {
 
 // GetNodes returns the value of the 'nodes' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *NodesInfo) GetNodes() (value []*NodeInfo, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {

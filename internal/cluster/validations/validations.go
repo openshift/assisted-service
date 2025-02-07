@@ -470,7 +470,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 	}
 
 	// In-depth input validations
-	if err = network.ValidateNoVIPAddressesDuplicates(targetConfiguration.APIVips, targetConfiguration.IngressVips, network.IsLoadBalancerUserManaged(&targetConfiguration)); err != nil {
+	if err = network.ValidateNoVIPAddressesDuplicates(context.Background(), targetConfiguration.APIVips, targetConfiguration.IngressVips, network.IsLoadBalancerUserManaged(&targetConfiguration)); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -514,6 +514,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 		if len(targetConfiguration.MachineNetworks) > 0 {
 			for i := range targetConfiguration.APIVips { // len of APIVips and IngressVips should be the same. asserted above.
 				err = network.VerifyVipsForClusterManagedLoadBalancer(
+					context.Background(),
 					nil,
 					string(targetConfiguration.MachineNetworks[i].Cidr),
 					string(targetConfiguration.APIVips[i].IP),
@@ -536,6 +537,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 		}
 
 		return network.VerifyVipsForUserManangedLoadBalancer(
+			context.Background(),
 			nil,
 			targetConfiguration.MachineNetworks,
 			string(targetConfiguration.APIVips[0].IP),

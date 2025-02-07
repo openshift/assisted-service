@@ -32,8 +32,6 @@ const SummaryDashboardLinkKind = "SummaryDashboardLink"
 const SummaryDashboardNilKind = "SummaryDashboardNil"
 
 // SummaryDashboard represents the values of the 'summary_dashboard' type.
-//
-//
 type SummaryDashboard struct {
 	bitmap_ uint32
 	id      string
@@ -100,8 +98,6 @@ func (o *SummaryDashboard) Empty() bool {
 
 // Metrics returns the value of the 'metrics' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SummaryDashboard) Metrics() []*SummaryMetrics {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.metrics
@@ -111,8 +107,6 @@ func (o *SummaryDashboard) Metrics() []*SummaryMetrics {
 
 // GetMetrics returns the value of the 'metrics' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SummaryDashboard) GetMetrics() (value []*SummaryMetrics, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {

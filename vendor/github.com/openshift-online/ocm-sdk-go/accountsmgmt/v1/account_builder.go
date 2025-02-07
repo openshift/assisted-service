@@ -24,8 +24,6 @@ import (
 )
 
 // AccountBuilder contains the data and logic needed to build 'account' objects.
-//
-//
 type AccountBuilder struct {
 	bitmap_        uint32
 	id             string
@@ -70,8 +68,6 @@ func (b *AccountBuilder) HREF(value string) *AccountBuilder {
 }
 
 // BanCode sets the value of the 'ban_code' attribute to the given value.
-//
-//
 func (b *AccountBuilder) BanCode(value string) *AccountBuilder {
 	b.banCode = value
 	b.bitmap_ |= 8
@@ -79,8 +75,6 @@ func (b *AccountBuilder) BanCode(value string) *AccountBuilder {
 }
 
 // BanDescription sets the value of the 'ban_description' attribute to the given value.
-//
-//
 func (b *AccountBuilder) BanDescription(value string) *AccountBuilder {
 	b.banDescription = value
 	b.bitmap_ |= 16
@@ -88,8 +82,6 @@ func (b *AccountBuilder) BanDescription(value string) *AccountBuilder {
 }
 
 // Banned sets the value of the 'banned' attribute to the given value.
-//
-//
 func (b *AccountBuilder) Banned(value bool) *AccountBuilder {
 	b.banned = value
 	b.bitmap_ |= 32
@@ -97,8 +89,6 @@ func (b *AccountBuilder) Banned(value bool) *AccountBuilder {
 }
 
 // CreatedAt sets the value of the 'created_at' attribute to the given value.
-//
-//
 func (b *AccountBuilder) CreatedAt(value time.Time) *AccountBuilder {
 	b.createdAt = value
 	b.bitmap_ |= 64
@@ -106,8 +96,6 @@ func (b *AccountBuilder) CreatedAt(value time.Time) *AccountBuilder {
 }
 
 // Email sets the value of the 'email' attribute to the given value.
-//
-//
 func (b *AccountBuilder) Email(value string) *AccountBuilder {
 	b.email = value
 	b.bitmap_ |= 128
@@ -115,8 +103,6 @@ func (b *AccountBuilder) Email(value string) *AccountBuilder {
 }
 
 // FirstName sets the value of the 'first_name' attribute to the given value.
-//
-//
 func (b *AccountBuilder) FirstName(value string) *AccountBuilder {
 	b.firstName = value
 	b.bitmap_ |= 256
@@ -124,8 +110,6 @@ func (b *AccountBuilder) FirstName(value string) *AccountBuilder {
 }
 
 // Labels sets the value of the 'labels' attribute to the given values.
-//
-//
 func (b *AccountBuilder) Labels(values ...*LabelBuilder) *AccountBuilder {
 	b.labels = make([]*LabelBuilder, len(values))
 	copy(b.labels, values)
@@ -134,8 +118,6 @@ func (b *AccountBuilder) Labels(values ...*LabelBuilder) *AccountBuilder {
 }
 
 // LastName sets the value of the 'last_name' attribute to the given value.
-//
-//
 func (b *AccountBuilder) LastName(value string) *AccountBuilder {
 	b.lastName = value
 	b.bitmap_ |= 1024
@@ -143,8 +125,6 @@ func (b *AccountBuilder) LastName(value string) *AccountBuilder {
 }
 
 // Organization sets the value of the 'organization' attribute to the given value.
-//
-//
 func (b *AccountBuilder) Organization(value *OrganizationBuilder) *AccountBuilder {
 	b.organization = value
 	if value != nil {
@@ -156,8 +136,6 @@ func (b *AccountBuilder) Organization(value *OrganizationBuilder) *AccountBuilde
 }
 
 // ServiceAccount sets the value of the 'service_account' attribute to the given value.
-//
-//
 func (b *AccountBuilder) ServiceAccount(value bool) *AccountBuilder {
 	b.serviceAccount = value
 	b.bitmap_ |= 4096
@@ -165,8 +143,6 @@ func (b *AccountBuilder) ServiceAccount(value bool) *AccountBuilder {
 }
 
 // UpdatedAt sets the value of the 'updated_at' attribute to the given value.
-//
-//
 func (b *AccountBuilder) UpdatedAt(value time.Time) *AccountBuilder {
 	b.updatedAt = value
 	b.bitmap_ |= 8192
@@ -174,8 +150,6 @@ func (b *AccountBuilder) UpdatedAt(value time.Time) *AccountBuilder {
 }
 
 // Username sets the value of the 'username' attribute to the given value.
-//
-//
 func (b *AccountBuilder) Username(value string) *AccountBuilder {
 	b.username = value
 	b.bitmap_ |= 16384

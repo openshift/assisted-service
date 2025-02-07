@@ -62,8 +62,6 @@ func (c *FlavoursClient) Add() *FlavoursAddRequest {
 }
 
 // List creates a request for the 'list' method.
-//
-//
 func (c *FlavoursClient) List() *FlavoursListRequest {
 	return &FlavoursListRequest{
 		transport: c.transport,

@@ -48,8 +48,6 @@ type SkuRuleGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *SkuRuleGetServerResponse) Body(value *SkuRule) *SkuRuleGetServerResponse {
 	r.body = value
 	return r

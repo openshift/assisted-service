@@ -35,8 +35,6 @@ func (o *SocketTotalsNodeRoleOSMetricNode) Empty() bool {
 
 // SocketTotals returns the value of the 'socket_totals' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SocketTotalsNodeRoleOSMetricNode) SocketTotals() []*SocketTotalNodeRoleOSMetricNode {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.socketTotals
@@ -46,8 +44,6 @@ func (o *SocketTotalsNodeRoleOSMetricNode) SocketTotals() []*SocketTotalNodeRole
 
 // GetSocketTotals returns the value of the 'socket_totals' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SocketTotalsNodeRoleOSMetricNode) GetSocketTotals() (value []*SocketTotalNodeRoleOSMetricNode, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {

@@ -183,8 +183,6 @@ func (r *CurrentAccessListResponse) Error() *errors.Error {
 }
 
 // Items returns the value of the 'items' parameter.
-//
-//
 func (r *CurrentAccessListResponse) Items() *RoleList {
 	if r == nil {
 		return nil
@@ -194,8 +192,6 @@ func (r *CurrentAccessListResponse) Items() *RoleList {
 
 // GetItems returns the value of the 'items' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *CurrentAccessListResponse) GetItems() (value *RoleList, ok bool) {
 	ok = r != nil && r.items != nil
 	if ok {

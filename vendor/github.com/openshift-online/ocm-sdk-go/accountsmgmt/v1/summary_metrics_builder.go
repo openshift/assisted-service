@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // SummaryMetricsBuilder contains the data and logic needed to build 'summary_metrics' objects.
-//
-//
 type SummaryMetricsBuilder struct {
 	bitmap_ uint32
 	name    string
@@ -34,8 +32,6 @@ func NewSummaryMetrics() *SummaryMetricsBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *SummaryMetricsBuilder) Name(value string) *SummaryMetricsBuilder {
 	b.name = value
 	b.bitmap_ |= 1
@@ -43,8 +39,6 @@ func (b *SummaryMetricsBuilder) Name(value string) *SummaryMetricsBuilder {
 }
 
 // Vector sets the value of the 'vector' attribute to the given values.
-//
-//
 func (b *SummaryMetricsBuilder) Vector(values ...*SummarySampleBuilder) *SummaryMetricsBuilder {
 	b.vector = make([]*SummarySampleBuilder, len(values))
 	copy(b.vector, values)

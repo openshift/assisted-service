@@ -889,7 +889,7 @@ func initProgressParamsInstallingStage() []interface{} {
 func updateSNOClusterVips(log logrus.FieldLogger, db *gorm.DB, cluster *common.Cluster, srcState string) error {
 	if swag.StringValue(cluster.Status) == models.ClusterStatusInstalling {
 		// In case of SNO cluster, set api_vip and ingress_vip with host ip
-		hostIP, err := network.GetIpForSingleNodeInstallation(cluster, log)
+		hostIP, err := network.GetIpForSingleNodeInstallation(context.Background(), cluster, log)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to find host ip for single node installation")
 			return err

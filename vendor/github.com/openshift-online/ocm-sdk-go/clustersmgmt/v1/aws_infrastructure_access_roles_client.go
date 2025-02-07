@@ -48,8 +48,6 @@ func NewAWSInfrastructureAccessRolesClient(transport http.RoundTripper, path str
 }
 
 // List creates a request for the 'list' method.
-//
-//
 func (c *AWSInfrastructureAccessRolesClient) List() *AWSInfrastructureAccessRolesListRequest {
 	return &AWSInfrastructureAccessRolesListRequest{
 		transport: c.transport,

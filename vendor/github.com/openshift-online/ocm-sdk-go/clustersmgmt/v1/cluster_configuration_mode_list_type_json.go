@@ -60,7 +60,7 @@ func UnmarshalClusterConfigurationModeList(source interface{}) (items []ClusterC
 	return
 }
 
-// readClusterConfigurationModeList reads list of values of the ''cluster_configuration_mode' type from
+// readClusterConfigurationModeList reads list of values of the ”cluster_configuration_mode' type from
 // the given iterator.
 func readClusterConfigurationModeList(iterator *jsoniter.Iterator) []ClusterConfigurationMode {
 	list := []ClusterConfigurationMode{}

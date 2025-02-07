@@ -48,8 +48,6 @@ func NewProvisionShardsClient(transport http.RoundTripper, path string) *Provisi
 }
 
 // List creates a request for the 'list' method.
-//
-//
 func (c *ProvisionShardsClient) List() *ProvisionShardsListRequest {
 	return &ProvisionShardsListRequest{
 		transport: c.transport,

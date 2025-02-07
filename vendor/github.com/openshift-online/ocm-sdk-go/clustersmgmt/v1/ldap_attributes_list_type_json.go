@@ -60,7 +60,7 @@ func UnmarshalLDAPAttributesList(source interface{}) (items []*LDAPAttributes, e
 	return
 }
 
-// readLDAPAttributesList reads list of values of the ''LDAP_attributes' type from
+// readLDAPAttributesList reads list of values of the ”LDAP_attributes' type from
 // the given iterator.
 func readLDAPAttributesList(iterator *jsoniter.Iterator) []*LDAPAttributes {
 	list := []*LDAPAttributes{}

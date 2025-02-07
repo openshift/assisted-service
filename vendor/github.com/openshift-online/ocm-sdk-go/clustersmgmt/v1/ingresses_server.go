@@ -203,8 +203,6 @@ type IngressesUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *IngressesUpdateServerRequest) Body() []*Ingress {
 	if r == nil {
 		return nil
@@ -214,8 +212,6 @@ func (r *IngressesUpdateServerRequest) Body() []*Ingress {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *IngressesUpdateServerRequest) GetBody() (value []*Ingress, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -232,8 +228,6 @@ type IngressesUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *IngressesUpdateServerResponse) Body(value []*Ingress) *IngressesUpdateServerResponse {
 	if value == nil {
 		r.body = nil

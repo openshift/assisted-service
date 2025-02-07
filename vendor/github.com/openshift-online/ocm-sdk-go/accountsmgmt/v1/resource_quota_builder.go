@@ -24,8 +24,6 @@ import (
 )
 
 // ResourceQuotaBuilder contains the data and logic needed to build 'resource_quota' objects.
-//
-//
 type ResourceQuotaBuilder struct {
 	bitmap_        uint32
 	id             string
@@ -64,8 +62,6 @@ func (b *ResourceQuotaBuilder) HREF(value string) *ResourceQuotaBuilder {
 }
 
 // SKU sets the value of the 'SKU' attribute to the given value.
-//
-//
 func (b *ResourceQuotaBuilder) SKU(value string) *ResourceQuotaBuilder {
 	b.sku = value
 	b.bitmap_ |= 8
@@ -73,8 +69,6 @@ func (b *ResourceQuotaBuilder) SKU(value string) *ResourceQuotaBuilder {
 }
 
 // CreatedAt sets the value of the 'created_at' attribute to the given value.
-//
-//
 func (b *ResourceQuotaBuilder) CreatedAt(value time.Time) *ResourceQuotaBuilder {
 	b.createdAt = value
 	b.bitmap_ |= 16
@@ -82,8 +76,6 @@ func (b *ResourceQuotaBuilder) CreatedAt(value time.Time) *ResourceQuotaBuilder 
 }
 
 // OrganizationID sets the value of the 'organization_ID' attribute to the given value.
-//
-//
 func (b *ResourceQuotaBuilder) OrganizationID(value string) *ResourceQuotaBuilder {
 	b.organizationID = value
 	b.bitmap_ |= 32
@@ -91,8 +83,6 @@ func (b *ResourceQuotaBuilder) OrganizationID(value string) *ResourceQuotaBuilde
 }
 
 // SkuCount sets the value of the 'sku_count' attribute to the given value.
-//
-//
 func (b *ResourceQuotaBuilder) SkuCount(value int) *ResourceQuotaBuilder {
 	b.skuCount = value
 	b.bitmap_ |= 64
@@ -100,8 +90,6 @@ func (b *ResourceQuotaBuilder) SkuCount(value int) *ResourceQuotaBuilder {
 }
 
 // Type sets the value of the 'type' attribute to the given value.
-//
-//
 func (b *ResourceQuotaBuilder) Type(value string) *ResourceQuotaBuilder {
 	b.type_ = value
 	b.bitmap_ |= 128
@@ -109,8 +97,6 @@ func (b *ResourceQuotaBuilder) Type(value string) *ResourceQuotaBuilder {
 }
 
 // UpdatedAt sets the value of the 'updated_at' attribute to the given value.
-//
-//
 func (b *ResourceQuotaBuilder) UpdatedAt(value time.Time) *ResourceQuotaBuilder {
 	b.updatedAt = value
 	b.bitmap_ |= 256

@@ -33,8 +33,6 @@ func NewClusterConsole() *ClusterConsoleBuilder {
 }
 
 // URL sets the value of the 'URL' attribute to the given value.
-//
-//
 func (b *ClusterConsoleBuilder) URL(value string) *ClusterConsoleBuilder {
 	b.url = value
 	b.bitmap_ |= 1

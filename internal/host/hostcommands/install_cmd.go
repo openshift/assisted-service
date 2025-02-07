@@ -91,7 +91,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		}
 	}
 
-	inventory, err := common.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		request.OpenshiftVersion = cluster.OpenshiftVersion
 	}
 
-	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, i.log)
+	hostInstallerArgs, err := constructHostInstallerArgs(ctx, cluster, host, inventory, infraEnv, i.log)
 	if err != nil {
 		return "", err
 	}
@@ -287,7 +287,7 @@ This function combines existing InstallerArgs ( set by user for his own reasons 
 set --copy-network, function will set only one such argument. It also append an arg that
 controls DHCP depending on the IP stack being used.
 */
-func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
+func constructHostInstallerArgs(ctx context.Context, cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 	var installerArgs []string
 	var err error
 	var hasIPConfigOverride bool
@@ -333,7 +333,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		log.Warnf("No installation disk found for host ID %s", host.ID)
 	}
 
-	installerArgs, err = appendNetworkArgs(installerArgs, cluster, host, inventory, infraEnv, hasIPConfigOverride, log)
+	installerArgs, err = appendNetworkArgs(ctx, installerArgs, cluster, host, inventory, infraEnv, hasIPConfigOverride, log)
 	if err != nil {
 		return "", err
 	}
@@ -341,7 +341,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 	return toJSONString(installerArgs)
 }
 
-func appendNetworkArgs(installerArgs []string, cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, hasIPConfigOverride bool, log logrus.FieldLogger) ([]string, error) {
+func appendNetworkArgs(ctx context.Context, installerArgs []string, cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, hasIPConfigOverride bool, log logrus.FieldLogger) ([]string, error) {
 	if hasStaticNetwork(cluster, infraEnv) {
 		// network configured statically
 		return appendCopyNetwork(installerArgs), nil
@@ -362,7 +362,7 @@ func appendNetworkArgs(installerArgs []string, cluster *common.Cluster, host *mo
 	// the config of NetworkManager, in some specific scenarios (e.g.
 	// BZ-2106110) this causes machines to lose their connectivity because
 	// priorities get mixed.
-	installerArgs, err := appendDHCPArgs(cluster, host, inventory, installerArgs, log)
+	installerArgs, err := appendDHCPArgs(ctx, cluster, host, inventory, installerArgs, log)
 	if err != nil {
 		return nil, err
 	}
@@ -471,8 +471,8 @@ func appends390xArgs(inventory *models.Inventory, installerArgs []string, log lo
 	return installerArgs, hasIPConfigOverride
 }
 
-func appendDHCPArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, installerArgs []string, log logrus.FieldLogger) ([]string, error) {
-	machineNetworkCIDR := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
+func appendDHCPArgs(ctx context.Context, cluster *common.Cluster, host *models.Host, inventory *models.Inventory, installerArgs []string, log logrus.FieldLogger) ([]string, error) {
+	machineNetworkCIDR := network.GetPrimaryMachineCidrForUserManagedNetwork(context.Background(), cluster, log)
 	if machineNetworkCIDR != "" {
 		ipv6 := network.IsIPv6CIDR(machineNetworkCIDR)
 
@@ -494,7 +494,7 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, inventory *model
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 		return installerArgs, errors.Errorf("cannot determine machine network address family")
 	}
-	if v4, v6, err := network.GetHostAddressFamilies(host); err != nil {
+	if v4, v6, err := network.GetHostAddressFamilies(ctx, host); err != nil {
 		return installerArgs, err
 	} else if v4 && v6 {
 		log.Warnf("Cannot set DHCP kernel argument for host %s of day-2 cluster %s with dual IP stack. Not doing so may result in failing to download ignition or ISO", host.ID, *cluster.ID)

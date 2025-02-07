@@ -47,8 +47,6 @@ type SupportCasesPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
-//
-//
 func (r *SupportCasesPostServerRequest) Request() *SupportCaseRequest {
 	if r == nil {
 		return nil
@@ -58,8 +56,6 @@ func (r *SupportCasesPostServerRequest) Request() *SupportCaseRequest {
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SupportCasesPostServerRequest) GetRequest() (value *SupportCaseRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -76,8 +72,6 @@ type SupportCasesPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
-//
-//
 func (r *SupportCasesPostServerResponse) Response(value *SupportCaseResponse) *SupportCasesPostServerResponse {
 	r.response = value
 	return r

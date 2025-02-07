@@ -32,8 +32,6 @@ const CCSLinkKind = "CCSLink"
 const CCSNilKind = "CCSNil"
 
 // CCS represents the values of the 'CCS' type.
-//
-//
 type CCS struct {
 	bitmap_          uint32
 	id               string

@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
+	"golang.org/x/net/context"
 )
 
 type AddressFamily = common.AddressFamily
@@ -466,14 +467,14 @@ func (l *l3QueryFactory) create(h *models.Host) (hostQuery, error) {
 	return &ret, nil
 }
 
-func newL3QueryFactory(hosts []*models.Host, family AddressFamily) (hostQueryFactory, error) {
+func newL3QueryFactory(ctx context.Context, hosts []*models.Host, family AddressFamily) (hostQueryFactory, error) {
 	nodesAddresses := make(map[strfmt.UUID]map[string]bool)
 	for _, h := range hosts {
 		if h.Inventory == "" {
 			continue
 		}
 		value := make(map[string]bool)
-		inventory, err := common.UnmarshalInventory(h.Inventory)
+		inventory, err := common.UnmarshalInventory(ctx, h.Inventory)
 		if err != nil {
 			return nil, err
 		}
@@ -579,11 +580,11 @@ func CreateL2MajorityGroup(cidr string, hosts []*models.Host) ([]strfmt.UUID, er
  * It is done by taking a sorted connectivity group list according to the group size, and from this group take the
  * largest one
  */
-func CreateL3MajorityGroup(hosts []*models.Host, family AddressFamily) ([]strfmt.UUID, error) {
+func CreateL3MajorityGroup(ctx context.Context, hosts []*models.Host, family AddressFamily) ([]strfmt.UUID, error) {
 	if !funk.Contains([]AddressFamily{IPv4, IPv6}, family) {
 		return nil, errors.Errorf("Unexpected address family %+v", family)
 	}
-	factory, err := newL3QueryFactory(hosts, family)
+	factory, err := newL3QueryFactory(ctx, hosts, family)
 	if err != nil {
 		return nil, err
 	}

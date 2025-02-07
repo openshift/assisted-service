@@ -1,12 +1,13 @@
 package common
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/openshift/assisted-service/models"
 )
 
-func MarshalInventory(inventory *models.Inventory) (string, error) {
+func MarshalInventory(ctx context.Context, inventory *models.Inventory) (string, error) {
 	if data, err := json.Marshal(inventory); err != nil {
 		return "", err
 	} else {
@@ -14,7 +15,7 @@ func MarshalInventory(inventory *models.Inventory) (string, error) {
 	}
 }
 
-func UnmarshalInventory(inventoryStr string) (*models.Inventory, error) {
+func UnmarshalInventory(ctx context.Context, inventoryStr string) (*models.Inventory, error) {
 	var inventory models.Inventory
 
 	if err := json.Unmarshal([]byte(inventoryStr), &inventory); err != nil {

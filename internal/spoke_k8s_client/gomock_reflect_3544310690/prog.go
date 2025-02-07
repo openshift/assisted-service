@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -19,13 +18,12 @@ var output = flag.String("output", "", "The output file name, or empty to use st
 func main() {
 	flag.Parse()
 
-	its := []struct{
+	its := []struct {
 		sym string
 		typ reflect.Type
 	}{
-		
-		{ "SpokeK8sClientFactory", reflect.TypeOf((*pkg_.SpokeK8sClientFactory)(nil)).Elem()},
-		
+
+		{"SpokeK8sClientFactory", reflect.TypeOf((*pkg_.SpokeK8sClientFactory)(nil)).Elem()},
 	}
 	pkg := &model.Package{
 		// NOTE: This behaves contrary to documented behaviour if the

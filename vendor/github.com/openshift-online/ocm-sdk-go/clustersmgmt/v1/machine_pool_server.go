@@ -74,8 +74,6 @@ type MachinePoolGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *MachinePoolGetServerResponse) Body(value *MachinePool) *MachinePoolGetServerResponse {
 	r.body = value
 	return r
@@ -93,8 +91,6 @@ type MachinePoolUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *MachinePoolUpdateServerRequest) Body() *MachinePool {
 	if r == nil {
 		return nil
@@ -104,8 +100,6 @@ func (r *MachinePoolUpdateServerRequest) Body() *MachinePool {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *MachinePoolUpdateServerRequest) GetBody() (value *MachinePool, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -122,8 +116,6 @@ type MachinePoolUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *MachinePoolUpdateServerResponse) Body(value *MachinePool) *MachinePoolUpdateServerResponse {
 	r.body = value
 	return r

@@ -38,8 +38,6 @@ func NewTermsReviewResponse() *TermsReviewResponseBuilder {
 }
 
 // AccountId sets the value of the 'account_id' attribute to the given value.
-//
-//
 func (b *TermsReviewResponseBuilder) AccountId(value string) *TermsReviewResponseBuilder {
 	b.accountId = value
 	b.bitmap_ |= 1
@@ -47,8 +45,6 @@ func (b *TermsReviewResponseBuilder) AccountId(value string) *TermsReviewRespons
 }
 
 // OrganizationID sets the value of the 'organization_ID' attribute to the given value.
-//
-//
 func (b *TermsReviewResponseBuilder) OrganizationID(value string) *TermsReviewResponseBuilder {
 	b.organizationID = value
 	b.bitmap_ |= 2
@@ -56,8 +52,6 @@ func (b *TermsReviewResponseBuilder) OrganizationID(value string) *TermsReviewRe
 }
 
 // RedirectUrl sets the value of the 'redirect_url' attribute to the given value.
-//
-//
 func (b *TermsReviewResponseBuilder) RedirectUrl(value string) *TermsReviewResponseBuilder {
 	b.redirectUrl = value
 	b.bitmap_ |= 4
@@ -65,8 +59,6 @@ func (b *TermsReviewResponseBuilder) RedirectUrl(value string) *TermsReviewRespo
 }
 
 // TermsAvailable sets the value of the 'terms_available' attribute to the given value.
-//
-//
 func (b *TermsReviewResponseBuilder) TermsAvailable(value bool) *TermsReviewResponseBuilder {
 	b.termsAvailable = value
 	b.bitmap_ |= 8
@@ -74,8 +66,6 @@ func (b *TermsReviewResponseBuilder) TermsAvailable(value bool) *TermsReviewResp
 }
 
 // TermsRequired sets the value of the 'terms_required' attribute to the given value.
-//
-//
 func (b *TermsReviewResponseBuilder) TermsRequired(value bool) *TermsReviewResponseBuilder {
 	b.termsRequired = value
 	b.bitmap_ |= 16

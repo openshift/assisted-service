@@ -60,7 +60,7 @@ func UnmarshalClusterStateList(source interface{}) (items []ClusterState, err er
 	return
 }
 
-// readClusterStateList reads list of values of the ''cluster_state' type from
+// readClusterStateList reads list of values of the ”cluster_state' type from
 // the given iterator.
 func readClusterStateList(iterator *jsoniter.Iterator) []ClusterState {
 	list := []ClusterState{}

@@ -114,7 +114,6 @@ func (r *SubscriptionsListServerRequest) GetFetchlabelsLabels() (value bool, ok 
 // a result. No new fields can be added, only existing ones can be filtered.
 // To specify a field 'id' of a structure 'plan' use 'plan.id'.
 // To specify all fields of a structure 'labels' use 'labels.*'.
-//
 func (r *SubscriptionsListServerRequest) Fields() string {
 	if r != nil && r.fields != nil {
 		return *r.fields
@@ -130,7 +129,6 @@ func (r *SubscriptionsListServerRequest) Fields() string {
 // a result. No new fields can be added, only existing ones can be filtered.
 // To specify a field 'id' of a structure 'plan' use 'plan.id'.
 // To specify all fields of a structure 'labels' use 'labels.*'.
-//
 func (r *SubscriptionsListServerRequest) GetFields() (value string, ok bool) {
 	ok = r != nil && r.fields != nil
 	if ok {
@@ -147,7 +145,6 @@ func (r *SubscriptionsListServerRequest) GetFields() (value string, ok bool) {
 // ----
 // env=staging,department=sales
 // ----
-//
 func (r *SubscriptionsListServerRequest) Labels() string {
 	if r != nil && r.labels != nil {
 		return *r.labels
@@ -164,7 +161,6 @@ func (r *SubscriptionsListServerRequest) Labels() string {
 // ----
 // env=staging,department=sales
 // ----
-//
 func (r *SubscriptionsListServerRequest) GetLabels() (value string, ok bool) {
 	ok = r != nil && r.labels != nil
 	if ok {
@@ -366,8 +362,6 @@ type SubscriptionsPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
-//
-//
 func (r *SubscriptionsPostServerRequest) Request() *SubscriptionRegistration {
 	if r == nil {
 		return nil
@@ -377,8 +371,6 @@ func (r *SubscriptionsPostServerRequest) Request() *SubscriptionRegistration {
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SubscriptionsPostServerRequest) GetRequest() (value *SubscriptionRegistration, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -395,8 +387,6 @@ type SubscriptionsPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
-//
-//
 func (r *SubscriptionsPostServerResponse) Response(value *Subscription) *SubscriptionsPostServerResponse {
 	r.response = value
 	return r

@@ -39,8 +39,6 @@ func NewCapabilityReviewRequest() *CapabilityReviewRequestBuilder {
 }
 
 // AccountUsername sets the value of the 'account_username' attribute to the given value.
-//
-//
 func (b *CapabilityReviewRequestBuilder) AccountUsername(value string) *CapabilityReviewRequestBuilder {
 	b.accountUsername = value
 	b.bitmap_ |= 1
@@ -48,8 +46,6 @@ func (b *CapabilityReviewRequestBuilder) AccountUsername(value string) *Capabili
 }
 
 // Capability sets the value of the 'capability' attribute to the given value.
-//
-//
 func (b *CapabilityReviewRequestBuilder) Capability(value string) *CapabilityReviewRequestBuilder {
 	b.capability = value
 	b.bitmap_ |= 2
@@ -57,8 +53,6 @@ func (b *CapabilityReviewRequestBuilder) Capability(value string) *CapabilityRev
 }
 
 // ClusterID sets the value of the 'cluster_ID' attribute to the given value.
-//
-//
 func (b *CapabilityReviewRequestBuilder) ClusterID(value string) *CapabilityReviewRequestBuilder {
 	b.clusterID = value
 	b.bitmap_ |= 4
@@ -66,8 +60,6 @@ func (b *CapabilityReviewRequestBuilder) ClusterID(value string) *CapabilityRevi
 }
 
 // OrganizationID sets the value of the 'organization_ID' attribute to the given value.
-//
-//
 func (b *CapabilityReviewRequestBuilder) OrganizationID(value string) *CapabilityReviewRequestBuilder {
 	b.organizationID = value
 	b.bitmap_ |= 8
@@ -75,8 +67,6 @@ func (b *CapabilityReviewRequestBuilder) OrganizationID(value string) *Capabilit
 }
 
 // ResourceType sets the value of the 'resource_type' attribute to the given value.
-//
-//
 func (b *CapabilityReviewRequestBuilder) ResourceType(value string) *CapabilityReviewRequestBuilder {
 	b.resourceType = value
 	b.bitmap_ |= 16
@@ -84,8 +74,6 @@ func (b *CapabilityReviewRequestBuilder) ResourceType(value string) *CapabilityR
 }
 
 // SubscriptionID sets the value of the 'subscription_ID' attribute to the given value.
-//
-//
 func (b *CapabilityReviewRequestBuilder) SubscriptionID(value string) *CapabilityReviewRequestBuilder {
 	b.subscriptionID = value
 	b.bitmap_ |= 32
@@ -93,8 +81,6 @@ func (b *CapabilityReviewRequestBuilder) SubscriptionID(value string) *Capabilit
 }
 
 // Type sets the value of the 'type' attribute to the given value.
-//
-//
 func (b *CapabilityReviewRequestBuilder) Type(value string) *CapabilityReviewRequestBuilder {
 	b.type_ = value
 	b.bitmap_ |= 64

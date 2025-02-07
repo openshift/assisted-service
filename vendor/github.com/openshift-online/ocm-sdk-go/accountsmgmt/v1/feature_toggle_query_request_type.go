@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // FeatureToggleQueryRequest represents the values of the 'feature_toggle_query_request' type.
-//
-//
 type FeatureToggleQueryRequest struct {
 	bitmap_        uint32
 	organizationID string
@@ -34,8 +32,6 @@ func (o *FeatureToggleQueryRequest) Empty() bool {
 
 // OrganizationID returns the value of the 'organization_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *FeatureToggleQueryRequest) OrganizationID() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.organizationID
@@ -45,8 +41,6 @@ func (o *FeatureToggleQueryRequest) OrganizationID() string {
 
 // GetOrganizationID returns the value of the 'organization_ID' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *FeatureToggleQueryRequest) GetOrganizationID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {

@@ -4,6 +4,7 @@
 
 // https://golang.org/src/os/stat_nacljs.go
 
+//go:build js && wasm
 // +build js,wasm
 
 package times

@@ -55,8 +55,6 @@ func (o *SubscriptionMetrics) Empty() bool {
 
 // CloudProvider returns the value of the 'cloud_provider' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) CloudProvider() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.cloudProvider
@@ -66,8 +64,6 @@ func (o *SubscriptionMetrics) CloudProvider() string {
 
 // GetCloudProvider returns the value of the 'cloud_provider' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetCloudProvider() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -78,8 +74,6 @@ func (o *SubscriptionMetrics) GetCloudProvider() (value string, ok bool) {
 
 // ComputeNodesCpu returns the value of the 'compute_nodes_cpu' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) ComputeNodesCpu() *ClusterResource {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.computeNodesCpu
@@ -89,8 +83,6 @@ func (o *SubscriptionMetrics) ComputeNodesCpu() *ClusterResource {
 
 // GetComputeNodesCpu returns the value of the 'compute_nodes_cpu' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetComputeNodesCpu() (value *ClusterResource, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
@@ -101,8 +93,6 @@ func (o *SubscriptionMetrics) GetComputeNodesCpu() (value *ClusterResource, ok b
 
 // ComputeNodesMemory returns the value of the 'compute_nodes_memory' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) ComputeNodesMemory() *ClusterResource {
 	if o != nil && o.bitmap_&4 != 0 {
 		return o.computeNodesMemory
@@ -112,8 +102,6 @@ func (o *SubscriptionMetrics) ComputeNodesMemory() *ClusterResource {
 
 // GetComputeNodesMemory returns the value of the 'compute_nodes_memory' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetComputeNodesMemory() (value *ClusterResource, ok bool) {
 	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
@@ -124,8 +112,6 @@ func (o *SubscriptionMetrics) GetComputeNodesMemory() (value *ClusterResource, o
 
 // ComputeNodesSockets returns the value of the 'compute_nodes_sockets' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) ComputeNodesSockets() *ClusterResource {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.computeNodesSockets
@@ -135,8 +121,6 @@ func (o *SubscriptionMetrics) ComputeNodesSockets() *ClusterResource {
 
 // GetComputeNodesSockets returns the value of the 'compute_nodes_sockets' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetComputeNodesSockets() (value *ClusterResource, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -147,8 +131,6 @@ func (o *SubscriptionMetrics) GetComputeNodesSockets() (value *ClusterResource, 
 
 // ConsoleUrl returns the value of the 'console_url' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) ConsoleUrl() string {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.consoleUrl
@@ -158,8 +140,6 @@ func (o *SubscriptionMetrics) ConsoleUrl() string {
 
 // GetConsoleUrl returns the value of the 'console_url' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetConsoleUrl() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -170,8 +150,6 @@ func (o *SubscriptionMetrics) GetConsoleUrl() (value string, ok bool) {
 
 // Cpu returns the value of the 'cpu' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) Cpu() *ClusterResource {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.cpu
@@ -181,8 +159,6 @@ func (o *SubscriptionMetrics) Cpu() *ClusterResource {
 
 // GetCpu returns the value of the 'cpu' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetCpu() (value *ClusterResource, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -193,8 +169,6 @@ func (o *SubscriptionMetrics) GetCpu() (value *ClusterResource, ok bool) {
 
 // CriticalAlertsFiring returns the value of the 'critical_alerts_firing' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) CriticalAlertsFiring() float64 {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.criticalAlertsFiring
@@ -204,8 +178,6 @@ func (o *SubscriptionMetrics) CriticalAlertsFiring() float64 {
 
 // GetCriticalAlertsFiring returns the value of the 'critical_alerts_firing' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetCriticalAlertsFiring() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -216,8 +188,6 @@ func (o *SubscriptionMetrics) GetCriticalAlertsFiring() (value float64, ok bool)
 
 // HealthState returns the value of the 'health_state' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) HealthState() string {
 	if o != nil && o.bitmap_&128 != 0 {
 		return o.healthState
@@ -227,8 +197,6 @@ func (o *SubscriptionMetrics) HealthState() string {
 
 // GetHealthState returns the value of the 'health_state' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetHealthState() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
@@ -239,8 +207,6 @@ func (o *SubscriptionMetrics) GetHealthState() (value string, ok bool) {
 
 // Memory returns the value of the 'memory' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) Memory() *ClusterResource {
 	if o != nil && o.bitmap_&256 != 0 {
 		return o.memory
@@ -250,8 +216,6 @@ func (o *SubscriptionMetrics) Memory() *ClusterResource {
 
 // GetMemory returns the value of the 'memory' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetMemory() (value *ClusterResource, ok bool) {
 	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
@@ -262,8 +226,6 @@ func (o *SubscriptionMetrics) GetMemory() (value *ClusterResource, ok bool) {
 
 // Nodes returns the value of the 'nodes' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) Nodes() *ClusterMetricsNodes {
 	if o != nil && o.bitmap_&512 != 0 {
 		return o.nodes
@@ -273,8 +235,6 @@ func (o *SubscriptionMetrics) Nodes() *ClusterMetricsNodes {
 
 // GetNodes returns the value of the 'nodes' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetNodes() (value *ClusterMetricsNodes, ok bool) {
 	ok = o != nil && o.bitmap_&512 != 0
 	if ok {
@@ -285,8 +245,6 @@ func (o *SubscriptionMetrics) GetNodes() (value *ClusterMetricsNodes, ok bool) {
 
 // OpenshiftVersion returns the value of the 'openshift_version' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) OpenshiftVersion() string {
 	if o != nil && o.bitmap_&1024 != 0 {
 		return o.openshiftVersion
@@ -296,8 +254,6 @@ func (o *SubscriptionMetrics) OpenshiftVersion() string {
 
 // GetOpenshiftVersion returns the value of the 'openshift_version' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetOpenshiftVersion() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1024 != 0
 	if ok {
@@ -308,8 +264,6 @@ func (o *SubscriptionMetrics) GetOpenshiftVersion() (value string, ok bool) {
 
 // OperatingSystem returns the value of the 'operating_system' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) OperatingSystem() string {
 	if o != nil && o.bitmap_&2048 != 0 {
 		return o.operatingSystem
@@ -319,8 +273,6 @@ func (o *SubscriptionMetrics) OperatingSystem() string {
 
 // GetOperatingSystem returns the value of the 'operating_system' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetOperatingSystem() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&2048 != 0
 	if ok {
@@ -331,8 +283,6 @@ func (o *SubscriptionMetrics) GetOperatingSystem() (value string, ok bool) {
 
 // OperatorsConditionFailing returns the value of the 'operators_condition_failing' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) OperatorsConditionFailing() float64 {
 	if o != nil && o.bitmap_&4096 != 0 {
 		return o.operatorsConditionFailing
@@ -342,8 +292,6 @@ func (o *SubscriptionMetrics) OperatorsConditionFailing() float64 {
 
 // GetOperatorsConditionFailing returns the value of the 'operators_condition_failing' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetOperatorsConditionFailing() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&4096 != 0
 	if ok {
@@ -354,8 +302,6 @@ func (o *SubscriptionMetrics) GetOperatorsConditionFailing() (value float64, ok 
 
 // Region returns the value of the 'region' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) Region() string {
 	if o != nil && o.bitmap_&8192 != 0 {
 		return o.region
@@ -365,8 +311,6 @@ func (o *SubscriptionMetrics) Region() string {
 
 // GetRegion returns the value of the 'region' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetRegion() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8192 != 0
 	if ok {
@@ -377,8 +321,6 @@ func (o *SubscriptionMetrics) GetRegion() (value string, ok bool) {
 
 // Sockets returns the value of the 'sockets' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) Sockets() *ClusterResource {
 	if o != nil && o.bitmap_&16384 != 0 {
 		return o.sockets
@@ -388,8 +330,6 @@ func (o *SubscriptionMetrics) Sockets() *ClusterResource {
 
 // GetSockets returns the value of the 'sockets' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetSockets() (value *ClusterResource, ok bool) {
 	ok = o != nil && o.bitmap_&16384 != 0
 	if ok {
@@ -400,8 +340,6 @@ func (o *SubscriptionMetrics) GetSockets() (value *ClusterResource, ok bool) {
 
 // State returns the value of the 'state' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) State() string {
 	if o != nil && o.bitmap_&32768 != 0 {
 		return o.state
@@ -411,8 +349,6 @@ func (o *SubscriptionMetrics) State() string {
 
 // GetState returns the value of the 'state' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetState() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&32768 != 0
 	if ok {
@@ -423,8 +359,6 @@ func (o *SubscriptionMetrics) GetState() (value string, ok bool) {
 
 // StateDescription returns the value of the 'state_description' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) StateDescription() string {
 	if o != nil && o.bitmap_&65536 != 0 {
 		return o.stateDescription
@@ -434,8 +368,6 @@ func (o *SubscriptionMetrics) StateDescription() string {
 
 // GetStateDescription returns the value of the 'state_description' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetStateDescription() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&65536 != 0
 	if ok {
@@ -446,8 +378,6 @@ func (o *SubscriptionMetrics) GetStateDescription() (value string, ok bool) {
 
 // Storage returns the value of the 'storage' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) Storage() *ClusterResource {
 	if o != nil && o.bitmap_&131072 != 0 {
 		return o.storage
@@ -457,8 +387,6 @@ func (o *SubscriptionMetrics) Storage() *ClusterResource {
 
 // GetStorage returns the value of the 'storage' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetStorage() (value *ClusterResource, ok bool) {
 	ok = o != nil && o.bitmap_&131072 != 0
 	if ok {
@@ -469,8 +397,6 @@ func (o *SubscriptionMetrics) GetStorage() (value *ClusterResource, ok bool) {
 
 // SubscriptionCpuTotal returns the value of the 'subscription_cpu_total' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) SubscriptionCpuTotal() float64 {
 	if o != nil && o.bitmap_&262144 != 0 {
 		return o.subscriptionCpuTotal
@@ -480,8 +406,6 @@ func (o *SubscriptionMetrics) SubscriptionCpuTotal() float64 {
 
 // GetSubscriptionCpuTotal returns the value of the 'subscription_cpu_total' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetSubscriptionCpuTotal() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&262144 != 0
 	if ok {
@@ -492,8 +416,6 @@ func (o *SubscriptionMetrics) GetSubscriptionCpuTotal() (value float64, ok bool)
 
 // SubscriptionObligationExists returns the value of the 'subscription_obligation_exists' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) SubscriptionObligationExists() float64 {
 	if o != nil && o.bitmap_&524288 != 0 {
 		return o.subscriptionObligationExists
@@ -503,8 +425,6 @@ func (o *SubscriptionMetrics) SubscriptionObligationExists() float64 {
 
 // GetSubscriptionObligationExists returns the value of the 'subscription_obligation_exists' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetSubscriptionObligationExists() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&524288 != 0
 	if ok {
@@ -515,8 +435,6 @@ func (o *SubscriptionMetrics) GetSubscriptionObligationExists() (value float64, 
 
 // SubscriptionSocketTotal returns the value of the 'subscription_socket_total' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) SubscriptionSocketTotal() float64 {
 	if o != nil && o.bitmap_&1048576 != 0 {
 		return o.subscriptionSocketTotal
@@ -526,8 +444,6 @@ func (o *SubscriptionMetrics) SubscriptionSocketTotal() float64 {
 
 // GetSubscriptionSocketTotal returns the value of the 'subscription_socket_total' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetSubscriptionSocketTotal() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&1048576 != 0
 	if ok {
@@ -538,8 +454,6 @@ func (o *SubscriptionMetrics) GetSubscriptionSocketTotal() (value float64, ok bo
 
 // Upgrade returns the value of the 'upgrade' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SubscriptionMetrics) Upgrade() *ClusterUpgrade {
 	if o != nil && o.bitmap_&2097152 != 0 {
 		return o.upgrade
@@ -549,8 +463,6 @@ func (o *SubscriptionMetrics) Upgrade() *ClusterUpgrade {
 
 // GetUpgrade returns the value of the 'upgrade' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SubscriptionMetrics) GetUpgrade() (value *ClusterUpgrade, ok bool) {
 	ok = o != nil && o.bitmap_&2097152 != 0
 	if ok {

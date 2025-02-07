@@ -69,8 +69,6 @@ type UserGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *UserGetServerResponse) Body(value *User) *UserGetServerResponse {
 	r.body = value
 	return r

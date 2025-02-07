@@ -142,7 +142,6 @@ func (r *SubscriptionsListRequest) FetchlabelsLabels(value bool) *SubscriptionsL
 // a result. No new fields can be added, only existing ones can be filtered.
 // To specify a field 'id' of a structure 'plan' use 'plan.id'.
 // To specify all fields of a structure 'labels' use 'labels.*'.
-//
 func (r *SubscriptionsListRequest) Fields(value string) *SubscriptionsListRequest {
 	r.fields = &value
 	return r
@@ -156,7 +155,6 @@ func (r *SubscriptionsListRequest) Fields(value string) *SubscriptionsListReques
 // ----
 // env=staging,department=sales
 // ----
-//
 func (r *SubscriptionsListRequest) Labels(value string) *SubscriptionsListRequest {
 	r.labels = &value
 	return r
@@ -437,8 +435,6 @@ func (r *SubscriptionsPostRequest) Header(name string, value interface{}) *Subsc
 }
 
 // Request sets the value of the 'request' parameter.
-//
-//
 func (r *SubscriptionsPostRequest) Request(value *SubscriptionRegistration) *SubscriptionsPostRequest {
 	r.request = value
 	return r
@@ -540,8 +536,6 @@ func (r *SubscriptionsPostResponse) Error() *errors.Error {
 }
 
 // Response returns the value of the 'response' parameter.
-//
-//
 func (r *SubscriptionsPostResponse) Response() *Subscription {
 	if r == nil {
 		return nil
@@ -551,8 +545,6 @@ func (r *SubscriptionsPostResponse) Response() *Subscription {
 
 // GetResponse returns the value of the 'response' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SubscriptionsPostResponse) GetResponse() (value *Subscription, ok bool) {
 	ok = r != nil && r.response != nil
 	if ok {

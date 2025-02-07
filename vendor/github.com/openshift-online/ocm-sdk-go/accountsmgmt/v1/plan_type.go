@@ -32,8 +32,6 @@ const PlanLinkKind = "PlanLink"
 const PlanNilKind = "PlanNil"
 
 // Plan represents the values of the 'plan' type.
-//
-//
 type Plan struct {
 	bitmap_  uint32
 	id       string
@@ -102,8 +100,6 @@ func (o *Plan) Empty() bool {
 
 // Category returns the value of the 'category' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Plan) Category() string {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.category
@@ -113,8 +109,6 @@ func (o *Plan) Category() string {
 
 // GetCategory returns the value of the 'category' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Plan) GetCategory() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -125,8 +119,6 @@ func (o *Plan) GetCategory() (value string, ok bool) {
 
 // Name returns the value of the 'name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Plan) Name() string {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.name
@@ -136,8 +128,6 @@ func (o *Plan) Name() string {
 
 // GetName returns the value of the 'name' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Plan) GetName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -148,8 +138,6 @@ func (o *Plan) GetName() (value string, ok bool) {
 
 // Type returns the value of the 'type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Plan) Type() string {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.type_
@@ -159,8 +147,6 @@ func (o *Plan) Type() string {
 
 // GetType returns the value of the 'type' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Plan) GetType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {

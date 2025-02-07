@@ -156,16 +156,12 @@ func (r *MachineTypePollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *MachineTypePollResponse) Body() *MachineType {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *MachineTypePollResponse) GetBody() (value *MachineType, ok bool) {
 	return r.response.GetBody()
 }
@@ -278,8 +274,6 @@ func (r *MachineTypeGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *MachineTypeGetResponse) Body() *MachineType {
 	if r == nil {
 		return nil
@@ -289,8 +283,6 @@ func (r *MachineTypeGetResponse) Body() *MachineType {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *MachineTypeGetResponse) GetBody() (value *MachineType, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

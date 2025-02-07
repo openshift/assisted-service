@@ -34,8 +34,6 @@ func NewAlertInfo() *AlertInfoBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *AlertInfoBuilder) Name(value string) *AlertInfoBuilder {
 	b.name = value
 	b.bitmap_ |= 1

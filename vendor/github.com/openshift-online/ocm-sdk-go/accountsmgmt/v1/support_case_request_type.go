@@ -32,8 +32,6 @@ const SupportCaseRequestLinkKind = "SupportCaseRequestLink"
 const SupportCaseRequestNilKind = "SupportCaseRequestNil"
 
 // SupportCaseRequest represents the values of the 'support_case_request' type.
-//
-//
 type SupportCaseRequest struct {
 	bitmap_        uint32
 	id             string

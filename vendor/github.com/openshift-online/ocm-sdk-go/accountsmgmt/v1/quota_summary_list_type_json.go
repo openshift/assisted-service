@@ -60,7 +60,7 @@ func UnmarshalQuotaSummaryList(source interface{}) (items []*QuotaSummary, err e
 	return
 }
 
-// readQuotaSummaryList reads list of values of the ''quota_summary' type from
+// readQuotaSummaryList reads list of values of the ”quota_summary' type from
 // the given iterator.
 func readQuotaSummaryList(iterator *jsoniter.Iterator) []*QuotaSummary {
 	list := []*QuotaSummary{}

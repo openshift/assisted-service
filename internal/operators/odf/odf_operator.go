@@ -128,7 +128,7 @@ func (o *operator) getValidDiskCount(
 }
 
 // ValidateHost verifies whether this operator is valid for given host
-func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host, additionalOperatorRequirements *models.ClusterHostRequirementsDetails) (api.ValidationResult, error) {
+func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host, additionalOperatorRequirements *models.ClusterHostRequirementsDetails) (api.ValidationResult, error) {
 	mode := getODFDeploymentMode(&cluster.Cluster, o.config.ODFNumMinimumHosts)
 	shouldHostRunODF, err := shouldHostRunODF(&cluster.Cluster, mode, host.Role)
 
@@ -161,7 +161,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	if host.Inventory == "" {
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in the host."}}, nil
 	}
-	inventory, err := common.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		message := "Failed to get inventory from host."
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, err
@@ -222,7 +222,7 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 }
 
 // GetHostRequirements provides operator's requirements towards the host
-func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	mode := getODFDeploymentMode(&cluster.Cluster, o.config.ODFNumMinimumHosts)
 	shouldHostRunODF, err := shouldHostRunODF(&cluster.Cluster, mode, host.Role)
 
@@ -245,7 +245,7 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 
 	var diskCount int64 = 0
 	if host.Inventory != "" {
-		inventory, err := common.UnmarshalInventory(host.Inventory)
+		inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 		if err != nil {
 			return nil, err
 		}

@@ -1,6 +1,7 @@
 package network
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -76,8 +77,8 @@ func GetInventoryIPAddresses(inventory *models.Inventory) ([]string, []string) {
 }
 
 // GetHostAddressFamilies tests if a host has addresses in IPv4, in IPv6 family, or both
-func GetHostAddressFamilies(host *models.Host) (bool, bool, error) {
-	inventory, err := common.UnmarshalInventory(host.Inventory)
+func GetHostAddressFamilies(ctx context.Context, host *models.Host) (bool, bool, error) {
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		return false, false, err
 	}
@@ -95,14 +96,14 @@ func GetHostAddressFamilies(host *models.Host) (bool, bool, error) {
 
 // GetClusterAddressStack tests if all the hosts in a cluster have addresses in IPv4, in IPv6 family, or both (dual stack).
 // A dual-stack cluster requires all its hosts to be dual-stack.
-func GetClusterAddressStack(hosts []*models.Host) (bool, bool, error) {
+func GetClusterAddressStack(ctx context.Context, hosts []*models.Host) (bool, bool, error) {
 	if len(hosts) == 0 {
 		return false, false, nil
 	}
 	v4 := true
 	v6 := true
 	for _, h := range hosts {
-		hostV4, hostV6, err := GetHostAddressFamilies(h)
+		hostV4, hostV6, err := GetHostAddressFamilies(ctx, h)
 		if err != nil {
 			return false, false, err
 		}

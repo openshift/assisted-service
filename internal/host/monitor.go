@@ -14,7 +14,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func (m *Manager) initMonitoringQueryGenerator() {
+func (m *Manager) initMonitoringQueryGenerator(ctx context.Context) {
+
 	if m.monitorClusterQueryGenerator == nil {
 		buildInitialQuery := func(db *gorm.DB) *gorm.DB {
 			monitorStates := []string{
@@ -65,7 +66,7 @@ func (m *Manager) initMonitoringQueryGenerator() {
 	}
 }
 
-func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
+func SortHosts(ctx context.Context, hosts []*models.Host) ([]*models.Host, bool) {
 	diskCapacityGiB := func(disks []*models.Disk) int64 {
 		return funk.Reduce(disks, func(acc int64, d *models.Disk) int64 {
 			if d.InstallationEligibility.Eligible {
@@ -94,13 +95,13 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 
 	allHostsHasInventory := true
 	sort.SliceStable(hosts, func(i, j int) bool {
-		inventory_i, _ := common.UnmarshalInventory(hosts[i].Inventory)
+		inventory_i, _ := common.UnmarshalInventory(ctx, hosts[i].Inventory)
 		if inventory_i == nil {
 			allHostsHasInventory = false
 			return false
 		}
 
-		inventory_j, _ := common.UnmarshalInventory(hosts[j].Inventory)
+		inventory_j, _ := common.UnmarshalInventory(ctx, hosts[j].Inventory)
 		if inventory_j == nil {
 			allHostsHasInventory = false
 			return true
@@ -120,7 +121,8 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 	return hosts, allHostsHasInventory
 }
 
-func (m *Manager) resetRoleAssignmentIfNotAllRolesAreSet() {
+func (m *Manager) resetRoleAssignmentIfNotAllRolesAreSet(ctx context.Context) {
+
 	inactiveStatus := []string{models.HostStatusDisconnected, models.HostStatusDisabled}
 	if m.leaderElector.IsLeader() {
 		clusetersWithMissingRoleAssignmentQuery := m.db.Distinct("cluster_id").
@@ -130,7 +132,7 @@ func (m *Manager) resetRoleAssignmentIfNotAllRolesAreSet() {
 			Where("deleted_at is null").
 			Where("EXISTS (select 1 from clusters where clusters.id = cluster_id and clusters.deleted_at is null)").
 			Table("hosts")
-		count, reset_err := common.ResetAutoAssignRoles(m.db, clusetersWithMissingRoleAssignmentQuery)
+		count, reset_err := common.ResetAutoAssignRoles(ctx, m.db, clusetersWithMissingRoleAssignmentQuery)
 		if reset_err != nil {
 			m.log.WithError(reset_err).Errorf("fail to reset auto-assign role in monitor")
 		}
@@ -140,17 +142,17 @@ func (m *Manager) resetRoleAssignmentIfNotAllRolesAreSet() {
 	}
 }
 
-func (m *Manager) clusterHostMonitoring() int64 {
+func (m *Manager) clusterHostMonitoring(ctx context.Context) int64 {
 	var (
 		monitored int64
 		requestID = requestid.NewID()
-		ctx       = requestid.ToContext(context.Background(), requestID)
 		log       = requestid.RequestIDLogger(m.log, requestID)
 		clusters  []*common.Cluster
 		err       error
 	)
+	ctx = requestid.ToContext(ctx, requestID)
 
-	m.resetRoleAssignmentIfNotAllRolesAreSet()
+	m.resetRoleAssignmentIfNotAllRolesAreSet(ctx)
 	query := m.monitorClusterQueryGenerator.NewClusterQuery()
 	for {
 		if clusters, err = query.Next(); err != nil {
@@ -166,7 +168,7 @@ func (m *Manager) clusterHostMonitoring() int64 {
 
 		for _, c := range clusters {
 			inventoryCache := make(InventoryCache)
-			sortedHosts, canRefreshRoles := SortHosts(c.Hosts)
+			sortedHosts, canRefreshRoles := SortHosts(ctx, c.Hosts)
 
 			log = log.WithField("cluster", c.ID.String())
 
@@ -205,15 +207,16 @@ func (m *Manager) clusterHostMonitoring() int64 {
 	return monitored
 }
 
-func (m *Manager) infraEnvHostMonitoring() int64 {
+func (m *Manager) infraEnvHostMonitoring(ctx context.Context) int64 {
+
 	var (
 		monitored int64
 		requestID = requestid.NewID()
-		ctx       = requestid.ToContext(context.Background(), requestID)
 		log       = requestid.RequestIDLogger(m.log, requestID)
 		infraEnvs []*common.InfraEnv
 		err       error
 	)
+	ctx = requestid.ToContext(context.Background(), requestID)
 	monitorStates := []string{
 		models.HostStatusBinding,
 		models.HostStatusDisconnectedUnbound,
@@ -256,14 +259,15 @@ func (m *Manager) infraEnvHostMonitoring() int64 {
 }
 
 func (m *Manager) HostMonitoring() {
+	ctx := context.Background()
 	var monitored int64
 	if !m.leaderElector.IsLeader() {
 		m.log.Debugf("Not a leader, exiting HostMonitoring")
 		return
 	}
 	defer commonutils.MeasureOperation("HostMonitoring", m.log, m.metricApi)()
-	m.initMonitoringQueryGenerator()
-	monitored += m.clusterHostMonitoring()
-	monitored += m.infraEnvHostMonitoring()
+	m.initMonitoringQueryGenerator(ctx)
+	monitored += m.clusterHostMonitoring(ctx)
+	monitored += m.infraEnvHostMonitoring(ctx)
 	m.metricApi.MonitoredHostsCount(monitored)
 }

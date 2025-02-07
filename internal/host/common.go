@@ -1,6 +1,7 @@
 package host
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -191,12 +192,12 @@ func FindHostByID(hostID strfmt.UUID, hosts []*models.Host) *models.Host {
 	return nil
 }
 
-func GetHostnameAndEffectiveRoleByHostID(hostId strfmt.UUID, hosts []*models.Host, inventoryCache InventoryCache) (string, models.HostRole, error) {
+func GetHostnameAndEffectiveRoleByHostID(ctx context.Context, hostId strfmt.UUID, hosts []*models.Host, inventoryCache InventoryCache) (string, models.HostRole, error) {
 	host := FindHostByID(hostId, hosts)
 	if host == nil {
 		return "", "", fmt.Errorf("host with ID %s was not found", hostId.String())
 	}
-	inventory, err := inventoryCache.GetOrUnmarshal(host)
+	inventory, err := inventoryCache.GetOrUnmarshal(ctx, host)
 	if err != nil || inventory == nil {
 		return "", "", err
 	}

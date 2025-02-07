@@ -60,7 +60,7 @@ func UnmarshalAlertSeverityList(source interface{}) (items []AlertSeverity, err 
 	return
 }
 
-// readAlertSeverityList reads list of values of the ''alert_severity' type from
+// readAlertSeverityList reads list of values of the ”alert_severity' type from
 // the given iterator.
 func readAlertSeverityList(iterator *jsoniter.Iterator) []AlertSeverity {
 	list := []AlertSeverity{}

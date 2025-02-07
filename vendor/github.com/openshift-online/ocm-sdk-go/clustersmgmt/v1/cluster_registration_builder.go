@@ -35,8 +35,6 @@ func NewClusterRegistration() *ClusterRegistrationBuilder {
 }
 
 // ExternalID sets the value of the 'external_ID' attribute to the given value.
-//
-//
 func (b *ClusterRegistrationBuilder) ExternalID(value string) *ClusterRegistrationBuilder {
 	b.externalID = value
 	b.bitmap_ |= 1
@@ -44,8 +42,6 @@ func (b *ClusterRegistrationBuilder) ExternalID(value string) *ClusterRegistrati
 }
 
 // OrganizationID sets the value of the 'organization_ID' attribute to the given value.
-//
-//
 func (b *ClusterRegistrationBuilder) OrganizationID(value string) *ClusterRegistrationBuilder {
 	b.organizationID = value
 	b.bitmap_ |= 2
@@ -53,8 +49,6 @@ func (b *ClusterRegistrationBuilder) OrganizationID(value string) *ClusterRegist
 }
 
 // SubscriptionID sets the value of the 'subscription_ID' attribute to the given value.
-//
-//
 func (b *ClusterRegistrationBuilder) SubscriptionID(value string) *ClusterRegistrationBuilder {
 	b.subscriptionID = value
 	b.bitmap_ |= 4

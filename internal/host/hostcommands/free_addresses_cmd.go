@@ -21,7 +21,7 @@ type freeAddressesCmd struct {
 }
 
 func getAllSmallV4Cidrs(host *models.Host, log logrus.FieldLogger) ([]string, error) {
-	networksByFamily, err := network.GetInventoryNetworksByFamily([]*models.Host{host}, log)
+	networksByFamily, err := network.GetInventoryNetworksByFamily(context.Background(), []*models.Host{host}, log)
 	if err != nil {
 		return nil, err
 	}

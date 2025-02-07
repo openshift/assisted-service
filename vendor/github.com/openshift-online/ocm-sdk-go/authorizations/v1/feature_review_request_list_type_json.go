@@ -60,7 +60,7 @@ func UnmarshalFeatureReviewRequestList(source interface{}) (items []*FeatureRevi
 	return
 }
 
-// readFeatureReviewRequestList reads list of values of the ''feature_review_request' type from
+// readFeatureReviewRequestList reads list of values of the ”feature_review_request' type from
 // the given iterator.
 func readFeatureReviewRequestList(iterator *jsoniter.Iterator) []*FeatureReviewRequest {
 	list := []*FeatureReviewRequest{}

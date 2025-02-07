@@ -60,7 +60,7 @@ func UnmarshalAWSSpotMarketOptionsList(source interface{}) (items []*AWSSpotMark
 	return
 }
 
-// readAWSSpotMarketOptionsList reads list of values of the ''AWS_spot_market_options' type from
+// readAWSSpotMarketOptionsList reads list of values of the ”AWS_spot_market_options' type from
 // the given iterator.
 func readAWSSpotMarketOptionsList(iterator *jsoniter.Iterator) []*AWSSpotMarketOptions {
 	list := []*AWSSpotMarketOptions{}

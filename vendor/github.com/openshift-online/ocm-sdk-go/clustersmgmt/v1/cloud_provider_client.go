@@ -179,16 +179,12 @@ func (r *CloudProviderPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *CloudProviderPollResponse) Body() *CloudProvider {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *CloudProviderPollResponse) GetBody() (value *CloudProvider, ok bool) {
 	return r.response.GetBody()
 }
@@ -301,8 +297,6 @@ func (r *CloudProviderGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *CloudProviderGetResponse) Body() *CloudProvider {
 	if r == nil {
 		return nil
@@ -312,8 +306,6 @@ func (r *CloudProviderGetResponse) Body() *CloudProvider {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *CloudProviderGetResponse) GetBody() (value *CloudProvider, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

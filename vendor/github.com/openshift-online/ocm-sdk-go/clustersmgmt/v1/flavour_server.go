@@ -59,8 +59,6 @@ type FlavourGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *FlavourGetServerResponse) Body(value *Flavour) *FlavourGetServerResponse {
 	r.body = value
 	return r
@@ -78,8 +76,6 @@ type FlavourUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *FlavourUpdateServerRequest) Body() *Flavour {
 	if r == nil {
 		return nil
@@ -89,8 +85,6 @@ func (r *FlavourUpdateServerRequest) Body() *Flavour {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *FlavourUpdateServerRequest) GetBody() (value *Flavour, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -107,8 +101,6 @@ type FlavourUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *FlavourUpdateServerResponse) Body(value *Flavour) *FlavourUpdateServerResponse {
 	r.body = value
 	return r

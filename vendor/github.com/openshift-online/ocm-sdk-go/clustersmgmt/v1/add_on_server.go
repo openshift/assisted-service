@@ -74,8 +74,6 @@ type AddOnGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *AddOnGetServerResponse) Body(value *AddOn) *AddOnGetServerResponse {
 	r.body = value
 	return r
@@ -93,8 +91,6 @@ type AddOnUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AddOnUpdateServerRequest) Body() *AddOn {
 	if r == nil {
 		return nil
@@ -104,8 +100,6 @@ func (r *AddOnUpdateServerRequest) Body() *AddOn {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AddOnUpdateServerRequest) GetBody() (value *AddOn, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -122,8 +116,6 @@ type AddOnUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *AddOnUpdateServerResponse) Body(value *AddOn) *AddOnUpdateServerResponse {
 	r.body = value
 	return r

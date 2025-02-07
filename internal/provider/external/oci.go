@@ -1,6 +1,7 @@
 package external
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/openshift/assisted-service/internal/common"
@@ -53,7 +54,7 @@ func IsOciHost(host *models.Host) (bool, error) {
 	if host.Inventory == "" {
 		return false, nil
 	}
-	hostInventory, err := common.UnmarshalInventory(host.Inventory)
+	hostInventory, err := common.UnmarshalInventory(context.Background(), host.Inventory)
 	if err != nil {
 		return false, fmt.Errorf("error marshaling host to inventory, error %w", err)
 	}

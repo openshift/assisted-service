@@ -53,8 +53,6 @@ type GroupGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *GroupGetServerResponse) Body(value *Group) *GroupGetServerResponse {
 	r.body = value
 	return r

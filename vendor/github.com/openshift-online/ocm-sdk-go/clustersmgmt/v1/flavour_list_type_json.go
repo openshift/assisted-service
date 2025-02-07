@@ -60,7 +60,7 @@ func UnmarshalFlavourList(source interface{}) (items []*Flavour, err error) {
 	return
 }
 
-// readFlavourList reads list of values of the ''flavour' type from
+// readFlavourList reads list of values of the ”flavour' type from
 // the given iterator.
 func readFlavourList(iterator *jsoniter.Iterator) []*Flavour {
 	list := []*Flavour{}

@@ -136,9 +136,9 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
 }
 
-func (g *installerGenerator) allocateNodeIpsIfNeeded(log logrus.FieldLogger) {
+func (g *installerGenerator) allocateNodeIpsIfNeeded(ctx context.Context, log logrus.FieldLogger) {
 	if common.IsMultiNodeNonePlatformCluster(g.cluster) || network.IsLoadBalancerUserManaged(g.cluster) {
-		nodeIpAllocations, err := network.GenerateNonePlatformAddressAllocation(g.cluster, log)
+		nodeIpAllocations, err := network.GenerateNonePlatformAddressAllocation(ctx, g.cluster, log)
 		if err != nil {
 			log.WithError(err).Warnf("failed to generate ip address allocation for cluster %s", *g.cluster.ID)
 		} else {
@@ -201,7 +201,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		return wrapped
 	}
 
-	g.allocateNodeIpsIfNeeded(log)
+	g.allocateNodeIpsIfNeeded(ctx, log)
 
 	envVars := append(os.Environ(),
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+g.releaseImage,
@@ -211,7 +211,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		envVars = append(envVars, "OPENSHIFT_INSTALL_LOAD_CLUSTER_CERTS=true")
 	}
 
-	if envVars, err = g.addBootstrapKubeletIpIfRequired(log, envVars); err != nil {
+	if envVars, err = g.addBootstrapKubeletIpIfRequired(ctx, log, envVars); err != nil {
 		return err
 	}
 
@@ -296,7 +296,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		return err
 	}
 
-	err = g.updateIgnitions()
+	err = g.updateIgnitions(ctx)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -334,11 +334,11 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	return nil
 }
 
-func (g *installerGenerator) addBootstrapKubeletIpIfRequired(log logrus.FieldLogger, envVars []string) ([]string, error) {
+func (g *installerGenerator) addBootstrapKubeletIpIfRequired(ctx context.Context, log logrus.FieldLogger, envVars []string) ([]string, error) {
 	// setting bootstrap kubelet node ip
 	log.Debugf("Adding bootstrap ip to env vars")
 	if !common.IsMultiNodeNonePlatformCluster(g.cluster) && !network.IsLoadBalancerUserManaged(g.cluster) {
-		bootstrapIp, err := network.GetPrimaryMachineCIDRIP(common.GetBootstrapHost(g.cluster), g.cluster)
+		bootstrapIp, err := network.GetPrimaryMachineCIDRIP(ctx, common.GetBootstrapHost(g.cluster), g.cluster)
 		if err != nil {
 			log.WithError(err).Warn("Failed to get bootstrap primary ip for kubelet service update.")
 			return envVars, err
@@ -920,7 +920,7 @@ func (g *installerGenerator) addIpv6FileInIgnition(ignition string) error {
 	return nil
 }
 
-func (g *installerGenerator) updateIgnitions() error {
+func (g *installerGenerator) updateIgnitions(ctx context.Context) error {
 	masterPath := filepath.Join(g.workDir, masterIgn)
 	caCertFile := g.serviceCACert
 
@@ -945,7 +945,7 @@ func (g *installerGenerator) updateIgnitions() error {
 		}
 	}
 
-	_, ipv6, err := network.GetClusterAddressStack(g.cluster.Hosts)
+	_, ipv6, err := network.GetClusterAddressStack(ctx, g.cluster.Hosts)
 	if err != nil {
 		return err
 	}

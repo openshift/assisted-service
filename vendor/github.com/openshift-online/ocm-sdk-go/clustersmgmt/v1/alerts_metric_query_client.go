@@ -48,8 +48,6 @@ func NewAlertsMetricQueryClient(transport http.RoundTripper, path string) *Alert
 }
 
 // Get creates a request for the 'get' method.
-//
-//
 func (c *AlertsMetricQueryClient) Get() *AlertsMetricQueryGetRequest {
 	return &AlertsMetricQueryGetRequest{
 		transport: c.transport,
@@ -156,16 +154,12 @@ func (r *AlertsMetricQueryPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AlertsMetricQueryPollResponse) Body() *AlertsInfo {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AlertsMetricQueryPollResponse) GetBody() (value *AlertsInfo, ok bool) {
 	return r.response.GetBody()
 }
@@ -278,8 +272,6 @@ func (r *AlertsMetricQueryGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AlertsMetricQueryGetResponse) Body() *AlertsInfo {
 	if r == nil {
 		return nil
@@ -289,8 +281,6 @@ func (r *AlertsMetricQueryGetResponse) Body() *AlertsInfo {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AlertsMetricQueryGetResponse) GetBody() (value *AlertsInfo, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

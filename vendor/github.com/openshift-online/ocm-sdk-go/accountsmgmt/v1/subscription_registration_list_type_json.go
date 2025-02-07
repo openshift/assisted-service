@@ -60,7 +60,7 @@ func UnmarshalSubscriptionRegistrationList(source interface{}) (items []*Subscri
 	return
 }
 
-// readSubscriptionRegistrationList reads list of values of the ''subscription_registration' type from
+// readSubscriptionRegistrationList reads list of values of the ”subscription_registration' type from
 // the given iterator.
 func readSubscriptionRegistrationList(iterator *jsoniter.Iterator) []*SubscriptionRegistration {
 	list := []*SubscriptionRegistration{}

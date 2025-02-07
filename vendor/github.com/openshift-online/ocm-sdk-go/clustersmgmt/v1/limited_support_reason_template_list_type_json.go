@@ -60,7 +60,7 @@ func UnmarshalLimitedSupportReasonTemplateList(source interface{}) (items []*Lim
 	return
 }
 
-// readLimitedSupportReasonTemplateList reads list of values of the ''limited_support_reason_template' type from
+// readLimitedSupportReasonTemplateList reads list of values of the ”limited_support_reason_template' type from
 // the given iterator.
 func readLimitedSupportReasonTemplateList(iterator *jsoniter.Iterator) []*LimitedSupportReasonTemplate {
 	list := []*LimitedSupportReasonTemplate{}

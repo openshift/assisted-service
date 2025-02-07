@@ -51,8 +51,6 @@ func NewValue() *ValueBuilder {
 }
 
 // Unit sets the value of the 'unit' attribute to the given value.
-//
-//
 func (b *ValueBuilder) Unit(value string) *ValueBuilder {
 	b.unit = value
 	b.bitmap_ |= 1
@@ -60,8 +58,6 @@ func (b *ValueBuilder) Unit(value string) *ValueBuilder {
 }
 
 // Value sets the value of the 'value' attribute to the given value.
-//
-//
 func (b *ValueBuilder) Value(value float64) *ValueBuilder {
 	b.value = value
 	b.bitmap_ |= 2

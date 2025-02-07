@@ -60,7 +60,7 @@ func UnmarshalAWSVolumeList(source interface{}) (items []*AWSVolume, err error) 
 	return
 }
 
-// readAWSVolumeList reads list of values of the ''AWS_volume' type from
+// readAWSVolumeList reads list of values of the ”AWS_volume' type from
 // the given iterator.
 func readAWSVolumeList(iterator *jsoniter.Iterator) []*AWSVolume {
 	list := []*AWSVolume{}

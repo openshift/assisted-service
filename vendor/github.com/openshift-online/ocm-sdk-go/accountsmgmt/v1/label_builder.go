@@ -24,8 +24,6 @@ import (
 )
 
 // LabelBuilder contains the data and logic needed to build 'label' objects.
-//
-//
 type LabelBuilder struct {
 	bitmap_   uint32
 	id        string
@@ -63,8 +61,6 @@ func (b *LabelBuilder) HREF(value string) *LabelBuilder {
 }
 
 // CreatedAt sets the value of the 'created_at' attribute to the given value.
-//
-//
 func (b *LabelBuilder) CreatedAt(value time.Time) *LabelBuilder {
 	b.createdAt = value
 	b.bitmap_ |= 8
@@ -72,8 +68,6 @@ func (b *LabelBuilder) CreatedAt(value time.Time) *LabelBuilder {
 }
 
 // Internal sets the value of the 'internal' attribute to the given value.
-//
-//
 func (b *LabelBuilder) Internal(value bool) *LabelBuilder {
 	b.internal = value
 	b.bitmap_ |= 16
@@ -81,8 +75,6 @@ func (b *LabelBuilder) Internal(value bool) *LabelBuilder {
 }
 
 // Key sets the value of the 'key' attribute to the given value.
-//
-//
 func (b *LabelBuilder) Key(value string) *LabelBuilder {
 	b.key = value
 	b.bitmap_ |= 32
@@ -90,8 +82,6 @@ func (b *LabelBuilder) Key(value string) *LabelBuilder {
 }
 
 // UpdatedAt sets the value of the 'updated_at' attribute to the given value.
-//
-//
 func (b *LabelBuilder) UpdatedAt(value time.Time) *LabelBuilder {
 	b.updatedAt = value
 	b.bitmap_ |= 64
@@ -99,8 +89,6 @@ func (b *LabelBuilder) UpdatedAt(value time.Time) *LabelBuilder {
 }
 
 // Value sets the value of the 'value' attribute to the given value.
-//
-//
 func (b *LabelBuilder) Value(value string) *LabelBuilder {
 	b.value = value
 	b.bitmap_ |= 128

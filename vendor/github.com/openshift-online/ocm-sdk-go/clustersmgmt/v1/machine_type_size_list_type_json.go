@@ -60,7 +60,7 @@ func UnmarshalMachineTypeSizeList(source interface{}) (items []MachineTypeSize, 
 	return
 }
 
-// readMachineTypeSizeList reads list of values of the ''machine_type_size' type from
+// readMachineTypeSizeList reads list of values of the ”machine_type_size' type from
 // the given iterator.
 func readMachineTypeSizeList(iterator *jsoniter.Iterator) []MachineTypeSize {
 	list := []MachineTypeSize{}

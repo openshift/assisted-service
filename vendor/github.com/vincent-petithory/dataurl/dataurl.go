@@ -107,8 +107,8 @@ func New(data []byte, mediatype string, paramPairs ...string) *DataURL {
 // Note: it doesn't guarantee the returned string is equal to
 // the initial source string that was used to create this DataURL.
 // The reasons for that are:
-//  * Insertion of default values for MediaType that were maybe not in the initial string,
-//  * Various ways to encode the MediaType parameters (quoted string or url encoded string, the latter is used),
+//   - Insertion of default values for MediaType that were maybe not in the initial string,
+//   - Various ways to encode the MediaType parameters (quoted string or url encoded string, the latter is used),
 func (du *DataURL) String() string {
 	var buf bytes.Buffer
 	du.WriteTo(&buf)

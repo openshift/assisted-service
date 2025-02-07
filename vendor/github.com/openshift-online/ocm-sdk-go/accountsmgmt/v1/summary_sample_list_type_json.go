@@ -60,7 +60,7 @@ func UnmarshalSummarySampleList(source interface{}) (items []*SummarySample, err
 	return
 }
 
-// readSummarySampleList reads list of values of the ''summary_sample' type from
+// readSummarySampleList reads list of values of the ”summary_sample' type from
 // the given iterator.
 func readSummarySampleList(iterator *jsoniter.Iterator) []*SummarySample {
 	list := []*SummarySample{}

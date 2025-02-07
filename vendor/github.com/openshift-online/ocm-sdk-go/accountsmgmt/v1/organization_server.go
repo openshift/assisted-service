@@ -81,8 +81,6 @@ type OrganizationGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *OrganizationGetServerResponse) Body(value *Organization) *OrganizationGetServerResponse {
 	r.body = value
 	return r
@@ -100,8 +98,6 @@ type OrganizationUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *OrganizationUpdateServerRequest) Body() *Organization {
 	if r == nil {
 		return nil
@@ -111,8 +107,6 @@ func (r *OrganizationUpdateServerRequest) Body() *Organization {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *OrganizationUpdateServerRequest) GetBody() (value *Organization, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -129,8 +123,6 @@ type OrganizationUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *OrganizationUpdateServerResponse) Body(value *Organization) *OrganizationUpdateServerResponse {
 	r.body = value
 	return r

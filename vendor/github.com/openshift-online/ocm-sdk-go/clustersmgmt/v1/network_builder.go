@@ -36,8 +36,6 @@ func NewNetwork() *NetworkBuilder {
 }
 
 // HostPrefix sets the value of the 'host_prefix' attribute to the given value.
-//
-//
 func (b *NetworkBuilder) HostPrefix(value int) *NetworkBuilder {
 	b.hostPrefix = value
 	b.bitmap_ |= 1
@@ -45,8 +43,6 @@ func (b *NetworkBuilder) HostPrefix(value int) *NetworkBuilder {
 }
 
 // MachineCIDR sets the value of the 'machine_CIDR' attribute to the given value.
-//
-//
 func (b *NetworkBuilder) MachineCIDR(value string) *NetworkBuilder {
 	b.machineCIDR = value
 	b.bitmap_ |= 2
@@ -54,8 +50,6 @@ func (b *NetworkBuilder) MachineCIDR(value string) *NetworkBuilder {
 }
 
 // PodCIDR sets the value of the 'pod_CIDR' attribute to the given value.
-//
-//
 func (b *NetworkBuilder) PodCIDR(value string) *NetworkBuilder {
 	b.podCIDR = value
 	b.bitmap_ |= 4
@@ -63,8 +57,6 @@ func (b *NetworkBuilder) PodCIDR(value string) *NetworkBuilder {
 }
 
 // ServiceCIDR sets the value of the 'service_CIDR' attribute to the given value.
-//
-//
 func (b *NetworkBuilder) ServiceCIDR(value string) *NetworkBuilder {
 	b.serviceCIDR = value
 	b.bitmap_ |= 8

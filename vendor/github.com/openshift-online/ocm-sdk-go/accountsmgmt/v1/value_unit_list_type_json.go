@@ -60,7 +60,7 @@ func UnmarshalValueUnitList(source interface{}) (items []*ValueUnit, err error) 
 	return
 }
 
-// readValueUnitList reads list of values of the ''value_unit' type from
+// readValueUnitList reads list of values of the ”value_unit' type from
 // the given iterator.
 func readValueUnitList(iterator *jsoniter.Iterator) []*ValueUnit {
 	list := []*ValueUnit{}

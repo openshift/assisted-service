@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"context"
+
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -43,11 +45,12 @@ type Provider interface {
 }
 
 func GetMachineNetworkForUserManagedNetworking(log logrus.FieldLogger, cluster *common.Cluster) []installcfg.MachineNetwork {
-	bootstrapCidr := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
+	ctx := context.Background()
+	bootstrapCidr := network.GetPrimaryMachineCidrForUserManagedNetwork(ctx, cluster, log)
 	if bootstrapCidr != "" {
 		log.Infof("Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
 		var machineNetwork []installcfg.MachineNetwork
-		cluster.MachineNetworks = network.GetMachineNetworksFromBoostrapHost(cluster, log)
+		cluster.MachineNetworks = network.GetMachineNetworksFromBoostrapHost(ctx, cluster, log)
 		for _, net := range cluster.MachineNetworks {
 			machineNetwork = append(machineNetwork, installcfg.MachineNetwork{Cidr: string(net.Cidr)})
 		}
@@ -63,7 +66,7 @@ func replaceMachineNetworkIfNeeded(log logrus.FieldLogger, cluster *common.Clust
 		log.Warnf("GetBootstrapHost: failed to get bootstrap host for cluster %s", lo.FromPtr(cluster.ID))
 		return
 	}
-	nodeIpAllocations, err := network.GenerateNonePlatformAddressAllocation(cluster, log)
+	nodeIpAllocations, err := network.GenerateNonePlatformAddressAllocation(context.Background(), cluster, log)
 	if err != nil {
 		log.WithError(err).Warnf("failed to get node ip allocations for cluster %s", lo.FromPtr(cluster.ID))
 		return

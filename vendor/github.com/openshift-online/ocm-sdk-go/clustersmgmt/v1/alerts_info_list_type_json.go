@@ -60,7 +60,7 @@ func UnmarshalAlertsInfoList(source interface{}) (items []*AlertsInfo, err error
 	return
 }
 
-// readAlertsInfoList reads list of values of the ''alerts_info' type from
+// readAlertsInfoList reads list of values of the ”alerts_info' type from
 // the given iterator.
 func readAlertsInfoList(iterator *jsoniter.Iterator) []*AlertsInfo {
 	list := []*AlertsInfo{}

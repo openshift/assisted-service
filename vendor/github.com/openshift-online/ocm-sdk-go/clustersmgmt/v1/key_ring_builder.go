@@ -55,8 +55,6 @@ func (b *KeyRingBuilder) HREF(value string) *KeyRingBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *KeyRingBuilder) Name(value string) *KeyRingBuilder {
 	b.name = value
 	b.bitmap_ |= 8

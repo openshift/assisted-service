@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // ClusterAuthorizationResponseBuilder contains the data and logic needed to build 'cluster_authorization_response' objects.
-//
-//
 type ClusterAuthorizationResponseBuilder struct {
 	bitmap_         uint32
 	excessResources []*ReservedResourceBuilder
@@ -35,8 +33,6 @@ func NewClusterAuthorizationResponse() *ClusterAuthorizationResponseBuilder {
 }
 
 // Allowed sets the value of the 'allowed' attribute to the given value.
-//
-//
 func (b *ClusterAuthorizationResponseBuilder) Allowed(value bool) *ClusterAuthorizationResponseBuilder {
 	b.allowed = value
 	b.bitmap_ |= 1
@@ -44,8 +40,6 @@ func (b *ClusterAuthorizationResponseBuilder) Allowed(value bool) *ClusterAuthor
 }
 
 // ExcessResources sets the value of the 'excess_resources' attribute to the given values.
-//
-//
 func (b *ClusterAuthorizationResponseBuilder) ExcessResources(values ...*ReservedResourceBuilder) *ClusterAuthorizationResponseBuilder {
 	b.excessResources = make([]*ReservedResourceBuilder, len(values))
 	copy(b.excessResources, values)
@@ -54,8 +48,6 @@ func (b *ClusterAuthorizationResponseBuilder) ExcessResources(values ...*Reserve
 }
 
 // Subscription sets the value of the 'subscription' attribute to the given value.
-//
-//
 func (b *ClusterAuthorizationResponseBuilder) Subscription(value *SubscriptionBuilder) *ClusterAuthorizationResponseBuilder {
 	b.subscription = value
 	if value != nil {

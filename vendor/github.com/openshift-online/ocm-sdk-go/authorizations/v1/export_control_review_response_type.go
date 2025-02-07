@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 // ExportControlReviewResponse represents the values of the 'export_control_review_response' type.
-//
-//
 type ExportControlReviewResponse struct {
 	bitmap_    uint32
 	restricted bool
@@ -34,8 +32,6 @@ func (o *ExportControlReviewResponse) Empty() bool {
 
 // Restricted returns the value of the 'restricted' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ExportControlReviewResponse) Restricted() bool {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.restricted
@@ -45,8 +41,6 @@ func (o *ExportControlReviewResponse) Restricted() bool {
 
 // GetRestricted returns the value of the 'restricted' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ExportControlReviewResponse) GetRestricted() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {

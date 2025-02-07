@@ -82,8 +82,6 @@ func (r *SelfAccessReviewPostRequest) Header(name string, value interface{}) *Se
 }
 
 // Request sets the value of the 'request' parameter.
-//
-//
 func (r *SelfAccessReviewPostRequest) Request(value *SelfAccessReviewRequest) *SelfAccessReviewPostRequest {
 	r.request = value
 	return r
@@ -185,8 +183,6 @@ func (r *SelfAccessReviewPostResponse) Error() *errors.Error {
 }
 
 // Response returns the value of the 'response' parameter.
-//
-//
 func (r *SelfAccessReviewPostResponse) Response() *SelfAccessReviewResponse {
 	if r == nil {
 		return nil
@@ -196,8 +192,6 @@ func (r *SelfAccessReviewPostResponse) Response() *SelfAccessReviewResponse {
 
 // GetResponse returns the value of the 'response' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SelfAccessReviewPostResponse) GetResponse() (value *SelfAccessReviewResponse, ok bool) {
 	ok = r != nil && r.response != nil
 	if ok {

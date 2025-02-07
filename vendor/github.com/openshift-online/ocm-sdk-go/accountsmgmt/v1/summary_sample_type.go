@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // SummarySample represents the values of the 'summary_sample' type.
-//
-//
 type SummarySample struct {
 	bitmap_ uint32
 	time    string
@@ -35,8 +33,6 @@ func (o *SummarySample) Empty() bool {
 
 // Time returns the value of the 'time' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SummarySample) Time() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.time
@@ -46,8 +42,6 @@ func (o *SummarySample) Time() string {
 
 // GetTime returns the value of the 'time' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SummarySample) GetTime() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -58,8 +52,6 @@ func (o *SummarySample) GetTime() (value string, ok bool) {
 
 // Value returns the value of the 'value' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SummarySample) Value() float64 {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.value
@@ -69,8 +61,6 @@ func (o *SummarySample) Value() float64 {
 
 // GetValue returns the value of the 'value' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SummarySample) GetValue() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {

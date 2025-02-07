@@ -58,8 +58,6 @@ type AccountGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *AccountGetServerResponse) Body(value *Account) *AccountGetServerResponse {
 	r.body = value
 	return r
@@ -77,8 +75,6 @@ type AccountUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AccountUpdateServerRequest) Body() *Account {
 	if r == nil {
 		return nil
@@ -88,8 +84,6 @@ func (r *AccountUpdateServerRequest) Body() *Account {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AccountUpdateServerRequest) GetBody() (value *Account, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -106,8 +100,6 @@ type AccountUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *AccountUpdateServerResponse) Body(value *Account) *AccountUpdateServerResponse {
 	r.body = value
 	return r

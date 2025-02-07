@@ -74,8 +74,6 @@ type RoleGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *RoleGetServerResponse) Body(value *Role) *RoleGetServerResponse {
 	r.body = value
 	return r
@@ -93,8 +91,6 @@ type RoleUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RoleUpdateServerRequest) Body() *Role {
 	if r == nil {
 		return nil
@@ -104,8 +100,6 @@ func (r *RoleUpdateServerRequest) Body() *Role {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RoleUpdateServerRequest) GetBody() (value *Role, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -122,8 +116,6 @@ type RoleUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *RoleUpdateServerResponse) Body(value *Role) *RoleUpdateServerResponse {
 	r.body = value
 	return r

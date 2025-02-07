@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // TokenAuthorizationRequest represents the values of the 'token_authorization_request' type.
-//
-//
 type TokenAuthorizationRequest struct {
 	bitmap_            uint32
 	authorizationToken string

@@ -299,7 +299,7 @@ func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *com
 		return nil, err
 	}
 
-	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(cluster, host)
+	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(ctx, cluster, host)
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +383,7 @@ func (v *validator) GetPreflightInfraEnvHardwareRequirements(ctx context.Context
 }
 
 func (v *validator) GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error) {
-	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(cluster, host)
+	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(ctx, cluster, host)
 	if err != nil {
 		return 0, err
 	}
@@ -422,7 +422,7 @@ func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails,
 	return total
 }
 
-func (v *validator) getOCPClusterHostRoleRequirementsForVersion(cluster *common.Cluster, host *models.Host) (models.ClusterHostRequirementsDetails, error) {
+func (v *validator) getOCPClusterHostRoleRequirementsForVersion(ctx context.Context, cluster *common.Cluster, host *models.Host) (models.ClusterHostRequirementsDetails, error) {
 	requirements, err := v.getOCPRequirementsForVersion(cluster.OpenshiftVersion)
 	if err != nil {
 		return models.ClusterHostRequirementsDetails{}, err
@@ -435,7 +435,7 @@ func (v *validator) getOCPClusterHostRoleRequirementsForVersion(cluster *common.
 		return *requirements.MasterRequirements, nil
 	}
 
-	if v.isEdgeWorker(host) {
+	if v.isEdgeWorker(ctx, host) {
 		return *requirements.EdgeWorkerRequirements, nil
 	}
 
@@ -443,8 +443,8 @@ func (v *validator) getOCPClusterHostRoleRequirementsForVersion(cluster *common.
 }
 
 // There is no need to fail here, failed to get inventory just return false
-func (v *validator) isEdgeWorker(host *models.Host) bool {
-	inventory, err := common.UnmarshalInventory(host.Inventory)
+func (v *validator) isEdgeWorker(ctx context.Context, host *models.Host) bool {
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		return false
 	}

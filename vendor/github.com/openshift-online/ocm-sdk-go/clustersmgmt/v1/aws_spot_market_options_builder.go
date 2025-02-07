@@ -55,8 +55,6 @@ func (b *AWSSpotMarketOptionsBuilder) HREF(value string) *AWSSpotMarketOptionsBu
 }
 
 // MaxPrice sets the value of the 'max_price' attribute to the given value.
-//
-//
 func (b *AWSSpotMarketOptionsBuilder) MaxPrice(value float64) *AWSSpotMarketOptionsBuilder {
 	b.maxPrice = value
 	b.bitmap_ |= 8

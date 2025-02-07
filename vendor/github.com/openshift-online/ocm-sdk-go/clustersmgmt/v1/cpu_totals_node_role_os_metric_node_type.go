@@ -35,8 +35,6 @@ func (o *CPUTotalsNodeRoleOSMetricNode) Empty() bool {
 
 // CPUTotals returns the value of the 'CPU_totals' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *CPUTotalsNodeRoleOSMetricNode) CPUTotals() []*CPUTotalNodeRoleOSMetricNode {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.cpuTotals
@@ -46,8 +44,6 @@ func (o *CPUTotalsNodeRoleOSMetricNode) CPUTotals() []*CPUTotalNodeRoleOSMetricN
 
 // GetCPUTotals returns the value of the 'CPU_totals' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *CPUTotalsNodeRoleOSMetricNode) GetCPUTotals() (value []*CPUTotalNodeRoleOSMetricNode, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {

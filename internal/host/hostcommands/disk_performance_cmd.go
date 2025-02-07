@@ -29,8 +29,8 @@ func NewDiskPerfCheckCmd(log logrus.FieldLogger, diskPerfCheckImage string, hwVa
 	}
 }
 
-func (c *diskPerfCheckCmd) GetSteps(_ context.Context, host *models.Host) ([]*models.Step, error) {
-	inv, err := common.UnmarshalInventory(host.Inventory)
+func (c *diskPerfCheckCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
+	inv, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		return nil, err
 	}

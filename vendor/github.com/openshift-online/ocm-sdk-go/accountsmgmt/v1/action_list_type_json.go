@@ -60,7 +60,7 @@ func UnmarshalActionList(source interface{}) (items []Action, err error) {
 	return
 }
 
-// readActionList reads list of values of the ''action' type from
+// readActionList reads list of values of the ”action' type from
 // the given iterator.
 func readActionList(iterator *jsoniter.Iterator) []Action {
 	list := []Action{}

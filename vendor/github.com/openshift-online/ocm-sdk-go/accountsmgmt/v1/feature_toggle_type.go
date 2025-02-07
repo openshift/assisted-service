@@ -32,8 +32,6 @@ const FeatureToggleLinkKind = "FeatureToggleLink"
 const FeatureToggleNilKind = "FeatureToggleNil"
 
 // FeatureToggle represents the values of the 'feature_toggle' type.
-//
-//
 type FeatureToggle struct {
 	bitmap_ uint32
 	id      string
@@ -100,8 +98,6 @@ func (o *FeatureToggle) Empty() bool {
 
 // Enabled returns the value of the 'enabled' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *FeatureToggle) Enabled() bool {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.enabled
@@ -111,8 +107,6 @@ func (o *FeatureToggle) Enabled() bool {
 
 // GetEnabled returns the value of the 'enabled' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *FeatureToggle) GetEnabled() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {

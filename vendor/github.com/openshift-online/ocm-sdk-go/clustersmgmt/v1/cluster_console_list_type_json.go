@@ -60,7 +60,7 @@ func UnmarshalClusterConsoleList(source interface{}) (items []*ClusterConsole, e
 	return
 }
 
-// readClusterConsoleList reads list of values of the ''cluster_console' type from
+// readClusterConsoleList reads list of values of the ”cluster_console' type from
 // the given iterator.
 func readClusterConsoleList(iterator *jsoniter.Iterator) []*ClusterConsole {
 	list := []*ClusterConsole{}

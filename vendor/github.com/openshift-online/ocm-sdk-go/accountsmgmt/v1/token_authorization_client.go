@@ -82,8 +82,6 @@ func (r *TokenAuthorizationPostRequest) Header(name string, value interface{}) *
 }
 
 // Request sets the value of the 'request' parameter.
-//
-//
 func (r *TokenAuthorizationPostRequest) Request(value *TokenAuthorizationRequest) *TokenAuthorizationPostRequest {
 	r.request = value
 	return r
@@ -185,8 +183,6 @@ func (r *TokenAuthorizationPostResponse) Error() *errors.Error {
 }
 
 // Response returns the value of the 'response' parameter.
-//
-//
 func (r *TokenAuthorizationPostResponse) Response() *TokenAuthorizationResponse {
 	if r == nil {
 		return nil
@@ -196,8 +192,6 @@ func (r *TokenAuthorizationPostResponse) Response() *TokenAuthorizationResponse 
 
 // GetResponse returns the value of the 'response' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *TokenAuthorizationPostResponse) GetResponse() (value *TokenAuthorizationResponse, ok bool) {
 	ok = r != nil && r.response != nil
 	if ok {

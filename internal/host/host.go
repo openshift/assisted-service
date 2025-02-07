@@ -313,7 +313,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 			errors.Errorf("Host is in %s state, host can be updated only in one of %s states",
 				hostStatus, allowedStatuses))
 	}
-	inventory, err := common.UnmarshalInventory(inventoryStr)
+	inventory, err := common.UnmarshalInventory(ctx, inventoryStr)
 	if err != nil {
 		return err
 	}
@@ -357,7 +357,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	existingHostInventory, err := common.UnmarshalInventory(h.Inventory)
+	existingHostInventory, err := common.UnmarshalInventory(ctx, h.Inventory)
 	if err != nil {
 		log.WithError(err).Debugf("failed to unmarshal host existing inventory %s", h.Inventory)
 	}
@@ -387,7 +387,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	}
 
 	m.populateDisksId(inventory)
-	inventoryStr, err = common.MarshalInventory(inventory)
+	inventoryStr, err = common.MarshalInventory(ctx, inventory)
 	if err != nil {
 		return err
 	}

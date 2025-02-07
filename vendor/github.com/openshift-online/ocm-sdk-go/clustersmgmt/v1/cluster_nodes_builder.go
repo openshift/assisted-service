@@ -53,8 +53,6 @@ func (b *ClusterNodesBuilder) AutoscaleCompute(value *MachinePoolAutoscalingBuil
 }
 
 // AvailabilityZones sets the value of the 'availability_zones' attribute to the given values.
-//
-//
 func (b *ClusterNodesBuilder) AvailabilityZones(values ...string) *ClusterNodesBuilder {
 	b.availabilityZones = make([]string, len(values))
 	copy(b.availabilityZones, values)
@@ -63,8 +61,6 @@ func (b *ClusterNodesBuilder) AvailabilityZones(values ...string) *ClusterNodesB
 }
 
 // Compute sets the value of the 'compute' attribute to the given value.
-//
-//
 func (b *ClusterNodesBuilder) Compute(value int) *ClusterNodesBuilder {
 	b.compute = value
 	b.bitmap_ |= 4
@@ -72,8 +68,6 @@ func (b *ClusterNodesBuilder) Compute(value int) *ClusterNodesBuilder {
 }
 
 // ComputeLabels sets the value of the 'compute_labels' attribute to the given value.
-//
-//
 func (b *ClusterNodesBuilder) ComputeLabels(value map[string]string) *ClusterNodesBuilder {
 	b.computeLabels = value
 	if value != nil {
@@ -98,8 +92,6 @@ func (b *ClusterNodesBuilder) ComputeMachineType(value *MachineTypeBuilder) *Clu
 }
 
 // Infra sets the value of the 'infra' attribute to the given value.
-//
-//
 func (b *ClusterNodesBuilder) Infra(value int) *ClusterNodesBuilder {
 	b.infra = value
 	b.bitmap_ |= 32
@@ -107,8 +99,6 @@ func (b *ClusterNodesBuilder) Infra(value int) *ClusterNodesBuilder {
 }
 
 // Master sets the value of the 'master' attribute to the given value.
-//
-//
 func (b *ClusterNodesBuilder) Master(value int) *ClusterNodesBuilder {
 	b.master = value
 	b.bitmap_ |= 64
@@ -116,8 +106,6 @@ func (b *ClusterNodesBuilder) Master(value int) *ClusterNodesBuilder {
 }
 
 // Total sets the value of the 'total' attribute to the given value.
-//
-//
 func (b *ClusterNodesBuilder) Total(value int) *ClusterNodesBuilder {
 	b.total = value
 	b.bitmap_ |= 128

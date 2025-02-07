@@ -60,7 +60,7 @@ func UnmarshalGroupList(source interface{}) (items []*Group, err error) {
 	return
 }
 
-// readGroupList reads list of values of the ''group' type from
+// readGroupList reads list of values of the ”group' type from
 // the given iterator.
 func readGroupList(iterator *jsoniter.Iterator) []*Group {
 	list := []*Group{}

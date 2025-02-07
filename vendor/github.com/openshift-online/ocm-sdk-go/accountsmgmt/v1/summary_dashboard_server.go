@@ -48,8 +48,6 @@ type SummaryDashboardGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *SummaryDashboardGetServerResponse) Body(value *SummaryDashboard) *SummaryDashboardGetServerResponse {
 	r.body = value
 	return r

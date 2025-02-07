@@ -104,8 +104,6 @@ func (o *SKU) Empty() bool {
 
 // BYOC returns the value of the 'BYOC' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SKU) BYOC() bool {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.byoc
@@ -115,8 +113,6 @@ func (o *SKU) BYOC() bool {
 
 // GetBYOC returns the value of the 'BYOC' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SKU) GetBYOC() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -127,8 +123,6 @@ func (o *SKU) GetBYOC() (value bool, ok bool) {
 
 // AvailabilityZoneType returns the value of the 'availability_zone_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SKU) AvailabilityZoneType() string {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.availabilityZoneType
@@ -138,8 +132,6 @@ func (o *SKU) AvailabilityZoneType() string {
 
 // GetAvailabilityZoneType returns the value of the 'availability_zone_type' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SKU) GetAvailabilityZoneType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -173,8 +165,6 @@ func (o *SKU) GetResourceName() (value string, ok bool) {
 
 // ResourceType returns the value of the 'resource_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SKU) ResourceType() string {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.resourceType
@@ -184,8 +174,6 @@ func (o *SKU) ResourceType() string {
 
 // GetResourceType returns the value of the 'resource_type' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SKU) GetResourceType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -196,8 +184,6 @@ func (o *SKU) GetResourceType() (value string, ok bool) {
 
 // Resources returns the value of the 'resources' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SKU) Resources() []*Resource {
 	if o != nil && o.bitmap_&128 != 0 {
 		return o.resources
@@ -207,8 +193,6 @@ func (o *SKU) Resources() []*Resource {
 
 // GetResources returns the value of the 'resources' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SKU) GetResources() (value []*Resource, ok bool) {
 	ok = o != nil && o.bitmap_&128 != 0
 	if ok {

@@ -74,8 +74,6 @@ type IdentityProviderGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *IdentityProviderGetServerResponse) Body(value *IdentityProvider) *IdentityProviderGetServerResponse {
 	r.body = value
 	return r
@@ -93,8 +91,6 @@ type IdentityProviderUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *IdentityProviderUpdateServerRequest) Body() *IdentityProvider {
 	if r == nil {
 		return nil
@@ -104,8 +100,6 @@ func (r *IdentityProviderUpdateServerRequest) Body() *IdentityProvider {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *IdentityProviderUpdateServerRequest) GetBody() (value *IdentityProvider, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -122,8 +116,6 @@ type IdentityProviderUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *IdentityProviderUpdateServerResponse) Body(value *IdentityProvider) *IdentityProviderUpdateServerResponse {
 	r.body = value
 	return r

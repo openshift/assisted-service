@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -132,7 +133,7 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 	}
 
 	for i := range c.cluster.APIVips {
-		cidr, err := network.CalculateMachineNetworkCIDR(network.GetApiVipById(c.cluster, i), network.GetIngressVipById(c.cluster, i), c.cluster.Hosts, true)
+		cidr, err := network.CalculateMachineNetworkCIDR(context.Background(), network.GetApiVipById(c.cluster, i), network.GetIngressVipById(c.cluster, i), c.cluster.Hosts, true)
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 			continue
@@ -253,6 +254,7 @@ func validateVipsClusterManagedLoadBalancer(
 	failed := false
 	for i := 0; i != vipsWrapper.Len(); i++ {
 		verification, err := network.VerifyVipWithSingleMachineNetwork(
+			context.Background(),
 			c.cluster.Hosts,
 			network.GetMachineCidrById(c.cluster, i),
 			vipsWrapper.IP(i),
@@ -287,6 +289,7 @@ func validateVipsUserManagedLoadBalancer(
 
 	name := strings.ToLower(vipsWrapper.Name()) + " vip"
 	verification, err := network.VerifyVipWithMachineNetworkList(
+		context.Background(),
 		c.cluster.Hosts,
 		c.cluster.MachineNetworks,
 		vipsWrapper.IP(0),

@@ -60,7 +60,7 @@ func UnmarshalClusterDeploymentList(source interface{}) (items []*ClusterDeploym
 	return
 }
 
-// readClusterDeploymentList reads list of values of the ''cluster_deployment' type from
+// readClusterDeploymentList reads list of values of the ”cluster_deployment' type from
 // the given iterator.
 func readClusterDeploymentList(iterator *jsoniter.Iterator) []*ClusterDeployment {
 	list := []*ClusterDeployment{}

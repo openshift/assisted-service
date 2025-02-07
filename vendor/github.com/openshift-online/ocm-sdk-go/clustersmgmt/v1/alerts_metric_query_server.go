@@ -48,8 +48,6 @@ type AlertsMetricQueryGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *AlertsMetricQueryGetServerResponse) Body(value *AlertsInfo) *AlertsMetricQueryGetServerResponse {
 	r.body = value
 	return r

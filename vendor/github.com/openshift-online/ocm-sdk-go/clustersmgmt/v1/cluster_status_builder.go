@@ -60,8 +60,6 @@ func (b *ClusterStatusBuilder) HREF(value string) *ClusterStatusBuilder {
 }
 
 // DNSReady sets the value of the 'DNS_ready' attribute to the given value.
-//
-//
 func (b *ClusterStatusBuilder) DNSReady(value bool) *ClusterStatusBuilder {
 	b.dnsReady = value
 	b.bitmap_ |= 8
@@ -78,8 +76,6 @@ func (b *ClusterStatusBuilder) ConfigurationMode(value ClusterConfigurationMode)
 }
 
 // Description sets the value of the 'description' attribute to the given value.
-//
-//
 func (b *ClusterStatusBuilder) Description(value string) *ClusterStatusBuilder {
 	b.description = value
 	b.bitmap_ |= 32
@@ -87,8 +83,6 @@ func (b *ClusterStatusBuilder) Description(value string) *ClusterStatusBuilder {
 }
 
 // ProvisionErrorCode sets the value of the 'provision_error_code' attribute to the given value.
-//
-//
 func (b *ClusterStatusBuilder) ProvisionErrorCode(value string) *ClusterStatusBuilder {
 	b.provisionErrorCode = value
 	b.bitmap_ |= 64
@@ -96,8 +90,6 @@ func (b *ClusterStatusBuilder) ProvisionErrorCode(value string) *ClusterStatusBu
 }
 
 // ProvisionErrorMessage sets the value of the 'provision_error_message' attribute to the given value.
-//
-//
 func (b *ClusterStatusBuilder) ProvisionErrorMessage(value string) *ClusterStatusBuilder {
 	b.provisionErrorMessage = value
 	b.bitmap_ |= 128

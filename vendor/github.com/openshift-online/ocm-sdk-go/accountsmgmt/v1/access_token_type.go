@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // AccessToken represents the values of the 'access_token' type.
-//
-//
 type AccessToken struct {
 	bitmap_ uint32
 	auths   map[string]*AccessTokenAuth
@@ -34,8 +32,6 @@ func (o *AccessToken) Empty() bool {
 
 // Auths returns the value of the 'auths' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *AccessToken) Auths() map[string]*AccessTokenAuth {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.auths
@@ -45,8 +41,6 @@ func (o *AccessToken) Auths() map[string]*AccessTokenAuth {
 
 // GetAuths returns the value of the 'auths' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *AccessToken) GetAuths() (value map[string]*AccessTokenAuth, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {

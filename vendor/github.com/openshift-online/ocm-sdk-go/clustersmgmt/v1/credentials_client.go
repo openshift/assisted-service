@@ -156,16 +156,12 @@ func (r *CredentialsPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *CredentialsPollResponse) Body() *ClusterCredentials {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *CredentialsPollResponse) GetBody() (value *ClusterCredentials, ok bool) {
 	return r.response.GetBody()
 }
@@ -278,8 +274,6 @@ func (r *CredentialsGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *CredentialsGetResponse) Body() *ClusterCredentials {
 	if r == nil {
 		return nil
@@ -289,8 +283,6 @@ func (r *CredentialsGetResponse) Body() *ClusterCredentials {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *CredentialsGetResponse) GetBody() (value *ClusterCredentials, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

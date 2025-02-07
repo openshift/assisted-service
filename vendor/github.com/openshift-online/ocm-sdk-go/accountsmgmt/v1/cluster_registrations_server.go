@@ -43,8 +43,6 @@ type ClusterRegistrationsPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
-//
-//
 func (r *ClusterRegistrationsPostServerRequest) Request() *ClusterRegistrationRequest {
 	if r == nil {
 		return nil
@@ -54,8 +52,6 @@ func (r *ClusterRegistrationsPostServerRequest) Request() *ClusterRegistrationRe
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ClusterRegistrationsPostServerRequest) GetRequest() (value *ClusterRegistrationRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -72,8 +68,6 @@ type ClusterRegistrationsPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
-//
-//
 func (r *ClusterRegistrationsPostServerResponse) Response(value *ClusterRegistrationResponse) *ClusterRegistrationsPostServerResponse {
 	r.response = value
 	return r

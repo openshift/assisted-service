@@ -60,7 +60,7 @@ func UnmarshalExternalConfigurationList(source interface{}) (items []*ExternalCo
 	return
 }
 
-// readExternalConfigurationList reads list of values of the ''external_configuration' type from
+// readExternalConfigurationList reads list of values of the ”external_configuration' type from
 // the given iterator.
 func readExternalConfigurationList(iterator *jsoniter.Iterator) []*ExternalConfiguration {
 	list := []*ExternalConfiguration{}

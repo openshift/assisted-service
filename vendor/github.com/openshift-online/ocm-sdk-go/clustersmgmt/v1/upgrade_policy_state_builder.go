@@ -56,8 +56,6 @@ func (b *UpgradePolicyStateBuilder) HREF(value string) *UpgradePolicyStateBuilde
 }
 
 // Description sets the value of the 'description' attribute to the given value.
-//
-//
 func (b *UpgradePolicyStateBuilder) Description(value string) *UpgradePolicyStateBuilder {
 	b.description = value
 	b.bitmap_ |= 8

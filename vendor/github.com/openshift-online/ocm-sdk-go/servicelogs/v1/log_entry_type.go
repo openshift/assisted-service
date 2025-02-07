@@ -36,8 +36,6 @@ const LogEntryLinkKind = "LogEntryLink"
 const LogEntryNilKind = "LogEntryNil"
 
 // LogEntry represents the values of the 'log_entry' type.
-//
-//
 type LogEntry struct {
 	bitmap_      uint32
 	id           string
@@ -249,8 +247,6 @@ func (o *LogEntry) GetSummary() (value string, ok bool) {
 
 // Timestamp returns the value of the 'timestamp' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *LogEntry) Timestamp() time.Time {
 	if o != nil && o.bitmap_&512 != 0 {
 		return o.timestamp
@@ -260,8 +256,6 @@ func (o *LogEntry) Timestamp() time.Time {
 
 // GetTimestamp returns the value of the 'timestamp' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *LogEntry) GetTimestamp() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&512 != 0
 	if ok {

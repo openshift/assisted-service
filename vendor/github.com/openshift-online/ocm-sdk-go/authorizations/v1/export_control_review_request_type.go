@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 // ExportControlReviewRequest represents the values of the 'export_control_review_request' type.
-//
-//
 type ExportControlReviewRequest struct {
 	bitmap_         uint32
 	accountUsername string
@@ -34,8 +32,6 @@ func (o *ExportControlReviewRequest) Empty() bool {
 
 // AccountUsername returns the value of the 'account_username' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ExportControlReviewRequest) AccountUsername() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.accountUsername
@@ -45,8 +41,6 @@ func (o *ExportControlReviewRequest) AccountUsername() string {
 
 // GetAccountUsername returns the value of the 'account_username' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ExportControlReviewRequest) GetAccountUsername() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {

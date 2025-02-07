@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // QuotaCostBuilder contains the data and logic needed to build 'quota_cost' objects.
-//
-//
 type QuotaCostBuilder struct {
 	bitmap_          uint32
 	allowed          int
@@ -37,8 +35,6 @@ func NewQuotaCost() *QuotaCostBuilder {
 }
 
 // Allowed sets the value of the 'allowed' attribute to the given value.
-//
-//
 func (b *QuotaCostBuilder) Allowed(value int) *QuotaCostBuilder {
 	b.allowed = value
 	b.bitmap_ |= 1
@@ -46,8 +42,6 @@ func (b *QuotaCostBuilder) Allowed(value int) *QuotaCostBuilder {
 }
 
 // Consumed sets the value of the 'consumed' attribute to the given value.
-//
-//
 func (b *QuotaCostBuilder) Consumed(value int) *QuotaCostBuilder {
 	b.consumed = value
 	b.bitmap_ |= 2
@@ -55,8 +49,6 @@ func (b *QuotaCostBuilder) Consumed(value int) *QuotaCostBuilder {
 }
 
 // OrganizationID sets the value of the 'organization_ID' attribute to the given value.
-//
-//
 func (b *QuotaCostBuilder) OrganizationID(value string) *QuotaCostBuilder {
 	b.organizationID = value
 	b.bitmap_ |= 4
@@ -64,8 +56,6 @@ func (b *QuotaCostBuilder) OrganizationID(value string) *QuotaCostBuilder {
 }
 
 // QuotaID sets the value of the 'quota_ID' attribute to the given value.
-//
-//
 func (b *QuotaCostBuilder) QuotaID(value string) *QuotaCostBuilder {
 	b.quotaID = value
 	b.bitmap_ |= 8
@@ -73,8 +63,6 @@ func (b *QuotaCostBuilder) QuotaID(value string) *QuotaCostBuilder {
 }
 
 // RelatedResources sets the value of the 'related_resources' attribute to the given values.
-//
-//
 func (b *QuotaCostBuilder) RelatedResources(values ...*RelatedResourceBuilder) *QuotaCostBuilder {
 	b.relatedResources = make([]*RelatedResourceBuilder, len(values))
 	copy(b.relatedResources, values)

@@ -115,7 +115,7 @@ type API interface {
 	PrepareHostLogFile(ctx context.Context, c *common.Cluster, host *models.Host, objectHandler s3wrapper.API) (string, error)
 	PrepareClusterLogFile(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
-	SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
+	SetConnectivityMajorityGroupsForCluster(ctx context.Context, clusterID strfmt.UUID, db *gorm.DB) error
 	DetectAndStoreCollidingIPsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
 	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	ResetClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
@@ -413,8 +413,8 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 	return m.installationAPI.GetMasterNodesIds(ctx, c, db)
 }
 
-func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
-	networks := network.GetInventoryNetworks(cluster.Hosts, m.log)
+func (m *Manager) tryAssignMachineCidrDHCPMode(ctx context.Context, cluster *common.Cluster) error {
+	networks := network.GetInventoryNetworks(ctx, cluster.Hosts, m.log)
 	if len(networks) == 1 {
 		/*
 		 * Auto assign machine network CIDR is relevant if there is only single host network.  Otherwise the user
@@ -425,7 +425,7 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 	return nil
 }
 
-func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error {
+func (m *Manager) tryAssignMachineCidrNonDHCPMode(ctx context.Context, cluster *common.Cluster) error {
 	// With user-managed load balancer we can't calculate the
 	// machine network as the vips might be outside the hosts subnets.
 	// It should be set by the user manually.
@@ -433,7 +433,7 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 		return nil
 	}
 
-	primaryMachineNetwork, err := network.CalculateMachineNetworkCIDR(
+	primaryMachineNetwork, err := network.CalculateMachineNetworkCIDR(ctx,
 		network.GetApiVipById(cluster, 0), network.GetIngressVipById(cluster, 0), cluster.Hosts, false)
 	if err != nil {
 		return err
@@ -446,7 +446,7 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 		return nil
 	}
 
-	secondaryMachineNetwork, err := network.CalculateMachineNetworkCIDR(
+	secondaryMachineNetwork, err := network.CalculateMachineNetworkCIDR(ctx,
 		network.GetApiVipById(cluster, 1), network.GetIngressVipById(cluster, 1), cluster.Hosts, false)
 	if err != nil {
 		return err
@@ -467,7 +467,7 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 	return UpdateMachineNetwork(m.db, cluster, []string{primaryMachineNetwork, secondaryMachineNetwork})
 }
 
-func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
+func (m *Manager) tryAssignMachineCidrSNO(ctx context.Context, cluster *common.Cluster) error {
 	if network.IsMachineCidrAvailable(cluster) {
 		return nil
 	}
@@ -482,7 +482,7 @@ func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
 	}
 	if reflect.DeepEqual(clusterFamilies, serviceFamilies) {
 		var pendingCidrs []string
-		cidrsByFamily, err := network.GetInventoryNetworksByFamily(cluster.Hosts, m.log)
+		cidrsByFamily, err := network.GetInventoryNetworksByFamily(ctx, cluster.Hosts, m.log)
 		if err != nil {
 			return err
 		}
@@ -496,7 +496,7 @@ func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
 			default:
 				// multiple cidrs are available: select the one that matches
 				// the best defaul route
-				defaultCidrByFamily, err := network.GetDefaultRouteNetworkByFamily(cluster.Hosts[0], cidrsByFamily, m.log)
+				defaultCidrByFamily, err := network.GetDefaultRouteNetworkByFamily(ctx, cluster.Hosts[0], cidrsByFamily, m.log)
 				if err != nil {
 					return err
 				}
@@ -512,7 +512,7 @@ func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
 	return nil
 }
 
-func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
+func (m *Manager) autoAssignMachineNetworkCidr(ctx context.Context, c *common.Cluster) error {
 	if !funk.ContainsString([]string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}, swag.StringValue(c.Status)) {
 		return nil
 	}
@@ -526,11 +526,11 @@ func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
 	 */
 	var err error
 	if swag.BoolValue(c.VipDhcpAllocation) {
-		err = m.tryAssignMachineCidrDHCPMode(c)
+		err = m.tryAssignMachineCidrDHCPMode(ctx, c)
 	} else if swag.StringValue(c.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-		err = m.tryAssignMachineCidrSNO(c)
+		err = m.tryAssignMachineCidrSNO(ctx, c)
 	} else if !swag.BoolValue(c.UserManagedNetworking) {
-		err = m.tryAssignMachineCidrNonDHCPMode(c)
+		err = m.tryAssignMachineCidrNonDHCPMode(ctx, c)
 	}
 	if err != nil {
 		m.log.WithError(err).Warnf("Set machine cidr for cluster %s. dhcp mode %q user managed networking mode: %q",
@@ -626,13 +626,13 @@ func (m *Manager) ClusterMonitoring() {
 			}
 			if !m.SkipMonitoring(cluster) {
 				monitored += 1
-				_ = m.autoAssignMachineNetworkCidr(cluster)
+				_ = m.autoAssignMachineNetworkCidr(ctx, cluster)
 				if cluster.ID == nil {
 					log.WithError(err).Error("cluster ID is nil")
 					continue
 				}
 
-				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
+				if err = m.setConnectivityMajorityGroupsForClusterInternal(ctx, cluster, m.db); err != nil {
 					log.WithError(err).Error("failed to set majority group for clusters")
 				}
 				err = m.detectAndStoreCollidingIPsForCluster(cluster, m.db)
@@ -1300,7 +1300,7 @@ func (m *Manager) detectAndStoreCollidingIPsForCluster(cluster *common.Cluster, 
 	collidingIPSWithMacs := make(map[string][]string)
 	for _, host := range hosts {
 		if len(host.Connectivity) > 0 {
-			connectivityReport, err := hostutil.UnmarshalConnectivityReport(host.Connectivity)
+			connectivityReport, err := hostutil.UnmarshalConnectivityReport(context.Background(), host.Connectivity)
 			if err != nil {
 				// Let's not stop iterating over hosts but let's log this error.
 				m.log.WithError(err).Errorf("unable to unmarshall connectivity report for host %d due to error: %s", host.ID, err.Error())
@@ -1362,7 +1362,7 @@ func getCollidingIPs(connectivityReport *models.ConnectivityReport) map[string][
 	return collidingIPSWithMacs
 }
 
-func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *common.Cluster, db *gorm.DB) error {
+func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(ctx context.Context, cluster *common.Cluster, db *gorm.DB) error {
 	if db == nil {
 		db = m.db
 	}
@@ -1387,7 +1387,7 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 	connectivity := network.Connectivity{
 		MajorityGroups: make(map[string][]strfmt.UUID),
 	}
-	for _, cidr := range network.GetInventoryNetworks(hosts, m.log) {
+	for _, cidr := range network.GetInventoryNetworks(ctx, hosts, m.log) {
 		majorityGroup, err := network.CreateL2MajorityGroup(cidr, hosts)
 		if err != nil {
 			m.log.WithError(err).Warnf("Create majority group for %s", cidr)
@@ -1397,7 +1397,7 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 	}
 
 	for _, family := range []network.AddressFamily{network.IPv4, network.IPv6} {
-		majorityGroup, err := network.CreateL3MajorityGroup(hosts, family)
+		majorityGroup, err := network.CreateL3MajorityGroup(ctx, hosts, family)
 		if err != nil {
 			m.log.WithError(err).Warnf("Create L3 majority group for cluster %s failed", cluster.ID.String())
 		} else {
@@ -1440,7 +1440,7 @@ func (m *Manager) DetectAndStoreCollidingIPsForCluster(clusterID strfmt.UUID, db
 	return m.detectAndStoreCollidingIPsForCluster(cluster, db)
 }
 
-func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error {
+func (m *Manager) SetConnectivityMajorityGroupsForCluster(ctx context.Context, clusterID strfmt.UUID, db *gorm.DB) error {
 	if db == nil {
 		db = m.db
 	}
@@ -1453,7 +1453,7 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 		}
 		return common.NewApiError(statusCode, errors.Wrapf(err, "Getting cluster %s", clusterID.String()))
 	}
-	return m.setConnectivityMajorityGroupsForClusterInternal(cluster, db)
+	return m.setConnectivityMajorityGroupsForClusterInternal(ctx, cluster, db)
 }
 
 func (m *Manager) getClusterFilesForFolder(ctx context.Context, c *common.Cluster, folder string, objectHandler s3wrapper.API) ([]s3wrapper.ObjectInfo, error) {

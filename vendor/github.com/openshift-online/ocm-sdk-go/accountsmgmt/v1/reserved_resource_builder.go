@@ -24,8 +24,6 @@ import (
 )
 
 // ReservedResourceBuilder contains the data and logic needed to build 'reserved_resource' objects.
-//
-//
 type ReservedResourceBuilder struct {
 	bitmap_              uint32
 	availabilityZoneType string
@@ -44,8 +42,6 @@ func NewReservedResource() *ReservedResourceBuilder {
 }
 
 // BYOC sets the value of the 'BYOC' attribute to the given value.
-//
-//
 func (b *ReservedResourceBuilder) BYOC(value bool) *ReservedResourceBuilder {
 	b.byoc = value
 	b.bitmap_ |= 1
@@ -53,8 +49,6 @@ func (b *ReservedResourceBuilder) BYOC(value bool) *ReservedResourceBuilder {
 }
 
 // AvailabilityZoneType sets the value of the 'availability_zone_type' attribute to the given value.
-//
-//
 func (b *ReservedResourceBuilder) AvailabilityZoneType(value string) *ReservedResourceBuilder {
 	b.availabilityZoneType = value
 	b.bitmap_ |= 2
@@ -71,8 +65,6 @@ func (b *ReservedResourceBuilder) BillingModel(value BillingModel) *ReservedReso
 }
 
 // Count sets the value of the 'count' attribute to the given value.
-//
-//
 func (b *ReservedResourceBuilder) Count(value int) *ReservedResourceBuilder {
 	b.count = value
 	b.bitmap_ |= 8
@@ -80,8 +72,6 @@ func (b *ReservedResourceBuilder) Count(value int) *ReservedResourceBuilder {
 }
 
 // CreatedAt sets the value of the 'created_at' attribute to the given value.
-//
-//
 func (b *ReservedResourceBuilder) CreatedAt(value time.Time) *ReservedResourceBuilder {
 	b.createdAt = value
 	b.bitmap_ |= 16
@@ -89,8 +79,6 @@ func (b *ReservedResourceBuilder) CreatedAt(value time.Time) *ReservedResourceBu
 }
 
 // ResourceName sets the value of the 'resource_name' attribute to the given value.
-//
-//
 func (b *ReservedResourceBuilder) ResourceName(value string) *ReservedResourceBuilder {
 	b.resourceName = value
 	b.bitmap_ |= 32
@@ -98,8 +86,6 @@ func (b *ReservedResourceBuilder) ResourceName(value string) *ReservedResourceBu
 }
 
 // ResourceType sets the value of the 'resource_type' attribute to the given value.
-//
-//
 func (b *ReservedResourceBuilder) ResourceType(value string) *ReservedResourceBuilder {
 	b.resourceType = value
 	b.bitmap_ |= 64
@@ -107,8 +93,6 @@ func (b *ReservedResourceBuilder) ResourceType(value string) *ReservedResourceBu
 }
 
 // UpdatedAt sets the value of the 'updated_at' attribute to the given value.
-//
-//
 func (b *ReservedResourceBuilder) UpdatedAt(value time.Time) *ReservedResourceBuilder {
 	b.updatedAt = value
 	b.bitmap_ |= 128

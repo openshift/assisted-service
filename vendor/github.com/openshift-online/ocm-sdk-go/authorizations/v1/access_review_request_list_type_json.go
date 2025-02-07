@@ -60,7 +60,7 @@ func UnmarshalAccessReviewRequestList(source interface{}) (items []*AccessReview
 	return
 }
 
-// readAccessReviewRequestList reads list of values of the ''access_review_request' type from
+// readAccessReviewRequestList reads list of values of the ”access_review_request' type from
 // the given iterator.
 func readAccessReviewRequestList(iterator *jsoniter.Iterator) []*AccessReviewRequest {
 	list := []*AccessReviewRequest{}

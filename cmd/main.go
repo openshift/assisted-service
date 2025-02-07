@@ -78,6 +78,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -723,6 +729,34 @@ func main() {
 		}
 	}()
 
+	exporter, err := otlptrace.New(
+		context.Background(),
+		otlptracehttp.NewClient(
+			otlptracehttp.WithInsecure(),
+		),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	r, err := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName("assisted-service"),
+		),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(r),
+	)
+	otel.SetTracerProvider(tracerProvider)
+	defer tracerProvider.Shutdown(context.Background())
+
 	// Interrupt servers on SIGINT/SIGTERM
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -753,6 +787,7 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 	defer cancel()
 	log.Info("Connecting to DB")
 	wait.UntilWithContext(ctx, func(ctx context.Context) {
+
 		db, err = gorm.Open(postgres.Open(dbConnectionStr), &gorm.Config{
 			DisableForeignKeyConstraintWhenMigrating: true,
 			Logger:                                   logger.Default.LogMode(logger.Silent),

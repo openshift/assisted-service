@@ -63,8 +63,6 @@ func (b *CloudProviderDataBuilder) GCP(value *GCPBuilder) *CloudProviderDataBuil
 }
 
 // KeyLocation sets the value of the 'key_location' attribute to the given value.
-//
-//
 func (b *CloudProviderDataBuilder) KeyLocation(value string) *CloudProviderDataBuilder {
 	b.keyLocation = value
 	b.bitmap_ |= 4
@@ -72,8 +70,6 @@ func (b *CloudProviderDataBuilder) KeyLocation(value string) *CloudProviderDataB
 }
 
 // KeyRingName sets the value of the 'key_ring_name' attribute to the given value.
-//
-//
 func (b *CloudProviderDataBuilder) KeyRingName(value string) *CloudProviderDataBuilder {
 	b.keyRingName = value
 	b.bitmap_ |= 8

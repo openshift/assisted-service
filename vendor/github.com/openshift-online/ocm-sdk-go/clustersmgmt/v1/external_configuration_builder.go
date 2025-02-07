@@ -34,8 +34,6 @@ func NewExternalConfiguration() *ExternalConfigurationBuilder {
 }
 
 // Labels sets the value of the 'labels' attribute to the given values.
-//
-//
 func (b *ExternalConfigurationBuilder) Labels(value *LabelListBuilder) *ExternalConfigurationBuilder {
 	b.labels = value
 	b.bitmap_ |= 1
@@ -43,8 +41,6 @@ func (b *ExternalConfigurationBuilder) Labels(value *LabelListBuilder) *External
 }
 
 // Syncsets sets the value of the 'syncsets' attribute to the given values.
-//
-//
 func (b *ExternalConfigurationBuilder) Syncsets(value *SyncsetListBuilder) *ExternalConfigurationBuilder {
 	b.syncsets = value
 	b.bitmap_ |= 2

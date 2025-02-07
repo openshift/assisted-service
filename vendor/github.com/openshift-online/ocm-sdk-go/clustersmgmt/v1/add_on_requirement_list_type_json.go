@@ -60,7 +60,7 @@ func UnmarshalAddOnRequirementList(source interface{}) (items []*AddOnRequiremen
 	return
 }
 
-// readAddOnRequirementList reads list of values of the ''add_on_requirement' type from
+// readAddOnRequirementList reads list of values of the ”add_on_requirement' type from
 // the given iterator.
 func readAddOnRequirementList(iterator *jsoniter.Iterator) []*AddOnRequirement {
 	list := []*AddOnRequirement{}

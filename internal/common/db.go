@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -545,7 +546,7 @@ func GetInfraEnvFromDBWhere(db *gorm.DB, where ...interface{}) (*InfraEnv, error
 	return &infraEnv, nil
 }
 
-func ResetAutoAssignRoles(db *gorm.DB, onClusters interface{}) (int, error) {
+func ResetAutoAssignRoles(ctx context.Context, db *gorm.DB, onClusters interface{}) (int, error) {
 	if db == nil {
 		return 0, nil
 	}

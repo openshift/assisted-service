@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // ValueUnit represents the values of the 'value_unit' type.
-//
-//
 type ValueUnit struct {
 	bitmap_ uint32
 	unit    string
@@ -35,8 +33,6 @@ func (o *ValueUnit) Empty() bool {
 
 // Unit returns the value of the 'unit' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ValueUnit) Unit() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.unit
@@ -46,8 +42,6 @@ func (o *ValueUnit) Unit() string {
 
 // GetUnit returns the value of the 'unit' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ValueUnit) GetUnit() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -58,8 +52,6 @@ func (o *ValueUnit) GetUnit() (value string, ok bool) {
 
 // Value returns the value of the 'value' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ValueUnit) Value() float64 {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.value
@@ -69,8 +61,6 @@ func (o *ValueUnit) Value() float64 {
 
 // GetValue returns the value of the 'value' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ValueUnit) GetValue() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {

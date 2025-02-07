@@ -83,8 +83,6 @@ func (r *SelfTermsReviewPostRequest) Header(name string, value interface{}) *Sel
 }
 
 // Request sets the value of the 'request' parameter.
-//
-//
 func (r *SelfTermsReviewPostRequest) Request(value *SelfTermsReviewRequest) *SelfTermsReviewPostRequest {
 	r.request = value
 	return r
@@ -186,8 +184,6 @@ func (r *SelfTermsReviewPostResponse) Error() *errors.Error {
 }
 
 // Response returns the value of the 'response' parameter.
-//
-//
 func (r *SelfTermsReviewPostResponse) Response() *TermsReviewResponse {
 	if r == nil {
 		return nil
@@ -197,8 +193,6 @@ func (r *SelfTermsReviewPostResponse) Response() *TermsReviewResponse {
 
 // GetResponse returns the value of the 'response' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SelfTermsReviewPostResponse) GetResponse() (value *TermsReviewResponse, ok bool) {
 	ok = r != nil && r.response != nil
 	if ok {

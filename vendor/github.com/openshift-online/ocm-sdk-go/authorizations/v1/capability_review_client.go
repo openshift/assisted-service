@@ -82,8 +82,6 @@ func (r *CapabilityReviewPostRequest) Header(name string, value interface{}) *Ca
 }
 
 // Request sets the value of the 'request' parameter.
-//
-//
 func (r *CapabilityReviewPostRequest) Request(value *CapabilityReviewRequest) *CapabilityReviewPostRequest {
 	r.request = value
 	return r
@@ -185,8 +183,6 @@ func (r *CapabilityReviewPostResponse) Error() *errors.Error {
 }
 
 // Response returns the value of the 'response' parameter.
-//
-//
 func (r *CapabilityReviewPostResponse) Response() *CapabilityReviewResponse {
 	if r == nil {
 		return nil
@@ -196,8 +192,6 @@ func (r *CapabilityReviewPostResponse) Response() *CapabilityReviewResponse {
 
 // GetResponse returns the value of the 'response' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *CapabilityReviewPostResponse) GetResponse() (value *CapabilityReviewResponse, ok bool) {
 	ok = r != nil && r.response != nil
 	if ok {

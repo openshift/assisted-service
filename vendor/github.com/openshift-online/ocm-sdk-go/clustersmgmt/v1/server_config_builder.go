@@ -55,8 +55,6 @@ func (b *ServerConfigBuilder) HREF(value string) *ServerConfigBuilder {
 }
 
 // Server sets the value of the 'server' attribute to the given value.
-//
-//
 func (b *ServerConfigBuilder) Server(value string) *ServerConfigBuilder {
 	b.server = value
 	b.bitmap_ |= 8

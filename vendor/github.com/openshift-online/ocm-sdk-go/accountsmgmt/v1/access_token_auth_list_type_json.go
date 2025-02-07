@@ -60,7 +60,7 @@ func UnmarshalAccessTokenAuthList(source interface{}) (items []*AccessTokenAuth,
 	return
 }
 
-// readAccessTokenAuthList reads list of values of the ''access_token_auth' type from
+// readAccessTokenAuthList reads list of values of the ”access_token_auth' type from
 // the given iterator.
 func readAccessTokenAuthList(iterator *jsoniter.Iterator) []*AccessTokenAuth {
 	list := []*AccessTokenAuth{}

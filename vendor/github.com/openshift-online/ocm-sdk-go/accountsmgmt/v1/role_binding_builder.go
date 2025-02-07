@@ -24,8 +24,6 @@ import (
 )
 
 // RoleBindingBuilder contains the data and logic needed to build 'role_binding' objects.
-//
-//
 type RoleBindingBuilder struct {
 	bitmap_        uint32
 	id             string
@@ -70,8 +68,6 @@ func (b *RoleBindingBuilder) HREF(value string) *RoleBindingBuilder {
 }
 
 // Account sets the value of the 'account' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) Account(value *AccountBuilder) *RoleBindingBuilder {
 	b.account = value
 	if value != nil {
@@ -83,8 +79,6 @@ func (b *RoleBindingBuilder) Account(value *AccountBuilder) *RoleBindingBuilder 
 }
 
 // AccountID sets the value of the 'account_ID' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) AccountID(value string) *RoleBindingBuilder {
 	b.accountID = value
 	b.bitmap_ |= 16
@@ -92,8 +86,6 @@ func (b *RoleBindingBuilder) AccountID(value string) *RoleBindingBuilder {
 }
 
 // ConfigManaged sets the value of the 'config_managed' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) ConfigManaged(value bool) *RoleBindingBuilder {
 	b.configManaged = value
 	b.bitmap_ |= 32
@@ -101,8 +93,6 @@ func (b *RoleBindingBuilder) ConfigManaged(value bool) *RoleBindingBuilder {
 }
 
 // CreatedAt sets the value of the 'created_at' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) CreatedAt(value time.Time) *RoleBindingBuilder {
 	b.createdAt = value
 	b.bitmap_ |= 64
@@ -110,8 +100,6 @@ func (b *RoleBindingBuilder) CreatedAt(value time.Time) *RoleBindingBuilder {
 }
 
 // Organization sets the value of the 'organization' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) Organization(value *OrganizationBuilder) *RoleBindingBuilder {
 	b.organization = value
 	if value != nil {
@@ -123,8 +111,6 @@ func (b *RoleBindingBuilder) Organization(value *OrganizationBuilder) *RoleBindi
 }
 
 // OrganizationID sets the value of the 'organization_ID' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) OrganizationID(value string) *RoleBindingBuilder {
 	b.organizationID = value
 	b.bitmap_ |= 256
@@ -132,8 +118,6 @@ func (b *RoleBindingBuilder) OrganizationID(value string) *RoleBindingBuilder {
 }
 
 // Role sets the value of the 'role' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) Role(value *RoleBuilder) *RoleBindingBuilder {
 	b.role = value
 	if value != nil {
@@ -145,8 +129,6 @@ func (b *RoleBindingBuilder) Role(value *RoleBuilder) *RoleBindingBuilder {
 }
 
 // RoleID sets the value of the 'role_ID' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) RoleID(value string) *RoleBindingBuilder {
 	b.roleID = value
 	b.bitmap_ |= 1024
@@ -154,8 +136,6 @@ func (b *RoleBindingBuilder) RoleID(value string) *RoleBindingBuilder {
 }
 
 // Subscription sets the value of the 'subscription' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) Subscription(value *SubscriptionBuilder) *RoleBindingBuilder {
 	b.subscription = value
 	if value != nil {
@@ -167,8 +147,6 @@ func (b *RoleBindingBuilder) Subscription(value *SubscriptionBuilder) *RoleBindi
 }
 
 // SubscriptionID sets the value of the 'subscription_ID' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) SubscriptionID(value string) *RoleBindingBuilder {
 	b.subscriptionID = value
 	b.bitmap_ |= 4096
@@ -176,8 +154,6 @@ func (b *RoleBindingBuilder) SubscriptionID(value string) *RoleBindingBuilder {
 }
 
 // Type sets the value of the 'type' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) Type(value string) *RoleBindingBuilder {
 	b.type_ = value
 	b.bitmap_ |= 8192
@@ -185,8 +161,6 @@ func (b *RoleBindingBuilder) Type(value string) *RoleBindingBuilder {
 }
 
 // UpdatedAt sets the value of the 'updated_at' attribute to the given value.
-//
-//
 func (b *RoleBindingBuilder) UpdatedAt(value time.Time) *RoleBindingBuilder {
 	b.updatedAt = value
 	b.bitmap_ |= 16384

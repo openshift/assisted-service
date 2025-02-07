@@ -5,9 +5,10 @@ FROM registry.access.redhat.com/ubi$RHEL_VERSION/go-toolset:1.21 AS golang
 ADD . /app
 WORKDIR /app
 
+ENV GOTOOLCHAIN=auto
 # Licenses
 RUN go install github.com/google/go-licenses@v1.6.0
-RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
+#RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
 
 # Build binaries
 FROM quay.io/centos/centos:stream$RHEL_VERSION as builder
@@ -17,6 +18,7 @@ COPY hack/container_build_scripts/utils.sh .
 ARG RHEL_VERSION
 RUN ./install_build_deps.sh $RHEL_VERSION
 
+ENV GOTOOLCHAIN=auto
 ENV GOROOT=/usr/lib/golang
 ENV GOPATH=/opt/app-root/src/go
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
@@ -37,6 +39,9 @@ COPY go.mod go.sum /assisted-service/
 RUN go mod download
 
 COPY . /assisted-service/
+
+RUN go install github.com/nikolaydubina/go-instrument@latest
+RUN find ./internal/ ./pkg/ ./cmd/ -name "*.go" | grep -v "_test.go" | xargs -I{} go-instrument -app assisted-service -w -filename {}
 
 RUN cd cmd && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service
 RUN cd ./cmd/operator && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator
@@ -64,7 +69,7 @@ LABEL url https://github.com/openshift/assisted-service
 LABEL vendor "Red Hat, Inc."
 LABEL maintainer "Red Hat"
 
-COPY --from=golang /tmp/licenses /licenses
+#COPY --from=golang /tmp/licenses /licenses
 
 COPY hack/container_build_scripts/replace_dnf_repositories_ref_if_needed.sh .
 COPY hack/container_build_scripts/utils.sh .
@@ -75,7 +80,7 @@ RUN ./replace_dnf_repositories_ref_if_needed.sh $RHEL_VERSION
 RUN dnf install -y --setopt=install_weak_deps=False skopeo
 # openshift-install requires this
 RUN dnf install -y libvirt-libs nmstate nmstate-libs &&\
-    dnf clean all
+	dnf clean all
 
 RUN dnf update libksba libxml2 -y && dnf clean all
 

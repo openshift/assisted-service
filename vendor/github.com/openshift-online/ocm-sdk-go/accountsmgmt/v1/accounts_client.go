@@ -268,7 +268,6 @@ func (r *AccountsListRequest) FetchlabelsLabels(value bool) *AccountsListRequest
 // a result. No new fields can be added, only existing ones can be filtered.
 // To specify a field 'id' of a structure 'plan' use 'plan.id'.
 // To specify all fields of a structure 'labels' use 'labels.*'.
-//
 func (r *AccountsListRequest) Fields(value string) *AccountsListRequest {
 	r.fields = &value
 	return r

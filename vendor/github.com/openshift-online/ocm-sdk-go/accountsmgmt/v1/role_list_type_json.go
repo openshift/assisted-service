@@ -60,7 +60,7 @@ func UnmarshalRoleList(source interface{}) (items []*Role, err error) {
 	return
 }
 
-// readRoleList reads list of values of the ''role' type from
+// readRoleList reads list of values of the ”role' type from
 // the given iterator.
 func readRoleList(iterator *jsoniter.Iterator) []*Role {
 	list := []*Role{}

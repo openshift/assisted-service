@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 // ExportControlReviewResponseBuilder contains the data and logic needed to build 'export_control_review_response' objects.
-//
-//
 type ExportControlReviewResponseBuilder struct {
 	bitmap_    uint32
 	restricted bool
@@ -33,8 +31,6 @@ func NewExportControlReviewResponse() *ExportControlReviewResponseBuilder {
 }
 
 // Restricted sets the value of the 'restricted' attribute to the given value.
-//
-//
 func (b *ExportControlReviewResponseBuilder) Restricted(value bool) *ExportControlReviewResponseBuilder {
 	b.restricted = value
 	b.bitmap_ |= 1

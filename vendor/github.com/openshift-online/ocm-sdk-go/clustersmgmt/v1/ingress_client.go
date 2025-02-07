@@ -180,16 +180,12 @@ func (r *IngressPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *IngressPollResponse) Body() *Ingress {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *IngressPollResponse) GetBody() (value *Ingress, ok bool) {
 	return r.response.GetBody()
 }
@@ -396,8 +392,6 @@ func (r *IngressGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *IngressGetResponse) Body() *Ingress {
 	if r == nil {
 		return nil
@@ -407,8 +401,6 @@ func (r *IngressGetResponse) Body() *Ingress {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *IngressGetResponse) GetBody() (value *Ingress, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -439,8 +431,6 @@ func (r *IngressUpdateRequest) Header(name string, value interface{}) *IngressUp
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *IngressUpdateRequest) Body(value *Ingress) *IngressUpdateRequest {
 	r.body = value
 	return r
@@ -542,8 +532,6 @@ func (r *IngressUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *IngressUpdateResponse) Body() *Ingress {
 	if r == nil {
 		return nil
@@ -553,8 +541,6 @@ func (r *IngressUpdateResponse) Body() *Ingress {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *IngressUpdateResponse) GetBody() (value *Ingress, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

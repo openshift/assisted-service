@@ -74,8 +74,6 @@ type RoleBindingGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *RoleBindingGetServerResponse) Body(value *RoleBinding) *RoleBindingGetServerResponse {
 	r.body = value
 	return r
@@ -93,8 +91,6 @@ type RoleBindingUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RoleBindingUpdateServerRequest) Body() *RoleBinding {
 	if r == nil {
 		return nil
@@ -104,8 +100,6 @@ func (r *RoleBindingUpdateServerRequest) Body() *RoleBinding {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RoleBindingUpdateServerRequest) GetBody() (value *RoleBinding, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -122,8 +116,6 @@ type RoleBindingUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *RoleBindingUpdateServerResponse) Body(value *RoleBinding) *RoleBindingUpdateServerResponse {
 	r.body = value
 	return r

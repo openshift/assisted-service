@@ -82,8 +82,6 @@ func (r *ClusterAuthorizationsPostRequest) Header(name string, value interface{}
 }
 
 // Request sets the value of the 'request' parameter.
-//
-//
 func (r *ClusterAuthorizationsPostRequest) Request(value *ClusterAuthorizationRequest) *ClusterAuthorizationsPostRequest {
 	r.request = value
 	return r
@@ -185,8 +183,6 @@ func (r *ClusterAuthorizationsPostResponse) Error() *errors.Error {
 }
 
 // Response returns the value of the 'response' parameter.
-//
-//
 func (r *ClusterAuthorizationsPostResponse) Response() *ClusterAuthorizationResponse {
 	if r == nil {
 		return nil
@@ -196,8 +192,6 @@ func (r *ClusterAuthorizationsPostResponse) Response() *ClusterAuthorizationResp
 
 // GetResponse returns the value of the 'response' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ClusterAuthorizationsPostResponse) GetResponse() (value *ClusterAuthorizationResponse, ok bool) {
 	ok = r != nil && r.response != nil
 	if ok {

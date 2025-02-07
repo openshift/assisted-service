@@ -69,8 +69,6 @@ type LogEntryGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *LogEntryGetServerResponse) Body(value *LogEntry) *LogEntryGetServerResponse {
 	r.body = value
 	return r

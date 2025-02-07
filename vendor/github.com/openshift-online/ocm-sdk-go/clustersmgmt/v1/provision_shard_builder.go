@@ -72,8 +72,6 @@ func (b *ProvisionShardBuilder) AWSAccountOperatorConfig(value *ServerConfigBuil
 }
 
 // AWSBaseDomain sets the value of the 'AWS_base_domain' attribute to the given value.
-//
-//
 func (b *ProvisionShardBuilder) AWSBaseDomain(value string) *ProvisionShardBuilder {
 	b.awsBaseDomain = value
 	b.bitmap_ |= 16
@@ -81,8 +79,6 @@ func (b *ProvisionShardBuilder) AWSBaseDomain(value string) *ProvisionShardBuild
 }
 
 // GCPBaseDomain sets the value of the 'GCP_base_domain' attribute to the given value.
-//
-//
 func (b *ProvisionShardBuilder) GCPBaseDomain(value string) *ProvisionShardBuilder {
 	b.gcpBaseDomain = value
 	b.bitmap_ |= 32

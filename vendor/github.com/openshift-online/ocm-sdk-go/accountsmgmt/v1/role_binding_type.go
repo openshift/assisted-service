@@ -36,8 +36,6 @@ const RoleBindingLinkKind = "RoleBindingLink"
 const RoleBindingNilKind = "RoleBindingNil"
 
 // RoleBinding represents the values of the 'role_binding' type.
-//
-//
 type RoleBinding struct {
 	bitmap_        uint32
 	id             string
@@ -115,8 +113,6 @@ func (o *RoleBinding) Empty() bool {
 
 // Account returns the value of the 'account' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) Account() *Account {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.account
@@ -126,8 +122,6 @@ func (o *RoleBinding) Account() *Account {
 
 // GetAccount returns the value of the 'account' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetAccount() (value *Account, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -138,8 +132,6 @@ func (o *RoleBinding) GetAccount() (value *Account, ok bool) {
 
 // AccountID returns the value of the 'account_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) AccountID() string {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.accountID
@@ -149,8 +141,6 @@ func (o *RoleBinding) AccountID() string {
 
 // GetAccountID returns the value of the 'account_ID' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetAccountID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -161,8 +151,6 @@ func (o *RoleBinding) GetAccountID() (value string, ok bool) {
 
 // ConfigManaged returns the value of the 'config_managed' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) ConfigManaged() bool {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.configManaged
@@ -172,8 +160,6 @@ func (o *RoleBinding) ConfigManaged() bool {
 
 // GetConfigManaged returns the value of the 'config_managed' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetConfigManaged() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -184,8 +170,6 @@ func (o *RoleBinding) GetConfigManaged() (value bool, ok bool) {
 
 // CreatedAt returns the value of the 'created_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) CreatedAt() time.Time {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.createdAt
@@ -195,8 +179,6 @@ func (o *RoleBinding) CreatedAt() time.Time {
 
 // GetCreatedAt returns the value of the 'created_at' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetCreatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -207,8 +189,6 @@ func (o *RoleBinding) GetCreatedAt() (value time.Time, ok bool) {
 
 // Organization returns the value of the 'organization' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) Organization() *Organization {
 	if o != nil && o.bitmap_&128 != 0 {
 		return o.organization
@@ -218,8 +198,6 @@ func (o *RoleBinding) Organization() *Organization {
 
 // GetOrganization returns the value of the 'organization' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetOrganization() (value *Organization, ok bool) {
 	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
@@ -230,8 +208,6 @@ func (o *RoleBinding) GetOrganization() (value *Organization, ok bool) {
 
 // OrganizationID returns the value of the 'organization_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) OrganizationID() string {
 	if o != nil && o.bitmap_&256 != 0 {
 		return o.organizationID
@@ -241,8 +217,6 @@ func (o *RoleBinding) OrganizationID() string {
 
 // GetOrganizationID returns the value of the 'organization_ID' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetOrganizationID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
@@ -253,8 +227,6 @@ func (o *RoleBinding) GetOrganizationID() (value string, ok bool) {
 
 // Role returns the value of the 'role' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) Role() *Role {
 	if o != nil && o.bitmap_&512 != 0 {
 		return o.role
@@ -264,8 +236,6 @@ func (o *RoleBinding) Role() *Role {
 
 // GetRole returns the value of the 'role' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetRole() (value *Role, ok bool) {
 	ok = o != nil && o.bitmap_&512 != 0
 	if ok {
@@ -276,8 +246,6 @@ func (o *RoleBinding) GetRole() (value *Role, ok bool) {
 
 // RoleID returns the value of the 'role_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) RoleID() string {
 	if o != nil && o.bitmap_&1024 != 0 {
 		return o.roleID
@@ -287,8 +255,6 @@ func (o *RoleBinding) RoleID() string {
 
 // GetRoleID returns the value of the 'role_ID' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetRoleID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1024 != 0
 	if ok {
@@ -299,8 +265,6 @@ func (o *RoleBinding) GetRoleID() (value string, ok bool) {
 
 // Subscription returns the value of the 'subscription' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) Subscription() *Subscription {
 	if o != nil && o.bitmap_&2048 != 0 {
 		return o.subscription
@@ -310,8 +274,6 @@ func (o *RoleBinding) Subscription() *Subscription {
 
 // GetSubscription returns the value of the 'subscription' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetSubscription() (value *Subscription, ok bool) {
 	ok = o != nil && o.bitmap_&2048 != 0
 	if ok {
@@ -322,8 +284,6 @@ func (o *RoleBinding) GetSubscription() (value *Subscription, ok bool) {
 
 // SubscriptionID returns the value of the 'subscription_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) SubscriptionID() string {
 	if o != nil && o.bitmap_&4096 != 0 {
 		return o.subscriptionID
@@ -333,8 +293,6 @@ func (o *RoleBinding) SubscriptionID() string {
 
 // GetSubscriptionID returns the value of the 'subscription_ID' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetSubscriptionID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&4096 != 0
 	if ok {
@@ -345,8 +303,6 @@ func (o *RoleBinding) GetSubscriptionID() (value string, ok bool) {
 
 // Type returns the value of the 'type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) Type() string {
 	if o != nil && o.bitmap_&8192 != 0 {
 		return o.type_
@@ -356,8 +312,6 @@ func (o *RoleBinding) Type() string {
 
 // GetType returns the value of the 'type' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8192 != 0
 	if ok {
@@ -368,8 +322,6 @@ func (o *RoleBinding) GetType() (value string, ok bool) {
 
 // UpdatedAt returns the value of the 'updated_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *RoleBinding) UpdatedAt() time.Time {
 	if o != nil && o.bitmap_&16384 != 0 {
 		return o.updatedAt
@@ -379,8 +331,6 @@ func (o *RoleBinding) UpdatedAt() time.Time {
 
 // GetUpdatedAt returns the value of the 'updated_at' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *RoleBinding) GetUpdatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&16384 != 0
 	if ok {

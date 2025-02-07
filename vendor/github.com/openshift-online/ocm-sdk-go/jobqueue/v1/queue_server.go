@@ -64,8 +64,6 @@ type QueueGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *QueueGetServerResponse) Body(value *Queue) *QueueGetServerResponse {
 	r.body = value
 	return r
@@ -97,72 +95,54 @@ type QueuePopServerResponse struct {
 }
 
 // HREF sets the value of the 'HREF' parameter.
-//
-//
 func (r *QueuePopServerResponse) HREF(value string) *QueuePopServerResponse {
 	r.href = &value
 	return r
 }
 
 // ID sets the value of the 'ID' parameter.
-//
-//
 func (r *QueuePopServerResponse) ID(value string) *QueuePopServerResponse {
 	r.id = &value
 	return r
 }
 
 // AbandonedAt sets the value of the 'abandoned_at' parameter.
-//
-//
 func (r *QueuePopServerResponse) AbandonedAt(value time.Time) *QueuePopServerResponse {
 	r.abandonedAt = &value
 	return r
 }
 
 // Arguments sets the value of the 'arguments' parameter.
-//
-//
 func (r *QueuePopServerResponse) Arguments(value string) *QueuePopServerResponse {
 	r.arguments = &value
 	return r
 }
 
 // Attempts sets the value of the 'attempts' parameter.
-//
-//
 func (r *QueuePopServerResponse) Attempts(value int) *QueuePopServerResponse {
 	r.attempts = &value
 	return r
 }
 
 // CreatedAt sets the value of the 'created_at' parameter.
-//
-//
 func (r *QueuePopServerResponse) CreatedAt(value time.Time) *QueuePopServerResponse {
 	r.createdAt = &value
 	return r
 }
 
 // Kind sets the value of the 'kind' parameter.
-//
-//
 func (r *QueuePopServerResponse) Kind(value string) *QueuePopServerResponse {
 	r.kind = &value
 	return r
 }
 
 // ReceiptId sets the value of the 'receipt_id' parameter.
-//
-//
 func (r *QueuePopServerResponse) ReceiptId(value string) *QueuePopServerResponse {
 	r.receiptId = &value
 	return r
 }
 
 // UpdatedAt sets the value of the 'updated_at' parameter.
-//
-//
 func (r *QueuePopServerResponse) UpdatedAt(value time.Time) *QueuePopServerResponse {
 	r.updatedAt = &value
 	return r
@@ -183,8 +163,6 @@ type QueuePushServerRequest struct {
 }
 
 // AbandonedAt returns the value of the 'abandoned_at' parameter.
-//
-//
 func (r *QueuePushServerRequest) AbandonedAt() time.Time {
 	if r != nil && r.abandonedAt != nil {
 		return *r.abandonedAt
@@ -194,8 +172,6 @@ func (r *QueuePushServerRequest) AbandonedAt() time.Time {
 
 // GetAbandonedAt returns the value of the 'abandoned_at' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *QueuePushServerRequest) GetAbandonedAt() (value time.Time, ok bool) {
 	ok = r != nil && r.abandonedAt != nil
 	if ok {
@@ -205,8 +181,6 @@ func (r *QueuePushServerRequest) GetAbandonedAt() (value time.Time, ok bool) {
 }
 
 // Arguments returns the value of the 'arguments' parameter.
-//
-//
 func (r *QueuePushServerRequest) Arguments() string {
 	if r != nil && r.arguments != nil {
 		return *r.arguments
@@ -216,8 +190,6 @@ func (r *QueuePushServerRequest) Arguments() string {
 
 // GetArguments returns the value of the 'arguments' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *QueuePushServerRequest) GetArguments() (value string, ok bool) {
 	ok = r != nil && r.arguments != nil
 	if ok {
@@ -227,8 +199,6 @@ func (r *QueuePushServerRequest) GetArguments() (value string, ok bool) {
 }
 
 // Attempts returns the value of the 'attempts' parameter.
-//
-//
 func (r *QueuePushServerRequest) Attempts() int {
 	if r != nil && r.attempts != nil {
 		return *r.attempts
@@ -238,8 +208,6 @@ func (r *QueuePushServerRequest) Attempts() int {
 
 // GetAttempts returns the value of the 'attempts' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *QueuePushServerRequest) GetAttempts() (value int, ok bool) {
 	ok = r != nil && r.attempts != nil
 	if ok {
@@ -249,8 +217,6 @@ func (r *QueuePushServerRequest) GetAttempts() (value int, ok bool) {
 }
 
 // CreatedAt returns the value of the 'created_at' parameter.
-//
-//
 func (r *QueuePushServerRequest) CreatedAt() time.Time {
 	if r != nil && r.createdAt != nil {
 		return *r.createdAt
@@ -260,8 +226,6 @@ func (r *QueuePushServerRequest) CreatedAt() time.Time {
 
 // GetCreatedAt returns the value of the 'created_at' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *QueuePushServerRequest) GetCreatedAt() (value time.Time, ok bool) {
 	ok = r != nil && r.createdAt != nil
 	if ok {
@@ -286,72 +250,54 @@ type QueuePushServerResponse struct {
 }
 
 // HREF sets the value of the 'HREF' parameter.
-//
-//
 func (r *QueuePushServerResponse) HREF(value string) *QueuePushServerResponse {
 	r.href = &value
 	return r
 }
 
 // ID sets the value of the 'ID' parameter.
-//
-//
 func (r *QueuePushServerResponse) ID(value string) *QueuePushServerResponse {
 	r.id = &value
 	return r
 }
 
 // AbandonedAt sets the value of the 'abandoned_at' parameter.
-//
-//
 func (r *QueuePushServerResponse) AbandonedAt(value time.Time) *QueuePushServerResponse {
 	r.abandonedAt = &value
 	return r
 }
 
 // Arguments sets the value of the 'arguments' parameter.
-//
-//
 func (r *QueuePushServerResponse) Arguments(value string) *QueuePushServerResponse {
 	r.arguments = &value
 	return r
 }
 
 // Attempts sets the value of the 'attempts' parameter.
-//
-//
 func (r *QueuePushServerResponse) Attempts(value int) *QueuePushServerResponse {
 	r.attempts = &value
 	return r
 }
 
 // CreatedAt sets the value of the 'created_at' parameter.
-//
-//
 func (r *QueuePushServerResponse) CreatedAt(value time.Time) *QueuePushServerResponse {
 	r.createdAt = &value
 	return r
 }
 
 // Kind sets the value of the 'kind' parameter.
-//
-//
 func (r *QueuePushServerResponse) Kind(value string) *QueuePushServerResponse {
 	r.kind = &value
 	return r
 }
 
 // ReceiptId sets the value of the 'receipt_id' parameter.
-//
-//
 func (r *QueuePushServerResponse) ReceiptId(value string) *QueuePushServerResponse {
 	r.receiptId = &value
 	return r
 }
 
 // UpdatedAt sets the value of the 'updated_at' parameter.
-//
-//
 func (r *QueuePushServerResponse) UpdatedAt(value time.Time) *QueuePushServerResponse {
 	r.updatedAt = &value
 	return r

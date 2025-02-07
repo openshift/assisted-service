@@ -131,7 +131,8 @@ func newDoubleArray() *doubleArray {
 // baseCheck contains BASE, CHECK and Extra flags.
 // From the top, 22bits of BASE, 2bits of Extra flags and 8bits of CHECK.
 //
-//  BASE (22bit) | Extra flags (2bit) | CHECK (8bit)
+//	BASE (22bit) | Extra flags (2bit) | CHECK (8bit)
+//
 // |----------------------|--|--------|
 // 32                    10  8         0
 type baseCheck uint32
@@ -431,7 +432,7 @@ func makeRecords(srcs []Record) (statics, params []*record) {
 	wildcardPrefix := string(SeparatorCharacter) + string(WildcardCharacter)
 	restconfPrefix := string(PathParamCharacter) + string(ParamCharacter)
 	for _, r := range srcs {
-		if strings.Contains(r.Key, paramPrefix) || strings.Contains(r.Key, wildcardPrefix) ||strings.Contains(r.Key, restconfPrefix){
+		if strings.Contains(r.Key, paramPrefix) || strings.Contains(r.Key, wildcardPrefix) || strings.Contains(r.Key, restconfPrefix) {
 			r.Key += termChar
 			params = append(params, &record{Record: r})
 		} else {

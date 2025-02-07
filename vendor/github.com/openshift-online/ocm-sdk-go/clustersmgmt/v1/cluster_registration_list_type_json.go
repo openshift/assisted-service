@@ -60,7 +60,7 @@ func UnmarshalClusterRegistrationList(source interface{}) (items []*ClusterRegis
 	return
 }
 
-// readClusterRegistrationList reads list of values of the ''cluster_registration' type from
+// readClusterRegistrationList reads list of values of the ”cluster_registration' type from
 // the given iterator.
 func readClusterRegistrationList(iterator *jsoniter.Iterator) []*ClusterRegistration {
 	list := []*ClusterRegistration{}

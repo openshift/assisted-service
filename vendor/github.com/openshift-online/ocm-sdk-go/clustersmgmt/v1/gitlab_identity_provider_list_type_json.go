@@ -60,7 +60,7 @@ func UnmarshalGitlabIdentityProviderList(source interface{}) (items []*GitlabIde
 	return
 }
 
-// readGitlabIdentityProviderList reads list of values of the ''gitlab_identity_provider' type from
+// readGitlabIdentityProviderList reads list of values of the ”gitlab_identity_provider' type from
 // the given iterator.
 func readGitlabIdentityProviderList(iterator *jsoniter.Iterator) []*GitlabIdentityProvider {
 	list := []*GitlabIdentityProvider{}

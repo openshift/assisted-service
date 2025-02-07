@@ -48,8 +48,6 @@ type CurrentAccountGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *CurrentAccountGetServerResponse) Body(value *Account) *CurrentAccountGetServerResponse {
 	r.body = value
 	return r

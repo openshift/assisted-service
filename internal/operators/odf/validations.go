@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
+	"golang.org/x/net/context"
 )
 
 type odfClusterResourcesInfo struct {
@@ -86,7 +87,7 @@ func (o *operator) computeNodeResourceUtil(
 		return status, errors.New("Missing Inventory in some of the hosts ") // to indicate that inventory is empty and the ValidationStatus must be Pending
 	}
 
-	inventory, err := common.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(context.Background(), host.Inventory)
 	if err != nil {
 		status = "Failed to parse the inventory of some of the hosts"
 		return status, err

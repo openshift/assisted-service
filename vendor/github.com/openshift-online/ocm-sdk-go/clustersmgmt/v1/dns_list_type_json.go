@@ -60,7 +60,7 @@ func UnmarshalDNSList(source interface{}) (items []*DNS, err error) {
 	return
 }
 
-// readDNSList reads list of values of the ''DNS' type from
+// readDNSList reads list of values of the ”DNS' type from
 // the given iterator.
 func readDNSList(iterator *jsoniter.Iterator) []*DNS {
 	list := []*DNS{}

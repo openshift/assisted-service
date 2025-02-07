@@ -48,8 +48,6 @@ type NodesMetricQueryGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *NodesMetricQueryGetServerResponse) Body(value *NodesInfo) *NodesMetricQueryGetServerResponse {
 	r.body = value
 	return r

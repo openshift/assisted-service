@@ -60,7 +60,7 @@ func UnmarshalSelfTermsReviewRequestList(source interface{}) (items []*SelfTerms
 	return
 }
 
-// readSelfTermsReviewRequestList reads list of values of the ''self_terms_review_request' type from
+// readSelfTermsReviewRequestList reads list of values of the ”self_terms_review_request' type from
 // the given iterator.
 func readSelfTermsReviewRequestList(iterator *jsoniter.Iterator) []*SelfTermsReviewRequest {
 	list := []*SelfTermsReviewRequest{}

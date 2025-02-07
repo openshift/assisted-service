@@ -42,8 +42,6 @@ type SubscriptionNotifyAddServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *SubscriptionNotifyAddServerRequest) Body() *SubscriptionNotify {
 	if r == nil {
 		return nil
@@ -53,8 +51,6 @@ func (r *SubscriptionNotifyAddServerRequest) Body() *SubscriptionNotify {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *SubscriptionNotifyAddServerRequest) GetBody() (value *SubscriptionNotify, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -71,8 +67,6 @@ type SubscriptionNotifyAddServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *SubscriptionNotifyAddServerResponse) Body(value *SubscriptionNotify) *SubscriptionNotifyAddServerResponse {
 	r.body = value
 	return r

@@ -60,7 +60,7 @@ func UnmarshalHTPasswdIdentityProviderList(source interface{}) (items []*HTPassw
 	return
 }
 
-// readHTPasswdIdentityProviderList reads list of values of the ''HT_passwd_identity_provider' type from
+// readHTPasswdIdentityProviderList reads list of values of the ”HT_passwd_identity_provider' type from
 // the given iterator.
 func readHTPasswdIdentityProviderList(iterator *jsoniter.Iterator) []*HTPasswdIdentityProvider {
 	list := []*HTPasswdIdentityProvider{}

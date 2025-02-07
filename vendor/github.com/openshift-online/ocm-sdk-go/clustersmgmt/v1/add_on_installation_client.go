@@ -180,16 +180,12 @@ func (r *AddOnInstallationPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AddOnInstallationPollResponse) Body() *AddOnInstallation {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AddOnInstallationPollResponse) GetBody() (value *AddOnInstallation, ok bool) {
 	return r.response.GetBody()
 }
@@ -396,8 +392,6 @@ func (r *AddOnInstallationGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AddOnInstallationGetResponse) Body() *AddOnInstallation {
 	if r == nil {
 		return nil
@@ -407,8 +401,6 @@ func (r *AddOnInstallationGetResponse) Body() *AddOnInstallation {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AddOnInstallationGetResponse) GetBody() (value *AddOnInstallation, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -439,8 +431,6 @@ func (r *AddOnInstallationUpdateRequest) Header(name string, value interface{}) 
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *AddOnInstallationUpdateRequest) Body(value *AddOnInstallation) *AddOnInstallationUpdateRequest {
 	r.body = value
 	return r
@@ -542,8 +532,6 @@ func (r *AddOnInstallationUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AddOnInstallationUpdateResponse) Body() *AddOnInstallation {
 	if r == nil {
 		return nil
@@ -553,8 +541,6 @@ func (r *AddOnInstallationUpdateResponse) Body() *AddOnInstallation {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AddOnInstallationUpdateResponse) GetBody() (value *AddOnInstallation, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

@@ -1,6 +1,7 @@
 package network
 
 import (
+	"context"
 	"encoding/json"
 	stderrors "errors"
 	"fmt"
@@ -92,14 +93,14 @@ func getDefaultMetricForInterface(interfaceName string, routes []*models.Route, 
 
 // Create candidates for host.  For an address to be considered as eligible IP, it has to be connected, and its interface must
 // have default route.
-func createHostCandidates(host *models.Host, connectivity *Connectivity, isIpv4 bool) (*hostCandidates, error) {
+func createHostCandidates(ctx context.Context, host *models.Host, connectivity *Connectivity, isIpv4 bool) (*hostCandidates, error) {
 	connectedAddresses := connectivity.L3ConnectedAddresses[lo.FromPtr(host.ID)]
 	if len(connectedAddresses) == 0 {
 		return nil, errors.Errorf("no address found for host %s", lo.FromPtr(host.ID))
 	}
 	connectedIps := lo.Map(lo.Filter(connectedAddresses, func(addrStr string, _ int) bool { return isIpv4 == IsIPv4Addr(addrStr) }),
 		func(addrStr string, _ int) net.IP { return net.ParseIP(addrStr) })
-	inventory, err := common.UnmarshalInventory(host.Inventory)
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal inventory for host %s", lo.FromPtr(host.ID))
 	}
@@ -142,9 +143,9 @@ func createHostCandidates(host *models.Host, connectivity *Connectivity, isIpv4 
 	}, nil
 }
 
-func createHostsCandidates(hosts []*models.Host, connectivity *Connectivity, isIpv4 bool) (candidates []*hostCandidates, err error) {
+func createHostsCandidates(ctx context.Context, hosts []*models.Host, connectivity *Connectivity, isIpv4 bool) (candidates []*hostCandidates, err error) {
 	for _, h := range hosts {
-		c, err := createHostCandidates(h, connectivity, isIpv4)
+		c, err := createHostCandidates(ctx, h, connectivity, isIpv4)
 		if err != nil {
 			return nil, err
 		}
@@ -282,7 +283,7 @@ func (n *nodeIpAllocator) allocateNodeIps() (map[strfmt.UUID]*NodeIpAllocation, 
 	return result, nil
 }
 
-func GenerateNonePlatformAddressAllocation(cluster *common.Cluster, log logrus.FieldLogger) (map[strfmt.UUID]*NodeIpAllocation, error) {
+func GenerateNonePlatformAddressAllocation(ctx context.Context, cluster *common.Cluster, log logrus.FieldLogger) (map[strfmt.UUID]*NodeIpAllocation, error) {
 	addressFamilies, err := GetClusterAddressFamilies(cluster)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed tp get address families for cluster %s", lo.FromPtr(cluster.ID))
@@ -304,7 +305,7 @@ func GenerateNonePlatformAddressAllocation(cluster *common.Cluster, log logrus.F
 	if len(cluster.Hosts) != len(connectivity.L3ConnectedAddresses) {
 		return nil, errors.Errorf("not all the hosts are connected.  Skipping address allocation for cluster %s", lo.FromPtr(cluster.ID))
 	}
-	candidates, err := createHostsCandidates(cluster.Hosts, &connectivity, isIpv4)
+	candidates, err := createHostsCandidates(ctx, cluster.Hosts, &connectivity, isIpv4)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create hosts candidates for cluster %s", lo.FromPtr(cluster.ID))
 	}

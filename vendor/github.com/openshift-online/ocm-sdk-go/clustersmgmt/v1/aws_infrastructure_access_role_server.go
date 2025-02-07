@@ -48,8 +48,6 @@ type AWSInfrastructureAccessRoleGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *AWSInfrastructureAccessRoleGetServerResponse) Body(value *AWSInfrastructureAccessRole) *AWSInfrastructureAccessRoleGetServerResponse {
 	r.body = value
 	return r

@@ -34,8 +34,6 @@ func NewFeatureReviewResponse() *FeatureReviewResponseBuilder {
 }
 
 // Enabled sets the value of the 'enabled' attribute to the given value.
-//
-//
 func (b *FeatureReviewResponseBuilder) Enabled(value bool) *FeatureReviewResponseBuilder {
 	b.enabled = value
 	b.bitmap_ |= 1
@@ -43,8 +41,6 @@ func (b *FeatureReviewResponseBuilder) Enabled(value bool) *FeatureReviewRespons
 }
 
 // FeatureID sets the value of the 'feature_ID' attribute to the given value.
-//
-//
 func (b *FeatureReviewResponseBuilder) FeatureID(value string) *FeatureReviewResponseBuilder {
 	b.featureID = value
 	b.bitmap_ |= 2

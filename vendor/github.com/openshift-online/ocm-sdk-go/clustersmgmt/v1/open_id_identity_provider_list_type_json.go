@@ -60,7 +60,7 @@ func UnmarshalOpenIDIdentityProviderList(source interface{}) (items []*OpenIDIde
 	return
 }
 
-// readOpenIDIdentityProviderList reads list of values of the ''open_ID_identity_provider' type from
+// readOpenIDIdentityProviderList reads list of values of the ”open_ID_identity_provider' type from
 // the given iterator.
 func readOpenIDIdentityProviderList(iterator *jsoniter.Iterator) []*OpenIDIdentityProvider {
 	list := []*OpenIDIdentityProvider{}

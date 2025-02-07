@@ -176,16 +176,12 @@ func (r *FlavourPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *FlavourPollResponse) Body() *Flavour {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *FlavourPollResponse) GetBody() (value *Flavour, ok bool) {
 	return r.response.GetBody()
 }
@@ -298,8 +294,6 @@ func (r *FlavourGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *FlavourGetResponse) Body() *Flavour {
 	if r == nil {
 		return nil
@@ -309,8 +303,6 @@ func (r *FlavourGetResponse) Body() *Flavour {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *FlavourGetResponse) GetBody() (value *Flavour, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -341,8 +333,6 @@ func (r *FlavourUpdateRequest) Header(name string, value interface{}) *FlavourUp
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *FlavourUpdateRequest) Body(value *Flavour) *FlavourUpdateRequest {
 	r.body = value
 	return r
@@ -444,8 +434,6 @@ func (r *FlavourUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *FlavourUpdateResponse) Body() *Flavour {
 	if r == nil {
 		return nil
@@ -455,8 +443,6 @@ func (r *FlavourUpdateResponse) Body() *Flavour {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *FlavourUpdateResponse) GetBody() (value *Flavour, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

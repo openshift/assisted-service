@@ -60,7 +60,7 @@ func UnmarshalSupportCaseResponseList(source interface{}) (items []*SupportCaseR
 	return
 }
 
-// readSupportCaseResponseList reads list of values of the ''support_case_response' type from
+// readSupportCaseResponseList reads list of values of the ”support_case_response' type from
 // the given iterator.
 func readSupportCaseResponseList(iterator *jsoniter.Iterator) []*SupportCaseResponse {
 	list := []*SupportCaseResponse{}

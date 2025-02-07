@@ -156,8 +156,6 @@ func (r *AccessTokenPostResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AccessTokenPostResponse) Body() *AccessToken {
 	if r == nil {
 		return nil
@@ -167,8 +165,6 @@ func (r *AccessTokenPostResponse) Body() *AccessToken {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AccessTokenPostResponse) GetBody() (value *AccessToken, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

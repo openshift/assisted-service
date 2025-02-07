@@ -166,16 +166,12 @@ func (r *UserPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *UserPollResponse) Body() *User {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *UserPollResponse) GetBody() (value *User, ok bool) {
 	return r.response.GetBody()
 }
@@ -382,8 +378,6 @@ func (r *UserGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *UserGetResponse) Body() *User {
 	if r == nil {
 		return nil
@@ -393,8 +387,6 @@ func (r *UserGetResponse) Body() *User {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *UserGetResponse) GetBody() (value *User, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

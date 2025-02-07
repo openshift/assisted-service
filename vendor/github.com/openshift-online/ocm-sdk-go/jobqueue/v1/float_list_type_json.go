@@ -60,7 +60,7 @@ func UnmarshalFloatList(source interface{}) (items []float64, err error) {
 	return
 }
 
-// readFloatList reads list of values of the ''float' type from
+// readFloatList reads list of values of the ”float' type from
 // the given iterator.
 func readFloatList(iterator *jsoniter.Iterator) []float64 {
 	list := []float64{}

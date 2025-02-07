@@ -383,16 +383,12 @@ func (r *ClusterPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *ClusterPollResponse) Body() *Cluster {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ClusterPollResponse) GetBody() (value *Cluster, ok bool) {
 	return r.response.GetBody()
 }
@@ -612,8 +608,6 @@ func (r *ClusterGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *ClusterGetResponse) Body() *Cluster {
 	if r == nil {
 		return nil
@@ -623,8 +617,6 @@ func (r *ClusterGetResponse) Body() *Cluster {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ClusterGetResponse) GetBody() (value *Cluster, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -843,8 +835,6 @@ func (r *ClusterUpdateRequest) Header(name string, value interface{}) *ClusterUp
 }
 
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *ClusterUpdateRequest) Body(value *Cluster) *ClusterUpdateRequest {
 	r.body = value
 	return r
@@ -946,8 +936,6 @@ func (r *ClusterUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *ClusterUpdateResponse) Body() *Cluster {
 	if r == nil {
 		return nil
@@ -957,8 +945,6 @@ func (r *ClusterUpdateResponse) Body() *Cluster {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ClusterUpdateResponse) GetBody() (value *Cluster, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

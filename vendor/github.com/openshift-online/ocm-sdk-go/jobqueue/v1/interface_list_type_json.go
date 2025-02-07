@@ -60,7 +60,7 @@ func UnmarshalInterfaceList(source interface{}) (items []interface{}, err error)
 	return
 }
 
-// readInterfaceList reads list of values of the ''interface' type from
+// readInterfaceList reads list of values of the ”interface' type from
 // the given iterator.
 func readInterfaceList(iterator *jsoniter.Iterator) []interface{} {
 	list := []interface{}{}

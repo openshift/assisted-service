@@ -36,8 +36,6 @@ func NewGitlabIdentityProvider() *GitlabIdentityProviderBuilder {
 }
 
 // CA sets the value of the 'CA' attribute to the given value.
-//
-//
 func (b *GitlabIdentityProviderBuilder) CA(value string) *GitlabIdentityProviderBuilder {
 	b.ca = value
 	b.bitmap_ |= 1
@@ -45,8 +43,6 @@ func (b *GitlabIdentityProviderBuilder) CA(value string) *GitlabIdentityProvider
 }
 
 // URL sets the value of the 'URL' attribute to the given value.
-//
-//
 func (b *GitlabIdentityProviderBuilder) URL(value string) *GitlabIdentityProviderBuilder {
 	b.url = value
 	b.bitmap_ |= 2
@@ -54,8 +50,6 @@ func (b *GitlabIdentityProviderBuilder) URL(value string) *GitlabIdentityProvide
 }
 
 // ClientID sets the value of the 'client_ID' attribute to the given value.
-//
-//
 func (b *GitlabIdentityProviderBuilder) ClientID(value string) *GitlabIdentityProviderBuilder {
 	b.clientID = value
 	b.bitmap_ |= 4
@@ -63,8 +57,6 @@ func (b *GitlabIdentityProviderBuilder) ClientID(value string) *GitlabIdentityPr
 }
 
 // ClientSecret sets the value of the 'client_secret' attribute to the given value.
-//
-//
 func (b *GitlabIdentityProviderBuilder) ClientSecret(value string) *GitlabIdentityProviderBuilder {
 	b.clientSecret = value
 	b.bitmap_ |= 8

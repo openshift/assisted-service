@@ -60,7 +60,7 @@ func UnmarshalCloudVPCList(source interface{}) (items []*CloudVPC, err error) {
 	return
 }
 
-// readCloudVPCList reads list of values of the ''cloud_VPC' type from
+// readCloudVPCList reads list of values of the ”cloud_VPC' type from
 // the given iterator.
 func readCloudVPCList(iterator *jsoniter.Iterator) []*CloudVPC {
 	list := []*CloudVPC{}
