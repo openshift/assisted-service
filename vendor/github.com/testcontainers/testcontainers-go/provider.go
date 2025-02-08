@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/testcontainers/testcontainers-go/internal/core"
 )
 
 // possible provider types
@@ -138,22 +136,24 @@ func NewDockerProvider(provOpts ...DockerProviderOption) (*DockerProvider, error
 		provOpts[idx].ApplyDockerTo(o)
 	}
 
-	ctx := context.Background()
-	c, err := NewDockerClientWithOpts(ctx)
+	c, err := NewDockerClient()
 	if err != nil {
 		return nil, err
 	}
 
 	tcConfig := ReadConfig()
 
-	dockerHost := core.ExtractDockerHost(ctx)
-
 	p := &DockerProvider{
 		DockerProviderOptions: o,
-		host:                  dockerHost,
+		host:                  tcConfig.Host,
 		client:                c,
 		config:                tcConfig,
 	}
+
+	// log docker server info only once
+	logOnce.Do(func() {
+		LogDockerServerInfo(context.Background(), p.client, p.Logger)
+	})
 
 	return p, nil
 }
