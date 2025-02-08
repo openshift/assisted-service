@@ -14,7 +14,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -29,17 +28,23 @@ import (
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/go-connections/nat"
+	"github.com/google/uuid"
 	"github.com/moby/term"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
-
 	tcexec "github.com/testcontainers/testcontainers-go/exec"
-	"github.com/testcontainers/testcontainers-go/internal/config"
-	"github.com/testcontainers/testcontainers-go/internal/core"
+	"github.com/testcontainers/testcontainers-go/internal"
+	"github.com/testcontainers/testcontainers-go/internal/testcontainersdocker"
+	"github.com/testcontainers/testcontainers-go/internal/testcontainerssession"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// Implement interfaces
-var _ Container = (*DockerContainer)(nil)
+var (
+	// Implement interfaces
+	_ Container = (*DockerContainer)(nil)
+
+	logOnce                 sync.Once
+	ErrDuplicateMountTarget = errors.New("duplicate mount target detected")
+)
 
 const (
 	Bridge        = "bridge" // Bridge network name (as well as driver)
@@ -50,8 +55,6 @@ const (
 	logStoppedForOutOfSyncMessage = "Stopping log consumer: Headers out of sync"
 )
 
-var createContainerFailDueToNameConflictRegex = regexp.MustCompile("Conflict. The container name .* is already in use by container .*")
-
 // DockerContainer represents a container started using Docker
 type DockerContainer struct {
 	// Container ID from Docker
@@ -59,22 +62,16 @@ type DockerContainer struct {
 	WaitingFor wait.Strategy
 	Image      string
 
-	isRunning     bool
-	imageWasBuilt bool
-	// keepBuiltImage makes Terminate not remove the image if imageWasBuilt.
-	keepBuiltImage       bool
-	provider             *DockerProvider
-	sessionID            string
-	terminationSignal    chan bool
-	consumers            []LogConsumer
-	raw                  *types.ContainerJSON
-	stopLogProductionCh  chan bool
-	logProductionDone    chan bool
-	logProductionError   chan error
-	logProductionMutex   sync.Mutex
-	logProductionTimeout *time.Duration
-	logger               Logging
-	lifecycleHooks       []ContainerLifecycleHooks
+	isRunning         bool
+	imageWasBuilt     bool
+	provider          *DockerProvider
+	sessionID         uuid.UUID
+	terminationSignal chan bool
+	consumers         []LogConsumer
+	raw               *types.ContainerJSON
+	stopProducer      chan bool
+	logger            Logging
+	lifecycleHooks    []ContainerLifecycleHooks
 }
 
 // SetLogger sets the logger for the container
@@ -186,7 +183,7 @@ func (c *DockerContainer) Ports(ctx context.Context) (nat.PortMap, error) {
 
 // SessionID gets the current session id
 func (c *DockerContainer) SessionID() string {
-	return c.sessionID
+	return c.sessionID.String()
 }
 
 // Start will start an already created container
@@ -196,19 +193,12 @@ func (c *DockerContainer) Start(ctx context.Context) error {
 		return err
 	}
 
-	if err := c.provider.client.ContainerStart(ctx, c.ID, container.StartOptions{}); err != nil {
+	if err := c.provider.client.ContainerStart(ctx, c.ID, types.ContainerStartOptions{}); err != nil {
 		return err
 	}
 	defer c.provider.Close()
 
 	err = c.startedHook(ctx)
-	if err != nil {
-		return err
-	}
-
-	c.isRunning = true
-
-	err = c.readiedHook(ctx)
 	if err != nil {
 		return err
 	}
@@ -255,20 +245,22 @@ func (c *DockerContainer) Stop(ctx context.Context, timeout *time.Duration) erro
 
 // Terminate is used to kill the container. It is usually triggered by as defer function.
 func (c *DockerContainer) Terminate(ctx context.Context) error {
-	select {
-	// close reaper if it was created
-	case c.terminationSignal <- true:
-	default:
-	}
-
-	defer c.provider.client.Close()
-
 	err := c.terminatingHook(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = c.provider.client.ContainerRemove(ctx, c.GetContainerID(), container.RemoveOptions{
+	err = c.StopLogProducer()
+	if err != nil {
+		return err
+	}
+
+	select {
+	// close reaper if it was created
+	case c.terminationSignal <- true:
+	default:
+	}
+	err = c.provider.client.ContainerRemove(ctx, c.GetContainerID(), types.ContainerRemoveOptions{
 		RemoveVolumes: true,
 		Force:         true,
 	})
@@ -281,7 +273,7 @@ func (c *DockerContainer) Terminate(ctx context.Context) error {
 		return err
 	}
 
-	if c.imageWasBuilt && !c.keepBuiltImage {
+	if c.imageWasBuilt {
 		_, err := c.provider.client.ImageRemove(ctx, c.Image, types.ImageRemoveOptions{
 			Force:         true,
 			PruneChildren: true,
@@ -291,29 +283,33 @@ func (c *DockerContainer) Terminate(ctx context.Context) error {
 		}
 	}
 
-	c.sessionID = ""
+	if err := c.provider.client.Close(); err != nil {
+		return err
+	}
+
+	c.sessionID = uuid.UUID{}
 	c.isRunning = false
 	return nil
 }
 
 // update container raw info
 func (c *DockerContainer) inspectRawContainer(ctx context.Context) (*types.ContainerJSON, error) {
-	defer c.provider.Close()
 	inspect, err := c.provider.client.ContainerInspect(ctx, c.ID)
 	if err != nil {
 		return nil, err
 	}
+	defer c.provider.Close()
 
 	c.raw = &inspect
 	return c.raw, nil
 }
 
 func (c *DockerContainer) inspectContainer(ctx context.Context) (*types.ContainerJSON, error) {
-	defer c.provider.Close()
 	inspect, err := c.provider.client.ContainerInspect(ctx, c.ID)
 	if err != nil {
 		return nil, err
 	}
+	defer c.provider.Close()
 
 	return &inspect, nil
 }
@@ -321,9 +317,10 @@ func (c *DockerContainer) inspectContainer(ctx context.Context) (*types.Containe
 // Logs will fetch both STDOUT and STDERR from the current container. Returns a
 // ReadCloser and leaves it up to the caller to extract what it wants.
 func (c *DockerContainer) Logs(ctx context.Context) (io.ReadCloser, error) {
+
 	const streamHeaderSize = 8
 
-	options := container.LogsOptions{
+	options := types.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 	}
@@ -338,7 +335,7 @@ func (c *DockerContainer) Logs(ctx context.Context) (io.ReadCloser, error) {
 	r := bufio.NewReader(rc)
 
 	go func() {
-		lineStarted := true
+		var lineStarted = true
 		for err == nil {
 			line, isPrefix, err := r.ReadLine()
 
@@ -372,14 +369,9 @@ func (c *DockerContainer) Logs(ctx context.Context) (io.ReadCloser, error) {
 	return pr, nil
 }
 
-// Deprecated: use the ContainerRequest.LogConsumerConfig field instead.
-func (c *DockerContainer) FollowOutput(consumer LogConsumer) {
-	c.followOutput(consumer)
-}
-
-// followOutput adds a LogConsumer to be sent logs from the container's
+// FollowOutput adds a LogConsumer to be sent logs from the container's
 // STDOUT and STDERR
-func (c *DockerContainer) followOutput(consumer LogConsumer) {
+func (c *DockerContainer) FollowOutput(consumer LogConsumer) {
 	c.consumers = append(c.consumers, consumer)
 }
 
@@ -480,16 +472,12 @@ func (c *DockerContainer) NetworkAliases(ctx context.Context) (map[string][]stri
 
 func (c *DockerContainer) Exec(ctx context.Context, cmd []string, options ...tcexec.ProcessOption) (int, io.Reader, error) {
 	cli := c.provider.client
-
-	processOptions := tcexec.NewProcessOptions(cmd)
-
-	// processing all the options in a first loop because for the multiplexed option
-	// we first need to have a containerExecCreateResponse
-	for _, o := range options {
-		o.Apply(processOptions)
-	}
-
-	response, err := cli.ContainerExecCreate(ctx, c.ID, processOptions.ExecConfig)
+	response, err := cli.ContainerExecCreate(ctx, c.ID, types.ExecConfig{
+		Cmd:          cmd,
+		Detach:       false,
+		AttachStdout: true,
+		AttachStderr: true,
+	})
 	if err != nil {
 		return 0, nil, err
 	}
@@ -499,12 +487,12 @@ func (c *DockerContainer) Exec(ctx context.Context, cmd []string, options ...tce
 		return 0, nil, err
 	}
 
-	processOptions.Reader = hijack.Reader
+	opt := &tcexec.ProcessOptions{
+		Reader: hijack.Reader,
+	}
 
-	// second loop to process the multiplexed option, as now we have a reader
-	// from the created exec response.
 	for _, o := range options {
-		o.Apply(processOptions)
+		o.Apply(opt)
 	}
 
 	var exitCode int
@@ -522,7 +510,7 @@ func (c *DockerContainer) Exec(ctx context.Context, cmd []string, options ...tce
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	return exitCode, processOptions.Reader, nil
+	return exitCode, opt.Reader, nil
 }
 
 type FileFromContainer struct {
@@ -616,7 +604,7 @@ func (c *DockerContainer) CopyToContainer(ctx context.Context, fileContent []byt
 		return err
 	}
 
-	err = c.provider.client.CopyToContainer(ctx, c.ID, "/", buffer, types.CopyToContainerOptions{})
+	err = c.provider.client.CopyToContainer(ctx, c.ID, filepath.Dir(containerFilePath), buffer, types.CopyToContainerOptions{})
 	if err != nil {
 		return err
 	}
@@ -625,98 +613,45 @@ func (c *DockerContainer) CopyToContainer(ctx context.Context, fileContent []byt
 	return nil
 }
 
-type LogProductionOption func(*DockerContainer)
-
-// WithLogProductionTimeout is a functional option that sets the timeout for the log production.
-// If the timeout is lower than 5s or greater than 60s it will be set to 5s or 60s respectively.
-func WithLogProductionTimeout(timeout time.Duration) LogProductionOption {
-	return func(c *DockerContainer) {
-		c.logProductionTimeout = &timeout
-	}
-}
-
-// Deprecated: use the ContainerRequest.LogConsumerConfig field instead.
-func (c *DockerContainer) StartLogProducer(ctx context.Context, opts ...LogProductionOption) error {
-	return c.startLogProduction(ctx, opts...)
-}
-
-// startLogProduction will start a concurrent process that will continuously read logs
-// from the container and will send them to each added LogConsumer.
-// Default log production timeout is 5s. It is used to set the context timeout
-// which means that each log-reading loop will last at least the specified timeout
-// and that it cannot be cancelled earlier.
-// Use functional option WithLogProductionTimeout() to override default timeout. If it's
-// lower than 5s and greater than 60s it will be set to 5s or 60s respectively.
-func (c *DockerContainer) startLogProduction(ctx context.Context, opts ...LogProductionOption) error {
-	{
-		c.logProductionMutex.Lock()
-		defer c.logProductionMutex.Unlock()
-
-		if c.stopLogProductionCh != nil {
-			return errors.New("log production already started")
-		}
+// StartLogProducer will start a concurrent process that will continuously read logs
+// from the container and will send them to each added LogConsumer
+func (c *DockerContainer) StartLogProducer(ctx context.Context) error {
+	if c.stopProducer != nil {
+		return errors.New("log producer already started")
 	}
 
-	for _, opt := range opts {
-		opt(c)
-	}
+	c.stopProducer = make(chan bool)
 
-	minLogProductionTimeout := time.Duration(5 * time.Second)
-	maxLogProductionTimeout := time.Duration(60 * time.Second)
-
-	if c.logProductionTimeout == nil {
-		c.logProductionTimeout = &minLogProductionTimeout
-	}
-
-	if *c.logProductionTimeout < minLogProductionTimeout {
-		c.logProductionTimeout = &minLogProductionTimeout
-	}
-
-	if *c.logProductionTimeout > maxLogProductionTimeout {
-		c.logProductionTimeout = &maxLogProductionTimeout
-	}
-
-	c.stopLogProductionCh = make(chan bool)
-	c.logProductionDone = make(chan bool)
-	c.logProductionError = make(chan error, 1)
-
-	go func(stop <-chan bool, done chan<- bool, errorCh chan error) {
-		// signal the log production is done once go routine exits, this prevents race conditions around start/stop
-		// set c.stopLogProductionCh to nil so that it can be started again
-		defer func() {
-			defer c.logProductionMutex.Unlock()
-			close(done)
-			close(errorCh)
-			{
-				c.logProductionMutex.Lock()
-				c.stopLogProductionCh = nil
-			}
-		}()
-
+	go func(stop <-chan bool) {
 		since := ""
 		// if the socket is closed we will make additional logs request with updated Since timestamp
 	BEGIN:
-		options := container.LogsOptions{
+		options := types.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Follow:     true,
 			Since:      since,
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, *c.logProductionTimeout)
+		ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 		defer cancel()
 
 		r, err := c.provider.client.ContainerLogs(ctx, c.GetContainerID(), options)
 		if err != nil {
-			errorCh <- err
-			return
+			// if we can't get the logs, panic, we can't return an error to anything
+			// from within this goroutine
+			panic(err)
 		}
 		defer c.provider.Close()
 
 		for {
 			select {
 			case <-stop:
-				errorCh <- r.Close()
+				err := r.Close()
+				if err != nil {
+					// we can't close the read closer, this should never happen
+					panic(err)
+				}
 				return
 			default:
 				h := make([]byte, 8)
@@ -772,36 +707,19 @@ func (c *DockerContainer) startLogProduction(ctx context.Context, opts ...LogPro
 				}
 			}
 		}
-	}(c.stopLogProductionCh, c.logProductionDone, c.logProductionError)
+	}(c.stopProducer)
 
 	return nil
-}
-
-// Deprecated: it will be removed in the next major release.
-func (c *DockerContainer) StopLogProducer() error {
-	return c.stopLogProduction()
 }
 
 // StopLogProducer will stop the concurrent process that is reading logs
 // and sending them to each added LogConsumer
-func (c *DockerContainer) stopLogProduction() error {
-	c.logProductionMutex.Lock()
-	defer c.logProductionMutex.Unlock()
-	if c.stopLogProductionCh != nil {
-		c.stopLogProductionCh <- true
-		// block until the log production is actually done in order to avoid strange races
-		<-c.logProductionDone
-		c.stopLogProductionCh = nil
-		c.logProductionDone = nil
-		return <-c.logProductionError
+func (c *DockerContainer) StopLogProducer() error {
+	if c.stopProducer != nil {
+		c.stopProducer <- true
+		c.stopProducer = nil
 	}
 	return nil
-}
-
-// GetLogProductionErrorChannel exposes the only way for the consumer
-// to be able to listen to errors and react to them.
-func (c *DockerContainer) GetLogProductionErrorChannel() <-chan error {
-	return c.logProductionError
 }
 
 // DockerNetwork represents a network started using Docker
@@ -821,9 +739,13 @@ func (n *DockerNetwork) Remove(ctx context.Context) error {
 	default:
 	}
 
+	err := n.provider.client.NetworkRemove(ctx, n.ID)
+	if err != nil {
+		return err
+	}
 	defer n.provider.Close()
 
-	return n.provider.client.NetworkRemove(ctx, n.ID)
+	return nil
 }
 
 // DockerProvider implements the ContainerProvider interface
@@ -856,18 +778,37 @@ func (p *DockerProvider) SetClient(c client.APIClient) {
 
 var _ ContainerProvider = (*DockerProvider)(nil)
 
+func NewDockerClient() (cli *client.Client, err error) {
+	return testcontainersdocker.NewClient(context.Background())
+}
+
 // BuildImage will build and image from context and Dockerfile, then return the tag
 func (p *DockerProvider) BuildImage(ctx context.Context, img ImageBuildInfo) (string, error) {
-	buildOptions, err := img.BuildOptions()
+	repo := uuid.New()
+	tag := uuid.New()
 
-	var buildError error
+	repoTag := fmt.Sprintf("%s:%s", repo, tag)
+
+	buildContext, err := img.GetContext()
+	if err != nil {
+		return "", err
+	}
+
+	buildOptions := types.ImageBuildOptions{
+		BuildArgs:   img.GetBuildArgs(),
+		Dockerfile:  img.GetDockerfile(),
+		AuthConfigs: img.GetAuthConfigs(),
+		Context:     buildContext,
+		Tags:        []string{repoTag},
+		Remove:      true,
+		ForceRemove: true,
+	}
+
 	var resp types.ImageBuildResponse
 	err = backoff.Retry(func() error {
-		resp, err = p.client.ImageBuild(ctx, buildOptions.Context, buildOptions)
+		resp, err = p.client.ImageBuild(ctx, buildContext, buildOptions)
 		if err != nil {
-			buildError = errors.Join(buildError, err)
-			var enf errdefs.ErrNotFound
-			if errors.As(err, &enf) {
+			if _, ok := err.(errdefs.ErrNotFound); ok {
 				return backoff.Permanent(err)
 			}
 			Logger.Printf("Failed to build image: %s, will retry", err)
@@ -878,7 +819,7 @@ func (p *DockerProvider) BuildImage(ctx context.Context, img ImageBuildInfo) (st
 		return nil
 	}, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
 	if err != nil {
-		return "", errors.Join(buildError, err)
+		return "", err
 	}
 
 	if img.ShouldPrintBuildLog() {
@@ -899,8 +840,7 @@ func (p *DockerProvider) BuildImage(ctx context.Context, img ImageBuildInfo) (st
 
 	_ = resp.Body.Close()
 
-	// the first tag is the one we want
-	return buildOptions.Tags[0], nil
+	return repoTag, nil
 }
 
 // CreateContainer fulfills a request for a container without starting it
@@ -936,8 +876,6 @@ func (p *DockerProvider) CreateContainer(ctx context.Context, req ContainerReque
 		}
 	}
 
-	imageName := req.Image
-
 	env := []string{}
 	for envKey, envVar := range req.Env {
 		env = append(env, envKey+"="+envVar)
@@ -947,13 +885,20 @@ func (p *DockerProvider) CreateContainer(ctx context.Context, req ContainerReque
 		req.Labels = make(map[string]string)
 	}
 
+	reaperOpts := containerOptions{
+		ImageName: req.ReaperImage,
+	}
+	for _, opt := range req.ReaperOptions {
+		opt(&reaperOpts)
+	}
+
 	tcConfig := p.Config().Config
 
 	var termSignal chan bool
 	// the reaper does not need to start a reaper for itself
-	isReaperContainer := strings.HasSuffix(imageName, config.ReaperDefaultImage)
+	isReaperContainer := strings.EqualFold(req.Image, reaperImage(reaperOpts.ImageName))
 	if !tcConfig.RyukDisabled && !isReaperContainer {
-		r, err := reuseOrCreateReaper(context.WithValue(ctx, core.DockerHostContextKey, p.host), core.SessionID(), p)
+		r, err := reuseOrCreateReaper(context.WithValue(ctx, testcontainersdocker.DockerHostContextKey, p.host), testcontainerssession.String(), p, req.ReaperOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("%w: creating reaper failed", err)
 		}
@@ -961,42 +906,28 @@ func (p *DockerProvider) CreateContainer(ctx context.Context, req ContainerReque
 		if err != nil {
 			return nil, fmt.Errorf("%w: connecting to reaper failed", err)
 		}
-	}
-
-	// Cleanup on error, otherwise set termSignal to nil before successful return.
-	defer func() {
-		if termSignal != nil {
-			termSignal <- true
+		for k, v := range r.Labels() {
+			if _, ok := req.Labels[k]; !ok {
+				req.Labels[k] = v
+			}
 		}
-	}()
+	}
 
 	if err = req.Validate(); err != nil {
 		return nil, err
 	}
 
-	// always append the hub substitutor after the user-defined ones
-	req.ImageSubstitutors = append(req.ImageSubstitutors, newPrependHubRegistry(tcConfig.HubImageNamePrefix))
-
-	for _, is := range req.ImageSubstitutors {
-		modifiedTag, err := is.Substitute(imageName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to substitute image %s with %s: %w", imageName, is.Description(), err)
-		}
-
-		if modifiedTag != imageName {
-			p.Logger.Printf("✍🏼 Replacing image with %s. From: %s to %s\n", is.Description(), imageName, modifiedTag)
-			imageName = modifiedTag
-		}
-	}
-
+	var tag string
 	var platform *specs.Platform
 
 	if req.ShouldBuildImage() {
-		imageName, err = p.BuildImage(ctx, &req)
+		tag, err = p.BuildImage(ctx, &req)
 		if err != nil {
 			return nil, err
 		}
 	} else {
+		tag = req.Image
+
 		if req.ImagePlatform != "" {
 			p, err := platforms.Parse(req.ImagePlatform)
 			if err != nil {
@@ -1010,7 +941,7 @@ func (p *DockerProvider) CreateContainer(ctx context.Context, req ContainerReque
 		if req.AlwaysPullImage {
 			shouldPullImage = true // If requested always attempt to pull image
 		} else {
-			image, _, err := p.client.ImageInspectWithRaw(ctx, imageName)
+			image, _, err := p.client.ImageInspectWithRaw(ctx, tag)
 			if err != nil {
 				if client.IsErrNotFound(err) {
 					shouldPullImage = true
@@ -1028,41 +959,33 @@ func (p *DockerProvider) CreateContainer(ctx context.Context, req ContainerReque
 				Platform: req.ImagePlatform, // may be empty
 			}
 
-			registry, imageAuth, err := DockerImageAuth(ctx, imageName)
+			registry, imageAuth, err := DockerImageAuth(ctx, req.Image)
 			if err != nil {
-				p.Logger.Printf("Failed to get image auth for %s. Setting empty credentials for the image: %s. Error is:%s", registry, imageName, err)
+				p.Logger.Printf("Failed to get image auth for %s. Setting empty credentials for the image: %s. Error is:%s", registry, req.Image, err)
 			} else {
 				// see https://github.com/docker/docs/blob/e8e1204f914767128814dca0ea008644709c117f/engine/api/sdk/examples.md?plain=1#L649-L657
 				encodedJSON, err := json.Marshal(imageAuth)
 				if err != nil {
-					p.Logger.Printf("Failed to marshal image auth. Setting empty credentials for the image: %s. Error is:%s", imageName, err)
+					p.Logger.Printf("Failed to marshal image auth. Setting empty credentials for the image: %s. Error is:%s", req.Image, err)
 				} else {
 					pullOpt.RegistryAuth = base64.URLEncoding.EncodeToString(encodedJSON)
 				}
 			}
 
-			if err := p.attemptToPullImage(ctx, imageName, pullOpt); err != nil {
+			if err := p.attemptToPullImage(ctx, tag, pullOpt); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	if !isReaperContainer {
-		// add the labels that the reaper will use to terminate the container to the request
-		for k, v := range core.DefaultLabels(core.SessionID()) {
-			req.Labels[k] = v
-		}
-	}
-
 	dockerInput := &container.Config{
 		Entrypoint: req.Entrypoint,
-		Image:      imageName,
+		Image:      tag,
 		Env:        env,
 		Labels:     req.Labels,
 		Cmd:        req.Cmd,
 		Hostname:   req.Hostname,
 		User:       req.User,
-		WorkingDir: req.WorkingDir,
 	}
 
 	hostConfig := &container.HostConfig{
@@ -1076,13 +999,51 @@ func (p *DockerProvider) CreateContainer(ctx context.Context, req ContainerReque
 	// default hooks include logger hook and pre-create hook
 	defaultHooks := []ContainerLifecycleHooks{
 		DefaultLoggingHook(p.Logger),
-		defaultPreCreateHook(ctx, p, req, dockerInput, hostConfig, networkingConfig),
-		defaultCopyFileToContainerHook(req.Files),
-		defaultLogConsumersHook(req.LogConsumerCfg),
-		defaultReadinessHook(),
+		{
+			PreCreates: []ContainerRequestHook{
+				func(ctx context.Context, req ContainerRequest) error {
+					return p.preCreateContainerHook(ctx, req, dockerInput, hostConfig, networkingConfig)
+				},
+			},
+			PostCreates: []ContainerHook{
+				// copy files to container after it's created
+				func(ctx context.Context, c Container) error {
+					for _, f := range req.Files {
+						err := c.CopyFileToContainer(ctx, f.HostFilePath, f.ContainerFilePath, f.FileMode)
+						if err != nil {
+							return fmt.Errorf("can't copy %s to container: %w", f.HostFilePath, err)
+						}
+					}
+
+					return nil
+				},
+			},
+			PostStarts: []ContainerHook{
+				// first post-start hook is to wait for the container to be ready
+				func(ctx context.Context, c Container) error {
+					dockerContainer := c.(*DockerContainer)
+
+					// if a Wait Strategy has been specified, wait before returning
+					if dockerContainer.WaitingFor != nil {
+						dockerContainer.logger.Printf(
+							"🚧 Waiting for container id %s image: %s. Waiting for: %+v",
+							dockerContainer.ID[:12], dockerContainer.Image, dockerContainer.WaitingFor,
+						)
+						if err := dockerContainer.WaitingFor.WaitUntilReady(ctx, c); err != nil {
+							return err
+						}
+					}
+
+					dockerContainer.isRunning = true
+
+					return nil
+				},
+			},
+		},
 	}
 
-	req.LifecycleHooks = []ContainerLifecycleHooks{combineContainerHooks(defaultHooks, req.LifecycleHooks)}
+	// always prepend default lifecycle hooks to user-defined hooks
+	req.LifecycleHooks = append(defaultHooks, req.LifecycleHooks...)
 
 	err = req.creatingHook(ctx)
 	if err != nil {
@@ -1113,26 +1074,22 @@ func (p *DockerProvider) CreateContainer(ctx context.Context, req ContainerReque
 	}
 
 	c := &DockerContainer{
-		ID:                  resp.ID,
-		WaitingFor:          req.WaitingFor,
-		Image:               imageName,
-		imageWasBuilt:       req.ShouldBuildImage(),
-		keepBuiltImage:      req.ShouldKeepBuiltImage(),
-		sessionID:           core.SessionID(),
-		provider:            p,
-		terminationSignal:   termSignal,
-		stopLogProductionCh: nil,
-		logger:              p.Logger,
-		lifecycleHooks:      req.LifecycleHooks,
+		ID:                resp.ID,
+		WaitingFor:        req.WaitingFor,
+		Image:             tag,
+		imageWasBuilt:     req.ShouldBuildImage(),
+		sessionID:         testcontainerssession.ID(),
+		provider:          p,
+		terminationSignal: termSignal,
+		stopProducer:      nil,
+		logger:            p.Logger,
+		lifecycleHooks:    req.LifecycleHooks,
 	}
 
 	err = c.createdHook(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	// Disable cleanup on success
-	termSignal = nil
 
 	return c, nil
 }
@@ -1144,7 +1101,7 @@ func (p *DockerProvider) findContainerByName(ctx context.Context, name string) (
 
 	// Note that, 'name' filter will use regex to find the containers
 	filter := filters.NewArgs(filters.Arg("name", fmt.Sprintf("^%s$", name)))
-	containers, err := p.client.ContainerList(ctx, container.ListOptions{Filters: filter})
+	containers, err := p.client.ContainerList(ctx, types.ContainerListOptions{Filters: filter})
 	if err != nil {
 		return nil, err
 	}
@@ -1156,49 +1113,20 @@ func (p *DockerProvider) findContainerByName(ctx context.Context, name string) (
 	return nil, nil
 }
 
-func (p *DockerProvider) waitContainerCreation(ctx context.Context, name string) (*types.Container, error) {
-	var container *types.Container
-	return container, backoff.Retry(func() error {
-		c, err := p.findContainerByName(ctx, name)
-		if err != nil {
-			return err
-		}
-
-		if c == nil {
-			return fmt.Errorf("container %s not found", name)
-		}
-
-		container = c
-		return nil
-	}, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
-}
-
 func (p *DockerProvider) ReuseOrCreateContainer(ctx context.Context, req ContainerRequest) (Container, error) {
 	c, err := p.findContainerByName(ctx, req.Name)
 	if err != nil {
 		return nil, err
 	}
 	if c == nil {
-		createdContainer, err := p.CreateContainer(ctx, req)
-		if err == nil {
-			return createdContainer, nil
-		}
-		if !createContainerFailDueToNameConflictRegex.MatchString(err.Error()) {
-			return nil, err
-		}
-		c, err = p.waitContainerCreation(ctx, req.Name)
-		if err != nil {
-			return nil, err
-		}
+		return p.CreateContainer(ctx, req)
 	}
-
-	sessionID := core.SessionID()
 
 	tcConfig := p.Config().Config
 
 	var termSignal chan bool
 	if !tcConfig.RyukDisabled {
-		r, err := reuseOrCreateReaper(context.WithValue(ctx, core.DockerHostContextKey, p.host), sessionID, p)
+		r, err := reuseOrCreateReaper(context.WithValue(ctx, testcontainersdocker.DockerHostContextKey, p.host), testcontainerssession.String(), p, req.ReaperOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("%w: creating reaper failed", err)
 		}
@@ -1208,35 +1136,16 @@ func (p *DockerProvider) ReuseOrCreateContainer(ctx context.Context, req Contain
 		}
 	}
 
-	// default hooks include logger hook and pre-create hook
-	defaultHooks := []ContainerLifecycleHooks{
-		DefaultLoggingHook(p.Logger),
-		defaultReadinessHook(),
-		defaultLogConsumersHook(req.LogConsumerCfg),
-	}
-
 	dc := &DockerContainer{
-		ID:                  c.ID,
-		WaitingFor:          req.WaitingFor,
-		Image:               c.Image,
-		sessionID:           sessionID,
-		provider:            p,
-		terminationSignal:   termSignal,
-		stopLogProductionCh: nil,
-		logger:              p.Logger,
-		lifecycleHooks:      []ContainerLifecycleHooks{combineContainerHooks(defaultHooks, req.LifecycleHooks)},
-	}
-
-	err = dc.startedHook(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	dc.isRunning = true
-
-	err = dc.readiedHook(ctx)
-	if err != nil {
-		return nil, err
+		ID:                c.ID,
+		WaitingFor:        req.WaitingFor,
+		Image:             c.Image,
+		sessionID:         testcontainerssession.ID(),
+		provider:          p,
+		terminationSignal: termSignal,
+		stopProducer:      nil,
+		logger:            p.Logger,
+		isRunning:         c.State == "running",
 	}
 
 	return dc, nil
@@ -1252,8 +1161,7 @@ func (p *DockerProvider) attemptToPullImage(ctx context.Context, tag string, pul
 	err = backoff.Retry(func() error {
 		pull, err = p.client.ImagePull(ctx, tag, pullOpt)
 		if err != nil {
-			var enf errdefs.ErrNotFound
-			if errors.As(err, &enf) {
+			if _, ok := err.(errdefs.ErrNotFound); ok {
 				return backoff.Permanent(err)
 			}
 			Logger.Printf("Failed to pull image: %s, will retry", err)
@@ -1274,9 +1182,9 @@ func (p *DockerProvider) attemptToPullImage(ctx context.Context, tag string, pul
 }
 
 // Health measure the healthiness of the provider. Right now we leverage the
-// docker-client Info endpoint to see if the daemon is reachable.
-func (p *DockerProvider) Health(ctx context.Context) error {
-	_, err := p.client.Info(ctx)
+// docker-client ping endpoint to see if the daemon is reachable.
+func (p *DockerProvider) Health(ctx context.Context) (err error) {
+	_, err = p.client.Ping(ctx)
 	defer p.Close()
 
 	return err
@@ -1331,10 +1239,10 @@ func daemonHost(ctx context.Context, p *DockerProvider) (string, error) {
 	case "http", "https", "tcp":
 		p.hostCache = url.Hostname()
 	case "unix", "npipe":
-		if core.InAContainer() {
+		if testcontainersdocker.InAContainer() {
 			ip, err := p.GetGatewayIP(ctx)
 			if err != nil {
-				ip, err = core.DefaultGatewayIP()
+				ip, err = testcontainersdocker.DefaultGatewayIP()
 				if err != nil {
 					ip = "localhost"
 				}
@@ -1350,7 +1258,6 @@ func daemonHost(ctx context.Context, p *DockerProvider) (string, error) {
 	return p.hostCache, nil
 }
 
-// Deprecated: use network.New instead
 // CreateNetwork returns the object representing a new network identified by its name
 func (p *DockerProvider) CreateNetwork(ctx context.Context, req NetworkRequest) (Network, error) {
 	var err error
@@ -1382,11 +1289,9 @@ func (p *DockerProvider) CreateNetwork(ctx context.Context, req NetworkRequest) 
 		IPAM:           req.IPAM,
 	}
 
-	sessionID := core.SessionID()
-
 	var termSignal chan bool
 	if !tcConfig.RyukDisabled {
-		r, err := reuseOrCreateReaper(context.WithValue(ctx, core.DockerHostContextKey, p.host), sessionID, p)
+		r, err := reuseOrCreateReaper(context.WithValue(ctx, testcontainersdocker.DockerHostContextKey, p.host), testcontainerssession.String(), p, req.ReaperOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("%w: creating network reaper failed", err)
 		}
@@ -1394,19 +1299,12 @@ func (p *DockerProvider) CreateNetwork(ctx context.Context, req NetworkRequest) 
 		if err != nil {
 			return nil, fmt.Errorf("%w: connecting to network reaper failed", err)
 		}
-	}
-
-	// add the labels that the reaper will use to terminate the network to the request
-	for k, v := range core.DefaultLabels(sessionID) {
-		req.Labels[k] = v
-	}
-
-	// Cleanup on error, otherwise set termSignal to nil before successful return.
-	defer func() {
-		if termSignal != nil {
-			termSignal <- true
+		for k, v := range r.Labels() {
+			if _, ok := req.Labels[k]; !ok {
+				req.Labels[k] = v
+			}
 		}
-	}()
+	}
 
 	response, err := p.client.NetworkCreate(ctx, req.Name, nc)
 	if err != nil {
@@ -1420,9 +1318,6 @@ func (p *DockerProvider) CreateNetwork(ctx context.Context, req NetworkRequest) 
 		terminationSignal: termSignal,
 		provider:          p,
 	}
-
-	// Disable cleanup on success
-	termSignal = nil
 
 	return n, nil
 }
@@ -1493,7 +1388,11 @@ func (p *DockerProvider) getDefaultNetwork(ctx context.Context, cli client.APICl
 		_, err = cli.NetworkCreate(ctx, reaperNetwork, types.NetworkCreate{
 			Driver:     Bridge,
 			Attachable: true,
-			Labels:     core.DefaultLabels(core.SessionID()),
+			Labels: map[string]string{
+				TestcontainerLabel:                "true",
+				testcontainersdocker.LabelLang:    "go",
+				testcontainersdocker.LabelVersion: internal.Version,
+			},
 		})
 
 		if err != nil {
@@ -1502,91 +1401,4 @@ func (p *DockerProvider) getDefaultNetwork(ctx context.Context, cli client.APICl
 	}
 
 	return reaperNetwork, nil
-}
-
-// containerFromDockerResponse builds a Docker container struct from the response of the Docker API
-func containerFromDockerResponse(ctx context.Context, response types.Container) (*DockerContainer, error) {
-	provider, err := NewDockerProvider()
-	if err != nil {
-		return nil, err
-	}
-
-	container := DockerContainer{}
-
-	container.ID = response.ID
-	container.WaitingFor = nil
-	container.Image = response.Image
-	container.imageWasBuilt = false
-
-	container.logger = provider.Logger
-	container.lifecycleHooks = []ContainerLifecycleHooks{
-		DefaultLoggingHook(container.logger),
-	}
-	container.provider = provider
-
-	container.sessionID = core.SessionID()
-	container.consumers = []LogConsumer{}
-	container.stopLogProductionCh = nil
-	container.isRunning = response.State == "running"
-
-	// the termination signal should be obtained from the reaper
-	container.terminationSignal = nil
-
-	// populate the raw representation of the container
-	_, err = container.inspectRawContainer(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return &container, nil
-}
-
-// ListImages list images from the provider. If an image has multiple Tags, each tag is reported
-// individually with the same ID and same labels
-func (p *DockerProvider) ListImages(ctx context.Context) ([]ImageInfo, error) {
-	images := []ImageInfo{}
-
-	imageList, err := p.client.ImageList(ctx, types.ImageListOptions{})
-	if err != nil {
-		return images, fmt.Errorf("listing images %w", err)
-	}
-
-	for _, img := range imageList {
-		for _, tag := range img.RepoTags {
-			images = append(images, ImageInfo{ID: img.ID, Name: tag})
-		}
-	}
-
-	return images, nil
-}
-
-// SaveImages exports a list of images as an uncompressed tar
-func (p *DockerProvider) SaveImages(ctx context.Context, output string, images ...string) error {
-	outputFile, err := os.Create(output)
-	if err != nil {
-		return fmt.Errorf("opening output file %w", err)
-	}
-	defer func() {
-		_ = outputFile.Close()
-	}()
-
-	imageReader, err := p.client.ImageSave(ctx, images)
-	if err != nil {
-		return fmt.Errorf("saving images %w", err)
-	}
-	defer func() {
-		_ = imageReader.Close()
-	}()
-
-	_, err = io.Copy(outputFile, imageReader)
-	if err != nil {
-		return fmt.Errorf("writing images to output %w", err)
-	}
-
-	return nil
-}
-
-// PullImage pulls image from registry
-func (p *DockerProvider) PullImage(ctx context.Context, image string) error {
-	return p.attemptToPullImage(ctx, image, types.ImagePullOptions{})
 }
