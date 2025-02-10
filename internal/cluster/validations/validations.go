@@ -702,8 +702,8 @@ func ValidateDiskEncryptionParams(diskEncryptionParams *models.DiskEncryption, D
 	return nil
 }
 
-func ValidateHighAvailabilityModeWithPlatform(highAvailabilityMode *string, platform *models.Platform) error {
-	if swag.StringValue(highAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+func ValidateControlPlaneCountWithPlatform(controlPlaneCount *int64, platform *models.Platform) error {
+	if swag.Int64Value(controlPlaneCount) == 1 {
 		if platform != nil && platform.Type != nil && *platform.Type != models.PlatformTypeNone && !common.IsPlatformExternal(platform) {
 			return errors.Errorf("Single node cluster is not supported alongside %s platform", *platform.Type)
 		}

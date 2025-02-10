@@ -256,8 +256,8 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 	return platform, userManagedNetworking, nil
 }
 
-func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string) (*models.Platform, *bool, error) {
-	if swag.StringValue(highAvailabilityMode) == models.ClusterHighAvailabilityModeFull {
+func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userManagedNetworking *bool, controlPlaneCount *int64) (*models.Platform, *bool, error) {
+	if *controlPlaneCount >= 3 {
 		if (platform == nil || isPlatformBM(platform)) && !swag.BoolValue(userManagedNetworking) {
 			return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
 		}
@@ -270,7 +270,7 @@ func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userMan
 				return platform, swag.Bool(true), nil
 			}
 		}
-	} else { // *highAvailabilityMode == models.ClusterHighAvailabilityModeNone
+	} else { // *controlPlaneCount >= 3
 		if isPlatformBM(platform) {
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform on single node OpenShift", *platform.Type))
 		}
@@ -288,7 +288,7 @@ func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userMan
 	return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Got invalid platform (%s) and/or user-managed-networking (%v)", *platform.Type, userManagedNetworking))
 }
 
-func GetActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string, cpuArchitecture string) (*models.Platform, *bool, error) {
+func GetActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, controlPlaneCount *int64, cpuArchitecture string) (*models.Platform, *bool, error) {
 	if err := checkPlatformWrongParamsInput(platform, userManagedNetworking, nil); err != nil {
 		return nil, nil, err
 	}
@@ -307,7 +307,7 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 	if platform != nil && !isPlatformBM(platform) && !isUMNMandatoryForPlatform(platform) {
 		return platform, userManagedNetworking, nil
 	}
-	return GetClusterPlatformByHighAvailabilityMode(platform, userManagedNetworking, highAvailabilityMode)
+	return GetClusterPlatformByHighAvailabilityMode(platform, userManagedNetworking, controlPlaneCount)
 }
 
 func GetPlatformFeatureID(platformType models.PlatformType) models.FeatureSupportLevelID {
