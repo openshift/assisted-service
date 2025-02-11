@@ -42,6 +42,8 @@ type ClusterAuthorizationsPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
+//
+//
 func (r *ClusterAuthorizationsPostServerRequest) Request() *ClusterAuthorizationRequest {
 	if r == nil {
 		return nil
@@ -51,6 +53,8 @@ func (r *ClusterAuthorizationsPostServerRequest) Request() *ClusterAuthorization
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *ClusterAuthorizationsPostServerRequest) GetRequest() (value *ClusterAuthorizationRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -67,6 +71,8 @@ type ClusterAuthorizationsPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
+//
+//
 func (r *ClusterAuthorizationsPostServerResponse) Response(value *ClusterAuthorizationResponse) *ClusterAuthorizationsPostServerResponse {
 	r.response = value
 	return r

@@ -82,6 +82,8 @@ func (r *AccessReviewPostRequest) Header(name string, value interface{}) *Access
 }
 
 // Request sets the value of the 'request' parameter.
+//
+//
 func (r *AccessReviewPostRequest) Request(value *AccessReviewRequest) *AccessReviewPostRequest {
 	r.request = value
 	return r
@@ -183,6 +185,8 @@ func (r *AccessReviewPostResponse) Error() *errors.Error {
 }
 
 // Response returns the value of the 'response' parameter.
+//
+//
 func (r *AccessReviewPostResponse) Response() *AccessReviewResponse {
 	if r == nil {
 		return nil
@@ -192,6 +196,8 @@ func (r *AccessReviewPostResponse) Response() *AccessReviewResponse {
 
 // GetResponse returns the value of the 'response' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *AccessReviewPostResponse) GetResponse() (value *AccessReviewResponse, ok bool) {
 	ok = r != nil && r.response != nil
 	if ok {

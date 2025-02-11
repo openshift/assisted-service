@@ -60,7 +60,7 @@ func UnmarshalNetworkList(source interface{}) (items []*Network, err error) {
 	return
 }
 
-// readNetworkList reads list of values of the ”network' type from
+// readNetworkList reads list of values of the ''network' type from
 // the given iterator.
 func readNetworkList(iterator *jsoniter.Iterator) []*Network {
 	list := []*Network{}

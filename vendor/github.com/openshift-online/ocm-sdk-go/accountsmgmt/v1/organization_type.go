@@ -36,6 +36,8 @@ const OrganizationLinkKind = "OrganizationLink"
 const OrganizationNilKind = "OrganizationNil"
 
 // Organization represents the values of the 'organization' type.
+//
+//
 type Organization struct {
 	bitmap_      uint32
 	id           string
@@ -108,6 +110,8 @@ func (o *Organization) Empty() bool {
 
 // Capabilities returns the value of the 'capabilities' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Organization) Capabilities() []*Capability {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.capabilities
@@ -117,6 +121,8 @@ func (o *Organization) Capabilities() []*Capability {
 
 // GetCapabilities returns the value of the 'capabilities' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Organization) GetCapabilities() (value []*Capability, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -127,6 +133,8 @@ func (o *Organization) GetCapabilities() (value []*Capability, ok bool) {
 
 // CreatedAt returns the value of the 'created_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Organization) CreatedAt() time.Time {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.createdAt
@@ -136,6 +144,8 @@ func (o *Organization) CreatedAt() time.Time {
 
 // GetCreatedAt returns the value of the 'created_at' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Organization) GetCreatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -146,6 +156,8 @@ func (o *Organization) GetCreatedAt() (value time.Time, ok bool) {
 
 // EbsAccountID returns the value of the 'ebs_account_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Organization) EbsAccountID() string {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.ebsAccountID
@@ -155,6 +167,8 @@ func (o *Organization) EbsAccountID() string {
 
 // GetEbsAccountID returns the value of the 'ebs_account_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Organization) GetEbsAccountID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -165,6 +179,8 @@ func (o *Organization) GetEbsAccountID() (value string, ok bool) {
 
 // ExternalID returns the value of the 'external_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Organization) ExternalID() string {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.externalID
@@ -174,6 +190,8 @@ func (o *Organization) ExternalID() string {
 
 // GetExternalID returns the value of the 'external_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Organization) GetExternalID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -184,6 +202,8 @@ func (o *Organization) GetExternalID() (value string, ok bool) {
 
 // Labels returns the value of the 'labels' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Organization) Labels() []*Label {
 	if o != nil && o.bitmap_&128 != 0 {
 		return o.labels
@@ -193,6 +213,8 @@ func (o *Organization) Labels() []*Label {
 
 // GetLabels returns the value of the 'labels' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Organization) GetLabels() (value []*Label, ok bool) {
 	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
@@ -203,6 +225,8 @@ func (o *Organization) GetLabels() (value []*Label, ok bool) {
 
 // Name returns the value of the 'name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Organization) Name() string {
 	if o != nil && o.bitmap_&256 != 0 {
 		return o.name
@@ -212,6 +236,8 @@ func (o *Organization) Name() string {
 
 // GetName returns the value of the 'name' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Organization) GetName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
@@ -222,6 +248,8 @@ func (o *Organization) GetName() (value string, ok bool) {
 
 // UpdatedAt returns the value of the 'updated_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Organization) UpdatedAt() time.Time {
 	if o != nil && o.bitmap_&512 != 0 {
 		return o.updatedAt
@@ -231,6 +259,8 @@ func (o *Organization) UpdatedAt() time.Time {
 
 // GetUpdatedAt returns the value of the 'updated_at' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Organization) GetUpdatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&512 != 0
 	if ok {

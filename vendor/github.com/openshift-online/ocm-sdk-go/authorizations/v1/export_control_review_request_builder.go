@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 // ExportControlReviewRequestBuilder contains the data and logic needed to build 'export_control_review_request' objects.
+//
+//
 type ExportControlReviewRequestBuilder struct {
 	bitmap_         uint32
 	accountUsername string
@@ -31,6 +33,8 @@ func NewExportControlReviewRequest() *ExportControlReviewRequestBuilder {
 }
 
 // AccountUsername sets the value of the 'account_username' attribute to the given value.
+//
+//
 func (b *ExportControlReviewRequestBuilder) AccountUsername(value string) *ExportControlReviewRequestBuilder {
 	b.accountUsername = value
 	b.bitmap_ |= 1

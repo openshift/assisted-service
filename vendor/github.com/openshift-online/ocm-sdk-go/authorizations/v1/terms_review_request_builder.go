@@ -37,6 +37,8 @@ func NewTermsReviewRequest() *TermsReviewRequestBuilder {
 }
 
 // AccountUsername sets the value of the 'account_username' attribute to the given value.
+//
+//
 func (b *TermsReviewRequestBuilder) AccountUsername(value string) *TermsReviewRequestBuilder {
 	b.accountUsername = value
 	b.bitmap_ |= 1
@@ -44,6 +46,8 @@ func (b *TermsReviewRequestBuilder) AccountUsername(value string) *TermsReviewRe
 }
 
 // CheckOptionalTerms sets the value of the 'check_optional_terms' attribute to the given value.
+//
+//
 func (b *TermsReviewRequestBuilder) CheckOptionalTerms(value bool) *TermsReviewRequestBuilder {
 	b.checkOptionalTerms = value
 	b.bitmap_ |= 2
@@ -51,6 +55,8 @@ func (b *TermsReviewRequestBuilder) CheckOptionalTerms(value bool) *TermsReviewR
 }
 
 // EventCode sets the value of the 'event_code' attribute to the given value.
+//
+//
 func (b *TermsReviewRequestBuilder) EventCode(value string) *TermsReviewRequestBuilder {
 	b.eventCode = value
 	b.bitmap_ |= 4
@@ -58,6 +64,8 @@ func (b *TermsReviewRequestBuilder) EventCode(value string) *TermsReviewRequestB
 }
 
 // SiteCode sets the value of the 'site_code' attribute to the given value.
+//
+//
 func (b *TermsReviewRequestBuilder) SiteCode(value string) *TermsReviewRequestBuilder {
 	b.siteCode = value
 	b.bitmap_ |= 8

@@ -36,6 +36,8 @@ func NewAddOnRequirement() *AddOnRequirementBuilder {
 }
 
 // ID sets the value of the 'ID' attribute to the given value.
+//
+//
 func (b *AddOnRequirementBuilder) ID(value string) *AddOnRequirementBuilder {
 	b.id = value
 	b.bitmap_ |= 1
@@ -43,6 +45,8 @@ func (b *AddOnRequirementBuilder) ID(value string) *AddOnRequirementBuilder {
 }
 
 // Data sets the value of the 'data' attribute to the given value.
+//
+//
 func (b *AddOnRequirementBuilder) Data(value map[string]interface{}) *AddOnRequirementBuilder {
 	b.data = value
 	if value != nil {
@@ -54,6 +58,8 @@ func (b *AddOnRequirementBuilder) Data(value map[string]interface{}) *AddOnRequi
 }
 
 // Enabled sets the value of the 'enabled' attribute to the given value.
+//
+//
 func (b *AddOnRequirementBuilder) Enabled(value bool) *AddOnRequirementBuilder {
 	b.enabled = value
 	b.bitmap_ |= 4
@@ -61,6 +67,8 @@ func (b *AddOnRequirementBuilder) Enabled(value bool) *AddOnRequirementBuilder {
 }
 
 // Resource sets the value of the 'resource' attribute to the given value.
+//
+//
 func (b *AddOnRequirementBuilder) Resource(value string) *AddOnRequirementBuilder {
 	b.resource = value
 	b.bitmap_ |= 8

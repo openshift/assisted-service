@@ -34,6 +34,8 @@ func NewCPUTotalsNodeRoleOSMetricNode() *CPUTotalsNodeRoleOSMetricNodeBuilder {
 }
 
 // CPUTotals sets the value of the 'CPU_totals' attribute to the given values.
+//
+//
 func (b *CPUTotalsNodeRoleOSMetricNodeBuilder) CPUTotals(values ...*CPUTotalNodeRoleOSMetricNodeBuilder) *CPUTotalsNodeRoleOSMetricNodeBuilder {
 	b.cpuTotals = make([]*CPUTotalNodeRoleOSMetricNodeBuilder, len(values))
 	copy(b.cpuTotals, values)

@@ -180,12 +180,16 @@ func (r *RoleBindingPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *RoleBindingPollResponse) Body() *RoleBinding {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *RoleBindingPollResponse) GetBody() (value *RoleBinding, ok bool) {
 	return r.response.GetBody()
 }
@@ -392,6 +396,8 @@ func (r *RoleBindingGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *RoleBindingGetResponse) Body() *RoleBinding {
 	if r == nil {
 		return nil
@@ -401,6 +407,8 @@ func (r *RoleBindingGetResponse) Body() *RoleBinding {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *RoleBindingGetResponse) GetBody() (value *RoleBinding, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -431,6 +439,8 @@ func (r *RoleBindingUpdateRequest) Header(name string, value interface{}) *RoleB
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *RoleBindingUpdateRequest) Body(value *RoleBinding) *RoleBindingUpdateRequest {
 	r.body = value
 	return r
@@ -532,6 +542,8 @@ func (r *RoleBindingUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *RoleBindingUpdateResponse) Body() *RoleBinding {
 	if r == nil {
 		return nil
@@ -541,6 +553,8 @@ func (r *RoleBindingUpdateResponse) Body() *RoleBinding {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *RoleBindingUpdateResponse) GetBody() (value *RoleBinding, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

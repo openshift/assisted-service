@@ -48,6 +48,8 @@ type LimitedSupportReasonTemplateGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *LimitedSupportReasonTemplateGetServerResponse) Body(value *LimitedSupportReasonTemplate) *LimitedSupportReasonTemplateGetServerResponse {
 	r.body = value
 	return r

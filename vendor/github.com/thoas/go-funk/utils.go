@@ -9,8 +9,7 @@ func equal(expectedOrPredicate interface{}, optionalIsMap ...bool) func(keyValue
 	isMap := append(optionalIsMap, false)[0]
 
 	if IsFunction(expectedOrPredicate) {
-		inTypes := []reflect.Type{nil}
-		if isMap {
+		inTypes := []reflect.Type{nil}; if isMap {
 			inTypes = append(inTypes, nil)
 		}
 

@@ -60,7 +60,7 @@ func UnmarshalTemplateParameterList(source interface{}) (items []*TemplateParame
 	return
 }
 
-// readTemplateParameterList reads list of values of the ”template_parameter' type from
+// readTemplateParameterList reads list of values of the ''template_parameter' type from
 // the given iterator.
 func readTemplateParameterList(iterator *jsoniter.Iterator) []*TemplateParameter {
 	list := []*TemplateParameter{}

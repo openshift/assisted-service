@@ -58,6 +58,8 @@ func (c *LogsClient) List() *LogsListRequest {
 }
 
 // Install returns the target 'log' resource.
+//
+//
 func (c *LogsClient) Install() *LogClient {
 	return NewLogClient(
 		c.transport,
@@ -66,6 +68,8 @@ func (c *LogsClient) Install() *LogClient {
 }
 
 // Uninstall returns the target 'log' resource.
+//
+//
 func (c *LogsClient) Uninstall() *LogClient {
 	return NewLogClient(
 		c.transport,

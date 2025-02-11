@@ -48,6 +48,8 @@ type ProvisionShardGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *ProvisionShardGetServerResponse) Body(value *ProvisionShard) *ProvisionShardGetServerResponse {
 	r.body = value
 	return r

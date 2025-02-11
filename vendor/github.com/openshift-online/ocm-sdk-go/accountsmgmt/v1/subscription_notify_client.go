@@ -82,6 +82,8 @@ func (r *SubscriptionNotifyAddRequest) Header(name string, value interface{}) *S
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *SubscriptionNotifyAddRequest) Body(value *SubscriptionNotify) *SubscriptionNotifyAddRequest {
 	r.body = value
 	return r
@@ -183,6 +185,8 @@ func (r *SubscriptionNotifyAddResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *SubscriptionNotifyAddResponse) Body() *SubscriptionNotify {
 	if r == nil {
 		return nil
@@ -192,6 +196,8 @@ func (r *SubscriptionNotifyAddResponse) Body() *SubscriptionNotify {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *SubscriptionNotifyAddResponse) GetBody() (value *SubscriptionNotify, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

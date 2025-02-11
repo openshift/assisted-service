@@ -35,6 +35,8 @@ func NewOpenIDClaims() *OpenIDClaimsBuilder {
 }
 
 // Email sets the value of the 'email' attribute to the given values.
+//
+//
 func (b *OpenIDClaimsBuilder) Email(values ...string) *OpenIDClaimsBuilder {
 	b.email = make([]string, len(values))
 	copy(b.email, values)
@@ -43,6 +45,8 @@ func (b *OpenIDClaimsBuilder) Email(values ...string) *OpenIDClaimsBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given values.
+//
+//
 func (b *OpenIDClaimsBuilder) Name(values ...string) *OpenIDClaimsBuilder {
 	b.name = make([]string, len(values))
 	copy(b.name, values)
@@ -51,6 +55,8 @@ func (b *OpenIDClaimsBuilder) Name(values ...string) *OpenIDClaimsBuilder {
 }
 
 // PreferredUsername sets the value of the 'preferred_username' attribute to the given values.
+//
+//
 func (b *OpenIDClaimsBuilder) PreferredUsername(values ...string) *OpenIDClaimsBuilder {
 	b.preferredUsername = make([]string, len(values))
 	copy(b.preferredUsername, values)

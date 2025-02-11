@@ -60,7 +60,7 @@ func UnmarshalSSHCredentialsList(source interface{}) (items []*SSHCredentials, e
 	return
 }
 
-// readSSHCredentialsList reads list of values of the ”SSH_credentials' type from
+// readSSHCredentialsList reads list of values of the ''SSH_credentials' type from
 // the given iterator.
 func readSSHCredentialsList(iterator *jsoniter.Iterator) []*SSHCredentials {
 	list := []*SSHCredentials{}

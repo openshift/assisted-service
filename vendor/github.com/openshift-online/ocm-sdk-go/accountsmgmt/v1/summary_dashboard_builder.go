@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // SummaryDashboardBuilder contains the data and logic needed to build 'summary_dashboard' objects.
+//
+//
 type SummaryDashboardBuilder struct {
 	bitmap_ uint32
 	id      string
@@ -53,6 +55,8 @@ func (b *SummaryDashboardBuilder) HREF(value string) *SummaryDashboardBuilder {
 }
 
 // Metrics sets the value of the 'metrics' attribute to the given values.
+//
+//
 func (b *SummaryDashboardBuilder) Metrics(values ...*SummaryMetricsBuilder) *SummaryDashboardBuilder {
 	b.metrics = make([]*SummaryMetricsBuilder, len(values))
 	copy(b.metrics, values)

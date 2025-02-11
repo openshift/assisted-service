@@ -33,6 +33,8 @@ func NewSelfFeatureReviewRequest() *SelfFeatureReviewRequestBuilder {
 }
 
 // Feature sets the value of the 'feature' attribute to the given value.
+//
+//
 func (b *SelfFeatureReviewRequestBuilder) Feature(value string) *SelfFeatureReviewRequestBuilder {
 	b.feature = value
 	b.bitmap_ |= 1

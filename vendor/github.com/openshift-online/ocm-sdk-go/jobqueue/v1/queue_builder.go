@@ -24,6 +24,8 @@ import (
 )
 
 // QueueBuilder contains the data and logic needed to build 'queue' objects.
+//
+//
 type QueueBuilder struct {
 	bitmap_     uint32
 	id          string
@@ -61,6 +63,8 @@ func (b *QueueBuilder) HREF(value string) *QueueBuilder {
 }
 
 // CreatedAt sets the value of the 'created_at' attribute to the given value.
+//
+//
 func (b *QueueBuilder) CreatedAt(value time.Time) *QueueBuilder {
 	b.createdAt = value
 	b.bitmap_ |= 8
@@ -68,6 +72,8 @@ func (b *QueueBuilder) CreatedAt(value time.Time) *QueueBuilder {
 }
 
 // MaxAttempts sets the value of the 'max_attempts' attribute to the given value.
+//
+//
 func (b *QueueBuilder) MaxAttempts(value int) *QueueBuilder {
 	b.maxAttempts = value
 	b.bitmap_ |= 16
@@ -75,6 +81,8 @@ func (b *QueueBuilder) MaxAttempts(value int) *QueueBuilder {
 }
 
 // MaxRunTime sets the value of the 'max_run_time' attribute to the given value.
+//
+//
 func (b *QueueBuilder) MaxRunTime(value int) *QueueBuilder {
 	b.maxRunTime = value
 	b.bitmap_ |= 32
@@ -82,6 +90,8 @@ func (b *QueueBuilder) MaxRunTime(value int) *QueueBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
+//
+//
 func (b *QueueBuilder) Name(value string) *QueueBuilder {
 	b.name = value
 	b.bitmap_ |= 64
@@ -89,6 +99,8 @@ func (b *QueueBuilder) Name(value string) *QueueBuilder {
 }
 
 // UpdatedAt sets the value of the 'updated_at' attribute to the given value.
+//
+//
 func (b *QueueBuilder) UpdatedAt(value time.Time) *QueueBuilder {
 	b.updatedAt = value
 	b.bitmap_ |= 128

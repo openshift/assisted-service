@@ -60,7 +60,7 @@ func UnmarshalSummaryMetricsList(source interface{}) (items []*SummaryMetrics, e
 	return
 }
 
-// readSummaryMetricsList reads list of values of the ”summary_metrics' type from
+// readSummaryMetricsList reads list of values of the ''summary_metrics' type from
 // the given iterator.
 func readSummaryMetricsList(iterator *jsoniter.Iterator) []*SummaryMetrics {
 	list := []*SummaryMetrics{}

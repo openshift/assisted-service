@@ -60,7 +60,7 @@ func UnmarshalClusterNodesList(source interface{}) (items []*ClusterNodes, err e
 	return
 }
 
-// readClusterNodesList reads list of values of the ”cluster_nodes' type from
+// readClusterNodesList reads list of values of the ''cluster_nodes' type from
 // the given iterator.
 func readClusterNodesList(iterator *jsoniter.Iterator) []*ClusterNodes {
 	list := []*ClusterNodes{}

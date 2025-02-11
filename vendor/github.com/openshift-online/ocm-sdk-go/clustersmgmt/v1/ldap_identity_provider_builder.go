@@ -38,6 +38,8 @@ func NewLDAPIdentityProvider() *LDAPIdentityProviderBuilder {
 }
 
 // CA sets the value of the 'CA' attribute to the given value.
+//
+//
 func (b *LDAPIdentityProviderBuilder) CA(value string) *LDAPIdentityProviderBuilder {
 	b.ca = value
 	b.bitmap_ |= 1
@@ -45,6 +47,8 @@ func (b *LDAPIdentityProviderBuilder) CA(value string) *LDAPIdentityProviderBuil
 }
 
 // URL sets the value of the 'URL' attribute to the given value.
+//
+//
 func (b *LDAPIdentityProviderBuilder) URL(value string) *LDAPIdentityProviderBuilder {
 	b.url = value
 	b.bitmap_ |= 2
@@ -65,6 +69,8 @@ func (b *LDAPIdentityProviderBuilder) Attributes(value *LDAPAttributesBuilder) *
 }
 
 // BindDN sets the value of the 'bind_DN' attribute to the given value.
+//
+//
 func (b *LDAPIdentityProviderBuilder) BindDN(value string) *LDAPIdentityProviderBuilder {
 	b.bindDN = value
 	b.bitmap_ |= 8
@@ -72,6 +78,8 @@ func (b *LDAPIdentityProviderBuilder) BindDN(value string) *LDAPIdentityProvider
 }
 
 // BindPassword sets the value of the 'bind_password' attribute to the given value.
+//
+//
 func (b *LDAPIdentityProviderBuilder) BindPassword(value string) *LDAPIdentityProviderBuilder {
 	b.bindPassword = value
 	b.bitmap_ |= 16
@@ -79,6 +87,8 @@ func (b *LDAPIdentityProviderBuilder) BindPassword(value string) *LDAPIdentityPr
 }
 
 // Insecure sets the value of the 'insecure' attribute to the given value.
+//
+//
 func (b *LDAPIdentityProviderBuilder) Insecure(value bool) *LDAPIdentityProviderBuilder {
 	b.insecure = value
 	b.bitmap_ |= 32

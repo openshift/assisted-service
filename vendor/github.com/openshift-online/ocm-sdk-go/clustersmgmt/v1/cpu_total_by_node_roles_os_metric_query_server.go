@@ -48,6 +48,8 @@ type CPUTotalByNodeRolesOSMetricQueryGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *CPUTotalByNodeRolesOSMetricQueryGetServerResponse) Body(value *CPUTotalsNodeRoleOSMetricNode) *CPUTotalByNodeRolesOSMetricQueryGetServerResponse {
 	r.body = value
 	return r

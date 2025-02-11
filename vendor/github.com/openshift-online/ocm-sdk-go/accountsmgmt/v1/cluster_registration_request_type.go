@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // ClusterRegistrationRequest represents the values of the 'cluster_registration_request' type.
+//
+//
 type ClusterRegistrationRequest struct {
 	bitmap_            uint32
 	authorizationToken string
@@ -33,6 +35,8 @@ func (o *ClusterRegistrationRequest) Empty() bool {
 
 // AuthorizationToken returns the value of the 'authorization_token' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterRegistrationRequest) AuthorizationToken() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.authorizationToken
@@ -42,6 +46,8 @@ func (o *ClusterRegistrationRequest) AuthorizationToken() string {
 
 // GetAuthorizationToken returns the value of the 'authorization_token' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterRegistrationRequest) GetAuthorizationToken() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -52,6 +58,8 @@ func (o *ClusterRegistrationRequest) GetAuthorizationToken() (value string, ok b
 
 // ClusterID returns the value of the 'cluster_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterRegistrationRequest) ClusterID() string {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.clusterID
@@ -61,6 +69,8 @@ func (o *ClusterRegistrationRequest) ClusterID() string {
 
 // GetClusterID returns the value of the 'cluster_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterRegistrationRequest) GetClusterID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {

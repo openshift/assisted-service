@@ -60,7 +60,7 @@ func UnmarshalBooleanList(source interface{}) (items []bool, err error) {
 	return
 }
 
-// readBooleanList reads list of values of the ”boolean' type from
+// readBooleanList reads list of values of the ''boolean' type from
 // the given iterator.
 func readBooleanList(iterator *jsoniter.Iterator) []bool {
 	list := []bool{}

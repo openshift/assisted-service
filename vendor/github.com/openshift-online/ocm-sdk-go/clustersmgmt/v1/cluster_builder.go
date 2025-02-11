@@ -33,15 +33,13 @@ import (
 //
 // [source,json]
 // ----
-//
-//	{
-//	  "cloud_provider": {
-//	    "kind": "CloudProviderLink",
-//	    "id": "123",
-//	    "href": "/api/clusters_mgmt/v1/cloud_providers/123"
-//	  }
-//	}
-//
+// {
+//   "cloud_provider": {
+//     "kind": "CloudProviderLink",
+//     "id": "123",
+//     "href": "/api/clusters_mgmt/v1/cloud_providers/123"
+//   }
+// }
 // ----
 //
 // When a cluster is created this is optional, and if used it should contain the
@@ -49,13 +47,11 @@ import (
 //
 // [source,json]
 // ----
-//
-//	{
-//	  "cloud_provider": {
-//	    "id": "123",
-//	  }
-//	}
-//
+// {
+//   "cloud_provider": {
+//     "id": "123",
+//   }
+// }
 // ----
 //
 // If not included, then the cluster will be created using the default cloud
@@ -164,6 +160,8 @@ func (b *ClusterBuilder) AWS(value *AWSBuilder) *ClusterBuilder {
 }
 
 // AWSInfrastructureAccessRoleGrants sets the value of the 'AWS_infrastructure_access_role_grants' attribute to the given values.
+//
+//
 func (b *ClusterBuilder) AWSInfrastructureAccessRoleGrants(value *AWSInfrastructureAccessRoleGrantListBuilder) *ClusterBuilder {
 	b.awsInfrastructureAccessRoleGrants = value
 	b.bitmap_ |= 32
@@ -171,6 +169,8 @@ func (b *ClusterBuilder) AWSInfrastructureAccessRoleGrants(value *AWSInfrastruct
 }
 
 // CCS sets the value of the 'CCS' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) CCS(value *CCSBuilder) *ClusterBuilder {
 	b.ccs = value
 	if value != nil {
@@ -208,6 +208,8 @@ func (b *ClusterBuilder) GCP(value *GCPBuilder) *ClusterBuilder {
 }
 
 // Addons sets the value of the 'addons' attribute to the given values.
+//
+//
 func (b *ClusterBuilder) Addons(value *AddOnInstallationListBuilder) *ClusterBuilder {
 	b.addons = value
 	b.bitmap_ |= 512
@@ -250,6 +252,8 @@ func (b *ClusterBuilder) Console(value *ClusterConsoleBuilder) *ClusterBuilder {
 }
 
 // CreationTimestamp sets the value of the 'creation_timestamp' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) CreationTimestamp(value time.Time) *ClusterBuilder {
 	b.creationTimestamp = value
 	b.bitmap_ |= 8192
@@ -257,6 +261,8 @@ func (b *ClusterBuilder) CreationTimestamp(value time.Time) *ClusterBuilder {
 }
 
 // DisableUserWorkloadMonitoring sets the value of the 'disable_user_workload_monitoring' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) DisableUserWorkloadMonitoring(value bool) *ClusterBuilder {
 	b.disableUserWorkloadMonitoring = value
 	b.bitmap_ |= 16384
@@ -264,6 +270,8 @@ func (b *ClusterBuilder) DisableUserWorkloadMonitoring(value bool) *ClusterBuild
 }
 
 // DisplayName sets the value of the 'display_name' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) DisplayName(value string) *ClusterBuilder {
 	b.displayName = value
 	b.bitmap_ |= 32768
@@ -271,6 +279,8 @@ func (b *ClusterBuilder) DisplayName(value string) *ClusterBuilder {
 }
 
 // EtcdEncryption sets the value of the 'etcd_encryption' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) EtcdEncryption(value bool) *ClusterBuilder {
 	b.etcdEncryption = value
 	b.bitmap_ |= 65536
@@ -278,6 +288,8 @@ func (b *ClusterBuilder) EtcdEncryption(value bool) *ClusterBuilder {
 }
 
 // ExpirationTimestamp sets the value of the 'expiration_timestamp' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) ExpirationTimestamp(value time.Time) *ClusterBuilder {
 	b.expirationTimestamp = value
 	b.bitmap_ |= 131072
@@ -285,6 +297,8 @@ func (b *ClusterBuilder) ExpirationTimestamp(value time.Time) *ClusterBuilder {
 }
 
 // ExternalID sets the value of the 'external_ID' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) ExternalID(value string) *ClusterBuilder {
 	b.externalID = value
 	b.bitmap_ |= 262144
@@ -319,6 +333,8 @@ func (b *ClusterBuilder) Flavour(value *FlavourBuilder) *ClusterBuilder {
 }
 
 // Groups sets the value of the 'groups' attribute to the given values.
+//
+//
 func (b *ClusterBuilder) Groups(value *GroupListBuilder) *ClusterBuilder {
 	b.groups = value
 	b.bitmap_ |= 2097152
@@ -335,6 +351,8 @@ func (b *ClusterBuilder) HealthState(value ClusterHealthState) *ClusterBuilder {
 }
 
 // IdentityProviders sets the value of the 'identity_providers' attribute to the given values.
+//
+//
 func (b *ClusterBuilder) IdentityProviders(value *IdentityProviderListBuilder) *ClusterBuilder {
 	b.identityProviders = value
 	b.bitmap_ |= 8388608
@@ -342,6 +360,8 @@ func (b *ClusterBuilder) IdentityProviders(value *IdentityProviderListBuilder) *
 }
 
 // Ingresses sets the value of the 'ingresses' attribute to the given values.
+//
+//
 func (b *ClusterBuilder) Ingresses(value *IngressListBuilder) *ClusterBuilder {
 	b.ingresses = value
 	b.bitmap_ |= 16777216
@@ -349,6 +369,8 @@ func (b *ClusterBuilder) Ingresses(value *IngressListBuilder) *ClusterBuilder {
 }
 
 // LoadBalancerQuota sets the value of the 'load_balancer_quota' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) LoadBalancerQuota(value int) *ClusterBuilder {
 	b.loadBalancerQuota = value
 	b.bitmap_ |= 33554432
@@ -356,6 +378,8 @@ func (b *ClusterBuilder) LoadBalancerQuota(value int) *ClusterBuilder {
 }
 
 // MachinePools sets the value of the 'machine_pools' attribute to the given values.
+//
+//
 func (b *ClusterBuilder) MachinePools(value *MachinePoolListBuilder) *ClusterBuilder {
 	b.machinePools = value
 	b.bitmap_ |= 67108864
@@ -363,6 +387,8 @@ func (b *ClusterBuilder) MachinePools(value *MachinePoolListBuilder) *ClusterBui
 }
 
 // Managed sets the value of the 'managed' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) Managed(value bool) *ClusterBuilder {
 	b.managed = value
 	b.bitmap_ |= 134217728
@@ -370,6 +396,8 @@ func (b *ClusterBuilder) Managed(value bool) *ClusterBuilder {
 }
 
 // MultiAZ sets the value of the 'multi_AZ' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) MultiAZ(value bool) *ClusterBuilder {
 	b.multiAZ = value
 	b.bitmap_ |= 268435456
@@ -377,6 +405,8 @@ func (b *ClusterBuilder) MultiAZ(value bool) *ClusterBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) Name(value string) *ClusterBuilder {
 	b.name = value
 	b.bitmap_ |= 536870912
@@ -440,6 +470,8 @@ func (b *ClusterBuilder) Nodes(value *ClusterNodesBuilder) *ClusterBuilder {
 }
 
 // OpenshiftVersion sets the value of the 'openshift_version' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) OpenshiftVersion(value string) *ClusterBuilder {
 	b.openshiftVersion = value
 	b.bitmap_ |= 8589934592
@@ -460,6 +492,8 @@ func (b *ClusterBuilder) Product(value *ProductBuilder) *ClusterBuilder {
 }
 
 // Properties sets the value of the 'properties' attribute to the given value.
+//
+//
 func (b *ClusterBuilder) Properties(value map[string]string) *ClusterBuilder {
 	b.properties = value
 	if value != nil {

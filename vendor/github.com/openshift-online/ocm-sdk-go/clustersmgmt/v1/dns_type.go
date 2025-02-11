@@ -66,17 +66,15 @@ func (o *DNS) Empty() bool {
 //
 // [source,json]
 // ----
-//
-//	{
-//	    "kind": "Cluster",
-//	    "id": "123",
-//	    "href": "/api/clusters_mgmt/v1/clusters/123",
-//	        "api": {
-//	        "url": "https://mycluster-api.example.com:6443"
-//	    },
-//	    ...
-//	}
-//
+// {
+//     "kind": "Cluster",
+//     "id": "123",
+//     "href": "/api/clusters_mgmt/v1/clusters/123",
+//         "api": {
+//         "url": "https://mycluster-api.example.com:6443"
+//     },
+//     ...
+// }
 // ----
 //
 // When the cluster is created in Amazon Web Services it is necessary to create this base
@@ -122,17 +120,15 @@ func (o *DNS) BaseDomain() string {
 //
 // [source,json]
 // ----
-//
-//	{
-//	    "kind": "Cluster",
-//	    "id": "123",
-//	    "href": "/api/clusters_mgmt/v1/clusters/123",
-//	        "api": {
-//	        "url": "https://mycluster-api.example.com:6443"
-//	    },
-//	    ...
-//	}
-//
+// {
+//     "kind": "Cluster",
+//     "id": "123",
+//     "href": "/api/clusters_mgmt/v1/clusters/123",
+//         "api": {
+//         "url": "https://mycluster-api.example.com:6443"
+//     },
+//     ...
+// }
 // ----
 //
 // When the cluster is created in Amazon Web Services it is necessary to create this base

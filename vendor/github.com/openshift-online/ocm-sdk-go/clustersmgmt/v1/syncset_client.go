@@ -180,12 +180,16 @@ func (r *SyncsetPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *SyncsetPollResponse) Body() *Syncset {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *SyncsetPollResponse) GetBody() (value *Syncset, ok bool) {
 	return r.response.GetBody()
 }
@@ -392,6 +396,8 @@ func (r *SyncsetGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *SyncsetGetResponse) Body() *Syncset {
 	if r == nil {
 		return nil
@@ -401,6 +407,8 @@ func (r *SyncsetGetResponse) Body() *Syncset {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *SyncsetGetResponse) GetBody() (value *Syncset, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -431,6 +439,8 @@ func (r *SyncsetUpdateRequest) Header(name string, value interface{}) *SyncsetUp
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *SyncsetUpdateRequest) Body(value *Syncset) *SyncsetUpdateRequest {
 	r.body = value
 	return r
@@ -532,6 +542,8 @@ func (r *SyncsetUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *SyncsetUpdateResponse) Body() *Syncset {
 	if r == nil {
 		return nil
@@ -541,6 +553,8 @@ func (r *SyncsetUpdateResponse) Body() *Syncset {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *SyncsetUpdateResponse) GetBody() (value *Syncset, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

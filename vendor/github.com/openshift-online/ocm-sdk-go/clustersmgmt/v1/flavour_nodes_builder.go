@@ -33,6 +33,8 @@ func NewFlavourNodes() *FlavourNodesBuilder {
 }
 
 // Master sets the value of the 'master' attribute to the given value.
+//
+//
 func (b *FlavourNodesBuilder) Master(value int) *FlavourNodesBuilder {
 	b.master = value
 	b.bitmap_ |= 1

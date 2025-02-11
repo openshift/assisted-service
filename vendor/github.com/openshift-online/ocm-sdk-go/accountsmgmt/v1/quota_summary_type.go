@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // QuotaSummary represents the values of the 'quota_summary' type.
+//
+//
 type QuotaSummary struct {
 	bitmap_              uint32
 	allowed              int
@@ -38,6 +40,8 @@ func (o *QuotaSummary) Empty() bool {
 
 // BYOC returns the value of the 'BYOC' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *QuotaSummary) BYOC() bool {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.byoc
@@ -47,6 +51,8 @@ func (o *QuotaSummary) BYOC() bool {
 
 // GetBYOC returns the value of the 'BYOC' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *QuotaSummary) GetBYOC() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -57,6 +63,8 @@ func (o *QuotaSummary) GetBYOC() (value bool, ok bool) {
 
 // Allowed returns the value of the 'allowed' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *QuotaSummary) Allowed() int {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.allowed
@@ -66,6 +74,8 @@ func (o *QuotaSummary) Allowed() int {
 
 // GetAllowed returns the value of the 'allowed' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *QuotaSummary) GetAllowed() (value int, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
@@ -76,6 +86,8 @@ func (o *QuotaSummary) GetAllowed() (value int, ok bool) {
 
 // AvailabilityZoneType returns the value of the 'availability_zone_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *QuotaSummary) AvailabilityZoneType() string {
 	if o != nil && o.bitmap_&4 != 0 {
 		return o.availabilityZoneType
@@ -85,6 +97,8 @@ func (o *QuotaSummary) AvailabilityZoneType() string {
 
 // GetAvailabilityZoneType returns the value of the 'availability_zone_type' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *QuotaSummary) GetAvailabilityZoneType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
@@ -95,6 +109,8 @@ func (o *QuotaSummary) GetAvailabilityZoneType() (value string, ok bool) {
 
 // OrganizationID returns the value of the 'organization_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *QuotaSummary) OrganizationID() string {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.organizationID
@@ -104,6 +120,8 @@ func (o *QuotaSummary) OrganizationID() string {
 
 // GetOrganizationID returns the value of the 'organization_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *QuotaSummary) GetOrganizationID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -114,6 +132,8 @@ func (o *QuotaSummary) GetOrganizationID() (value string, ok bool) {
 
 // Reserved returns the value of the 'reserved' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *QuotaSummary) Reserved() int {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.reserved
@@ -123,6 +143,8 @@ func (o *QuotaSummary) Reserved() int {
 
 // GetReserved returns the value of the 'reserved' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *QuotaSummary) GetReserved() (value int, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -133,6 +155,8 @@ func (o *QuotaSummary) GetReserved() (value int, ok bool) {
 
 // ResourceName returns the value of the 'resource_name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *QuotaSummary) ResourceName() string {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.resourceName
@@ -142,6 +166,8 @@ func (o *QuotaSummary) ResourceName() string {
 
 // GetResourceName returns the value of the 'resource_name' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *QuotaSummary) GetResourceName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -152,6 +178,8 @@ func (o *QuotaSummary) GetResourceName() (value string, ok bool) {
 
 // ResourceType returns the value of the 'resource_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *QuotaSummary) ResourceType() string {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.resourceType
@@ -161,6 +189,8 @@ func (o *QuotaSummary) ResourceType() string {
 
 // GetResourceType returns the value of the 'resource_type' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *QuotaSummary) GetResourceType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {

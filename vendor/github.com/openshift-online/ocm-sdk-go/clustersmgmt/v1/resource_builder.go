@@ -61,6 +61,8 @@ func (b *ResourceBuilder) HREF(value string) *ResourceBuilder {
 }
 
 // ClusterID sets the value of the 'cluster_ID' attribute to the given value.
+//
+//
 func (b *ResourceBuilder) ClusterID(value string) *ResourceBuilder {
 	b.clusterID = value
 	b.bitmap_ |= 8
@@ -68,6 +70,8 @@ func (b *ResourceBuilder) ClusterID(value string) *ResourceBuilder {
 }
 
 // CreationTimestamp sets the value of the 'creation_timestamp' attribute to the given value.
+//
+//
 func (b *ResourceBuilder) CreationTimestamp(value time.Time) *ResourceBuilder {
 	b.creationTimestamp = value
 	b.bitmap_ |= 16
@@ -75,6 +79,8 @@ func (b *ResourceBuilder) CreationTimestamp(value time.Time) *ResourceBuilder {
 }
 
 // Resources sets the value of the 'resources' attribute to the given value.
+//
+//
 func (b *ResourceBuilder) Resources(value map[string]string) *ResourceBuilder {
 	b.resources = value
 	if value != nil {

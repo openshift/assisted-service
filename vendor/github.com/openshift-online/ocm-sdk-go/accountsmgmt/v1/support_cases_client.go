@@ -93,6 +93,8 @@ func (r *SupportCasesPostRequest) Header(name string, value interface{}) *Suppor
 }
 
 // Request sets the value of the 'request' parameter.
+//
+//
 func (r *SupportCasesPostRequest) Request(value *SupportCaseRequest) *SupportCasesPostRequest {
 	r.request = value
 	return r
@@ -194,6 +196,8 @@ func (r *SupportCasesPostResponse) Error() *errors.Error {
 }
 
 // Response returns the value of the 'response' parameter.
+//
+//
 func (r *SupportCasesPostResponse) Response() *SupportCaseResponse {
 	if r == nil {
 		return nil
@@ -203,6 +207,8 @@ func (r *SupportCasesPostResponse) Response() *SupportCaseResponse {
 
 // GetResponse returns the value of the 'response' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *SupportCasesPostResponse) GetResponse() (value *SupportCaseResponse, ok bool) {
 	ok = r != nil && r.response != nil
 	if ok {

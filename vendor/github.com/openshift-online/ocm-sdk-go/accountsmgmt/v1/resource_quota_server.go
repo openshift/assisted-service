@@ -74,6 +74,8 @@ type ResourceQuotaGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *ResourceQuotaGetServerResponse) Body(value *ResourceQuota) *ResourceQuotaGetServerResponse {
 	r.body = value
 	return r
@@ -91,6 +93,8 @@ type ResourceQuotaUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *ResourceQuotaUpdateServerRequest) Body() *ResourceQuota {
 	if r == nil {
 		return nil
@@ -100,6 +104,8 @@ func (r *ResourceQuotaUpdateServerRequest) Body() *ResourceQuota {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *ResourceQuotaUpdateServerRequest) GetBody() (value *ResourceQuota, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -116,6 +122,8 @@ type ResourceQuotaUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *ResourceQuotaUpdateServerResponse) Body(value *ResourceQuota) *ResourceQuotaUpdateServerResponse {
 	r.body = value
 	return r

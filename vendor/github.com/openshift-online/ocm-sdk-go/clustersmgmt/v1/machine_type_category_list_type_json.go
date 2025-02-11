@@ -60,7 +60,7 @@ func UnmarshalMachineTypeCategoryList(source interface{}) (items []MachineTypeCa
 	return
 }
 
-// readMachineTypeCategoryList reads list of values of the ”machine_type_category' type from
+// readMachineTypeCategoryList reads list of values of the ''machine_type_category' type from
 // the given iterator.
 func readMachineTypeCategoryList(iterator *jsoniter.Iterator) []MachineTypeCategory {
 	list := []MachineTypeCategory{}

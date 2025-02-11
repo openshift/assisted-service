@@ -60,7 +60,7 @@ func UnmarshalOpenIDClaimsList(source interface{}) (items []*OpenIDClaims, err e
 	return
 }
 
-// readOpenIDClaimsList reads list of values of the ”open_ID_claims' type from
+// readOpenIDClaimsList reads list of values of the ''open_ID_claims' type from
 // the given iterator.
 func readOpenIDClaimsList(iterator *jsoniter.Iterator) []*OpenIDClaims {
 	list := []*OpenIDClaims{}

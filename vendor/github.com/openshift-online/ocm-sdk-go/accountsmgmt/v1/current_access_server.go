@@ -97,6 +97,8 @@ type CurrentAccessListServerResponse struct {
 }
 
 // Items sets the value of the 'items' parameter.
+//
+//
 func (r *CurrentAccessListServerResponse) Items(value *RoleList) *CurrentAccessListServerResponse {
 	r.items = value
 	return r

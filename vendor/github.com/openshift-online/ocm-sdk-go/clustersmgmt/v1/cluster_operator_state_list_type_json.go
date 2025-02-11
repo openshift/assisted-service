@@ -60,7 +60,7 @@ func UnmarshalClusterOperatorStateList(source interface{}) (items []ClusterOpera
 	return
 }
 
-// readClusterOperatorStateList reads list of values of the ”cluster_operator_state' type from
+// readClusterOperatorStateList reads list of values of the ''cluster_operator_state' type from
 // the given iterator.
 func readClusterOperatorStateList(iterator *jsoniter.Iterator) []ClusterOperatorState {
 	list := []ClusterOperatorState{}

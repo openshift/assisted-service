@@ -60,7 +60,7 @@ func UnmarshalIdentityProviderMappingMethodList(source interface{}) (items []Ide
 	return
 }
 
-// readIdentityProviderMappingMethodList reads list of values of the ”identity_provider_mapping_method' type from
+// readIdentityProviderMappingMethodList reads list of values of the ''identity_provider_mapping_method' type from
 // the given iterator.
 func readIdentityProviderMappingMethodList(iterator *jsoniter.Iterator) []IdentityProviderMappingMethod {
 	list := []IdentityProviderMappingMethod{}

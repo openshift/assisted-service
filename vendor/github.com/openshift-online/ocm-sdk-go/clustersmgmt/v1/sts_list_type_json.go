@@ -60,7 +60,7 @@ func UnmarshalSTSList(source interface{}) (items []*STS, err error) {
 	return
 }
 
-// readSTSList reads list of values of the ”STS' type from
+// readSTSList reads list of values of the ''STS' type from
 // the given iterator.
 func readSTSList(iterator *jsoniter.Iterator) []*STS {
 	list := []*STS{}

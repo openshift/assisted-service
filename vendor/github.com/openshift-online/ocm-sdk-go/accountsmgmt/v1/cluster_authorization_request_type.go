@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // ClusterAuthorizationRequest represents the values of the 'cluster_authorization_request' type.
+//
+//
 type ClusterAuthorizationRequest struct {
 	bitmap_           uint32
 	accountUsername   string
@@ -45,6 +47,8 @@ func (o *ClusterAuthorizationRequest) Empty() bool {
 
 // BYOC returns the value of the 'BYOC' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) BYOC() bool {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.byoc
@@ -54,6 +58,8 @@ func (o *ClusterAuthorizationRequest) BYOC() bool {
 
 // GetBYOC returns the value of the 'BYOC' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetBYOC() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -64,6 +70,8 @@ func (o *ClusterAuthorizationRequest) GetBYOC() (value bool, ok bool) {
 
 // AccountUsername returns the value of the 'account_username' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) AccountUsername() string {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.accountUsername
@@ -73,6 +81,8 @@ func (o *ClusterAuthorizationRequest) AccountUsername() string {
 
 // GetAccountUsername returns the value of the 'account_username' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetAccountUsername() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
@@ -83,6 +93,8 @@ func (o *ClusterAuthorizationRequest) GetAccountUsername() (value string, ok boo
 
 // AvailabilityZone returns the value of the 'availability_zone' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) AvailabilityZone() string {
 	if o != nil && o.bitmap_&4 != 0 {
 		return o.availabilityZone
@@ -92,6 +104,8 @@ func (o *ClusterAuthorizationRequest) AvailabilityZone() string {
 
 // GetAvailabilityZone returns the value of the 'availability_zone' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetAvailabilityZone() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
@@ -102,6 +116,8 @@ func (o *ClusterAuthorizationRequest) GetAvailabilityZone() (value string, ok bo
 
 // CloudAccountID returns the value of the 'cloud_account_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) CloudAccountID() string {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.cloudAccountID
@@ -111,6 +127,8 @@ func (o *ClusterAuthorizationRequest) CloudAccountID() string {
 
 // GetCloudAccountID returns the value of the 'cloud_account_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetCloudAccountID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -121,6 +139,8 @@ func (o *ClusterAuthorizationRequest) GetCloudAccountID() (value string, ok bool
 
 // CloudProviderID returns the value of the 'cloud_provider_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) CloudProviderID() string {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.cloudProviderID
@@ -130,6 +150,8 @@ func (o *ClusterAuthorizationRequest) CloudProviderID() string {
 
 // GetCloudProviderID returns the value of the 'cloud_provider_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetCloudProviderID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -140,6 +162,8 @@ func (o *ClusterAuthorizationRequest) GetCloudProviderID() (value string, ok boo
 
 // ClusterID returns the value of the 'cluster_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) ClusterID() string {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.clusterID
@@ -149,6 +173,8 @@ func (o *ClusterAuthorizationRequest) ClusterID() string {
 
 // GetClusterID returns the value of the 'cluster_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetClusterID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -159,6 +185,8 @@ func (o *ClusterAuthorizationRequest) GetClusterID() (value string, ok bool) {
 
 // Disconnected returns the value of the 'disconnected' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) Disconnected() bool {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.disconnected
@@ -168,6 +196,8 @@ func (o *ClusterAuthorizationRequest) Disconnected() bool {
 
 // GetDisconnected returns the value of the 'disconnected' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetDisconnected() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -178,6 +208,8 @@ func (o *ClusterAuthorizationRequest) GetDisconnected() (value bool, ok bool) {
 
 // DisplayName returns the value of the 'display_name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) DisplayName() string {
 	if o != nil && o.bitmap_&128 != 0 {
 		return o.displayName
@@ -187,6 +219,8 @@ func (o *ClusterAuthorizationRequest) DisplayName() string {
 
 // GetDisplayName returns the value of the 'display_name' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetDisplayName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
@@ -197,6 +231,8 @@ func (o *ClusterAuthorizationRequest) GetDisplayName() (value string, ok bool) {
 
 // ExternalClusterID returns the value of the 'external_cluster_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) ExternalClusterID() string {
 	if o != nil && o.bitmap_&256 != 0 {
 		return o.externalClusterID
@@ -206,6 +242,8 @@ func (o *ClusterAuthorizationRequest) ExternalClusterID() string {
 
 // GetExternalClusterID returns the value of the 'external_cluster_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetExternalClusterID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
@@ -216,6 +254,8 @@ func (o *ClusterAuthorizationRequest) GetExternalClusterID() (value string, ok b
 
 // Managed returns the value of the 'managed' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) Managed() bool {
 	if o != nil && o.bitmap_&512 != 0 {
 		return o.managed
@@ -225,6 +265,8 @@ func (o *ClusterAuthorizationRequest) Managed() bool {
 
 // GetManaged returns the value of the 'managed' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetManaged() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&512 != 0
 	if ok {
@@ -235,6 +277,8 @@ func (o *ClusterAuthorizationRequest) GetManaged() (value bool, ok bool) {
 
 // ProductID returns the value of the 'product_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) ProductID() string {
 	if o != nil && o.bitmap_&1024 != 0 {
 		return o.productID
@@ -244,6 +288,8 @@ func (o *ClusterAuthorizationRequest) ProductID() string {
 
 // GetProductID returns the value of the 'product_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetProductID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1024 != 0
 	if ok {
@@ -254,6 +300,8 @@ func (o *ClusterAuthorizationRequest) GetProductID() (value string, ok bool) {
 
 // ProductCategory returns the value of the 'product_category' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) ProductCategory() string {
 	if o != nil && o.bitmap_&2048 != 0 {
 		return o.productCategory
@@ -263,6 +311,8 @@ func (o *ClusterAuthorizationRequest) ProductCategory() string {
 
 // GetProductCategory returns the value of the 'product_category' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetProductCategory() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&2048 != 0
 	if ok {
@@ -273,6 +323,8 @@ func (o *ClusterAuthorizationRequest) GetProductCategory() (value string, ok boo
 
 // Reserve returns the value of the 'reserve' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) Reserve() bool {
 	if o != nil && o.bitmap_&4096 != 0 {
 		return o.reserve
@@ -282,6 +334,8 @@ func (o *ClusterAuthorizationRequest) Reserve() bool {
 
 // GetReserve returns the value of the 'reserve' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetReserve() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&4096 != 0
 	if ok {
@@ -292,6 +346,8 @@ func (o *ClusterAuthorizationRequest) GetReserve() (value bool, ok bool) {
 
 // Resources returns the value of the 'resources' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterAuthorizationRequest) Resources() []*ReservedResource {
 	if o != nil && o.bitmap_&8192 != 0 {
 		return o.resources
@@ -301,6 +357,8 @@ func (o *ClusterAuthorizationRequest) Resources() []*ReservedResource {
 
 // GetResources returns the value of the 'resources' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterAuthorizationRequest) GetResources() (value []*ReservedResource, ok bool) {
 	ok = o != nil && o.bitmap_&8192 != 0
 	if ok {

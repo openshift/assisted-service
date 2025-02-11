@@ -60,7 +60,7 @@ func UnmarshalListeningMethodList(source interface{}) (items []ListeningMethod, 
 	return
 }
 
-// readListeningMethodList reads list of values of the ”listening_method' type from
+// readListeningMethodList reads list of values of the ''listening_method' type from
 // the given iterator.
 func readListeningMethodList(iterator *jsoniter.Iterator) []ListeningMethod {
 	list := []ListeningMethod{}

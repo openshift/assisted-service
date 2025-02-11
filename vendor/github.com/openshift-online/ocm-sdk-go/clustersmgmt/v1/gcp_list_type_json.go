@@ -60,7 +60,7 @@ func UnmarshalGCPList(source interface{}) (items []*GCP, err error) {
 	return
 }
 
-// readGCPList reads list of values of the ”GCP' type from
+// readGCPList reads list of values of the ''GCP' type from
 // the given iterator.
 func readGCPList(iterator *jsoniter.Iterator) []*GCP {
 	list := []*GCP{}

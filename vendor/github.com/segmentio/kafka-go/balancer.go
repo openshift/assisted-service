@@ -122,7 +122,7 @@ var (
 //
 // The logic to calculate the partition is:
 //
-//	hasher.Sum32() % len(partitions) => partition
+// 		hasher.Sum32() % len(partitions) => partition
 //
 // By default, Hash uses the FNV-1a algorithm.  This is the same algorithm used
 // by the Sarama Producer and ensures that messages produced by kafka-go will
@@ -173,7 +173,7 @@ func (h *Hash) Balance(msg Message, partitions ...int) int {
 //
 // The logic to calculate the partition is:
 //
-//	(int32(hasher.Sum32()) & 0x7fffffff) % len(partitions) => partition
+//      (int32(hasher.Sum32()) & 0x7fffffff) % len(partitions) => partition
 //
 // By default, ReferenceHash uses the FNV-1a algorithm. This is the same algorithm as
 // the Sarama NewReferenceHashPartitioner and ensures that messages produced by kafka-go will

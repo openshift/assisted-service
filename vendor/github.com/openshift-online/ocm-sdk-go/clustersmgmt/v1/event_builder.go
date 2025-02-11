@@ -33,6 +33,8 @@ func NewEvent() *EventBuilder {
 }
 
 // Key sets the value of the 'key' attribute to the given value.
+//
+//
 func (b *EventBuilder) Key(value string) *EventBuilder {
 	b.key = value
 	b.bitmap_ |= 1

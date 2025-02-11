@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // ClusterRegistrationResponse represents the values of the 'cluster_registration_response' type.
+//
+//
 type ClusterRegistrationResponse struct {
 	bitmap_            uint32
 	accountID          string
@@ -35,6 +37,8 @@ func (o *ClusterRegistrationResponse) Empty() bool {
 
 // AccountID returns the value of the 'account_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterRegistrationResponse) AccountID() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.accountID
@@ -44,6 +48,8 @@ func (o *ClusterRegistrationResponse) AccountID() string {
 
 // GetAccountID returns the value of the 'account_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterRegistrationResponse) GetAccountID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -54,6 +60,8 @@ func (o *ClusterRegistrationResponse) GetAccountID() (value string, ok bool) {
 
 // AuthorizationToken returns the value of the 'authorization_token' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterRegistrationResponse) AuthorizationToken() string {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.authorizationToken
@@ -63,6 +71,8 @@ func (o *ClusterRegistrationResponse) AuthorizationToken() string {
 
 // GetAuthorizationToken returns the value of the 'authorization_token' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterRegistrationResponse) GetAuthorizationToken() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
@@ -73,6 +83,8 @@ func (o *ClusterRegistrationResponse) GetAuthorizationToken() (value string, ok 
 
 // ClusterID returns the value of the 'cluster_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *ClusterRegistrationResponse) ClusterID() string {
 	if o != nil && o.bitmap_&4 != 0 {
 		return o.clusterID
@@ -82,6 +94,8 @@ func (o *ClusterRegistrationResponse) ClusterID() string {
 
 // GetClusterID returns the value of the 'cluster_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *ClusterRegistrationResponse) GetClusterID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&4 != 0
 	if ok {

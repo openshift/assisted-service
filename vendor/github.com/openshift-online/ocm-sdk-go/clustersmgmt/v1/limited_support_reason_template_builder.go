@@ -56,6 +56,8 @@ func (b *LimitedSupportReasonTemplateBuilder) HREF(value string) *LimitedSupport
 }
 
 // Details sets the value of the 'details' attribute to the given value.
+//
+//
 func (b *LimitedSupportReasonTemplateBuilder) Details(value string) *LimitedSupportReasonTemplateBuilder {
 	b.details = value
 	b.bitmap_ |= 8
@@ -63,6 +65,8 @@ func (b *LimitedSupportReasonTemplateBuilder) Details(value string) *LimitedSupp
 }
 
 // Summary sets the value of the 'summary' attribute to the given value.
+//
+//
 func (b *LimitedSupportReasonTemplateBuilder) Summary(value string) *LimitedSupportReasonTemplateBuilder {
 	b.summary = value
 	b.bitmap_ |= 16

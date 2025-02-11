@@ -60,7 +60,7 @@ func UnmarshalEventList(source interface{}) (items []*Event, err error) {
 	return
 }
 
-// readEventList reads list of values of the ”event' type from
+// readEventList reads list of values of the ''event' type from
 // the given iterator.
 func readEventList(iterator *jsoniter.Iterator) []*Event {
 	list := []*Event{}

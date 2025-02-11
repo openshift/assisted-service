@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // SupportCaseResponseBuilder contains the data and logic needed to build 'support_case_response' objects.
+//
+//
 type SupportCaseResponseBuilder struct {
 	bitmap_        uint32
 	id             string
@@ -61,6 +63,8 @@ func (b *SupportCaseResponseBuilder) HREF(value string) *SupportCaseResponseBuil
 }
 
 // URI sets the value of the 'URI' attribute to the given value.
+//
+//
 func (b *SupportCaseResponseBuilder) URI(value string) *SupportCaseResponseBuilder {
 	b.uri = value
 	b.bitmap_ |= 8
@@ -68,6 +72,8 @@ func (b *SupportCaseResponseBuilder) URI(value string) *SupportCaseResponseBuild
 }
 
 // CaseNumber sets the value of the 'case_number' attribute to the given value.
+//
+//
 func (b *SupportCaseResponseBuilder) CaseNumber(value string) *SupportCaseResponseBuilder {
 	b.caseNumber = value
 	b.bitmap_ |= 16
@@ -75,6 +81,8 @@ func (b *SupportCaseResponseBuilder) CaseNumber(value string) *SupportCaseRespon
 }
 
 // ClusterId sets the value of the 'cluster_id' attribute to the given value.
+//
+//
 func (b *SupportCaseResponseBuilder) ClusterId(value string) *SupportCaseResponseBuilder {
 	b.clusterId = value
 	b.bitmap_ |= 32
@@ -82,6 +90,8 @@ func (b *SupportCaseResponseBuilder) ClusterId(value string) *SupportCaseRespons
 }
 
 // ClusterUuid sets the value of the 'cluster_uuid' attribute to the given value.
+//
+//
 func (b *SupportCaseResponseBuilder) ClusterUuid(value string) *SupportCaseResponseBuilder {
 	b.clusterUuid = value
 	b.bitmap_ |= 64
@@ -89,6 +99,8 @@ func (b *SupportCaseResponseBuilder) ClusterUuid(value string) *SupportCaseRespo
 }
 
 // Description sets the value of the 'description' attribute to the given value.
+//
+//
 func (b *SupportCaseResponseBuilder) Description(value string) *SupportCaseResponseBuilder {
 	b.description = value
 	b.bitmap_ |= 128
@@ -96,6 +108,8 @@ func (b *SupportCaseResponseBuilder) Description(value string) *SupportCaseRespo
 }
 
 // Severity sets the value of the 'severity' attribute to the given value.
+//
+//
 func (b *SupportCaseResponseBuilder) Severity(value string) *SupportCaseResponseBuilder {
 	b.severity = value
 	b.bitmap_ |= 256
@@ -103,6 +117,8 @@ func (b *SupportCaseResponseBuilder) Severity(value string) *SupportCaseResponse
 }
 
 // Status sets the value of the 'status' attribute to the given value.
+//
+//
 func (b *SupportCaseResponseBuilder) Status(value string) *SupportCaseResponseBuilder {
 	b.status = value
 	b.bitmap_ |= 512
@@ -110,6 +126,8 @@ func (b *SupportCaseResponseBuilder) Status(value string) *SupportCaseResponseBu
 }
 
 // SubscriptionId sets the value of the 'subscription_id' attribute to the given value.
+//
+//
 func (b *SupportCaseResponseBuilder) SubscriptionId(value string) *SupportCaseResponseBuilder {
 	b.subscriptionId = value
 	b.bitmap_ |= 1024
@@ -117,6 +135,8 @@ func (b *SupportCaseResponseBuilder) SubscriptionId(value string) *SupportCaseRe
 }
 
 // Summary sets the value of the 'summary' attribute to the given value.
+//
+//
 func (b *SupportCaseResponseBuilder) Summary(value string) *SupportCaseResponseBuilder {
 	b.summary = value
 	b.bitmap_ |= 2048

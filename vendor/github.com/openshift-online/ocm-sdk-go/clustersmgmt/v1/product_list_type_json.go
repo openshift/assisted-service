@@ -60,7 +60,7 @@ func UnmarshalProductList(source interface{}) (items []*Product, err error) {
 	return
 }
 
-// readProductList reads list of values of the ”product' type from
+// readProductList reads list of values of the ''product' type from
 // the given iterator.
 func readProductList(iterator *jsoniter.Iterator) []*Product {
 	list := []*Product{}

@@ -47,6 +47,8 @@ type PullSecretsPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
+//
+//
 func (r *PullSecretsPostServerRequest) Request() *PullSecretsRequest {
 	if r == nil {
 		return nil
@@ -56,6 +58,8 @@ func (r *PullSecretsPostServerRequest) Request() *PullSecretsRequest {
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *PullSecretsPostServerRequest) GetRequest() (value *PullSecretsRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -72,6 +76,8 @@ type PullSecretsPostServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *PullSecretsPostServerResponse) Body(value *AccessToken) *PullSecretsPostServerResponse {
 	r.body = value
 	return r

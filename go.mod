@@ -254,7 +254,7 @@ require (
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/net v0.34.0
 	golang.org/x/oauth2 v0.25.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.22.0 // indirect

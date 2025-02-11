@@ -74,6 +74,8 @@ type IngressGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *IngressGetServerResponse) Body(value *Ingress) *IngressGetServerResponse {
 	r.body = value
 	return r
@@ -91,6 +93,8 @@ type IngressUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *IngressUpdateServerRequest) Body() *Ingress {
 	if r == nil {
 		return nil
@@ -100,6 +104,8 @@ func (r *IngressUpdateServerRequest) Body() *Ingress {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *IngressUpdateServerRequest) GetBody() (value *Ingress, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -116,6 +122,8 @@ type IngressUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *IngressUpdateServerResponse) Body(value *Ingress) *IngressUpdateServerResponse {
 	r.body = value
 	return r

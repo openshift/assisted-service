@@ -60,6 +60,8 @@ type CloudProviderGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *CloudProviderGetServerResponse) Body(value *CloudProvider) *CloudProviderGetServerResponse {
 	r.body = value
 	return r

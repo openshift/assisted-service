@@ -35,6 +35,8 @@ func NewAWSVolume() *AWSVolumeBuilder {
 }
 
 // IOPS sets the value of the 'IOPS' attribute to the given value.
+//
+//
 func (b *AWSVolumeBuilder) IOPS(value int) *AWSVolumeBuilder {
 	b.iops = value
 	b.bitmap_ |= 1
@@ -42,6 +44,8 @@ func (b *AWSVolumeBuilder) IOPS(value int) *AWSVolumeBuilder {
 }
 
 // Size sets the value of the 'size' attribute to the given value.
+//
+//
 func (b *AWSVolumeBuilder) Size(value int) *AWSVolumeBuilder {
 	b.size = value
 	b.bitmap_ |= 2
@@ -49,6 +53,8 @@ func (b *AWSVolumeBuilder) Size(value int) *AWSVolumeBuilder {
 }
 
 // Type sets the value of the 'type' attribute to the given value.
+//
+//
 func (b *AWSVolumeBuilder) Type(value string) *AWSVolumeBuilder {
 	b.type_ = value
 	b.bitmap_ |= 4

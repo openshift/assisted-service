@@ -48,6 +48,8 @@ type ClusterOperatorsMetricQueryGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *ClusterOperatorsMetricQueryGetServerResponse) Body(value *ClusterOperatorsInfo) *ClusterOperatorsMetricQueryGetServerResponse {
 	r.body = value
 	return r

@@ -42,6 +42,8 @@ type ExportControlReviewPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
+//
+//
 func (r *ExportControlReviewPostServerRequest) Request() *ExportControlReviewRequest {
 	if r == nil {
 		return nil
@@ -51,6 +53,8 @@ func (r *ExportControlReviewPostServerRequest) Request() *ExportControlReviewReq
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *ExportControlReviewPostServerRequest) GetRequest() (value *ExportControlReviewRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -67,6 +71,8 @@ type ExportControlReviewPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
+//
+//
 func (r *ExportControlReviewPostServerResponse) Response(value *ExportControlReviewResponse) *ExportControlReviewPostServerResponse {
 	r.response = value
 	return r

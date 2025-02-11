@@ -267,6 +267,7 @@ func (r *OrganizationsListRequest) FetchlabelsLabels(value bool) *OrganizationsL
 // a result. No new fields can be added, only existing ones can be filtered.
 // To specify a field 'id' of a structure 'plan' use 'plan.id'.
 // To specify all fields of a structure 'labels' use 'labels.*'.
+//
 func (r *OrganizationsListRequest) Fields(value string) *OrganizationsListRequest {
 	r.fields = &value
 	return r

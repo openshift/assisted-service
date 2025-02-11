@@ -60,7 +60,7 @@ func UnmarshalClusterResourceList(source interface{}) (items []*ClusterResource,
 	return
 }
 
-// readClusterResourceList reads list of values of the ”cluster_resource' type from
+// readClusterResourceList reads list of values of the ''cluster_resource' type from
 // the given iterator.
 func readClusterResourceList(iterator *jsoniter.Iterator) []*ClusterResource {
 	list := []*ClusterResource{}

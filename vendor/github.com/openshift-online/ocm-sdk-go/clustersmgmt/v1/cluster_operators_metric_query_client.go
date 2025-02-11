@@ -48,6 +48,8 @@ func NewClusterOperatorsMetricQueryClient(transport http.RoundTripper, path stri
 }
 
 // Get creates a request for the 'get' method.
+//
+//
 func (c *ClusterOperatorsMetricQueryClient) Get() *ClusterOperatorsMetricQueryGetRequest {
 	return &ClusterOperatorsMetricQueryGetRequest{
 		transport: c.transport,
@@ -154,12 +156,16 @@ func (r *ClusterOperatorsMetricQueryPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *ClusterOperatorsMetricQueryPollResponse) Body() *ClusterOperatorsInfo {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *ClusterOperatorsMetricQueryPollResponse) GetBody() (value *ClusterOperatorsInfo, ok bool) {
 	return r.response.GetBody()
 }
@@ -272,6 +278,8 @@ func (r *ClusterOperatorsMetricQueryGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *ClusterOperatorsMetricQueryGetResponse) Body() *ClusterOperatorsInfo {
 	if r == nil {
 		return nil
@@ -281,6 +289,8 @@ func (r *ClusterOperatorsMetricQueryGetResponse) Body() *ClusterOperatorsInfo {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *ClusterOperatorsMetricQueryGetResponse) GetBody() (value *ClusterOperatorsInfo, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

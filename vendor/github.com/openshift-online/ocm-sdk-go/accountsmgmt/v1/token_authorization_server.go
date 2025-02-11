@@ -42,6 +42,8 @@ type TokenAuthorizationPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
+//
+//
 func (r *TokenAuthorizationPostServerRequest) Request() *TokenAuthorizationRequest {
 	if r == nil {
 		return nil
@@ -51,6 +53,8 @@ func (r *TokenAuthorizationPostServerRequest) Request() *TokenAuthorizationReque
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *TokenAuthorizationPostServerRequest) GetRequest() (value *TokenAuthorizationRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -67,6 +71,8 @@ type TokenAuthorizationPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
+//
+//
 func (r *TokenAuthorizationPostServerResponse) Response(value *TokenAuthorizationResponse) *TokenAuthorizationPostServerResponse {
 	r.response = value
 	return r

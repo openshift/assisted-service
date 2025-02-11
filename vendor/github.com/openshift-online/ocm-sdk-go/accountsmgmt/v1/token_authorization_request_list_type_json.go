@@ -60,7 +60,7 @@ func UnmarshalTokenAuthorizationRequestList(source interface{}) (items []*TokenA
 	return
 }
 
-// readTokenAuthorizationRequestList reads list of values of the ”token_authorization_request' type from
+// readTokenAuthorizationRequestList reads list of values of the ''token_authorization_request' type from
 // the given iterator.
 func readTokenAuthorizationRequestList(iterator *jsoniter.Iterator) []*TokenAuthorizationRequest {
 	list := []*TokenAuthorizationRequest{}

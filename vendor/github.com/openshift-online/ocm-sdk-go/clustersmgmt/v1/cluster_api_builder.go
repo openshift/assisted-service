@@ -34,6 +34,8 @@ func NewClusterAPI() *ClusterAPIBuilder {
 }
 
 // URL sets the value of the 'URL' attribute to the given value.
+//
+//
 func (b *ClusterAPIBuilder) URL(value string) *ClusterAPIBuilder {
 	b.url = value
 	b.bitmap_ |= 1

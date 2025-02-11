@@ -60,7 +60,7 @@ func UnmarshalFeatureToggleList(source interface{}) (items []*FeatureToggle, err
 	return
 }
 
-// readFeatureToggleList reads list of values of the ”feature_toggle' type from
+// readFeatureToggleList reads list of values of the ''feature_toggle' type from
 // the given iterator.
 func readFeatureToggleList(iterator *jsoniter.Iterator) []*FeatureToggle {
 	list := []*FeatureToggle{}

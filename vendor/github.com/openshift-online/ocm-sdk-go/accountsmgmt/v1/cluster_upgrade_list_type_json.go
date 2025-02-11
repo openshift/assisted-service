@@ -60,7 +60,7 @@ func UnmarshalClusterUpgradeList(source interface{}) (items []*ClusterUpgrade, e
 	return
 }
 
-// readClusterUpgradeList reads list of values of the ”cluster_upgrade' type from
+// readClusterUpgradeList reads list of values of the ''cluster_upgrade' type from
 // the given iterator.
 func readClusterUpgradeList(iterator *jsoniter.Iterator) []*ClusterUpgrade {
 	list := []*ClusterUpgrade{}

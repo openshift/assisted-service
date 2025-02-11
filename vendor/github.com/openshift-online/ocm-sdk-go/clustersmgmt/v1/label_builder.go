@@ -56,6 +56,8 @@ func (b *LabelBuilder) HREF(value string) *LabelBuilder {
 }
 
 // Key sets the value of the 'key' attribute to the given value.
+//
+//
 func (b *LabelBuilder) Key(value string) *LabelBuilder {
 	b.key = value
 	b.bitmap_ |= 8
@@ -63,6 +65,8 @@ func (b *LabelBuilder) Key(value string) *LabelBuilder {
 }
 
 // Value sets the value of the 'value' attribute to the given value.
+//
+//
 func (b *LabelBuilder) Value(value string) *LabelBuilder {
 	b.value = value
 	b.bitmap_ |= 16

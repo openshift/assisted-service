@@ -42,6 +42,8 @@ type SelfCapabilityReviewPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
+//
+//
 func (r *SelfCapabilityReviewPostServerRequest) Request() *SelfCapabilityReviewRequest {
 	if r == nil {
 		return nil
@@ -51,6 +53,8 @@ func (r *SelfCapabilityReviewPostServerRequest) Request() *SelfCapabilityReviewR
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *SelfCapabilityReviewPostServerRequest) GetRequest() (value *SelfCapabilityReviewRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -67,6 +71,8 @@ type SelfCapabilityReviewPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
+//
+//
 func (r *SelfCapabilityReviewPostServerResponse) Response(value *SelfCapabilityReviewResponse) *SelfCapabilityReviewPostServerResponse {
 	r.response = value
 	return r

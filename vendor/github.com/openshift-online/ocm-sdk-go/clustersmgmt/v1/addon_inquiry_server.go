@@ -48,6 +48,8 @@ type AddonInquiryGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *AddonInquiryGetServerResponse) Body(value *AddOn) *AddonInquiryGetServerResponse {
 	r.body = value
 	return r

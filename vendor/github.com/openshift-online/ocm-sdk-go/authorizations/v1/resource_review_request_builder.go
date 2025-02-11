@@ -36,6 +36,8 @@ func NewResourceReviewRequest() *ResourceReviewRequestBuilder {
 }
 
 // AccountUsername sets the value of the 'account_username' attribute to the given value.
+//
+//
 func (b *ResourceReviewRequestBuilder) AccountUsername(value string) *ResourceReviewRequestBuilder {
 	b.accountUsername = value
 	b.bitmap_ |= 1
@@ -43,6 +45,8 @@ func (b *ResourceReviewRequestBuilder) AccountUsername(value string) *ResourceRe
 }
 
 // Action sets the value of the 'action' attribute to the given value.
+//
+//
 func (b *ResourceReviewRequestBuilder) Action(value string) *ResourceReviewRequestBuilder {
 	b.action = value
 	b.bitmap_ |= 2
@@ -50,6 +54,8 @@ func (b *ResourceReviewRequestBuilder) Action(value string) *ResourceReviewReque
 }
 
 // ReduceClusterList sets the value of the 'reduce_cluster_list' attribute to the given value.
+//
+//
 func (b *ResourceReviewRequestBuilder) ReduceClusterList(value bool) *ResourceReviewRequestBuilder {
 	b.reduceClusterList = value
 	b.bitmap_ |= 4
@@ -57,6 +63,8 @@ func (b *ResourceReviewRequestBuilder) ReduceClusterList(value bool) *ResourceRe
 }
 
 // ResourceType sets the value of the 'resource_type' attribute to the given value.
+//
+//
 func (b *ResourceReviewRequestBuilder) ResourceType(value string) *ResourceReviewRequestBuilder {
 	b.resourceType = value
 	b.bitmap_ |= 8

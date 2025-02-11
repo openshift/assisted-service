@@ -56,6 +56,8 @@ func (b *CloudProviderBuilder) HREF(value string) *CloudProviderBuilder {
 }
 
 // DisplayName sets the value of the 'display_name' attribute to the given value.
+//
+//
 func (b *CloudProviderBuilder) DisplayName(value string) *CloudProviderBuilder {
 	b.displayName = value
 	b.bitmap_ |= 8
@@ -63,6 +65,8 @@ func (b *CloudProviderBuilder) DisplayName(value string) *CloudProviderBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
+//
+//
 func (b *CloudProviderBuilder) Name(value string) *CloudProviderBuilder {
 	b.name = value
 	b.bitmap_ |= 16

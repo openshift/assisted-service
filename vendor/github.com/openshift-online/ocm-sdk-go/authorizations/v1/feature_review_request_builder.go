@@ -34,6 +34,8 @@ func NewFeatureReviewRequest() *FeatureReviewRequestBuilder {
 }
 
 // AccountUsername sets the value of the 'account_username' attribute to the given value.
+//
+//
 func (b *FeatureReviewRequestBuilder) AccountUsername(value string) *FeatureReviewRequestBuilder {
 	b.accountUsername = value
 	b.bitmap_ |= 1
@@ -41,6 +43,8 @@ func (b *FeatureReviewRequestBuilder) AccountUsername(value string) *FeatureRevi
 }
 
 // Feature sets the value of the 'feature' attribute to the given value.
+//
+//
 func (b *FeatureReviewRequestBuilder) Feature(value string) *FeatureReviewRequestBuilder {
 	b.feature = value
 	b.bitmap_ |= 2

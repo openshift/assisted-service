@@ -60,7 +60,7 @@ func UnmarshalRelatedResourceList(source interface{}) (items []*RelatedResource,
 	return
 }
 
-// readRelatedResourceList reads list of values of the ”related_resource' type from
+// readRelatedResourceList reads list of values of the ''related_resource' type from
 // the given iterator.
 func readRelatedResourceList(iterator *jsoniter.Iterator) []*RelatedResource {
 	list := []*RelatedResource{}

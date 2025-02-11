@@ -88,6 +88,8 @@ func (b *MachinePoolBuilder) Autoscaling(value *MachinePoolAutoscalingBuilder) *
 }
 
 // AvailabilityZones sets the value of the 'availability_zones' attribute to the given values.
+//
+//
 func (b *MachinePoolBuilder) AvailabilityZones(values ...string) *MachinePoolBuilder {
 	b.availabilityZones = make([]string, len(values))
 	copy(b.availabilityZones, values)
@@ -105,15 +107,13 @@ func (b *MachinePoolBuilder) AvailabilityZones(values ...string) *MachinePoolBui
 //
 // [source,json]
 // ----
-//
-//	{
-//	  "cloud_provider": {
-//	    "kind": "CloudProviderLink",
-//	    "id": "123",
-//	    "href": "/api/clusters_mgmt/v1/cloud_providers/123"
-//	  }
-//	}
-//
+// {
+//   "cloud_provider": {
+//     "kind": "CloudProviderLink",
+//     "id": "123",
+//     "href": "/api/clusters_mgmt/v1/cloud_providers/123"
+//   }
+// }
 // ----
 //
 // When a cluster is created this is optional, and if used it should contain the
@@ -121,13 +121,11 @@ func (b *MachinePoolBuilder) AvailabilityZones(values ...string) *MachinePoolBui
 //
 // [source,json]
 // ----
-//
-//	{
-//	  "cloud_provider": {
-//	    "id": "123",
-//	  }
-//	}
-//
+// {
+//   "cloud_provider": {
+//     "id": "123",
+//   }
+// }
 // ----
 //
 // If not included, then the cluster will be created using the default cloud
@@ -149,6 +147,8 @@ func (b *MachinePoolBuilder) Cluster(value *ClusterBuilder) *MachinePoolBuilder 
 }
 
 // InstanceType sets the value of the 'instance_type' attribute to the given value.
+//
+//
 func (b *MachinePoolBuilder) InstanceType(value string) *MachinePoolBuilder {
 	b.instanceType = value
 	b.bitmap_ |= 128
@@ -156,6 +156,8 @@ func (b *MachinePoolBuilder) InstanceType(value string) *MachinePoolBuilder {
 }
 
 // Labels sets the value of the 'labels' attribute to the given value.
+//
+//
 func (b *MachinePoolBuilder) Labels(value map[string]string) *MachinePoolBuilder {
 	b.labels = value
 	if value != nil {
@@ -167,6 +169,8 @@ func (b *MachinePoolBuilder) Labels(value map[string]string) *MachinePoolBuilder
 }
 
 // Replicas sets the value of the 'replicas' attribute to the given value.
+//
+//
 func (b *MachinePoolBuilder) Replicas(value int) *MachinePoolBuilder {
 	b.replicas = value
 	b.bitmap_ |= 512
@@ -174,6 +178,8 @@ func (b *MachinePoolBuilder) Replicas(value int) *MachinePoolBuilder {
 }
 
 // Taints sets the value of the 'taints' attribute to the given values.
+//
+//
 func (b *MachinePoolBuilder) Taints(values ...*TaintBuilder) *MachinePoolBuilder {
 	b.taints = make([]*TaintBuilder, len(values))
 	copy(b.taints, values)

@@ -60,7 +60,7 @@ func UnmarshalAddOnInstallationStateList(source interface{}) (items []AddOnInsta
 	return
 }
 
-// readAddOnInstallationStateList reads list of values of the ”add_on_installation_state' type from
+// readAddOnInstallationStateList reads list of values of the ''add_on_installation_state' type from
 // the given iterator.
 func readAddOnInstallationStateList(iterator *jsoniter.Iterator) []AddOnInstallationState {
 	list := []AddOnInstallationState{}

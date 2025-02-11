@@ -60,7 +60,7 @@ func UnmarshalExportControlReviewResponseList(source interface{}) (items []*Expo
 	return
 }
 
-// readExportControlReviewResponseList reads list of values of the ”export_control_review_response' type from
+// readExportControlReviewResponseList reads list of values of the ''export_control_review_response' type from
 // the given iterator.
 func readExportControlReviewResponseList(iterator *jsoniter.Iterator) []*ExportControlReviewResponse {
 	list := []*ExportControlReviewResponse{}

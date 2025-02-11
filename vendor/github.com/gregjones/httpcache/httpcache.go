@@ -3,6 +3,7 @@
 //
 // It is only suitable for use as a 'private' cache (i.e. for a web-browser or an API-client
 // and not for a shared proxy).
+//
 package httpcache
 
 import (

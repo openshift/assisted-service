@@ -60,7 +60,7 @@ func UnmarshalSelfAccessReviewResponseList(source interface{}) (items []*SelfAcc
 	return
 }
 
-// readSelfAccessReviewResponseList reads list of values of the ”self_access_review_response' type from
+// readSelfAccessReviewResponseList reads list of values of the ''self_access_review_response' type from
 // the given iterator.
 func readSelfAccessReviewResponseList(iterator *jsoniter.Iterator) []*SelfAccessReviewResponse {
 	list := []*SelfAccessReviewResponse{}

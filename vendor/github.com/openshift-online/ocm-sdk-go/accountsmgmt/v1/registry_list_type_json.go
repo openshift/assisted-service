@@ -60,7 +60,7 @@ func UnmarshalRegistryList(source interface{}) (items []*Registry, err error) {
 	return
 }
 
-// readRegistryList reads list of values of the ”registry' type from
+// readRegistryList reads list of values of the ''registry' type from
 // the given iterator.
 func readRegistryList(iterator *jsoniter.Iterator) []*Registry {
 	list := []*Registry{}

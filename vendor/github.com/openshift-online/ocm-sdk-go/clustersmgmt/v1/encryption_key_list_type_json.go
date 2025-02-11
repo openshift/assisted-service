@@ -60,7 +60,7 @@ func UnmarshalEncryptionKeyList(source interface{}) (items []*EncryptionKey, err
 	return
 }
 
-// readEncryptionKeyList reads list of values of the ”encryption_key' type from
+// readEncryptionKeyList reads list of values of the ''encryption_key' type from
 // the given iterator.
 func readEncryptionKeyList(iterator *jsoniter.Iterator) []*EncryptionKey {
 	list := []*EncryptionKey{}

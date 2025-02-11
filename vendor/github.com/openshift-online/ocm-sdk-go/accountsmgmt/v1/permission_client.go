@@ -166,12 +166,16 @@ func (r *PermissionPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *PermissionPollResponse) Body() *Permission {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *PermissionPollResponse) GetBody() (value *Permission, ok bool) {
 	return r.response.GetBody()
 }
@@ -378,6 +382,8 @@ func (r *PermissionGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *PermissionGetResponse) Body() *Permission {
 	if r == nil {
 		return nil
@@ -387,6 +393,8 @@ func (r *PermissionGetResponse) Body() *Permission {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *PermissionGetResponse) GetBody() (value *Permission, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

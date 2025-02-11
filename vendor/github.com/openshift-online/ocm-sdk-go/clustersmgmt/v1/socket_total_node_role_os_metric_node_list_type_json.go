@@ -60,7 +60,7 @@ func UnmarshalSocketTotalNodeRoleOSMetricNodeList(source interface{}) (items []*
 	return
 }
 
-// readSocketTotalNodeRoleOSMetricNodeList reads list of values of the ”socket_total_node_role_OS_metric_node' type from
+// readSocketTotalNodeRoleOSMetricNodeList reads list of values of the ''socket_total_node_role_OS_metric_node' type from
 // the given iterator.
 func readSocketTotalNodeRoleOSMetricNodeList(iterator *jsoniter.Iterator) []*SocketTotalNodeRoleOSMetricNode {
 	list := []*SocketTotalNodeRoleOSMetricNode{}

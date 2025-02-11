@@ -33,6 +33,8 @@ func NewNodesInfo() *NodesInfoBuilder {
 }
 
 // Nodes sets the value of the 'nodes' attribute to the given values.
+//
+//
 func (b *NodesInfoBuilder) Nodes(values ...*NodeInfoBuilder) *NodesInfoBuilder {
 	b.nodes = make([]*NodeInfoBuilder, len(values))
 	copy(b.nodes, values)

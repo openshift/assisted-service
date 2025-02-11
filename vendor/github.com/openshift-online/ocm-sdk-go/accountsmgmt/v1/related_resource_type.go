@@ -41,6 +41,8 @@ func (o *RelatedResource) Empty() bool {
 
 // BYOC returns the value of the 'BYOC' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RelatedResource) BYOC() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.byoc
@@ -50,6 +52,8 @@ func (o *RelatedResource) BYOC() string {
 
 // GetBYOC returns the value of the 'BYOC' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RelatedResource) GetBYOC() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -60,6 +64,8 @@ func (o *RelatedResource) GetBYOC() (value string, ok bool) {
 
 // AvailabilityZoneType returns the value of the 'availability_zone_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RelatedResource) AvailabilityZoneType() string {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.availabilityZoneType
@@ -69,6 +75,8 @@ func (o *RelatedResource) AvailabilityZoneType() string {
 
 // GetAvailabilityZoneType returns the value of the 'availability_zone_type' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RelatedResource) GetAvailabilityZoneType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
@@ -79,6 +87,8 @@ func (o *RelatedResource) GetAvailabilityZoneType() (value string, ok bool) {
 
 // BillingModel returns the value of the 'billing_model' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RelatedResource) BillingModel() string {
 	if o != nil && o.bitmap_&4 != 0 {
 		return o.billingModel
@@ -88,6 +98,8 @@ func (o *RelatedResource) BillingModel() string {
 
 // GetBillingModel returns the value of the 'billing_model' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RelatedResource) GetBillingModel() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
@@ -98,6 +110,8 @@ func (o *RelatedResource) GetBillingModel() (value string, ok bool) {
 
 // CloudProvider returns the value of the 'cloud_provider' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RelatedResource) CloudProvider() string {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.cloudProvider
@@ -107,6 +121,8 @@ func (o *RelatedResource) CloudProvider() string {
 
 // GetCloudProvider returns the value of the 'cloud_provider' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RelatedResource) GetCloudProvider() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -117,6 +133,8 @@ func (o *RelatedResource) GetCloudProvider() (value string, ok bool) {
 
 // Cost returns the value of the 'cost' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RelatedResource) Cost() int {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.cost
@@ -126,6 +144,8 @@ func (o *RelatedResource) Cost() int {
 
 // GetCost returns the value of the 'cost' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RelatedResource) GetCost() (value int, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -136,6 +156,8 @@ func (o *RelatedResource) GetCost() (value int, ok bool) {
 
 // Product returns the value of the 'product' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RelatedResource) Product() string {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.product
@@ -145,6 +167,8 @@ func (o *RelatedResource) Product() string {
 
 // GetProduct returns the value of the 'product' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RelatedResource) GetProduct() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -155,6 +179,8 @@ func (o *RelatedResource) GetProduct() (value string, ok bool) {
 
 // ResourceName returns the value of the 'resource_name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RelatedResource) ResourceName() string {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.resourceName
@@ -164,6 +190,8 @@ func (o *RelatedResource) ResourceName() string {
 
 // GetResourceName returns the value of the 'resource_name' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RelatedResource) GetResourceName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -174,6 +202,8 @@ func (o *RelatedResource) GetResourceName() (value string, ok bool) {
 
 // ResourceType returns the value of the 'resource_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RelatedResource) ResourceType() string {
 	if o != nil && o.bitmap_&128 != 0 {
 		return o.resourceType
@@ -183,6 +213,8 @@ func (o *RelatedResource) ResourceType() string {
 
 // GetResourceType returns the value of the 'resource_type' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RelatedResource) GetResourceType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&128 != 0
 	if ok {

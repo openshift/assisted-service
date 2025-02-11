@@ -60,7 +60,7 @@ func UnmarshalDetectionTypeList(source interface{}) (items []DetectionType, err 
 	return
 }
 
-// readDetectionTypeList reads list of values of the ”detection_type' type from
+// readDetectionTypeList reads list of values of the ''detection_type' type from
 // the given iterator.
 func readDetectionTypeList(iterator *jsoniter.Iterator) []DetectionType {
 	list := []DetectionType{}

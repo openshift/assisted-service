@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // TokenAuthorizationResponseBuilder contains the data and logic needed to build 'token_authorization_response' objects.
+//
+//
 type TokenAuthorizationResponseBuilder struct {
 	bitmap_ uint32
 	account *AccountBuilder
@@ -31,6 +33,8 @@ func NewTokenAuthorizationResponse() *TokenAuthorizationResponseBuilder {
 }
 
 // Account sets the value of the 'account' attribute to the given value.
+//
+//
 func (b *TokenAuthorizationResponseBuilder) Account(value *AccountBuilder) *TokenAuthorizationResponseBuilder {
 	b.account = value
 	if value != nil {

@@ -32,6 +32,8 @@ const RoleLinkKind = "RoleLink"
 const RoleNilKind = "RoleNil"
 
 // Role represents the values of the 'role' type.
+//
+//
 type Role struct {
 	bitmap_     uint32
 	id          string
@@ -99,6 +101,8 @@ func (o *Role) Empty() bool {
 
 // Name returns the value of the 'name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Role) Name() string {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.name
@@ -108,6 +112,8 @@ func (o *Role) Name() string {
 
 // GetName returns the value of the 'name' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Role) GetName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -118,6 +124,8 @@ func (o *Role) GetName() (value string, ok bool) {
 
 // Permissions returns the value of the 'permissions' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Role) Permissions() []*Permission {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.permissions
@@ -127,6 +135,8 @@ func (o *Role) Permissions() []*Permission {
 
 // GetPermissions returns the value of the 'permissions' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Role) GetPermissions() (value []*Permission, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {

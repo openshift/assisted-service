@@ -48,6 +48,8 @@ type RegistryGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *RegistryGetServerResponse) Body(value *Registry) *RegistryGetServerResponse {
 	r.body = value
 	return r

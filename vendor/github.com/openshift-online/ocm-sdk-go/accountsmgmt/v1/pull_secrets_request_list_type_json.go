@@ -60,7 +60,7 @@ func UnmarshalPullSecretsRequestList(source interface{}) (items []*PullSecretsRe
 	return
 }
 
-// readPullSecretsRequestList reads list of values of the ”pull_secrets_request' type from
+// readPullSecretsRequestList reads list of values of the ''pull_secrets_request' type from
 // the given iterator.
 func readPullSecretsRequestList(iterator *jsoniter.Iterator) []*PullSecretsRequest {
 	list := []*PullSecretsRequest{}

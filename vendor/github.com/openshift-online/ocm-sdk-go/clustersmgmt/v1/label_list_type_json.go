@@ -60,7 +60,7 @@ func UnmarshalLabelList(source interface{}) (items []*Label, err error) {
 	return
 }
 
-// readLabelList reads list of values of the ”label' type from
+// readLabelList reads list of values of the ''label' type from
 // the given iterator.
 func readLabelList(iterator *jsoniter.Iterator) []*Label {
 	list := []*Label{}

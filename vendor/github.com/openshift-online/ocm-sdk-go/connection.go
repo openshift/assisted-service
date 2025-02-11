@@ -462,21 +462,21 @@ func (b *ConnectionBuilder) TransportWrapper(value TransportWrapper) *Connection
 // To calculate the average request duration during the last 10 minutes, for example, use a
 // Prometheus expression like this:
 //
-//	rate(api_outbound_request_duration_sum[10m]) / rate(api_outbound_request_duration_count[10m])
+//      rate(api_outbound_request_duration_sum[10m]) / rate(api_outbound_request_duration_count[10m])
 //
 // In order to reduce the cardinality of the metrics the path label is modified to remove the
 // identifiers of the objects. For example, if the original path is .../clusters/123 then it will
 // be replaced by .../clusters/-, and the values will be accumulated. The line returned by the
 // metrics server will be like this:
 //
-//	api_outbound_request_count{code="200",method="GET",path="/api/clusters_mgmt/v1/clusters/-"} 56
+//      api_outbound_request_count{code="200",method="GET",path="/api/clusters_mgmt/v1/clusters/-"} 56
 //
 // The meaning of that is that there were a total of 56 requests to get specific clusters,
 // independently of the specific identifier of the cluster.
 //
 // The token request metrics will contain the following labels:
 //
-//	code - HTTP response code, for example 200 or 500.
+//      code - HTTP response code, for example 200 or 500.
 //
 // The value of the `code` label will be zero when sending the request failed without a response
 // code, for example if it wasn't possible to open the connection, or if there was a timeout waiting

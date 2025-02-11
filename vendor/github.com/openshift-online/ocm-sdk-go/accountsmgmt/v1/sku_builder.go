@@ -59,6 +59,8 @@ func (b *SKUBuilder) HREF(value string) *SKUBuilder {
 }
 
 // BYOC sets the value of the 'BYOC' attribute to the given value.
+//
+//
 func (b *SKUBuilder) BYOC(value bool) *SKUBuilder {
 	b.byoc = value
 	b.bitmap_ |= 8
@@ -66,6 +68,8 @@ func (b *SKUBuilder) BYOC(value bool) *SKUBuilder {
 }
 
 // AvailabilityZoneType sets the value of the 'availability_zone_type' attribute to the given value.
+//
+//
 func (b *SKUBuilder) AvailabilityZoneType(value string) *SKUBuilder {
 	b.availabilityZoneType = value
 	b.bitmap_ |= 16
@@ -73,6 +77,8 @@ func (b *SKUBuilder) AvailabilityZoneType(value string) *SKUBuilder {
 }
 
 // ResourceName sets the value of the 'resource_name' attribute to the given value.
+//
+//
 func (b *SKUBuilder) ResourceName(value string) *SKUBuilder {
 	b.resourceName = value
 	b.bitmap_ |= 32
@@ -80,6 +86,8 @@ func (b *SKUBuilder) ResourceName(value string) *SKUBuilder {
 }
 
 // ResourceType sets the value of the 'resource_type' attribute to the given value.
+//
+//
 func (b *SKUBuilder) ResourceType(value string) *SKUBuilder {
 	b.resourceType = value
 	b.bitmap_ |= 64
@@ -87,6 +95,8 @@ func (b *SKUBuilder) ResourceType(value string) *SKUBuilder {
 }
 
 // Resources sets the value of the 'resources' attribute to the given values.
+//
+//
 func (b *SKUBuilder) Resources(values ...*ResourceBuilder) *SKUBuilder {
 	b.resources = make([]*ResourceBuilder, len(values))
 	copy(b.resources, values)

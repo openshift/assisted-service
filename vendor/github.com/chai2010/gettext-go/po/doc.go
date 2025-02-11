@@ -6,7 +6,6 @@
 Package po provides support for reading and writing GNU PO file.
 
 Examples:
-
 	import (
 		"github.com/chai2010/gettext-go/po"
 	)

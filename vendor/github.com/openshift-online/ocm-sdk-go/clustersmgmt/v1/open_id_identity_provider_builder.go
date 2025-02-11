@@ -39,6 +39,8 @@ func NewOpenIDIdentityProvider() *OpenIDIdentityProviderBuilder {
 }
 
 // CA sets the value of the 'CA' attribute to the given value.
+//
+//
 func (b *OpenIDIdentityProviderBuilder) CA(value string) *OpenIDIdentityProviderBuilder {
 	b.ca = value
 	b.bitmap_ |= 1
@@ -59,6 +61,8 @@ func (b *OpenIDIdentityProviderBuilder) Claims(value *OpenIDClaimsBuilder) *Open
 }
 
 // ClientID sets the value of the 'client_ID' attribute to the given value.
+//
+//
 func (b *OpenIDIdentityProviderBuilder) ClientID(value string) *OpenIDIdentityProviderBuilder {
 	b.clientID = value
 	b.bitmap_ |= 4
@@ -66,6 +70,8 @@ func (b *OpenIDIdentityProviderBuilder) ClientID(value string) *OpenIDIdentityPr
 }
 
 // ClientSecret sets the value of the 'client_secret' attribute to the given value.
+//
+//
 func (b *OpenIDIdentityProviderBuilder) ClientSecret(value string) *OpenIDIdentityProviderBuilder {
 	b.clientSecret = value
 	b.bitmap_ |= 8
@@ -73,6 +79,8 @@ func (b *OpenIDIdentityProviderBuilder) ClientSecret(value string) *OpenIDIdenti
 }
 
 // ExtraAuthorizeParameters sets the value of the 'extra_authorize_parameters' attribute to the given value.
+//
+//
 func (b *OpenIDIdentityProviderBuilder) ExtraAuthorizeParameters(value map[string]string) *OpenIDIdentityProviderBuilder {
 	b.extraAuthorizeParameters = value
 	if value != nil {
@@ -84,6 +92,8 @@ func (b *OpenIDIdentityProviderBuilder) ExtraAuthorizeParameters(value map[strin
 }
 
 // ExtraScopes sets the value of the 'extra_scopes' attribute to the given values.
+//
+//
 func (b *OpenIDIdentityProviderBuilder) ExtraScopes(values ...string) *OpenIDIdentityProviderBuilder {
 	b.extraScopes = make([]string, len(values))
 	copy(b.extraScopes, values)
@@ -92,6 +102,8 @@ func (b *OpenIDIdentityProviderBuilder) ExtraScopes(values ...string) *OpenIDIde
 }
 
 // Issuer sets the value of the 'issuer' attribute to the given value.
+//
+//
 func (b *OpenIDIdentityProviderBuilder) Issuer(value string) *OpenIDIdentityProviderBuilder {
 	b.issuer = value
 	b.bitmap_ |= 64

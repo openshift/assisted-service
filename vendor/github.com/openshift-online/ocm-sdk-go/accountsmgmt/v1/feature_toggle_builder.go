@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // FeatureToggleBuilder contains the data and logic needed to build 'feature_toggle' objects.
+//
+//
 type FeatureToggleBuilder struct {
 	bitmap_ uint32
 	id      string
@@ -53,6 +55,8 @@ func (b *FeatureToggleBuilder) HREF(value string) *FeatureToggleBuilder {
 }
 
 // Enabled sets the value of the 'enabled' attribute to the given value.
+//
+//
 func (b *FeatureToggleBuilder) Enabled(value bool) *FeatureToggleBuilder {
 	b.enabled = value
 	b.bitmap_ |= 8

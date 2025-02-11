@@ -60,7 +60,7 @@ func UnmarshalResourceReviewRequestList(source interface{}) (items []*ResourceRe
 	return
 }
 
-// readResourceReviewRequestList reads list of values of the ”resource_review_request' type from
+// readResourceReviewRequestList reads list of values of the ''resource_review_request' type from
 // the given iterator.
 func readResourceReviewRequestList(iterator *jsoniter.Iterator) []*ResourceReviewRequest {
 	list := []*ResourceReviewRequest{}

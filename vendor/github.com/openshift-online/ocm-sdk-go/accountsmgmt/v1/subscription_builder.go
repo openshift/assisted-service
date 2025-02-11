@@ -24,6 +24,8 @@ import (
 )
 
 // SubscriptionBuilder contains the data and logic needed to build 'subscription' objects.
+//
+//
 type SubscriptionBuilder struct {
 	bitmap_              uint64
 	id                   string
@@ -89,6 +91,8 @@ func (b *SubscriptionBuilder) HREF(value string) *SubscriptionBuilder {
 }
 
 // Capabilities sets the value of the 'capabilities' attribute to the given values.
+//
+//
 func (b *SubscriptionBuilder) Capabilities(values ...*CapabilityBuilder) *SubscriptionBuilder {
 	b.capabilities = make([]*CapabilityBuilder, len(values))
 	copy(b.capabilities, values)
@@ -97,6 +101,8 @@ func (b *SubscriptionBuilder) Capabilities(values ...*CapabilityBuilder) *Subscr
 }
 
 // CloudAccountID sets the value of the 'cloud_account_ID' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) CloudAccountID(value string) *SubscriptionBuilder {
 	b.cloudAccountID = value
 	b.bitmap_ |= 16
@@ -104,6 +110,8 @@ func (b *SubscriptionBuilder) CloudAccountID(value string) *SubscriptionBuilder 
 }
 
 // CloudProviderID sets the value of the 'cloud_provider_ID' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) CloudProviderID(value string) *SubscriptionBuilder {
 	b.cloudProviderID = value
 	b.bitmap_ |= 32
@@ -111,6 +119,8 @@ func (b *SubscriptionBuilder) CloudProviderID(value string) *SubscriptionBuilder
 }
 
 // ClusterID sets the value of the 'cluster_ID' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) ClusterID(value string) *SubscriptionBuilder {
 	b.clusterID = value
 	b.bitmap_ |= 64
@@ -127,6 +137,8 @@ func (b *SubscriptionBuilder) ClusterBillingModel(value BillingModel) *Subscript
 }
 
 // ConsoleURL sets the value of the 'console_URL' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) ConsoleURL(value string) *SubscriptionBuilder {
 	b.consoleURL = value
 	b.bitmap_ |= 256
@@ -134,6 +146,8 @@ func (b *SubscriptionBuilder) ConsoleURL(value string) *SubscriptionBuilder {
 }
 
 // ConsumerUUID sets the value of the 'consumer_UUID' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) ConsumerUUID(value string) *SubscriptionBuilder {
 	b.consumerUUID = value
 	b.bitmap_ |= 512
@@ -141,6 +155,8 @@ func (b *SubscriptionBuilder) ConsumerUUID(value string) *SubscriptionBuilder {
 }
 
 // CpuTotal sets the value of the 'cpu_total' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) CpuTotal(value int) *SubscriptionBuilder {
 	b.cpuTotal = value
 	b.bitmap_ |= 1024
@@ -148,6 +164,8 @@ func (b *SubscriptionBuilder) CpuTotal(value int) *SubscriptionBuilder {
 }
 
 // CreatedAt sets the value of the 'created_at' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) CreatedAt(value time.Time) *SubscriptionBuilder {
 	b.createdAt = value
 	b.bitmap_ |= 2048
@@ -155,6 +173,8 @@ func (b *SubscriptionBuilder) CreatedAt(value time.Time) *SubscriptionBuilder {
 }
 
 // Creator sets the value of the 'creator' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) Creator(value *AccountBuilder) *SubscriptionBuilder {
 	b.creator = value
 	if value != nil {
@@ -166,6 +186,8 @@ func (b *SubscriptionBuilder) Creator(value *AccountBuilder) *SubscriptionBuilde
 }
 
 // DisplayName sets the value of the 'display_name' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) DisplayName(value string) *SubscriptionBuilder {
 	b.displayName = value
 	b.bitmap_ |= 8192
@@ -173,6 +195,8 @@ func (b *SubscriptionBuilder) DisplayName(value string) *SubscriptionBuilder {
 }
 
 // ExternalClusterID sets the value of the 'external_cluster_ID' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) ExternalClusterID(value string) *SubscriptionBuilder {
 	b.externalClusterID = value
 	b.bitmap_ |= 16384
@@ -180,6 +204,8 @@ func (b *SubscriptionBuilder) ExternalClusterID(value string) *SubscriptionBuild
 }
 
 // Labels sets the value of the 'labels' attribute to the given values.
+//
+//
 func (b *SubscriptionBuilder) Labels(values ...*LabelBuilder) *SubscriptionBuilder {
 	b.labels = make([]*LabelBuilder, len(values))
 	copy(b.labels, values)
@@ -188,6 +214,8 @@ func (b *SubscriptionBuilder) Labels(values ...*LabelBuilder) *SubscriptionBuild
 }
 
 // LastReconcileDate sets the value of the 'last_reconcile_date' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) LastReconcileDate(value time.Time) *SubscriptionBuilder {
 	b.lastReconcileDate = value
 	b.bitmap_ |= 65536
@@ -195,6 +223,8 @@ func (b *SubscriptionBuilder) LastReconcileDate(value time.Time) *SubscriptionBu
 }
 
 // LastReleasedAt sets the value of the 'last_released_at' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) LastReleasedAt(value time.Time) *SubscriptionBuilder {
 	b.lastReleasedAt = value
 	b.bitmap_ |= 131072
@@ -202,6 +232,8 @@ func (b *SubscriptionBuilder) LastReleasedAt(value time.Time) *SubscriptionBuild
 }
 
 // LastTelemetryDate sets the value of the 'last_telemetry_date' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) LastTelemetryDate(value time.Time) *SubscriptionBuilder {
 	b.lastTelemetryDate = value
 	b.bitmap_ |= 262144
@@ -209,6 +241,8 @@ func (b *SubscriptionBuilder) LastTelemetryDate(value time.Time) *SubscriptionBu
 }
 
 // Managed sets the value of the 'managed' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) Managed(value bool) *SubscriptionBuilder {
 	b.managed = value
 	b.bitmap_ |= 524288
@@ -216,6 +250,8 @@ func (b *SubscriptionBuilder) Managed(value bool) *SubscriptionBuilder {
 }
 
 // Metrics sets the value of the 'metrics' attribute to the given values.
+//
+//
 func (b *SubscriptionBuilder) Metrics(values ...*SubscriptionMetricsBuilder) *SubscriptionBuilder {
 	b.metrics = make([]*SubscriptionMetricsBuilder, len(values))
 	copy(b.metrics, values)
@@ -224,6 +260,8 @@ func (b *SubscriptionBuilder) Metrics(values ...*SubscriptionMetricsBuilder) *Su
 }
 
 // NotificationContacts sets the value of the 'notification_contacts' attribute to the given values.
+//
+//
 func (b *SubscriptionBuilder) NotificationContacts(values ...*AccountBuilder) *SubscriptionBuilder {
 	b.notificationContacts = make([]*AccountBuilder, len(values))
 	copy(b.notificationContacts, values)
@@ -232,6 +270,8 @@ func (b *SubscriptionBuilder) NotificationContacts(values ...*AccountBuilder) *S
 }
 
 // OrganizationID sets the value of the 'organization_ID' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) OrganizationID(value string) *SubscriptionBuilder {
 	b.organizationID = value
 	b.bitmap_ |= 4194304
@@ -239,6 +279,8 @@ func (b *SubscriptionBuilder) OrganizationID(value string) *SubscriptionBuilder 
 }
 
 // Plan sets the value of the 'plan' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) Plan(value *PlanBuilder) *SubscriptionBuilder {
 	b.plan = value
 	if value != nil {
@@ -250,6 +292,8 @@ func (b *SubscriptionBuilder) Plan(value *PlanBuilder) *SubscriptionBuilder {
 }
 
 // ProductBundle sets the value of the 'product_bundle' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) ProductBundle(value string) *SubscriptionBuilder {
 	b.productBundle = value
 	b.bitmap_ |= 16777216
@@ -257,6 +301,8 @@ func (b *SubscriptionBuilder) ProductBundle(value string) *SubscriptionBuilder {
 }
 
 // Provenance sets the value of the 'provenance' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) Provenance(value string) *SubscriptionBuilder {
 	b.provenance = value
 	b.bitmap_ |= 33554432
@@ -264,6 +310,8 @@ func (b *SubscriptionBuilder) Provenance(value string) *SubscriptionBuilder {
 }
 
 // RegionID sets the value of the 'region_ID' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) RegionID(value string) *SubscriptionBuilder {
 	b.regionID = value
 	b.bitmap_ |= 67108864
@@ -271,6 +319,8 @@ func (b *SubscriptionBuilder) RegionID(value string) *SubscriptionBuilder {
 }
 
 // Released sets the value of the 'released' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) Released(value bool) *SubscriptionBuilder {
 	b.released = value
 	b.bitmap_ |= 134217728
@@ -278,6 +328,8 @@ func (b *SubscriptionBuilder) Released(value bool) *SubscriptionBuilder {
 }
 
 // ServiceLevel sets the value of the 'service_level' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) ServiceLevel(value string) *SubscriptionBuilder {
 	b.serviceLevel = value
 	b.bitmap_ |= 268435456
@@ -285,6 +337,8 @@ func (b *SubscriptionBuilder) ServiceLevel(value string) *SubscriptionBuilder {
 }
 
 // SocketTotal sets the value of the 'socket_total' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) SocketTotal(value int) *SubscriptionBuilder {
 	b.socketTotal = value
 	b.bitmap_ |= 536870912
@@ -292,6 +346,8 @@ func (b *SubscriptionBuilder) SocketTotal(value int) *SubscriptionBuilder {
 }
 
 // Status sets the value of the 'status' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) Status(value string) *SubscriptionBuilder {
 	b.status = value
 	b.bitmap_ |= 1073741824
@@ -299,6 +355,8 @@ func (b *SubscriptionBuilder) Status(value string) *SubscriptionBuilder {
 }
 
 // SupportLevel sets the value of the 'support_level' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) SupportLevel(value string) *SubscriptionBuilder {
 	b.supportLevel = value
 	b.bitmap_ |= 2147483648
@@ -306,6 +364,8 @@ func (b *SubscriptionBuilder) SupportLevel(value string) *SubscriptionBuilder {
 }
 
 // SystemUnits sets the value of the 'system_units' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) SystemUnits(value string) *SubscriptionBuilder {
 	b.systemUnits = value
 	b.bitmap_ |= 4294967296
@@ -313,6 +373,8 @@ func (b *SubscriptionBuilder) SystemUnits(value string) *SubscriptionBuilder {
 }
 
 // TrialEndDate sets the value of the 'trial_end_date' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) TrialEndDate(value time.Time) *SubscriptionBuilder {
 	b.trialEndDate = value
 	b.bitmap_ |= 8589934592
@@ -320,6 +382,8 @@ func (b *SubscriptionBuilder) TrialEndDate(value time.Time) *SubscriptionBuilder
 }
 
 // UpdatedAt sets the value of the 'updated_at' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) UpdatedAt(value time.Time) *SubscriptionBuilder {
 	b.updatedAt = value
 	b.bitmap_ |= 17179869184
@@ -327,6 +391,8 @@ func (b *SubscriptionBuilder) UpdatedAt(value time.Time) *SubscriptionBuilder {
 }
 
 // Usage sets the value of the 'usage' attribute to the given value.
+//
+//
 func (b *SubscriptionBuilder) Usage(value string) *SubscriptionBuilder {
 	b.usage = value
 	b.bitmap_ |= 34359738368

@@ -60,7 +60,7 @@ func UnmarshalSkuRuleList(source interface{}) (items []*SkuRule, err error) {
 	return
 }
 
-// readSkuRuleList reads list of values of the ”sku_rule' type from
+// readSkuRuleList reads list of values of the ''sku_rule' type from
 // the given iterator.
 func readSkuRuleList(iterator *jsoniter.Iterator) []*SkuRule {
 	list := []*SkuRule{}

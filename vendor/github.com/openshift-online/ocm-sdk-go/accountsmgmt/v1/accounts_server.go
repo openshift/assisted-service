@@ -133,6 +133,7 @@ func (r *AccountsListServerRequest) GetFetchlabelsLabels() (value bool, ok bool)
 // a result. No new fields can be added, only existing ones can be filtered.
 // To specify a field 'id' of a structure 'plan' use 'plan.id'.
 // To specify all fields of a structure 'labels' use 'labels.*'.
+//
 func (r *AccountsListServerRequest) Fields() string {
 	if r != nil && r.fields != nil {
 		return *r.fields
@@ -148,6 +149,7 @@ func (r *AccountsListServerRequest) Fields() string {
 // a result. No new fields can be added, only existing ones can be filtered.
 // To specify a field 'id' of a structure 'plan' use 'plan.id'.
 // To specify all fields of a structure 'labels' use 'labels.*'.
+//
 func (r *AccountsListServerRequest) GetFields() (value string, ok bool) {
 	ok = r != nil && r.fields != nil
 	if ok {

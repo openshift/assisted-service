@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // QuotaSummaryBuilder contains the data and logic needed to build 'quota_summary' objects.
+//
+//
 type QuotaSummaryBuilder struct {
 	bitmap_              uint32
 	allowed              int
@@ -37,6 +39,8 @@ func NewQuotaSummary() *QuotaSummaryBuilder {
 }
 
 // BYOC sets the value of the 'BYOC' attribute to the given value.
+//
+//
 func (b *QuotaSummaryBuilder) BYOC(value bool) *QuotaSummaryBuilder {
 	b.byoc = value
 	b.bitmap_ |= 1
@@ -44,6 +48,8 @@ func (b *QuotaSummaryBuilder) BYOC(value bool) *QuotaSummaryBuilder {
 }
 
 // Allowed sets the value of the 'allowed' attribute to the given value.
+//
+//
 func (b *QuotaSummaryBuilder) Allowed(value int) *QuotaSummaryBuilder {
 	b.allowed = value
 	b.bitmap_ |= 2
@@ -51,6 +57,8 @@ func (b *QuotaSummaryBuilder) Allowed(value int) *QuotaSummaryBuilder {
 }
 
 // AvailabilityZoneType sets the value of the 'availability_zone_type' attribute to the given value.
+//
+//
 func (b *QuotaSummaryBuilder) AvailabilityZoneType(value string) *QuotaSummaryBuilder {
 	b.availabilityZoneType = value
 	b.bitmap_ |= 4
@@ -58,6 +66,8 @@ func (b *QuotaSummaryBuilder) AvailabilityZoneType(value string) *QuotaSummaryBu
 }
 
 // OrganizationID sets the value of the 'organization_ID' attribute to the given value.
+//
+//
 func (b *QuotaSummaryBuilder) OrganizationID(value string) *QuotaSummaryBuilder {
 	b.organizationID = value
 	b.bitmap_ |= 8
@@ -65,6 +75,8 @@ func (b *QuotaSummaryBuilder) OrganizationID(value string) *QuotaSummaryBuilder 
 }
 
 // Reserved sets the value of the 'reserved' attribute to the given value.
+//
+//
 func (b *QuotaSummaryBuilder) Reserved(value int) *QuotaSummaryBuilder {
 	b.reserved = value
 	b.bitmap_ |= 16
@@ -72,6 +84,8 @@ func (b *QuotaSummaryBuilder) Reserved(value int) *QuotaSummaryBuilder {
 }
 
 // ResourceName sets the value of the 'resource_name' attribute to the given value.
+//
+//
 func (b *QuotaSummaryBuilder) ResourceName(value string) *QuotaSummaryBuilder {
 	b.resourceName = value
 	b.bitmap_ |= 32
@@ -79,6 +93,8 @@ func (b *QuotaSummaryBuilder) ResourceName(value string) *QuotaSummaryBuilder {
 }
 
 // ResourceType sets the value of the 'resource_type' attribute to the given value.
+//
+//
 func (b *QuotaSummaryBuilder) ResourceType(value string) *QuotaSummaryBuilder {
 	b.resourceType = value
 	b.bitmap_ |= 64

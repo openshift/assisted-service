@@ -60,7 +60,7 @@ func UnmarshalAddOnInstallationParameterList(source interface{}) (items []*AddOn
 	return
 }
 
-// readAddOnInstallationParameterList reads list of values of the ”add_on_installation_parameter' type from
+// readAddOnInstallationParameterList reads list of values of the ''add_on_installation_parameter' type from
 // the given iterator.
 func readAddOnInstallationParameterList(iterator *jsoniter.Iterator) []*AddOnInstallationParameter {
 	list := []*AddOnInstallationParameter{}

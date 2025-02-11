@@ -60,7 +60,7 @@ func UnmarshalServerConfigList(source interface{}) (items []*ServerConfig, err e
 	return
 }
 
-// readServerConfigList reads list of values of the ”server_config' type from
+// readServerConfigList reads list of values of the ''server_config' type from
 // the given iterator.
 func readServerConfigList(iterator *jsoniter.Iterator) []*ServerConfig {
 	list := []*ServerConfig{}

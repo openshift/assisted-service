@@ -60,7 +60,7 @@ func UnmarshalCCSList(source interface{}) (items []*CCS, err error) {
 	return
 }
 
-// readCCSList reads list of values of the ”CCS' type from
+// readCCSList reads list of values of the ''CCS' type from
 // the given iterator.
 func readCCSList(iterator *jsoniter.Iterator) []*CCS {
 	list := []*CCS{}

@@ -60,7 +60,7 @@ func UnmarshalCapabilityReviewResponseList(source interface{}) (items []*Capabil
 	return
 }
 
-// readCapabilityReviewResponseList reads list of values of the ”capability_review_response' type from
+// readCapabilityReviewResponseList reads list of values of the ''capability_review_response' type from
 // the given iterator.
 func readCapabilityReviewResponseList(iterator *jsoniter.Iterator) []*CapabilityReviewResponse {
 	list := []*CapabilityReviewResponse{}

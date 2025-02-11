@@ -60,7 +60,7 @@ func UnmarshalCloudProviderDataList(source interface{}) (items []*CloudProviderD
 	return
 }
 
-// readCloudProviderDataList reads list of values of the ”cloud_provider_data' type from
+// readCloudProviderDataList reads list of values of the ''cloud_provider_data' type from
 // the given iterator.
 func readCloudProviderDataList(iterator *jsoniter.Iterator) []*CloudProviderData {
 	list := []*CloudProviderData{}

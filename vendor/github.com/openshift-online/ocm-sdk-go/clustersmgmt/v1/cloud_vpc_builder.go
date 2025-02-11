@@ -34,6 +34,8 @@ func NewCloudVPC() *CloudVPCBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
+//
+//
 func (b *CloudVPCBuilder) Name(value string) *CloudVPCBuilder {
 	b.name = value
 	b.bitmap_ |= 1
@@ -41,6 +43,8 @@ func (b *CloudVPCBuilder) Name(value string) *CloudVPCBuilder {
 }
 
 // Subnets sets the value of the 'subnets' attribute to the given values.
+//
+//
 func (b *CloudVPCBuilder) Subnets(values ...string) *CloudVPCBuilder {
 	b.subnets = make([]string, len(values))
 	copy(b.subnets, values)

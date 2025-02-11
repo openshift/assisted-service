@@ -35,6 +35,8 @@ func NewGCPFlavour() *GCPFlavourBuilder {
 }
 
 // ComputeInstanceType sets the value of the 'compute_instance_type' attribute to the given value.
+//
+//
 func (b *GCPFlavourBuilder) ComputeInstanceType(value string) *GCPFlavourBuilder {
 	b.computeInstanceType = value
 	b.bitmap_ |= 1
@@ -42,6 +44,8 @@ func (b *GCPFlavourBuilder) ComputeInstanceType(value string) *GCPFlavourBuilder
 }
 
 // InfraInstanceType sets the value of the 'infra_instance_type' attribute to the given value.
+//
+//
 func (b *GCPFlavourBuilder) InfraInstanceType(value string) *GCPFlavourBuilder {
 	b.infraInstanceType = value
 	b.bitmap_ |= 2
@@ -49,6 +53,8 @@ func (b *GCPFlavourBuilder) InfraInstanceType(value string) *GCPFlavourBuilder {
 }
 
 // MasterInstanceType sets the value of the 'master_instance_type' attribute to the given value.
+//
+//
 func (b *GCPFlavourBuilder) MasterInstanceType(value string) *GCPFlavourBuilder {
 	b.masterInstanceType = value
 	b.bitmap_ |= 4

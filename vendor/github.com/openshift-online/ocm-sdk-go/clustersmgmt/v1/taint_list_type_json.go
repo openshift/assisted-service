@@ -60,7 +60,7 @@ func UnmarshalTaintList(source interface{}) (items []*Taint, err error) {
 	return
 }
 
-// readTaintList reads list of values of the ”taint' type from
+// readTaintList reads list of values of the ''taint' type from
 // the given iterator.
 func readTaintList(iterator *jsoniter.Iterator) []*Taint {
 	list := []*Taint{}

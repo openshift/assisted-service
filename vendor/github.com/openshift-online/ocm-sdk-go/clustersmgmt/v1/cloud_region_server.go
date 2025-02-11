@@ -48,6 +48,8 @@ type CloudRegionGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *CloudRegionGetServerResponse) Body(value *CloudRegion) *CloudRegionGetServerResponse {
 	r.body = value
 	return r

@@ -60,7 +60,7 @@ func UnmarshalClusterAPIList(source interface{}) (items []*ClusterAPI, err error
 	return
 }
 
-// readClusterAPIList reads list of values of the ”cluster_API' type from
+// readClusterAPIList reads list of values of the ''cluster_API' type from
 // the given iterator.
 func readClusterAPIList(iterator *jsoniter.Iterator) []*ClusterAPI {
 	list := []*ClusterAPI{}

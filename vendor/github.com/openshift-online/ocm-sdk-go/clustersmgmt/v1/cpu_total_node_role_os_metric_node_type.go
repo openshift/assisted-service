@@ -110,6 +110,8 @@ func (o *CPUTotalNodeRoleOSMetricNode) GetOperatingSystem() (value string, ok bo
 
 // Time returns the value of the 'time' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *CPUTotalNodeRoleOSMetricNode) Time() time.Time {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.time
@@ -119,6 +121,8 @@ func (o *CPUTotalNodeRoleOSMetricNode) Time() time.Time {
 
 // GetTime returns the value of the 'time' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *CPUTotalNodeRoleOSMetricNode) GetTime() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {

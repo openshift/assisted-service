@@ -24,6 +24,8 @@ import (
 )
 
 // RegistryBuilder contains the data and logic needed to build 'registry' objects.
+//
+//
 type RegistryBuilder struct {
 	bitmap_    uint32
 	id         string
@@ -64,6 +66,8 @@ func (b *RegistryBuilder) HREF(value string) *RegistryBuilder {
 }
 
 // URL sets the value of the 'URL' attribute to the given value.
+//
+//
 func (b *RegistryBuilder) URL(value string) *RegistryBuilder {
 	b.url = value
 	b.bitmap_ |= 8
@@ -71,6 +75,8 @@ func (b *RegistryBuilder) URL(value string) *RegistryBuilder {
 }
 
 // CloudAlias sets the value of the 'cloud_alias' attribute to the given value.
+//
+//
 func (b *RegistryBuilder) CloudAlias(value bool) *RegistryBuilder {
 	b.cloudAlias = value
 	b.bitmap_ |= 16
@@ -78,6 +84,8 @@ func (b *RegistryBuilder) CloudAlias(value bool) *RegistryBuilder {
 }
 
 // CreatedAt sets the value of the 'created_at' attribute to the given value.
+//
+//
 func (b *RegistryBuilder) CreatedAt(value time.Time) *RegistryBuilder {
 	b.createdAt = value
 	b.bitmap_ |= 32
@@ -85,6 +93,8 @@ func (b *RegistryBuilder) CreatedAt(value time.Time) *RegistryBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
+//
+//
 func (b *RegistryBuilder) Name(value string) *RegistryBuilder {
 	b.name = value
 	b.bitmap_ |= 64
@@ -92,6 +102,8 @@ func (b *RegistryBuilder) Name(value string) *RegistryBuilder {
 }
 
 // OrgName sets the value of the 'org_name' attribute to the given value.
+//
+//
 func (b *RegistryBuilder) OrgName(value string) *RegistryBuilder {
 	b.orgName = value
 	b.bitmap_ |= 128
@@ -99,6 +111,8 @@ func (b *RegistryBuilder) OrgName(value string) *RegistryBuilder {
 }
 
 // TeamName sets the value of the 'team_name' attribute to the given value.
+//
+//
 func (b *RegistryBuilder) TeamName(value string) *RegistryBuilder {
 	b.teamName = value
 	b.bitmap_ |= 256
@@ -106,6 +120,8 @@ func (b *RegistryBuilder) TeamName(value string) *RegistryBuilder {
 }
 
 // Type sets the value of the 'type' attribute to the given value.
+//
+//
 func (b *RegistryBuilder) Type(value string) *RegistryBuilder {
 	b.type_ = value
 	b.bitmap_ |= 512
@@ -113,6 +129,8 @@ func (b *RegistryBuilder) Type(value string) *RegistryBuilder {
 }
 
 // UpdatedAt sets the value of the 'updated_at' attribute to the given value.
+//
+//
 func (b *RegistryBuilder) UpdatedAt(value time.Time) *RegistryBuilder {
 	b.updatedAt = value
 	b.bitmap_ |= 1024

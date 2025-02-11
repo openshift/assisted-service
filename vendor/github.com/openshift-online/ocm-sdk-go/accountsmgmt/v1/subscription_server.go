@@ -90,6 +90,8 @@ type SubscriptionGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *SubscriptionGetServerResponse) Body(value *Subscription) *SubscriptionGetServerResponse {
 	r.body = value
 	return r

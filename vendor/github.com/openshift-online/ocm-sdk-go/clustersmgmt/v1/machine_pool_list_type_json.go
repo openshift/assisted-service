@@ -60,7 +60,7 @@ func UnmarshalMachinePoolList(source interface{}) (items []*MachinePool, err err
 	return
 }
 
-// readMachinePoolList reads list of values of the ”machine_pool' type from
+// readMachinePoolList reads list of values of the ''machine_pool' type from
 // the given iterator.
 func readMachinePoolList(iterator *jsoniter.Iterator) []*MachinePool {
 	list := []*MachinePool{}

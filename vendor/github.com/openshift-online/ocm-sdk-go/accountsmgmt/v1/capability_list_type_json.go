@@ -60,7 +60,7 @@ func UnmarshalCapabilityList(source interface{}) (items []*Capability, err error
 	return
 }
 
-// readCapabilityList reads list of values of the ”capability' type from
+// readCapabilityList reads list of values of the ''capability' type from
 // the given iterator.
 func readCapabilityList(iterator *jsoniter.Iterator) []*Capability {
 	list := []*Capability{}

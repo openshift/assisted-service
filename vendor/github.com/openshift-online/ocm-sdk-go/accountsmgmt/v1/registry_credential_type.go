@@ -36,6 +36,8 @@ const RegistryCredentialLinkKind = "RegistryCredentialLink"
 const RegistryCredentialNilKind = "RegistryCredentialNil"
 
 // RegistryCredential represents the values of the 'registry_credential' type.
+//
+//
 type RegistryCredential struct {
 	bitmap_            uint32
 	id                 string
@@ -108,6 +110,8 @@ func (o *RegistryCredential) Empty() bool {
 
 // Account returns the value of the 'account' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RegistryCredential) Account() *Account {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.account
@@ -117,6 +121,8 @@ func (o *RegistryCredential) Account() *Account {
 
 // GetAccount returns the value of the 'account' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RegistryCredential) GetAccount() (value *Account, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -127,6 +133,8 @@ func (o *RegistryCredential) GetAccount() (value *Account, ok bool) {
 
 // CreatedAt returns the value of the 'created_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RegistryCredential) CreatedAt() time.Time {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.createdAt
@@ -136,6 +144,8 @@ func (o *RegistryCredential) CreatedAt() time.Time {
 
 // GetCreatedAt returns the value of the 'created_at' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RegistryCredential) GetCreatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -146,6 +156,8 @@ func (o *RegistryCredential) GetCreatedAt() (value time.Time, ok bool) {
 
 // ExternalResourceID returns the value of the 'external_resource_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RegistryCredential) ExternalResourceID() string {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.externalResourceID
@@ -155,6 +167,8 @@ func (o *RegistryCredential) ExternalResourceID() string {
 
 // GetExternalResourceID returns the value of the 'external_resource_ID' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RegistryCredential) GetExternalResourceID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -165,6 +179,8 @@ func (o *RegistryCredential) GetExternalResourceID() (value string, ok bool) {
 
 // Registry returns the value of the 'registry' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RegistryCredential) Registry() *Registry {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.registry
@@ -174,6 +190,8 @@ func (o *RegistryCredential) Registry() *Registry {
 
 // GetRegistry returns the value of the 'registry' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RegistryCredential) GetRegistry() (value *Registry, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -184,6 +202,8 @@ func (o *RegistryCredential) GetRegistry() (value *Registry, ok bool) {
 
 // Token returns the value of the 'token' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RegistryCredential) Token() string {
 	if o != nil && o.bitmap_&128 != 0 {
 		return o.token
@@ -193,6 +213,8 @@ func (o *RegistryCredential) Token() string {
 
 // GetToken returns the value of the 'token' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RegistryCredential) GetToken() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
@@ -203,6 +225,8 @@ func (o *RegistryCredential) GetToken() (value string, ok bool) {
 
 // UpdatedAt returns the value of the 'updated_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RegistryCredential) UpdatedAt() time.Time {
 	if o != nil && o.bitmap_&256 != 0 {
 		return o.updatedAt
@@ -212,6 +236,8 @@ func (o *RegistryCredential) UpdatedAt() time.Time {
 
 // GetUpdatedAt returns the value of the 'updated_at' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RegistryCredential) GetUpdatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
@@ -222,6 +248,8 @@ func (o *RegistryCredential) GetUpdatedAt() (value time.Time, ok bool) {
 
 // Username returns the value of the 'username' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *RegistryCredential) Username() string {
 	if o != nil && o.bitmap_&512 != 0 {
 		return o.username
@@ -231,6 +259,8 @@ func (o *RegistryCredential) Username() string {
 
 // GetUsername returns the value of the 'username' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *RegistryCredential) GetUsername() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&512 != 0
 	if ok {

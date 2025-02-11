@@ -33,6 +33,8 @@ func NewCapabilityReviewResponse() *CapabilityReviewResponseBuilder {
 }
 
 // Result sets the value of the 'result' attribute to the given value.
+//
+//
 func (b *CapabilityReviewResponseBuilder) Result(value string) *CapabilityReviewResponseBuilder {
 	b.result = value
 	b.bitmap_ |= 1

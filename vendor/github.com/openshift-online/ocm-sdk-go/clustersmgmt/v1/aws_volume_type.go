@@ -83,7 +83,7 @@ func (o *AWSVolume) GetSize() (value int, ok bool) {
 // Type returns the value of the 'type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// # Volume Type
+// Volume Type
 //
 // Possible values are: 'io1', 'gp2', 'st1', 'sc1', 'standard'
 func (o *AWSVolume) Type() string {
@@ -96,7 +96,7 @@ func (o *AWSVolume) Type() string {
 // GetType returns the value of the 'type' attribute and
 // a flag indicating if the attribute has a value.
 //
-// # Volume Type
+// Volume Type
 //
 // Possible values are: 'io1', 'gp2', 'st1', 'sc1', 'standard'
 func (o *AWSVolume) GetType() (value string, ok bool) {

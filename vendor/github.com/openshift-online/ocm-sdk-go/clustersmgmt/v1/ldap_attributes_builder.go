@@ -36,6 +36,8 @@ func NewLDAPAttributes() *LDAPAttributesBuilder {
 }
 
 // ID sets the value of the 'ID' attribute to the given values.
+//
+//
 func (b *LDAPAttributesBuilder) ID(values ...string) *LDAPAttributesBuilder {
 	b.id = make([]string, len(values))
 	copy(b.id, values)
@@ -44,6 +46,8 @@ func (b *LDAPAttributesBuilder) ID(values ...string) *LDAPAttributesBuilder {
 }
 
 // Email sets the value of the 'email' attribute to the given values.
+//
+//
 func (b *LDAPAttributesBuilder) Email(values ...string) *LDAPAttributesBuilder {
 	b.email = make([]string, len(values))
 	copy(b.email, values)
@@ -52,6 +56,8 @@ func (b *LDAPAttributesBuilder) Email(values ...string) *LDAPAttributesBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given values.
+//
+//
 func (b *LDAPAttributesBuilder) Name(values ...string) *LDAPAttributesBuilder {
 	b.name = make([]string, len(values))
 	copy(b.name, values)
@@ -60,6 +66,8 @@ func (b *LDAPAttributesBuilder) Name(values ...string) *LDAPAttributesBuilder {
 }
 
 // PreferredUsername sets the value of the 'preferred_username' attribute to the given values.
+//
+//
 func (b *LDAPAttributesBuilder) PreferredUsername(values ...string) *LDAPAttributesBuilder {
 	b.preferredUsername = make([]string, len(values))
 	copy(b.preferredUsername, values)

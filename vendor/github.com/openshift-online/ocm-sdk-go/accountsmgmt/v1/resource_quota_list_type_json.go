@@ -60,7 +60,7 @@ func UnmarshalResourceQuotaList(source interface{}) (items []*ResourceQuota, err
 	return
 }
 
-// readResourceQuotaList reads list of values of the ”resource_quota' type from
+// readResourceQuotaList reads list of values of the ''resource_quota' type from
 // the given iterator.
 func readResourceQuotaList(iterator *jsoniter.Iterator) []*ResourceQuota {
 	list := []*ResourceQuota{}

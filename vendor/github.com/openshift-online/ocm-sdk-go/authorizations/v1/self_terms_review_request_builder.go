@@ -35,6 +35,8 @@ func NewSelfTermsReviewRequest() *SelfTermsReviewRequestBuilder {
 }
 
 // EventCode sets the value of the 'event_code' attribute to the given value.
+//
+//
 func (b *SelfTermsReviewRequestBuilder) EventCode(value string) *SelfTermsReviewRequestBuilder {
 	b.eventCode = value
 	b.bitmap_ |= 1
@@ -42,6 +44,8 @@ func (b *SelfTermsReviewRequestBuilder) EventCode(value string) *SelfTermsReview
 }
 
 // SiteCode sets the value of the 'site_code' attribute to the given value.
+//
+//
 func (b *SelfTermsReviewRequestBuilder) SiteCode(value string) *SelfTermsReviewRequestBuilder {
 	b.siteCode = value
 	b.bitmap_ |= 2

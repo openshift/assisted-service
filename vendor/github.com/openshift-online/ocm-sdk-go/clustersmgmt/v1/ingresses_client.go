@@ -473,6 +473,8 @@ func (r *IngressesUpdateRequest) Header(name string, value interface{}) *Ingress
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *IngressesUpdateRequest) Body(value []*Ingress) *IngressesUpdateRequest {
 	r.body = value
 	return r
@@ -574,6 +576,8 @@ func (r *IngressesUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *IngressesUpdateResponse) Body() []*Ingress {
 	if r == nil {
 		return nil
@@ -583,6 +587,8 @@ func (r *IngressesUpdateResponse) Body() []*Ingress {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *IngressesUpdateResponse) GetBody() (value []*Ingress, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

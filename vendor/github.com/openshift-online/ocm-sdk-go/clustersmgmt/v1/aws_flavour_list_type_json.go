@@ -60,7 +60,7 @@ func UnmarshalAWSFlavourList(source interface{}) (items []*AWSFlavour, err error
 	return
 }
 
-// readAWSFlavourList reads list of values of the ”AWS_flavour' type from
+// readAWSFlavourList reads list of values of the ''AWS_flavour' type from
 // the given iterator.
 func readAWSFlavourList(iterator *jsoniter.Iterator) []*AWSFlavour {
 	list := []*AWSFlavour{}

@@ -42,6 +42,8 @@ type FeatureToggleQueryPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
+//
+//
 func (r *FeatureToggleQueryPostServerRequest) Request() *FeatureToggleQueryRequest {
 	if r == nil {
 		return nil
@@ -51,6 +53,8 @@ func (r *FeatureToggleQueryPostServerRequest) Request() *FeatureToggleQueryReque
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *FeatureToggleQueryPostServerRequest) GetRequest() (value *FeatureToggleQueryRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -67,6 +71,8 @@ type FeatureToggleQueryPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
+//
+//
 func (r *FeatureToggleQueryPostServerResponse) Response(value *FeatureToggle) *FeatureToggleQueryPostServerResponse {
 	r.response = value
 	return r

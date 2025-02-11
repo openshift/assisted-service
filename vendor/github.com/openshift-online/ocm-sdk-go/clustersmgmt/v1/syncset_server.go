@@ -74,6 +74,8 @@ type SyncsetGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *SyncsetGetServerResponse) Body(value *Syncset) *SyncsetGetServerResponse {
 	r.body = value
 	return r
@@ -91,6 +93,8 @@ type SyncsetUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *SyncsetUpdateServerRequest) Body() *Syncset {
 	if r == nil {
 		return nil
@@ -100,6 +104,8 @@ func (r *SyncsetUpdateServerRequest) Body() *Syncset {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *SyncsetUpdateServerRequest) GetBody() (value *Syncset, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -116,6 +122,8 @@ type SyncsetUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *SyncsetUpdateServerResponse) Body(value *Syncset) *SyncsetUpdateServerResponse {
 	r.body = value
 	return r

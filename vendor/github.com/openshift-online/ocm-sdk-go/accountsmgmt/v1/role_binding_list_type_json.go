@@ -60,7 +60,7 @@ func UnmarshalRoleBindingList(source interface{}) (items []*RoleBinding, err err
 	return
 }
 
-// readRoleBindingList reads list of values of the ”role_binding' type from
+// readRoleBindingList reads list of values of the ''role_binding' type from
 // the given iterator.
 func readRoleBindingList(iterator *jsoniter.Iterator) []*RoleBinding {
 	list := []*RoleBinding{}

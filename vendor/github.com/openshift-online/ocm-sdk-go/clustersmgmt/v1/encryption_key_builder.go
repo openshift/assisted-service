@@ -55,6 +55,8 @@ func (b *EncryptionKeyBuilder) HREF(value string) *EncryptionKeyBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
+//
+//
 func (b *EncryptionKeyBuilder) Name(value string) *EncryptionKeyBuilder {
 	b.name = value
 	b.bitmap_ |= 8

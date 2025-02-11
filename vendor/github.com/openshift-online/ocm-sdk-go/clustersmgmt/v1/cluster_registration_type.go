@@ -51,11 +51,9 @@ func (o *ClusterRegistration) Empty() bool {
 //
 // [source,json]
 // ----
-//
-//	{
-//	  "external_id": "d656aecf-11a6-4782-ad86-8f72638449ba"
-//	}
-//
+// {
+//   "external_id": "d656aecf-11a6-4782-ad86-8f72638449ba"
+// }
 // ----
 func (o *ClusterRegistration) ExternalID() string {
 	if o != nil && o.bitmap_&1 != 0 {
@@ -81,11 +79,9 @@ func (o *ClusterRegistration) ExternalID() string {
 //
 // [source,json]
 // ----
-//
-//	{
-//	  "external_id": "d656aecf-11a6-4782-ad86-8f72638449ba"
-//	}
-//
+// {
+//   "external_id": "d656aecf-11a6-4782-ad86-8f72638449ba"
+// }
 // ----
 func (o *ClusterRegistration) GetExternalID() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0

@@ -60,7 +60,7 @@ func UnmarshalPermissionList(source interface{}) (items []*Permission, err error
 	return
 }
 
-// readPermissionList reads list of values of the ”permission' type from
+// readPermissionList reads list of values of the ''permission' type from
 // the given iterator.
 func readPermissionList(iterator *jsoniter.Iterator) []*Permission {
 	list := []*Permission{}

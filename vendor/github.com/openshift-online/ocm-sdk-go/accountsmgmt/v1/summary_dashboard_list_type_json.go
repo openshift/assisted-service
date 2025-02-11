@@ -60,7 +60,7 @@ func UnmarshalSummaryDashboardList(source interface{}) (items []*SummaryDashboar
 	return
 }
 
-// readSummaryDashboardList reads list of values of the ”summary_dashboard' type from
+// readSummaryDashboardList reads list of values of the ''summary_dashboard' type from
 // the given iterator.
 func readSummaryDashboardList(iterator *jsoniter.Iterator) []*SummaryDashboard {
 	list := []*SummaryDashboard{}

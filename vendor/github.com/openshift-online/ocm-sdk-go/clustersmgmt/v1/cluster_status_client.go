@@ -48,6 +48,8 @@ func NewClusterStatusClient(transport http.RoundTripper, path string) *ClusterSt
 }
 
 // Get creates a request for the 'get' method.
+//
+//
 func (c *ClusterStatusClient) Get() *ClusterStatusGetRequest {
 	return &ClusterStatusGetRequest{
 		transport: c.transport,
@@ -154,12 +156,16 @@ func (r *ClusterStatusPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *ClusterStatusPollResponse) Body() *ClusterStatus {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *ClusterStatusPollResponse) GetBody() (value *ClusterStatus, ok bool) {
 	return r.response.GetBody()
 }
@@ -272,6 +278,8 @@ func (r *ClusterStatusGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *ClusterStatusGetResponse) Body() *ClusterStatus {
 	if r == nil {
 		return nil
@@ -281,6 +289,8 @@ func (r *ClusterStatusGetResponse) Body() *ClusterStatus {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *ClusterStatusGetResponse) GetBody() (value *ClusterStatus, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

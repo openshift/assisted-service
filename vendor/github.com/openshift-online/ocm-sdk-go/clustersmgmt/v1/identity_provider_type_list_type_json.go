@@ -60,7 +60,7 @@ func UnmarshalIdentityProviderTypeList(source interface{}) (items []IdentityProv
 	return
 }
 
-// readIdentityProviderTypeList reads list of values of the ”identity_provider_type' type from
+// readIdentityProviderTypeList reads list of values of the ''identity_provider_type' type from
 // the given iterator.
 func readIdentityProviderTypeList(iterator *jsoniter.Iterator) []IdentityProviderType {
 	list := []IdentityProviderType{}

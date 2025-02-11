@@ -60,7 +60,7 @@ func UnmarshalCPUTotalNodeRoleOSMetricNodeList(source interface{}) (items []*CPU
 	return
 }
 
-// readCPUTotalNodeRoleOSMetricNodeList reads list of values of the ”CPU_total_node_role_OS_metric_node' type from
+// readCPUTotalNodeRoleOSMetricNodeList reads list of values of the ''CPU_total_node_role_OS_metric_node' type from
 // the given iterator.
 func readCPUTotalNodeRoleOSMetricNodeList(iterator *jsoniter.Iterator) []*CPUTotalNodeRoleOSMetricNode {
 	list := []*CPUTotalNodeRoleOSMetricNode{}

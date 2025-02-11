@@ -48,6 +48,8 @@ type AccessTokenPostServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *AccessTokenPostServerResponse) Body(value *AccessToken) *AccessTokenPostServerResponse {
 	r.body = value
 	return r

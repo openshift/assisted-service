@@ -60,7 +60,7 @@ func UnmarshalBillingModelList(source interface{}) (items []BillingModel, err er
 	return
 }
 
-// readBillingModelList reads list of values of the ”billing_model' type from
+// readBillingModelList reads list of values of the ''billing_model' type from
 // the given iterator.
 func readBillingModelList(iterator *jsoniter.Iterator) []BillingModel {
 	list := []BillingModel{}

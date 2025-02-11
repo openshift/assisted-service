@@ -48,6 +48,8 @@ type JobFailureServerRequest struct {
 }
 
 // FailureReason returns the value of the 'failure_reason' parameter.
+//
+//
 func (r *JobFailureServerRequest) FailureReason() string {
 	if r != nil && r.failureReason != nil {
 		return *r.failureReason
@@ -57,6 +59,8 @@ func (r *JobFailureServerRequest) FailureReason() string {
 
 // GetFailureReason returns the value of the 'failure_reason' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *JobFailureServerRequest) GetFailureReason() (value string, ok bool) {
 	ok = r != nil && r.failureReason != nil
 	if ok {

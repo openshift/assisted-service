@@ -48,6 +48,8 @@ type ClusterStatusGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *ClusterStatusGetServerResponse) Body(value *ClusterStatus) *ClusterStatusGetServerResponse {
 	r.body = value
 	return r

@@ -60,7 +60,7 @@ func UnmarshalJobList(source interface{}) (items []*Job, err error) {
 	return
 }
 
-// readJobList reads list of values of the ”job' type from
+// readJobList reads list of values of the ''job' type from
 // the given iterator.
 func readJobList(iterator *jsoniter.Iterator) []*Job {
 	list := []*Job{}

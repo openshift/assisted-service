@@ -36,6 +36,8 @@ const LabelLinkKind = "LabelLink"
 const LabelNilKind = "LabelNil"
 
 // Label represents the values of the 'label' type.
+//
+//
 type Label struct {
 	bitmap_   uint32
 	id        string
@@ -106,6 +108,8 @@ func (o *Label) Empty() bool {
 
 // CreatedAt returns the value of the 'created_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Label) CreatedAt() time.Time {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.createdAt
@@ -115,6 +119,8 @@ func (o *Label) CreatedAt() time.Time {
 
 // GetCreatedAt returns the value of the 'created_at' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Label) GetCreatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -125,6 +131,8 @@ func (o *Label) GetCreatedAt() (value time.Time, ok bool) {
 
 // Internal returns the value of the 'internal' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Label) Internal() bool {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.internal
@@ -134,6 +142,8 @@ func (o *Label) Internal() bool {
 
 // GetInternal returns the value of the 'internal' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Label) GetInternal() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -144,6 +154,8 @@ func (o *Label) GetInternal() (value bool, ok bool) {
 
 // Key returns the value of the 'key' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Label) Key() string {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.key
@@ -153,6 +165,8 @@ func (o *Label) Key() string {
 
 // GetKey returns the value of the 'key' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Label) GetKey() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -163,6 +177,8 @@ func (o *Label) GetKey() (value string, ok bool) {
 
 // UpdatedAt returns the value of the 'updated_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Label) UpdatedAt() time.Time {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.updatedAt
@@ -172,6 +188,8 @@ func (o *Label) UpdatedAt() time.Time {
 
 // GetUpdatedAt returns the value of the 'updated_at' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Label) GetUpdatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -182,6 +200,8 @@ func (o *Label) GetUpdatedAt() (value time.Time, ok bool) {
 
 // Value returns the value of the 'value' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *Label) Value() string {
 	if o != nil && o.bitmap_&128 != 0 {
 		return o.value
@@ -191,6 +211,8 @@ func (o *Label) Value() string {
 
 // GetValue returns the value of the 'value' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *Label) GetValue() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&128 != 0
 	if ok {

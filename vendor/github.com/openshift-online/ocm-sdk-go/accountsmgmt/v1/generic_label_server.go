@@ -74,6 +74,8 @@ type GenericLabelGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *GenericLabelGetServerResponse) Body(value *Label) *GenericLabelGetServerResponse {
 	r.body = value
 	return r
@@ -91,6 +93,8 @@ type GenericLabelUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *GenericLabelUpdateServerRequest) Body() *Label {
 	if r == nil {
 		return nil
@@ -100,6 +104,8 @@ func (r *GenericLabelUpdateServerRequest) Body() *Label {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *GenericLabelUpdateServerRequest) GetBody() (value *Label, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -116,6 +122,8 @@ type GenericLabelUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *GenericLabelUpdateServerResponse) Body(value *Label) *GenericLabelUpdateServerResponse {
 	r.body = value
 	return r

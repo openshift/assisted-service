@@ -60,7 +60,7 @@ func UnmarshalKeyRingList(source interface{}) (items []*KeyRing, err error) {
 	return
 }
 
-// readKeyRingList reads list of values of the ”key_ring' type from
+// readKeyRingList reads list of values of the ''key_ring' type from
 // the given iterator.
 func readKeyRingList(iterator *jsoniter.Iterator) []*KeyRing {
 	list := []*KeyRing{}

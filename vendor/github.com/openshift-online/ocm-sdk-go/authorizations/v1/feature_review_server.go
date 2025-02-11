@@ -42,6 +42,8 @@ type FeatureReviewPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
+//
+//
 func (r *FeatureReviewPostServerRequest) Request() *FeatureReviewRequest {
 	if r == nil {
 		return nil
@@ -51,6 +53,8 @@ func (r *FeatureReviewPostServerRequest) Request() *FeatureReviewRequest {
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *FeatureReviewPostServerRequest) GetRequest() (value *FeatureReviewRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -67,6 +71,8 @@ type FeatureReviewPostServerResponse struct {
 }
 
 // Request sets the value of the 'request' parameter.
+//
+//
 func (r *FeatureReviewPostServerResponse) Request(value *FeatureReviewResponse) *FeatureReviewPostServerResponse {
 	r.request = value
 	return r

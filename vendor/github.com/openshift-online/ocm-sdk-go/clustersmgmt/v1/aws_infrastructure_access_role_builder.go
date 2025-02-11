@@ -57,6 +57,8 @@ func (b *AWSInfrastructureAccessRoleBuilder) HREF(value string) *AWSInfrastructu
 }
 
 // Description sets the value of the 'description' attribute to the given value.
+//
+//
 func (b *AWSInfrastructureAccessRoleBuilder) Description(value string) *AWSInfrastructureAccessRoleBuilder {
 	b.description = value
 	b.bitmap_ |= 8
@@ -64,6 +66,8 @@ func (b *AWSInfrastructureAccessRoleBuilder) Description(value string) *AWSInfra
 }
 
 // DisplayName sets the value of the 'display_name' attribute to the given value.
+//
+//
 func (b *AWSInfrastructureAccessRoleBuilder) DisplayName(value string) *AWSInfrastructureAccessRoleBuilder {
 	b.displayName = value
 	b.bitmap_ |= 16

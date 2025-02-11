@@ -60,7 +60,7 @@ func UnmarshalAddOnList(source interface{}) (items []*AddOn, err error) {
 	return
 }
 
-// readAddOnList reads list of values of the ”add_on' type from
+// readAddOnList reads list of values of the ''add_on' type from
 // the given iterator.
 func readAddOnList(iterator *jsoniter.Iterator) []*AddOn {
 	list := []*AddOn{}

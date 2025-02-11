@@ -60,7 +60,7 @@ func UnmarshalGoogleIdentityProviderList(source interface{}) (items []*GoogleIde
 	return
 }
 
-// readGoogleIdentityProviderList reads list of values of the ”google_identity_provider' type from
+// readGoogleIdentityProviderList reads list of values of the ''google_identity_provider' type from
 // the given iterator.
 func readGoogleIdentityProviderList(iterator *jsoniter.Iterator) []*GoogleIdentityProvider {
 	list := []*GoogleIdentityProvider{}

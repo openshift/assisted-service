@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // AccessTokenAuth represents the values of the 'access_token_auth' type.
+//
+//
 type AccessTokenAuth struct {
 	bitmap_ uint32
 	auth    string
@@ -33,6 +35,8 @@ func (o *AccessTokenAuth) Empty() bool {
 
 // Auth returns the value of the 'auth' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *AccessTokenAuth) Auth() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.auth
@@ -42,6 +46,8 @@ func (o *AccessTokenAuth) Auth() string {
 
 // GetAuth returns the value of the 'auth' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *AccessTokenAuth) GetAuth() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -52,6 +58,8 @@ func (o *AccessTokenAuth) GetAuth() (value string, ok bool) {
 
 // Email returns the value of the 'email' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *AccessTokenAuth) Email() string {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.email
@@ -61,6 +69,8 @@ func (o *AccessTokenAuth) Email() string {
 
 // GetEmail returns the value of the 'email' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *AccessTokenAuth) GetEmail() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {

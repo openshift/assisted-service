@@ -60,7 +60,7 @@ func UnmarshalLongList(source interface{}) (items []int64, err error) {
 	return
 }
 
-// readLongList reads list of values of the ”long' type from
+// readLongList reads list of values of the ''long' type from
 // the given iterator.
 func readLongList(iterator *jsoniter.Iterator) []int64 {
 	list := []int64{}

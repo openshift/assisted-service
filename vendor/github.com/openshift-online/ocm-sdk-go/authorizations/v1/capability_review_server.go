@@ -42,6 +42,8 @@ type CapabilityReviewPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
+//
+//
 func (r *CapabilityReviewPostServerRequest) Request() *CapabilityReviewRequest {
 	if r == nil {
 		return nil
@@ -51,6 +53,8 @@ func (r *CapabilityReviewPostServerRequest) Request() *CapabilityReviewRequest {
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *CapabilityReviewPostServerRequest) GetRequest() (value *CapabilityReviewRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -67,6 +71,8 @@ type CapabilityReviewPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
+//
+//
 func (r *CapabilityReviewPostServerResponse) Response(value *CapabilityReviewResponse) *CapabilityReviewPostServerResponse {
 	r.response = value
 	return r

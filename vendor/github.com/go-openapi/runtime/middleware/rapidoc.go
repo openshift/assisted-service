@@ -43,6 +43,7 @@ func (r *RapiDocOpts) EnsureDefaults() {
 
 // RapiDoc creates a middleware to serve a documentation site for a swagger spec.
 // This allows for altering the spec before starting the http listener.
+//
 func RapiDoc(opts RapiDocOpts, next http.Handler) http.Handler {
 	opts.EnsureDefaults()
 

@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // ClusterRegistrationRequestBuilder contains the data and logic needed to build 'cluster_registration_request' objects.
+//
+//
 type ClusterRegistrationRequestBuilder struct {
 	bitmap_            uint32
 	authorizationToken string
@@ -32,6 +34,8 @@ func NewClusterRegistrationRequest() *ClusterRegistrationRequestBuilder {
 }
 
 // AuthorizationToken sets the value of the 'authorization_token' attribute to the given value.
+//
+//
 func (b *ClusterRegistrationRequestBuilder) AuthorizationToken(value string) *ClusterRegistrationRequestBuilder {
 	b.authorizationToken = value
 	b.bitmap_ |= 1
@@ -39,6 +43,8 @@ func (b *ClusterRegistrationRequestBuilder) AuthorizationToken(value string) *Cl
 }
 
 // ClusterID sets the value of the 'cluster_ID' attribute to the given value.
+//
+//
 func (b *ClusterRegistrationRequestBuilder) ClusterID(value string) *ClusterRegistrationRequestBuilder {
 	b.clusterID = value
 	b.bitmap_ |= 2

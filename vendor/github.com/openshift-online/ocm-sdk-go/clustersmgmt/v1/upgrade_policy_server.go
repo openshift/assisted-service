@@ -79,6 +79,8 @@ type UpgradePolicyGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *UpgradePolicyGetServerResponse) Body(value *UpgradePolicy) *UpgradePolicyGetServerResponse {
 	r.body = value
 	return r
@@ -96,6 +98,8 @@ type UpgradePolicyUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *UpgradePolicyUpdateServerRequest) Body() *UpgradePolicy {
 	if r == nil {
 		return nil
@@ -105,6 +109,8 @@ func (r *UpgradePolicyUpdateServerRequest) Body() *UpgradePolicy {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *UpgradePolicyUpdateServerRequest) GetBody() (value *UpgradePolicy, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -121,6 +127,8 @@ type UpgradePolicyUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *UpgradePolicyUpdateServerResponse) Body(value *UpgradePolicy) *UpgradePolicyUpdateServerResponse {
 	r.body = value
 	return r

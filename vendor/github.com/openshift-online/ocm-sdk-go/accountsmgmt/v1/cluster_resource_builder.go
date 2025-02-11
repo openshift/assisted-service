@@ -24,6 +24,8 @@ import (
 )
 
 // ClusterResourceBuilder contains the data and logic needed to build 'cluster_resource' objects.
+//
+//
 type ClusterResourceBuilder struct {
 	bitmap_          uint32
 	total            *ValueUnitBuilder
@@ -37,6 +39,8 @@ func NewClusterResource() *ClusterResourceBuilder {
 }
 
 // Total sets the value of the 'total' attribute to the given value.
+//
+//
 func (b *ClusterResourceBuilder) Total(value *ValueUnitBuilder) *ClusterResourceBuilder {
 	b.total = value
 	if value != nil {
@@ -48,6 +52,8 @@ func (b *ClusterResourceBuilder) Total(value *ValueUnitBuilder) *ClusterResource
 }
 
 // UpdatedTimestamp sets the value of the 'updated_timestamp' attribute to the given value.
+//
+//
 func (b *ClusterResourceBuilder) UpdatedTimestamp(value time.Time) *ClusterResourceBuilder {
 	b.updatedTimestamp = value
 	b.bitmap_ |= 2
@@ -55,6 +61,8 @@ func (b *ClusterResourceBuilder) UpdatedTimestamp(value time.Time) *ClusterResou
 }
 
 // Used sets the value of the 'used' attribute to the given value.
+//
+//
 func (b *ClusterResourceBuilder) Used(value *ValueUnitBuilder) *ClusterResourceBuilder {
 	b.used = value
 	if value != nil {

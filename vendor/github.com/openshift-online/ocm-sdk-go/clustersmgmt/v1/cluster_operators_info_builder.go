@@ -33,6 +33,8 @@ func NewClusterOperatorsInfo() *ClusterOperatorsInfoBuilder {
 }
 
 // Operators sets the value of the 'operators' attribute to the given values.
+//
+//
 func (b *ClusterOperatorsInfoBuilder) Operators(values ...*ClusterOperatorInfoBuilder) *ClusterOperatorsInfoBuilder {
 	b.operators = make([]*ClusterOperatorInfoBuilder, len(values))
 	copy(b.operators, values)

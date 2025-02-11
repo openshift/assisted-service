@@ -60,7 +60,7 @@ func UnmarshalAccountList(source interface{}) (items []*Account, err error) {
 	return
 }
 
-// readAccountList reads list of values of the ”account' type from
+// readAccountList reads list of values of the ''account' type from
 // the given iterator.
 func readAccountList(iterator *jsoniter.Iterator) []*Account {
 	list := []*Account{}

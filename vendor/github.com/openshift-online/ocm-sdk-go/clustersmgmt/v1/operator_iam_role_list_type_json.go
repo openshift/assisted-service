@@ -60,7 +60,7 @@ func UnmarshalOperatorIAMRoleList(source interface{}) (items []*OperatorIAMRole,
 	return
 }
 
-// readOperatorIAMRoleList reads list of values of the ”operator_IAM_role' type from
+// readOperatorIAMRoleList reads list of values of the ''operator_IAM_role' type from
 // the given iterator.
 func readOperatorIAMRoleList(iterator *jsoniter.Iterator) []*OperatorIAMRole {
 	list := []*OperatorIAMRole{}

@@ -60,7 +60,7 @@ func UnmarshalIntegerList(source interface{}) (items []int, err error) {
 	return
 }
 
-// readIntegerList reads list of values of the ”integer' type from
+// readIntegerList reads list of values of the ''integer' type from
 // the given iterator.
 func readIntegerList(iterator *jsoniter.Iterator) []int {
 	list := []int{}

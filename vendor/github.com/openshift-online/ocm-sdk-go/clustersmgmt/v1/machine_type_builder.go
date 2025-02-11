@@ -62,6 +62,8 @@ func (b *MachineTypeBuilder) HREF(value string) *MachineTypeBuilder {
 }
 
 // CCSOnly sets the value of the 'CCS_only' attribute to the given value.
+//
+//
 func (b *MachineTypeBuilder) CCSOnly(value bool) *MachineTypeBuilder {
 	b.ccsOnly = value
 	b.bitmap_ |= 8
@@ -121,6 +123,8 @@ func (b *MachineTypeBuilder) CloudProvider(value *CloudProviderBuilder) *Machine
 }
 
 // GenericName sets the value of the 'generic_name' attribute to the given value.
+//
+//
 func (b *MachineTypeBuilder) GenericName(value string) *MachineTypeBuilder {
 	b.genericName = value
 	b.bitmap_ |= 128
@@ -158,6 +162,8 @@ func (b *MachineTypeBuilder) Memory(value *ValueBuilder) *MachineTypeBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
+//
+//
 func (b *MachineTypeBuilder) Name(value string) *MachineTypeBuilder {
 	b.name = value
 	b.bitmap_ |= 512

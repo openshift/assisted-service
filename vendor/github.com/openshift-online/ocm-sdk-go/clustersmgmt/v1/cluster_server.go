@@ -201,6 +201,8 @@ type ClusterGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *ClusterGetServerResponse) Body(value *Cluster) *ClusterGetServerResponse {
 	r.body = value
 	return r
@@ -250,6 +252,8 @@ type ClusterUpdateServerRequest struct {
 }
 
 // Body returns the value of the 'body' parameter.
+//
+//
 func (r *ClusterUpdateServerRequest) Body() *Cluster {
 	if r == nil {
 		return nil
@@ -259,6 +263,8 @@ func (r *ClusterUpdateServerRequest) Body() *Cluster {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *ClusterUpdateServerRequest) GetBody() (value *Cluster, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -275,6 +281,8 @@ type ClusterUpdateServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *ClusterUpdateServerResponse) Body(value *Cluster) *ClusterUpdateServerResponse {
 	r.body = value
 	return r

@@ -55,6 +55,8 @@ func (b *ProductBuilder) HREF(value string) *ProductBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
+//
+//
 func (b *ProductBuilder) Name(value string) *ProductBuilder {
 	b.name = value
 	b.bitmap_ |= 8

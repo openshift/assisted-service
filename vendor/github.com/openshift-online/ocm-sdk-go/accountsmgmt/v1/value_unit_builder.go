@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // ValueUnitBuilder contains the data and logic needed to build 'value_unit' objects.
+//
+//
 type ValueUnitBuilder struct {
 	bitmap_ uint32
 	unit    string
@@ -32,6 +34,8 @@ func NewValueUnit() *ValueUnitBuilder {
 }
 
 // Unit sets the value of the 'unit' attribute to the given value.
+//
+//
 func (b *ValueUnitBuilder) Unit(value string) *ValueUnitBuilder {
 	b.unit = value
 	b.bitmap_ |= 1
@@ -39,6 +43,8 @@ func (b *ValueUnitBuilder) Unit(value string) *ValueUnitBuilder {
 }
 
 // Value sets the value of the 'value' attribute to the given value.
+//
+//
 func (b *ValueUnitBuilder) Value(value float64) *ValueUnitBuilder {
 	b.value = value
 	b.bitmap_ |= 2

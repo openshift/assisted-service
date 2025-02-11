@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // PullSecretsRequest represents the values of the 'pull_secrets_request' type.
+//
+//
 type PullSecretsRequest struct {
 	bitmap_            uint32
 	externalResourceId string
@@ -32,6 +34,8 @@ func (o *PullSecretsRequest) Empty() bool {
 
 // ExternalResourceId returns the value of the 'external_resource_id' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
+//
+//
 func (o *PullSecretsRequest) ExternalResourceId() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.externalResourceId
@@ -41,6 +45,8 @@ func (o *PullSecretsRequest) ExternalResourceId() string {
 
 // GetExternalResourceId returns the value of the 'external_resource_id' attribute and
 // a flag indicating if the attribute has a value.
+//
+//
 func (o *PullSecretsRequest) GetExternalResourceId() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {

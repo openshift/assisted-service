@@ -39,6 +39,8 @@ func NewSelfCapabilityReviewRequest() *SelfCapabilityReviewRequestBuilder {
 }
 
 // AccountUsername sets the value of the 'account_username' attribute to the given value.
+//
+//
 func (b *SelfCapabilityReviewRequestBuilder) AccountUsername(value string) *SelfCapabilityReviewRequestBuilder {
 	b.accountUsername = value
 	b.bitmap_ |= 1
@@ -46,6 +48,8 @@ func (b *SelfCapabilityReviewRequestBuilder) AccountUsername(value string) *Self
 }
 
 // Capability sets the value of the 'capability' attribute to the given value.
+//
+//
 func (b *SelfCapabilityReviewRequestBuilder) Capability(value string) *SelfCapabilityReviewRequestBuilder {
 	b.capability = value
 	b.bitmap_ |= 2
@@ -53,6 +57,8 @@ func (b *SelfCapabilityReviewRequestBuilder) Capability(value string) *SelfCapab
 }
 
 // ClusterID sets the value of the 'cluster_ID' attribute to the given value.
+//
+//
 func (b *SelfCapabilityReviewRequestBuilder) ClusterID(value string) *SelfCapabilityReviewRequestBuilder {
 	b.clusterID = value
 	b.bitmap_ |= 4
@@ -60,6 +66,8 @@ func (b *SelfCapabilityReviewRequestBuilder) ClusterID(value string) *SelfCapabi
 }
 
 // OrganizationID sets the value of the 'organization_ID' attribute to the given value.
+//
+//
 func (b *SelfCapabilityReviewRequestBuilder) OrganizationID(value string) *SelfCapabilityReviewRequestBuilder {
 	b.organizationID = value
 	b.bitmap_ |= 8
@@ -67,6 +75,8 @@ func (b *SelfCapabilityReviewRequestBuilder) OrganizationID(value string) *SelfC
 }
 
 // ResourceType sets the value of the 'resource_type' attribute to the given value.
+//
+//
 func (b *SelfCapabilityReviewRequestBuilder) ResourceType(value string) *SelfCapabilityReviewRequestBuilder {
 	b.resourceType = value
 	b.bitmap_ |= 16
@@ -74,6 +84,8 @@ func (b *SelfCapabilityReviewRequestBuilder) ResourceType(value string) *SelfCap
 }
 
 // SubscriptionID sets the value of the 'subscription_ID' attribute to the given value.
+//
+//
 func (b *SelfCapabilityReviewRequestBuilder) SubscriptionID(value string) *SelfCapabilityReviewRequestBuilder {
 	b.subscriptionID = value
 	b.bitmap_ |= 32
@@ -81,6 +93,8 @@ func (b *SelfCapabilityReviewRequestBuilder) SubscriptionID(value string) *SelfC
 }
 
 // Type sets the value of the 'type' attribute to the given value.
+//
+//
 func (b *SelfCapabilityReviewRequestBuilder) Type(value string) *SelfCapabilityReviewRequestBuilder {
 	b.type_ = value
 	b.bitmap_ |= 64

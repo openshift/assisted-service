@@ -69,6 +69,8 @@ type PermissionGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *PermissionGetServerResponse) Body(value *Permission) *PermissionGetServerResponse {
 	r.body = value
 	return r

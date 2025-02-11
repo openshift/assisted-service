@@ -39,6 +39,8 @@ func NewResourceReview() *ResourceReviewBuilder {
 }
 
 // AccountUsername sets the value of the 'account_username' attribute to the given value.
+//
+//
 func (b *ResourceReviewBuilder) AccountUsername(value string) *ResourceReviewBuilder {
 	b.accountUsername = value
 	b.bitmap_ |= 1
@@ -46,6 +48,8 @@ func (b *ResourceReviewBuilder) AccountUsername(value string) *ResourceReviewBui
 }
 
 // Action sets the value of the 'action' attribute to the given value.
+//
+//
 func (b *ResourceReviewBuilder) Action(value string) *ResourceReviewBuilder {
 	b.action = value
 	b.bitmap_ |= 2
@@ -53,6 +57,8 @@ func (b *ResourceReviewBuilder) Action(value string) *ResourceReviewBuilder {
 }
 
 // ClusterIDs sets the value of the 'cluster_IDs' attribute to the given values.
+//
+//
 func (b *ResourceReviewBuilder) ClusterIDs(values ...string) *ResourceReviewBuilder {
 	b.clusterIDs = make([]string, len(values))
 	copy(b.clusterIDs, values)
@@ -61,6 +67,8 @@ func (b *ResourceReviewBuilder) ClusterIDs(values ...string) *ResourceReviewBuil
 }
 
 // ClusterUUIDs sets the value of the 'cluster_UUIDs' attribute to the given values.
+//
+//
 func (b *ResourceReviewBuilder) ClusterUUIDs(values ...string) *ResourceReviewBuilder {
 	b.clusterUUIDs = make([]string, len(values))
 	copy(b.clusterUUIDs, values)
@@ -69,6 +77,8 @@ func (b *ResourceReviewBuilder) ClusterUUIDs(values ...string) *ResourceReviewBu
 }
 
 // OrganizationIDs sets the value of the 'organization_IDs' attribute to the given values.
+//
+//
 func (b *ResourceReviewBuilder) OrganizationIDs(values ...string) *ResourceReviewBuilder {
 	b.organizationIDs = make([]string, len(values))
 	copy(b.organizationIDs, values)
@@ -77,6 +87,8 @@ func (b *ResourceReviewBuilder) OrganizationIDs(values ...string) *ResourceRevie
 }
 
 // ResourceType sets the value of the 'resource_type' attribute to the given value.
+//
+//
 func (b *ResourceReviewBuilder) ResourceType(value string) *ResourceReviewBuilder {
 	b.resourceType = value
 	b.bitmap_ |= 32
@@ -84,6 +96,8 @@ func (b *ResourceReviewBuilder) ResourceType(value string) *ResourceReviewBuilde
 }
 
 // SubscriptionIDs sets the value of the 'subscription_IDs' attribute to the given values.
+//
+//
 func (b *ResourceReviewBuilder) SubscriptionIDs(values ...string) *ResourceReviewBuilder {
 	b.subscriptionIDs = make([]string, len(values))
 	copy(b.subscriptionIDs, values)

@@ -48,6 +48,8 @@ type CredentialsGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *CredentialsGetServerResponse) Body(value *ClusterCredentials) *CredentialsGetServerResponse {
 	r.body = value
 	return r

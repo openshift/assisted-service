@@ -48,6 +48,8 @@ type MachineTypeGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *MachineTypeGetServerResponse) Body(value *MachineType) *MachineTypeGetServerResponse {
 	r.body = value
 	return r

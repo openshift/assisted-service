@@ -60,7 +60,7 @@ func UnmarshalReservedResourceList(source interface{}) (items []*ReservedResourc
 	return
 }
 
-// readReservedResourceList reads list of values of the ”reserved_resource' type from
+// readReservedResourceList reads list of values of the ''reserved_resource' type from
 // the given iterator.
 func readReservedResourceList(iterator *jsoniter.Iterator) []*ReservedResource {
 	list := []*ReservedResource{}

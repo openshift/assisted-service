@@ -48,6 +48,8 @@ type ProductGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *ProductGetServerResponse) Body(value *Product) *ProductGetServerResponse {
 	r.body = value
 	return r

@@ -48,6 +48,8 @@ type VersionGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *VersionGetServerResponse) Body(value *Version) *VersionGetServerResponse {
 	r.body = value
 	return r

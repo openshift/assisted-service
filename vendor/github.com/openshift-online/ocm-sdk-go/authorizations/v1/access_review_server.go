@@ -42,6 +42,8 @@ type AccessReviewPostServerRequest struct {
 }
 
 // Request returns the value of the 'request' parameter.
+//
+//
 func (r *AccessReviewPostServerRequest) Request() *AccessReviewRequest {
 	if r == nil {
 		return nil
@@ -51,6 +53,8 @@ func (r *AccessReviewPostServerRequest) Request() *AccessReviewRequest {
 
 // GetRequest returns the value of the 'request' parameter and
 // a flag indicating if the parameter has a value.
+//
+//
 func (r *AccessReviewPostServerRequest) GetRequest() (value *AccessReviewRequest, ok bool) {
 	ok = r != nil && r.request != nil
 	if ok {
@@ -67,6 +71,8 @@ type AccessReviewPostServerResponse struct {
 }
 
 // Response sets the value of the 'response' parameter.
+//
+//
 func (r *AccessReviewPostServerResponse) Response(value *AccessReviewResponse) *AccessReviewPostServerResponse {
 	r.response = value
 	return r

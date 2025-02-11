@@ -48,6 +48,8 @@ type SocketTotalByNodeRolesOSMetricQueryGetServerResponse struct {
 }
 
 // Body sets the value of the 'body' parameter.
+//
+//
 func (r *SocketTotalByNodeRolesOSMetricQueryGetServerResponse) Body(value *SocketTotalsNodeRoleOSMetricNode) *SocketTotalByNodeRolesOSMetricQueryGetServerResponse {
 	r.body = value
 	return r

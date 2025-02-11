@@ -60,7 +60,7 @@ func UnmarshalValueList(source interface{}) (items []*Value, err error) {
 	return
 }
 
-// readValueList reads list of values of the ”value' type from
+// readValueList reads list of values of the ''value' type from
 // the given iterator.
 func readValueList(iterator *jsoniter.Iterator) []*Value {
 	list := []*Value{}

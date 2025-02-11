@@ -60,7 +60,7 @@ func UnmarshalAWSInfrastructureAccessRoleStateList(source interface{}) (items []
 	return
 }
 
-// readAWSInfrastructureAccessRoleStateList reads list of values of the ”AWS_infrastructure_access_role_state' type from
+// readAWSInfrastructureAccessRoleStateList reads list of values of the ''AWS_infrastructure_access_role_state' type from
 // the given iterator.
 func readAWSInfrastructureAccessRoleStateList(iterator *jsoniter.Iterator) []AWSInfrastructureAccessRoleState {
 	list := []AWSInfrastructureAccessRoleState{}

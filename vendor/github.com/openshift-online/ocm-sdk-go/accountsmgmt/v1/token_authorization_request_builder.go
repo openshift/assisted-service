@@ -20,6 +20,8 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // TokenAuthorizationRequestBuilder contains the data and logic needed to build 'token_authorization_request' objects.
+//
+//
 type TokenAuthorizationRequestBuilder struct {
 	bitmap_            uint32
 	authorizationToken string
@@ -31,6 +33,8 @@ func NewTokenAuthorizationRequest() *TokenAuthorizationRequestBuilder {
 }
 
 // AuthorizationToken sets the value of the 'authorization_token' attribute to the given value.
+//
+//
 func (b *TokenAuthorizationRequestBuilder) AuthorizationToken(value string) *TokenAuthorizationRequestBuilder {
 	b.authorizationToken = value
 	b.bitmap_ |= 1
