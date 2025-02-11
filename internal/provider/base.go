@@ -35,7 +35,7 @@ type Provider interface {
 	// SetPlatformUsages uses the usageApi to update platform specific usages
 	SetPlatformUsages(usages map[string]models.Usage, usageApi usage.API) error
 	// IsHostSupported checks if the provider supports the host
-	IsHostSupported(hosts *models.Host) (bool, error)
+	IsHostSupported(ctx context.Context, hosts *models.Host) (bool, error)
 	// AreHostsSupported checks if the provider supports the hosts
 	AreHostsSupported(host []*models.Host) (bool, error)
 	// PreCreateManifestsHook allows the provider to perform additional tasks required before the cluster manifests are created

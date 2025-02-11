@@ -160,7 +160,7 @@ const mirrorRegistriesCAConfigKey = "MirrorRegistriesCAConfig"
 //go:generate mockgen -source=discovery.go -package=ignition -destination=mock_ignition_builder.go
 type IgnitionBuilder interface {
 	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string) (string, error)
-	FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken, ignitionEndpointHTTPHeaders string, host *models.Host) ([]byte, error)
+	FormatSecondDayWorkerIgnitionFile(ctx context.Context, url string, caCert *string, bearerToken, ignitionEndpointHTTPHeaders string, host *models.Host) ([]byte, error)
 }
 
 // IgnitionConfig contains the attributes required to build the discovery ignition file
@@ -428,7 +428,7 @@ func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(ctx context.Con
 	return filesList, nil
 }
 
-func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert *string, bearerToken, ignitionEndpointHTTPHeaders string, host *models.Host) ([]byte, error) {
+func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(ctx context.Context, url string, caCert *string, bearerToken, ignitionEndpointHTTPHeaders string, host *models.Host) ([]byte, error) {
 	var ignitionParams = map[string]interface{}{
 		// https://github.com/openshift/machine-config-operator/blob/master/docs/MachineConfigServer.md#endpoint
 		"SOURCE":  url,
@@ -471,7 +471,7 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 		ib.log.Debugf("Ignition override for day2 host %s: %s", host.ID, overrides)
 	}
 
-	res, err := SetHostnameForNodeIgnition([]byte(overrides), host)
+	res, err := SetHostnameForNodeIgnition(ctx, []byte(overrides), host)
 	if err != nil {
 		return []byte(""), errors.Wrapf(err, "Failed to set hostname in ignition for host %s", host.ID)
 	}
@@ -494,13 +494,13 @@ func GetProfileProxyEntries(http_proxy string, https_proxy string, no_proxy stri
 	return strings.Join(entries, "\n") + "\n"
 }
 
-func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, error) {
+func SetHostnameForNodeIgnition(ctx context.Context, ignition []byte, host *models.Host) ([]byte, error) {
 	config, err := ParseToLatest(ignition)
 	if err != nil {
 		return nil, errors.Errorf("error parsing ignition: %v", err)
 	}
 
-	hostname, err := hostutil.GetCurrentHostName(host)
+	hostname, err := hostutil.GetCurrentHostName(ctx, host)
 	if err != nil {
 		return nil, errors.Errorf("failed to get hostname for host %s", host.ID)
 	}

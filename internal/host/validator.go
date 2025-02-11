@@ -113,10 +113,7 @@ type validation struct {
 	skippedStates []models.HostStage
 }
 
-func (c *validationContext) loadCluster() error {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.loadCluster")
-	defer span.End()
-
+func (c *validationContext) loadCluster(ctx context.Context) error {
 	var err error
 	if c.cluster == nil {
 		c.cluster, err = common.GetClusterFromDBWithHosts(c.db, *c.host.ClusterID)
@@ -124,10 +121,7 @@ func (c *validationContext) loadCluster() error {
 	return err
 }
 
-func (c *validationContext) loadInfraEnv() error {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.loadInfraEnv")
-	defer span.End()
-
+func (c *validationContext) loadInfraEnv(ctx context.Context) error {
 	var err error
 	if c.infraEnv == nil {
 		c.infraEnv, err = common.GetInfraEnvFromDB(c.db, c.host.InfraEnvID)
@@ -135,11 +129,8 @@ func (c *validationContext) loadInfraEnv() error {
 	return err
 }
 
-func (c *validationContext) loadInventory() error {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.loadInventory")
-	defer span.End()
-
-	inventory, err := c.inventoryCache.GetOrUnmarshal(c.ctx, c.host)
+func (c *validationContext) loadInventory(ctx context.Context) error {
+	inventory, err := c.inventoryCache.GetOrUnmarshal(ctx, c.host)
 	if inventory == nil || err != nil {
 		return err
 	}
@@ -166,10 +157,7 @@ func (v *validator) getBootDeviceInfo(host *models.Host) (*models.DiskInfo, erro
 	return info, nil
 }
 
-func (c *validationContext) validateRole() error {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.validateRole")
-	defer span.End()
-
+func (c *validationContext) validateRole(ctx context.Context) error {
 	switch common.GetEffectiveRole(c.host) {
 	case models.HostRoleMaster, models.HostRoleWorker, models.HostRoleAutoAssign:
 		return nil
@@ -178,10 +166,7 @@ func (c *validationContext) validateRole() error {
 	}
 }
 
-func (c *validationContext) validateMachineCIDR() error {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.validateMachineCIDR")
-	defer span.End()
-
+func (c *validationContext) validateMachineCIDR(ctx context.Context) error {
 	var err error
 	for _, machineNetwork := range c.cluster.MachineNetworks {
 		_, _, err = net.ParseCIDR(string(machineNetwork.Cidr))
@@ -192,29 +177,20 @@ func (c *validationContext) validateMachineCIDR() error {
 	return nil
 }
 
-func (c *validationContext) loadClusterHostRequirements(hwValidator hardware.Validator) error {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.loadClusterHostRequirements")
-	defer span.End()
-
-	requirements, err := hwValidator.GetClusterHostRequirements(context.TODO(), c.cluster, c.host)
+func (c *validationContext) loadClusterHostRequirements(ctx context.Context, hwValidator hardware.Validator) error {
+	requirements, err := hwValidator.GetClusterHostRequirements(ctx, c.cluster, c.host)
 	c.clusterHostRequirements = requirements
 	return err
 }
 
-func (c *validationContext) loadInfraEnvHostRequirements(hwValidator hardware.Validator) error {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.loadInfraEnvHostsRequirements")
-	defer span.End()
-
-	requirements, err := hwValidator.GetInfraEnvHostRequirements(context.TODO(), c.infraEnv)
+func (c *validationContext) loadInfraEnvHostRequirements(ctx context.Context, hwValidator hardware.Validator) error {
+	requirements, err := hwValidator.GetInfraEnvHostRequirements(ctx, c.infraEnv)
 	c.clusterHostRequirements = requirements
 	return err
 }
 
-func (c *validationContext) loadGeneralMinRequirements(hwValidator hardware.Validator) error {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.loadGeneralMinRequirements")
-	defer span.End()
-
-	requirements, err := hwValidator.GetPreflightHardwareRequirements(context.TODO(), c.cluster)
+func (c *validationContext) loadGeneralMinRequirements(ctx context.Context, hwValidator hardware.Validator) error {
+	requirements, err := hwValidator.GetPreflightHardwareRequirements(ctx, c.cluster)
 	if err != nil {
 		return err
 	}
@@ -225,11 +201,8 @@ func (c *validationContext) loadGeneralMinRequirements(hwValidator hardware.Vali
 	return err
 }
 
-func (c *validationContext) loadGeneralInfraEnvMinRequirements(hwValidator hardware.Validator) error {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.loadGeneralInfraEnvMinRequirements")
-	defer span.End()
-
-	requirements, err := hwValidator.GetPreflightInfraEnvHardwareRequirements(context.TODO(), c.infraEnv)
+func (c *validationContext) loadGeneralInfraEnvMinRequirements(ctx context.Context, hwValidator hardware.Validator) error {
+	requirements, err := hwValidator.GetPreflightInfraEnvHardwareRequirements(ctx, c.infraEnv)
 	if err != nil {
 		return err
 	}
@@ -242,7 +215,7 @@ func (c *validationContext) loadGeneralInfraEnvMinRequirements(hwValidator hardw
 
 func newValidationContext(ctx context.Context, host *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB, inventoryCache InventoryCache, hwValidator hardware.Validator, kubeApiEnabled bool, objectHandler s3wrapper.API, softTimeoutsEnabled bool) (*validationContext, error) {
 	ret := &validationContext{
-		ctx:                 ctx,
+		ctx:                 nil,
 		host:                host,
 		db:                  db,
 		cluster:             c,
@@ -253,49 +226,49 @@ func newValidationContext(ctx context.Context, host *models.Host, c *common.Clus
 		objectHandler:       objectHandler,
 	}
 	if host.ClusterID != nil {
-		err := ret.loadCluster()
+		err := ret.loadCluster(ctx)
 		if err != nil {
 			return nil, err
 		}
-		err = ret.loadInventory()
+		err = ret.loadInventory(ctx)
 		if err != nil {
 			return nil, err
 		}
-		err = ret.validateRole()
+		err = ret.validateRole(ctx)
 		if err != nil {
 			return nil, err
 		}
-		err = ret.validateMachineCIDR()
+		err = ret.validateMachineCIDR(ctx)
 		if err != nil {
 			return nil, err
 		}
-		err = ret.loadClusterHostRequirements(hwValidator)
+		err = ret.loadClusterHostRequirements(ctx, hwValidator)
 		if err != nil {
 			return nil, err
 		}
-		err = ret.loadGeneralMinRequirements(hwValidator)
+		err = ret.loadGeneralMinRequirements(ctx, hwValidator)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		err := ret.loadInfraEnv()
+		err := ret.loadInfraEnv(ctx)
 		if err != nil {
 			return nil, err
 		}
-		err = ret.loadInventory()
+		err = ret.loadInventory(ctx)
 		if err != nil {
 			return nil, err
 		}
-		err = ret.validateRole()
+		err = ret.validateRole(ctx)
 		if err != nil {
 			return nil, err
 		}
-		err = ret.loadInfraEnvHostRequirements(hwValidator)
+		err = ret.loadInfraEnvHostRequirements(ctx, hwValidator)
 		if err != nil {
 			return nil, err
 		}
 
-		err = ret.loadGeneralInfraEnvMinRequirements(hwValidator)
+		err = ret.loadGeneralInfraEnvMinRequirements(ctx, hwValidator)
 		if err != nil {
 			return nil, err
 		}
@@ -321,9 +294,6 @@ type validator struct {
 }
 
 func (v *validator) isMediaConnected(c *validationContext) (ValidationStatus, string) {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.isMediaConnected")
-	defer span.End()
-
 	status := boolValue(c.host.MediaStatus == nil || *c.host.MediaStatus != models.HostMediaStatusDisconnected)
 	switch status {
 	case ValidationSuccess:
@@ -337,7 +307,7 @@ func (v *validator) isMediaConnected(c *validationContext) (ValidationStatus, st
 
 // isMtuValid - This validation distinguishes between CMN and UMN. For UMN, the MTU is checked across all interfaces, while for CMN, it focuses specifically on the MTU reports for the machine networks.
 func (v *validator) isMtuValid(c *validationContext) (ValidationStatus, string) {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.isMtuValid")
+	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.isMtuValid")
 	defer span.End()
 
 	if c.infraEnv != nil {
@@ -355,7 +325,7 @@ func (v *validator) isMtuValid(c *validationContext) (ValidationStatus, string) 
 	if len(c.host.Connectivity) == 0 {
 		return ValidationPending, "Missing MTU report information"
 	}
-	connectivityReport, err := hostutil.UnmarshalConnectivityReport(c.ctx, c.host.Connectivity)
+	connectivityReport, err := hostutil.UnmarshalConnectivityReport(ctx, c.host.Connectivity)
 	if err != nil {
 		return ValidationError, "Internal error - failed to parse host connectivity report"
 	}
@@ -407,9 +377,6 @@ func (v *validator) isMtuValidInMachineNetwork(c *validationContext, connectivit
 }
 
 func (v *validator) isConnected(c *validationContext) (ValidationStatus, string) {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.isConnected")
-	defer span.End()
-
 	maxHostDisconnectionTime := v.hwValidatorCfg.MaxHostDisconnectionTime
 	if c.host.Bootstrap {
 		// In case of bootstrap we increase disconnection timeout as it's resolv.conf
@@ -429,9 +396,6 @@ func (v *validator) isConnected(c *validationContext) (ValidationStatus, string)
 }
 
 func (v *validator) hasInventory(c *validationContext) (ValidationStatus, string) {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.hasInventory")
-	defer span.End()
-
 	status := boolValue(c.inventory != nil)
 	switch status {
 	case ValidationSuccess:
@@ -444,9 +408,6 @@ func (v *validator) hasInventory(c *validationContext) (ValidationStatus, string
 }
 
 func (v *validator) hasMinCpuCores(c *validationContext) (ValidationStatus, string) {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.hasMinCpuCores")
-	defer span.End()
-
 	if c.inventory == nil {
 		return ValidationPending, "Missing inventory"
 	}
@@ -479,7 +440,7 @@ func (v *validator) compatibleWithClusterPlatform(c *validationContext) (Validat
 	if c.inventory == nil || common.PlatformTypeValue(c.cluster.Platform.Type) == "" {
 		return ValidationPending, "Missing inventory or platform isn't set"
 	}
-	supported, err := v.providerRegistry.IsHostSupported(c.cluster.Platform, c.host)
+	supported, err := v.providerRegistry.IsHostSupported(c.ctx, c.cluster.Platform, c.host)
 	if err != nil {
 		return ValidationError, "Validation error"
 	}
@@ -593,12 +554,10 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 }
 
 func (v *validator) hasMinValidDisks(c *validationContext) (ValidationStatus, string) {
-	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.hasMinValidDisks")
-	defer span.End()
 	if c.inventory == nil {
 		return ValidationPending, "Missing inventory"
 	}
-	inventory, err := c.inventoryCache.GetOrUnmarshal(ctx, c.host)
+	inventory, err := c.inventoryCache.GetOrUnmarshal(c.ctx, c.host)
 	if err != nil {
 		return ValidationError, "Failed to load inventory"
 	}
@@ -655,8 +614,6 @@ func (v *validator) hasMemoryForRole(c *validationContext) (ValidationStatus, st
 }
 
 func (v *validator) isHostnameUnique(c *validationContext) (ValidationStatus, string) {
-	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.isHostnameUnique")
-	defer span.End()
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput, ""
 	}
@@ -666,7 +623,7 @@ func (v *validator) isHostnameUnique(c *validationContext) (ValidationStatus, st
 	realHostname := getRealHostname(c.host, c.inventory)
 	for _, h := range c.cluster.Hosts {
 		if h.ID.String() != c.host.ID.String() && h.Inventory != "" {
-			otherInventory, err := c.inventoryCache.GetOrUnmarshal(ctx, h)
+			otherInventory, err := c.inventoryCache.GetOrUnmarshal(c.ctx, h)
 			if err != nil || otherInventory == nil {
 				v.log.WithError(err).Warnf("Illegal inventory for host %s", h.ID.String())
 				// It is not our hostname
@@ -703,9 +660,6 @@ func (v *validator) isValidPlatformNetworkSettings(c *validationContext) (Valida
 }
 
 func (v *validator) belongsToMachineCidr(c *validationContext) (ValidationStatus, string) {
-	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.isMtuValidInMachineNetworks")
-	defer span.End()
-
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput, ""
 	}
@@ -725,7 +679,7 @@ func (v *validator) belongsToMachineCidr(c *validationContext) (ValidationStatus
 	}
 
 	if !network.IsLoadBalancerUserManaged(c.cluster) {
-		if !network.IsHostInAllMachineNetworksCidr(ctx, v.log, c.cluster, c.host) {
+		if !network.IsHostInAllMachineNetworksCidr(c.ctx, v.log, c.cluster, c.host) {
 			return ValidationFailure, "Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks"
 		}
 
@@ -733,7 +687,7 @@ func (v *validator) belongsToMachineCidr(c *validationContext) (ValidationStatus
 	}
 
 	// user-managed load balancer
-	if !network.IsHostInAtLeastOneMachineNetworkCidr(ctx, v.log, c.cluster, c.host) {
+	if !network.IsHostInAtLeastOneMachineNetworkCidr(c.ctx, v.log, c.cluster, c.host) {
 		return ValidationFailure, "Host does not belong to any machine network CIDR. Verify that the host belongs to at least one CIDR listed under machine networks"
 	}
 
@@ -1127,9 +1081,6 @@ func (v *validator) thresholdExceededTest(ctx context.Context, testType threshol
 }
 
 func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationContext) (ValidationStatus, string) {
-	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.hasSufficientPacketLossRequirementForRole")
-	defer span.End()
-
 	if c.inventory == nil {
 		return ValidationPending, "The inventory is not available yet."
 	}
@@ -1143,7 +1094,7 @@ func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationConte
 	if len(c.host.Connectivity) == 0 {
 		return ValidationPending, "Missing packet loss information."
 	}
-	status, hostMetrics, err := v.thresholdExceededTest(ctx, thresholdTestL3PacketLoss, c.host, c.clusterHostRequirements, c.cluster.Hosts, c.inventoryCache)
+	status, hostMetrics, err := v.thresholdExceededTest(c.ctx, thresholdTestL3PacketLoss, c.host, c.clusterHostRequirements, c.cluster.Hosts, c.inventoryCache)
 	if err != nil {
 		return status, fmt.Sprintf("Error while attempting to validate packet loss validation: %s", err)
 	}
@@ -1203,13 +1154,10 @@ func (v *validator) generatePingCommandAdvisoryForInventory(c *validationContext
 }
 
 func (v *validator) generatePacketLossAdvisoryMessageForHost(c *validationContext) string {
-	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.generatePacketLossAdvisoryMessageForHost")
-	defer span.End()
-
 	message := "Actions:\n"
 	message += "1: Check if there are multiple devices on the same L2 network, if so then use the built-in nmstate-based advanced networking configuration to create a bond or disable all but one of the interfaces.\n"
 
-	inventory, err := c.inventoryCache.GetOrUnmarshal(ctx, c.host)
+	inventory, err := c.inventoryCache.GetOrUnmarshal(c.ctx, c.host)
 	if err != nil {
 		v.log.WithError(err).Warnf("Could not parse inventory of host %s\n", *c.host.ID)
 	}
@@ -1217,9 +1165,6 @@ func (v *validator) generatePacketLossAdvisoryMessageForHost(c *validationContex
 }
 
 func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationContext) (ValidationStatus, string) {
-	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.hasSufficientNetworkLatencyRequirementForRole")
-	defer span.End()
-
 	if c.inventory == nil {
 		return ValidationPending, "The inventory is not available yet."
 	}
@@ -1233,7 +1178,7 @@ func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationC
 	if len(c.host.Connectivity) == 0 {
 		return ValidationPending, "Missing network latency information."
 	}
-	status, hostMetrics, err := v.thresholdExceededTest(ctx, thresholdTestL3AverageRTTMs, c.host, c.clusterHostRequirements, c.cluster.Hosts, c.inventoryCache)
+	status, hostMetrics, err := v.thresholdExceededTest(c.ctx, thresholdTestL3AverageRTTMs, c.host, c.clusterHostRequirements, c.cluster.Hosts, c.inventoryCache)
 	if status == ValidationFailure {
 		if err != nil {
 			return ValidationFailure, fmt.Sprintf("Error while attempting to validate network latency: %s", err)
@@ -1812,7 +1757,7 @@ func (v *validator) isVSphereDiskUUIDEnabled(c *validationContext) (ValidationSt
 		return ValidationSuccessSuppressOutput, "no cluster"
 	}
 
-	supported, err := v.providerRegistry.IsHostSupported(&models.Platform{Type: models.PlatformTypeVsphere.Pointer()}, c.host)
+	supported, err := v.providerRegistry.IsHostSupported(c.ctx, &models.Platform{Type: models.PlatformTypeVsphere.Pointer()}, c.host)
 	if err != nil {
 		return ValidationError, "Validation error"
 	}
@@ -1869,8 +1814,6 @@ func (v *validator) noSkipInstallationDisk(c *validationContext) (ValidationStat
 }
 
 func (v *validator) noSkipMissingDisk(c *validationContext) (ValidationStatus, string) {
-	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.noSkipMissingDisk")
-	defer span.End()
 	const (
 		pendingMessage string = "Host inventory not available yet"
 		successMessage string = "All disks that have skipped formatting are present in the host inventory"
@@ -1888,7 +1831,7 @@ func (v *validator) noSkipMissingDisk(c *validationContext) (ValidationStatus, s
 	// manually and consciously remove it from the `skip_formatting_disks` list,
 	// so we don't accidentally erase it under its new ID.
 	for _, skipFormattingDiskID := range common.GetSkippedFormattingDiskIdentifiers(c.host) {
-		inventory, err := c.inventoryCache.GetOrUnmarshal(ctx, c.host)
+		inventory, err := c.inventoryCache.GetOrUnmarshal(c.ctx, c.host)
 		if err != nil || inventory == nil {
 			return ValidationError, errorMessage
 		}
@@ -1991,7 +1934,7 @@ func (v *validator) noIscsiNicBelongsToMachineCidr(c *validationContext) (Valida
 		return ValidationSuccessSuppressOutput, ""
 	}
 
-	installationDisk, err := hostutil.GetHostInstallationDisk(c.host)
+	installationDisk, err := hostutil.GetHostInstallationDisk(c.ctx, c.host)
 	if err != nil || installationDisk == nil {
 		return ValidationSuccessSuppressOutput, ""
 	}
@@ -2012,8 +1955,6 @@ func (v *validator) noIscsiNicBelongsToMachineCidr(c *validationContext) (Valida
 
 // standaloneiSCSI - Related to the noIscsiNicBelongsToMachineCidr validation. This is executed when the installation disk is an iSCSI disk.
 func (v *validator) standaloneiSCSI(c *validationContext, installationDisk *models.Disk) (ValidationStatus, string) {
-	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.standaloneiSCSI")
-	defer span.End()
 	if installationDisk.Iscsi == nil {
 		// If this is nil, the disk shouldn't have passed the eligilibily test in the first place
 		v.log.Warn("iSCSI disk is missing host IP address")
@@ -2026,7 +1967,7 @@ func (v *validator) standaloneiSCSI(c *validationContext, installationDisk *mode
 		return ValidationError, "Cannot find network interface associated to iSCSI host IP address"
 	}
 
-	found := network.IsInterfaceInPrimaryMachineNetCidr(ctx, v.log, c.cluster, nic)
+	found := network.IsInterfaceInPrimaryMachineNetCidr(c.ctx, v.log, c.cluster, nic)
 	if found {
 		return ValidationFailure, "Network interface connected to iSCSI disk cannot belong to machine network CIDRs"
 	}

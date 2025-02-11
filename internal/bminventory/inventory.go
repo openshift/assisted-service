@@ -149,7 +149,7 @@ type InstallerInternals interface {
 	GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error)
 	UpdateClusterNonInteractive(ctx context.Context, params installer.V2UpdateClusterParams, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (*common.Cluster, error)
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
-	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
+	GetHostByKubeKey(ctx context.Context, key types.NamespacedName) (*common.Host, error)
 	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, cluster *common.Cluster) error
 	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams, interactivity Interactivity) error
@@ -1032,7 +1032,7 @@ func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context
 		caCert = cluster.IgnitionEndpoint.CaCertificate
 	}
 
-	fullIgnition, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, caCert, ignitionEndpointToken, ignitionEndpointHTTPHeaders, host)
+	fullIgnition, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ctx, ignitionEndpointUrl, caCert, ignitionEndpointToken, ignitionEndpointHTTPHeaders, host)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create ignition string for cluster %s, host %s", cluster.ID, host.ID)
 	}
@@ -1092,7 +1092,7 @@ func (b *bareMetalInventory) deleteOrUnbindHosts(ctx context.Context, cluster *c
 				return err
 			}
 			eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, cluster.ID,
-				hostutil.GetHostnameForMsg(h))
+				hostutil.GetHostnameForMsg(ctx, h))
 		} else if h.ClusterID != nil {
 			if err = b.hostApi.UnbindHost(ctx, h, b.db, false); err != nil {
 				log.WithError(err).Errorf("Failed to unbind host <%s>", h.ID.String())
@@ -1240,7 +1240,7 @@ func (b *bareMetalInventory) refreshAllHostsOnInstall(ctx context.Context, clust
 	if err != nil {
 		return err
 	}
-	err = b.detectAndStoreCollidingIPsForCluster(cluster.ID, b.db)
+	err = b.detectAndStoreCollidingIPsForCluster(ctx, cluster.ID, b.db)
 	if err != nil {
 		b.log.WithError(err).Errorf("Failed to detect and store colliding IPs for cluster %s", cluster.ID.String())
 		return err
@@ -1248,7 +1248,7 @@ func (b *bareMetalInventory) refreshAllHostsOnInstall(ctx context.Context, clust
 	for _, chost := range cluster.Hosts {
 		if swag.StringValue(chost.Status) != models.HostStatusKnown && swag.StringValue(chost.Kind) == models.HostKindHost {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install",
-				hostutil.GetHostnameForMsg(chost), swag.StringValue(chost.Status)))
+				hostutil.GetHostnameForMsg(ctx, chost), swag.StringValue(chost.Status)))
 		}
 
 		err := b.hostApi.RefreshStatus(ctx, chost, b.db)
@@ -1488,7 +1488,7 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 		return err
 	}
 
-	eventgen.SendHostInstallationStartedEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
+	eventgen.SendHostInstallationStartedEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID, hostutil.GetHostnameForMsg(ctx, &h.Host))
 	return nil
 }
 
@@ -1807,7 +1807,7 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	err = b.detectAndStoreCollidingIPsForCluster(cluster.ID, tx)
+	err = b.detectAndStoreCollidingIPsForCluster(ctx, cluster.ID, tx)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to detect and store colliding IPs for cluster %s", cluster.ID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
@@ -2177,7 +2177,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
-		b.customizeHost(&cluster.Cluster, host)
+		b.customizeHost(ctx, &cluster.Cluster, host)
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
 	}
@@ -3333,7 +3333,7 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
-		b.customizeHost(&cluster.Cluster, host)
+		b.customizeHost(ctx, &cluster.Cluster, host)
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
 	}
@@ -3440,7 +3440,7 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 		return err
 	}
 	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, common.StrFmtUUIDPtr(infraEnv.ClusterID),
-		hostutil.GetHostnameForMsg(&h.Host))
+		hostutil.GetHostnameForMsg(ctx, &h.Host))
 
 	if h.ClusterID != nil {
 		if interactivity == Interactive {
@@ -3672,7 +3672,7 @@ func (b *bareMetalInventory) processUpgradeAgentResponse(ctx context.Context, h 
 			ctx,
 			b.eventsHandler,
 			*h.ID,
-			hostutil.GetHostnameForMsg(h),
+			hostutil.GetHostnameForMsg(ctx, h),
 			h.InfraEnvID,
 			h.ClusterID,
 			response.AgentImage,
@@ -3682,7 +3682,7 @@ func (b *bareMetalInventory) processUpgradeAgentResponse(ctx context.Context, h 
 			ctx,
 			b.eventsHandler,
 			*h.ID,
-			hostutil.GetHostnameForMsg(h),
+			hostutil.GetHostnameForMsg(ctx, h),
 			h.InfraEnvID,
 			h.ClusterID,
 			response.AgentImage,
@@ -3832,8 +3832,8 @@ func (b *bareMetalInventory) setMajorityGroupForCluster(ctx context.Context, clu
 	return b.clusterApi.SetConnectivityMajorityGroupsForCluster(ctx, *clusterID, db)
 }
 
-func (b *bareMetalInventory) detectAndStoreCollidingIPsForCluster(clusterID *strfmt.UUID, db *gorm.DB) error {
-	return b.clusterApi.DetectAndStoreCollidingIPsForCluster(*clusterID, db)
+func (b *bareMetalInventory) detectAndStoreCollidingIPsForCluster(ctx context.Context, clusterID *strfmt.UUID, db *gorm.DB) error {
+	return b.clusterApi.DetectAndStoreCollidingIPsForCluster(ctx, *clusterID, db)
 }
 
 func (b *bareMetalInventory) refreshClusterStatus(
@@ -3980,7 +3980,7 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 		if hostObject.Bootstrap {
 			role = string(models.HostRoleBootstrap)
 		}
-		name := sanitize.Name(hostutil.GetHostnameForMsg(&hostObject.Host))
+		name := sanitize.Name(hostutil.GetHostnameForMsg(ctx, &hostObject.Host))
 		downloadFileName = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, name)
 		fileName, err = b.preparHostLogs(ctx, c, &hostObject.Host)
 		if err != nil {
@@ -4216,7 +4216,7 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 			if err := b.hostApi.CancelInstallation(ctx, h, "Installation was cancelled by user", tx); err != nil {
 				return err
 			}
-			b.customizeHost(&cluster.Cluster, h)
+			b.customizeHost(ctx, &cluster.Cluster, h)
 		}
 		return nil
 	})
@@ -4237,7 +4237,7 @@ func (b *bareMetalInventory) V2ResetHost(ctx context.Context, params installer.V
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get host %s", params.HostID.String())
-		eventgen.SendHostResetFetchFailedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, hostutil.GetHostnameForMsg(&host.Host))
+		eventgen.SendHostResetFetchFailedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, hostutil.GetHostnameForMsg(ctx, &host.Host))
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
@@ -4262,7 +4262,7 @@ func (b *bareMetalInventory) V2ResetHost(ctx context.Context, params installer.V
 		if errResponse := b.hostApi.ResetHost(ctx, &host.Host, "host was reset by user", tx); errResponse != nil {
 			return errResponse
 		}
-		b.customizeHost(&cluster.Cluster, &host.Host)
+		b.customizeHost(ctx, &cluster.Cluster, &host.Host)
 		return nil
 	})
 
@@ -4409,7 +4409,7 @@ func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, inf
 		return err
 	}
 	eventgen.SendHostApprovedUpdatedEvent(ctx, b.eventsHandler, *dbHost.ID, strfmt.UUID(infraEnvId),
-		hostutil.GetHostnameForMsg(&dbHost.Host), approved)
+		hostutil.GetHostnameForMsg(ctx, &dbHost.Host), approved)
 	return nil
 }
 
@@ -4458,13 +4458,13 @@ func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, f
 }
 
 // customizeHost sets the host progress and hostname; cluster may be nil
-func (b *bareMetalInventory) customizeHost(cluster *models.Cluster, host *models.Host) {
+func (b *bareMetalInventory) customizeHost(ctx context.Context, cluster *models.Cluster, host *models.Host) {
 	var isSno = false
 	if cluster != nil {
 		isSno = swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 	}
 	host.ProgressStages = b.hostApi.GetStagesByRole(host, isSno)
-	host.RequestedHostname = hostutil.GetHostnameForMsg(host)
+	host.RequestedHostname = hostutil.GetHostnameForMsg(ctx, host)
 }
 
 func proxySettingsChanged(params *models.V2ClusterUpdateParams, cluster *common.Cluster) bool {
@@ -4552,7 +4552,7 @@ func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*com
 	return b.clusterApi.GetClusterByKubeKey(key)
 }
 
-func (b *bareMetalInventory) GetHostByKubeKey(key types.NamespacedName) (*common.Host, error) {
+func (b *bareMetalInventory) GetHostByKubeKey(ctx context.Context, key types.NamespacedName) (*common.Host, error) {
 	h, err := b.hostApi.GetHostByKubeKey(key)
 	if err != nil {
 		return nil, err
@@ -4571,7 +4571,7 @@ func (b *bareMetalInventory) GetHostByKubeKey(key types.NamespacedName) (*common
 		}
 	}
 
-	b.customizeHost(c, &h.Host)
+	b.customizeHost(ctx, c, &h.Host)
 	return h, nil
 }
 
@@ -5597,13 +5597,13 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		if err = b.hostApi.RegisterHost(ctx, host, tx); err != nil {
 			log.WithError(err).Errorf("failed to register host <%s> infra-env <%s>",
 				params.NewHostParams.HostID.String(), params.InfraEnvID.String())
-			uerr := errors.Wrap(err, fmt.Sprintf("Failed to register host %s", hostutil.GetHostnameForMsg(host)))
+			uerr := errors.Wrap(err, fmt.Sprintf("Failed to register host %s", hostutil.GetHostnameForMsg(ctx, host)))
 
 			eventgen.SendHostRegistrationFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, host.ClusterID, uerr.Error())
 			return returnRegisterHostTransitionError(http.StatusBadRequest, err)
 		}
 
-		b.customizeHost(c, host)
+		b.customizeHost(ctx, c, host)
 
 		nextStepRunnerCommand, err := b.generateV2NextStepRunnerCommand(ctx, &params)
 		if err != nil {
@@ -5782,7 +5782,7 @@ func (b *bareMetalInventory) V2GetHost(ctx context.Context, params installer.V2G
 		c = &cluster.Cluster
 	}
 
-	b.customizeHost(c, &host.Host)
+	b.customizeHost(ctx, c, &host.Host)
 
 	// Clear this field as it is not needed to be sent via API
 	host.FreeAddresses = ""
@@ -5826,7 +5826,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgressInternal(ctx context.Con
 		}
 
 		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(&host.Host), event)
+		eventgen.SendHostInstallProgressUpdatedEvent(ctx, b.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(ctx, &host.Host), event)
 		if stageChanged {
 			if err := b.clusterApi.UpdateInstallProgress(ctx, *host.ClusterID); err != nil {
 				log.WithError(err).Errorf("failed to update cluster %s progress", host.ClusterID)
@@ -5844,7 +5844,7 @@ func (b *bareMetalInventory) BindHost(ctx context.Context, params installer.Bind
 		eventgen.SendHostBindFailedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, params.BindHostParams.ClusterID, err.Error())
 		return common.GenerateErrorResponder(err)
 	}
-	eventgen.SendHostBindSucceededEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, params.BindHostParams.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
+	eventgen.SendHostBindSucceededEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, params.BindHostParams.ClusterID, hostutil.GetHostnameForMsg(ctx, &h.Host))
 	return installer.NewBindHostOK().WithPayload(&h.Host)
 }
 
@@ -5955,7 +5955,7 @@ func (b *bareMetalInventory) UnbindHost(ctx context.Context, params installer.Un
 		eventgen.SendHostUnbindFailedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, err.Error())
 		return common.GenerateErrorResponder(err)
 	}
-	eventgen.SendHostUnbindSucceededEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, hostutil.GetHostnameForMsg(&h.Host))
+	eventgen.SendHostUnbindSucceededEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, hostutil.GetHostnameForMsg(ctx, &h.Host))
 	return installer.NewUnbindHostOK().WithPayload(&h.Host)
 }
 
@@ -5974,7 +5974,7 @@ func (b *bareMetalInventory) V2ListHosts(ctx context.Context, params installer.V
 	}
 
 	for _, h := range hosts {
-		b.customizeHost(nil, &h.Host)
+		b.customizeHost(ctx, nil, &h.Host)
 		// Clear this field as it is not needed to be sent via API
 		h.FreeAddresses = ""
 	}
@@ -6027,7 +6027,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallerArgsInternal(ctx context.Conte
 	}
 
 	eventgen.SendHostInstallerArgsAppliedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, h.ClusterID,
-		hostutil.GetHostnameForMsg(&h.Host))
+		hostutil.GetHostnameForMsg(ctx, &h.Host))
 	log.Infof("Custom installer arguments were applied to host %s in infra env %s", params.HostID, params.InfraEnvID)
 
 	h, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
@@ -6098,7 +6098,7 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 	}
 
 	eventgen.SendHostDiscoveryIgnitionConfigAppliedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID,
-		hostutil.GetHostnameForMsg(&h.Host))
+		hostutil.GetHostnameForMsg(ctx, &h.Host))
 
 	return &h.Host, nil
 }
@@ -6349,7 +6349,7 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
-	b.customizeHost(c, &host.Host)
+	b.customizeHost(ctx, c, &host.Host)
 
 	return host, nil
 }

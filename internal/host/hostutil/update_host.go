@@ -60,7 +60,7 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 			statusInfo = fmt.Sprintf("(%s)", statusInfo)
 		}
 		eventgen.SendHostStatusUpdatedEvent(ctx, eventsHandler, hostId, infraEnvId, host.ClusterID, GetEventSeverityFromHostStatus(newStatus),
-			GetHostnameForMsg(&host.Host), srcStatus, newStatus, statusInfo)
+			GetHostnameForMsg(ctx, &host.Host), srcStatus, newStatus, statusInfo)
 		log.Infof("host %s from infra env %s has been updated with the following updates %+v", hostId, infraEnvId, extra)
 	}
 
@@ -79,7 +79,7 @@ func UpdateHostStageTimeout(ctx context.Context, log logrus.FieldLogger, db *gor
 			hostId, infraEnvId)
 	}
 
-	eventgen.SendHostStageTimedOutEvent(ctx, eventsHandler, hostId, infraEnvId, host.ClusterID, GetHostnameForMsg(&host.Host), string(host.Progress.CurrentStage), maxDurationMinutes)
+	eventgen.SendHostStageTimedOutEvent(ctx, eventsHandler, hostId, infraEnvId, host.ClusterID, GetHostnameForMsg(ctx, &host.Host), string(host.Progress.CurrentStage), maxDurationMinutes)
 	log.Infof("host %s from infra env %s has been updated with the following updates %+v", hostId, infraEnvId, extra)
 
 	return host, nil

@@ -94,7 +94,7 @@ type API interface {
 	// auto assign host role
 	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) (bool, error)
 	RefreshRole(ctx context.Context, h *models.Host, db *gorm.DB) error
-	IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger, validateAgainstOperators bool) (bool, error)
+	IsValidMasterCandidate(ctx context.Context, h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger, validateAgainstOperators bool) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
 	PermanentHostsDeletion(olderThan strfmt.DateTime) error
@@ -114,7 +114,7 @@ type API interface {
 	UpdateNodeSkipDiskFormatting(ctx context.Context, h *models.Host, skipDiskFormatting string, db *gorm.DB) error
 	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
 	UpdateKubeKeyNS(ctx context.Context, hostID, namespace string) error
-	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
+	GetHostValidDisks(ctx context.Context, role *models.Host) ([]*models.Disk, error)
 	UpdateImageStatus(ctx context.Context, h *models.Host, imageStatus *models.ContainerImageAvailability, db *gorm.DB) error
 	SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error
 	ResetHostValidation(ctx context.Context, hostID, infraEnvID strfmt.UUID, validationID string, db *gorm.DB) error
@@ -441,12 +441,12 @@ func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *g
 			funk.ContainsString(hostStatusesBeforeInstallation[:], *h.Status) {
 			host := *h //must have a defensive copy becuase selectRole changes the host object
 			if suggestedRole, err = m.selectRole(ctx, &host, db); err == nil {
-				m.log.Debugf("calculated role for host %s is %s (original suggested = %s)", hostutil.GetHostnameForMsg(h), suggestedRole, h.SuggestedRole)
+				m.log.Debugf("calculated role for host %s is %s (original suggested = %s)", hostutil.GetHostnameForMsg(ctx, h), suggestedRole, h.SuggestedRole)
 				if h.SuggestedRole != suggestedRole {
 					if err = updateRole(m.log, h, h.Role, suggestedRole, db, string(h.Role)); err == nil {
 						h.SuggestedRole = suggestedRole
 						m.log.Infof("suggested role for host %s is %s", *h.ID, suggestedRole)
-						eventgen.SendHostRoleUpdatedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(h), string(suggestedRole))
+						eventgen.SendHostRoleUpdatedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(ctx, h), string(suggestedRole))
 					}
 				}
 			}
@@ -479,7 +479,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 	if err != nil {
 		return err
 	}
-	log.Debugf("Host %s: validation details: %+v", hostutil.GetHostnameForMsg(h), currentValidationRes)
+	log.Debugf("Host %s: validation details: %+v", hostutil.GetHostnameForMsg(ctx, h), currentValidationRes)
 	if m.didValidationChanged(ctx, newValidationRes, currentValidationRes) {
 		// Validation status changes are detected when new validations are different from the
 		// current validations in the DB.
@@ -702,7 +702,7 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
-		eventgen.SendHostBootstrapSetEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID, hostutil.GetHostnameForMsg(h))
+		eventgen.SendHostBootstrapSetEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID, hostutil.GetHostnameForMsg(ctx, h))
 	}
 	return nil
 }
@@ -920,7 +920,7 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 		}
 
 		eventgen.SendImageStatusUpdatedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
-			hostutil.GetHostnameForMsg(h), newImageStatus.Name, string(newImageStatus.Result), eventInfo)
+			hostutil.GetHostnameForMsg(ctx, h), newImageStatus.Name, string(newImageStatus.Result), eventInfo)
 	}
 	marshalledStatuses, err := common.MarshalImageStatuses(hostImageStatuses)
 	if err != nil {
@@ -959,7 +959,7 @@ func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *mo
 				hostStatus, hostStatusesBeforeInstallation[:]))
 	}
 
-	validDisks, err := m.hwValidator.GetHostValidDisks(h)
+	validDisks, err := m.hwValidator.GetHostValidDisks(ctx, h)
 	if err != nil {
 		return err
 	}
@@ -1003,10 +1003,10 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 		if shouldAddEvent {
 			if isFailed {
 				eventgen.SendHostCancelInstallationFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
-					hostutil.GetHostnameForMsg(h), err.Error())
+					hostutil.GetHostnameForMsg(ctx, h), err.Error())
 			} else {
 				eventgen.SendHostInstallationCancelledEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
-					hostutil.GetHostnameForMsg(h))
+					hostutil.GetHostnameForMsg(ctx, h))
 			}
 		}
 	}()
@@ -1049,10 +1049,10 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 		if shouldAddEvent {
 			if isFailed {
 				eventgen.SendHostInstallationResetFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
-					hostutil.GetHostnameForMsg(h), err.Error())
+					hostutil.GetHostnameForMsg(ctx, h), err.Error())
 			} else {
 				eventgen.SendHostInstallationResetEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
-					hostutil.GetHostnameForMsg(h))
+					hostutil.GetHostnameForMsg(ctx, h))
 			}
 		}
 	}()
@@ -1075,10 +1075,10 @@ func (m *Manager) ResetPendingUserAction(ctx context.Context, h *models.Host, db
 		if shouldAddEvent {
 			if isFailed {
 				eventgen.SendHostSetStatusFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
-					hostutil.GetHostnameForMsg(h), err.Error())
+					hostutil.GetHostnameForMsg(ctx, h), err.Error())
 			} else {
 				eventgen.SendUserRequiredCompleteInstallationResetEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
-					hostutil.GetHostnameForMsg(h))
+					hostutil.GetHostnameForMsg(ctx, h))
 			}
 		}
 	}()
@@ -1119,7 +1119,7 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 		return
 	}
 
-	boot, err := hostutil.GetHostInstallationDisk(h)
+	boot, err := hostutil.GetHostInstallationDisk(ctx, h)
 
 	if err != nil {
 		log.WithError(err).Errorf("host %s in cluster %s: error fetching installation disk", h.ID.String(), h.ClusterID.String())
@@ -1158,20 +1158,20 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 		for _, v := range vRes {
 			if previousStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && previousStatus != ValidationFailure {
-					log.Errorf("Host %s: validation '%s' changed from %s to %s", hostutil.GetHostnameForMsg(h), v.ID, previousStatus, v.Status)
+					log.Errorf("Host %s: validation '%s' changed from %s to %s", hostutil.GetHostnameForMsg(ctx, h), v.ID, previousStatus, v.Status)
 					failureMessage := "failed"
 					if previousStatus == ValidationSuccess {
 						m.metricApi.HostValidationChanged(models.HostValidationID(v.ID))
 						failureMessage = "that used to succeed is now failing"
 					}
 					eventgen.SendHostValidationFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
-						hostutil.GetHostnameForMsg(h), v.ID.String(), failureMessage)
+						hostutil.GetHostnameForMsg(ctx, h), v.ID.String(), failureMessage)
 				} else if v.Status == ValidationSuccess && previousStatus == ValidationFailure {
-					log.Infof("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
+					log.Infof("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(ctx, h), v.ID)
 					eventgen.SendHostValidationFixedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
-						hostutil.GetHostnameForMsg(h), v.ID.String())
+						hostutil.GetHostnameForMsg(ctx, h), v.ID.String())
 				} else if v.Status != previousStatus {
-					msg := fmt.Sprintf("Host %s: validation '%s' status changed from %s to %s", hostutil.GetHostnameForMsg(h), v.ID, previousStatus, v.Status)
+					msg := fmt.Sprintf("Host %s: validation '%s' status changed from %s to %s", hostutil.GetHostnameForMsg(ctx, h), v.ID, previousStatus, v.Status)
 					log.Infof(msg)
 					m.eventsHandler.NotifyInternalEvent(ctx, h.ClusterID, h.ID, &h.InfraEnvID, msg)
 				}
@@ -1272,7 +1272,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 	log.Debugf("Current expected master count: %d", expectedMasterCount)
 
 	if masterCountNotIncludingHost < expectedMasterCount {
-		validMaster, err := m.IsValidMasterCandidate(h, cluster, db, log, true)
+		validMaster, err := m.IsValidMasterCandidate(ctx, h, cluster, db, log, true)
 		if err != nil {
 			return autoSelectedRole, errors.Wrapf(err, "error occurred while checking if host: %s is a valid master candidate", h.ID.String())
 		}
@@ -1303,7 +1303,7 @@ func assignMasterRoleToHost(h *models.Host, cluster *common.Cluster) error {
 	return fmt.Errorf("host: %s was not found in cluster: %s", h.ID.String(), cluster.ID.String())
 }
 
-func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger, validateAgainstOperators bool) (bool, error) {
+func (m *Manager) IsValidMasterCandidate(ctx context.Context, h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger, validateAgainstOperators bool) (bool, error) {
 	if h.Role == models.HostRoleWorker {
 		return false, nil
 	}
@@ -1313,8 +1313,6 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *
 	if err := assignMasterRoleToHost(h, &cluster); err != nil {
 		return false, errors.Wrapf(err, "failed to assign master role to host: %s in cluster: %s", h.ID.String(), cluster.ID.String())
 	}
-
-	ctx := context.TODO()
 
 	vc, err := newValidationContext(ctx, h, &cluster, nil, db, make(InventoryCache), m.hwValidator, m.kubeApiEnabled, m.objectHandler, m.softTimeoutsEnabled)
 	if err != nil {
@@ -1345,8 +1343,8 @@ func (m *Manager) areMasterConditionsSatisfied(conditions map[string]bool, valid
 	return satisfied
 }
 
-func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
-	return m.hwValidator.GetHostValidDisks(host)
+func (m *Manager) GetHostValidDisks(ctx context.Context, host *models.Host) ([]*models.Disk, error) {
+	return m.hwValidator.GetHostValidDisks(ctx, host)
 }
 
 func (m *Manager) SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error {

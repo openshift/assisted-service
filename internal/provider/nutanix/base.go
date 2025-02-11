@@ -26,7 +26,7 @@ func (p *nutanixProvider) Name() models.PlatformType {
 	return models.PlatformTypeNutanix
 }
 
-func (p *nutanixProvider) IsHostSupported(host *models.Host) (bool, error) {
+func (p *nutanixProvider) IsHostSupported(ctx context.Context, host *models.Host) (bool, error) {
 	// during the discovery there is a short time that host didn't return its inventory to the service
 	if host.Inventory == "" {
 		return false, nil
@@ -40,7 +40,7 @@ func (p *nutanixProvider) IsHostSupported(host *models.Host) (bool, error) {
 
 func (p *nutanixProvider) AreHostsSupported(hosts []*models.Host) (bool, error) {
 	for _, h := range hosts {
-		supported, err := p.IsHostSupported(h)
+		supported, err := p.IsHostSupported(context.Background(), h)
 		if err != nil {
 			return false, fmt.Errorf("error while checking if host is supported, error is: %w", err)
 		}

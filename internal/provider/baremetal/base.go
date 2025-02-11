@@ -1,6 +1,8 @@
 package baremetal
 
 import (
+	"context"
+
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -22,7 +24,7 @@ func (p *baremetalProvider) Name() models.PlatformType {
 	return models.PlatformTypeBaremetal
 }
 
-func (p *baremetalProvider) IsHostSupported(_ *models.Host) (bool, error) {
+func (p *baremetalProvider) IsHostSupported(ctx context.Context, _ *models.Host) (bool, error) {
 	return true, nil
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"go.opentelemetry.io/otel"
 )
 
 type ValidationResult struct {
@@ -70,7 +71,10 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 		return stateMachineInput, validationsOutput, nil
 	}
 	for _, v := range r.validations {
+		ctxCondition, span := otel.Tracer("assisted-service").Start(ctx, fmt.Sprintf("cluster.validations.%s", v.id.String()))
+		c.ctx = ctxCondition
 		st, message := v.condition(c)
+		span.End()
 		stateMachineInput[v.id.String()] = st == ValidationSuccess
 		var category string
 		category, err = v.id.Category()
@@ -108,7 +112,10 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	}
 
 	for _, condition := range r.conditions {
+		ctxCondition, span := otel.Tracer("assisted-service").Start(ctx, fmt.Sprintf("cluster.conditionss.%s", condition.id.String()))
+		c.ctx = ctxCondition
 		stateMachineInput[condition.id.String()] = condition.fn(c)
+		span.End()
 	}
 	for _, validationResults := range validationsOutput {
 		sortByValidationResultID(validationResults)

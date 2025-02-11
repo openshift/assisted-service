@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
 )
 
@@ -98,7 +99,10 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		return errors.New("PostRegisterHost invalid argument")
 	}
 
-	log := logutil.FromContext(params.ctx, th.log)
+	ctx, span := otel.Tracer("assisted-service").Start(params.ctx, "transitionHandler.PostRegisterHost")
+	defer span.End()
+
+	log := logutil.FromContext(ctx, th.log)
 
 	hostParam := sHost.host
 
@@ -113,7 +117,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		extra = append(extra, resetLogsField...)
 		extra = append(extra, resetProgressFields...)
 		var dbHost *common.Host
-		if dbHost, err = hostutil.UpdateHostStatus(params.ctx, log, params.db, th.eventsHandler, th.stream, hostParam.InfraEnvID, *hostParam.ID, sHost.srcState,
+		if dbHost, err = hostutil.UpdateHostStatus(ctx, log, params.db, th.eventsHandler, th.stream, hostParam.InfraEnvID, *hostParam.ID, sHost.srcState,
 			swag.StringValue(hostParam.Status), statusInfoDiscovering, extra...); err != nil {
 			return err
 		} else {
@@ -133,12 +137,12 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		return err
 	}
 	eventgen.SendHostRegistrationSucceededEvent(
-		params.ctx,
+		ctx,
 		th.eventsHandler,
 		*hostToCreate.ID,
 		hostToCreate.InfraEnvID,
 		hostToCreate.ClusterID,
-		hostutil.GetHostnameForMsg(hostParam))
+		hostutil.GetHostnameForMsg(ctx, hostParam))
 	return nil
 }
 
@@ -151,8 +155,10 @@ func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.State
 	if !ok {
 		return errors.New("PostRegisterDuringInstallation invalid argument")
 	}
+	ctx, span := otel.Tracer("assisted-service").Start(params.ctx, "transitionHandler.PostRegisterDuringInstallation")
+	defer span.End()
 
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
+	return th.updateTransitionHost(ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		"The host unexpectedly restarted during the installation")
 }
 
@@ -216,7 +222,7 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 	if hostInstallationPath == "" || host.Inventory == "" {
 		return errors.New(fmt.Sprintf("PostRegisterDuringReboot host %s doesn't have installation_disk_path or inventory", host.ID))
 	}
-	installationDisk, err := hostutil.GetHostInstallationDisk(host)
+	installationDisk, err := hostutil.GetHostInstallationDisk(context.Background(), host)
 	if err != nil {
 		return errors.New(fmt.Sprintf("PostRegisterDuringReboot Could not parse inventory of host %s", host.ID.String()))
 	}
@@ -718,7 +724,7 @@ func (th *transitionHandler) replaceMacros(template string, sHost *stateHost, pa
 	template = strings.Replace(template, "$MAX_TIME", maxTime.String(), 1)
 	if strings.Contains(template, "$INSTALLATION_DISK") {
 		var installationDisk *models.Disk
-		installationDisk, err := hostutil.GetHostInstallationDisk(sHost.host)
+		installationDisk, err := hostutil.GetHostInstallationDisk(context.Background(), sHost.host)
 		if err != nil {
 			// in case we fail to parse the inventory replace $INSTALLATION_DISK with nothing
 			template = strings.Replace(template, "$INSTALLATION_DISK", "", 1)

@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"time"
 
 	"gorm.io/gorm"
@@ -19,7 +20,7 @@ const (
 type MonitorInitialQueryBuilder func(db *gorm.DB) *gorm.DB
 
 type MonitorQuery interface {
-	Next() ([]*Cluster, error)
+	Next(ctx context.Context) ([]*Cluster, error)
 }
 
 type fullQuery struct {
@@ -33,7 +34,7 @@ type fullQuery struct {
 /*
 Full scan (backward compatible) query.  Instead of using offset, the query uses the lastId to indicate where to start the next batch
 */
-func (f *fullQuery) Next() ([]*Cluster, error) {
+func (f *fullQuery) Next(ctx context.Context) ([]*Cluster, error) {
 	var clusters []*Cluster
 	if f.eof {
 		return clusters, nil
@@ -86,7 +87,7 @@ func min(i, j int) int {
 	return j
 }
 
-func (t *timedQuery) Next() ([]*Cluster, error) {
+func (t *timedQuery) Next(ctx context.Context) ([]*Cluster, error) {
 	var (
 		clusters []*Cluster
 		err      error
@@ -148,7 +149,7 @@ func timeForDuration(d time.Duration) time.Time {
 	return time.Now().Add(-d)
 }
 
-func (m *MonitorClusterQueryGenerator) NewClusterQuery() MonitorQuery {
+func (m *MonitorClusterQueryGenerator) NewClusterQuery(ctx context.Context) MonitorQuery {
 	newInvokeTime := time.Now()
 	defer func() {
 		m.lastInvokeTime = newInvokeTime
@@ -180,7 +181,7 @@ func (m *MonitorClusterQueryGenerator) NewClusterQuery() MonitorQuery {
 }
 
 type MonitorInfraEnvQuery interface {
-	Next() ([]*InfraEnv, error)
+	Next(ctx context.Context) ([]*InfraEnv, error)
 }
 
 type dbQuery interface {
@@ -238,7 +239,7 @@ type infraEnvQuery struct {
 /*
 Full scan (backward compatible) query.  Instead of using offset, the query uses the lastId to indicate where to start the next batch
 */
-func (f *infraEnvQuery) Next() ([]*InfraEnv, error) {
+func (f *infraEnvQuery) Next(ctx context.Context) ([]*InfraEnv, error) {
 	var (
 		infraEnvs []*InfraEnv
 		err       error
@@ -283,7 +284,7 @@ type MonitorInfraEnvQueryGenerator struct {
 	batchSize      int
 }
 
-func (m *MonitorInfraEnvQueryGenerator) NewInfraEnvQuery() MonitorInfraEnvQuery {
+func (m *MonitorInfraEnvQueryGenerator) NewInfraEnvQuery(ctx context.Context) MonitorInfraEnvQuery {
 	newInvokeTime := time.Now()
 	defer func() {
 		m.lastInvokeTime = newInvokeTime

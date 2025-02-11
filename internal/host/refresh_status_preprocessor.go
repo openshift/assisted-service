@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"go.opentelemetry.io/otel"
 )
 
 type stringer interface {
@@ -93,7 +94,10 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationConte
 			message = validationDisabledByConfiguration
 			conditions[v.id.String()] = true
 		} else {
+			ctxCondition, span := otel.Tracer("assisted-service").Start(ctx, fmt.Sprintf("host.validations.%s", v.id.String()))
+			c.ctx = ctxCondition
 			st, message = v.condition(c)
+			span.End()
 			conditions[v.id.String()] = funk.ContainsString([]string{ValidationSuccess.String(), ValidationSuccessSuppressOutput.String()}, st.String())
 			// Don't output this validation status to validations in case that the output needs to be suppressed
 			if st == ValidationSuccessSuppressOutput {
@@ -113,7 +117,10 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationConte
 	}
 
 	for _, cn := range r.conditions {
+		ctxCondition, span := otel.Tracer("assisted-service").Start(ctx, fmt.Sprintf("host.validations.%s", cn.id.String()))
+		c.ctx = ctxCondition
 		conditions[cn.id.String()] = cn.fn(c)
+		span.End()
 	}
 
 	if c.infraEnv == nil {

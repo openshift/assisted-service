@@ -98,7 +98,7 @@ func (mr *MockProviderRegistryMockRecorder) GetSupportedProvidersByHosts(arg0 in
 }
 
 // IsHostSupported mocks base method.
-func (m *MockProviderRegistry) IsHostSupported(arg0 *models.Platform, arg1 *models.Host) (bool, error) {
+func (m *MockProviderRegistry) IsHostSupported(ctx context.Context, arg0 *models.Platform, arg1 *models.Host) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsHostSupported", arg0, arg1)
 	ret0, _ := ret[0].(bool)
@@ -107,7 +107,7 @@ func (m *MockProviderRegistry) IsHostSupported(arg0 *models.Platform, arg1 *mode
 }
 
 // IsHostSupported indicates an expected call of IsHostSupported.
-func (mr *MockProviderRegistryMockRecorder) IsHostSupported(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockProviderRegistryMockRecorder) IsHostSupported(ctx context.Context, arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsHostSupported", reflect.TypeOf((*MockProviderRegistry)(nil).IsHostSupported), arg0, arg1)
 }

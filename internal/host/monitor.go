@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/thoas/go-funk"
+	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
 )
 
@@ -150,12 +151,12 @@ func (m *Manager) clusterHostMonitoring(ctx context.Context) int64 {
 		clusters  []*common.Cluster
 		err       error
 	)
-	ctx = requestid.ToContext(ctx, requestID)
+	rCtx := requestid.ToContext(ctx, requestID)
 
-	m.resetRoleAssignmentIfNotAllRolesAreSet(ctx)
-	query := m.monitorClusterQueryGenerator.NewClusterQuery()
+	m.resetRoleAssignmentIfNotAllRolesAreSet(rCtx)
+	query := m.monitorClusterQueryGenerator.NewClusterQuery(rCtx)
 	for {
-		if clusters, err = query.Next(); err != nil {
+		if clusters, err = query.Next(rCtx); err != nil {
 			m.log.WithError(err).Error("Getting clusters")
 			break
 		}
@@ -168,7 +169,7 @@ func (m *Manager) clusterHostMonitoring(ctx context.Context) int64 {
 
 		for _, c := range clusters {
 			inventoryCache := make(InventoryCache)
-			sortedHosts, canRefreshRoles := SortHosts(ctx, c.Hosts)
+			sortedHosts, canRefreshRoles := SortHosts(rCtx, c.Hosts)
 
 			log = log.WithField("cluster", c.ID.String())
 
@@ -182,7 +183,7 @@ func (m *Manager) clusterHostMonitoring(ctx context.Context) int64 {
 				monitored += 1
 
 				log.Debug("Started refreshing host status")
-				err = m.refreshStatusInternal(ctx, host, c, nil, inventoryCache, m.db)
+				err = m.refreshStatusInternal(rCtx, host, c, nil, inventoryCache, m.db)
 				if err != nil {
 					log.WithError(err).Error("failed to refresh host state")
 				}
@@ -194,7 +195,7 @@ func (m *Manager) clusterHostMonitoring(ctx context.Context) int64 {
 				//with the reset auto-assign mechanism.
 				if canRefreshRoles {
 					log.Debug()
-					err = m.refreshRoleInternal(ctx, host, m.db, false)
+					err = m.refreshRoleInternal(rCtx, host, m.db, false)
 					if err != nil {
 						log.WithError(err).Error("failed to refresh host role")
 					}
@@ -216,7 +217,7 @@ func (m *Manager) infraEnvHostMonitoring(ctx context.Context) int64 {
 		infraEnvs []*common.InfraEnv
 		err       error
 	)
-	ctx = requestid.ToContext(context.Background(), requestID)
+	rCtx := requestid.ToContext(context.Background(), requestID)
 	monitorStates := []string{
 		models.HostStatusBinding,
 		models.HostStatusDisconnectedUnbound,
@@ -227,9 +228,9 @@ func (m *Manager) infraEnvHostMonitoring(ctx context.Context) int64 {
 		models.HostStatusReclaimingRebooting,
 	}
 
-	query := m.monitorInfraEnvQueryGenerator.NewInfraEnvQuery()
+	query := m.monitorInfraEnvQueryGenerator.NewInfraEnvQuery(rCtx)
 	for {
-		if infraEnvs, err = query.Next(); err != nil {
+		if infraEnvs, err = query.Next(rCtx); err != nil {
 			m.log.WithError(err).Error("Getting infra-envs")
 			break
 		}
@@ -247,7 +248,7 @@ func (m *Manager) infraEnvHostMonitoring(ctx context.Context) int64 {
 				}
 				if funk.ContainsString(monitorStates, swag.StringValue(host.Status)) {
 					monitored += 1
-					err = m.refreshStatusInternal(ctx, &host.Host, nil, i, inventoryCache, m.db)
+					err = m.refreshStatusInternal(rCtx, &host.Host, nil, i, inventoryCache, m.db)
 					if err != nil {
 						log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
 					}
@@ -260,6 +261,9 @@ func (m *Manager) infraEnvHostMonitoring(ctx context.Context) int64 {
 
 func (m *Manager) HostMonitoring() {
 	ctx := context.Background()
+	ctx, span := otel.Tracer("assisted-service").Start(ctx, "Manager.HostMonitoring")
+	defer span.End()
+
 	var monitored int64
 	if !m.leaderElector.IsLeader() {
 		m.log.Debugf("Not a leader, exiting HostMonitoring")

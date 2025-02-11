@@ -7,6 +7,7 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
+	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -377,9 +378,9 @@ func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clus
 		}
 		installationStageStr := string(currentStage)
 
-		var hwInfo models.Inventory
 		hwVendor, hwProduct := UnknownHWValue, UnknownHWValue
-		if err := json.Unmarshal([]byte(h.Inventory), &hwInfo); err == nil {
+		hwInfo, err := common.UnmarshalInventory(ctx, h.Inventory)
+		if err == nil {
 			if hwInfo.SystemVendor != nil {
 				hwVendor = hwInfo.SystemVendor.Manufacturer
 				hwProduct = hwInfo.SystemVendor.ProductName

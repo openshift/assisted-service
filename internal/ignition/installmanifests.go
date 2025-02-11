@@ -302,7 +302,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		return err
 	}
 
-	err = g.createHostIgnitions()
+	err = g.createHostIgnitions(ctx)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -688,7 +688,7 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 
 	newFiles := []config_latest_types.File{}
 
-	masters, workers := sortHosts(g.cluster.Hosts)
+	masters, workers := sortHosts(ctx, g.cluster.Hosts)
 	for i, file := range config.Storage.Files {
 		switch {
 		case isBaremetalProvisioningConfig(&config.Storage.Files[i]):
@@ -709,8 +709,8 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 
 			// get corresponding host
 			var host *models.Host
-			masterHostnames := getHostnames(masters)
-			workerHostnames := getHostnames(workers)
+			masterHostnames := getHostnames(ctx, masters)
+			workerHostnames := getHostnames(ctx, workers)
 
 			// The BMH files in the ignition are sorted according to hostname (please see the implementation in installcfg/installcfg.go).
 			// The masters and workers are also sorted by hostname.  This enables us to correlate correctly the host and the BMH file
@@ -1085,13 +1085,13 @@ func (g *installerGenerator) modifyPointerIgnitionMCP(poolName string, ignitionS
 	return "", errors.Errorf("machine config pool %s was not found", poolName)
 }
 
-func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile string, workDir string) error {
+func (g *installerGenerator) writeSingleHostFile(ctx context.Context, host *models.Host, baseFile string, workDir string) error {
 	config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
 	if err != nil {
 		return err
 	}
 
-	hostname, err := hostutil.GetCurrentHostName(host)
+	hostname, err := hostutil.GetCurrentHostName(ctx, host)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get hostname for host %s", host.ID)
 	}
@@ -1143,12 +1143,12 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 	return nil
 }
 
-func (g *installerGenerator) writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error {
+func (g *installerGenerator) writeHostFiles(ctx context.Context, hosts []*models.Host, baseFile string, workDir string) error {
 	errGroup := new(errgroup.Group)
 	for i := range hosts {
 		host := hosts[i]
 		errGroup.Go(func() error {
-			return g.writeSingleHostFile(host, baseFile, workDir)
+			return g.writeSingleHostFile(ctx, host, baseFile, workDir)
 		})
 	}
 
@@ -1156,15 +1156,15 @@ func (g *installerGenerator) writeHostFiles(hosts []*models.Host, baseFile strin
 }
 
 // createHostIgnitions builds an ignition file for each host in the cluster based on the generated <role>.ign file
-func (g *installerGenerator) createHostIgnitions() error {
-	masters, workers := sortHosts(g.cluster.Hosts)
+func (g *installerGenerator) createHostIgnitions(ctx context.Context) error {
+	masters, workers := sortHosts(ctx, g.cluster.Hosts)
 
-	err := g.writeHostFiles(masters, masterIgn, g.workDir)
+	err := g.writeHostFiles(ctx, masters, masterIgn, g.workDir)
 	if err != nil {
 		return errors.Wrapf(err, "error writing master host ignition files")
 	}
 
-	err = g.writeHostFiles(workers, workerIgn, g.workDir)
+	err = g.writeHostFiles(ctx, workers, workerIgn, g.workDir)
 	if err != nil {
 		return errors.Wrapf(err, "error writing worker host ignition files")
 	}
@@ -1240,10 +1240,10 @@ func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3
 	return nil
 }
 
-func getHostnames(hosts []*models.Host) []string {
+func getHostnames(ctx context.Context, hosts []*models.Host) []string {
 	ret := make([]string, 0)
 	for _, h := range hosts {
-		ret = append(ret, hostutil.GetHostnameForMsg(h))
+		ret = append(ret, hostutil.GetHostnameForMsg(ctx, h))
 	}
 	return ret
 
@@ -1336,7 +1336,7 @@ func encodeIpv6Contents(config string) string {
 }
 
 // sortHosts sorts hosts into masters and workers, excluding disabled hosts
-func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
+func sortHosts(ctx context.Context, hosts []*models.Host) ([]*models.Host, []*models.Host) {
 	masters := []*models.Host{}
 	workers := []*models.Host{}
 	for i := range hosts {
@@ -1350,10 +1350,10 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 
 	// sort them so the result is repeatable
 	sort.SliceStable(masters, func(i, j int) bool {
-		return hostutil.GetHostnameForMsg(masters[i]) < hostutil.GetHostnameForMsg(masters[j])
+		return hostutil.GetHostnameForMsg(ctx, masters[i]) < hostutil.GetHostnameForMsg(ctx, masters[j])
 	})
 	sort.SliceStable(workers, func(i, j int) bool {
-		return hostutil.GetHostnameForMsg(workers[i]) < hostutil.GetHostnameForMsg(workers[j])
+		return hostutil.GetHostnameForMsg(ctx, workers[i]) < hostutil.GetHostnameForMsg(ctx, workers[j])
 	})
 	return masters, workers
 }

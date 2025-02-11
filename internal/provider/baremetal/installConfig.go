@@ -1,6 +1,7 @@
 package baremetal
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -21,6 +22,8 @@ import (
 
 func (p *baremetalProvider) AddPlatformToInstallConfig(
 	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster, infraEnvs []*common.InfraEnv) error {
+	ctx := context.Background()
+
 	// set hosts
 	numMasters := cfg.ControlPlane.Replicas
 	// TODO: will we always have just one compute?
@@ -35,11 +38,11 @@ func (p *baremetalProvider) AddPlatformToInstallConfig(
 		if sortedHosts[i].Role != sortedHosts[j].Role {
 			return sortedHosts[i].Role == models.HostRoleMaster
 		}
-		return hostutil.GetHostnameForMsg(sortedHosts[i]) < hostutil.GetHostnameForMsg(sortedHosts[j])
+		return hostutil.GetHostnameForMsg(ctx, sortedHosts[i]) < hostutil.GetHostnameForMsg(ctx, sortedHosts[j])
 	})
 
 	for _, host := range sortedHosts {
-		hostName := hostutil.GetHostnameForMsg(host)
+		hostName := hostutil.GetHostnameForMsg(ctx, host)
 		p.Log.Infof("Host name is %s", hostName)
 		hosts[yamlHostIdx].Name = hostName
 		hosts[yamlHostIdx].Role = string(host.Role)
@@ -47,7 +50,7 @@ func (p *baremetalProvider) AddPlatformToInstallConfig(
 		var inventory models.Inventory
 		err := json.Unmarshal([]byte(host.Inventory), &inventory)
 		if err != nil {
-			p.Log.Warnf("Failed to unmarshall Host %s inventory", hostutil.GetHostnameForMsg(host))
+			p.Log.Warnf("Failed to unmarshall Host %s inventory", hostutil.GetHostnameForMsg(ctx, host))
 			return err
 		}
 

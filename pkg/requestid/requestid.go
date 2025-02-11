@@ -36,6 +36,7 @@ func Transport(inner http.RoundTripper) http.RoundTripper {
 
 // FromContext returns the request id stored in the the context
 func FromContext(ctx context.Context) string {
+	//instrument:exclude FromContext
 	requestID := ctx.Value(ctxKey)
 	if requestID == nil {
 		requestID = ""
@@ -44,6 +45,7 @@ func FromContext(ctx context.Context) string {
 }
 
 func ToContext(ctx context.Context, requestID string) context.Context {
+	//instrument:exclude ToContext
 	return context.WithValue(ctx, ctxKey, requestID)
 }
 

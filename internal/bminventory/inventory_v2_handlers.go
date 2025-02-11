@@ -215,7 +215,7 @@ func (b *bareMetalInventory) V2ResetCluster(ctx context.Context, params installe
 			if err := b.hostApi.ResetHost(ctx, h, "cluster was reset by user", tx); err != nil {
 				return err
 			}
-			b.customizeHost(&cluster.Cluster, h)
+			b.customizeHost(ctx, &cluster.Cluster, h)
 		}
 
 		if err := b.clusterApi.ResetClusterFiles(ctx, cluster, b.objectHandler); err != nil {
@@ -488,10 +488,10 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 
 		if params.LogsType == string(models.LogsTypeHost) {
 			eventgen.SendHostLogsUploadedEvent(ctx, b.eventsHandler, *params.HostID, dbHost.InfraEnvID, common.StrFmtUUIDPtr(params.ClusterID),
-				hostutil.GetHostnameForMsg(&dbHost.Host))
+				hostutil.GetHostnameForMsg(ctx, &dbHost.Host))
 		} else {
 			eventgen.SendHostBootLogsUploadedEvent(ctx, b.eventsHandler, *params.HostID, dbHost.InfraEnvID, common.StrFmtUUIDPtr(params.ClusterID),
-				hostutil.GetHostnameForMsg(&dbHost.Host))
+				hostutil.GetHostnameForMsg(ctx, &dbHost.Host))
 		}
 		return nil
 	}

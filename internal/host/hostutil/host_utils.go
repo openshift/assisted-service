@@ -40,20 +40,16 @@ var ForbiddenHostnames = []string{
 	"localhost6.localdomain6",
 }
 
-func GetCurrentHostName(host *models.Host) (string, error) {
-	var inventory models.Inventory
-	if host.RequestedHostname != "" {
-		return host.RequestedHostname, nil
-	}
-	err := json.Unmarshal([]byte(host.Inventory), &inventory)
+func GetCurrentHostName(ctx context.Context, host *models.Host) (string, error) {
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		return "", err
 	}
 	return inventory.Hostname, nil
 }
 
-func GetHostnameForMsg(host *models.Host) string {
-	hostName, err := GetCurrentHostName(host)
+func GetHostnameForMsg(ctx context.Context, host *models.Host) string {
+	hostName, err := GetCurrentHostName(ctx, host)
 	// An error here probably indicates that the agent didn't send inventory yet, fall back to UUID
 	if err != nil || hostName == "" {
 		return host.ID.String()
@@ -135,8 +131,8 @@ func GetHostInstallationPath(host *models.Host) string {
 	return host.InstallationDiskPath
 }
 
-func GetHostInstallationDisk(host *models.Host) (*models.Disk, error) {
-	inventory, err := common.UnmarshalInventory(context.Background(), host.Inventory)
+func GetHostInstallationDisk(ctx context.Context, host *models.Host) (*models.Disk, error) {
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 
 	if err != nil {
 		return nil, err

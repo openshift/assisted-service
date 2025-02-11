@@ -21,6 +21,7 @@ type Config struct {
 
 // FromContext equip a given logger with values from the given context
 func FromContext(ctx context.Context, inner logrus.FieldLogger) logrus.FieldLogger {
+	//instrument:exclude FromContext
 	requestID := requestid.FromContext(ctx)
 	return requestid.RequestIDLogger(inner, requestID).WithFields(params.GetContextParams(ctx))
 }

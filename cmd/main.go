@@ -82,6 +82,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"gorm.io/driver/postgres"
@@ -753,6 +754,7 @@ func main() {
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(r),
+		trace.WithSampler(trace.AlwaysSample()),
 	)
 	otel.SetTracerProvider(tracerProvider)
 	defer tracerProvider.Shutdown(context.Background())

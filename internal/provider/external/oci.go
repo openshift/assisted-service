@@ -28,13 +28,13 @@ func NewOciExternalProvider(log logrus.FieldLogger) provider.Provider {
 	return p
 }
 
-func (p *ociExternalProvider) IsHostSupported(host *models.Host) (bool, error) {
+func (p *ociExternalProvider) IsHostSupported(ctx context.Context, host *models.Host) (bool, error) {
 	return IsOciHost(host)
 }
 
 func (p *ociExternalProvider) AreHostsSupported(hosts []*models.Host) (bool, error) {
 	for _, h := range hosts {
-		supported, err := p.IsHostSupported(h)
+		supported, err := p.IsHostSupported(context.Background(), h)
 		if err != nil {
 			return false, fmt.Errorf("error while checking if host is supported, error is: %w", err)
 		}

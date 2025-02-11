@@ -2,7 +2,6 @@ package hardware
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"net/netip"
@@ -37,7 +36,7 @@ const (
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
-	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
+	GetHostValidDisks(ctx context.Context, host *models.Host) ([]*models.Disk, error)
 	GetHostInstallationPath(host *models.Host) string
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error)
@@ -96,12 +95,12 @@ func (v *validator) GetHostInstallationPath(host *models.Host) string {
 	return hostutil.GetHostInstallationPath(host)
 }
 
-func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
-	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+func (v *validator) GetHostValidDisks(ctx context.Context, host *models.Host) ([]*models.Disk, error) {
+	inventory, err := common.UnmarshalInventory(ctx, host.Inventory)
+	if err != nil {
 		return nil, err
 	}
-	return v.ListEligibleDisks(&inventory), nil
+	return v.ListEligibleDisks(inventory), nil
 }
 
 func isNvme(name string) bool {

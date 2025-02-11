@@ -269,12 +269,12 @@ func (i *installCmd) getDisksToFormat(ctx context.Context, host *models.Host, in
 		identifier := common.GetDeviceIdentifier(disk)
 		if !lo.Contains(skippedDisksIdentifiers, identifier) {
 			eventgen.SendQuickDiskFormatPerformedEvent(ctx, i.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID,
-				hostutil.GetHostnameForMsg(host), disk.Name, identifier)
+				hostutil.GetHostnameForMsg(ctx, host), disk.Name, identifier)
 
 			unskippedDisksIdentifiers = append(unskippedDisksIdentifiers, identifier)
 		} else {
 			eventgen.SendQuickDiskFormatSkippedEvent(ctx, i.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID,
-				hostutil.GetHostnameForMsg(host), disk.Name, identifier)
+				hostutil.GetHostnameForMsg(ctx, host), disk.Name, identifier)
 		}
 	}
 

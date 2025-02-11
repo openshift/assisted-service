@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
 )
 
@@ -44,6 +45,7 @@ type clusterPreprocessContext struct {
 	db                      *gorm.DB
 	calculateCidr           string
 	hasHostsWithInventories bool
+	ctx                     context.Context
 }
 
 type validationConditon func(context *clusterPreprocessContext) (ValidationStatus, string)
@@ -62,12 +64,13 @@ func hasHostsWithInventories(c *common.Cluster) bool {
 	return false
 }
 
-func newClusterValidationContext(c *common.Cluster, db *gorm.DB) *clusterPreprocessContext {
+func newClusterValidationContext(ctx context.Context, c *common.Cluster, db *gorm.DB) *clusterPreprocessContext {
 	return &clusterPreprocessContext{
 		clusterId:               *c.ID,
 		cluster:                 c,
 		db:                      db,
 		hasHostsWithInventories: hasHostsWithInventories(c),
+		ctx:                     nil,
 	}
 }
 
@@ -117,6 +120,9 @@ func (v *clusterValidator) isServiceCidrDefined(c *clusterPreprocessContext) (Va
 }
 
 func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreprocessContext) (ValidationStatus, string) {
+	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "clusterValidator.isMachineCidrEqualsToCalculatedCidr")
+	defer span.End()
+
 	var multiErr error
 
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
@@ -133,7 +139,7 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 	}
 
 	for i := range c.cluster.APIVips {
-		cidr, err := network.CalculateMachineNetworkCIDR(context.Background(), network.GetApiVipById(c.cluster, i), network.GetIngressVipById(c.cluster, i), c.cluster.Hosts, true)
+		cidr, err := network.CalculateMachineNetworkCIDR(ctx, network.GetApiVipById(c.cluster, i), network.GetIngressVipById(c.cluster, i), c.cluster.Hosts, true)
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 			continue
@@ -218,6 +224,9 @@ func (v *clusterValidator) areApiVipsDefined(c *clusterPreprocessContext) (Valid
 }
 
 func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper VipsWrapper) (ValidationStatus, string) {
+	_, span := otel.Tracer("assisted-service").Start(c.ctx, "clusterValidator.areVipsValid")
+	defer span.End()
+
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: User Managed Networking", vipsWrapper.Name())
 	}
@@ -244,6 +253,9 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 func validateVipsClusterManagedLoadBalancer(
 	c *clusterPreprocessContext, vipsWrapper VipsWrapper, log logrus.FieldLogger,
 ) (ValidationStatus, string) {
+	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validateVipsClusterManagedLoadBalancer")
+	defer span.End()
+
 	var (
 		multiErr *multierror.Error
 		msg      string
@@ -254,7 +266,7 @@ func validateVipsClusterManagedLoadBalancer(
 	failed := false
 	for i := 0; i != vipsWrapper.Len(); i++ {
 		verification, err := network.VerifyVipWithSingleMachineNetwork(
-			context.Background(),
+			ctx,
 			c.cluster.Hosts,
 			network.GetMachineCidrById(c.cluster, i),
 			vipsWrapper.IP(i),
@@ -283,13 +295,16 @@ func validateVipsClusterManagedLoadBalancer(
 func validateVipsUserManagedLoadBalancer(
 	c *clusterPreprocessContext, vipsWrapper VipsWrapper, log logrus.FieldLogger,
 ) (ValidationStatus, string) {
+	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validateVipsUserManagedLoadBalancer")
+	defer span.End()
+
 	if vipsWrapper.Len() == 0 {
 		return ValidationPending, fmt.Sprintf("%s virtual IPs are undefined.", vipsWrapper.Name())
 	}
 
 	name := strings.ToLower(vipsWrapper.Name()) + " vip"
 	verification, err := network.VerifyVipWithMachineNetworkList(
-		context.Background(),
+		ctx,
 		c.cluster.Hosts,
 		c.cluster.MachineNetworks,
 		vipsWrapper.IP(0),
@@ -363,6 +378,9 @@ func (v *clusterValidator) areIngressVipsValid(c *clusterPreprocessContext) (Val
 //   - For none-high-availablity cluster (SNO), exactly 1 master and 0 workers are required.
 //   - For high-availablity cluster, the master count should match the expected master count (ControlPlaneCount).
 func (v *clusterValidator) SufficientMastersCount(c *clusterPreprocessContext) (ValidationStatus, string) {
+	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "clusterValidator.SufficientMastersCount")
+	defer span.End()
+
 	status := ValidationSuccess
 	var (
 		message string
@@ -374,7 +392,7 @@ func (v *clusterValidator) SufficientMastersCount(c *clusterPreprocessContext) (
 		//from the candidate pool to match the master count criteria
 		if len(masters) < int(c.cluster.ControlPlaneCount) {
 			candidate := *h
-			if isValid, err := v.hostAPI.IsValidMasterCandidate(&candidate, c.cluster, c.db, v.log, false); isValid && err == nil {
+			if isValid, err := v.hostAPI.IsValidMasterCandidate(ctx, &candidate, c.cluster, c.db, v.log, false); isValid && err == nil {
 				masters = append(masters, h)
 				continue
 			}

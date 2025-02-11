@@ -19,6 +19,7 @@ const (
 )
 
 func GetParam(ctx context.Context, key string) string {
+	//instrument:exclude GetParam
 	val := ctx.Value(contextKey(key))
 	if val == nil {
 		return ""
@@ -28,10 +29,12 @@ func GetParam(ctx context.Context, key string) string {
 }
 
 func SetParam(ctx context.Context, key string, value interface{}) context.Context {
+	//instrument:exclude SetParam
 	return context.WithValue(ctx, contextKey(key), value)
 }
 
 func Copy(ctx context.Context) context.Context {
+	//instrument:exclude Copy
 	newContext := context.Background()
 	for k, v := range GetContextParams(ctx) {
 		newContext = SetParam(newContext, k, v)
@@ -42,6 +45,7 @@ func Copy(ctx context.Context) context.Context {
 // return the values of interest (goid and path parameters) that we
 // are saving on the context
 func GetContextParams(ctx context.Context) map[string]interface{} {
+	//instrument:exclude GetContextParams
 	var fields = make(map[string]interface{})
 	fields["go-id"] = goid()
 

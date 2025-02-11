@@ -26,12 +26,12 @@ func (p *vsphereProvider) Name() models.PlatformType {
 	return models.PlatformTypeVsphere
 }
 
-func (p *vsphereProvider) IsHostSupported(host *models.Host) (bool, error) {
+func (p *vsphereProvider) IsHostSupported(ctx context.Context, host *models.Host) (bool, error) {
 	// during the discovery there is a short time that host didn't return its inventory to the service
 	if host.Inventory == "" {
 		return false, nil
 	}
-	hostInventory, err := common.UnmarshalInventory(context.Background(), host.Inventory)
+	hostInventory, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		return false, fmt.Errorf("error marshaling host to inventory, error %w", err)
 	}
@@ -40,7 +40,7 @@ func (p *vsphereProvider) IsHostSupported(host *models.Host) (bool, error) {
 
 func (p *vsphereProvider) AreHostsSupported(hosts []*models.Host) (bool, error) {
 	for _, h := range hosts {
-		supported, err := p.IsHostSupported(h)
+		supported, err := p.IsHostSupported(context.Background(), h)
 		if err != nil {
 			return false, fmt.Errorf("error while checking if host is supported, error is: %w", err)
 		}

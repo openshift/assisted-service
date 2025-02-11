@@ -1,6 +1,8 @@
 package none
 
 import (
+	"context"
+
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -22,7 +24,7 @@ func (p *noneProvider) Name() models.PlatformType {
 	return models.PlatformTypeNone
 }
 
-func (p *noneProvider) IsHostSupported(_ *models.Host) (bool, error) {
+func (p *noneProvider) IsHostSupported(ctx context.Context, _ *models.Host) (bool, error) {
 	return true, nil
 }
 

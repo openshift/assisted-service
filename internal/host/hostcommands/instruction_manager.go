@@ -225,7 +225,7 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 			ctx,
 			i.eventsHandler,
 			*host.ID,
-			hostutil.GetHostnameForMsg(host),
+			hostutil.GetHostnameForMsg(ctx, host),
 			host.InfraEnvID,
 			host.ClusterID,
 			i.config.AgentImage,

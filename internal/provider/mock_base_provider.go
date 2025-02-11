@@ -81,7 +81,7 @@ func (mr *MockProviderMockRecorder) CleanPlatformValuesFromDBUpdates(arg0 interf
 }
 
 // IsHostSupported mocks base method.
-func (m *MockProvider) IsHostSupported(arg0 *models.Host) (bool, error) {
+func (m *MockProvider) IsHostSupported(ctx context.Context, arg0 *models.Host) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsHostSupported", arg0)
 	ret0, _ := ret[0].(bool)
@@ -90,7 +90,7 @@ func (m *MockProvider) IsHostSupported(arg0 *models.Host) (bool, error) {
 }
 
 // IsHostSupported indicates an expected call of IsHostSupported.
-func (mr *MockProviderMockRecorder) IsHostSupported(arg0 interface{}) *gomock.Call {
+func (mr *MockProviderMockRecorder) IsHostSupported(ctx context.Context, arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsHostSupported", reflect.TypeOf((*MockProvider)(nil).IsHostSupported), arg0)
 }

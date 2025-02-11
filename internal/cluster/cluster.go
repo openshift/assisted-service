@@ -44,6 +44,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -116,7 +117,7 @@ type API interface {
 	PrepareClusterLogFile(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	SetConnectivityMajorityGroupsForCluster(ctx context.Context, clusterID strfmt.UUID, db *gorm.DB) error
-	DetectAndStoreCollidingIPsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
+	DetectAndStoreCollidingIPsForCluster(ctx context.Context, clusterID strfmt.UUID, db *gorm.DB) error
 	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	ResetClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error
@@ -356,7 +357,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		conditions       map[string]bool
 		newValidationRes map[string][]ValidationResult
 	)
-	vc = newClusterValidationContext(c, db)
+	vc = newClusterValidationContext(ctx, c, db)
 	conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
 	if err != nil {
 		return c, err
@@ -580,6 +581,10 @@ func (m *Manager) initMonitorQueryGenerator() {
 }
 
 func (m *Manager) ClusterMonitoring() {
+	ctx := context.Background()
+	ctx, span := otel.Tracer("assisted-service").Start(ctx, "Manager.ClusterMonitoring")
+	defer span.End()
+
 	if !m.leaderElector.IsLeader() {
 		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 		return
@@ -593,10 +598,10 @@ func (m *Manager) ClusterMonitoring() {
 		clusters            []*common.Cluster
 		clusterAfterRefresh *common.Cluster
 		requestID           = requestid.NewID()
-		ctx                 = requestid.ToContext(context.Background(), requestID)
 		log                 = requestid.RequestIDLogger(m.log, requestID)
 		err                 error
 	)
+	ctx = requestid.ToContext(ctx, requestID)
 
 	curMonitorInvokedAt := time.Now()
 	defer func() {
@@ -608,9 +613,9 @@ func (m *Manager) ClusterMonitoring() {
 	//Then, SkipMonitoring() stops the logic from running forever
 	m.initMonitorQueryGenerator()
 
-	query := m.monitorQueryGenerator.NewClusterQuery()
+	query := m.monitorQueryGenerator.NewClusterQuery(ctx)
 	for {
-		clusters, err = query.Next()
+		clusters, err = query.Next(ctx)
 		if err != nil {
 			log.WithError(err).Errorf("failed to get clusters")
 			return
@@ -635,7 +640,7 @@ func (m *Manager) ClusterMonitoring() {
 				if err = m.setConnectivityMajorityGroupsForClusterInternal(ctx, cluster, m.db); err != nil {
 					log.WithError(err).Error("failed to set majority group for clusters")
 				}
-				err = m.detectAndStoreCollidingIPsForCluster(cluster, m.db)
+				err = m.detectAndStoreCollidingIPsForCluster(ctx, cluster, m.db)
 				if err != nil {
 					m.log.WithError(err).Errorf("Failed to detect and store colliding IPs for cluster %s", cluster.ID.String())
 				}
@@ -946,6 +951,10 @@ func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster,
 }
 
 func (m *Manager) UploadEvents() {
+	ctx := context.Background()
+	ctx, span := otel.Tracer("assisted-service").Start(ctx, "Manager.HostMonitoring")
+	defer span.End()
+
 	if !m.leaderElector.IsLeader() {
 		m.log.Infof("Not a leader, exiting upload")
 		return
@@ -959,10 +968,10 @@ func (m *Manager) UploadEvents() {
 	m.log.Info("Event upload is enabled. Running event upload")
 	var (
 		requestID = requestid.NewID()
-		ctx       = requestid.ToContext(context.Background(), requestID)
 		log       = requestid.RequestIDLogger(m.log, requestID)
 		err       error
 	)
+	ctx = requestid.ToContext(ctx, requestID)
 
 	clustersToUpload, err := common.GetClustersFromDBWhere(m.db, common.SkipEagerLoading, common.SkipDeletedRecords,
 		"uploaded = ? AND (status in (?) OR (status = ? AND install_completed_at > ?))",
@@ -1160,11 +1169,11 @@ func (m *Manager) PrepareHostLogFile(ctx context.Context, c *common.Cluster, hos
 		role = string(models.HostRoleBootstrap)
 	}
 
-	fileName = fmt.Sprintf("%s_%s_%s.tar", sanitize.Name(c.Name), role, sanitize.Name(hostutil.GetHostnameForMsg(host)))
+	fileName = fmt.Sprintf("%s_%s_%s.tar", sanitize.Name(c.Name), role, sanitize.Name(hostutil.GetHostnameForMsg(ctx, host)))
 	files = funk.Filter(files, func(x string) bool { return x != fileName }).([]string)
 
 	for _, file := range files {
-		name := sanitize.Name(hostutil.GetHostnameForMsg(host))
+		name := sanitize.Name(hostutil.GetHostnameForMsg(ctx, host))
 
 		if strings.Contains(file, "boot_") {
 			name = fmt.Sprintf("boot_%s", name)
@@ -1274,7 +1283,7 @@ func (m *Manager) IsReadyForInstallation(c *common.Cluster) (bool, string) {
 	return true, ""
 }
 
-func (m *Manager) detectAndStoreCollidingIPsForCluster(cluster *common.Cluster, db *gorm.DB) error {
+func (m *Manager) detectAndStoreCollidingIPsForCluster(ctx context.Context, cluster *common.Cluster, db *gorm.DB) error {
 	if db == nil {
 		db = m.db
 	}
@@ -1300,7 +1309,7 @@ func (m *Manager) detectAndStoreCollidingIPsForCluster(cluster *common.Cluster, 
 	collidingIPSWithMacs := make(map[string][]string)
 	for _, host := range hosts {
 		if len(host.Connectivity) > 0 {
-			connectivityReport, err := hostutil.UnmarshalConnectivityReport(context.Background(), host.Connectivity)
+			connectivityReport, err := hostutil.UnmarshalConnectivityReport(ctx, host.Connectivity)
 			if err != nil {
 				// Let's not stop iterating over hosts but let's log this error.
 				m.log.WithError(err).Errorf("unable to unmarshall connectivity report for host %d due to error: %s", host.ID, err.Error())
@@ -1428,7 +1437,7 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(ctx context.Co
 	return nil
 }
 
-func (m *Manager) DetectAndStoreCollidingIPsForCluster(clusterID strfmt.UUID, db *gorm.DB) error {
+func (m *Manager) DetectAndStoreCollidingIPsForCluster(ctx context.Context, clusterID strfmt.UUID, db *gorm.DB) error {
 	cluster, err := common.GetClusterFromDBWithHosts(db, clusterID)
 	if err != nil {
 		var statusCode int32 = http.StatusInternalServerError
@@ -1437,7 +1446,7 @@ func (m *Manager) DetectAndStoreCollidingIPsForCluster(clusterID strfmt.UUID, db
 		}
 		return common.NewApiError(statusCode, errors.Wrapf(err, "Getting cluster %s", clusterID.String()))
 	}
-	return m.detectAndStoreCollidingIPsForCluster(cluster, db)
+	return m.detectAndStoreCollidingIPsForCluster(ctx, cluster, db)
 }
 
 func (m *Manager) SetConnectivityMajorityGroupsForCluster(ctx context.Context, clusterID strfmt.UUID, db *gorm.DB) error {

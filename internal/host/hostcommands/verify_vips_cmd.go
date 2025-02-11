@@ -23,9 +23,8 @@ func newVerifyVipsCmd(log logrus.FieldLogger, db *gorm.DB) CommandGetter {
 	}
 }
 
-func (f *verifyVipsCmd) prepareParam(host *models.Host) (string, error) {
-	var inventory models.Inventory
-	err := json.Unmarshal([]byte(host.Inventory), &inventory)
+func (f *verifyVipsCmd) prepareParam(ctx context.Context, host *models.Host) (string, error) {
+	_, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		f.log.WithError(err).Warn("Inventory parse")
 		return "", err
@@ -65,7 +64,7 @@ func (f *verifyVipsCmd) prepareParam(host *models.Host) (string, error) {
 }
 
 func (f *verifyVipsCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	param, err := f.prepareParam(host)
+	param, err := f.prepareParam(ctx, host)
 	if param == "" || err != nil {
 		return nil, err
 	}

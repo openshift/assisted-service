@@ -150,7 +150,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		return *res, err
 	}
 
-	h, err := r.Installer.GetHostByKubeKey(req.NamespacedName)
+	h, err := r.Installer.GetHostByKubeKey(ctx, req.NamespacedName)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Restoring the Host according to values from Agent
@@ -723,7 +723,7 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 		return reply, err
 	}
 
-	h, err := r.Installer.GetHostByKubeKey(key)
+	h, err := r.Installer.GetHostByKubeKey(ctx, key)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// return if from any reason host is already deleted from db (or never existed)

@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -36,7 +37,7 @@ type ProviderRegistry interface {
 	// SetPlatformUsages uses the usageApi to update platform specific usages
 	SetPlatformUsages(p *models.Platform, usages map[string]models.Usage, usageApi usage.API) error
 	// IsHostSupported checks if the provider supports the host
-	IsHostSupported(p *models.Platform, host *models.Host) (bool, error)
+	IsHostSupported(ctx context.Context, p *models.Platform, host *models.Host) (bool, error)
 	// AreHostsSupported checks if the provider supports the hosts
 	AreHostsSupported(p *models.Platform, hosts []*models.Host) (bool, error)
 	// PreCreateManifestsHook allows the provider to perform additional tasks required before the cluster manifests are created
@@ -107,13 +108,13 @@ func (r *registry) SetPlatformUsages(
 	return currentProvider.SetPlatformUsages(usages, usageApi)
 }
 
-func (r *registry) IsHostSupported(p *models.Platform, host *models.Host) (bool, error) {
+func (r *registry) IsHostSupported(ctx context.Context, p *models.Platform, host *models.Host) (bool, error) {
 	currentProvider, err := r.Get(p)
 	if err != nil {
 		return false, fmt.Errorf("error while checking if hosts are supported by platform %s, error %w",
 			common.PlatformTypeValue(p.Type), err)
 	}
-	return currentProvider.IsHostSupported(host)
+	return currentProvider.IsHostSupported(ctx, host)
 }
 
 func (r *registry) AreHostsSupported(p *models.Platform, hosts []*models.Host) (bool, error) {

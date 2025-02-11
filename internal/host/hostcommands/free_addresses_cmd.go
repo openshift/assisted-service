@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -20,8 +21,8 @@ type freeAddressesCmd struct {
 	kubeApiEnabled bool
 }
 
-func getAllSmallV4Cidrs(host *models.Host, log logrus.FieldLogger) ([]string, error) {
-	networksByFamily, err := network.GetInventoryNetworksByFamily(context.Background(), []*models.Host{host}, log)
+func getAllSmallV4Cidrs(ctx context.Context, host *models.Host, log logrus.FieldLogger) ([]string, error) {
+	networksByFamily, err := network.GetInventoryNetworksByFamily(ctx, []*models.Host{host}, log)
 	if err != nil {
 		return nil, err
 	}
@@ -39,8 +40,8 @@ func getAllSmallV4Cidrs(host *models.Host, log logrus.FieldLogger) ([]string, er
 	return ret, nil
 }
 
-func getFreeAddressesNetworks(host *models.Host, log logrus.FieldLogger) ([]string, error) {
-	cidrs, err := getAllSmallV4Cidrs(host, log)
+func getFreeAddressesNetworks(ctx context.Context, host *models.Host, log logrus.FieldLogger) ([]string, error) {
+	cidrs, err := getAllSmallV4Cidrs(ctx, host, log)
 	if err != nil {
 		return nil, err
 	}
@@ -54,17 +55,16 @@ func newFreeAddressesCmd(log logrus.FieldLogger, kubeApiEnabled bool) CommandGet
 	}
 }
 
-func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
+func (f *freeAddressesCmd) prepareParam(ctx context.Context, host *models.Host) (string, error) {
 	if f.kubeApiEnabled {
 		return "", nil
 	}
-	var inventory models.Inventory
-	err := json.Unmarshal([]byte(host.Inventory), &inventory)
+	_, err := common.UnmarshalInventory(ctx, host.Inventory)
 	if err != nil {
 		f.log.WithError(err).Warn("Inventory parse")
 		return "", err
 	}
-	networks, err := getFreeAddressesNetworks(host, f.log)
+	networks, err := getFreeAddressesNetworks(ctx, host, f.log)
 	if err != nil {
 		f.log.WithError(err).Errorf("find if validate with free addresses")
 		return "", err
@@ -85,7 +85,7 @@ func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
 }
 
 func (f *freeAddressesCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	param, err := f.prepareParam(host)
+	param, err := f.prepareParam(ctx, host)
 	if param == "" || err != nil {
 		return nil, err
 	}

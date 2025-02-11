@@ -1,6 +1,8 @@
 package external
 
 import (
+	"context"
+
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider"
@@ -19,7 +21,7 @@ func (p *baseExternalProvider) Name() models.PlatformType {
 	return models.PlatformTypeExternal
 }
 
-func (p *baseExternalProvider) IsHostSupported(_ *models.Host) (bool, error) {
+func (p *baseExternalProvider) IsHostSupported(ctx context.Context, _ *models.Host) (bool, error) {
 	return true, nil
 }
 
