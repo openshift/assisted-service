@@ -527,7 +527,7 @@ func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
 	var err error
 	if swag.BoolValue(c.VipDhcpAllocation) {
 		err = m.tryAssignMachineCidrDHCPMode(c)
-	} else if swag.StringValue(c.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+	} else if c.ControlPlaneCount == int64(1) {
 		err = m.tryAssignMachineCidrSNO(c)
 	} else if !swag.BoolValue(c.UserManagedNetworking) {
 		err = m.tryAssignMachineCidrNonDHCPMode(c)
@@ -817,7 +817,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UU
 		log.WithError(err).Error("Failed to host count from DB")
 		return err
 	}
-	isSno := swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
+	isSno := cluster.ControlPlaneCount == int64(1)
 	var totalHostsDoneStages, totalHostsStages float64
 	for _, h := range hostsCount {
 		stages := host.FindMatchingStages(h.Role, h.Bootstrap, isSno)

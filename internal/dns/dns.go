@@ -7,10 +7,8 @@ import (
 	"strings"
 
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
-	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
@@ -235,7 +233,7 @@ func (h *handler) ValidateBaseDNS(domain *DNSDomain) error {
 
 func (h *handler) ValidateDNSRecords(cluster common.Cluster, domain *DNSDomain) error {
 	vipAddresses := []string{domain.APIDomainName, domain.IngressDomainName}
-	if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+	if cluster.ControlPlaneCount == int64(1) {
 		vipAddresses = append(vipAddresses, domain.APIINTDomainName)
 	}
 	if err := h.checkDNSRecordsExists(vipAddresses, domain, "A"); err != nil {

@@ -185,7 +185,7 @@ func GetBootstrapHost(cluster *Cluster) *models.Host {
 }
 
 func IsSingleNodeCluster(cluster *Cluster) bool {
-	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
+	return cluster.ControlPlaneCount == int64(1)
 }
 
 func IsDay2Cluster(cluster *Cluster) bool {
@@ -682,7 +682,7 @@ func GetHostsByEachRole(cluster *models.Cluster, effectiveRoles bool) ([]*models
 }
 
 func ShouldMastersBeSchedulable(cluster *models.Cluster) bool {
-	if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterCreateParamsHighAvailabilityModeNone {
+	if cluster.ControlPlaneCount == int64(1) {
 		return true
 	}
 

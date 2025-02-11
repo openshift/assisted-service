@@ -660,7 +660,7 @@ var _ = Describe("update progress special cases", func() {
 		)
 		It("Single node special stage order - happy flow", func() {
 			cluster := hostutil.GenerateTestCluster(clusterId)
-			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			cluster.ControlPlaneCount = int64(1)
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
 			progress.CurrentStage = models.HostStageWaitingForBootkube
@@ -683,7 +683,7 @@ var _ = Describe("update progress special cases", func() {
 		})
 		It("Single node special stage order - not allowed", func() {
 			cluster := hostutil.GenerateTestCluster(clusterId)
-			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			cluster.ControlPlaneCount = int64(1)
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
 			progress.CurrentStage = models.HostStageWaitingForBootkube
@@ -703,7 +703,7 @@ var _ = Describe("update progress special cases", func() {
 		})
 		It("multi node update should fail", func() {
 			cluster := hostutil.GenerateTestCluster(clusterId)
-			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = int64(3)
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
 			progress.CurrentStage = models.HostStageWaitingForBootkube

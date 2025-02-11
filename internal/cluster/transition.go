@@ -516,7 +516,7 @@ func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.St
 func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, statuses []string) bool {
 	mastersInSomeInstallingStatus, workersInSomeInstallingStatus := HostsInStatus(sCluster.cluster, statuses)
 
-	if swag.StringValue(sCluster.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+	if sCluster.cluster.ControlPlaneCount == int64(1) {
 		return mastersInSomeInstallingStatus == common.AllowedNumberOfMasterHostsInNoneHaMode &&
 			workersInSomeInstallingStatus == common.AllowedNumberOfWorkersInNoneHaMode
 	}
