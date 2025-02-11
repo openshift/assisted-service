@@ -210,7 +210,7 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration.IngressVips = params.IngressVips
 	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
 	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
-	targetConfiguration.HighAvailabilityMode = params.HighAvailabilityMode
+	targetConfiguration.ControlPlaneCount = *params.ControlPlaneCount
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
@@ -300,7 +300,7 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.APIVips = apiVips
 	targetConfiguration.IngressVips = ingressVips
 	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
-	targetConfiguration.HighAvailabilityMode = cluster.HighAvailabilityMode
+	targetConfiguration.ControlPlaneCount = cluster.ControlPlaneCount
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
