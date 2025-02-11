@@ -435,7 +435,7 @@ var _ = Describe("ShouldMastersBeSchedulable", func() {
 	Context("should return false", func() {
 		It("when the cluster is composed from more than 1 worker, multi-node", func() {
 			cluster := &models.Cluster{
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+				ControlPlaneCount: int64(3),
 				Hosts: []*models.Host{
 					{
 						Role:          models.HostRoleAutoAssign,
@@ -467,7 +467,7 @@ var _ = Describe("ShouldMastersBeSchedulable", func() {
 	Context("should return true", func() {
 		It("when SNO cluster", func() {
 			cluster := &models.Cluster{
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+				ControlPlaneCount: int64(1),
 			}
 
 			Expect(ShouldMastersBeSchedulable(cluster)).To(BeTrue())
@@ -475,7 +475,7 @@ var _ = Describe("ShouldMastersBeSchedulable", func() {
 
 		It("when less than 2 workers, multi-node", func() {
 			cluster := &models.Cluster{
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+				ControlPlaneCount: int64(3),
 				Hosts: []*models.Host{
 					{
 						Role:          models.HostRoleAutoAssign,
