@@ -191,7 +191,7 @@ func (v *clusterValidator) areVipsDefined(c *clusterPreprocessContext, vipsWrapp
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: User Managed Networking", vipsWrapper.Name())
 	}
-	if swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+	if c.cluster.ControlPlaneCount == int64(1) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: SNO", vipsWrapper.Name())
 	}
 	if vipsWrapper.Len() > 0 {
@@ -220,7 +220,7 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: User Managed Networking", vipsWrapper.Name())
 	}
-	if swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+	if c.cluster.ControlPlaneCount == int64(1) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: SNO", vipsWrapper.Name())
 	}
 
@@ -337,7 +337,7 @@ func hasClusterNetworksUnsupportedByNetworkType(cluster *common.Cluster) bool {
 }
 
 func isHighAvailabilityModeUnsupportedByNetworkType(cluster *common.Cluster) bool {
-	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone &&
+	return cluster.ControlPlaneCount == int64(1) &&
 		cluster.NetworkType != nil && swag.StringValue(cluster.NetworkType) == models.ClusterNetworkTypeOpenShiftSDN
 }
 

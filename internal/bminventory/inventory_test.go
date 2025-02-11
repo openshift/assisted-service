@@ -372,8 +372,8 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 		Platform: &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 		},
-		CPUArchitecture:      models.ClusterCPUArchitectureX8664,
-		HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+		CPUArchitecture:   models.ClusterCPUArchitectureX8664,
+		ControlPlaneCount: swag.Int64(3),
 	}
 }
 
@@ -403,15 +403,15 @@ func addVMToCluster(cluster *common.Cluster, db *gorm.DB) {
 	cluster.Hosts = append(cluster.Hosts, &host)
 }
 
-func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityMode string) *common.Cluster {
+func createClusterWithAvailability(db *gorm.DB, status string, controlPlaneCount int64) *common.Cluster {
 	clusterID := strfmt.UUID(uuid.New().String())
 	c := &common.Cluster{
 		Cluster: models.Cluster{
-			ID:                   &clusterID,
-			Status:               swag.String(status),
-			HighAvailabilityMode: &highAvailabilityMode,
-			OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
-			CPUArchitecture:      common.DefaultCPUArchitecture,
+			ID:                &clusterID,
+			Status:            swag.String(status),
+			ControlPlaneCount: controlPlaneCount,
+			OpenshiftVersion:  common.TestDefaultConfig.OpenShiftVersion,
+			CPUArchitecture:   common.DefaultCPUArchitecture,
 			Platform: &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 			},
@@ -422,7 +422,7 @@ func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityM
 }
 
 func createCluster(db *gorm.DB, status string) *common.Cluster {
-	return createClusterWithAvailability(db, status, models.ClusterCreateParamsHighAvailabilityModeFull)
+	return createClusterWithAvailability(db, status, int64(3))
 }
 
 func createInfraEnv(db *gorm.DB, id strfmt.UUID, clusterID strfmt.UUID) *common.InfraEnv {
@@ -595,17 +595,17 @@ var _ = Describe("RegisterHost", func() {
 
 	Context("Register success", func() {
 		for _, test := range []struct {
-			availability string
-			expectedRole models.HostRole
+			ctrlPlaneCount int64
+			expectedRole   models.HostRole
 		}{
-			{availability: models.ClusterHighAvailabilityModeFull, expectedRole: models.HostRoleAutoAssign},
-			{availability: models.ClusterHighAvailabilityModeNone, expectedRole: models.HostRoleMaster},
+			{ctrlPlaneCount: int64(3), expectedRole: models.HostRoleAutoAssign},
+			{ctrlPlaneCount: int64(1), expectedRole: models.HostRoleMaster},
 		} {
 			test := test
 
 			It(fmt.Sprintf("cluster availability mode %s expected default host role %s",
-				test.availability, test.expectedRole), func() {
-				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.availability)
+				test.ctrlPlaneCount, test.expectedRole), func() {
+				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.ctrlPlaneCount)
 				infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 
 				mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
@@ -646,7 +646,7 @@ var _ = Describe("RegisterHost", func() {
 		}
 
 		It("Should only emit HostRegistrationSucceededEventName when not in pre installation state", func() {
-			cluster := createClusterWithAvailability(db, models.ClusterStatusInstalling, models.ClusterHighAvailabilityModeFull)
+			cluster := createClusterWithAvailability(db, models.ClusterStatusInstalling, int64(3))
 			infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 
 			mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
@@ -1959,26 +1959,26 @@ var _ = Describe("cluster", func() {
 				db, mockStream, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 
-			noneHaMode := models.ClusterHighAvailabilityModeNone
+			noneHaMode := int64(1)
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 			clusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForNoneHA)
-			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.ControlPlaneCount = &noneHaMode
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 			actual := reply.(*installer.V2RegisterClusterCreated)
-			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
+			Expect(actual.Payload.ControlPlaneCount).To(Equal(swag.Int64(noneHaMode)))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
 		It("create non ha cluster fail, release version is lower than minimal", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
-			noneHaMode := models.ClusterHighAvailabilityModeNone
+			noneHaMode := int64(1)
 			insufficientOpenShiftVersionForNoneHA := "4.7"
 			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
-			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.ControlPlaneCount = &noneHaMode
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
@@ -1987,10 +1987,10 @@ var _ = Describe("cluster", func() {
 		It("create non ha cluster fail, release version is pre-release and lower than minimal", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
-			noneHaMode := models.ClusterHighAvailabilityModeNone
+			noneHaMode := int64(1)
 			insufficientOpenShiftVersionForNoneHA := "4.7.0-fc.1"
 			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
-			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.ControlPlaneCount = &noneHaMode
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
@@ -2001,16 +2001,16 @@ var _ = Describe("cluster", func() {
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
 
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
-			noneHaMode := models.ClusterHighAvailabilityModeNone
+			noneHaMode := int64(1)
 			openShiftVersionForNoneHA := "4.8.0"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
-			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.ControlPlaneCount = &noneHaMode
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 			actual := reply.(*installer.V2RegisterClusterCreated)
-			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
+			Expect(actual.Payload.ControlPlaneCount).To(Equal(swag.Int64(noneHaMode)))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
@@ -2019,16 +2019,16 @@ var _ = Describe("cluster", func() {
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
 
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
-			noneHaMode := models.ClusterHighAvailabilityModeNone
+			noneHaMode := int64(1)
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
-			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.ControlPlaneCount = &noneHaMode
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 			actual := reply.(*installer.V2RegisterClusterCreated)
-			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
+			Expect(actual.Payload.ControlPlaneCount).To(Equal(swag.Int64(noneHaMode)))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
@@ -2036,10 +2036,10 @@ var _ = Describe("cluster", func() {
 			errStr := "Can't set none platform with user-managed-networking disabled"
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
-			noneHaMode := models.ClusterHighAvailabilityModeNone
+			noneHaMode := int64(1)
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
-			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.ControlPlaneCount = &noneHaMode
 			clusterParams.UserManagedNetworking = swag.Bool(false)
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
@@ -2049,10 +2049,10 @@ var _ = Describe("cluster", func() {
 		It("create non ha cluster fail, explicitly enabled VipDhcpAllocation", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
-			noneHaMode := models.ClusterHighAvailabilityModeNone
+			noneHaMode := int64(1)
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
-			clusterParams.HighAvailabilityMode = &noneHaMode
+			clusterParams.ControlPlaneCount = &noneHaMode
 			clusterParams.VipDhcpAllocation = swag.Bool(true)
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
@@ -2066,18 +2066,18 @@ var _ = Describe("cluster", func() {
 			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false)
 
 		mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
-		noneHaMode := models.ClusterHighAvailabilityModeNone
+		noneHaMode := int64(1)
 		openShiftVersionForNoneHA := "4.8.0-0.ci.test-2021-05-20-000749-ci-op-7xrzwgwy-latest"
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
 		clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
-		clusterParams.HighAvailabilityMode = &noneHaMode
+		clusterParams.ControlPlaneCount = &noneHaMode
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
-		Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
+		Expect(actual.Payload.ControlPlaneCount).To(Equal(swag.Int64(noneHaMode)))
 		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 		Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 	})
@@ -2233,8 +2233,8 @@ var _ = Describe("cluster", func() {
 					Platform: &models.Platform{
 						Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 					},
-					CPUArchitecture:      models.ClusterCPUArchitectureX8664,
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+					CPUArchitecture:   models.ClusterCPUArchitectureX8664,
+					ControlPlaneCount: swag.Int64(3),
 				}
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -2277,8 +2277,8 @@ var _ = Describe("cluster", func() {
 					Platform: &models.Platform{
 						Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 					},
-					CPUArchitecture:      models.ClusterCPUArchitectureX8664,
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+					CPUArchitecture:   models.ClusterCPUArchitectureX8664,
+					ControlPlaneCount: swag.Int64(3),
 				}
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -2799,7 +2799,7 @@ var _ = Describe("cluster", func() {
 					clusterParams.Platform = &models.Platform{
 						Type: common.PlatformTypePtr(models.PlatformTypeNone),
 					}
-					clusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+					clusterParams.ControlPlaneCount = swag.Int64(1)
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: "lvm"},
 					}
@@ -2984,7 +2984,7 @@ var _ = Describe("cluster", func() {
 						ID:                    &clusterID,
 						MonitoredOperators:    originalOperators,
 						OpenshiftVersion:      "4.12",
-						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
+						ControlPlaneCount:     int64(1),
 						UserManagedNetworking: swag.Bool(true),
 						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 						CPUArchitecture:       common.DefaultCPUArchitecture,
@@ -3725,7 +3725,7 @@ var _ = Describe("cluster", func() {
 					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 					UserManagedNetworking: swag.Bool(false),
 					CPUArchitecture:       common.X86CPUArchitecture,
-					HighAvailabilityMode:  swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+					ControlPlaneCount:     int64(3),
 				}}
 				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
@@ -3755,7 +3755,7 @@ var _ = Describe("cluster", func() {
 					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
 						"user_managed_networking": true,
 						"platform_type":           models.PlatformTypeNone,
-						"high_availability_mode":  models.ClusterHighAvailabilityModeNone,
+						"control_plane_count":     int64(1),
 						"cpu_architecture":        common.X86CPUArchitecture,
 						"openshift_version":       "4.10",
 					}).Error).ShouldNot(HaveOccurred())
@@ -4188,7 +4188,7 @@ var _ = Describe("cluster", func() {
 						CPUArchitecture:       common.ARM64CPUArchitecture,
 						UserManagedNetworking: swag.Bool(true),
 						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
-						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
+						ControlPlaneCount:     int64(3),
 						OpenshiftVersion:      "4.10",
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
@@ -4214,7 +4214,7 @@ var _ = Describe("cluster", func() {
 						OpenshiftVersion:      "4.11",
 						UserManagedNetworking: swag.Bool(true),
 						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
-						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
+						ControlPlaneCount:     int64(3),
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -5253,11 +5253,11 @@ var _ = Describe("cluster", func() {
 		It("Fail to create Cluster with a wildcard noProxy", func() {
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("some-cluster-name"),
-					OpenshiftVersion:     swag.String("4.8.0-fc.1"),
-					NoProxy:              swag.String("*"),
-					PullSecret:           swag.String(fakePullSecret),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+					Name:              swag.String("some-cluster-name"),
+					OpenshiftVersion:  swag.String("4.8.0-fc.1"),
+					NoProxy:           swag.String("*"),
+					PullSecret:        swag.String(fakePullSecret),
+					ControlPlaneCount: swag.Int64(3),
 				},
 			})
 
@@ -6007,7 +6007,7 @@ var _ = Describe("V2UpdateCluster", func() {
 			JustBeforeEach(func() {
 				Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
 					"user_managed_networking": true,
-					"high_availability_mode":  models.ClusterHighAvailabilityModeNone,
+					"control_plane_count":     int64(1),
 					"platform_type":           models.PlatformTypeNone,
 					"cpu_architecture":        common.X86CPUArchitecture,
 				}).Error).ShouldNot(HaveOccurred())
@@ -6090,7 +6090,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
 					cluster = &common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
-						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
+						ControlPlaneCount:     int64(3),
 						UserManagedNetworking: swag.Bool(false),
 						OpenshiftVersion:      "4.14",
 						CPUArchitecture:       common.DefaultCPUArchitecture,
@@ -6367,7 +6367,7 @@ var _ = Describe("V2UpdateCluster", func() {
 						clusterID = strfmt.UUID(uuid.New().String())
 						err := db.Create(&common.Cluster{Cluster: models.Cluster{
 							ID:                    &clusterID,
-							HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
+							ControlPlaneCount:     int64(1),
 							UserManagedNetworking: swag.Bool(true),
 							Platform: &models.Platform{
 								Type: common.PlatformTypePtr(models.PlatformTypeNone),
@@ -6798,7 +6798,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
 					cluster = &common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
-						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
+						ControlPlaneCount:     int64(3),
 						UserManagedNetworking: swag.Bool(true),
 						Platform: &models.Platform{
 							Type: common.PlatformTypePtr(models.PlatformTypeNone),
@@ -7093,7 +7093,7 @@ var _ = Describe("V2UpdateCluster", func() {
 
 					cluster = &common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
-						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
+						ControlPlaneCount:     int64(3),
 						UserManagedNetworking: swag.Bool(true),
 						Platform: &models.Platform{
 							Type: common.PlatformTypePtr(models.PlatformTypeExternal),
@@ -7455,7 +7455,7 @@ var _ = Describe("V2UpdateCluster", func() {
 						clusterID = strfmt.UUID(uuid.New().String())
 						err := db.Create(&common.Cluster{Cluster: models.Cluster{
 							ID:                    &clusterID,
-							HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
+							ControlPlaneCount:     int64(1),
 							UserManagedNetworking: swag.Bool(true),
 							Platform: &models.Platform{
 								Type: common.PlatformTypePtr(models.PlatformTypeExternal),
@@ -7522,7 +7522,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
 					cluster = &common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
-						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
+						ControlPlaneCount:     int64(3),
 						UserManagedNetworking: swag.Bool(false),
 						Platform: &models.Platform{
 							Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
@@ -7756,10 +7756,10 @@ var _ = Describe("V2UpdateCluster", func() {
 		Context("Feature compatibility", func() {
 			Context("OCP Version 4.13", func() {
 
-				createCluster := func(clusterId strfmt.UUID, cpuArchitecture, openshiftVersion string, platformType models.PlatformType, umn bool, highAvailabilityMode string) {
+				createCluster := func(clusterId strfmt.UUID, cpuArchitecture, openshiftVersion string, platformType models.PlatformType, umn bool, controlPlaneCount int64) {
 					cluster := &common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterId,
-						HighAvailabilityMode:  swag.String(highAvailabilityMode),
+						ControlPlaneCount:     controlPlaneCount,
 						UserManagedNetworking: swag.Bool(umn),
 						OpenshiftVersion:      openshiftVersion,
 						Platform: &models.Platform{
@@ -7784,14 +7784,14 @@ var _ = Describe("V2UpdateCluster", func() {
 					Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
 				}
 
-				createClusterWithInfraEnv := func(clusterId strfmt.UUID, cpuArchitecture, openshiftVersion string, platformType models.PlatformType, umn bool, highAvailabilityMode string) {
-					createCluster(clusterID, cpuArchitecture, openshiftVersion, platformType, umn, highAvailabilityMode)
+				createClusterWithInfraEnv := func(clusterId strfmt.UUID, cpuArchitecture, openshiftVersion string, platformType models.PlatformType, umn bool, controlPlaneCount int64) {
+					createCluster(clusterID, cpuArchitecture, openshiftVersion, platformType, umn, controlPlaneCount)
 					createInfraEnv(clusterID, cpuArchitecture)
 				}
 
 				It("s390x with SNO - compatible on 4.13", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureS390x, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureS390x, "4.13", models.PlatformTypeNone, true, 1)
 					mockSuccess()
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -7803,12 +7803,12 @@ var _ = Describe("V2UpdateCluster", func() {
 
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.StringValue(actual.HighAvailabilityMode)).To(Equal(models.ClusterHighAvailabilityModeNone))
+					Expect(int64(actual.ControlPlaneCount)).To(Equal(1))
 				})
 
 				It("s390x with SNO - incompatible on 4.12", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureS390x, "4.12", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureS390x, "4.12", models.PlatformTypeNone, true, int64(1))
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7821,7 +7821,7 @@ var _ = Describe("V2UpdateCluster", func() {
 
 				It("ppc64le with SNO - compatible on 4.13", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeNone, true, int64(1))
 					mockSuccess()
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -7833,12 +7833,12 @@ var _ = Describe("V2UpdateCluster", func() {
 
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.StringValue(actual.HighAvailabilityMode)).To(Equal(models.ClusterHighAvailabilityModeNone))
+					Expect(swag.Int64(actual.ControlPlaneCount)).To(Equal(1))
 				})
 
 				It("ppc64le with SNO - incompatible on 4.12", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.12", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.12", models.PlatformTypeNone, true, int64(1))
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7851,7 +7851,7 @@ var _ = Describe("V2UpdateCluster", func() {
 
 				It("update ClusterManagedNetworking with s390x - incompatible", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureS390x, "4.13", models.PlatformTypeBaremetal, false, models.ClusterHighAvailabilityModeFull)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureS390x, "4.13", models.PlatformTypeBaremetal, false, int64(3))
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7864,7 +7864,7 @@ var _ = Describe("V2UpdateCluster", func() {
 
 				It("update ClusterManagedNetworking with arm64 - compatible", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureArm64, "4.13", models.PlatformTypeBaremetal, false, models.ClusterHighAvailabilityModeFull)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureArm64, "4.13", models.PlatformTypeBaremetal, false, int64(3))
 					mockSuccess()
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -7881,7 +7881,7 @@ var _ = Describe("V2UpdateCluster", func() {
 
 				It("update CNV operators with ppc64le - incompatible", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeFull)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeNone, true, int64(3))
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7909,9 +7909,9 @@ var _ = Describe("V2UpdateCluster", func() {
 				It("when using nil value", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                   &clusterID,
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-							OpenshiftVersion:     "4.16",
+							ID:                &clusterID,
+							ControlPlaneCount: int64(3),
+							OpenshiftVersion:  "4.16",
 						}}
 
 					err := db.Create(cluster).Error
@@ -7929,10 +7929,9 @@ var _ = Describe("V2UpdateCluster", func() {
 				It("not changing the value", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                   &clusterID,
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-							OpenshiftVersion:     "4.16",
-							ControlPlaneCount:    3,
+							ID:                &clusterID,
+							OpenshiftVersion:  "4.16",
+							ControlPlaneCount: 3,
 						},
 					}
 
@@ -7960,10 +7959,9 @@ var _ = Describe("V2UpdateCluster", func() {
 				It("increasing to 4 control planes with OCP >= 4.18 the value and multi-node", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                   &clusterID,
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-							OpenshiftVersion:     "4.18",
-							ControlPlaneCount:    3,
+							ID:                &clusterID,
+							OpenshiftVersion:  "4.18",
+							ControlPlaneCount: 3,
 						},
 					}
 
@@ -7991,10 +7989,9 @@ var _ = Describe("V2UpdateCluster", func() {
 				It(fmt.Sprintf("descreasing to 3 control planes with OCP >= %s the value and multi-node", common.MinimumVersionForNonStandardHAOCPControlPlane), func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                   &clusterID,
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-							OpenshiftVersion:     "4.18",
-							ControlPlaneCount:    4,
+							ID:                &clusterID,
+							OpenshiftVersion:  "4.18",
+							ControlPlaneCount: 4,
 						},
 					}
 
@@ -8024,10 +8021,9 @@ var _ = Describe("V2UpdateCluster", func() {
 				It("update to invalid value, non-standard HA OCP Control Plane not supported", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                   &clusterID,
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-							OpenshiftVersion:     "4.16",
-							ControlPlaneCount:    3,
+							ID:                &clusterID,
+							OpenshiftVersion:  "4.16",
+							ControlPlaneCount: 3,
 						},
 					}
 
@@ -8047,10 +8043,9 @@ var _ = Describe("V2UpdateCluster", func() {
 				It("update to invalid value, non-standard HA OCP Control Plane supported", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                   &clusterID,
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-							OpenshiftVersion:     "4.18",
-							ControlPlaneCount:    3,
+							ID:                &clusterID,
+							OpenshiftVersion:  "4.18",
+							ControlPlaneCount: 3,
 						},
 					}
 
@@ -8070,10 +8065,9 @@ var _ = Describe("V2UpdateCluster", func() {
 				It("update amount to != 1 when SNO", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                   &clusterID,
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
-							OpenshiftVersion:     "4.16",
-							ControlPlaneCount:    1,
+							ID:                &clusterID,
+							OpenshiftVersion:  "4.16",
+							ControlPlaneCount: 1,
 						},
 					}
 
@@ -8093,10 +8087,9 @@ var _ = Describe("V2UpdateCluster", func() {
 				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version < %s", common.MinimumVersionForNonStandardHAOCPControlPlane), func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                   &clusterID,
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-							OpenshiftVersion:     "4.16",
-							ControlPlaneCount:    3,
+							ID:                &clusterID,
+							OpenshiftVersion:  "4.16",
+							ControlPlaneCount: 3,
 						},
 					}
 
@@ -8120,10 +8113,9 @@ var _ = Describe("V2UpdateCluster", func() {
 				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version >= %s", common.MinimumVersionForNonStandardHAOCPControlPlane), func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                   &clusterID,
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-							OpenshiftVersion:     "4.18",
-							ControlPlaneCount:    4,
+							ID:                &clusterID,
+							OpenshiftVersion:  "4.18",
+							ControlPlaneCount: 4,
 						},
 					}
 
@@ -9612,10 +9604,10 @@ var _ = Describe("infraEnvs", func() {
 				clusterID := strfmt.UUID(uuid.New().String())
 				c := &common.Cluster{
 					Cluster: models.Cluster{
-						ID:                   &clusterID,
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-						OpenshiftVersion:     "4.12",
-						CPUArchitecture:      models.ClusterCPUArchitectureS390x,
+						ID:                &clusterID,
+						ControlPlaneCount: int64(3),
+						OpenshiftVersion:  "4.12",
+						CPUArchitecture:   models.ClusterCPUArchitectureS390x,
 						Platform: &models.Platform{
 							Type: common.PlatformTypePtr(models.PlatformTypeNone),
 						},
@@ -13132,10 +13124,10 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		mockAMSSubscription(ctx)
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name:                 swag.String("some-cluster-name"),
-				OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:           swag.String(fakePullSecret),
-				HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+				Name:              swag.String("some-cluster-name"),
+				OpenshiftVersion:  swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:        swag.String(fakePullSecret),
+				ControlPlaneCount: swag.Int64(3),
 			},
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
@@ -13201,7 +13193,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 	It("single SNO vsphere host", func() {
 		db.Model(&models.Cluster{}).
 			Where("id = ?", clusterID).
-			Update("high_availability_mode", models.ClusterHighAvailabilityModeNone)
+			Update("control_plane_count", int64(1))
 		Expect(db.Error).ToNot(HaveOccurred())
 
 		addVsphereHost(clusterID, models.HostRoleMaster)
@@ -13211,19 +13203,6 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
 		Expect(len(platforms)).Should(Equal(1))
 		Expect(platforms[0]).Should(Equal(models.PlatformTypeNone))
-	})
-
-	It("HighAvailabilityMode is nil with single host", func() {
-		db.Model(&models.Cluster{}).
-			Where("id = ?", clusterID).
-			Update("high_availability_mode", nil)
-		Expect(db.Error).ToNot(HaveOccurred())
-
-		addVsphereHost(clusterID, models.HostRoleMaster)
-		validateHostsInventory(1, 0)
-		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any())
-		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
-		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
 	})
 
 	It("Unsupported platform - nutanix", func() {
@@ -13829,82 +13808,82 @@ var _ = Describe("RegisterCluster", func() {
 	// Note: SNO is supported starting OpenShift v4.8, and currently only supports Platform "none"
 	It("Default Network Type Setting", func() {
 		type clusterParamsForTest struct {
-			OpenShiftVersion     *string
-			HighAvailabilityMode *string
-			DesiredNetworkType   string
-			Platform             models.Platform
+			OpenShiftVersion   *string
+			ControlPlaneCount  *int64
+			DesiredNetworkType string
+			Platform           models.Platform
 		}
 
 		tests := []clusterParamsForTest{
 			// OpenShift version >= 4.12.0-0.0, not SNO => OVNKubernetes
 			{
-				OpenShiftVersion:     swag.String("4.13"),
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
-				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
+				OpenShiftVersion:   swag.String("4.13"),
+				ControlPlaneCount:  swag.Int64(3),
+				DesiredNetworkType: models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:           models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
 			},
 			// OpenShift version >= 4.12.0-0.0, SNO => OVNKubernetes
 			{
-				OpenShiftVersion:     swag.String("4.14.2"),
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
-				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
-				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+				OpenShiftVersion:   swag.String("4.14.2"),
+				ControlPlaneCount:  swag.Int64(1),
+				DesiredNetworkType: models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:           models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
 			},
 			// OpenShift version < 4.12.0-0.0, not SNO => OpenShiftSDN
 			{
-				OpenShiftVersion:     swag.String("4.10.3"),
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOpenShiftSDN,
-				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
+				OpenShiftVersion:   swag.String("4.10.3"),
+				ControlPlaneCount:  swag.Int64(3),
+				DesiredNetworkType: models.ClusterCreateParamsNetworkTypeOpenShiftSDN,
+				Platform:           models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
 			},
 			// OpenShift version < 4.12.0-0.0, SNO => OVNKubernetes
 			{
-				OpenShiftVersion:     swag.String("4.11.17"),
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
-				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
-				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+				OpenShiftVersion:   swag.String("4.11.17"),
+				ControlPlaneCount:  swag.Int64(1),
+				DesiredNetworkType: models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:           models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
 			},
-			// OpenShift version >= 4.12.0-0.0, HighAvailability = nil => OVNKubernetes
+			// OpenShift version >= 4.12.0-0.0, ControlPlaneCount = nil => OVNKubernetes
 			{
-				OpenShiftVersion:     swag.String("4.13.2"),
-				HighAvailabilityMode: nil,
-				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
-				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
+				OpenShiftVersion:   swag.String("4.13.2"),
+				ControlPlaneCount:  nil,
+				DesiredNetworkType: models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:           models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
 			},
-			// OpenShift version < 4.12.0-0.0, HighAvailability = nil => OpenShiftSDN
+			// OpenShift version < 4.12.0-0.0, ControlPlaneCount = nil => OpenShiftSDN
 			{
-				OpenShiftVersion:     swag.String("4.8.5"),
-				HighAvailabilityMode: nil,
-				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOpenShiftSDN,
-				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
+				OpenShiftVersion:   swag.String("4.8.5"),
+				ControlPlaneCount:  nil,
+				DesiredNetworkType: models.ClusterCreateParamsNetworkTypeOpenShiftSDN,
+				Platform:           models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
 			},
 			// OpenShift version >= 4.12.0-0.0, SNO, IPv4 => OVNKubernetes
 			{
-				OpenShiftVersion:     swag.String("4.12.0-ec.3"),
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
-				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
-				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+				OpenShiftVersion:   swag.String("4.12.0-ec.3"),
+				ControlPlaneCount:  swag.Int64(1),
+				DesiredNetworkType: models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:           models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
 			},
 			// OpenShift version < 4.12.0-0.0, SNO => OVNKubernetes
 			{
-				OpenShiftVersion:     swag.String("4.11.0-rc.3"),
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
-				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
-				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+				OpenShiftVersion:   swag.String("4.11.0-rc.3"),
+				ControlPlaneCount:  swag.Int64(1),
+				DesiredNetworkType: models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:           models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
 			},
 			// OpenShift version >= 4.12.0-0.0, SNO => OVNKubernetes
 			{
-				OpenShiftVersion:     swag.String("4.12-fc.2"),
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
-				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
-				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+				OpenShiftVersion:   swag.String("4.12-fc.2"),
+				ControlPlaneCount:  swag.Int64(1),
+				DesiredNetworkType: models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:           models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
 			},
 			// OpenShift version >= 4.12.0-0.0, SNO => OVNKubernetes
 			{
-				OpenShiftVersion:     swag.String("4.12-rc.1"),
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
-				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
-				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+				OpenShiftVersion:   swag.String("4.12-rc.1"),
+				ControlPlaneCount:  swag.Int64(1),
+				DesiredNetworkType: models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:           models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
 			},
 		}
 
@@ -13914,7 +13893,7 @@ var _ = Describe("RegisterCluster", func() {
 
 			NewClusterParams := getDefaultClusterCreateParams()
 			NewClusterParams.OpenshiftVersion = t.OpenShiftVersion
-			NewClusterParams.HighAvailabilityMode = t.HighAvailabilityMode
+			NewClusterParams.ControlPlaneCount = t.ControlPlaneCount
 			NewClusterParams.Platform = &t.Platform
 
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -13936,11 +13915,11 @@ var _ = Describe("RegisterCluster", func() {
 
 		getClusterCreateParams := func() *models.ClusterCreateParams {
 			return &models.ClusterCreateParams{
-				Name:                 swag.String("some-cluster-name"),
-				OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:           swag.String(fakePullSecret),
-				CPUArchitecture:      models.ClusterCPUArchitectureX8664,
-				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+				Name:              swag.String("some-cluster-name"),
+				OpenshiftVersion:  swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:        swag.String(fakePullSecret),
+				CPUArchitecture:   models.ClusterCPUArchitectureX8664,
+				ControlPlaneCount: swag.Int64(3),
 			}
 		}
 
@@ -13981,14 +13960,14 @@ var _ = Describe("RegisterCluster", func() {
 	})
 
 	Context("Platform", func() {
-		getClusterCreateParams := func(highAvailabilityMode *string) *models.ClusterCreateParams {
+		getClusterCreateParams := func(controlPlaneCount *int64) *models.ClusterCreateParams {
 
 			return &models.ClusterCreateParams{
-				Name:                 swag.String("some-cluster-name"),
-				OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:           swag.String(fakePullSecret),
-				CPUArchitecture:      models.ClusterCPUArchitectureX8664,
-				HighAvailabilityMode: highAvailabilityMode,
+				Name:              swag.String("some-cluster-name"),
+				OpenshiftVersion:  swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:        swag.String(fakePullSecret),
+				CPUArchitecture:   models.ClusterCPUArchitectureX8664,
+				ControlPlaneCount: controlPlaneCount,
 			}
 		}
 
@@ -14184,7 +14163,7 @@ var _ = Describe("RegisterCluster", func() {
 				mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
 					[]string{minimalOpenShiftVersionForNutanix, common.ARM64CPUArchitecture}).Times(1)
 
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeFull))
+				params := getClusterCreateParams(swag.Int64(3))
 				params.Platform = &models.Platform{
 					Type: common.PlatformTypePtr(models.PlatformTypeNone),
 				}
@@ -14334,12 +14313,12 @@ var _ = Describe("RegisterCluster", func() {
 			})
 		})
 
-		Context("HighAvailabilityMode = None", func() {
-			It("None platform when HighAvailabilityMode is None", func() {
+		Context("ControlPlsneCount = None", func() {
+			It("None platform when ControlPlaneCount is None", func() {
 				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.9")
 				mockAMSSubscription(ctx)
 
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: params,
@@ -14350,8 +14329,8 @@ var _ = Describe("RegisterCluster", func() {
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 			})
 
-			It("Fail to disable UserManagedNetworking when HighAvailabilityMode is None", func() {
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+			It("Fail to disable UserManagedNetworking when ControlPlaneCount is None", func() {
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(false)
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -14364,7 +14343,7 @@ var _ = Describe("RegisterCluster", func() {
 				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.9")
 				mockAMSSubscription(ctx)
 
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(true)
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -14376,9 +14355,9 @@ var _ = Describe("RegisterCluster", func() {
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 			})
 
-			It("Fail to set baremetal platform when HighAvailabilityMode is None", func() {
+			It("Fail to set baremetal platform when ControlPlaneCount is 1", func() {
 
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -14387,8 +14366,8 @@ var _ = Describe("RegisterCluster", func() {
 				verifyApiError(reply, http.StatusBadRequest)
 			})
 
-			It("Fail to set baremetal platform when HighAvailabilityMode is None", func() {
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+			It("Fail to set baremetal platform when ControlPlaneCount is 1", func() {
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(false)
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
@@ -14398,8 +14377,8 @@ var _ = Describe("RegisterCluster", func() {
 				verifyApiError(reply, http.StatusBadRequest)
 			})
 
-			It("Fail to set vsphere platform when HighAvailabilityMode is None", func() {
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+			It("Fail to set vsphere platform when ControlPlaneCount is 1", func() {
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)}
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -14408,8 +14387,8 @@ var _ = Describe("RegisterCluster", func() {
 				verifyApiError(reply, http.StatusBadRequest)
 			})
 
-			It("Fail to set nutanix platform when HighAvailabilityMode is None", func() {
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+			It("Fail to set nutanix platform when ControlPlaneCount is 1", func() {
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.11")
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)}
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -14418,9 +14397,9 @@ var _ = Describe("RegisterCluster", func() {
 				verifyApiError(reply, http.StatusBadRequest)
 			})
 
-			It("Fail to set baremetal platform and enable UserManagedNetworking when HighAvailabilityMode is None", func() {
+			It("Fail to set baremetal platform and enable UserManagedNetworking when ControlPlaneCount is 1", func() {
 
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(true)
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
@@ -14430,11 +14409,11 @@ var _ = Describe("RegisterCluster", func() {
 				verifyApiError(reply, http.StatusBadRequest)
 			})
 
-			It("Set none platform when HighAvailabilityMode is None", func() {
+			It("Set none platform when ControlPlaneCount is 1", func() {
 				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.9")
 				mockAMSSubscription(ctx)
 
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -14446,11 +14425,11 @@ var _ = Describe("RegisterCluster", func() {
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 			})
 
-			It("Set vsphere platform when HighAvailabilityMode is None", func() {
+			It("Set vsphere platform when ControlPlaneCount is 1", func() {
 				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.9")
 				mockAMSSubscription(ctx)
 
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(true)
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
@@ -14463,8 +14442,8 @@ var _ = Describe("RegisterCluster", func() {
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 			})
 
-			It("Fail to set none platform and disable UserManagedNetworking when HighAvailabilityMode is None", func() {
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+			It("Fail to set none platform and disable UserManagedNetworking when ControlPlaneCount is 1", func() {
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(false)
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
@@ -14474,11 +14453,11 @@ var _ = Describe("RegisterCluster", func() {
 				verifyApiError(reply, http.StatusBadRequest)
 			})
 
-			It("Set none platform and enable UserManagedNetworking when HighAvailabilityMode is None", func() {
+			It("Set none platform and enable UserManagedNetworking when ControlPlaneCount is 1", func() {
 				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.9")
 				mockAMSSubscription(ctx)
 
-				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+				params := getClusterCreateParams(swag.Int64(1))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(true)
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
@@ -14598,7 +14577,7 @@ var _ = Describe("RegisterCluster", func() {
 			}
 			params.OpenshiftVersion = swag.String("4.12")
 			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
-			params.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			params.ControlPlaneCount = swag.Int64(1)
 
 			releaseImage := &models.ReleaseImage{
 				CPUArchitectures: []string{models.ClusterCPUArchitectureX8664, params.CPUArchitecture},
@@ -14628,7 +14607,7 @@ var _ = Describe("RegisterCluster", func() {
 
 			params.OpenshiftVersion = swag.String("4.13")
 			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
-			params.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			params.ControlPlaneCount = swag.Int64(1)
 			params.Platform = nil
 
 			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
@@ -14648,7 +14627,7 @@ var _ = Describe("RegisterCluster", func() {
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 			actual := reply.(*installer.V2RegisterClusterCreated).Payload
-			Expect(swag.StringValue(actual.HighAvailabilityMode)).To(Equal(models.ClusterHighAvailabilityModeNone))
+			Expect(swag.Int64(actual.ControlPlaneCount)).To(Equal(int64(1)))
 			Expect(actual.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureS390x))
 		})
 
@@ -14921,7 +14900,7 @@ var _ = Describe("RegisterCluster", func() {
 		clusterParams.UserManagedNetworking = swag.Bool(true)
 		clusterParams.APIVips = []*models.APIVip{{IP: "10.35.10.11"}}
 		clusterParams.IngressVips = []*models.IngressVip{{IP: "10.35.10.10"}}
-		clusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		clusterParams.ControlPlaneCount = swag.Int64(1)
 		clusterParams.OpenshiftVersion = swag.String("4.12")
 		clusterParams.Platform = &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeNone),
@@ -14941,8 +14920,8 @@ var _ = Describe("RegisterCluster", func() {
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 						Mode:     swag.String(models.DiskEncryptionModeTang),
 					},
-					OpenshiftVersion:     swag.String("4.12.0"),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+					OpenshiftVersion:  swag.String("4.12.0"),
+					ControlPlaneCount: swag.Int64(3),
 				},
 			})
 			verifyApiErrorString(reply, http.StatusBadRequest, "Setting Tang mode but tang_servers isn't set")
@@ -14957,8 +14936,8 @@ var _ = Describe("RegisterCluster", func() {
 							Mode:        swag.String(models.DiskEncryptionModeTang),
 							TangServers: `[{"URL":"","Thumbprint":""}]`,
 						},
-						OpenshiftVersion:     swag.String("4.12.0"),
-						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull)},
+						OpenshiftVersion:  swag.String("4.12.0"),
+						ControlPlaneCount: swag.Int64(3)},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "empty url")
 			})
@@ -14971,8 +14950,8 @@ var _ = Describe("RegisterCluster", func() {
 							Mode:        swag.String(models.DiskEncryptionModeTang),
 							TangServers: `[{"URL":"invalidUrl","Thumbprint":""}]`,
 						},
-						OpenshiftVersion:     swag.String("4.12.0"),
-						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+						OpenshiftVersion:  swag.String("4.12.0"),
+						ControlPlaneCount: swag.Int64(3),
 					},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "invalid URI for reques")
@@ -14987,8 +14966,8 @@ var _ = Describe("RegisterCluster", func() {
 						Mode:        swag.String(models.DiskEncryptionModeTang),
 						TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
 					},
-					OpenshiftVersion:     swag.String("4.12.0"),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+					OpenshiftVersion:  swag.String("4.12.0"),
+					ControlPlaneCount: swag.Int64(3),
 				},
 			})
 			verifyApiErrorString(reply, http.StatusBadRequest, "Tang thumbprint isn't set")
@@ -15448,8 +15427,8 @@ var _ = Describe("RegisterCluster", func() {
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 						},
-						OpenshiftVersion:     swag.String("4.12.0"),
-						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+						OpenshiftVersion:  swag.String("4.12.0"),
+						ControlPlaneCount: swag.Int64(3),
 					},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
@@ -15461,8 +15440,8 @@ var _ = Describe("RegisterCluster", func() {
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
 						},
-						OpenshiftVersion:     swag.String("4.12.0"),
-						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull)},
+						OpenshiftVersion:  swag.String("4.12.0"),
+						ControlPlaneCount: swag.Int64(3)},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 			})
@@ -15473,8 +15452,8 @@ var _ = Describe("RegisterCluster", func() {
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
 						},
-						OpenshiftVersion:     swag.String("4.12.0"),
-						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+						OpenshiftVersion:  swag.String("4.12.0"),
+						ControlPlaneCount: swag.Int64(3),
 					},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
@@ -16044,8 +16023,8 @@ var _ = Describe("RegisterCluster", func() {
 
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
-							OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+							ControlPlaneCount: swag.Int64(3),
 						},
 					})
 
@@ -16064,8 +16043,8 @@ var _ = Describe("RegisterCluster", func() {
 
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
-							OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+							OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+							ControlPlaneCount: swag.Int64(1),
 						},
 					})
 
@@ -16096,7 +16075,7 @@ var _ = Describe("RegisterCluster", func() {
 					var dbCluster common.Cluster
 					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
-					Expect(*dbCluster.HighAvailabilityMode).To(BeEquivalentTo(models.ClusterCreateParamsHighAvailabilityModeFull))
+					Expect(*&dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(3)))
 				})
 
 				It("control_plane_count is set to 1", func() {
@@ -16116,7 +16095,7 @@ var _ = Describe("RegisterCluster", func() {
 					var dbCluster common.Cluster
 					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
-					Expect(*dbCluster.HighAvailabilityMode).To(BeEquivalentTo(models.ClusterCreateParamsHighAvailabilityModeNone))
+					Expect(*&dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(1)))
 				})
 
 				It("not set", func() {
@@ -16135,7 +16114,7 @@ var _ = Describe("RegisterCluster", func() {
 					var dbCluster common.Cluster
 					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
-					Expect(*dbCluster.HighAvailabilityMode).To(BeEquivalentTo(models.ClusterCreateParamsHighAvailabilityModeFull))
+					Expect(*&dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(3)))
 					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(3))
 				})
 			})
@@ -16145,9 +16124,8 @@ var _ = Describe("RegisterCluster", func() {
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount:    swag.Int64(5),
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						OpenshiftVersion:  swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
+						ControlPlaneCount: swag.Int64(5),
 					},
 				})
 
@@ -16159,7 +16137,6 @@ var _ = Describe("RegisterCluster", func() {
 				db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
 				Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(5))
-				Expect(*dbCluster.HighAvailabilityMode).To(BeEquivalentTo(models.ClusterCreateParamsHighAvailabilityModeFull))
 			})
 
 			It("setting 1 control plane, single-node", func() {
@@ -16167,9 +16144,8 @@ var _ = Describe("RegisterCluster", func() {
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount:    swag.Int64(1),
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+						OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						ControlPlaneCount: swag.Int64(1),
 					},
 				})
 
@@ -16181,7 +16157,6 @@ var _ = Describe("RegisterCluster", func() {
 				db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
 				Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(1))
-				Expect(*dbCluster.HighAvailabilityMode).To(BeEquivalentTo(models.ClusterCreateParamsHighAvailabilityModeNone))
 			})
 		})
 
@@ -16189,9 +16164,8 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 6 control planes, multi-node, non-standard HA OCP Control Plane not supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount:    swag.Int64(6),
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						ControlPlaneCount: swag.Int64(6),
 					},
 				})
 
@@ -16205,9 +16179,8 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 6 control planes, multi-node, non-standard HA OCP Control Plane supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount:    swag.Int64(6),
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						OpenshiftVersion:  swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
+						ControlPlaneCount: swag.Int64(6),
 					},
 				})
 
@@ -16221,9 +16194,8 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 3 control planes, single-node", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount:    swag.Int64(3),
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+						OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						ControlPlaneCount: swag.Int64(1),
 					},
 				})
 
@@ -16237,9 +16209,8 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 1 control plane, mutli-node", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount:    swag.Int64(1),
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						ControlPlaneCount: swag.Int64(1),
 					},
 				})
 
@@ -16253,9 +16224,8 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 4 control planes, multi-node, non-standard HA OCP Control Plane not supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount:    swag.Int64(4),
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						ControlPlaneCount: swag.Int64(4),
 					},
 				})
 
@@ -19077,7 +19047,7 @@ var _ = Describe("Platform tests", func() {
 			}
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForExternal)
-			registerParams.NewClusterParams.HighAvailabilityMode = swag.String(models.ClusterCreateParamsHighAvailabilityModeNone)
+			registerParams.NewClusterParams.ControlPlaneCount = swag.Int64(1)
 
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
@@ -19632,36 +19602,36 @@ var _ = Describe("Update cluster - feature usage flags", func() {
 	})
 
 	Context("User Managed Network With Multi Node Usage", func() {
-		It("feature usage when userManagedNetworking is true and highAvailabilityMode is Full should be on", func() {
+		It("feature usage when userManagedNetworking is true and controlPlaneCount should be 3", func() {
 			userManagedNetwork := true
-			highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+			controlPlaneCount := int64(3)
 			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkingWithMultiNode, nil).Times(1)
 			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkingWithMultiNode).Times(0)
-			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, highAvailabilityMode, usages)
+			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, controlPlaneCount, usages)
 		})
 
-		It("feature usage when userManagedNetworking is false and highAvailabilityMode is Full should be off", func() {
+		It("feature usage when userManagedNetworking is false and controlPlaneCount should not be 3", func() {
 			userManagedNetwork := false
-			highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+			controlPlaneCount := int64(3)
 			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkingWithMultiNode, nil).Times(0)
 			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkingWithMultiNode).Times(1)
-			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, highAvailabilityMode, usages)
+			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, controlPlaneCount, usages)
 		})
 
-		It("feature usage when userManagedNetworking is true and highAvailabilityMode is None should be off", func() {
+		It("feature usage when userManagedNetworking is true and controlPlaneCount should not be 1", func() {
 			userManagedNetwork := true
-			highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeNone
+			controlPlaneCount := int64(1)
 			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkingWithMultiNode, nil).Times(0)
 			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkingWithMultiNode).Times(1)
-			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, highAvailabilityMode, usages)
+			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, controlPlaneCount, usages)
 		})
 
-		It("feature usage when userManagedNetworking is false and highAvailabilityMode is None should be off", func() {
+		It("feature usage when userManagedNetworking is false and controlPlaneCount should not be 1", func() {
 			userManagedNetwork := false
-			highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeNone
+			controlPlaneCount := int64(1)
 			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkingWithMultiNode, nil).Times(0)
 			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkingWithMultiNode).Times(1)
-			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, highAvailabilityMode, usages)
+			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, controlPlaneCount, usages)
 		})
 	})
 })
@@ -20168,7 +20138,7 @@ var _ = Describe("GetHostByKubeKey", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-		cluster := createClusterWithAvailability(db, models.ClusterStatusReady, models.ClusterCreateParamsHighAvailabilityModeNone)
+		cluster := createClusterWithAvailability(db, models.ClusterStatusReady, int64(1))
 		clusterID = cluster.ID
 		// this doesn't need to be a VM, but any host works for this test
 		addVMToCluster(cluster, db)
