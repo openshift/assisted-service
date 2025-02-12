@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-openapi/swag"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
@@ -364,8 +363,9 @@ func isUserManagedNetworkingSetToFalseWithSNO(newObject *hiveext.AgentClusterIns
 
 func validateCreatePlatformAndUMN(newObject *hiveext.AgentClusterInstall) error {
 	platform := common.PlatformTypeToPlatform(newObject.Spec)
+	ctrlPlaneCount := getHighAvailabilityMode(newObject, nil)
 	_, _, err := provider.GetActualCreateClusterPlatformParams(
-		platform, newObject.Spec.Networking.UserManagedNetworking, getHighAvailabilityMode(newObject, nil), "")
+		platform, newObject.Spec.Networking.UserManagedNetworking, &ctrlPlaneCount, "")
 	return err
 }
 
@@ -387,8 +387,9 @@ func validateUpdatePlatformAndUMNUpdate(oldObject, newObject *hiveext.AgentClust
 		userManagedNetworking = oldObject.Spec.Networking.UserManagedNetworking
 	}
 
+	ctrlPlaneCount := getHighAvailabilityMode(oldObject, newObject)
 	_, _, err := provider.GetActualCreateClusterPlatformParams(
-		platform, userManagedNetworking, getHighAvailabilityMode(oldObject, newObject), "")
+		platform, userManagedNetworking, &ctrlPlaneCount, "")
 	return err
 }
 
@@ -397,9 +398,9 @@ func isSNO(newObject *hiveext.AgentClusterInstall) bool {
 		newObject.Spec.ProvisionRequirements.WorkerAgents == 0
 }
 
-func getHighAvailabilityMode(originalObject, updatesObject *hiveext.AgentClusterInstall) *string {
+func getHighAvailabilityMode(originalObject, updatesObject *hiveext.AgentClusterInstall) int64 {
 	if originalObject == nil {
-		return swag.String("")
+		return int64(-1)
 	}
 
 	controlPlaneAgents := originalObject.Spec.ProvisionRequirements.ControlPlaneAgents
@@ -415,9 +416,9 @@ func getHighAvailabilityMode(originalObject, updatesObject *hiveext.AgentCluster
 	}
 
 	if controlPlaneAgents == 1 && workerAgents == 0 { // SNO
-		return swag.String(models.ClusterHighAvailabilityModeNone)
+		return int64(1)
 	}
-	return swag.String(models.ClusterHighAvailabilityModeFull)
+	return int64(3)
 }
 
 // diffReporter is a simple custom reporter that only records differences
