@@ -9,7 +9,6 @@ import (
 	"regexp"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -256,7 +255,7 @@ var _ = Describe("Operators manager", func() {
 		})
 		It("no error when both cnv and lvm operator enabled after 4.12", func() {
 			testVersion := "4.12.0"
-			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			cluster.ControlPlaneCount = int64(1)
 			monitoredOperators := []*models.MonitoredOperator{
 				{Name: "lvm"},
 				{Name: "lso"},
@@ -320,7 +319,7 @@ var _ = Describe("Operators manager", func() {
 		})
 		It("cnv operator enabled with lvm after 4.15 multinode", func() {
 			testVersion := "4.15.0"
-			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = int64(3)
 			monitoredOperators := []*models.MonitoredOperator{
 				{Name: "cnv"},
 				{Name: "lso"},
@@ -332,7 +331,7 @@ var _ = Describe("Operators manager", func() {
 		})
 		It("fail cnv operator enabled with lvm before 4.15 multinode", func() {
 			testVersion := "4.14.0"
-			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = int64(3)
 			monitoredOperators := []*models.MonitoredOperator{
 				{Name: "cnv"},
 				{Name: "lso"},

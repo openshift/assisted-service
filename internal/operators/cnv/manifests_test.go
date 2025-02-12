@@ -11,8 +11,8 @@ import (
 )
 
 var _ = Describe("CNV manifest generation", func() {
-	fullHaMode := models.ClusterHighAvailabilityModeFull
-	noneHaMode := models.ClusterHighAvailabilityModeNone
+	fullHaMode := int64(3)
+	noneHaMode := int64(1)
 	operator := NewCNVOperator(common.GetTestLog(), Config{Mode: true, SNOInstallHPP: true})
 
 	Context("CNV Manifest", func() {
@@ -50,20 +50,20 @@ var _ = Describe("CNV manifest generation", func() {
 			}
 		},
 			table.Entry("for non-SNO cluster", common.Cluster{Cluster: models.Cluster{
-				OpenshiftVersion:     "4.10",
-				HighAvailabilityMode: &fullHaMode,
+				OpenshiftVersion:  "4.10",
+				ControlPlaneCount: fullHaMode,
 			}}, false, Config{Mode: true, SNOInstallHPP: true}),
 			table.Entry("for SNO cluster", common.Cluster{Cluster: models.Cluster{
-				OpenshiftVersion:     "4.10",
-				HighAvailabilityMode: &noneHaMode,
+				OpenshiftVersion:  "4.10",
+				ControlPlaneCount: noneHaMode,
 			}}, true, Config{Mode: true, SNOInstallHPP: true}),
 			table.Entry("for SNO cluster with openshift version (and thus CNV) lower than 4.10", common.Cluster{Cluster: models.Cluster{
-				OpenshiftVersion:     "4.9",
-				HighAvailabilityMode: &noneHaMode,
+				OpenshiftVersion:  "4.9",
+				ControlPlaneCount: noneHaMode,
 			}}, true, Config{Mode: true, SNOInstallHPP: true}),
 			table.Entry("for SNO cluster and opt out of HPP via env var", common.Cluster{Cluster: models.Cluster{
-				OpenshiftVersion:     "4.10",
-				HighAvailabilityMode: &noneHaMode,
+				OpenshiftVersion:  "4.10",
+				ControlPlaneCount: noneHaMode,
 			}}, true, Config{Mode: true, SNOInstallHPP: false}),
 		)
 

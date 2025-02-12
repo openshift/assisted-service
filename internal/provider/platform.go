@@ -113,7 +113,7 @@ func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetwork
 	if userManagedNetworking == nil &&
 		cluster != nil &&
 		platform != nil &&
-		swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeFull && // no need to check SNO, it will be validated later in the update/creation
+		cluster.ControlPlaneCount == int64(3) && // no need to check SNO, it will be validated later in the update/creation
 		(!(isClusterPlatformBM(cluster) && isPlatformNone(platform)) &&
 			!(isClusterPlatformNone(cluster) && isPlatformBM(platform))) {
 
@@ -210,7 +210,7 @@ func getUpdateParamsForPlatformUMNMandatory(platform *models.Platform, userManag
 		return checkPlaformUpdate(platform, cluster), nil, nil
 	}
 
-	if *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+	if cluster.ControlPlaneCount == int64(1) {
 		if !swag.BoolValue(userManagedNetworking) || (platform != nil && !isUMNMandatoryForPlatform(platform)) {
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting platform different than none or oci platforms is not allowed in single node Openshift"))
 		}
