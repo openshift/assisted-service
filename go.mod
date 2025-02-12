@@ -1,8 +1,6 @@
 module github.com/openshift/assisted-service
 
-go 1.22.0
-
-toolchain go1.23.5
+go 1.23.6
 
 require (
 	github.com/IBM/netaddr v1.5.0
@@ -40,7 +38,6 @@ require (
 	github.com/hashicorp/go-version v1.6.0
 	github.com/iancoleman/strcase v0.2.0
 	github.com/itchyny/gojq v0.12.8
-	github.com/jinzhu/copier v0.3.5
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/krishicks/yaml-patch v0.0.10
@@ -72,7 +69,6 @@ require (
 	github.com/segmentio/kafka-go v0.4.38
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/go-http-metrics v0.11.0
-	github.com/stretchr/testify v1.10.0
 	github.com/thedevsaddam/retry v1.2.1
 	github.com/thoas/go-funk v0.9.3
 	github.com/vincent-petithory/dataurl v1.0.0
@@ -89,7 +85,6 @@ require (
 	k8s.io/apiextensions-apiserver v0.29.5
 	k8s.io/apimachinery v0.29.9
 	k8s.io/client-go v0.29.9
-	k8s.io/klog/v2 v2.110.1
 	k8s.io/kube-aggregator v0.29.5
 	k8s.io/kubectl v0.29.9
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
@@ -162,6 +157,7 @@ require (
 	k8s.io/apiserver v0.29.5 // indirect
 	k8s.io/cli-runtime v0.29.9 // indirect
 	k8s.io/component-base v0.29.9 // indirect
+	k8s.io/klog/v2 v2.110.1 // indirect
 	k8s.io/kms v0.29.5 // indirect
 	sigs.k8s.io/gateway-api v1.0.0 // indirect
 	sigs.k8s.io/kustomize/api v0.13.5-0.20230601165947-6ce0bf390ce3 // indirect
@@ -232,13 +228,11 @@ require (
 	github.com/openshift/machine-config-operator v0.0.1-0.20201023110058-6c8bd9b2915c
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect
 	github.com/pkg/xattr v0.4.10
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/spf13/cobra v1.8.0 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/testcontainers/testcontainers-go v0.29.1
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.11 // indirect
@@ -266,7 +260,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gopkg.in/yaml.v3 v3.0.1
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240103051144-eec4567ac022 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.29.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect

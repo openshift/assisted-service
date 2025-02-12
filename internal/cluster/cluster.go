@@ -339,7 +339,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	if db == nil {
 		db = m.db
 	}
-	cluster, err := common.GetClusterFromDBWithHosts(db, *c.ID)
+	cluster, err := common.GetClusterFromDBWithHosts(ctx, db, *c.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -1438,7 +1438,7 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(ctx context.Co
 }
 
 func (m *Manager) DetectAndStoreCollidingIPsForCluster(ctx context.Context, clusterID strfmt.UUID, db *gorm.DB) error {
-	cluster, err := common.GetClusterFromDBWithHosts(db, clusterID)
+	cluster, err := common.GetClusterFromDBWithHosts(ctx, db, clusterID)
 	if err != nil {
 		var statusCode int32 = http.StatusInternalServerError
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -1454,7 +1454,7 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(ctx context.Context, c
 		db = m.db
 	}
 	// We want to calculate majority groups only when in pre-install states since it is needed for pre-install validations
-	cluster, err := common.GetClusterFromDBWithHosts(db, clusterID)
+	cluster, err := common.GetClusterFromDBWithHosts(ctx, db, clusterID)
 	if err != nil {
 		var statusCode int32 = http.StatusInternalServerError
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -1733,7 +1733,7 @@ func (m *Manager) RefreshSchedulableMastersForcedTrue(ctx context.Context, clust
 	var cluster *common.Cluster
 	var err error
 
-	if cluster, err = common.GetClusterFromDBWithHosts(m.db, clusterID); err != nil {
+	if cluster, err = common.GetClusterFromDBWithHosts(ctx, m.db, clusterID); err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
 		return err
 	}

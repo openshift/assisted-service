@@ -1260,7 +1260,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 	}
 
 	// We need to retrieve the cluster from the database to ensure we have up-to-date cluster host roles.
-	cluster, err := common.GetClusterFromDBWithHosts(db, *h.ClusterID)
+	cluster, err := common.GetClusterFromDBWithHosts(ctx, db, *h.ClusterID)
 	if err != nil || cluster == nil {
 		return autoSelectedRole, errors.Wrapf(err, "failed fetching cluster with ID: %s from the DB", h.ClusterID.String())
 	}

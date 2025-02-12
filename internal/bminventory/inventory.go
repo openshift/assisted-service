@@ -1303,7 +1303,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	var cluster *common.Cluster
 
 	log.Infof("preparing for cluster %s installation", params.ClusterID)
-	if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
+	if cluster, err = common.GetClusterFromDBWithHosts(ctx, b.db, params.ClusterID); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
@@ -1358,7 +1358,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		}
 
 		// Reload again after refresh
-		if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
+		if cluster, err = common.GetClusterFromDBWithHosts(ctx, b.db, params.ClusterID); err != nil {
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
 	}

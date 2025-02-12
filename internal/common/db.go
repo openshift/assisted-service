@@ -348,7 +348,7 @@ func GetClusterFromDBForUpdate(db *gorm.DB, clusterId strfmt.UUID, eagerLoading 
 	return c, nil
 }
 
-func GetClusterFromDBWithHosts(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, error) {
+func GetClusterFromDBWithHosts(ctx context.Context, db *gorm.DB, clusterId strfmt.UUID) (*Cluster, error) {
 	db = LoadTableFromDB(db, HostsTable)
 	db = LoadClusterTablesFromDB(db, HostsTable)
 

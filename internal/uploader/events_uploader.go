@@ -162,7 +162,7 @@ func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eve
 		filesCreated++
 	}
 
-	infraEnvID, err := hostsFile(db, tw, cluster)
+	infraEnvID, err := hostsFile(ctx, db, tw, cluster)
 	if err == nil {
 		filesCreated++
 	}
@@ -290,13 +290,13 @@ func infraEnvFile(db *gorm.DB, tw *tar.Writer, infraEnvID *strfmt.UUID, clusterI
 	return addFile(tw, iJson, fmt.Sprintf("%s/events/infraenv.json", *clusterID))
 }
 
-func hostsFile(db *gorm.DB, tw *tar.Writer, cluster *common.Cluster) (*strfmt.UUID, error) {
+func hostsFile(ctx context.Context, db *gorm.DB, tw *tar.Writer, cluster *common.Cluster) (*strfmt.UUID, error) {
 	if cluster == nil || cluster.ID == nil {
 		return nil, errors.New("no cluster specified for hosts file")
 	}
 
 	var infraEnvID *strfmt.UUID
-	clusterWithHosts, err := common.GetClusterFromDBWithHosts(db, *cluster.ID)
+	clusterWithHosts, err := common.GetClusterFromDBWithHosts(ctx, db, *cluster.ID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to find cluster %s", *cluster.ID)
 	}

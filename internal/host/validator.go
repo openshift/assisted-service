@@ -30,7 +30,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"github.com/vincent-petithory/dataurl"
-	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
 	"sigs.k8s.io/yaml"
 )
@@ -116,7 +115,7 @@ type validation struct {
 func (c *validationContext) loadCluster(ctx context.Context) error {
 	var err error
 	if c.cluster == nil {
-		c.cluster, err = common.GetClusterFromDBWithHosts(c.db, *c.host.ClusterID)
+		c.cluster, err = common.GetClusterFromDBWithHosts(ctx, c.db, *c.host.ClusterID)
 	}
 	return err
 }
@@ -307,9 +306,6 @@ func (v *validator) isMediaConnected(c *validationContext) (ValidationStatus, st
 
 // isMtuValid - This validation distinguishes between CMN and UMN. For UMN, the MTU is checked across all interfaces, while for CMN, it focuses specifically on the MTU reports for the machine networks.
 func (v *validator) isMtuValid(c *validationContext) (ValidationStatus, string) {
-	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.isMtuValid")
-	defer span.End()
-
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput, LateBindingMsg
 	}
@@ -325,19 +321,19 @@ func (v *validator) isMtuValid(c *validationContext) (ValidationStatus, string) 
 	if len(c.host.Connectivity) == 0 {
 		return ValidationPending, "Missing MTU report information"
 	}
-	connectivityReport, err := hostutil.UnmarshalConnectivityReport(ctx, c.host.Connectivity)
+	connectivityReport, err := hostutil.UnmarshalConnectivityReport(c.ctx, c.host.Connectivity)
 	if err != nil {
 		return ValidationError, "Internal error - failed to parse host connectivity report"
 	}
 
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return v.isMtuValidAllInterfaces(c, connectivityReport)
+		return v.isMtuValidAllInterfaces(c.ctx, c, connectivityReport)
 	}
-	return v.isMtuValidInMachineNetwork(c, connectivityReport)
+	return v.isMtuValidInMachineNetwork(c.ctx, c, connectivityReport)
 }
 
 // isMtuValidAllInterfaces - intended for UMN, where the MTU report is checked across all interfaces.
-func (v *validator) isMtuValidAllInterfaces(c *validationContext, connectivityReport *models.ConnectivityReport) (ValidationStatus, string) {
+func (v *validator) isMtuValidAllInterfaces(ctx context.Context, c *validationContext, connectivityReport *models.ConnectivityReport) (ValidationStatus, string) {
 	for _, r := range connectivityReport.RemoteHosts {
 		for _, mtuReport := range r.MtuReport {
 			if !mtuReport.MtuSuccessful {
@@ -349,10 +345,7 @@ func (v *validator) isMtuValidAllInterfaces(c *validationContext, connectivityRe
 }
 
 // isMtuValidInMachineNetwork - intended for CMN, focusing exclusively on the MTU reports for the machine network.
-func (v *validator) isMtuValidInMachineNetwork(c *validationContext, connectivityReport *models.ConnectivityReport) (ValidationStatus, string) {
-	_, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.isMtuValidInMachineNetworks")
-	defer span.End()
-
+func (v *validator) isMtuValidInMachineNetwork(ctx context.Context, c *validationContext, connectivityReport *models.ConnectivityReport) (ValidationStatus, string) {
 	for _, machineNet := range c.cluster.MachineNetworks {
 		_, mNetwork, err := net.ParseCIDR(string(machineNet.Cidr))
 		if err != nil {
@@ -1200,7 +1193,7 @@ func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationC
 			shortHostTimingMetrics,
 		)
 
-		networkLatencyAdvisoryMessage += v.generateExcessiveLatencyAdvisoryForHost(c)
+		networkLatencyAdvisoryMessage += v.generateExcessiveLatencyAdvisoryForHost(c.ctx, c)
 		return ValidationFailure, networkLatencyAdvisoryMessage
 	}
 	if status == ValidationError {
@@ -1209,10 +1202,7 @@ func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationC
 	return ValidationSuccess, "Network latency requirement has been satisfied."
 }
 
-func (v *validator) generateExcessiveLatencyAdvisoryForHost(c *validationContext) string {
-	ctx, span := otel.Tracer("assisted-service").Start(c.ctx, "validator.generateExcessiveLatencyAdvisoryForHost")
-	defer span.End()
-
+func (v *validator) generateExcessiveLatencyAdvisoryForHost(ctx context.Context, c *validationContext) string {
 	var message string
 	inventory, err := c.inventoryCache.GetOrUnmarshal(ctx, c.host)
 	if err != nil {
