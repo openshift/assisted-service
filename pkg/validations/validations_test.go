@@ -147,6 +147,7 @@ var _ = Describe("URL validations", func() {
 		Entry("invalid format", "...", false),
 		Entry("invalid format of a single value", "domain.com,...", false),
 		Entry("invalid use of asterisk", "*,domain.com", false),
+		Entry("fails for duplicate entries", "192.0.2.1,192.0.2.2,192.0.2.1", false),
 	)
 })
 
