@@ -15,6 +15,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )
 
@@ -128,45 +129,25 @@ var _ = Describe("URL validations", func() {
 		})
 	})
 
-	Context("test no-proxy", func() {
-		It("domain name", func() {
-			err := ValidateNoProxyFormat("domain.com")
-			Expect(err).Should(BeNil())
-		})
-		It("domain starts with . for all sub-domains", func() {
-			err := ValidateNoProxyFormat(".domain.com")
-			Expect(err).Should(BeNil())
-		})
-		It("CIDR", func() {
-			err := ValidateNoProxyFormat("10.9.0.0/16")
-			Expect(err).Should(BeNil())
-		})
-		It("IP Address", func() {
-			err := ValidateNoProxyFormat("10.9.8.7")
-			Expect(err).Should(BeNil())
-		})
-		It("multiple entries", func() {
-			err := ValidateNoProxyFormat("domain.com,10.9.0.0/16,.otherdomain.com,10.9.8.7")
-			Expect(err).Should(BeNil())
-		})
-		It("'*' bypass proxy for all destinations release version", func() {
-			err := ValidateNoProxyFormat("*")
-			Expect(err).Should(BeNil())
-		})
-
-		It("invalid format", func() {
-			err := ValidateNoProxyFormat("...")
-			Expect(err).ShouldNot(BeNil())
-		})
-		It("invalid format of a single value", func() {
-			err := ValidateNoProxyFormat("domain.com,...")
-			Expect(err).ShouldNot(BeNil())
-		})
-		It("invalid use of asterisk", func() {
-			err := ValidateNoProxyFormat("*,domain.com")
-			Expect(err).ShouldNot(BeNil())
-		})
-	})
+	DescribeTable("ValidateNoProxyFormat",
+		func(noProxy string, expectSuccess bool) {
+			err := ValidateNoProxyFormat(noProxy)
+			if expectSuccess {
+				Expect(err).To(BeNil())
+			} else {
+				Expect(err).ToNot(BeNil())
+			}
+		},
+		Entry("domain name", "domain.com", true),
+		Entry("domain starts with . for all sub-domains", ".domain.com", true),
+		Entry("CIDR", "10.9.0.0/16", true),
+		Entry("IP Address", "10.9.8.7", true),
+		Entry("multiple entries", "domain.com,10.9.0.0/16,.otherdomain.com,10.9.8.7", true),
+		Entry("'*' bypass proxy for all destinations release version", "*", true),
+		Entry("invalid format", "...", false),
+		Entry("invalid format of a single value", "domain.com,...", false),
+		Entry("invalid use of asterisk", "*,domain.com", false),
+	)
 })
 
 var _ = Describe("dns name", func() {
