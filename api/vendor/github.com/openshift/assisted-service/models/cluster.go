@@ -88,12 +88,6 @@ type Cluster struct {
 	// JSON-formatted string containing the usage information by feature name
 	FeatureUsage string `json:"feature_usage,omitempty" gorm:"type:text"`
 
-	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
-	// over multiple master nodes whereas 'None' installs a full cluster over one node.
-	//
-	// Enum: [Full None]
-	HighAvailabilityMode *string `json:"high_availability_mode,omitempty"`
-
 	// List of host networks to be filled during query.
 	HostNetworks []*HostNetwork `json:"host_networks" gorm:"-"`
 
@@ -323,10 +317,6 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateDiskEncryption(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateHighAvailabilityMode(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -640,48 +630,6 @@ func (m *Cluster) validateDiskEncryption(formats strfmt.Registry) error {
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-var clusterTypeHighAvailabilityModePropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["Full","None"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		clusterTypeHighAvailabilityModePropEnum = append(clusterTypeHighAvailabilityModePropEnum, v)
-	}
-}
-
-const (
-
-	// ClusterHighAvailabilityModeFull captures enum value "Full"
-	ClusterHighAvailabilityModeFull string = "Full"
-
-	// ClusterHighAvailabilityModeNone captures enum value "None"
-	ClusterHighAvailabilityModeNone string = "None"
-)
-
-// prop value enum
-func (m *Cluster) validateHighAvailabilityModeEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, clusterTypeHighAvailabilityModePropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *Cluster) validateHighAvailabilityMode(formats strfmt.Registry) error {
-	if swag.IsZero(m.HighAvailabilityMode) { // not required
-		return nil
-	}
-
-	// value enum
-	if err := m.validateHighAvailabilityModeEnum("high_availability_mode", "body", *m.HighAvailabilityMode); err != nil {
-		return err
 	}
 
 	return nil
