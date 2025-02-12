@@ -141,6 +141,23 @@ func ValidateHTTPProxyFormat(proxyURL string) error {
 	return nil
 }
 
+func validateNoProxyEntry(entry string) error {
+	s := strings.TrimPrefix(entry, ".")
+	if govalidator.IsIP(s) {
+		return nil
+	}
+
+	if govalidator.IsCIDR(s) {
+		return nil
+	}
+
+	if govalidator.IsDNSName(s) {
+		return nil
+	}
+
+	return errors.Errorf("%s is not a valid no_proxy entry", entry)
+}
+
 // ValidateNoProxyFormat validates the no-proxy format which should be a comma-separated list
 // of destination domain names, domains, IP addresses or other network CIDRs. A domain can be
 // prefaced with '.' to include all subdomains of that domain.
@@ -149,22 +166,19 @@ func ValidateNoProxyFormat(noProxy string) error {
 		return nil
 	}
 	domains := strings.Split(noProxy, ",")
+	dupTracker := map[string]string{}
 	for _, s := range domains {
-		s = strings.TrimPrefix(s, ".")
-		if govalidator.IsIP(s) {
-			continue
+		if _, present := dupTracker[s]; present {
+			return errors.Errorf("duplicate no_proxy entry defined: %s", s)
 		}
 
-		if govalidator.IsCIDR(s) {
-			continue
+		if err := validateNoProxyEntry(s); err != nil {
+			return errors.Wrap(err,
+				"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
+					"A domain can be prefaced with '.' to include all subdomains of that domain. Use '*' to bypass proxy for all destinations with OpenShift 4.8 or later.")
 		}
 
-		if govalidator.IsDNSName(s) {
-			continue
-		}
-		return errors.Errorf("NO Proxy format is not valid: '%s'. "+
-			"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
-			"A domain can be prefaced with '.' to include all subdomains of that domain. Use '*' to bypass proxy for all destinations with OpenShift 4.8 or later.", noProxy)
+		dupTracker[s] = ""
 	}
 	return nil
 }
