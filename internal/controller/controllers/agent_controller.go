@@ -32,6 +32,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	. "github.com/openshift/assisted-service/api/common"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -500,6 +501,8 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 					if err := removeSpokeResources(ctx, log, spokeClient, nodeName); err != nil {
 						return &ctrl.Result{}, errors.Wrap(err, "failed to clean spoke cluster resources")
 					}
+				} else {
+					log.Info("skipping spoke resource removal for deleted cluster")
 				}
 			}
 			// deletion finalizer found, deregister the backend host and delete the agent
@@ -624,8 +627,20 @@ func (r *AgentReconciler) clusterExists(ctx context.Context, clusterRef types.Na
 	if err := r.Client.Get(ctx, clusterRef, cd); err != nil {
 		return false, client.IgnoreNotFound(err)
 	}
+	if !cd.DeletionTimestamp.IsZero() {
+		return false, nil
+	}
 
-	return cd.DeletionTimestamp.IsZero(), nil
+	if cd.Spec.ClusterInstallRef == nil {
+		return false, fmt.Errorf("failed to check agent cluster install existence, cluster install ref is empty")
+	}
+	aciRef := types.NamespacedName{Name: cd.Spec.ClusterInstallRef.Name, Namespace: cd.Namespace}
+	aci := &hiveext.AgentClusterInstall{}
+	if err := r.Client.Get(ctx, aciRef, aci); err != nil {
+		return false, client.IgnoreNotFound(err)
+	}
+
+	return aci.DeletionTimestamp.IsZero(), nil
 }
 
 func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1beta1.Agent) bool {
