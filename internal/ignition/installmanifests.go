@@ -60,6 +60,44 @@ const highlyAvailableInfrastructureTopologyPatch = `---
   value: HighlyAvailable
 `
 
+/*
+Contents of the base64 encoded file are:
+
+#!/bin/bash
+
+set -eux
+unshare --mount
+mount -oremount,rw /sysroot
+ostree admin undeploy 1
+rm -rf /sysroot/ostree/deploy/rhcos
+*/
+const cleanupDiscoveryStaterootIgnitionOverride = `{
+  "ignition": {
+    "version": "3.2.0"
+  },
+  "storage": {
+    "files": [{
+      "overwrite": true,
+      "path": "/usr/local/bin/cleanup-assisted-discovery-stateroot.sh",
+      "mode": 493,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:text/plain;charset=utf-8;base64,IyEvYmluL2Jhc2gKCnNldCAtZXV4CnVuc2hhcmUgLS1tb3VudAptb3VudCAtb3JlbW91bnQscncgL3N5c3Jvb3QKb3N0cmVlIGFkbWluIHVuZGVwbG95IDEKcm0gLXJmIC9zeXNyb290L29zdHJlZS9kZXBsb3kvcmhjb3MK" }
+    }]
+  },
+  "systemd": {
+    "units": [
+      {
+        "contents": "[Unit]\nDescription=Cleanup Assisted Installer discovery stateroot\nConditionFirstBoot=yes\nConditionPathExists=/sysroot/ostree/deploy/rhcos\nBefore=first-boot-complete.target\nWants=first-boot-complete.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/local/bin/cleanup-assisted-discovery-stateroot.sh\n\n[Install]\nWantedBy=basic.target\n",
+        "enabled": true,
+        "name": "cleanup-assisted-discovery-stateroot.service"
+      }
+    ]
+  }
+}
+`
+
 type clusterVersion struct {
 	APIVersion string `yaml:"apiVersion"`
 	Metadata   struct {
@@ -1133,6 +1171,21 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 				host.MachineConfigPoolName, host.ID.String())
 		}
 		configBytes = []byte(override)
+	}
+
+	inventory := models.Inventory{}
+	if host.Inventory != "" {
+		if err = json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+			return err
+		}
+	}
+	if inventory.Boot != nil && inventory.Boot.DeviceType == models.BootDeviceTypePersistent {
+		g.log.Infof("Adding stateroot cleanup ignition override for host %s", host.ID)
+		merged, mergeErr := MergeIgnitionConfig(configBytes, []byte(cleanupDiscoveryStaterootIgnitionOverride))
+		if mergeErr != nil {
+			return errors.Wrapf(mergeErr, "failed to apply stateroot cleanup ignition override for host %s", host.ID)
+		}
+		configBytes = []byte(merged)
 	}
 
 	err = os.WriteFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), configBytes, 0600)

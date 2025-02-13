@@ -839,6 +839,45 @@ var _ = Describe("createHostIgnitions", func() {
 
 		Expect(*exampleFile.FileEmbedded1.Contents.Source).To(Equal("data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"))
 	})
+
+	It("writes the stateroot cleanup overrides when boot device is persistent", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		cluster.Hosts = []*models.Host{{
+			ID:                &hostID,
+			RequestedHostname: "master0.example.com",
+			Role:              models.HostRoleMaster,
+			Inventory:         `{"boot": {"device_type": "persistent"}}`,
+		}}
+
+		g := NewGenerator(workDir, cluster, "", "", "", "", nil, logrus.New(), nil, "", "", manifestsAPI, eventsHandler, installerCache).(*installerGenerator)
+
+		err := g.createHostIgnitions()
+		Expect(err).NotTo(HaveOccurred())
+
+		ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", models.HostRoleMaster, hostID)))
+		Expect(err).NotTo(HaveOccurred())
+		config, _, err := config_32.Parse(ignBytes)
+		Expect(err).NotTo(HaveOccurred())
+
+		var scriptFile *config_32_types.File
+		for idx, file := range config.Storage.Files {
+			if file.Node.Path == "/usr/local/bin/cleanup-assisted-discovery-stateroot.sh" {
+				scriptFile = &config.Storage.Files[idx]
+			}
+		}
+		Expect(scriptFile).NotTo(BeNil())
+		Expect(*scriptFile.FileEmbedded1.Contents.Source).To(Equal("data:text/plain;charset=utf-8;base64,IyEvYmluL2Jhc2gKCnNldCAtZXV4CnVuc2hhcmUgLS1tb3VudAptb3VudCAtb3JlbW91bnQscncgL3N5c3Jvb3QKb3N0cmVlIGFkbWluIHVuZGVwbG95IDEKcm0gLXJmIC9zeXNyb290L29zdHJlZS9kZXBsb3kvcmhjb3MK"))
+
+		var unit *config_32_types.Unit
+		for idx, u := range config.Systemd.Units {
+			if u.Name == "cleanup-assisted-discovery-stateroot.service" {
+				unit = &config.Systemd.Units[idx]
+			}
+		}
+		Expect(unit).NotTo(BeNil())
+		Expect(*unit.Contents).To(Equal("[Unit]\nDescription=Cleanup Assisted Installer discovery stateroot\nConditionFirstBoot=yes\nConditionPathExists=/sysroot/ostree/deploy/rhcos\nBefore=first-boot-complete.target\nWants=first-boot-complete.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/local/bin/cleanup-assisted-discovery-stateroot.sh\n\n[Install]\nWantedBy=basic.target\n"))
+	})
+
 	Context("machine config pool", func() {
 		const (
 			mcp = `apiVersion: machineconfiguration.openshift.io/v1
