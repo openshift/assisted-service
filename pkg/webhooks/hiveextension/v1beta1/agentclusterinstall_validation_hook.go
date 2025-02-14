@@ -363,7 +363,7 @@ func isUserManagedNetworkingSetToFalseWithSNO(newObject *hiveext.AgentClusterIns
 
 func validateCreatePlatformAndUMN(newObject *hiveext.AgentClusterInstall) error {
 	platform := common.PlatformTypeToPlatform(newObject.Spec)
-	ctrlPlaneCount := getHighAvailabilityMode(newObject, nil)
+	ctrlPlaneCount := getControlPlaneCount(newObject, nil)
 	_, _, err := provider.GetActualCreateClusterPlatformParams(
 		platform, newObject.Spec.Networking.UserManagedNetworking, &ctrlPlaneCount, "")
 	return err
@@ -387,7 +387,7 @@ func validateUpdatePlatformAndUMNUpdate(oldObject, newObject *hiveext.AgentClust
 		userManagedNetworking = oldObject.Spec.Networking.UserManagedNetworking
 	}
 
-	ctrlPlaneCount := getHighAvailabilityMode(oldObject, newObject)
+	ctrlPlaneCount := getControlPlaneCount(oldObject, newObject)
 	_, _, err := provider.GetActualCreateClusterPlatformParams(
 		platform, userManagedNetworking, &ctrlPlaneCount, "")
 	return err
@@ -398,7 +398,7 @@ func isSNO(newObject *hiveext.AgentClusterInstall) bool {
 		newObject.Spec.ProvisionRequirements.WorkerAgents == 0
 }
 
-func getHighAvailabilityMode(originalObject, updatesObject *hiveext.AgentClusterInstall) int64 {
+func getControlPlaneCount(originalObject, updatesObject *hiveext.AgentClusterInstall) int64 {
 	if originalObject == nil {
 		return int64(-1)
 	}
