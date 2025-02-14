@@ -256,7 +256,7 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 	return platform, userManagedNetworking, nil
 }
 
-func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userManagedNetworking *bool, controlPlaneCount *int64) (*models.Platform, *bool, error) {
+func GetClusterPlatformByControlPlaneCount(platform *models.Platform, userManagedNetworking *bool, controlPlaneCount *int64) (*models.Platform, *bool, error) {
 	if *controlPlaneCount >= 3 {
 		if (platform == nil || isPlatformBM(platform)) && !swag.BoolValue(userManagedNetworking) {
 			return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
@@ -307,7 +307,7 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 	if platform != nil && !isPlatformBM(platform) && !isUMNMandatoryForPlatform(platform) {
 		return platform, userManagedNetworking, nil
 	}
-	return GetClusterPlatformByHighAvailabilityMode(platform, userManagedNetworking, controlPlaneCount)
+	return GetClusterPlatformByControlPlaneCount(platform, userManagedNetworking, controlPlaneCount)
 }
 
 func GetPlatformFeatureID(platformType models.PlatformType) models.FeatureSupportLevelID {
