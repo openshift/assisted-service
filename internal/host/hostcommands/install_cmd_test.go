@@ -455,7 +455,7 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(swag.BoolValue(request.CheckCvo)).To(BeTrue())
 		})
 
-		It("verify high-availability-mode is None", func() {
+		It("verify control-plane-count is 1", func() {
 			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
