@@ -164,7 +164,7 @@ func patchUserManagedNetworking(newObject *hiveext.AgentClusterInstall, logger *
 	var (
 		platformUserManagedNetworking *bool
 		userManagedNetworking         = isNonePlatformOrSNO(newObject)
-		highAvailabilityMode          = getHighAvailabilityMode(newObject, nil)
+		controlPlaneCount             = getControlPlaneCount(newObject, nil)
 		err                           error
 	)
 
@@ -173,7 +173,7 @@ func patchUserManagedNetworking(newObject *hiveext.AgentClusterInstall, logger *
 	// 2. Platform is specified.
 	if !isNonePlatformOrSNO(newObject) && newObject.Spec.PlatformType != "" {
 		platform := common.PlatformTypeToPlatform(newObject.Spec)
-		_, platformUserManagedNetworking, err = provider.GetClusterPlatformByHighAvailabilityMode(platform, nil, &highAvailabilityMode)
+		_, platformUserManagedNetworking, err = provider.GetClusterPlatformByControlPlaneCount(platform, nil, &controlPlaneCount)
 		if err != nil {
 			logger.Warnf("Cannot set UserManagedNetworking automatically due to: %s", err.Error())
 			return nil

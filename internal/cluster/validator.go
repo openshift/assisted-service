@@ -318,8 +318,8 @@ func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) (Vali
 	if hasClusterNetworksUnsupportedByNetworkType(c.cluster) {
 		return ValidationFailure, "The cluster is configured with IPv6 which is not supported by OpenShiftSDN; use OVNKubernetes instead"
 	}
-	if isHighAvailabilityModeUnsupportedByNetworkType(c.cluster) {
-		return ValidationFailure, "High-availability mode 'None' (SNO) is not supported by OpenShiftSDN; use another network type instead"
+	if isControlPlaneCountUnsupportedByNetworkType(c.cluster) {
+		return ValidationFailure, "Control Plane Count '1' (SNO) is not supported by OpenShiftSDN; use another network type instead"
 	}
 	if isVipDhcpAllocationAndOVN(c.cluster) {
 		return ValidationFailure, "VIP DHCP allocation is not supported when the cluster is configured to use OVNKubernetes."
@@ -336,7 +336,7 @@ func hasClusterNetworksUnsupportedByNetworkType(cluster *common.Cluster) bool {
 	})) && cluster.NetworkType != nil && swag.StringValue(cluster.NetworkType) != models.ClusterNetworkTypeOVNKubernetes
 }
 
-func isHighAvailabilityModeUnsupportedByNetworkType(cluster *common.Cluster) bool {
+func isControlPlaneCountUnsupportedByNetworkType(cluster *common.Cluster) bool {
 	return cluster.ControlPlaneCount == int64(1) &&
 		cluster.NetworkType != nil && swag.StringValue(cluster.NetworkType) == models.ClusterNetworkTypeOpenShiftSDN
 }

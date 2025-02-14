@@ -2856,7 +2856,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	b.setUsage(cluster.AdditionalNtpSource != "", usage.AdditionalNtpSourceUsage, &map[string]interface{}{
 		"source_count": len(strings.Split(cluster.AdditionalNtpSource, ","))}, usages)
 	b.setUsage(cluster.ControlPlaneCount == 3,
-		usage.HighAvailabilityModeUsage, nil, usages)
+		usage.ControlPlaneCountUsage, nil, usages)
 	b.setProxyUsage(&cluster.HTTPProxy, &cluster.HTTPProxy, &cluster.NoProxy, usages)
 	olmOperators := funk.Filter(cluster.MonitoredOperators, func(op *models.MonitoredOperator) bool {
 		return op != nil && op.OperatorType == models.OperatorTypeOlm

@@ -2582,7 +2582,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
 					networkPrefixValid:                  {status: ValidationSuccess, messagePattern: "Cluster Network prefix is valid."},
-					isNetworkTypeValid:                  {status: ValidationFailure, messagePattern: regexp.QuoteMeta("High-availability mode 'None' (SNO) is not supported by OpenShiftSDN; use another network type instead")},
+					isNetworkTypeValid:                  {status: ValidationFailure, messagePattern: regexp.QuoteMeta("Control Plane Count '1' (SNO) is not supported by OpenShiftSDN; use another network type instead")},
 				}),
 				errorExpected:     false,
 				controlPlaneCount: 1,

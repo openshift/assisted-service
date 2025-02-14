@@ -13804,7 +13804,7 @@ var _ = Describe("RegisterCluster", func() {
 	)
 
 	// Testing the default network type setting during register flow, with various combinations of platforms,
-	// OpenShift version and high availability modes
+	// OpenShift version and control plane counts
 	// Note: SNO is supported starting OpenShift v4.8, and currently only supports Platform "none"
 	It("Default Network Type Setting", func() {
 		type clusterParamsForTest struct {
@@ -13971,7 +13971,7 @@ var _ = Describe("RegisterCluster", func() {
 			}
 		}
 
-		Context("HighAvailabilityMode = High", func() {
+		Context("Highly Availabile Cluster", func() {
 			It("user-managed-networking false", func() {
 				mockClusterRegisterSuccess(true)
 				mockAMSSubscription(ctx)
@@ -16018,7 +16018,7 @@ var _ = Describe("RegisterCluster", func() {
 			})
 
 			Context("using defaults", func() {
-				It("high_availability mode is set to Full", func() {
+				It("control_plane_count is set to 3", func() {
 					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStandardHAOCPControlPlane)
 
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -16038,7 +16038,7 @@ var _ = Describe("RegisterCluster", func() {
 					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(3))
 				})
 
-				It("high_availability mode is set to None", func() {
+				It("control_plane_count is set to 1", func() {
 					mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStandardHAOCPControlPlane)
 
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{

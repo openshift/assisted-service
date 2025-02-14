@@ -42,7 +42,7 @@ For that, please read the [REST-API V1 to V2 transition guide](rest-api-v1-v2-tr
 
 ```bash
 curl -X POST -H "Content-Type: application/json" \
-    -d '{"name":"testcluster","high_availability_mode":"Full","openshift_version":"4.8","pull_secret":<pull_secret_here>,"base_dns_domain":"redhat.com"}' \
+    -d '{"name":"testcluster","control_plane_count":3,"openshift_version":"4.8","pull_secret":<pull_secret_here>,"base_dns_domain":"redhat.com"}' \
     <HOST>:<PORT>/api/assisted-install/v2/clusters
 ```
 

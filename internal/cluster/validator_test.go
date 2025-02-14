@@ -646,7 +646,7 @@ var _ = Describe("areVipsValid", func() {
 	}
 })
 
-var _ = Describe("Network type matches high availability mode", func() {
+var _ = Describe("Network type matches high control plane count", func() {
 	tests := []struct {
 		controlPlaneCount int64
 		networkType       *string
@@ -703,7 +703,7 @@ var _ = Describe("Network type matches high availability mode", func() {
 						NetworkType:       t.networkType,
 					},
 				}
-				Expect(isHighAvailabilityModeUnsupportedByNetworkType(&cluster)).To(Equal(t.invalid))
+				Expect(isControlPlaneCountUnsupportedByNetworkType(&cluster)).To(Equal(t.invalid))
 			})
 	}
 })
