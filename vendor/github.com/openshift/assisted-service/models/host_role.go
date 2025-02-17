@@ -41,6 +41,9 @@ const (
 
 	// HostRoleBootstrap captures enum value "bootstrap"
 	HostRoleBootstrap HostRole = "bootstrap"
+
+	// HostRoleArbiter captures enum value "arbiter"
+	HostRoleArbiter HostRole = "arbiter"
 )
 
 // for schema
@@ -48,7 +51,7 @@ var hostRoleEnum []interface{}
 
 func init() {
 	var res []HostRole
-	if err := json.Unmarshal([]byte(`["auto-assign","master","worker","bootstrap"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["auto-assign","master","worker","bootstrap","arbiter"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

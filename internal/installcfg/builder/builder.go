@@ -112,6 +112,18 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 		SSHKey:     cluster.SSHPublicKey,
 	}
 
+	if cfg.ControlPlane.Replicas == 2 {
+		cfg.Arbiter = struct {
+			Hyperthreading string `json:"hyperthreading,omitempty"`
+			Name           string `json:"name"`
+			Replicas       int    `json:"replicas"`
+		}{
+			Hyperthreading: i.getHypethreadingConfiguration(cluster, "master"),
+			Name:           string(models.HostRoleArbiter),
+			Replicas:       1,
+		}
+	}
+
 	cfg.Networking.NetworkType = networkType
 
 	for _, network := range cluster.ClusterNetworks {
