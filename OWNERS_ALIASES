@@ -4,33 +4,12 @@ aliases:
   approvers:
     - openshift-edge-bot
     - romfreiman
-    - avishayt
-    - eranco74
+    - oourfali
     - gamli75
-    - ori-amizur
-    - tsorya
-    - carbonin
-    - danielerez
-    - omertuc
     - eliorerz
-    - paul-maidment
-    - jhernand
     - rccrdpccl
     - adriengentil
-    - CrystalChun
-    - javipolo
     - danmanor
     - eifrach
     - pastequo
-    - mlorenzofr
-    - linoyaslan
-    - giladravid16
-  emeritus_approvers:
-    - empovit
-    - yevgeny-shnaidman
-    - rwsu
-    - lranjbar
-    - pawanpinjarkar
-    - sagidayan
-    - ybettan
-    - omer-vishlitzky
+    - carbonin
