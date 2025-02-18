@@ -899,6 +899,11 @@ func (in *InfraEnvSpec) DeepCopyInto(out *InfraEnvSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.AdditionalSSHAuthorizedKeys != nil {
+		in, out := &in.AdditionalSSHAuthorizedKeys, &out.AdditionalSSHAuthorizedKeys
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.PullSecretRef != nil {
 		in, out := &in.PullSecretRef, &out.PullSecretRef
 		*out = new(corev1.LocalObjectReference)

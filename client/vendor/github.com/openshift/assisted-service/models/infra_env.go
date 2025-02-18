@@ -24,6 +24,9 @@ type InfraEnv struct {
 	// A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
 	AdditionalNtpSources string `json:"additional_ntp_sources,omitempty"`
 
+	// A set of additional SSH public keys that can be used for debugging the installation.
+	AdditionalSSHAuthorizedKeys string `json:"additional_ssh_authorized_keys,omitempty"`
+
 	// PEM-encoded X.509 certificate bundle. Hosts discovered by this
 	// infra-env will trust the certificates in this bundle. Clusters formed
 	// from the hosts discovered by this infra-env will also trust the
