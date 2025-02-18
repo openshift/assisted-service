@@ -1072,9 +1072,10 @@ var _ = Describe("Ignition SSH key building", func() {
 		mockVersionHandler                *versions.MockHandler
 		ignitionConfig                    IgnitionConfig
 	)
-	buildIgnitionAndAssertSubString := func(SSHPublicKey string, shouldExist bool, subStr string) {
+	buildIgnitionAndAssertSubString := func(SSHPublicKey string, additionalSSHPublicKeys string, shouldExist bool, subStr string) {
 		ignitionConfig = IgnitionConfig{EnableOKDSupport: true}
 		infraEnv.SSHAuthorizedKey = SSHPublicKey
+		infraEnv.AdditionalSSHAuthorizedKeys = additionalSSHPublicKeys
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
 		Expect(err).NotTo(HaveOccurred())
 		if shouldExist {
@@ -1110,27 +1111,30 @@ var _ = Describe("Ignition SSH key building", func() {
 
 	Context("when empty or invalid input", func() {
 		It("white_space_string should return an empty string", func() {
-			buildIgnitionAndAssertSubString("  \n  \n \t \n  ", false, "sshAuthorizedKeys")
+			buildIgnitionAndAssertSubString("  \n  \n \t \n  ", "  \n  \n \t \n  ", false, "sshAuthorizedKeys")
 		})
 		It("Empty string should return an empty string", func() {
-			buildIgnitionAndAssertSubString("", false, "sshAuthorizedKeys")
+			buildIgnitionAndAssertSubString("", "", false, "sshAuthorizedKeys")
 		})
 	})
 	Context("when ssh key exists, escape when needed", func() {
 		It("Single key without needed escaping", func() {
-			buildIgnitionAndAssertSubString("ssh-rsa key coyote@acme.com", true, `"sshAuthorizedKeys":["ssh-rsa key coyote@acme.com"]`)
+			buildIgnitionAndAssertSubString("ssh-rsa key coyote01@acme.com",
+				"ssh-rsa key coyote02@acme.com\nssh-rsa key coyote03@acme.com",
+				true,
+				`"sshAuthorizedKeys":["ssh-rsa key coyote01@acme.com","ssh-rsa key coyote02@acme.com","ssh-rsa key coyote03@acme.com"]`)
 		})
 		It("Multiple keys without needed escaping", func() {
-			buildIgnitionAndAssertSubString("ssh-rsa key coyote@acme.com\nssh-rsa key2 coyote@acme.com",
+			buildIgnitionAndAssertSubString("ssh-rsa key coyote@acme.com\nssh-rsa key2 coyote@acme.com", "",
 				true,
 				`"sshAuthorizedKeys":["ssh-rsa key coyote@acme.com","ssh-rsa key2 coyote@acme.com"]`)
 		})
 		It("Single key with escaping", func() {
-			buildIgnitionAndAssertSubString(`ssh-rsa key coyote\123@acme.com`, true, `"sshAuthorizedKeys":["ssh-rsa key coyote\\123@acme.com"]`)
+			buildIgnitionAndAssertSubString(`ssh-rsa key coyote\123@acme.com`, "", true, `"sshAuthorizedKeys":["ssh-rsa key coyote\\123@acme.com"]`)
 		})
 		It("Multiple keys with escaping", func() {
 			buildIgnitionAndAssertSubString(`ssh-rsa key coyote\123@acme.com
-			ssh-rsa key2 coyote@acme.com`,
+			ssh-rsa key2 coyote@acme.com`, "",
 				true,
 				`"sshAuthorizedKeys":["ssh-rsa key coyote\\123@acme.com","ssh-rsa key2 coyote@acme.com"]`)
 		})
@@ -1139,7 +1143,7 @@ var _ = Describe("Ignition SSH key building", func() {
 			ssh-rsa key coyote\123@acme.com
 
 			ssh-rsa key2 c\0899oyote@acme.com
-			`, true, `"sshAuthorizedKeys":["ssh-rsa key coyote\\123@acme.com","ssh-rsa key2 c\\0899oyote@acme.com"]`)
+			`, "", true, `"sshAuthorizedKeys":["ssh-rsa key coyote\\123@acme.com","ssh-rsa key2 c\\0899oyote@acme.com"]`)
 		})
 	})
 })

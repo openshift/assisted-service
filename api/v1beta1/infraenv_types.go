@@ -62,6 +62,11 @@ type InfraEnvSpec struct {
 	// +optional
 	SSHAuthorizedKey string `json:"sshAuthorizedKey,omitempty"`
 
+	// AdditionalSSHAuthorizedKeys is a set of additional SSH public keys that can be used for
+	// debugging the installation.
+	// +optional
+	AdditionalSSHAuthorizedKeys []string `json:"additionalSSHAuthorizedKeys,omitempty"`
+
 	// PullSecretRef is the reference to the secret to use when pulling images.
 	PullSecretRef *corev1.LocalObjectReference `json:"pullSecretRef"`
 

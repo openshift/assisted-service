@@ -128,7 +128,11 @@ spec:
     namespace: spoke-cluster
   pullSecretRef:
     name: pull-secret
-  sshAuthorizedKey: "..." # Optional but it can be handy to be able to log into nodes to troubleshoot.
+  sshAuthorizedKey: "..."       # Optional but it can be handy to be able to log into nodes to troubleshoot.
+  additionalSSHAuthorizedKeys:  # More optional keys, in case a group of users need to access the installation.
+  - "..."
+  - "..."
+  - "..."
 EOF
 ```
 

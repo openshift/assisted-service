@@ -1,0 +1,148 @@
+docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
+docker run -d  --rm --tmpfs /var/lib/pgsql/data --name postgres -e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 -p 127.0.0.1:5433:5432 \
+	quay.io/sclorg/postgresql-12-c8s:latest
+576794003ab666793826d6d10c0c35388a4cb1667db34f0a9583b5d709b32572
+timeout 5m ./hack/wait_for_postgres.sh
+127.0.0.1:5433 - no response
+127.0.0.1:5433 - no response
+127.0.0.1:5433 - accepting connections
+SKIP_UT_DB=1 make _unit_test TIMEOUT=30m TEST="github.com/openshift/assisted-service/cmd github.com/openshift/assisted-service/cmd/agentbasedinstaller github.com/openshift/assisted-service/cmd/agentbasedinstaller/client github.com/openshift/assisted-service/cmd/graphstatemachine github.com/openshift/assisted-service/cmd/operator github.com/openshift/assisted-service/cmd/webadmission github.com/openshift/assisted-service/config github.com/openshift/assisted-service/hack github.com/openshift/assisted-service/internal/bminventory github.com/openshift/assisted-service/internal/cluster github.com/openshift/assisted-service/internal/cluster/validations github.com/openshift/assisted-service/internal/common github.com/openshift/assisted-service/internal/common/events github.com/openshift/assisted-service/internal/common/testing github.com/openshift/assisted-service/internal/connectivity github.com/openshift/assisted-service/internal/constants github.com/openshift/assisted-service/internal/controller/controllers github.com/openshift/assisted-service/internal/controller/controllers/gomock_reflect_2837856844 github.com/openshift/assisted-service/internal/controller/controllers/mirrorregistry github.com/openshift/assisted-service/internal/dns github.com/openshift/assisted-service/internal/domains github.com/openshift/assisted-service/internal/events github.com/openshift/assisted-service/internal/events/api github.com/openshift/assisted-service/internal/events/eventstest github.com/openshift/assisted-service/internal/feature github.com/openshift/assisted-service/internal/featuresupport github.com/openshift/assisted-service/internal/garbagecollector github.com/openshift/assisted-service/internal/gencrypto github.com/openshift/assisted-service/internal/hardware github.com/openshift/assisted-service/internal/hardware/virt github.com/openshift/assisted-service/internal/host github.com/openshift/assisted-service/internal/host/hostcommands github.com/openshift/assisted-service/internal/host/hostutil github.com/openshift/assisted-service/internal/ignition github.com/openshift/assisted-service/internal/imageservice github.com/openshift/assisted-service/internal/infraenv github.com/openshift/assisted-service/internal/installcfg github.com/openshift/assisted-service/internal/installcfg/builder github.com/openshift/assisted-service/internal/installercache github.com/openshift/assisted-service/internal/isoeditor github.com/openshift/assisted-service/internal/json github.com/openshift/assisted-service/internal/manifests github.com/openshift/assisted-service/internal/manifests/api github.com/openshift/assisted-service/internal/metrics github.com/openshift/assisted-service/internal/metrics/matchedRouteContext github.com/openshift/assisted-service/internal/migrations github.com/openshift/assisted-service/internal/network github.com/openshift/assisted-service/internal/oc github.com/openshift/assisted-service/internal/operators github.com/openshift/assisted-service/internal/operators/api github.com/openshift/assisted-service/internal/operators/authorino github.com/openshift/assisted-service/internal/operators/cnv github.com/openshift/assisted-service/internal/operators/common github.com/openshift/assisted-service/internal/operators/handler github.com/openshift/assisted-service/internal/operators/lso github.com/openshift/assisted-service/internal/operators/lvm github.com/openshift/assisted-service/internal/operators/mce github.com/openshift/assisted-service/internal/operators/mtv github.com/openshift/assisted-service/internal/operators/nmstate github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery github.com/openshift/assisted-service/internal/operators/nvidiagpu github.com/openshift/assisted-service/internal/operators/odf github.com/openshift/assisted-service/internal/operators/openshiftai github.com/openshift/assisted-service/internal/operators/osc github.com/openshift/assisted-service/internal/operators/pipelines github.com/openshift/assisted-service/internal/operators/serverless github.com/openshift/assisted-service/internal/operators/servicemesh github.com/openshift/assisted-service/internal/provider github.com/openshift/assisted-service/internal/provider/baremetal github.com/openshift/assisted-service/internal/provider/external github.com/openshift/assisted-service/internal/provider/none github.com/openshift/assisted-service/internal/provider/nutanix github.com/openshift/assisted-service/internal/provider/registry github.com/openshift/assisted-service/internal/provider/vsphere github.com/openshift/assisted-service/internal/releasesources github.com/openshift/assisted-service/internal/spec github.com/openshift/assisted-service/internal/spoke_k8s_client github.com/openshift/assisted-service/internal/spoke_k8s_client/gomock_reflect_3544310690 github.com/openshift/assisted-service/internal/stream github.com/openshift/assisted-service/internal/system github.com/openshift/assisted-service/internal/templating github.com/openshift/assisted-service/internal/testing github.com/openshift/assisted-service/internal/uploader github.com/openshift/assisted-service/internal/usage github.com/openshift/assisted-service/internal/versions github.com/openshift/assisted-service/mocks github.com/openshift/assisted-service/pkg/app github.com/openshift/assisted-service/pkg/auth github.com/openshift/assisted-service/pkg/commonutils github.com/openshift/assisted-service/pkg/context github.com/openshift/assisted-service/pkg/conversions github.com/openshift/assisted-service/pkg/db github.com/openshift/assisted-service/pkg/error github.com/openshift/assisted-service/pkg/executer github.com/openshift/assisted-service/pkg/filemiddleware github.com/openshift/assisted-service/pkg/generator github.com/openshift/assisted-service/pkg/k8sclient github.com/openshift/assisted-service/pkg/kafka github.com/openshift/assisted-service/pkg/leader github.com/openshift/assisted-service/pkg/log github.com/openshift/assisted-service/pkg/mirrorregistries github.com/openshift/assisted-service/pkg/ocm github.com/openshift/assisted-service/pkg/requestid github.com/openshift/assisted-service/pkg/s3wrapper github.com/openshift/assisted-service/pkg/secretdump github.com/openshift/assisted-service/pkg/staticnetworkconfig github.com/openshift/assisted-service/pkg/tang github.com/openshift/assisted-service/pkg/testutil github.com/openshift/assisted-service/pkg/thread github.com/openshift/assisted-service/pkg/transaction github.com/openshift/assisted-service/pkg/uploader github.com/openshift/assisted-service/pkg/uploader/models github.com/openshift/assisted-service/pkg/validations github.com/openshift/assisted-service/pkg/webhooks/agentinstall/v1beta1 github.com/openshift/assisted-service/pkg/webhooks/hiveextension/v1beta1 github.com/openshift/assisted-service/restapi github.com/openshift/assisted-service/restapi/operations github.com/openshift/assisted-service/restapi/operations/events github.com/openshift/assisted-service/restapi/operations/installer github.com/openshift/assisted-service/restapi/operations/managed_domains github.com/openshift/assisted-service/restapi/operations/manifests github.com/openshift/assisted-service/restapi/operations/operators github.com/openshift/assisted-service/restapi/operations/versions github.com/openshift/assisted-service/tools github.com/openshift/assisted-service/tools/migration_generator"
+make[1]: Entering directory '/home/zoltszab/projects/assisted-service'
+gotestsum --format=pkgname  -- -count=1 -cover -coverprofile=/home/zoltszab/projects/assisted-service/reports/unit_coverage.out github.com/openshift/assisted-service/cmd github.com/openshift/assisted-service/cmd/agentbasedinstaller github.com/openshift/assisted-service/cmd/agentbasedinstaller/client github.com/openshift/assisted-service/cmd/graphstatemachine github.com/openshift/assisted-service/cmd/operator github.com/openshift/assisted-service/cmd/webadmission github.com/openshift/assisted-service/config github.com/openshift/assisted-service/hack github.com/openshift/assisted-service/internal/bminventory github.com/openshift/assisted-service/internal/cluster github.com/openshift/assisted-service/internal/cluster/validations github.com/openshift/assisted-service/internal/common github.com/openshift/assisted-service/internal/common/events github.com/openshift/assisted-service/internal/common/testing github.com/openshift/assisted-service/internal/connectivity github.com/openshift/assisted-service/internal/constants github.com/openshift/assisted-service/internal/controller/controllers github.com/openshift/assisted-service/internal/controller/controllers/gomock_reflect_2837856844 github.com/openshift/assisted-service/internal/controller/controllers/mirrorregistry github.com/openshift/assisted-service/internal/dns github.com/openshift/assisted-service/internal/domains github.com/openshift/assisted-service/internal/events github.com/openshift/assisted-service/internal/events/api github.com/openshift/assisted-service/internal/events/eventstest github.com/openshift/assisted-service/internal/feature github.com/openshift/assisted-service/internal/featuresupport github.com/openshift/assisted-service/internal/garbagecollector github.com/openshift/assisted-service/internal/gencrypto github.com/openshift/assisted-service/internal/hardware github.com/openshift/assisted-service/internal/hardware/virt github.com/openshift/assisted-service/internal/host github.com/openshift/assisted-service/internal/host/hostcommands github.com/openshift/assisted-service/internal/host/hostutil github.com/openshift/assisted-service/internal/ignition github.com/openshift/assisted-service/internal/imageservice github.com/openshift/assisted-service/internal/infraenv github.com/openshift/assisted-service/internal/installcfg github.com/openshift/assisted-service/internal/installcfg/builder github.com/openshift/assisted-service/internal/installercache github.com/openshift/assisted-service/internal/isoeditor github.com/openshift/assisted-service/internal/json github.com/openshift/assisted-service/internal/manifests github.com/openshift/assisted-service/internal/manifests/api github.com/openshift/assisted-service/internal/metrics github.com/openshift/assisted-service/internal/metrics/matchedRouteContext github.com/openshift/assisted-service/internal/migrations github.com/openshift/assisted-service/internal/network github.com/openshift/assisted-service/internal/oc github.com/openshift/assisted-service/internal/operators github.com/openshift/assisted-service/internal/operators/api github.com/openshift/assisted-service/internal/operators/authorino github.com/openshift/assisted-service/internal/operators/cnv github.com/openshift/assisted-service/internal/operators/common github.com/openshift/assisted-service/internal/operators/handler github.com/openshift/assisted-service/internal/operators/lso github.com/openshift/assisted-service/internal/operators/lvm github.com/openshift/assisted-service/internal/operators/mce github.com/openshift/assisted-service/internal/operators/mtv github.com/openshift/assisted-service/internal/operators/nmstate github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery github.com/openshift/assisted-service/internal/operators/nvidiagpu github.com/openshift/assisted-service/internal/operators/odf github.com/openshift/assisted-service/internal/operators/openshiftai github.com/openshift/assisted-service/internal/operators/osc github.com/openshift/assisted-service/internal/operators/pipelines github.com/openshift/assisted-service/internal/operators/serverless github.com/openshift/assisted-service/internal/operators/servicemesh github.com/openshift/assisted-service/internal/provider github.com/openshift/assisted-service/internal/provider/baremetal github.com/openshift/assisted-service/internal/provider/external github.com/openshift/assisted-service/internal/provider/none github.com/openshift/assisted-service/internal/provider/nutanix github.com/openshift/assisted-service/internal/provider/registry github.com/openshift/assisted-service/internal/provider/vsphere github.com/openshift/assisted-service/internal/releasesources github.com/openshift/assisted-service/internal/spec github.com/openshift/assisted-service/internal/spoke_k8s_client github.com/openshift/assisted-service/internal/spoke_k8s_client/gomock_reflect_3544310690 github.com/openshift/assisted-service/internal/stream github.com/openshift/assisted-service/internal/system github.com/openshift/assisted-service/internal/templating github.com/openshift/assisted-service/internal/testing github.com/openshift/assisted-service/internal/uploader github.com/openshift/assisted-service/internal/usage github.com/openshift/assisted-service/internal/versions github.com/openshift/assisted-service/mocks github.com/openshift/assisted-service/pkg/app github.com/openshift/assisted-service/pkg/auth github.com/openshift/assisted-service/pkg/commonutils github.com/openshift/assisted-service/pkg/context github.com/openshift/assisted-service/pkg/conversions github.com/openshift/assisted-service/pkg/db github.com/openshift/assisted-service/pkg/error github.com/openshift/assisted-service/pkg/executer github.com/openshift/assisted-service/pkg/filemiddleware github.com/openshift/assisted-service/pkg/generator github.com/openshift/assisted-service/pkg/k8sclient github.com/openshift/assisted-service/pkg/kafka github.com/openshift/assisted-service/pkg/leader github.com/openshift/assisted-service/pkg/log github.com/openshift/assisted-service/pkg/mirrorregistries github.com/openshift/assisted-service/pkg/ocm github.com/openshift/assisted-service/pkg/requestid github.com/openshift/assisted-service/pkg/s3wrapper github.com/openshift/assisted-service/pkg/secretdump github.com/openshift/assisted-service/pkg/staticnetworkconfig github.com/openshift/assisted-service/pkg/tang github.com/openshift/assisted-service/pkg/testutil github.com/openshift/assisted-service/pkg/thread github.com/openshift/assisted-service/pkg/transaction github.com/openshift/assisted-service/pkg/uploader github.com/openshift/assisted-service/pkg/uploader/models github.com/openshift/assisted-service/pkg/validations github.com/openshift/assisted-service/pkg/webhooks/agentinstall/v1beta1 github.com/openshift/assisted-service/pkg/webhooks/hiveextension/v1beta1 github.com/openshift/assisted-service/restapi github.com/openshift/assisted-service/restapi/operations github.com/openshift/assisted-service/restapi/operations/events github.com/openshift/assisted-service/restapi/operations/installer github.com/openshift/assisted-service/restapi/operations/managed_domains github.com/openshift/assisted-service/restapi/operations/manifests github.com/openshift/assisted-service/restapi/operations/operators github.com/openshift/assisted-service/restapi/operations/versions github.com/openshift/assisted-service/tools github.com/openshift/assisted-service/tools/migration_generator -ginkgo.focus="" -ginkgo.v -ginkgo.skip="" -ginkgo.v -ginkgo.reportFile=./junit_unit_test.xml -timeout 30m || (make _post_unit_test && /bin/false)
+[33m∅[0m  cmd
+[32m✓[0m  cmd/agentbasedinstaller (66ms) (coverage: 13.1% of statements)
+[33m∅[0m  cmd/agentbasedinstaller/client
+[33m∅[0m  cmd/graphstatemachine
+[33m∅[0m  cmd/operator
+[33m∅[0m  cmd/webadmission
+[33m∅[0m  config
+[33m∅[0m  hack
+[32m✓[0m  internal/cluster (50.976s) (coverage: 62.2% of statements)
+[32m✓[0m  internal/cluster/validations (491ms) (coverage: 28.3% of statements)
+[32m✓[0m  internal/common (903ms) (coverage: 21.1% of statements)
+[33m∅[0m  internal/common/events
+[33m∅[0m  internal/common/testing
+[32m✓[0m  internal/connectivity (34ms) (coverage: 39.3% of statements)
+[32m✓[0m  internal/constants (1.326s)
+[32m✓[0m  internal/controller/controllers (5.806s) (coverage: 78.8% of statements)
+[33m∅[0m  internal/controller/controllers/gomock_reflect_2837856844
+[33m∅[0m  internal/controller/controllers/mirrorregistry
+[32m✓[0m  internal/dns (56ms) (coverage: 66.8% of statements)
+[32m✓[0m  internal/domains (42ms) (coverage: 100.0% of statements)
+[32m✓[0m  internal/events (7.821s) (coverage: 81.5% of statements)
+[33m∅[0m  internal/events/api
+[33m∅[0m  internal/events/eventstest
+[33m∅[0m  internal/feature
+[33m∅[0m  internal/garbagecollector
+[32m✓[0m  internal/featuresupport (310ms) (coverage: 89.3% of statements)
+[32m✓[0m  internal/gencrypto (23ms) (coverage: 81.4% of statements)
+[33m∅[0m  internal/hardware/virt
+[32m✓[0m  internal/hardware (68ms) (coverage: 66.4% of statements)
+[32m✓[0m  internal/bminventory (1m45.928s) (coverage: 73.1% of statements)
+[32m✓[0m  internal/host/hostutil (1.541s) (coverage: 36.1% of statements)
+[32m✓[0m  internal/ignition (2.43s) (coverage: 64.9% of statements)
+[32m✓[0m  internal/imageservice (18ms) (coverage: 85.2% of statements)
+[32m✓[0m  internal/infraenv (1.168s) (coverage: 43.5% of statements)
+[33m∅[0m  internal/installcfg
+[32m✓[0m  internal/installcfg/builder (60ms) (coverage: 75.8% of statements)
+[32m✓[0m  internal/host/hostcommands (20.983s) (coverage: 84.6% of statements)
+[32m✓[0m  internal/isoeditor (40ms) (coverage: 74.6% of statements)
+[33m∅[0m  internal/json
+[32m✓[0m  internal/installercache (10.046s) (coverage: 83.9% of statements)
+[33m∅[0m  internal/manifests/api
+[32m✓[0m  internal/metrics (49ms) (coverage: 30.0% of statements)
+[33m∅[0m  internal/metrics/matchedRouteContext
+[32m✓[0m  internal/manifests (7.552s) (coverage: 84.1% of statements)
+[32m✓[0m  internal/migrations (6.454s) (coverage: 80.1% of statements)
+[32m✓[0m  internal/network (4.493s) (coverage: 66.7% of statements)
+[32m✓[0m  internal/oc (194ms) (coverage: 63.7% of statements)
+[33m∅[0m  internal/operators/api
+[32m✓[0m  internal/operators (84ms) (coverage: 59.9% of statements)
+[32m✓[0m  internal/operators/authorino (35ms) (coverage: 40.5% of statements)
+[32m✓[0m  internal/operators/cnv (66ms) (coverage: 80.8% of statements)
+[32m✓[0m  internal/operators/common (33ms) (coverage: 100.0% of statements)
+[32m✓[0m  internal/operators/handler (1.322s) (coverage: 48.5% of statements)
+[32m✓[0m  internal/operators/lso (37ms) (coverage: 47.2% of statements)
+[32m✓[0m  internal/operators/lvm (1.31s) (coverage: 79.8% of statements)
+[32m✓[0m  internal/operators/mce (39ms) (coverage: 72.4% of statements)
+[32m✓[0m  internal/operators/mtv (41ms) (coverage: 70.6% of statements)
+[32m✓[0m  internal/operators/nmstate (55ms) (coverage: 71.2% of statements)
+[32m✓[0m  internal/operators/nodefeaturediscovery (39ms) (coverage: 53.4% of statements)
+[32m✓[0m  internal/operators/nvidiagpu (45ms) (coverage: 58.7% of statements)
+[32m✓[0m  internal/operators/openshiftai (38ms) (coverage: 55.8% of statements)
+[32m✓[0m  internal/operators/odf (2.576s) (coverage: 88.5% of statements)
+[32m✓[0m  internal/operators/osc (45ms) (coverage: 70.2% of statements)
+[32m✓[0m  internal/operators/pipelines (32ms) (coverage: 44.6% of statements)
+[32m✓[0m  internal/operators/serverless (32ms) (coverage: 44.6% of statements)
+[33m∅[0m  internal/provider
+[32m✓[0m  internal/operators/servicemesh (39ms) (coverage: 45.2% of statements)
+[32m✓[0m  internal/provider/baremetal (57ms) (coverage: 81.8% of statements)
+[33m∅[0m  internal/provider/none
+[32m✓[0m  internal/provider/external (63ms) (coverage: 42.1% of statements)
+[32m✓[0m  internal/provider/nutanix (46ms) (coverage: 10.6% of statements)
+[32m✓[0m  internal/provider/registry (57ms) (coverage: 27.7% of statements)
+[32m✓[0m  internal/provider/vsphere (46ms) (coverage: 9.7% of statements)
+[32m✓[0m  internal/spec (37ms) (coverage: 100.0% of statements)
+[32m✓[0m  internal/releasesources (3.541s) (coverage: 79.8% of statements)
+[33m∅[0m  internal/spoke_k8s_client/gomock_reflect_3544310690
+[32m✓[0m  internal/stream (56ms) (coverage: 61.1% of statements)
+[32m✓[0m  internal/system (10ms) (coverage: 40.0% of statements)
+[32m✓[0m  internal/spoke_k8s_client (5.097s) (coverage: 24.6% of statements)
+[32m✓[0m  internal/templating (21ms) (coverage: 72.9% of statements)
+[32m✓[0m  internal/uploader (1.41s) (coverage: 79.0% of statements)
+[32m✓[0m  internal/testing (2.786s) (coverage: 16.2% of statements)
+[32m✓[0m  internal/usage (151ms) (coverage: 52.2% of statements)
+[33m∅[0m  mocks
+[32m✓[0m  pkg/app (83ms) (coverage: 50.0% of statements)
+[32m✓[0m  internal/versions (11.238s) (coverage: 70.2% of statements)
+[33m∅[0m  pkg/commonutils
+[33m∅[0m  pkg/context
+[33m∅[0m  pkg/db
+[32m✓[0m  pkg/conversions (14ms) (coverage: 65.0% of statements)
+[33m∅[0m  pkg/executer
+[32m✓[0m  pkg/error (26ms) (coverage: 100.0% of statements)
+[33m∅[0m  pkg/generator
+[33m∅[0m  pkg/k8sclient
+[32m✓[0m  pkg/filemiddleware (18ms) (coverage: 87.5% of statements)
+[32m✓[0m  pkg/auth (8.667s) (coverage: 63.3% of statements)
+[33m∅[0m  pkg/leader
+[32m✓[0m  pkg/kafka (32ms) (coverage: 38.8% of statements)
+[32m✓[0m  pkg/log (1.152s) (coverage: 100.0% of statements)
+[33m∅[0m  pkg/ocm
+[32m✓[0m  pkg/requestid (12ms) (coverage: 73.7% of statements)
+[32m✓[0m  pkg/mirrorregistries (54ms) (coverage: 57.3% of statements)
+[33m∅[0m  pkg/tang
+[33m∅[0m  pkg/testutil
+[33m∅[0m  pkg/transaction
+[32m✓[0m  pkg/secretdump (12ms) (coverage: 100.0% of statements)
+[32m✓[0m  pkg/s3wrapper (71ms) (coverage: 5.7% of statements)
+[32m✓[0m  pkg/staticnetworkconfig (72ms) (coverage: 68.1% of statements)
+[33m∅[0m  pkg/uploader
+[33m∅[0m  pkg/uploader/models
+[32m✓[0m  pkg/thread (1.012s) (coverage: 88.9% of statements)
+[32m✓[0m  pkg/validations (1.611s) (coverage: 95.5% of statements)
+[32m✓[0m  pkg/webhooks/agentinstall/v1beta1 (58ms) (coverage: 89.2% of statements)
+[33m∅[0m  restapi
+[33m∅[0m  restapi/operations
+[33m∅[0m  restapi/operations/events
+[33m∅[0m  restapi/operations/installer
+[33m∅[0m  restapi/operations/managed_domains
+[33m∅[0m  restapi/operations/manifests
+[33m∅[0m  restapi/operations/operators
+[33m∅[0m  restapi/operations/versions
+[33m∅[0m  tools
+[33m∅[0m  tools/migration_generator
+[32m✓[0m  pkg/webhooks/hiveextension/v1beta1 (104ms) (coverage: 87.0% of statements)
+[32m✓[0m  internal/host (2m24.074s) (coverage: 69.4% of statements)
+
+DONE 87 tests in 340.264s
+make _post_unit_test
+make[2]: Entering directory '/home/zoltszab/projects/assisted-service'
+make _unit_test_coverage
+make[3]: Entering directory '/home/zoltszab/projects/assisted-service'
+make[3]: Nothing to be done for '_unit_test_coverage'.
+make[3]: Leaving directory '/home/zoltszab/projects/assisted-service'
+make[2]: Leaving directory '/home/zoltszab/projects/assisted-service'
+make[1]: Leaving directory '/home/zoltszab/projects/assisted-service'
+docker kill postgres
+postgres

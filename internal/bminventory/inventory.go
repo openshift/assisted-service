@@ -793,7 +793,7 @@ func updateSSHPublicKey(cluster *common.Cluster) error {
 	return nil
 }
 
-func updateSSHAuthorizedKey(infraEnv *common.InfraEnv) error {
+func updateSSHAuthorizedKeys(infraEnv *common.InfraEnv) error {
 	sshPublicKey := swag.StringValue(&infraEnv.SSHAuthorizedKey)
 	if sshPublicKey == "" {
 		return nil
@@ -803,6 +803,16 @@ func updateSSHAuthorizedKey(infraEnv *common.InfraEnv) error {
 		return err
 	}
 	infraEnv.SSHAuthorizedKey = sshPublicKey
+
+	sshPublicKey = swag.StringValue(&infraEnv.AdditionalSSHAuthorizedKeys)
+	if sshPublicKey == "" {
+		return nil
+	}
+	sshPublicKey = strings.TrimSpace(infraEnv.AdditionalSSHAuthorizedKeys)
+	if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+		return err
+	}
+	infraEnv.AdditionalSSHAuthorizedKeys = sshPublicKey
 	return nil
 }
 
@@ -1225,9 +1235,15 @@ func (b *bareMetalInventory) getIgnitionConfigForLogging(ctx context.Context, in
 
 	msgDetails = append(msgDetails, fmt.Sprintf(`Image type is "%s"`, string(imageType)))
 
-	sshExtra := "SSH public key is not set"
+	ssh := "SSH public key is not set"
 	if infraEnv.SSHAuthorizedKey != "" {
-		sshExtra = "SSH public key is set"
+		ssh = "SSH public key is set"
+	}
+	msgDetails = append(msgDetails, ssh)
+
+	sshExtra := "Additional SSH public keys are not set"
+	if infraEnv.AdditionalSSHAuthorizedKeys != "" {
+		sshExtra = "Additional SSH public keys are set"
 	}
 
 	msgDetails = append(msgDetails, sshExtra)
@@ -4874,22 +4890,23 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 		infraEnv = common.InfraEnv{
 			Generated: false,
 			InfraEnv: models.InfraEnv{
-				ID:                     &id,
-				Href:                   swag.String(url.String()),
-				Kind:                   swag.String(models.InfraEnvKindInfraEnv),
-				Name:                   params.InfraenvCreateParams.Name,
-				UserName:               ocm.UserNameFromContext(ctx),
-				OrgID:                  ocm.OrgIDFromContext(ctx),
-				EmailDomain:            ocm.EmailDomainFromContext(ctx),
-				OpenshiftVersion:       *osImage.OpenshiftVersion,
-				IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
-				StaticNetworkConfig:    staticNetworkConfig,
-				Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
-				AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
-				SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
-				CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
-				KernelArguments:        kernelArguments,
-				AdditionalTrustBundle:  params.InfraenvCreateParams.AdditionalTrustBundle,
+				ID:                          &id,
+				Href:                        swag.String(url.String()),
+				Kind:                        swag.String(models.InfraEnvKindInfraEnv),
+				Name:                        params.InfraenvCreateParams.Name,
+				UserName:                    ocm.UserNameFromContext(ctx),
+				OrgID:                       ocm.OrgIDFromContext(ctx),
+				EmailDomain:                 ocm.EmailDomainFromContext(ctx),
+				OpenshiftVersion:            *osImage.OpenshiftVersion,
+				IgnitionConfigOverride:      params.InfraenvCreateParams.IgnitionConfigOverride,
+				StaticNetworkConfig:         staticNetworkConfig,
+				Type:                        common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
+				AdditionalNtpSources:        swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
+				SSHAuthorizedKey:            swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
+				AdditionalSSHAuthorizedKeys: swag.StringValue(params.InfraenvCreateParams.AdditionalSSHAuthorizedKeys),
+				CPUArchitecture:             params.InfraenvCreateParams.CPUArchitecture,
+				KernelArguments:             kernelArguments,
+				AdditionalTrustBundle:       params.InfraenvCreateParams.AdditionalTrustBundle,
 			},
 			KubeKeyNamespace: kubeKey.Namespace,
 			ImageTokenKey:    imageTokenKey,
@@ -4935,7 +4952,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 		}
 		setInfraEnvPullSecret(&infraEnv, ps)
 
-		if err = updateSSHAuthorizedKey(&infraEnv); err != nil {
+		if err = updateSSHAuthorizedKeys(&infraEnv); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
@@ -5010,6 +5027,13 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 	if params.InfraenvCreateParams.SSHAuthorizedKey != nil && *params.InfraenvCreateParams.SSHAuthorizedKey != "" {
 		if err = validations.ValidateSSHPublicKey(*params.InfraenvCreateParams.SSHAuthorizedKey); err != nil {
 			err = errors.Errorf("SSH key is not valid")
+			return err
+		}
+	}
+
+	if params.InfraenvCreateParams.AdditionalSSHAuthorizedKeys != nil && *params.InfraenvCreateParams.AdditionalSSHAuthorizedKeys != "" {
+		if err = validations.ValidateSSHPublicKey(*params.InfraenvCreateParams.AdditionalSSHAuthorizedKeys); err != nil {
+			err = errors.Errorf("Additional SSH keys are not valid")
 			return err
 		}
 	}
@@ -5319,6 +5343,11 @@ func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, param
 		updates["ssh_authorized_key"] = inputSSHKey
 	}
 
+	inputAdditionalSSHKey := swag.StringValue(params.InfraEnvUpdateParams.AdditionalSSHAuthorizedKeys)
+	if inputAdditionalSSHKey != "" && inputAdditionalSSHKey != infraEnv.AdditionalSSHAuthorizedKeys {
+		updates["additional_ssh_authorized_keys"] = inputAdditionalSSHKey
+	}
+
 	inputVersion := swag.StringValue(params.InfraEnvUpdateParams.OpenshiftVersion)
 	if inputVersion != "" && inputVersion != infraEnv.OpenshiftVersion {
 		updates["openshift_version"] = inputVersion
@@ -5403,6 +5432,14 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context
 			return installer.UpdateInfraEnvParams{}, err
 		}
 		*params.InfraEnvUpdateParams.SSHAuthorizedKey = sshPublicKey
+	}
+
+	if sshPublicKeys := swag.StringValue(params.InfraEnvUpdateParams.AdditionalSSHAuthorizedKeys); sshPublicKeys != "" {
+		sshPublicKeys = strings.TrimSpace(sshPublicKeys)
+		if err := validations.ValidateSSHPublicKey(sshPublicKeys); err != nil {
+			return installer.UpdateInfraEnvParams{}, err
+		}
+		*params.InfraEnvUpdateParams.AdditionalSSHAuthorizedKeys = sshPublicKeys
 	}
 
 	// The OpenShift installer validation code for the additional trust bundle

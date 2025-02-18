@@ -273,7 +273,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 	if cfg.InstallRHCa {
 		rhCa = url.PathEscape(RedhatRootCA)
 	}
-	userSshKey, err := getUserSSHKey(infraEnv.SSHAuthorizedKey)
+	userSshKey, err := getUserSSHKey(infraEnv.SSHAuthorizedKey + "\n" + infraEnv.AdditionalSSHAuthorizedKeys)
 	if err != nil {
 		ib.log.WithError(err).Errorln("Unable to build user SSH public key JSON")
 		return "", err
@@ -514,8 +514,8 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 	return configBytes, nil
 }
 
-func getUserSSHKey(sshKey string) (string, error) {
-	keys := buildUserSshKeysSlice(sshKey)
+func getUserSSHKey(sshKeys string) (string, error) {
+	keys := buildUserSshKeysSlice(sshKeys)
 	if len(keys) == 0 {
 		return "", nil
 	}
