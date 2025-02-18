@@ -267,6 +267,7 @@ spec:
   pullSecretRef: # currently ignored by InfraEnv controller
     name: pull-secret
  #sshAuthorizedKey: 'your_pub_key_here' (optional) , this key will allow to connect to machines booted from the discovery ISO.
+ #addidtionalSshAuthorizedKey: 'key1\nkey2\nkey3\netc' (optional) , additional SSH keys e.g. for team members.
   nmStateConfigLabelSelector:
     matchLabels:
       demo-nmstate-label: some-value # both the label name and value must match the NMStateConfig label section
