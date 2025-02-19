@@ -11,41 +11,37 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/docker/go-connections/nat"
 )
 
 // Implement interface
-var (
-	_ Strategy        = (*HTTPStrategy)(nil)
-	_ StrategyTimeout = (*HTTPStrategy)(nil)
-)
+var _ Strategy = (*HTTPStrategy)(nil)
+var _ StrategyTimeout = (*HTTPStrategy)(nil)
 
 type HTTPStrategy struct {
 	// all Strategies should have a startupTimeout to avoid waiting infinitely
 	timeout *time.Duration
 
 	// additional properties
-	Port               nat.Port
-	Path               string
-	StatusCodeMatcher  func(status int) bool
-	ResponseMatcher    func(body io.Reader) bool
-	UseTLS             bool
-	AllowInsecure      bool
-	TLSConfig          *tls.Config // TLS config for HTTPS
-	Method             string      // http method
-	Body               io.Reader   // http request body
-	PollInterval       time.Duration
-	UserInfo           *url.Userinfo
-	ForceIPv4LocalHost bool
+	Port              nat.Port
+	Path              string
+	StatusCodeMatcher func(status int) bool
+	ResponseMatcher   func(body io.Reader) bool
+	UseTLS            bool
+	AllowInsecure     bool
+	TLSConfig         *tls.Config // TLS config for HTTPS
+	Method            string      // http method
+	Body              io.Reader   // http request body
+	PollInterval      time.Duration
+	UserInfo          *url.Userinfo
 }
 
 // NewHTTPStrategy constructs a HTTP strategy waiting on port 80 and status code 200
 func NewHTTPStrategy(path string) *HTTPStrategy {
 	return &HTTPStrategy{
-		Port:              "",
+		Port:              "80/tcp",
 		Path:              path,
 		StatusCodeMatcher: defaultStatusCodeMatcher,
 		ResponseMatcher:   func(body io.Reader) bool { return true },
@@ -121,13 +117,6 @@ func (ws *HTTPStrategy) WithPollInterval(pollInterval time.Duration) *HTTPStrate
 	return ws
 }
 
-// WithForcedIPv4LocalHost forces usage of localhost to be ipv4 127.0.0.1
-// to avoid ipv6 docker bugs https://github.com/moby/moby/issues/42442 https://github.com/moby/moby/issues/42375
-func (ws *HTTPStrategy) WithForcedIPv4LocalHost() *HTTPStrategy {
-	ws.ForceIPv4LocalHost = true
-	return ws
-}
-
 // ForHTTP is a convenience method similar to Wait.java
 // https://github.com/testcontainers/testcontainers-java/blob/1d85a3834bd937f80aad3a4cec249c027f31aeb4/core/src/main/java/org/testcontainers/containers/wait/strategy/Wait.java
 func ForHTTP(path string) *HTTPStrategy {
@@ -139,7 +128,7 @@ func (ws *HTTPStrategy) Timeout() *time.Duration {
 }
 
 // WaitUntilReady implements Strategy.WaitUntilReady
-func (ws *HTTPStrategy) WaitUntilReady(ctx context.Context, target StrategyTarget) error {
+func (ws *HTTPStrategy) WaitUntilReady(ctx context.Context, target StrategyTarget) (err error) {
 	timeout := defaultStartupTimeout()
 	if ws.timeout != nil {
 		timeout = *ws.timeout
@@ -150,61 +139,27 @@ func (ws *HTTPStrategy) WaitUntilReady(ctx context.Context, target StrategyTarge
 
 	ipAddress, err := target.Host(ctx)
 	if err != nil {
-		return err
-	}
-	// to avoid ipv6 docker bugs https://github.com/moby/moby/issues/42442 https://github.com/moby/moby/issues/42375
-	if ws.ForceIPv4LocalHost {
-		ipAddress = strings.Replace(ipAddress, "localhost", "127.0.0.1", 1)
+		return
 	}
 
-	var mappedPort nat.Port
-	if ws.Port == "" {
-		var err error
-		var ports nat.PortMap
-		// we wait one polling interval before we grab the ports otherwise they might not be bound yet on startup
-		for err != nil || ports == nil {
-			select {
-			case <-ctx.Done():
-				return fmt.Errorf("%w: %w", ctx.Err(), err)
-			case <-time.After(ws.PollInterval):
-				if err := checkTarget(ctx, target); err != nil {
-					return err
-				}
+	var port nat.Port
+	port, err = target.MappedPort(ctx, ws.Port)
 
-				ports, err = target.Ports(ctx)
+	for port == "" {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("%s:%w", ctx.Err(), err)
+		case <-time.After(ws.PollInterval):
+			if err := checkTarget(ctx, target); err != nil {
+				return err
 			}
-		}
 
-		for k, bindings := range ports {
-			if len(bindings) == 0 || k.Proto() != "tcp" {
-				continue
-			}
-			mappedPort, _ = nat.NewPort(k.Proto(), bindings[0].HostPort)
-			break
+			port, err = target.MappedPort(ctx, ws.Port)
 		}
+	}
 
-		if mappedPort == "" {
-			return errors.New("No exposed tcp ports or mapped ports - cannot wait for status")
-		}
-	} else {
-		mappedPort, err = target.MappedPort(ctx, ws.Port)
-
-		for mappedPort == "" {
-			select {
-			case <-ctx.Done():
-				return fmt.Errorf("%w: %w", ctx.Err(), err)
-			case <-time.After(ws.PollInterval):
-				if err := checkTarget(ctx, target); err != nil {
-					return err
-				}
-
-				mappedPort, err = target.MappedPort(ctx, ws.Port)
-			}
-		}
-
-		if mappedPort.Proto() != "tcp" {
-			return errors.New("Cannot use HTTP client on non-TCP ports")
-		}
+	if port.Proto() != "tcp" {
+		return errors.New("Cannot use HTTP client on non-TCP ports")
 	}
 
 	switch ws.Method {
@@ -248,7 +203,7 @@ func (ws *HTTPStrategy) WaitUntilReady(ctx context.Context, target StrategyTarge
 	}
 
 	client := http.Client{Transport: tripper, Timeout: time.Second}
-	address := net.JoinHostPort(ipAddress, strconv.Itoa(mappedPort.Int()))
+	address := net.JoinHostPort(ipAddress, strconv.Itoa(port.Int()))
 
 	endpoint := url.URL{
 		Scheme: proto,
@@ -265,7 +220,7 @@ func (ws *HTTPStrategy) WaitUntilReady(ctx context.Context, target StrategyTarge
 	if ws.Body != nil {
 		body, err = io.ReadAll(ws.Body)
 		if err != nil {
-			return err
+			return
 		}
 	}
 
