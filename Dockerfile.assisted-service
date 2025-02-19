@@ -43,6 +43,9 @@ RUN cd ./cmd/operator && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /bu
 RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission
 RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
 
+# Extract the commit reference from which the image is built
+RUN git rev-parse --short HEAD > /commit-reference.txt
+
 # Create final image
 FROM quay.io/centos/centos:stream$RHEL_VERSION
 
@@ -94,6 +97,9 @@ COPY --from=builder /build/agent-installer-client /usr/local/bin/agent-installer
 RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-cluster-and-infraenv
 ENV GODEBUG=madvdontneed=1
 ENV GOGC=50
+
+# Extract the commit reference from which the image is built
+COPY --from=builder /commit-reference.txt /commit-reference.txt
 
 USER $UID:$GID
 
