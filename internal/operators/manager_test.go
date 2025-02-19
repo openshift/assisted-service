@@ -452,7 +452,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(15))
+			Expect(results).To(HaveLen(17))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -469,6 +469,8 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDAmdGpuRequirementsSatisfied), Reasons: []string{"amd-gpu is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKmmRequirementsSatisfied), Reasons: []string{"kmm is disabled"}},
 			))
 		})
 
@@ -481,7 +483,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(15))
+			Expect(results).To(HaveLen(17))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
@@ -499,6 +501,8 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDAmdGpuRequirementsSatisfied), Reasons: []string{"amd-gpu is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKmmRequirementsSatisfied), Reasons: []string{"kmm is disabled"}},
 			))
 		})
 	})
@@ -510,7 +514,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(15))
+			Expect(results).To(HaveLen(17))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -527,6 +531,8 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDAmdGpuRequirementsSatisfied), Reasons: []string{"amd-gpu is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKmmRequirementsSatisfied), Reasons: []string{"kmm is disabled"}},
 			))
 		})
 
@@ -538,7 +544,7 @@ var _ = Describe("Operators manager", func() {
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(15))
+			Expect(results).To(HaveLen(17))
 
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
@@ -556,6 +562,8 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOpenshiftAiRequirementsSatisfied), Reasons: []string{"openshift-ai is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDAuthorinoRequirementsSatisfied), Reasons: []string{"authorino is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDAmdGpuRequirementsSatisfied), Reasons: []string{"amd-gpu is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKmmRequirementsSatisfied), Reasons: []string{"kmm is disabled"}},
 			))
 		})
 
@@ -702,6 +710,8 @@ var _ = Describe("Operators manager", func() {
 				"servicemesh",
 				"authorino",
 				"nmstate",
+				"amd-gpu",
+				"kmm",
 			))
 		})
 
@@ -828,36 +838,52 @@ var _ = Describe("Operators manager", func() {
 			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, nil, cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator, nmstateOperator, mtvOperator)
 		})
 
-		It("ListBundle should return the list of available bundles", func() {
+		It("ListBundles should return the list of available bundles", func() {
 			bundles := manager.ListBundles()
-			Expect(bundles).To(HaveLen(2))
+			bundleIDs := make([]string, len(bundles))
+			for i, bundle := range bundles {
+				bundleIDs[i] = bundle.ID
+			}
+			Expect(bundleIDs).To(ConsistOf(
+				operatorscommon.BundleVirtualization.ID,
+				operatorscommon.BundleOpenShiftAINVIDIA.ID,
+				operatorscommon.BundleOpenShiftAIAMD.ID,
+			))
+		})
+
+		It("Virtualization bundle contains the MTV and CNV operators", func() {
+			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bundle).ToNot(BeNil())
+			Expect(bundle.Operators).To(ContainElements(
+				mtvOperator.GetName(),
+				cnvOperator.GetName(),
+			))
+		})
+
+		It("OpenShift AI NVIDIA bundle contains the OpenShift AI, Serverless and ODF operators", func() {
+			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bundle).ToNot(BeNil())
+			Expect(bundle.Operators).To(ContainElements(
+				oaiOperator.GetName(),
+				serverlessOperator.GetName(),
+				odfOperator.GetName(),
+			))
+		})
+
+		It("LSO isn't part of any bundle", func() {
+			bundles := manager.ListBundles()
 			for _, bundle := range bundles {
-				Expect(bundle.ID).To(BeElementOf(operatorscommon.BundleVirtualization.ID, operatorscommon.BundleOpenShiftAINVIDIA.ID))
-				// lso isn't part of any bundle
 				Expect(bundle.Operators).NotTo(ContainElement(lso.Operator.Name))
-				if bundle.ID == operatorscommon.BundleVirtualization.ID {
-					Expect(bundle.Operators).To(ContainElements(mtvOperator.GetName(), cnvOperator.GetName()))
-				} else {
-					Expect(bundle.Operators).To(ContainElements(oaiOperator.GetName(), serverlessOperator.GetName(), odfOperator.GetName()))
-				}
 			}
 		})
 
-		It("GetBundle should return the Bundle object with all the operators associated with the specific bundle", func() {
+		It("Fails with incorrect bundle name", func() {
 			bundle, err := manager.GetBundle("invalid bundle")
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError("bundle 'invalid bundle' is not supported"))
 			Expect(bundle).To(BeNil())
-
-			bundle, err = manager.GetBundle(operatorscommon.BundleVirtualization.ID)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(bundle.Operators).To(HaveLen(3))
-			Expect(bundle.Operators).To(ContainElements(cnvOperator.GetName(), mtvOperator.GetName(), nmstateOperator.GetName()))
-
-			bundle, err = manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA.ID)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(bundle.Operators).To(HaveLen(3))
-			Expect(bundle.Operators).To(ContainElements(oaiOperator.GetName(), serverlessOperator.GetName(), odfOperator.GetName()))
 		})
 
 		It("OpenShift AI NVIDIA bundle should have a description", func() {
@@ -868,6 +894,18 @@ var _ = Describe("Operators manager", func() {
 
 		It("OpenShift AI NVIDIA bundle should have a title", func() {
 			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAINVIDIA.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bundle.Title).ToNot(BeEmpty())
+		})
+
+		It("OpenShift AI AMD bundle should have a description", func() {
+			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAIAMD.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bundle.Description).ToNot(BeEmpty())
+		})
+
+		It("OpenShift AI AMD bundle should have a title", func() {
+			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAIAMD.ID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Title).ToNot(BeEmpty())
 		})
