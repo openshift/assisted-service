@@ -36,6 +36,7 @@ type Installers struct {
 	eventsHandler   eventsapi.Handler
 	diskStatsHelper metrics.DiskStatsHelper
 	config          Config
+	metricsAPI      metrics.API
 }
 
 type Size int64
@@ -116,7 +117,7 @@ func (rl *Release) Cleanup(ctx context.Context) error {
 }
 
 // New constructs an installer cache with a given storage capacity
-func New(config Config, eventsHandler eventsapi.Handler, diskStatsHelper metrics.DiskStatsHelper, log logrus.FieldLogger) (*Installers, error) {
+func New(config Config, eventsHandler eventsapi.Handler, metricsAPI metrics.API, diskStatsHelper metrics.DiskStatsHelper, log logrus.FieldLogger) (*Installers, error) {
 	if config.MaxCapacity > 0 && config.MaxReleaseSize == 0 {
 		return nil, fmt.Errorf("config.MaxReleaseSize (%d bytes) must not be zero", config.MaxReleaseSize)
 	}
@@ -128,6 +129,7 @@ func New(config Config, eventsHandler eventsapi.Handler, diskStatsHelper metrics
 		eventsHandler:   eventsHandler,
 		diskStatsHelper: diskStatsHelper,
 		config:          config,
+		metricsAPI:      metricsAPI,
 	}, nil
 }
 
@@ -138,14 +140,25 @@ func (i *Installers) Get(ctx context.Context, releaseID, releaseIDMirror, pullSe
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			err := ctx.Err()
+			if err == context.DeadlineExceeded {
+				i.metricsAPI.InstallerCacheGetReleaseTimeout(releaseID, false)
+			}
+			return nil, err
 		default:
+			majorMinorVersion, err := ocRelease.GetMajorMinorVersion(i.log, releaseID, releaseIDMirror, pullSecret)
+			if err != nil {
+				i.log.Warnf("unable to get majorMinorVersion to record metric for %s falling back to full URI", releaseID)
+				majorMinorVersion = releaseID
+			}
 			release, err := i.get(releaseID, releaseIDMirror, pullSecret, ocRelease, ocpVersion, clusterID)
 			if err == nil {
+				i.metricsAPI.InstallerCacheGetReleaseOK(majorMinorVersion, release.cached)
 				return release, nil
 			}
 			_, isCapacityError := err.(*errorInsufficientCacheCapacity)
 			if !isCapacityError {
+				i.metricsAPI.InstallerCacheGetReleaseError(releaseID, release.cached)
 				return nil, errors.Wrapf(err, "failed to get installer path for release %s", releaseID)
 			}
 			time.Sleep(i.config.ReleaseFetchRetryInterval)
@@ -217,6 +230,7 @@ func (i *Installers) get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 	if err != nil {
 		return nil, err
 	}
+	i.metricsAPI.InstallerCacheGetReleaseOK(release.releaseID, release.cached)
 	return release, nil
 }
 
@@ -247,6 +261,7 @@ func (i *Installers) shouldEvict(totalUsed int64) (shouldEvict bool) {
 //
 // Locking must be done outside evict() to avoid contentions.
 func (i *Installers) evict() bool {
+	i.metricsAPI.InstallerCacheTryEviction()
 	// store the file paths
 	files := NewPriorityQueue(&fileInfo{})
 	links := make([]*fileInfo, 0)
@@ -310,8 +325,10 @@ func (i *Installers) evictFile(filePath string) error {
 	i.log.Infof("evicting binary file %s due to storage pressure", filePath)
 	err := os.Remove(filePath)
 	if err != nil {
+		i.metricsAPI.InstallerCacheReleaseEvicted(false)
 		return err
 	}
+	i.metricsAPI.InstallerCacheReleaseEvicted(true)
 	// if the parent directory was left empty,
 	// remove it to avoid dangling directories
 	parentDir := path.Dir(filePath)
@@ -334,9 +351,9 @@ func (i *Installers) pruneExpiredHardLinks(links []*fileInfo, gracePeriod time.D
 		grace := graceTime.Unix()
 		if finfo.info.ModTime().Unix() < grace {
 			i.log.Infof("attempting to prune hard link %s", finfo.path)
-			err := os.Remove(finfo.path)
-			if err != nil {
+			if err := os.Remove(finfo.path); err != nil {
 				i.log.WithError(err).Errorf("failed to prune hard link %s", finfo.path)
+				continue
 			}
 		}
 	}
