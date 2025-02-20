@@ -751,6 +751,11 @@ spec:
                   properties:
                     cpuArchitecture:
                       description: The CPU architecture of the image (x86_64/arm64/etc).
+                      enum:
+                      - arm64
+                      - ppc64le
+                      - x86_64
+                      - s390x
                       type: string
                     openshiftVersion:
                       description: |-
