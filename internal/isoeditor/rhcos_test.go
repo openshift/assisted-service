@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/cavaliercoder/go-cpio"
@@ -176,5 +177,63 @@ var _ = Describe("RamdiskImageArchive", func() {
 			constants.PreNetworkConfigScriptWithNmstatectl, constants.MinimalISONetworkConfigServiceNmstatectl)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(archive).To(BeNil())
+	})
+
+	It("handles authenticated proxy with and without urlencoded special characters", func() {
+		testCases := []struct {
+			description      string
+			clusterProxyInfo ClusterProxyInfo
+		}{
+			{
+				description: "with urlencoded special characters",
+				clusterProxyInfo: ClusterProxyInfo{
+					HTTPProxy:  "http://user%40example.com:pas%25word%5D@10.10.1.1:3128",
+					HTTPSProxy: "https://user%40example.com:pas%25word%5D@10.10.1.1:3128",
+					NoProxy:    "quay.io",
+				},
+			},
+			{
+				description: "without urlencoded special characters",
+				clusterProxyInfo: ClusterProxyInfo{
+					HTTPProxy:  "http://userexample.com:pasword@10.10.1.1:3128",
+					HTTPSProxy: "https://userexample.com:pasword@10.10.1.1:3128",
+					NoProxy:    "quay.io",
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			By("checking proxy settings " + tc.description + "are correctly included in the archive")
+
+			archive, err := RamdiskImageArchive([]staticnetworkconfig.StaticNetworkConfigData{}, &tc.clusterProxyInfo, constants.PreNetworkConfigScriptWithNmstatectl, constants.MinimalISONetworkConfigServiceNmstatectl)
+			Expect(err).ToNot(HaveOccurred())
+
+			gzipReader, err := gzip.NewReader(bytes.NewReader(archive))
+			Expect(err).ToNot(HaveOccurred())
+
+			var rootfsServiceConfigContent string
+			r := cpio.NewReader(gzipReader)
+			for {
+				hdr, err := r.Next()
+				if err == io.EOF {
+					break
+				}
+				Expect(err).ToNot(HaveOccurred())
+				if hdr.Name == "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf" {
+					rootfsServiceConfigBytes, err := io.ReadAll(r)
+					Expect(err).ToNot(HaveOccurred())
+					rootfsServiceConfigContent = string(rootfsServiceConfigBytes)
+				}
+			}
+
+			expectedRootfsServiceConfig := fmt.Sprintf(
+				"[Service]\n"+
+					"Environment=http_proxy=%s\nEnvironment=https_proxy=%s\nEnvironment=no_proxy=%s\n"+
+					"Environment=HTTP_PROXY=%s\nEnvironment=HTTPS_PROXY=%s\nEnvironment=NO_PROXY=%s",
+				strings.ReplaceAll(tc.clusterProxyInfo.HTTPProxy, "%", "%%"), strings.ReplaceAll(tc.clusterProxyInfo.HTTPSProxy, "%", "%%"), tc.clusterProxyInfo.NoProxy,
+				strings.ReplaceAll(tc.clusterProxyInfo.HTTPProxy, "%", "%%"), strings.ReplaceAll(tc.clusterProxyInfo.HTTPSProxy, "%", "%%"), tc.clusterProxyInfo.NoProxy)
+
+			Expect(rootfsServiceConfigContent).To(Equal(expectedRootfsServiceConfig))
+		}
 	})
 })
