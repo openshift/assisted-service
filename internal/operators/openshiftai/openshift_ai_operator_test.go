@@ -9,6 +9,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/operators/authorino"
+	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
+	"github.com/openshift/assisted-service/internal/operators/odf"
+	"github.com/openshift/assisted-service/internal/operators/pipelines"
+	"github.com/openshift/assisted-service/internal/operators/serverless"
+	"github.com/openshift/assisted-service/internal/operators/servicemesh"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
@@ -172,4 +178,48 @@ var _ = Describe("Operator", func() {
 			true,
 		),
 	)
+
+	Describe("Get dependencies", func() {
+		const flagEnvVar = "OPENSHIFT_AI_SUPPORT_UI_2_37"
+
+		It("Returns the dependencies when compatibility with old UI is explicitly enabled", func() {
+			os.Setenv(flagEnvVar, "true")
+			defer os.Unsetenv(flagEnvVar)
+			operator := NewOpenShiftAIOperator(common.GetTestLog())
+			dependencies, err := operator.GetDependencies(nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(dependencies).To(ConsistOf(
+				authorino.Operator.Name,
+				nvidiagpu.Operator.Name,
+				odf.Operator.Name,
+				pipelines.Operator.Name,
+				serverless.Operator.Name,
+				servicemesh.Operator.Name,
+			))
+		})
+
+		It("Returns the dependencies when compatibility with the old UI isn't explicitly enabled or disabled", func() {
+			operator := NewOpenShiftAIOperator(common.GetTestLog())
+			dependencies, err := operator.GetDependencies(nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(dependencies).To(ConsistOf(
+				authorino.Operator.Name,
+				nvidiagpu.Operator.Name,
+				odf.Operator.Name,
+				pipelines.Operator.Name,
+				serverless.Operator.Name,
+				servicemesh.Operator.Name,
+			))
+		})
+
+		It("Doesn't return the dependencies when compatibility with the old UI is explicitly disabled", func() {
+			os.Setenv(flagEnvVar, "false")
+			defer os.Unsetenv(flagEnvVar)
+			operator := NewOpenShiftAIOperator(common.GetTestLog())
+			dependencies, err := operator.GetDependencies(nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(dependencies).To(BeEmpty())
+		})
+
+	})
 })

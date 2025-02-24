@@ -18,4 +18,9 @@ type Config struct {
 	// support for NVIDIA and Virtio GPUS the value should be `10de,1af4`. By default only NVIDIA GPUs are
 	// supported.
 	SupportedGPUs []string `envconfig:"OPENSHIFT_AI_SUPPORTED_GPUS" default:"10de"`
+
+	// SupportUI_2_37 indicates if the operator will work in a way that supports the old 2.37 version of the UI
+	// whilch doesn't understand operator bundles yet. When this is set to true the dependencies of the operator
+	// will be installed automatically.
+	SupportUI_2_37 bool `envconfig:"OPENSHIFT_AI_SUPPORT_UI_2_37" default:"true"`
 }

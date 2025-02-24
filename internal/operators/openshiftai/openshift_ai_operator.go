@@ -74,13 +74,15 @@ func (o *operator) GetDependencies(c *common.Cluster) (result []string, err erro
 	// NVIDIA GPU in the cluster, but unfortunatelly this is calculated and saved to the database only when the
 	// cluster is created or updated via the API, and at that point we don't have the host inventory yet to
 	// determine if there are NVIDIA GPU.
-	result = []string{
-		authorino.Operator.Name,
-		nvidiagpu.Operator.Name,
-		odf.Operator.Name,
-		pipelines.Operator.Name,
-		serverless.Operator.Name,
-		servicemesh.Operator.Name,
+	if o.config.SupportUI_2_37 {
+		result = []string{
+			authorino.Operator.Name,
+			nvidiagpu.Operator.Name,
+			odf.Operator.Name,
+			pipelines.Operator.Name,
+			serverless.Operator.Name,
+			servicemesh.Operator.Name,
+		}
 	}
 	return result, nil
 }
@@ -113,7 +115,7 @@ func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster)
 	}
 
 	// Check that there is at least one supported GPU:
-	if o.config.RequireGPU {
+	if o.config.SupportUI_2_37 && o.config.RequireGPU {
 		var gpuList []*models.Gpu
 		gpuList, err = o.gpusInCluster(cluster)
 		if err != nil {
