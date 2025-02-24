@@ -122,6 +122,10 @@ func (feature *OdfFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelUnavailable
 	}
 
+	if filters.ExternalPlatformName != nil && *filters.ExternalPlatformName == "oci" {
+		return models.SupportLevelUnavailable
+	}
+
 	return models.SupportLevelSupported
 }
 
@@ -567,6 +571,10 @@ func (f *OpenShiftAIFeature) getSupportLevel(filters SupportLevelFilters) models
 	}
 
 	if isNotSupported, err := common.BaseVersionLessThan("4.12", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	if filters.ExternalPlatformName != nil && *filters.ExternalPlatformName == "oci" {
 		return models.SupportLevelUnavailable
 	}
 
