@@ -48,6 +48,7 @@ var Operator = models.MonitoredOperator{
 	TimeoutSeconds:   30 * 60,
 	Bundles: pq.StringArray{
 		operatorscommon.BundleOpenShiftAINVIDIA.ID,
+		operatorscommon.BundleOpenShiftAIAMD.ID,
 	},
 }
 
