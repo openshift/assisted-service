@@ -169,6 +169,66 @@ func (mr *MockAPIMockRecorder) InstallationStarted() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallationStarted", reflect.TypeOf((*MockAPI)(nil).InstallationStarted))
 }
 
+// InstallerCacheGetReleaseError mocks base method.
+func (m *MockAPI) InstallerCacheGetReleaseError(releaseID string, cacheHit bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "InstallerCacheGetReleaseError", releaseID, cacheHit)
+}
+
+// InstallerCacheGetReleaseError indicates an expected call of InstallerCacheGetReleaseError.
+func (mr *MockAPIMockRecorder) InstallerCacheGetReleaseError(releaseID, cacheHit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallerCacheGetReleaseError", reflect.TypeOf((*MockAPI)(nil).InstallerCacheGetReleaseError), releaseID, cacheHit)
+}
+
+// InstallerCacheGetReleaseOK mocks base method.
+func (m *MockAPI) InstallerCacheGetReleaseOK(releaseID string, cacheHit bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "InstallerCacheGetReleaseOK", releaseID, cacheHit)
+}
+
+// InstallerCacheGetReleaseOK indicates an expected call of InstallerCacheGetReleaseOK.
+func (mr *MockAPIMockRecorder) InstallerCacheGetReleaseOK(releaseID, cacheHit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallerCacheGetReleaseOK", reflect.TypeOf((*MockAPI)(nil).InstallerCacheGetReleaseOK), releaseID, cacheHit)
+}
+
+// InstallerCacheGetReleaseTimeout mocks base method.
+func (m *MockAPI) InstallerCacheGetReleaseTimeout(releaseID string, cacheHit bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "InstallerCacheGetReleaseTimeout", releaseID, cacheHit)
+}
+
+// InstallerCacheGetReleaseTimeout indicates an expected call of InstallerCacheGetReleaseTimeout.
+func (mr *MockAPIMockRecorder) InstallerCacheGetReleaseTimeout(releaseID, cacheHit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallerCacheGetReleaseTimeout", reflect.TypeOf((*MockAPI)(nil).InstallerCacheGetReleaseTimeout), releaseID, cacheHit)
+}
+
+// InstallerCacheReleaseEvicted mocks base method.
+func (m *MockAPI) InstallerCacheReleaseEvicted(succeeded bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "InstallerCacheReleaseEvicted", succeeded)
+}
+
+// InstallerCacheReleaseEvicted indicates an expected call of InstallerCacheReleaseEvicted.
+func (mr *MockAPIMockRecorder) InstallerCacheReleaseEvicted(succeeded interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallerCacheReleaseEvicted", reflect.TypeOf((*MockAPI)(nil).InstallerCacheReleaseEvicted), succeeded)
+}
+
+// InstallerCacheTryEviction mocks base method.
+func (m *MockAPI) InstallerCacheTryEviction() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "InstallerCacheTryEviction")
+}
+
+// InstallerCacheTryEviction indicates an expected call of InstallerCacheTryEviction.
+func (mr *MockAPIMockRecorder) InstallerCacheTryEviction() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallerCacheTryEviction", reflect.TypeOf((*MockAPI)(nil).InstallerCacheTryEviction))
+}
+
 // MonitoredClusterCount mocks base method.
 func (m *MockAPI) MonitoredClusterCount(monitoredClusters int64) {
 	m.ctrl.T.Helper()

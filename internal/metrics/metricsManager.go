@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/alecthomas/units"
@@ -39,6 +40,10 @@ const (
 	counterFilesystemUsagePercentage              = "assisted_installer_filesystem_usage_percentage"
 	counterMonitoredHosts                         = "assisted_installer_monitored_hosts"
 	counterMonitoredClusters                      = "assisted_installer_monitored_clusters"
+	counterInstallerCacheGetRelease               = "assisted_installer_cache_get_release"
+	counterInstallerCacheReleaseCached            = "assisted_installer_cache_get_release_cached"
+	counterInstallerCacheTryEviction              = "assisted_installer_cache_try_eviction"
+	counterInstallerCacheReleaseEvicted           = "assisted_installer_cache_release_evicted"
 )
 
 const (
@@ -61,6 +66,9 @@ const (
 	counterDescriptionFilesystemUsagePercentage              = "The percentage of the filesystem usage by the service"
 	counterDescriptionMonitoredHosts                         = "Number of hosts monitored by host monitor"
 	counterDescriptionMonitoredClusters                      = "Number of clusters monitored by cluster monitor"
+	counterDescriptionInstallerCacheGetRelease               = "Counts the number of times a release was attempted, with the outcome as a label, cache status as label"
+	counterDescriptionInstallerCacheTryEviction              = "Counts the number of times that the eviction function was called"
+	counterDescriptionInstallerCacheReleaseEvicted           = "Counts the number of times that a release was evicted, label with success or fail of eviction"
 )
 
 const (
@@ -77,6 +85,13 @@ const (
 	imageLabel                 = "imageName"
 	hosts                      = "hosts"
 	clusters                   = "clusters"
+	labelStatus                = "status"
+	labelValueTimeout          = "timeout"
+	labelValueOK               = "ok"
+	labelValueError            = "error"
+	labelCacheHit              = "hit"
+	labelReleaseID             = "releaseId"
+	labelSucceess              = "succeess"
 )
 
 type API interface {
@@ -94,6 +109,11 @@ type API interface {
 	FileSystemUsage(usageInPercentage float64)
 	MonitoredHostsCount(monitoredHosts int64)
 	MonitoredClusterCount(monitoredClusters int64)
+	InstallerCacheGetReleaseOK(releaseID string, cacheHit bool)
+	InstallerCacheGetReleaseTimeout(releaseID string, cacheHit bool)
+	InstallerCacheGetReleaseError(releaseID string, cacheHit bool)
+	InstallerCacheTryEviction()
+	InstallerCacheReleaseEvicted(succeeded bool)
 }
 
 type MetricsManager struct {
@@ -119,7 +139,11 @@ type MetricsManager struct {
 	serviceLogicFilesystemUsagePercentage              *prometheus.GaugeVec
 	serviceLogicMonitoredHosts                         *prometheus.GaugeVec
 	serviceLogicMonitoredClusters                      *prometheus.GaugeVec
-	collectors                                         []prometheus.Collector
+	serviceLogicInstallerCacheGetRelease               *prometheus.CounterVec
+	serviceLogicInstallerCacheTryEviction              *prometheus.CounterVec
+	serviceLogicInstallerCacheReleaseEvicted           *prometheus.CounterVec
+
+	collectors []prometheus.Collector
 }
 
 var _ API = &MetricsManager{}
@@ -288,6 +312,30 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 			Name:      counterMonitoredClusters,
 			Help:      counterDescriptionMonitoredClusters,
 		}, []string{hosts}),
+
+		serviceLogicInstallerCacheGetRelease: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterInstallerCacheGetRelease,
+				Help:      counterDescriptionInstallerCacheGetRelease,
+			}, []string{labelStatus, labelReleaseID, labelCacheHit}),
+
+		serviceLogicInstallerCacheTryEviction: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterInstallerCacheTryEviction,
+				Help:      counterDescriptionInstallerCacheTryEviction,
+			}, []string{}),
+
+		serviceLogicInstallerCacheReleaseEvicted: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterInstallerCacheReleaseEvicted,
+				Help:      counterDescriptionInstallerCacheReleaseEvicted,
+			}, []string{labelStatus}),
 	}
 
 	m.collectors = append(m.collectors, newDirectoryUsageCollector(metricsManagerConfig.DirectoryUsageMonitorConfig.Directories, diskStatsHelper, log))
@@ -312,6 +360,9 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 		m.serviceLogicFilesystemUsagePercentage,
 		m.serviceLogicMonitoredHosts,
 		m.serviceLogicMonitoredClusters,
+		m.serviceLogicInstallerCacheGetRelease,
+		m.serviceLogicInstallerCacheTryEviction,
+		m.serviceLogicInstallerCacheReleaseEvicted,
 	)
 
 	for _, collector := range m.collectors {
@@ -485,4 +536,25 @@ func (m *MetricsManager) MonitoredClusterCount(monitoredClusters int64) {
 
 func bytesToGib(bytes int64) int64 {
 	return bytes / int64(units.GiB)
+}
+
+// []string{labelStatus, labelReleaseID, labelCached}
+func (m *MetricsManager) InstallerCacheGetReleaseOK(releaseId string, cacheHit bool) {
+	m.serviceLogicInstallerCacheGetRelease.WithLabelValues(labelValueOK, releaseId, fmt.Sprintf("%t", cacheHit)).Inc()
+}
+
+func (m *MetricsManager) InstallerCacheGetReleaseTimeout(releaseId string, cacheHit bool) {
+	m.serviceLogicInstallerCacheGetRelease.WithLabelValues(labelValueTimeout, releaseId, fmt.Sprintf("%t", cacheHit)).Inc()
+}
+
+func (m *MetricsManager) InstallerCacheGetReleaseError(releaseId string, cacheHit bool) {
+	m.serviceLogicInstallerCacheGetRelease.WithLabelValues(labelValueError, releaseId, fmt.Sprintf("%t", cacheHit)).Inc()
+}
+
+func (m *MetricsManager) InstallerCacheReleaseEvicted(succeeded bool) {
+	m.serviceLogicInstallerCacheReleaseEvicted.WithLabelValues(fmt.Sprintf("%t", succeeded)).Inc()
+}
+
+func (m *MetricsManager) InstallerCacheTryEviction() {
+	m.serviceLogicInstallerCacheTryEviction.WithLabelValues().Inc()
 }
