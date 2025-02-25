@@ -74,7 +74,7 @@ oc get secret "${SPOKE_KUBECONFIG_SECRET}" -n "${SPOKE_NAMESPACE}" || \
     oc create secret generic $SPOKE_KUBECONFIG_SECRET --from-file=kubeconfig=$SPOKE_KUBECONFIG -n $SPOKE_NAMESPACE
 
 echo "Apply hive CRDs"
-oc --kubeconfig $SPOKE_KUBECONFIG apply -f ${__root}/hack/crds
+oc --kubeconfig $SPOKE_KUBECONFIG apply -f ${__root}/hack/crds/hive
 
 echo "Apply HypershiftAgentServiceConfig on hub"
 ansible-playbook "${playbooks_dir}/hasc-playbook.yaml"

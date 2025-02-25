@@ -45,8 +45,10 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -86,6 +88,17 @@ func init() {
 	utilruntime.Must(certtypes.AddToScheme(scheme))
 }
 
+func doesManagedClusterCRDExist(mgr manager.Manager) error {
+	gvk, err := apiutil.GVKForObject(&clusterv1.ManagedCluster{}, mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+	if _, err = mgr.GetRESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
@@ -114,6 +127,13 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
+	log := logrus.New()
+	failOnError := func(err error, msg string, args ...interface{}) {
+		if err != nil {
+			log.WithError(err).Fatalf(msg, args...)
+		}
+	}
+	failOnError(doesManagedClusterCRDExist(mgr), "Managed Cluster CRD does not exist in cluster")
 
 	ns, found := os.LookupEnv(NamespaceEnvVar)
 	if !found {
@@ -159,7 +179,6 @@ func main() {
 		tolerations = operatorPod.Spec.Tolerations
 	}
 
-	log := logrus.New()
 	spokeClientFactory, err := spoke_k8s_client.NewFactory(log, nil)
 	if err != nil {
 		log.WithError(err).Error("failed to create spoke client factory")
