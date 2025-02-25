@@ -34,20 +34,17 @@ var _ = Describe("MCE Operator", func() {
 	)
 
 	Context("GetHostRequirements", func() {
-		fullHaMode := models.ClusterHighAvailabilityModeFull
-		snoMode := models.ClusterHighAvailabilityModeNone
-
 		table.DescribeTable("get host requirements when ", func(cluster *common.Cluster, host *models.Host, expectedResult *models.ClusterHostRequirementsDetails) {
 			res, _ := operator.GetHostRequirements(ctx, cluster, host)
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("on a multinode cluster",
-				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &fullHaMode, OpenshiftVersion: "4.13.0", Hosts: []*models.Host{hostWithSufficientResources}}},
+				&common.Cluster{Cluster: models.Cluster{ControlPlaneCount: int64(3), OpenshiftVersion: "4.13.0", Hosts: []*models.Host{hostWithSufficientResources}}},
 				hostWithSufficientResources,
 				&models.ClusterHostRequirementsDetails{CPUCores: MinimumCPU, RAMMib: conversions.GibToMib(MinimumMemory)},
 			),
 			table.Entry("on an SNO cluster",
-				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &snoMode, OpenshiftVersion: "4.13.0", Hosts: []*models.Host{hostWithSufficientResources}}},
+				&common.Cluster{Cluster: models.Cluster{ControlPlaneCount: int64(1), OpenshiftVersion: "4.13.0", Hosts: []*models.Host{hostWithSufficientResources}}},
 				hostWithSufficientResources,
 				&models.ClusterHostRequirementsDetails{CPUCores: SNOMinimumCpu, RAMMib: conversions.GibToMib(SNOMinimumMemory)},
 			),
@@ -95,18 +92,14 @@ var _ = Describe("MCE Operator", func() {
 })
 
 var _ = Describe("GetMinDiskSizeGB", func() {
-	var (
-		fullHaMode = models.ClusterHighAvailabilityModeFull
-		snoMode    = models.ClusterHighAvailabilityModeNone
-	)
 	It("should return the sum of all required PVCs when cluster is SNO", func() {
-		cluster := &models.Cluster{HighAvailabilityMode: &snoMode}
+		cluster := &models.Cluster{ControlPlaneCount: int64(1)}
 		minDiskSize := GetMinDiskSizeGB(cluster)
 		expectedMinDiskSize := int64(70)
 		Expect(expectedMinDiskSize).To(Equal(minDiskSize))
 	})
 	It("should return the maximum value of any required PVCs when cluster is HA", func() {
-		cluster := &models.Cluster{HighAvailabilityMode: &fullHaMode}
+		cluster := &models.Cluster{ControlPlaneCount: int64(3)}
 		minDiskSize := GetMinDiskSizeGB(cluster)
 		expectedMinDiskSize := int64(50)
 		Expect(expectedMinDiskSize).To(Equal(minDiskSize))

@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -49,12 +48,6 @@ type InstallCmdRequest struct {
 
 	// If true, assisted service will attempt to skip MCO reboot
 	EnableSkipMcoReboot bool `json:"enable_skip_mco_reboot,omitempty"`
-
-	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
-	// over multiple master nodes whereas 'None' installs a full cluster over one node.
-	//
-	// Enum: [Full None]
-	HighAvailabilityMode *string `json:"high_availability_mode,omitempty"`
 
 	// Host id
 	// Required: true
@@ -114,10 +107,6 @@ func (m *InstallCmdRequest) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateControllerImage(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateHighAvailabilityMode(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -184,48 +173,6 @@ func (m *InstallCmdRequest) validateControllerImage(formats strfmt.Registry) err
 	}
 
 	if err := validate.Pattern("controller_image", "body", *m.ControllerImage, `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$`); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-var installCmdRequestTypeHighAvailabilityModePropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["Full","None"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		installCmdRequestTypeHighAvailabilityModePropEnum = append(installCmdRequestTypeHighAvailabilityModePropEnum, v)
-	}
-}
-
-const (
-
-	// InstallCmdRequestHighAvailabilityModeFull captures enum value "Full"
-	InstallCmdRequestHighAvailabilityModeFull string = "Full"
-
-	// InstallCmdRequestHighAvailabilityModeNone captures enum value "None"
-	InstallCmdRequestHighAvailabilityModeNone string = "None"
-)
-
-// prop value enum
-func (m *InstallCmdRequest) validateHighAvailabilityModeEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, installCmdRequestTypeHighAvailabilityModePropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *InstallCmdRequest) validateHighAvailabilityMode(formats strfmt.Registry) error {
-	if swag.IsZero(m.HighAvailabilityMode) { // not required
-		return nil
-	}
-
-	// value enum
-	if err := m.validateHighAvailabilityModeEnum("high_availability_mode", "body", *m.HighAvailabilityMode); err != nil {
 		return err
 	}
 
