@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -140,9 +141,8 @@ func (m *Manager) resetRoleAssignmentIfNotAllRolesAreSet() {
 	}
 }
 
-func (m *Manager) clusterHostMonitoring() int64 {
+func (m *Manager) clusterHostMonitoring() {
 	var (
-		monitored int64
 		requestID = requestid.NewID()
 		ctx       = requestid.ToContext(context.Background(), requestID)
 		log       = requestid.RequestIDLogger(m.log, requestID)
@@ -174,13 +174,15 @@ func (m *Manager) clusterHostMonitoring() int64 {
 				log = log.WithField("host", host.ID.String())
 				if !m.leaderElector.IsLeader() {
 					log.Debug("Not a leader, exiting cluster HostMonitoring")
-					return monitored
+					return
 				}
-
-				monitored += 1
+				startTime := time.Now()
 
 				log.Debug("Started refreshing host status")
 				err = m.refreshStatusInternal(ctx, host, c, nil, inventoryCache, m.db)
+
+				duration := float64(time.Since(startTime).Milliseconds())
+				m.metricApi.MonitoredHostsDurationMs(duration)
 				if err != nil {
 					log.WithError(err).Error("failed to refresh host state")
 				}
@@ -202,12 +204,10 @@ func (m *Manager) clusterHostMonitoring() int64 {
 
 		m.log.Debug("Finished cluster host monitoring cycle")
 	}
-	return monitored
 }
 
-func (m *Manager) infraEnvHostMonitoring() int64 {
+func (m *Manager) infraEnvHostMonitoring() {
 	var (
-		monitored int64
 		requestID = requestid.NewID()
 		ctx       = requestid.ToContext(context.Background(), requestID)
 		log       = requestid.RequestIDLogger(m.log, requestID)
@@ -240,11 +240,13 @@ func (m *Manager) infraEnvHostMonitoring() int64 {
 			for _, host := range i.Hosts {
 				if !m.leaderElector.IsLeader() {
 					m.log.Debugf("Not a leader, exiting infra-env HostMonitoring")
-					return monitored
+					return
 				}
 				if funk.ContainsString(monitorStates, swag.StringValue(host.Status)) {
-					monitored += 1
+					startTime := time.Now()
 					err = m.refreshStatusInternal(ctx, &host.Host, nil, i, inventoryCache, m.db)
+					duration := float64(time.Since(startTime).Milliseconds())
+					m.metricApi.MonitoredHostsDurationMs(duration)
 					if err != nil {
 						log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
 					}
@@ -252,18 +254,15 @@ func (m *Manager) infraEnvHostMonitoring() int64 {
 			}
 		}
 	}
-	return monitored
 }
 
 func (m *Manager) HostMonitoring() {
-	var monitored int64
 	if !m.leaderElector.IsLeader() {
 		m.log.Debugf("Not a leader, exiting HostMonitoring")
 		return
 	}
 	defer commonutils.MeasureOperation("HostMonitoring", m.log, m.metricApi)()
 	m.initMonitoringQueryGenerator()
-	monitored += m.clusterHostMonitoring()
-	monitored += m.infraEnvHostMonitoring()
-	m.metricApi.MonitoredHostsCount(monitored)
+	m.clusterHostMonitoring()
+	m.infraEnvHostMonitoring()
 }

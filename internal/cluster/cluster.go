@@ -589,7 +589,6 @@ func (m *Manager) ClusterMonitoring() {
 	var (
 		offset              int
 		limit               = m.MonitorBatchSize
-		monitored           int64
 		clusters            []*common.Cluster
 		clusterAfterRefresh *common.Cluster
 		requestID           = requestid.NewID()
@@ -625,7 +624,7 @@ func (m *Manager) ClusterMonitoring() {
 				return
 			}
 			if !m.SkipMonitoring(cluster) {
-				monitored += 1
+				startTime := time.Now()
 				_ = m.autoAssignMachineNetworkCidr(cluster)
 				if cluster.ID == nil {
 					log.WithError(err).Error("cluster ID is nil")
@@ -657,12 +656,13 @@ func (m *Manager) ClusterMonitoring() {
 				if err := m.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID); err != nil {
 					log.WithError(err).Errorf("failed to refresh cluster with ID '%s' masters schedulability", string(*cluster.ID))
 				}
+				duration := float64(time.Since(startTime).Milliseconds())
+
+				m.metricAPI.MonitoredClustersDurationMs(duration)
 			}
 		}
 		offset += limit
 	}
-	m.log.Debugf("Monitored %d clusters", monitored)
-	m.metricAPI.MonitoredClusterCount(monitored)
 }
 
 func CanDownloadFiles(c *common.Cluster) (err error) {
