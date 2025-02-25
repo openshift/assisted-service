@@ -13528,15 +13528,29 @@ var _ = Describe("Install Host test", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
-		infraEnvId = clusterID
 		hostID = strfmt.UUID(uuid.New().String())
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			Kind:             swag.String(models.ClusterKindAddHostsCluster),
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Status:           swag.String(models.ClusterStatusAddingHosts),
-		}}).Error
+		err := db.Create(&common.Cluster{
+			PullSecret: fakePullSecret,
+			Cluster: models.Cluster{
+				ID:               &clusterID,
+				Kind:             swag.String(models.ClusterKindAddHostsCluster),
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				Status:           swag.String(models.ClusterStatusAddingHosts),
+			},
+		}).Error
 		Expect(err).ShouldNot(HaveOccurred())
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		infraEnv := common.InfraEnv{
+			PullSecret: fakePullSecret,
+			InfraEnv: models.InfraEnv{
+				ID:              &infraEnvId,
+				PullSecretSet:   true,
+				ClusterID:       clusterID,
+				Type:            models.ImageTypeFullIso.Pointer(),
+				CPUArchitecture: "x86_64",
+			},
+		}
+		Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
 		bm = createInventory(db, cfg)
 	})
 
@@ -13551,7 +13565,7 @@ var _ = Describe("Install Host test", func() {
 			InfraEnvID:  infraEnvId,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -13569,7 +13583,7 @@ var _ = Describe("Install Host test", func() {
 			InfraEnvID:  infraEnvId,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -13585,7 +13599,7 @@ var _ = Describe("Install Host test", func() {
 			InfraEnvID:  infraEnvId,
 			HostID:      strfmt.UUID(uuid.New().String()),
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		res := bm.V2InstallHost(ctx, params)
 		verifyApiError(res, http.StatusNotFound)
 	})
@@ -13596,7 +13610,7 @@ var _ = Describe("Install Host test", func() {
 			InfraEnvID:  infraEnvId,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost, infraEnvId, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		res := bm.V2InstallHost(ctx, params)
 		verifyApiError(res, http.StatusConflict)
 	})
@@ -13607,7 +13621,7 @@ var _ = Describe("Install Host test", func() {
 			InfraEnvID:  infraEnvId,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusInsufficient, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		res := bm.V2InstallHost(ctx, params)
 		verifyApiError(res, http.StatusConflict)
 	})
@@ -13618,7 +13632,7 @@ var _ = Describe("Install Host test", func() {
 			InfraEnvID:  infraEnvId,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(0)
@@ -13633,11 +13647,46 @@ var _ = Describe("Install Host test", func() {
 			InfraEnvID:  infraEnvId,
 			HostID:      hostID,
 		}
-		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		res := bm.V2InstallHost(ctx, params)
+		verifyApiError(res, http.StatusInternalServerError)
+	})
+
+	It("succeeds when being installed to the rootfs", func() {
+		params := installer.V2InstallHostParams{
+			HTTPRequest: request,
+			InfraEnvID:  infraEnvId,
+			HostID:      hostID,
+		}
+		inventory := `{"boot": {"device_type": "persistent"}}`
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, inventory, db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(common.TestDefaultConfig.ReleaseImage, nil)
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+
+		res := bm.V2InstallHost(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2InstallHostAccepted()))
+	})
+
+	It("fails if the release image doesn't exist when the host is being installed to the rootfs", func() {
+		params := installer.V2InstallHostParams{
+			HTTPRequest: request,
+			InfraEnvID:  infraEnvId,
+			HostID:      hostID,
+		}
+		inventory := `{"boot": {"device_type": "persistent"}}`
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, inventory, db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(nil, fmt.Errorf("failed to find release image"))
+
 		res := bm.V2InstallHost(ctx, params)
 		verifyApiError(res, http.StatusInternalServerError)
 	})
@@ -13646,25 +13695,41 @@ var _ = Describe("Install Host test", func() {
 var _ = Describe("InstallSingleDay2Host test", func() {
 
 	var (
-		bm        *bareMetalInventory
-		cfg       Config
-		db        *gorm.DB
-		ctx       = context.Background()
-		clusterID strfmt.UUID
-		dbName    string
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		clusterID  strfmt.UUID
+		infraEnvID strfmt.UUID
+		dbName     string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			Kind:             swag.String(models.ClusterKindAddHostsCluster),
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Status:           swag.String(models.ClusterStatusAddingHosts),
-		}}).Error
+		err := db.Create(&common.Cluster{
+			PullSecret: fakePullSecret,
+			Cluster: models.Cluster{
+				ID:               &clusterID,
+				Kind:             swag.String(models.ClusterKindAddHostsCluster),
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				Status:           swag.String(models.ClusterStatusAddingHosts),
+			},
+		}).Error
 		Expect(err).ShouldNot(HaveOccurred())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		infraEnv := common.InfraEnv{
+			PullSecret: fakePullSecret,
+			InfraEnv: models.InfraEnv{
+				ID:              &infraEnvID,
+				PullSecretSet:   true,
+				ClusterID:       clusterID,
+				Type:            models.ImageTypeFullIso.Pointer(),
+				CPUArchitecture: "x86_64",
+			},
+		}
+		Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
 
 		bm = createInventory(db, cfg)
 	})
@@ -13676,32 +13741,62 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 
 	It("Install Single Day2 Host", func() {
 		hostId := strfmt.UUID(uuid.New().String())
-		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostInstallationStartedEventName),
 			eventstest.WithHostIdMatcher(hostId.String()),
-			eventstest.WithInfraEnvIdMatcher(clusterID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithClusterIdMatcher(clusterID.String())))
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
-		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, clusterID, hostId)
+		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, infraEnvID, hostId)
 		Expect(res).Should(BeNil())
 	})
 
 	It("Install fail Single Day2 Host", func() {
 		expectedErrMsg := "some-internal-error"
 		hostId := strfmt.UUID(uuid.New().String())
-		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
-		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, clusterID, hostId)
+		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, infraEnvID, hostId)
 		Expect(res.Error()).Should(Equal(expectedErrMsg))
+	})
+
+	It("succeeds when being installed to the rootfs", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		inventory := `{"boot": {"device_type": "persistent"}}`
+		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvID, clusterID, inventory, db)
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostInstallationStartedEventName),
+			eventstest.WithHostIdMatcher(hostId.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithClusterIdMatcher(clusterID.String())))
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(common.TestDefaultConfig.ReleaseImage, nil)
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+
+		Expect(bm.InstallSingleDay2HostInternal(ctx, clusterID, infraEnvID, hostId)).To(Succeed())
+	})
+
+	It("fails if the release image doesn't exist when the host is being installed to the rootfs", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		inventory := `{"boot": {"device_type": "persistent"}}`
+		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvID, clusterID, inventory, db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(nil, fmt.Errorf("failed to find release image"))
+
+		Expect(bm.InstallSingleDay2HostInternal(ctx, clusterID, infraEnvID, hostId)).ToNot(Succeed())
 	})
 })
 
