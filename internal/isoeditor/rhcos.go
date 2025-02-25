@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/cavaliercoder/go-cpio"
@@ -92,8 +93,8 @@ func RamdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData,
 
 func formatRootfsServiceConfigFile(clusterProxyInfo *ClusterProxyInfo) (string, error) {
 	var rootfsServicConfigParams = map[string]string{
-		"HTTP_PROXY":  clusterProxyInfo.HTTPProxy,
-		"HTTPS_PROXY": clusterProxyInfo.HTTPSProxy,
+		"HTTP_PROXY":  strings.ReplaceAll(clusterProxyInfo.HTTPProxy, "%", "%%"),
+		"HTTPS_PROXY": strings.ReplaceAll(clusterProxyInfo.HTTPSProxy, "%", "%%"),
 		"NO_PROXY":    clusterProxyInfo.NoProxy,
 	}
 	tmpl, err := template.New("rootfsServiceConfig").Parse(rootfsServiceConfigFormat)
