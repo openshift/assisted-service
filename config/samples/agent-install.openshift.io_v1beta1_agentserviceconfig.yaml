@@ -174,7 +174,7 @@ spec:
     version: 418.94.202411221729-0
   - cpuArchitecture: x86_64
     openshiftVersion: '4.19'
-    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/dev-4.19/rhcos-dev-4.19-x86_64-live.x86_64.iso
+    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/dev-4.19/rhcos-dev-4.19-x86_64-live-iso.x86_64.iso
     version: 418.94.202410090804-0
   - cpuArchitecture: arm64
     openshiftVersion: '4.19'
