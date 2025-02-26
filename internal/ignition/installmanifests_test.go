@@ -2,7 +2,7 @@ package ignition
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"errors"
 	"fmt"
 	"io"
@@ -135,7 +135,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		config, err1 = ParseToLatest(bootstrapBytes)
 		Expect(err1).NotTo(HaveOccurred())
 		Expect(config.Ignition.Version).To(Equal("3.2.0"))
-		bytes, err1 := json.Marshal(config)
+		bytes, err1 := json.ConfigStd.Marshal(config)
 		Expect(err1).ToNot(HaveOccurred())
 		v32Config, _, err1 := config_32.Parse(bytes)
 		Expect(err1).ToNot(HaveOccurred())
@@ -1847,7 +1847,7 @@ var _ = Describe("Bare metal host generation", func() {
 			inventoryObject.Interfaces = []*models.Interface{
 				interfaceObject,
 			}
-			inventoryJSON, err := json.Marshal(inventoryObject)
+			inventoryJSON, err := json.ConfigStd.Marshal(inventoryObject)
 			Expect(err).ToNot(HaveOccurred())
 			host := &models.Host{
 				Inventory: string(inventoryJSON),

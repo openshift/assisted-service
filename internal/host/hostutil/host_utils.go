@@ -1,7 +1,7 @@
 package hostutil
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 	"net/http"
@@ -251,7 +251,7 @@ func IsUnboundHost(h *models.Host) bool {
 }
 
 func MarshalConnectivityReport(report *models.ConnectivityReport) (string, error) {
-	if data, err := json.Marshal(report); err != nil {
+	if data, err := json.ConfigStd.Marshal(report); err != nil {
 		return "", err
 	} else {
 		return string(data), nil

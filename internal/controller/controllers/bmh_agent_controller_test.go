@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"time"
 
@@ -1731,7 +1731,7 @@ var _ = Describe("bmac reconcile", func() {
 						},
 					},
 				}
-				installConfigData, err := json.Marshal(installConfig)
+				installConfigData, err := json.ConfigStd.Marshal(installConfig)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(db.Model(&dbCluster).Update("install_config_overrides", installConfigData).Error).ShouldNot(HaveOccurred())
 
@@ -2127,7 +2127,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedBMH.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION]).To(Equal("assisted-service-controller"))
 
 				// Ensure 'status' annotation is added
-				statusJson, err := json.Marshal(updatedBMH.Status)
+				statusJson, err := json.ConfigStd.Marshal(updatedBMH.Status)
 				Expect(err).To(BeNil())
 				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_STATUS_ANNOTATION))
 				Expect(updatedBMH.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]).To(Equal(string(statusJson)))
@@ -2142,7 +2142,7 @@ var _ = Describe("bmac reconcile", func() {
 			It("should update status annotation if stale", func() {
 				// Create BMH
 				bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION] = "assisted-service-controller"
-				originalStatusJson, err := json.Marshal(bmh.Status)
+				originalStatusJson, err := json.ConfigStd.Marshal(bmh.Status)
 				Expect(err).To(BeNil())
 				bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION] = string(originalStatusJson)
 				Expect(c.Create(ctx, bmh)).To(Succeed())
@@ -2169,7 +2169,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 
 				// Ensure 'status' annotation is updated
-				updatedStatusJson, err := json.Marshal(updatedBMH.Status)
+				updatedStatusJson, err := json.ConfigStd.Marshal(updatedBMH.Status)
 				Expect(err).To(BeNil())
 				Expect(updatedStatusJson).To(Not(Equal(originalStatusJson)))
 				Expect(updatedBMH.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]).To(Equal(string(updatedStatusJson)))
@@ -2184,7 +2184,7 @@ var _ = Describe("bmac reconcile", func() {
 			It("should keep paused and status annotations if already exist", func() {
 				// Create BMH
 				bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION] = "assisted-service-controller"
-				statusJson, err := json.Marshal(bmh.Status)
+				statusJson, err := json.ConfigStd.Marshal(bmh.Status)
 				Expect(err).To(BeNil())
 				bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION] = string(statusJson)
 				Expect(c.Create(ctx, bmh)).To(Succeed())
@@ -2204,7 +2204,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedBMH.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION]).To(Equal("assisted-service-controller"))
 
 				// Ensure 'status' annotation exists
-				statusJson, err = json.Marshal(updatedBMH.Status)
+				statusJson, err = json.ConfigStd.Marshal(updatedBMH.Status)
 				Expect(err).To(BeNil())
 				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_STATUS_ANNOTATION))
 				Expect(updatedBMH.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION]).To(Equal(string(statusJson)))
@@ -2225,7 +2225,7 @@ var _ = Describe("bmac reconcile", func() {
 				bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION] = "assisted-service-controller"
 
 				// Add 'status' annotation
-				originalStatusJson, err := json.Marshal(bmh.Status)
+				originalStatusJson, err := json.ConfigStd.Marshal(bmh.Status)
 				Expect(err).To(BeNil())
 				bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION] = string(originalStatusJson)
 
@@ -2280,7 +2280,7 @@ var _ = Describe("bmac reconcile", func() {
 			It("should remove paused annotation if also status annotation exists", func() {
 				// Create BMH
 				bmh.ObjectMeta.Annotations[BMH_PAUSED_ANNOTATION] = "assisted-service-controller"
-				statusJson, err := json.Marshal(bmh.Status)
+				statusJson, err := json.ConfigStd.Marshal(bmh.Status)
 				Expect(err).To(BeNil())
 				bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION] = string(statusJson)
 				Expect(c.Create(ctx, bmh)).To(Succeed())
@@ -2475,7 +2475,7 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 				args := &bmh_v1alpha1.DetachedAnnotationArguments{
 					DeleteAction: bmh_v1alpha1.DetachedDeleteActionDelay,
 				}
-				data, err := json.Marshal(args)
+				data, err := json.ConfigStd.Marshal(args)
 				Expect(err).To(BeNil())
 				host.Annotations = map[string]string{BMH_DETACHED_ANNOTATION: string(data)}
 				Expect(c.Update(ctx, host)).To(Succeed())
@@ -2724,7 +2724,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 			args := &bmh_v1alpha1.DetachedAnnotationArguments{
 				DeleteAction: bmh_v1alpha1.DetachedDeleteActionDelay,
 			}
-			data, err := json.Marshal(args)
+			data, err := json.ConfigStd.Marshal(args)
 			Expect(err).To(BeNil())
 			setAnnotation(&bmh.ObjectMeta, BMH_DETACHED_ANNOTATION, string(data))
 			setAnnotation(&bmh.ObjectMeta, BMH_PAUSED_ANNOTATION, "assisted-service-controller")
@@ -2742,7 +2742,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 			args := &bmh_v1alpha1.DetachedAnnotationArguments{
 				DeleteAction: bmh_v1alpha1.DetachedDeleteActionDelay,
 			}
-			data, err := json.Marshal(args)
+			data, err := json.ConfigStd.Marshal(args)
 			Expect(err).To(BeNil())
 			setAnnotation(&bmh.ObjectMeta, BMH_DETACHED_ANNOTATION, string(data))
 			setAnnotation(&bmh.ObjectMeta, BMH_PAUSED_ANNOTATION, "assisted-service-controller")

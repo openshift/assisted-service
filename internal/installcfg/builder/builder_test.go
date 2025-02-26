@@ -1,7 +1,7 @@
 package builder
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"strings"
 	"testing"
@@ -1008,7 +1008,7 @@ func getInventoryStr(hostname, bootMode string, ipv4 bool, ipv6 bool) string {
 		inventory.Interfaces[0].IPV6Addresses = []string{"1001:db8::1/120"}
 
 	}
-	ret, _ := json.Marshal(&inventory)
+	ret, _ := json.ConfigStd.Marshal(&inventory)
 	return string(ret)
 }
 

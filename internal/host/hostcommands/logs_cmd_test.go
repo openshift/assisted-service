@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -114,7 +114,7 @@ var _ = Describe("upload_logs", func() {
 				common.TestDefaultConfig.Disks,
 			},
 		}
-		b, err := json.Marshal(&inventory)
+		b, err := json.ConfigStd.Marshal(&inventory)
 		Expect(err).To(Not(HaveOccurred()))
 		host2.Inventory = string(b)
 		host2.Role = models.HostRoleMaster

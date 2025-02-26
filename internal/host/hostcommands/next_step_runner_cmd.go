@@ -1,7 +1,7 @@
 package hostcommands
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -26,7 +26,7 @@ func GetNextStepRunnerCommand(config *NextStepRunnerConfig) (string, *[]string, 
 		AgentVersion: swag.String(config.NextStepRunnerImage),
 	}
 
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		log.WithError(err).Warn("Json marshal")
 		return "", nil, err

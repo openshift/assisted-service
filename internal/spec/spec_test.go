@@ -1,7 +1,7 @@
 package spec
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"log"

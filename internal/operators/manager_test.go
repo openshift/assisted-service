@@ -3,7 +3,7 @@ package operators_test
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"errors"
 	"fmt"
 	"regexp"

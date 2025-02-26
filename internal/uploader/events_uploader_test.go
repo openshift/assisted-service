@@ -6,7 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"mime"
@@ -112,7 +112,7 @@ var _ = Describe("prepareBody", func() {
 		cluster := models.Cluster{
 			ID: &clusterID,
 		}
-		clusterJson, err := json.Marshal(cluster)
+		clusterJson, err := json.ConfigStd.Marshal(cluster)
 		Expect(err).NotTo(HaveOccurred())
 
 		buffer := &bytes.Buffer{}
@@ -601,7 +601,7 @@ func checkHostsFile(db *gorm.DB, hostFile *testFile, clusterID strfmt.UUID) {
 	if hostFile.expected {
 		cluster, err := common.GetClusterFromDBWithHosts(db, clusterID)
 		Expect(err).NotTo(HaveOccurred())
-		expectedContents, err = json.MarshalIndent(cluster.Cluster.Hosts, "", " ")
+		expectedContents, err = json.ConfigStd.MarshalIndent(cluster.Cluster.Hosts, "", " ")
 		Expect(err).NotTo(HaveOccurred())
 	}
 	checkFileContents(hostFile, expectedContents)
@@ -611,7 +611,7 @@ func checkInfraEnvFile(db *gorm.DB, infraenvFile *testFile, infraEnvID strfmt.UU
 	if infraenvFile.expected {
 		infraEnv, err := common.GetInfraEnvFromDB(db, infraEnvID)
 		Expect(err).NotTo(HaveOccurred())
-		expectedContents, err = json.Marshal(infraEnv.InfraEnv)
+		expectedContents, err = json.ConfigStd.Marshal(infraEnv.InfraEnv)
 		Expect(err).NotTo(HaveOccurred())
 	}
 	checkFileContents(infraenvFile, expectedContents)
@@ -628,7 +628,7 @@ func checkClusterFile(db *gorm.DB, clusterFile *testFile, clusterID strfmt.UUID,
 			cluster.EmailDomain = emailDomain
 		}
 		Expect(err).NotTo(HaveOccurred())
-		expectedContents, err = json.Marshal(cluster.Cluster)
+		expectedContents, err = json.ConfigStd.Marshal(cluster.Cluster)
 		Expect(err).NotTo(HaveOccurred())
 	}
 	checkFileContents(clusterFile, expectedContents)

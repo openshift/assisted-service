@@ -6,7 +6,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -396,7 +396,7 @@ func addVMToCluster(cluster *common.Cluster, db *gorm.DB) {
 			Virtual: true,
 		},
 	}
-	inventoryByte, err := json.Marshal(inventory)
+	inventoryByte, err := json.ConfigStd.Marshal(inventory)
 	Expect(err).ToNot(HaveOccurred())
 	host := addHost(hostID, models.HostRoleAutoAssign, models.HostStatusKnown, models.HostKindHost,
 		*infraEnv.ID, *cluster.ID, string(inventoryByte), db)
@@ -871,7 +871,7 @@ func makeFreeNetworksAddresses(elems ...*models.FreeNetworkAddresses) models.Fre
 
 func makeFreeNetworksAddressesStr(elems ...*models.FreeNetworkAddresses) string {
 	toMarshal := models.FreeNetworksAddresses(elems)
-	b, err := json.Marshal(&toMarshal)
+	b, err := json.ConfigStd.Marshal(&toMarshal)
 	Expect(err).ToNot(HaveOccurred())
 	return string(b)
 }
@@ -898,7 +898,7 @@ var _ = Describe("v2PostStepReply", func() {
 
 	Context("Free addresses", func() {
 		var makeStepReply = func(clusterID, hostID strfmt.UUID, freeAddresses models.FreeNetworksAddresses) installer.V2PostStepReplyParams {
-			b, _ := json.Marshal(&freeAddresses)
+			b, _ := json.ConfigStd.Marshal(&freeAddresses)
 			return installer.V2PostStepReplyParams{
 				InfraEnvID: clusterID,
 				HostID:     hostID,
@@ -985,7 +985,7 @@ var _ = Describe("v2PostStepReply", func() {
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		})
 		var makeStepReply = func(clusterID, hostID strfmt.UUID, response models.VerifyVipsResponse) installer.V2PostStepReplyParams {
-			b, _ := json.Marshal(&response)
+			b, _ := json.ConfigStd.Marshal(&response)
 			return installer.V2PostStepReplyParams{
 				InfraEnvID: clusterID,
 				HostID:     hostID,
@@ -997,7 +997,7 @@ var _ = Describe("v2PostStepReply", func() {
 		}
 
 		marshal := func(response models.VerifyVipsResponse) string {
-			b, err := json.Marshal(&response)
+			b, err := json.ConfigStd.Marshal(&response)
 			Expect(err).ToNot(HaveOccurred())
 			return string(b)
 		}
@@ -1018,7 +1018,7 @@ var _ = Describe("v2PostStepReply", func() {
 		var (
 			clusterId, hostId *strfmt.UUID
 			makeStepReply     = func(clusterID, hostID strfmt.UUID, dhcpAllocationResponse *models.DhcpAllocationResponse) installer.V2PostStepReplyParams {
-				b, err := json.Marshal(dhcpAllocationResponse)
+				b, err := json.ConfigStd.Marshal(dhcpAllocationResponse)
 				Expect(err).ToNot(HaveOccurred())
 				return installer.V2PostStepReplyParams{
 					InfraEnvID: clusterID,
@@ -1198,7 +1198,7 @@ var _ = Describe("v2PostStepReply", func() {
 				NtpSources: ntpSources,
 			}
 
-			b, _ := json.Marshal(&response)
+			b, _ := json.ConfigStd.Marshal(&response)
 
 			return installer.V2PostStepReplyParams{
 				InfraEnvID: clusterID,
@@ -1257,7 +1257,7 @@ var _ = Describe("v2PostStepReply", func() {
 				Images: statuses,
 			}
 
-			b, err := json.Marshal(&response)
+			b, err := json.ConfigStd.Marshal(&response)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return installer.V2PostStepReplyParams{
@@ -1320,7 +1320,7 @@ var _ = Describe("v2PostStepReply", func() {
 				Path:           path,
 			}
 
-			b, err := json.Marshal(&response)
+			b, err := json.ConfigStd.Marshal(&response)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return installer.V2PostStepReplyParams{
@@ -6166,7 +6166,7 @@ var _ = Describe("V2UpdateCluster", func() {
 							SerialNumber: "VMware-12 34 56 78 90 12 ab cd-ef gh 12 34 56 67 89 90",
 						},
 					}
-					inventoryByte, err := json.Marshal(inventory)
+					inventoryByte, err := json.ConfigStd.Marshal(inventory)
 					Expect(err).ToNot(HaveOccurred())
 					addHost(strfmt.UUID(uuid.New().String()), role, models.HostStatusKnown, models.HostKindHost, clusterID, string(inventoryByte), db)
 				}
@@ -8847,7 +8847,7 @@ var _ = Describe("infraEnvs", func() {
 			var dbInfraEnv common.InfraEnv
 			Expect(db.First(&dbInfraEnv, "id = ?", actual.Payload.ID.String()).Error).To(Succeed())
 			Expect(dbInfraEnv.ImageTokenKey).NotTo(Equal(""))
-			jsonEncodedKernelParameters, err := json.Marshal(&kernelArguments)
+			jsonEncodedKernelParameters, err := json.ConfigStd.Marshal(&kernelArguments)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(swag.StringValue(dbInfraEnv.KernelArguments)).To(Equal(string(jsonEncodedKernelParameters)))
 		})
@@ -8891,7 +8891,7 @@ var _ = Describe("infraEnvs", func() {
 			var dbInfraEnv common.InfraEnv
 			Expect(db.First(&dbInfraEnv, "id = ?", actual.Payload.ID.String()).Error).To(Succeed())
 			Expect(dbInfraEnv.ImageTokenKey).NotTo(Equal(""))
-			jsonEncodedKernelParameters, err := json.Marshal(&kernelArguments)
+			jsonEncodedKernelParameters, err := json.ConfigStd.Marshal(&kernelArguments)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(swag.StringValue(dbInfraEnv.KernelArguments)).To(Equal(string(jsonEncodedKernelParameters)))
 		})
@@ -9410,7 +9410,7 @@ var _ = Describe("infraEnvs", func() {
 			})
 			Context("Update discovery kernel arguments", func() {
 				jsonEncodeKernelArguments := func(array models.KernelArguments) string {
-					b, e := json.Marshal(&array)
+					b, e := json.ConfigStd.Marshal(&array)
 					Expect(e).ToNot(HaveOccurred())
 					return string(b)
 				}
@@ -13336,7 +13336,7 @@ func getInventoryStr(hostname, bootMode string, ipv4Addresses ...string) string 
 			{Path: "/dev/sdb", Bootable: false},
 		},
 	}
-	ret, _ := json.Marshal(&inventory)
+	ret, _ := json.ConfigStd.Marshal(&inventory)
 	return string(ret)
 }
 
@@ -13356,7 +13356,7 @@ func getInventoryStrWithIPv6(hostname, bootMode string, ipv4Addresses []string, 
 			{Path: "/dev/sdb", Bootable: false},
 		},
 	}
-	ret, _ := json.Marshal(&inventory)
+	ret, _ := json.ConfigStd.Marshal(&inventory)
 	return string(ret)
 }
 

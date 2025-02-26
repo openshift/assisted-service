@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"strings"
 	"text/template"

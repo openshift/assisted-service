@@ -1,7 +1,7 @@
 package mce
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
@@ -34,7 +34,7 @@ func Inventory(r *InventoryResources) string {
 		},
 		Disks: r.Disks,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }

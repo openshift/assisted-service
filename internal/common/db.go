@@ -1,7 +1,7 @@
 package common
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"time"
 
@@ -642,7 +642,7 @@ func ConvertMirrorRegistryConfigToString(configuration *MirrorRegistryConfigurat
 		return "", nil
 	}
 
-	data, err := json.Marshal(configuration)
+	data, err := json.ConfigStd.Marshal(configuration)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal MirrorRegistryConfiguration: %w", err)
 	}

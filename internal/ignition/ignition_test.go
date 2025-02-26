@@ -1,7 +1,7 @@
 package ignition
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_32 "github.com/coreos/ignition/v2/config/v3_2"
@@ -25,7 +25,7 @@ var _ = Context("with test ignitions", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(config.Ignition.Version).To(Equal("3.2.0"))
 
-			bytes, err := json.Marshal(config)
+			bytes, err := json.ConfigStd.Marshal(config)
 			Expect(err).ToNot(HaveOccurred())
 			v32Config, _, err := config_32.Parse(bytes)
 			Expect(err).ToNot(HaveOccurred())
@@ -37,7 +37,7 @@ var _ = Context("with test ignitions", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(config.Ignition.Version).To(Equal("3.1.0"))
 
-			bytes, err := json.Marshal(config)
+			bytes, err := json.ConfigStd.Marshal(config)
 			Expect(err).ToNot(HaveOccurred())
 			v31Config, _, err := config_31.Parse(bytes)
 			Expect(err).ToNot(HaveOccurred())
@@ -69,7 +69,7 @@ var _ = Context("with test ignitions", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(config.Ignition.Version).To(Equal("3.1.0"))
 
-			bytes, err := json.Marshal(config)
+			bytes, err := json.ConfigStd.Marshal(config)
 			Expect(err).ToNot(HaveOccurred())
 			v31Config, _, err := config_31.Parse(bytes)
 			Expect(err).ToNot(HaveOccurred())
@@ -84,7 +84,7 @@ var _ = Context("with test ignitions", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(config.Ignition.Version).To(Equal("3.2.0"))
 
-			bytes, err := json.Marshal(config)
+			bytes, err := json.ConfigStd.Marshal(config)
 			Expect(err).ToNot(HaveOccurred())
 			v32Config, _, err := config_32.Parse(bytes)
 			Expect(err).ToNot(HaveOccurred())
@@ -101,7 +101,7 @@ var _ = Context("with test ignitions", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(config.Ignition.Version).To(Equal("3.1.0"))
 
-			bytes, err := json.Marshal(config)
+			bytes, err := json.ConfigStd.Marshal(config)
 			Expect(err).ToNot(HaveOccurred())
 			v31Config, _, err := config_31.Parse(bytes)
 			Expect(err).ToNot(HaveOccurred())

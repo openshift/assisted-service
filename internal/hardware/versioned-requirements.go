@@ -1,7 +1,7 @@
 package hardware
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 
 	"github.com/openshift/assisted-service/models"

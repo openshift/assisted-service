@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 	_ "embed"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net/url"
 	"os"
@@ -2114,7 +2114,7 @@ func getMustGatherImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceCon
 	if len(mustGatherVersions) == 0 {
 		return MustGatherImages()
 	}
-	encodedVersions, err := json.Marshal(mustGatherVersions)
+	encodedVersions, err := json.ConfigStd.Marshal(mustGatherVersions)
 	if err != nil {
 		log.WithError(err).Error(fmt.Sprintf("Problem marshaling must gather images (%v) to string, returning default %v", mustGatherVersions, MustGatherImages()))
 		return MustGatherImages()
@@ -2157,7 +2157,7 @@ func getOSImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec)
 		return OSImages()
 	}
 
-	encodedOSImages, err := json.Marshal(osImages)
+	encodedOSImages, err := json.ConfigStd.Marshal(osImages)
 	if err != nil {
 		log.WithError(err).Error(fmt.Sprintf("Problem marshaling OSImages (%v) to string, returning default %v", osImages, OSImages()))
 		return OSImages()

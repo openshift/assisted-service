@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/openshift/assisted-service/models"
 )
@@ -24,7 +24,7 @@ func (c *upgradeAgentCmd) GetSteps(ctx context.Context, host *models.Host) (resu
 	request := models.UpgradeAgentRequest{
 		AgentImage: c.agentImage,
 	}
-	data, err := json.Marshal(request)
+	data, err := json.ConfigStd.Marshal(request)
 	if err != nil {
 		return
 	}

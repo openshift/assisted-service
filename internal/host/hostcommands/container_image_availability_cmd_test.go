@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"errors"
 	"strings"
 
@@ -69,7 +69,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 			Timeout: defaultImageAvailabilityTimeoutSeconds,
 		}
 
-		b, err := json.Marshal(&request)
+		b, err := json.ConfigStd.Marshal(&request)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(strings.Join(step[0].Args, " ")).To(ContainSubstring(string(b)))
 	})

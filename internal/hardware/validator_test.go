@@ -2,7 +2,7 @@ package hardware
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"errors"
 	"fmt"
 	"math"
@@ -695,7 +695,7 @@ var _ = Describe("hardware_validator", func() {
 			{DriveType: models.DriveTypeHDD, Name: "sdp", SizeBytes: validDiskSize + 1, InstallationEligibility: eligible, Hctl: "0:3:1:2"},
 			{DriveType: models.DriveTypeHDD, Name: "sdz", SizeBytes: validDiskSize + 10, InstallationEligibility: eligible, Hctl: "0:3:1:3"},
 		}
-		hw, err := json.Marshal(&inventory)
+		hw, err := json.ConfigStd.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host1.Inventory = string(hw)
 		disks, err := hwvalidator.GetHostValidDisks(host1)
@@ -728,7 +728,7 @@ var _ = Describe("hardware_validator", func() {
 				InstallationEligibility: models.DiskInstallationEligibility{Eligible: true},
 			},
 		}
-		hw, err := json.Marshal(&inventory)
+		hw, err := json.ConfigStd.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host1.Inventory = string(hw)
 		disks, err := hwvalidator.GetHostValidDisks(host1)
@@ -854,7 +854,7 @@ var _ = Describe("Cluster host requirements", func() {
 				{Name: operatorName2, ClusterID: clusterID},
 			},
 		}}
-		versionRequirements, err := json.Marshal(versionRequirementsSource)
+		versionRequirements, err := json.ConfigStd.Marshal(versionRequirementsSource)
 		Expect(err).ToNot(HaveOccurred())
 		_ = os.Setenv(prefixedRequirementsEnv, string(versionRequirements))
 		_ = os.Setenv("EDGE_WORKERS_PRODUCT_NAMES", "test, BlueField SoC,marvell")
@@ -980,7 +980,7 @@ var _ = Describe("Cluster host requirements", func() {
 			CPU:          &models.CPU{Count: 2, Architecture: common.AARCH64CPUArchitecture},
 			SystemVendor: &models.SystemVendor{ProductName: "blueField SoC"},
 		}
-		hw, err := json.Marshal(&inventory)
+		hw, err := json.ConfigStd.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role, Inventory: string(hw)}
 
@@ -1004,7 +1004,7 @@ var _ = Describe("Cluster host requirements", func() {
 			CPU:          &models.CPU{Count: 2, Architecture: common.AARCH64CPUArchitecture},
 			SystemVendor: &models.SystemVendor{ProductName: "blueField SoC"},
 		}
-		hw, err := json.Marshal(&inventory)
+		hw, err := json.ConfigStd.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role, Inventory: string(hw)}
 
@@ -1028,7 +1028,7 @@ var _ = Describe("Cluster host requirements", func() {
 			CPU:          &models.CPU{Count: 2, Architecture: common.DefaultCPUArchitecture},
 			SystemVendor: &models.SystemVendor{ProductName: "blueField SoC"},
 		}
-		hw, err := json.Marshal(&inventory)
+		hw, err := json.ConfigStd.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role, Inventory: string(hw)}
 
@@ -1052,7 +1052,7 @@ var _ = Describe("Cluster host requirements", func() {
 			CPU:          &models.CPU{Count: 2, Architecture: common.DefaultCPUArchitecture},
 			SystemVendor: &models.SystemVendor{ProductName: "ding dong SoC"},
 		}
-		hw, err := json.Marshal(&inventory)
+		hw, err := json.ConfigStd.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role, Inventory: string(hw)}
 
@@ -1076,7 +1076,7 @@ var _ = Describe("Cluster host requirements", func() {
 			CPU:          &models.CPU{Count: 2, Architecture: common.AARCH64CPUArchitecture},
 			SystemVendor: &models.SystemVendor{ProductName: "bluefield soc "},
 		}
-		hw, err := json.Marshal(&inventory)
+		hw, err := json.ConfigStd.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role, Inventory: string(hw)}
 

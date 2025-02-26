@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	ignition_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/swag"
@@ -47,11 +47,11 @@ func (c *tangConnectivityCheckCmd) getTangServersFromHostIgnition(host *models.H
 			return nil, nil
 		}
 		if len(luks.Clevis.Tang) != 0 {
-			if tangServers, err = json.Marshal(luks.Clevis.Tang); err != nil {
+			if tangServers, err = json.ConfigStd.Marshal(luks.Clevis.Tang); err != nil {
 				return nil, err
 			}
 			serverList := string(tangServers[:])
-			request, err := json.Marshal(
+			request, err := json.ConfigStd.Marshal(
 				models.TangConnectivityRequest{
 					TangServers: &serverList,
 				},
@@ -87,7 +87,7 @@ func (c *tangConnectivityCheckCmd) getTangServersFromCluster(cluster common.Clus
 		err         error
 	)
 	request := models.TangConnectivityRequest{TangServers: &cluster.DiskEncryption.TangServers}
-	tangServers, err = json.Marshal(request)
+	tangServers, err = json.ConfigStd.Marshal(request)
 	if err != nil {
 		c.log.WithError(err).Errorf("failed to Marshal TangConnectivityRequest with for cluster %s", host.ClusterID)
 		return nil, err

@@ -3,7 +3,7 @@ package host
 import (
 	"context"
 	_ "embed"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 
 	ignition_types "github.com/coreos/ignition/v2/config/v3_2/types"
@@ -239,7 +239,7 @@ var _ = Describe("Validations test", func() {
 	}
 
 	setHostDomainResolutions := func(host *models.Host, domainNameResolutions *models.DomainResolutionResponse) {
-		bytes, err := json.Marshal(domainNameResolutions)
+		bytes, err := json.ConfigStd.Marshal(domainNameResolutions)
 		Expect(err).ShouldNot(HaveOccurred())
 		host.DomainNameResolutions = string(bytes)
 	}
@@ -298,7 +298,7 @@ var _ = Describe("Validations test", func() {
 			createDay2Cluster()
 
 			h := getDay2Host()
-			configBytes, err := json.Marshal(getIgnitionConfigTPM2Enabled())
+			configBytes, err := json.ConfigStd.Marshal(getIgnitionConfigTPM2Enabled())
 			Expect(err).ShouldNot(HaveOccurred())
 			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
@@ -330,7 +330,7 @@ var _ = Describe("Validations test", func() {
 			createDay2Cluster()
 
 			h := getDay2Host()
-			apivip, err := json.Marshal(models.APIVipConnectivityResponse{
+			apivip, err := json.ConfigStd.Marshal(models.APIVipConnectivityResponse{
 				IsSuccess: false,
 				Ignition:  "ignition",
 			})
@@ -350,7 +350,7 @@ var _ = Describe("Validations test", func() {
 			createDay2Cluster()
 
 			h := getDay2Host()
-			apivip, err := json.Marshal(models.APIVipConnectivityResponse{
+			apivip, err := json.ConfigStd.Marshal(models.APIVipConnectivityResponse{
 				IsSuccess:     false,
 				Ignition:      "ignition",
 				URL:           "http://cluster.example.com:22624/config/worker",
@@ -406,7 +406,7 @@ var _ = Describe("Validations test", func() {
 				Fail("This should not happen")
 			}
 
-			configBytes, err := json.Marshal(config)
+			configBytes, err := json.ConfigStd.Marshal(config)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return configBytes
@@ -1333,7 +1333,7 @@ var _ = Describe("Validations test", func() {
 
 			h := getDay2Host()
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNr20)
-			configBytes, err := json.Marshal(getIgnitionConfigTPM2Enabled())
+			configBytes, err := json.ConfigStd.Marshal(getIgnitionConfigTPM2Enabled())
 			Expect(err).To(Not(HaveOccurred()))
 			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
@@ -1355,7 +1355,7 @@ var _ = Describe("Validations test", func() {
 			config := getIgnitionConfigTPM2Disabled()
 			config.Storage.Luks[0].Clevis = &ignition_types.Clevis{
 				Tang: []ignition_types.Tang{{URL: "http://test", Thumbprint: swag.String("test")}}}
-			configBytes, err := json.Marshal(config)
+			configBytes, err := json.ConfigStd.Marshal(config)
 			Expect(err).To(Not(HaveOccurred()))
 			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
 			h.TangConnectivity = hostutil.GenerateTestTangConnectivity(true)
@@ -1373,7 +1373,7 @@ var _ = Describe("Validations test", func() {
 
 			h := getDay2Host()
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNr20)
-			configBytes, err := json.Marshal(getIgnitionConfigTPM2Disabled())
+			configBytes, err := json.ConfigStd.Marshal(getIgnitionConfigTPM2Disabled())
 			Expect(err).To(Not(HaveOccurred()))
 			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
@@ -1392,7 +1392,7 @@ var _ = Describe("Validations test", func() {
 
 			h := getDay2Host()
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNone)
-			configBytes, err := json.Marshal(getIgnitionConfigTPM2Enabled())
+			configBytes, err := json.ConfigStd.Marshal(getIgnitionConfigTPM2Enabled())
 			Expect(err).To(Not(HaveOccurred()))
 			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
 
@@ -1412,7 +1412,7 @@ var _ = Describe("Validations test", func() {
 
 			h := getDay2Host()
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNone)
-			configBytes, err := json.Marshal(getIgnitionConfigTPM2Enabled())
+			configBytes, err := json.ConfigStd.Marshal(getIgnitionConfigTPM2Enabled())
 			Expect(err).To(Not(HaveOccurred()))
 			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
 
@@ -1432,7 +1432,7 @@ var _ = Describe("Validations test", func() {
 
 			h := getDay2Host() //explicit set the role to worker
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion("")
-			configBytes, err := json.Marshal(ignition_types.Config{})
+			configBytes, err := json.ConfigStd.Marshal(ignition_types.Config{})
 			Expect(err).To(Not(HaveOccurred()))
 			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
@@ -1481,7 +1481,7 @@ var _ = Describe("Validations test", func() {
 			h := getDay2Host()
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNone)
 			ignitionConfig := ignition_types.Config{Ignition: ignition_types.Ignition{Version: "3.2.0"}}
-			configBytes, err := json.Marshal(ignitionConfig)
+			configBytes, err := json.ConfigStd.Marshal(ignitionConfig)
 			Expect(err).To(Not(HaveOccurred()))
 			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
@@ -1510,7 +1510,7 @@ var _ = Describe("Validations test", func() {
 
 			h := getDay2Host()
 			h.Inventory = common.GenerateTestInventory()
-			configBytes, err := json.Marshal(ignition_types.Config{})
+			configBytes, err := json.ConfigStd.Marshal(ignition_types.Config{})
 			Expect(err).To(Not(HaveOccurred()))
 			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
@@ -1533,7 +1533,7 @@ var _ = Describe("Validations test", func() {
 
 			h := getDay2Host()
 			h.Inventory = common.GenerateTestInventory()
-			configBytes, err := json.Marshal(ignition_types.Config{})
+			configBytes, err := json.ConfigStd.Marshal(ignition_types.Config{})
 			Expect(err).To(Not(HaveOccurred()))
 			h.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(string(configBytes))
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
@@ -1576,7 +1576,7 @@ var _ = Describe("Validations test", func() {
 			inventory, err := common.UnmarshalInventory(host.Inventory)
 			Expect(err).ToNot(HaveOccurred())
 			updateFunc(inventory)
-			inventoryByte, err := json.Marshal(inventory)
+			inventoryByte, err := json.ConfigStd.Marshal(inventory)
 			Expect(err).ToNot(HaveOccurred())
 			updates := map[string]interface{}{}
 			updates["inventory"] = string(inventoryByte)
@@ -1989,7 +1989,7 @@ var _ = Describe("Validations test", func() {
 						ID: inventoryDiskID,
 					})
 				}
-				inventoryBytes, err := json.Marshal(inventory)
+				inventoryBytes, err := json.ConfigStd.Marshal(inventory)
 				Expect(err).ShouldNot(HaveOccurred())
 				if test.noInventory {
 					inventoryBytes = []byte("")
@@ -2090,7 +2090,7 @@ var _ = Describe("Validations test", func() {
 		mockIPCollisions := func(ipCollisions map[string][]string) {
 			cluster.IPCollisions = ""
 			if ipCollisions != nil {
-				collisionStr, err := json.Marshal(&ipCollisions)
+				collisionStr, err := json.ConfigStd.Marshal(&ipCollisions)
 				Expect(err).ToNot(HaveOccurred())
 				cluster.IPCollisions = string(collisionStr)
 			}
@@ -2278,7 +2278,7 @@ var _ = Describe("Validations test", func() {
 			err := json.Unmarshal([]byte(host.Inventory), &inventory)
 			Expect(err).ShouldNot(HaveOccurred())
 			inventory.Disks = []*models.Disk{}
-			inventoryByte, _ := json.Marshal(inventory)
+			inventoryByte, _ := json.ConfigStd.Marshal(inventory)
 			host.Inventory = string(inventoryByte)
 
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -2292,7 +2292,7 @@ var _ = Describe("Validations test", func() {
 
 			inventory.Disks = []*models.Disk{&disk}
 
-			inventoryByte, _ := json.Marshal(inventory)
+			inventoryByte, _ := json.ConfigStd.Marshal(inventory)
 			h.Inventory = string(inventoryByte)
 
 			Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
@@ -2375,7 +2375,7 @@ var _ = Describe("Validations test", func() {
 				{ID: "foo", DriveType: models.DriveTypeSSD},
 			}
 
-			inventoryByte, _ := json.Marshal(inventory)
+			inventoryByte, _ := json.ConfigStd.Marshal(inventory)
 			host.Inventory = string(inventoryByte)
 
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -2397,7 +2397,7 @@ var _ = Describe("Validations test", func() {
 				{ID: "install-disk", DriveType: models.DriveTypeSSD},
 			}
 
-			inventoryByte, _ := json.Marshal(inventory)
+			inventoryByte, _ := json.ConfigStd.Marshal(inventory)
 			host.Inventory = string(inventoryByte)
 
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -2417,7 +2417,7 @@ var _ = Describe("Validations test", func() {
 			host.InstallationDiskID = "install-disk"
 			inventory.Disks = disks
 
-			inventoryByte, _ := json.Marshal(inventory)
+			inventoryByte, _ := json.ConfigStd.Marshal(inventory)
 			host.Inventory = string(inventoryByte)
 
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -2444,7 +2444,7 @@ var _ = Describe("Validations test", func() {
 				host.InstallationDiskID = "install-disk"
 				inventory.Disks = disks
 
-				inventoryByte, _ := json.Marshal(inventory)
+				inventoryByte, _ := json.ConfigStd.Marshal(inventory)
 				host.Inventory = string(inventoryByte)
 
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -2476,7 +2476,7 @@ var _ = Describe("Validations test", func() {
 				inventory.Disks = disks
 				inventory.Interfaces = interfaces
 
-				inventoryByte, _ := json.Marshal(inventory)
+				inventoryByte, _ := json.ConfigStd.Marshal(inventory)
 				host.Inventory = string(inventoryByte)
 				cluster.MachineNetworks = machineNetworks
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -3154,7 +3154,7 @@ var _ = Describe("Validations test", func() {
 					hostID3: {host3IP},
 				},
 			}
-			bytes, err := json.Marshal(connectivity)
+			bytes, err := json.ConfigStd.Marshal(connectivity)
 			Expect(err).NotTo(HaveOccurred())
 
 			cluster := &common.Cluster{
@@ -3230,7 +3230,7 @@ var _ = Describe("Validations test", func() {
 					hostID3: {host3IP},
 				},
 			}
-			bytes, err := json.Marshal(connectivity)
+			bytes, err := json.ConfigStd.Marshal(connectivity)
 			Expect(err).NotTo(HaveOccurred())
 
 			cluster := &common.Cluster{
@@ -3307,7 +3307,7 @@ var _ = Describe("Validations test", func() {
 					hostID3: {host3IP},
 				},
 			}
-			bytes, err := json.Marshal(connectivity)
+			bytes, err := json.ConfigStd.Marshal(connectivity)
 			Expect(err).NotTo(HaveOccurred())
 
 			cluster := &common.Cluster{
@@ -3383,7 +3383,7 @@ var _ = Describe("Validations test", func() {
 					hostID3: {host3IP},
 				},
 			}
-			bytes, err := json.Marshal(connectivity)
+			bytes, err := json.ConfigStd.Marshal(connectivity)
 			Expect(err).NotTo(HaveOccurred())
 
 			cluster := &common.Cluster{
@@ -3458,7 +3458,7 @@ var _ = Describe("Validations test", func() {
 					"192.168.127.0/24": {hostID1, hostID2, hostID3},
 				},
 			}
-			bytes, err := json.Marshal(connectivity)
+			bytes, err := json.ConfigStd.Marshal(connectivity)
 			Expect(err).NotTo(HaveOccurred())
 
 			cluster := &common.Cluster{
@@ -3533,7 +3533,7 @@ var _ = Describe("Validations test", func() {
 					"192.168.127.0/24": {hostID2, hostID3},
 				},
 			}
-			bytes, err := json.Marshal(connectivity)
+			bytes, err := json.ConfigStd.Marshal(connectivity)
 			Expect(err).NotTo(HaveOccurred())
 
 			cluster := &common.Cluster{

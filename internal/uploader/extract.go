@@ -3,7 +3,7 @@ package uploader
 import (
 	"archive/tar"
 	"compress/gzip"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"errors"
 	"fmt"
 	"io"

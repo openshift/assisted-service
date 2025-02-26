@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"net/http"
@@ -1322,7 +1322,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			var bytesValidationInfo []byte
 			var err error
-			bytesValidationInfo, err = json.Marshal(validationInfo)
+			bytesValidationInfo, err = json.ConfigStd.Marshal(validationInfo)
 			Expect(err).To(BeNil())
 			stringifiedValidationInfo := string(bytesValidationInfo)
 			sId := strfmt.UUID(uuid.New().String())

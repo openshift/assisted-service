@@ -2,7 +2,7 @@ package cluster
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -5303,7 +5303,7 @@ func makeFreeAddresses(network string, ips ...strfmt.IPv4) *models.FreeNetworkAd
 
 func makeFreeNetworksAddressesStr(elems ...*models.FreeNetworkAddresses) string {
 	toMarshal := models.FreeNetworksAddresses(elems)
-	b, err := json.Marshal(&toMarshal)
+	b, err := json.ConfigStd.Marshal(&toMarshal)
 	Expect(err).ToNot(HaveOccurred())
 	return string(b)
 }

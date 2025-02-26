@@ -1,8 +1,8 @@
 package builder
 
 import (
-	"encoding/json"
 	"fmt"
+	json "github.com/bytedance/sonic"
 	"strings"
 
 	"github.com/go-openapi/swag"
@@ -232,7 +232,7 @@ func (i *installConfigBuilder) applyConfigOverrides(overrides string, cfg *insta
 		return nil
 	}
 
-	overrideDecoder := json.NewDecoder(strings.NewReader(overrides))
+	overrideDecoder := json.ConfigStd.NewDecoder(strings.NewReader(overrides))
 	overrideDecoder.DisallowUnknownFields()
 
 	if err := overrideDecoder.Decode(cfg); err != nil {
@@ -284,7 +284,7 @@ func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, cluster
 		return nil, err
 	}
 
-	return json.Marshal(*cfg)
+	return json.ConfigStd.Marshal(*cfg)
 }
 
 func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string) error {

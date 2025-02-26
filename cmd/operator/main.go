@@ -18,7 +18,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"flag"
 	"fmt"
 	"os"

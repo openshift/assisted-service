@@ -1,7 +1,7 @@
 package network
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -66,7 +66,7 @@ var _ = Describe("none platform node ips allocation", func() {
 			Interfaces: interfaces,
 			Routes:     routes,
 		}
-		b, err := json.Marshal(&inventory)
+		b, err := json.ConfigStd.Marshal(&inventory)
 		Expect(err).ToNot(HaveOccurred())
 		return string(b)
 	}
@@ -83,7 +83,7 @@ var _ = Describe("none platform node ips allocation", func() {
 		majorityGroups := &Connectivity{
 			L3ConnectedAddresses: connectedAddresses,
 		}
-		tmp, err := json.Marshal(majorityGroups)
+		tmp, err := json.ConfigStd.Marshal(majorityGroups)
 		Expect(err).ToNot(HaveOccurred())
 		return string(tmp)
 	}

@@ -1,7 +1,7 @@
 package cluster
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"

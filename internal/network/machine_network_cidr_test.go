@@ -1,7 +1,7 @@
 package network
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"testing"
 
@@ -16,7 +16,7 @@ import (
 
 func createInventory(interfaces ...*models.Interface) string {
 	inventory := models.Inventory{Interfaces: interfaces}
-	ret, _ := json.Marshal(&inventory)
+	ret, _ := json.ConfigStd.Marshal(&inventory)
 	return string(ret)
 }
 
@@ -156,7 +156,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1", "192.168.127.2"},
 				}})
@@ -179,7 +179,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.255"
 				ingressVIP := "192.168.127.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1", "192.168.127.2"},
 				}})
@@ -202,7 +202,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.2"},
 				}})
@@ -225,7 +225,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1"},
 				}})
@@ -248,7 +248,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.1"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1"},
 				}})
@@ -273,7 +273,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1", "192.168.127.2"},
 				}})
@@ -311,7 +311,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1", "192.168.127.2"},
 				}})
@@ -343,7 +343,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1", "192.168.127.2"},
 				}})
@@ -369,7 +369,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.126.1"
 				ingressVIP := "192.168.127.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1", "192.168.126.2"},
 				}})
@@ -395,7 +395,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.126.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1", "192.168.126.2"},
 				}})
@@ -420,7 +420,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.255"
 				ingressVIP := "192.168.127.1"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1", "192.168.127.2"},
 				}})
@@ -445,7 +445,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.255"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1", "192.168.127.2"},
 				}})
@@ -499,7 +499,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.2"},
 				}})
@@ -523,7 +523,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.2"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1"},
 				}})
@@ -547,7 +547,7 @@ var _ = Describe("inventory", func() {
 				apiVip := "192.168.127.1"
 				ingressVIP := "192.168.127.1"
 
-				bytes, err := json.Marshal([]FreeAddress{{
+				bytes, err := json.ConfigStd.Marshal([]FreeAddress{{
 					Network:       "192.168.127.0/24",
 					FreeAddresses: []string{"192.168.127.1"},
 				}})
@@ -979,7 +979,7 @@ func createHost(bootstrap bool, ipv4Addresses, ipv6Addresses []string) *models.H
 			},
 		},
 	}
-	invBytes, _ := json.Marshal(&inv)
+	invBytes, _ := json.ConfigStd.Marshal(&inv)
 	return &models.Host{
 		Bootstrap: bootstrap,
 		Inventory: string(invBytes),

@@ -1,7 +1,7 @@
 package hardware
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
@@ -448,7 +448,7 @@ var _ = Describe("Versioned Requirements", func() {
 })
 
 func configureRequirements(jsonSpec []map[string]interface{}) (*ValidatorCfg, error) {
-	jsonData, err := json.Marshal(jsonSpec)
+	jsonData, err := json.ConfigStd.Marshal(jsonSpec)
 	if err != nil {
 		return nil, err
 	}

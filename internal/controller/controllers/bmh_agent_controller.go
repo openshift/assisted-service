@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"reflect"
 	"sort"
@@ -611,7 +611,7 @@ func (r *BMACReconciler) detachedValue(bmh *bmh_v1alpha1.BareMetalHost) (string,
 	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; has_annotation && r.ConvergedFlowEnabled {
 		arg := bmh_v1alpha1.DetachedAnnotationArguments{DeleteAction: bmh_v1alpha1.DetachedDeleteActionDelay}
 		var err error
-		detachValue, err = json.Marshal(arg)
+		detachValue, err = json.ConfigStd.Marshal(arg)
 		if err != nil {
 			return "", err
 		}
@@ -763,7 +763,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 		hardwareDetails.Hostname = inventory.Hostname
 	}
 
-	bytes, err := json.Marshal(hardwareDetails)
+	bytes, err := json.ConfigStd.Marshal(hardwareDetails)
 	if err != nil {
 		return reconcileError{err: err}
 	}
@@ -1934,7 +1934,7 @@ func (r *BMACReconciler) addBMHStatusAndPausedAnnotations(log logrus.FieldLogger
 	}
 
 	// Convert BMH status to a JSON string
-	statusJson, err := json.Marshal(bmh.Status)
+	statusJson, err := json.ConfigStd.Marshal(bmh.Status)
 	if err != nil {
 		return reconcileError{err: err}
 	}

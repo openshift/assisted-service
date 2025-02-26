@@ -1,7 +1,7 @@
 package network
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"net"
 
 	"github.com/go-openapi/strfmt"

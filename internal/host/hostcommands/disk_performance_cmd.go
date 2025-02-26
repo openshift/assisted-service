@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 
 	"github.com/go-openapi/swag"
@@ -70,7 +70,7 @@ func (c *diskPerfCheckCmd) GetArgs(bootDevice string) ([]string, error) {
 	request := models.DiskSpeedCheckRequest{
 		Path: swag.String(bootDevice),
 	}
-	requestBytes, err := json.Marshal(request)
+	requestBytes, err := json.ConfigStd.Marshal(request)
 	if err != nil {
 		c.log.WithError(err).Errorf("failed to marshal FioPerfCheckRequest")
 		return nil, err

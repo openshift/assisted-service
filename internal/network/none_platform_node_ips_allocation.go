@@ -1,7 +1,7 @@
 package network
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	stderrors "errors"
 	"fmt"
 	"net"

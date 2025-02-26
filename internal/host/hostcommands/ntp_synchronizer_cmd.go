@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -33,7 +33,7 @@ func (f *ntpSynchronizerCmd) prepareParam(host *models.Host) (string, error) {
 	request := models.NtpSynchronizationRequest{
 		NtpSource: swag.String(ntpSources),
 	}
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		f.log.WithError(err).Warn("Json marshal")
 		return "", err

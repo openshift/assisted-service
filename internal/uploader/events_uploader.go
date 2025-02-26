@@ -6,7 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -181,7 +181,7 @@ func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eve
 	}
 
 	// Add versions file to bundle
-	if versionsJson, err := json.Marshal(versions.GetModelVersions(config.Versions)); err == nil {
+	if versionsJson, err := json.ConfigStd.Marshal(versions.GetModelVersions(config.Versions)); err == nil {
 		addFile(tw, versionsJson, fmt.Sprintf("%s/versions.json", *cluster.ID)) //nolint:errcheck // errors adding this file shouldn't prevent the data from being sent
 	}
 
@@ -202,7 +202,7 @@ func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eve
 func metadataFile(tw *tar.Writer, clusterID *strfmt.UUID, config Config) {
 	metadata := createMetadataContent(config)
 
-	if metadataJson, err := json.Marshal(metadata); err == nil {
+	if metadataJson, err := json.ConfigStd.Marshal(metadata); err == nil {
 		addFile(tw, metadataJson, fmt.Sprintf("%s/%s", *clusterID, metadataFileName)) //nolint:errcheck // errors adding this file shouldn't prevent the data from being sent
 	}
 }
@@ -235,7 +235,7 @@ func eventsFile(ctx context.Context, clusterID *strfmt.UUID, eventsHandler event
 		events = append(events, &dbEvent.Event)
 	}
 
-	contents, err := json.MarshalIndent(events, "", " ")
+	contents, err := json.ConfigStd.MarshalIndent(events, "", " ")
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal events")
 	}
@@ -263,7 +263,7 @@ func clusterFile(tw *tar.Writer, cluster *common.Cluster) error {
 		return errors.New("no cluster provided for cluster file")
 	}
 
-	clusterJson, err := json.Marshal(cluster.Cluster)
+	clusterJson, err := json.ConfigStd.Marshal(cluster.Cluster)
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal cluster %s", *cluster.ID)
 	}
@@ -281,7 +281,7 @@ func infraEnvFile(db *gorm.DB, tw *tar.Writer, infraEnvID *strfmt.UUID, clusterI
 		return errors.Wrapf(err, "error getting infra-env %s from db", *infraEnvID)
 	}
 
-	iJson, err := json.Marshal(infraEnv.InfraEnv)
+	iJson, err := json.ConfigStd.Marshal(infraEnv.InfraEnv)
 	if err != nil {
 		return errors.Wrapf(err, "error marshalling infra-env %s", *infraEnvID)
 	}
@@ -306,7 +306,7 @@ func hostsFile(db *gorm.DB, tw *tar.Writer, cluster *common.Cluster) (*strfmt.UU
 		return nil, errors.Errorf("no hosts found for cluster %s", *cluster.ID)
 	}
 
-	hostJson, err := json.MarshalIndent(hosts, "", " ")
+	hostJson, err := json.ConfigStd.MarshalIndent(hosts, "", " ")
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed marshalling hosts for cluster %s for events file", *cluster.ID)
 	}

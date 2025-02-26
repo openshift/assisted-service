@@ -2,7 +2,7 @@ package versions
 
 import (
 	context "context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"strings"
 	"sync"
