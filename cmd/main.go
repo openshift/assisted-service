@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"flag"
 	"fmt"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"

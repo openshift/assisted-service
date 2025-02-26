@@ -2,7 +2,6 @@ package hardware
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"math"
 	"net/netip"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/dustin/go-humanize"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"

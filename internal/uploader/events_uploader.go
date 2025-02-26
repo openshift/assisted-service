@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -14,6 +13,7 @@ import (
 	"net/textproto"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"

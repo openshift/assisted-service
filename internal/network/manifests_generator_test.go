@@ -3,10 +3,10 @@ package network
 import (
 	"context"
 	"encoding/base64"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"regexp"
 
+	json "github.com/bytedance/sonic"
 	configv31 "github.com/coreos/ignition/v2/config/v3_1"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"

@@ -2,11 +2,11 @@ package host
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"sort"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/operators"

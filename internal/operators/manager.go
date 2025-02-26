@@ -4,11 +4,11 @@ import (
 	"container/list"
 	"context"
 	"encoding/base64"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"path"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"

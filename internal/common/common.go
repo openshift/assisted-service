@@ -2,13 +2,13 @@ package common
 
 import (
 	"crypto/x509"
-	json "github.com/bytedance/sonic"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/docker/distribution/reference"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"

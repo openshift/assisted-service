@@ -2,10 +2,10 @@ package hostcommands
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"net"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"

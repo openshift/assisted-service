@@ -1,11 +1,11 @@
 package migrations
 
 import (
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"sort"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-gormigrate/gormigrate/v2"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"

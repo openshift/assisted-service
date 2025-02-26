@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -22,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/cavaliercoder/go-cpio"
 	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
 	"github.com/go-openapi/runtime"

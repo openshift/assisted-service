@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"fmt"
-	json "github.com/bytedance/sonic"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"

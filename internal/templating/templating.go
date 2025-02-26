@@ -3,10 +3,11 @@ package templating
 import (
 	"bytes"
 	"encoding/base64"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"io/fs"
 	"text/template"
+
+	json "github.com/bytedance/sonic"
 )
 
 // LoadTemplates loads the templates from the given file system.

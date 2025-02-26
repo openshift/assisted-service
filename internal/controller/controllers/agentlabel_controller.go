@@ -18,9 +18,9 @@ package controllers
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 
+	json "github.com/bytedance/sonic"
 	"github.com/itchyny/gojq"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	logutil "github.com/openshift/assisted-service/pkg/log"

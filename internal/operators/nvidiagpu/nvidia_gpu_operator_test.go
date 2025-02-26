@@ -2,8 +2,8 @@ package nvidiagpu
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 
+	json "github.com/bytedance/sonic"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"

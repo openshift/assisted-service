@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"crypto/sha256"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"sync"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"

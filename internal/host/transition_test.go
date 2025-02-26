@@ -2,7 +2,6 @@ package host
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"

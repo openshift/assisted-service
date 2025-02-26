@@ -2,7 +2,6 @@ package bminventory
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"

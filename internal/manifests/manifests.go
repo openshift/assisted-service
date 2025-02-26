@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"

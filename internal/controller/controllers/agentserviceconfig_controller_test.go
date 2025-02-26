@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"os"
 
+	json "github.com/bytedance/sonic"
 	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/go-openapi/swag"

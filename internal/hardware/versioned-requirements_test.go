@@ -1,9 +1,9 @@
 package hardware
 
 import (
-	json "github.com/bytedance/sonic"
 	"os"
 
+	json "github.com/bytedance/sonic"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"

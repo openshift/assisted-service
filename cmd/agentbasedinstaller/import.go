@@ -2,11 +2,11 @@ package agentbasedinstaller
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"io/fs"
 	"os"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"

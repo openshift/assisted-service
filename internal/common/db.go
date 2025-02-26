@@ -1,10 +1,10 @@
 package common
 
 import (
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	v1 "github.com/openshift/api/config/v1"

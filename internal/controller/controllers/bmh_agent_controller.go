@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"reflect"
 	"sort"
@@ -28,6 +27,7 @@ import (
 	"text/template"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"

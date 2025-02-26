@@ -1,11 +1,11 @@
 package hostutil
 
 import (
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/gomega"

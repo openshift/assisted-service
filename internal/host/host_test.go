@@ -2,7 +2,6 @@ package host
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"errors"
 	"fmt"
 	"math"
@@ -11,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
