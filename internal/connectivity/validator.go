@@ -1,9 +1,9 @@
 package connectivity
 
 import (
-	json "github.com/bytedance/sonic"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"

@@ -1,9 +1,9 @@
 package ignition
 
 import (
-	json "github.com/bytedance/sonic"
 	"os"
 
+	json "github.com/bytedance/sonic"
 	"github.com/coreos/ignition/v2/config/merge"
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_latest "github.com/coreos/ignition/v2/config/v3_2"

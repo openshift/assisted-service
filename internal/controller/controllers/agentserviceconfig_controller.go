@@ -19,13 +19,13 @@ package controllers
 import (
 	"context"
 	_ "embed"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"

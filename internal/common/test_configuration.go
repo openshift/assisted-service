@@ -1,11 +1,11 @@
 package common
 
 import (
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"net"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/constants"

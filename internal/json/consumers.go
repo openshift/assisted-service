@@ -1,9 +1,9 @@
 package json
 
 import (
-	json "github.com/bytedance/sonic"
 	"io"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/runtime"
 )
 

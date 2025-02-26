@@ -2,10 +2,10 @@ package hostcommands
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"errors"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"

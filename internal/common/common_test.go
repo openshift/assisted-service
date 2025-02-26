@@ -3,11 +3,11 @@ package common
 import (
 	"crypto/rand"
 	"fmt"
-	json "github.com/bytedance/sonic"
 	"math"
 	"math/big"
 	"testing"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"

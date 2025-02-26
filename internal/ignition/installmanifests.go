@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"net"
@@ -15,6 +14,7 @@ import (
 	"sort"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"

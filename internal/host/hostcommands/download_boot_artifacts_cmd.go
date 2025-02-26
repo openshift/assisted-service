@@ -2,10 +2,10 @@ package hostcommands
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/imageservice"

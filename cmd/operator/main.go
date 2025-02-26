@@ -18,11 +18,11 @@ package main
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"flag"
 	"fmt"
 	"os"
 
+	json "github.com/bytedance/sonic"
 	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"

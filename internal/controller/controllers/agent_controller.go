@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -27,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"

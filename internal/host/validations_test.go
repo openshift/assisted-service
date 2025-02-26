@@ -3,9 +3,9 @@ package host
 import (
 	"context"
 	_ "embed"
-	json "github.com/bytedance/sonic"
 	"fmt"
 
+	json "github.com/bytedance/sonic"
 	ignition_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"

@@ -2,12 +2,12 @@ package hostcommands
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 	"net/netip"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"

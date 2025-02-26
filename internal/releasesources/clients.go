@@ -2,10 +2,10 @@ package releasesources
 
 import (
 	"fmt"
-	json "github.com/bytedance/sonic"
 	"net/http"
 	"net/url"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
