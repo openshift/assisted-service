@@ -1,9 +1,9 @@
 package common
 
 import (
-	"encoding/json"
 	"fmt"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -21,7 +21,7 @@ func UnMarshalDisks(diskInfoStr string) (DisksInfo, error) {
 }
 
 func MarshalDisks(disksInfo DisksInfo) (string, error) {
-	b, err := json.Marshal(&disksInfo)
+	b, err := json.ConfigStd.Marshal(&disksInfo)
 	if err != nil {
 		return "", err
 	}

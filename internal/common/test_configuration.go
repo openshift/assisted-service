@@ -1,11 +1,11 @@
 package common
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -368,7 +368,7 @@ func GenerateTestDefaultInventory() string {
 		Routes: TestDefaultRouteConfiguration,
 	}
 
-	b, err := json.Marshal(inventory)
+	b, err := json.ConfigStd.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -405,7 +405,7 @@ func GenerateTestInventoryWithVirtualInterface(physicalInterfaces, virtualInterf
 		Routes: TestDefaultRouteConfiguration,
 	}
 
-	b, err := json.Marshal(inventory)
+	b, err := json.ConfigStd.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -430,7 +430,7 @@ func GenerateTest2IPv4AddressesInventory() string {
 		Routes: TestDefaultRouteConfiguration,
 	}
 
-	b, err := json.Marshal(inventory)
+	b, err := json.ConfigStd.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -451,7 +451,7 @@ func GenerateTestIPv6Inventory() string {
 		Routes: TestDefaultRouteConfiguration,
 	}
 
-	b, err := json.Marshal(inventory)
+	b, err := json.ConfigStd.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -502,7 +502,7 @@ func GenerateTestInventoryWithNetwork(netAddress NetAddress) string {
 		Hostname:     netAddress.Hostname,
 		Routes:       TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(inventory)
+	b, err := json.ConfigStd.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -527,7 +527,7 @@ func GenerateTestInventoryWithMutate(mutateFn func(*models.Inventory)) string {
 		Routes:       TestDefaultRouteConfiguration,
 	}
 	mutateFn(inventory)
-	b, err := json.Marshal(inventory)
+	b, err := json.ConfigStd.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -544,7 +544,7 @@ func GenerateTestInventoryWithTpmVersion(tpmVersion string) string {
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		TpmVersion:   tpmVersion,
 	}
-	b, err := json.Marshal(inventory)
+	b, err := json.ConfigStd.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }

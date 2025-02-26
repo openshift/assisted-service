@@ -3,10 +3,11 @@ package templating
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"text/template"
+
+	json "github.com/bytedance/sonic"
 )
 
 // LoadTemplates loads the templates from the given file system.
@@ -114,7 +115,7 @@ func toStringFunc(data interface{}) (result string, err error) {
 // Note how that the value of that 'content' field doesn't need to sorrounded by quotes, because the 'toJson' function
 // will generate a valid JSON string, including those quotes.
 func toJsonFunc(data interface{}) (result string, err error) {
-	text, err := json.Marshal(data)
+	text, err := json.ConfigStd.Marshal(data)
 	if err != nil {
 		return
 	}

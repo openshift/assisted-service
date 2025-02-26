@@ -3,7 +3,6 @@ package cluster
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"sort"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -1805,7 +1805,7 @@ func addInstallationRequirementsWithConnectivity(clusterId strfmt.UUID, db *gorm
 				},
 			},
 		}
-		b, err := json.Marshal(&connectivityReport)
+		b, err := json.ConfigStd.Marshal(&connectivityReport)
 		Expect(err).ToNot(HaveOccurred())
 		host = models.Host{
 			ID:           &hostId,
@@ -1848,7 +1848,7 @@ func defaultInventory() string {
 		},
 		Routes: common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -1865,7 +1865,7 @@ func twoNetworksInventory() string {
 			},
 		},
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -1881,7 +1881,7 @@ func nonDefaultInventory() string {
 			},
 		},
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -2398,7 +2398,7 @@ var _ = Describe("validate vips response", func() {
 	})
 
 	createPayload := func(response models.VerifyVipsResponse) string {
-		b, err := json.Marshal(&response)
+		b, err := json.ConfigStd.Marshal(&response)
 		Expect(err)
 		return string(b)
 	}
@@ -2862,7 +2862,7 @@ var _ = Describe("Cluster tarred files", func() {
 			},
 		}}
 		mockEvents.EXPECT().V2GetEvents(gomock.Any(), common.GetDefaultV2GetEventsParams(cl.ID, nil, nil)).Return(&common.V2GetEventsResponse{Events: events}, nil).Times(1)
-		eventsData, _ := json.MarshalIndent(events, "", " ")
+		eventsData, _ := json.ConfigStd.MarshalIndent(events, "", " ")
 		mockS3Client.EXPECT().Upload(ctx, eventsData, eventsFilename).Return(nil).Times(1)
 	}
 
@@ -3632,7 +3632,7 @@ var _ = Describe("Validation metrics and events", func() {
 			},
 		}
 		validationRes := generateTestValidationResult(ValidationFailure)
-		bytes, err := json.Marshal(validationRes)
+		bytes, err := json.ConfigStd.Marshal(validationRes)
 		Expect(err).ShouldNot(HaveOccurred())
 		c.ValidationsInfo = string(bytes)
 		err = m.RegisterCluster(ctx, &c)

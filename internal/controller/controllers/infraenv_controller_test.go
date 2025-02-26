@@ -2,13 +2,13 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -423,7 +423,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			if len(internalKargs) == 0 {
 				return nil
 			}
-			b, err := json.Marshal(&internalKargs)
+			b, err := json.ConfigStd.Marshal(&internalKargs)
 			Expect(err).ToNot(HaveOccurred())
 			return swag.String(string(b))
 		}

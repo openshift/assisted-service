@@ -3,10 +3,10 @@ package network
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"regexp"
 
+	json "github.com/bytedance/sonic"
 	configv31 "github.com/coreos/ignition/v2/config/v3_1"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -43,7 +43,7 @@ var _ = Describe("chrony manifest", func() {
 	createHost := func(sources []*models.NtpSource) *models.Host {
 		var sourcesText string
 		if sources != nil {
-			sourcesBytes, err := json.Marshal(&sources)
+			sourcesBytes, err := json.ConfigStd.Marshal(&sources)
 			Expect(err).ToNot(HaveOccurred())
 			sourcesText = string(sourcesBytes)
 		}

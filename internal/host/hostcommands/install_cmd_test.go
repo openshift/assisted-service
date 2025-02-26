@@ -2,10 +2,10 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -198,7 +198,7 @@ var _ = Describe("installcmd", func() {
 			inventory := models.Inventory{
 				Disks: disks,
 			}
-			b, err := json.Marshal(&inventory)
+			b, err := json.ConfigStd.Marshal(&inventory)
 			Expect(err).To(Not(HaveOccurred()))
 			return string(b)
 		}

@@ -2,7 +2,6 @@ package bminventory
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -334,7 +334,7 @@ func (b *bareMetalInventory) V2CompleteInstallation(ctx context.Context, params 
 	}
 
 	parse := func(data interface{}) ([]models.OperatorMonitorReport, error) {
-		raw, err := json.Marshal(data)
+		raw, err := json.ConfigStd.Marshal(data)
 		if err != nil {
 			return nil, err
 		}
