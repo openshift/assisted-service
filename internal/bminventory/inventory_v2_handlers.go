@@ -2,7 +2,7 @@ package bminventory
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"net/http"
@@ -334,7 +334,7 @@ func (b *bareMetalInventory) V2CompleteInstallation(ctx context.Context, params 
 	}
 
 	parse := func(data interface{}) ([]models.OperatorMonitorReport, error) {
-		raw, err := json.Marshal(data)
+		raw, err := json.ConfigStd.Marshal(data)
 		if err != nil {
 			return nil, err
 		}

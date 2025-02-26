@@ -1,7 +1,7 @@
 package ignition
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"os"
 
 	"github.com/coreos/ignition/v2/config/merge"
@@ -42,7 +42,7 @@ func parseIgnitionFile(path string) (*config_latest_types.Config, error) {
 
 // writeIgnitionFile writes an ignition config to a given path on disk
 func writeIgnitionFile(path string, config *config_latest_types.Config) error {
-	updatedBytes, err := json.Marshal(config)
+	updatedBytes, err := json.ConfigStd.Marshal(config)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
 	}
 
 	mergeResult, _ := merge.MergeStructTranscribe(*baseConfig, *overrideConfig)
-	res, err := json.Marshal(mergeResult)
+	res, err := json.ConfigStd.Marshal(mergeResult)
 	if err != nil {
 		return "", err
 	}

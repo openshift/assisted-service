@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
@@ -78,7 +78,7 @@ var _ = Describe("free_addresses", func() {
 		}
 		originalInventory.Interfaces = append(originalInventory.Interfaces, &newInterface2)
 
-		newInventoryBytes, err := json.Marshal(&originalInventory)
+		newInventoryBytes, err := json.ConfigStd.Marshal(&originalInventory)
 		Expect(err).ToNot(HaveOccurred())
 		host.Inventory = string(newInventoryBytes)
 		stepReply, stepErr = fCmd.GetSteps(ctx, &host)
@@ -98,7 +98,7 @@ var _ = Describe("free_addresses", func() {
 			IPV6Addresses: []string{},
 			Name:          "chocobomb",
 		}}
-		newInventoryBytes, err := json.Marshal(&originalInventory)
+		newInventoryBytes, err := json.ConfigStd.Marshal(&originalInventory)
 		Expect(err).ToNot(HaveOccurred())
 		host.Inventory = string(newInventoryBytes)
 		stepReply, stepErr = fCmd.GetSteps(ctx, &host)

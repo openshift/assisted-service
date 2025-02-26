@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -46,7 +46,7 @@ func (f *dhcpAllocateCmd) prepareParam(host *models.Host, cluster *common.Cluste
 		IngressVipLease: cluster.IngressVipLease,
 		Interface:       swag.String(nic),
 	}
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		f.log.WithError(err).Warn("Json marshal")
 		return "", err

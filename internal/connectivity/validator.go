@@ -1,7 +1,7 @@
 package connectivity
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"time"
 
 	"github.com/openshift/assisted-service/internal/common"

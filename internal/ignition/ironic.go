@@ -1,7 +1,7 @@
 package ignition
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	ignition_config_types_32 "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/openshift/assisted-service/internal/common"
@@ -26,5 +26,5 @@ func GenerateIronicConfig(ironicBaseURL string, ironicInspectorURL string, infra
 	config.Storage.Files = []ignition_config_types_32.File{ib.IronicAgentConf(ironicInspectorVlanInterfaces)}
 	// TODO: sort out the flags (authfile...) and copy network
 	config.Systemd.Units = []ignition_config_types_32.Unit{ib.IronicAgentService(false)}
-	return json.Marshal(config)
+	return json.ConfigStd.Marshal(config)
 }

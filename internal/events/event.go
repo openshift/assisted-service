@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"errors"
 	"fmt"
 	"strings"
@@ -512,7 +512,7 @@ func toProps(attrs ...interface{}) (result string, err error) {
 
 	if len(props) > 0 {
 		var b []byte
-		if b, err = json.Marshal(props); err == nil {
+		if b, err = json.ConfigStd.Marshal(props); err == nil {
 			return string(b), nil
 		}
 	}

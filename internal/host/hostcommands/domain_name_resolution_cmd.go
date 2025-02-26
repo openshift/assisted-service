@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 
@@ -91,7 +91,7 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 		Domains: domains,
 	}
 
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		f.log.WithError(err).Warn("Json marshal")
 		return "", err

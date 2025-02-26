@@ -18,7 +18,7 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net/http"
 	"net/url"

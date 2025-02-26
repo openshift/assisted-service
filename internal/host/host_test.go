@@ -2,7 +2,7 @@ package host
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"errors"
 	"fmt"
 	"math"
@@ -1043,7 +1043,7 @@ func insufficientHWInventory() string {
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -1070,7 +1070,7 @@ func inventoryWithUnauthorizedVendor() string {
 		SystemVendor: &models.SystemVendor{Manufacturer: "RDO", ProductName: "OpenStack Compute", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -1097,7 +1097,7 @@ func workerInventory() string {
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -1251,7 +1251,7 @@ var _ = Describe("UpdateInventory", func() {
 						},
 					}}
 
-				_, err := json.Marshal(&testInventory)
+				_, err := json.ConfigStd.Marshal(&testInventory)
 				Expect(err).ToNot(HaveOccurred())
 
 				expectedDisks := []*models.Disk{
@@ -2284,7 +2284,7 @@ var _ = Describe("UpdateNTP", func() {
 
 			h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
 
-			marshalled, err := json.Marshal(t.ntpSources)
+			marshalled, err := json.ConfigStd.Marshal(t.ntpSources)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(h.NtpSources).Should(Equal(string(marshalled)))
@@ -2735,7 +2735,7 @@ var _ = Describe("UpdateImageStatus", func() {
 				expectedImage.SizeBytes = t.originalImageStatuses[common.TestDefaultConfig.ImageName].SizeBytes
 				expectedImage.Time = t.originalImageStatuses[common.TestDefaultConfig.ImageName].Time
 
-				bytes, err := json.Marshal(t.originalImageStatuses)
+				bytes, err := json.ConfigStd.Marshal(t.originalImageStatuses)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(bytes).ShouldNot(BeNil())
 				host.ImagesStatus = string(bytes)
@@ -3181,7 +3181,7 @@ var _ = Describe("Validation metrics and events", func() {
 		h := hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusInsufficient)
 
 		validationRes := generateTestValidationResult(ValidationFailure)
-		bytes, err := json.Marshal(validationRes)
+		bytes, err := json.ConfigStd.Marshal(validationRes)
 		Expect(err).ToNot(HaveOccurred())
 		h.ValidationsInfo = string(bytes)
 
@@ -4148,7 +4148,7 @@ var _ = Describe("sortHost by hardware", func() {
 					return d
 				}).([]*models.Disk),
 			}
-			b, _ := json.Marshal(inventory)
+			b, _ := json.ConfigStd.Marshal(inventory)
 			id := strfmt.UUID(uuid.New().String())
 			hosts = append(hosts, &models.Host{
 				ID:                &id,

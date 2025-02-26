@@ -1,7 +1,7 @@
 package common
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/openshift/assisted-service/models"
 )
@@ -12,7 +12,7 @@ func MarshalNodeLabels(nodeLabelsList []*models.NodeLabelParams) (string, error)
 		nodeLabelsMap[*nl.Key] = *nl.Value
 	}
 
-	nodeLabelsJson, err := json.Marshal(&nodeLabelsMap)
+	nodeLabelsJson, err := json.ConfigStd.Marshal(&nodeLabelsMap)
 	if err != nil {
 		return "", err
 	}

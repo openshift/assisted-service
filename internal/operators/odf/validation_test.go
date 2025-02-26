@@ -2,7 +2,7 @@ package odf_test
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 
 	"github.com/go-openapi/strfmt"

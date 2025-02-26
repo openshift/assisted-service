@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"net"
 	"time"
 
@@ -48,7 +48,7 @@ func (i *logsCmd) prepareParam(ctx context.Context, host *models.Host) (string, 
 		MasterIps:       mastersIPs,
 	}
 
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		i.log.WithError(err).Warn("Json marshal")
 		return "", err

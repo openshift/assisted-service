@@ -2,7 +2,7 @@ package host
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 	"net/http"
@@ -964,7 +964,7 @@ var _ = Describe("Unbind", func() {
 		Expect(h.MachineConfigPoolName).Should(BeEmpty())
 		Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
 		Expect(h.SuggestedRole).Should(BeEmpty())
-		bytes, err := json.Marshal(defaultNTPSources)
+		bytes, err := json.ConfigStd.Marshal(defaultNTPSources)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(h.NtpSources).Should(Equal(string(bytes)))
 		resetPogress := &models.HostProgressInfo{
@@ -1174,7 +1174,7 @@ var _ = Describe("Unbind", func() {
 
 			dstState := t.dstState
 
-			bytes, err := json.Marshal(defaultNTPSources)
+			bytes, err := json.ConfigStd.Marshal(defaultNTPSources)
 			Expect(err).ShouldNot(HaveOccurred())
 			host.NtpSources = string(bytes)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1546,7 +1546,7 @@ var _ = Describe("Refresh Host", func() {
 			createHost := func(hostStatus string) {
 				host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterId, hostStatus, models.HostKindHost, models.HostRoleMaster)
 				host.Inventory = hostutil.GenerateMasterInventory()
-				bytes, err := json.Marshal(common.TestDomainNameResolutionsSuccess)
+				bytes, err := json.ConfigStd.Marshal(common.TestDomainNameResolutionsSuccess)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
 				host.Timestamp = time.Now().Unix()
@@ -4627,14 +4627,14 @@ var _ = Describe("Refresh Host", func() {
 				host.Role = t.role
 				host.CheckedInAt = hostCheckInAt
 				host.Kind = swag.String(t.kind)
-				bytes, err := json.Marshal(t.ntpSources)
+				bytes, err := json.ConfigStd.Marshal(t.ntpSources)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.NtpSources = string(bytes)
-				bytes, err = json.Marshal(t.imageStatuses)
+				bytes, err = json.ConfigStd.Marshal(t.imageStatuses)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.ImagesStatus = string(bytes)
 				host.DisksInfo = t.disksInfo
-				bytes, err = json.Marshal(t.domainResolutions)
+				bytes, err = json.ConfigStd.Marshal(t.domainResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
 				if t.timestamp == 0 {
@@ -4652,7 +4652,7 @@ var _ = Describe("Refresh Host", func() {
 					h.CheckedInAt = hostCheckInAt
 					h.Kind = swag.String(t.kind)
 					h.RequestedHostname = fmt.Sprintf("additional-host-%d", i)
-					bytes, err = json.Marshal(t.ntpSources)
+					bytes, err = json.ConfigStd.Marshal(t.ntpSources)
 					Expect(err).ShouldNot(HaveOccurred())
 					h.NtpSources = string(bytes)
 					Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
@@ -5186,15 +5186,15 @@ var _ = Describe("Refresh Host", func() {
 				host.Role = t.role
 				host.CheckedInAt = strfmt.DateTime(time.Now())
 				host.RequestedHostname = t.requestedHostname
-				bytes, err := json.Marshal(ntpSources)
+				bytes, err := json.ConfigStd.Marshal(ntpSources)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.NtpSources = string(bytes)
-				bytes, err = json.Marshal(imageStatuses)
+				bytes, err = json.ConfigStd.Marshal(imageStatuses)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.ImagesStatus = string(bytes)
 				host.DisksInfo = t.disksInfo
 				domainNameResolutions := common.TestDomainNameResolutionsSuccess
-				bytes, err = json.Marshal(domainNameResolutions)
+				bytes, err = json.ConfigStd.Marshal(domainNameResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -5321,7 +5321,7 @@ var _ = Describe("Refresh Host", func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 
-			defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
+			defaultNTPSourcesInBytes, err := json.ConfigStd.Marshal(defaultNTPSources)
 			Expect(err).NotTo(HaveOccurred())
 			cluster = hostutil.GenerateTestCluster(clusterId)
 			cluster.Name = common.TestDefaultConfig.ClusterName
@@ -5332,7 +5332,7 @@ var _ = Describe("Refresh Host", func() {
 			host.Role = models.HostRoleMaster
 			host.NtpSources = string(defaultNTPSourcesInBytes)
 			domainNameResolutions := common.TestDomainNameResolutionsSuccess
-			bytes, err := json.Marshal(domainNameResolutions)
+			bytes, err := json.ConfigStd.Marshal(domainNameResolutions)
 			Expect(err).ShouldNot(HaveOccurred())
 			host.DomainNameResolutions = string(bytes)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -5427,11 +5427,11 @@ var _ = Describe("Refresh Host", func() {
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusDiscovering)
 				host.Inventory = hostutil.GenerateMasterInventoryWithSystemPlatform(t.hostPlatform)
 				host.Role = models.HostRoleMaster
-				defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
+				defaultNTPSourcesInBytes, err := json.ConfigStd.Marshal(defaultNTPSources)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.NtpSources = string(defaultNTPSourcesInBytes)
 				defaultDomainNameResolutions := common.TestDomainNameResolutionsSuccess
-				domainNameResolutions, err := json.Marshal(defaultDomainNameResolutions)
+				domainNameResolutions, err := json.ConfigStd.Marshal(defaultDomainNameResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(domainNameResolutions)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -5452,7 +5452,7 @@ var _ = Describe("Refresh Host", func() {
 	})
 	Context("L3 network latency and packet loss validation", func() {
 
-		defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
+		defaultNTPSourcesInBytes, err := json.ConfigStd.Marshal(defaultNTPSources)
 		Expect(err).ShouldNot(HaveOccurred())
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
@@ -5631,7 +5631,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 				domainNameResolutions := common.TestDomainNameResolutionsSuccess
 				for _, h := range hosts {
-					b, err := json.Marshal(domainNameResolutions)
+					b, err := json.ConfigStd.Marshal(domainNameResolutions)
 					Expect(err).ShouldNot(HaveOccurred())
 					h.DomainNameResolutions = string(b)
 				}
@@ -5643,7 +5643,7 @@ var _ = Describe("Refresh Host", func() {
 					tmpHosts = append(tmpHosts, hosts[:n]...)
 					tmpHosts = append(tmpHosts, hosts[n+1:]...)
 					rep := hostutil.GenerateL3ConnectivityReport(tmpHosts, t.latencyInMs, t.packetLossInPercentage)
-					b, err := json.Marshal(&rep)
+					b, err := json.ConfigStd.Marshal(&rep)
 					Expect(err).ShouldNot(HaveOccurred())
 					h.Connectivity = string(b)
 					Expect(db.Create(h).Error).ShouldNot(HaveOccurred())
@@ -5688,7 +5688,7 @@ var _ = Describe("Refresh Host", func() {
 		invalidGateway := []*models.Route{
 			{Family: int32(common.IPv4), Destination: "0.0.0.0", Gateway: "invalid"},
 		}
-		defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
+		defaultNTPSourcesInBytes, err := json.ConfigStd.Marshal(defaultNTPSources)
 		domainNameResolutions := common.TestDomainNameResolutionsSuccess
 		Expect(err).ShouldNot(HaveOccurred())
 		BeforeEach(func() {
@@ -5827,7 +5827,7 @@ var _ = Describe("Refresh Host", func() {
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusDiscovering)
 				host.Inventory = inventory
 				host.NtpSources = string(defaultNTPSourcesInBytes)
-				bytes, err := json.Marshal(domainNameResolutions)
+				bytes, err := json.ConfigStd.Marshal(domainNameResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -6173,7 +6173,7 @@ var _ = Describe("Refresh Host", func() {
 				}
 				host.CheckedInAt = hostCheckInAt
 				if t.sourceState != "" {
-					b, err := json.Marshal(&[]*models.NtpSource{
+					b, err := json.ConfigStd.Marshal(&[]*models.NtpSource{
 						{
 							SourceName:  "source",
 							SourceState: t.sourceState,
@@ -6444,7 +6444,7 @@ func generateMajorityGroup(machineNetworks []*models.MachineNetwork, hostId strf
 	for _, mnet := range machineNetworks {
 		connectivity.MajorityGroups[string(mnet.Cidr)] = append(connectivity.MajorityGroups[string(mnet.Cidr)], hostId)
 	}
-	tmp, err := json.Marshal(connectivity)
+	tmp, err := json.ConfigStd.Marshal(connectivity)
 	if err != nil {
 		return ""
 	}
@@ -6465,7 +6465,7 @@ func generateL3Counts(isIpv4, isIpv6 bool, hostIds ...strfmt.UUID) string {
 		}
 		connectivity.L3ConnectedAddresses[hostId] = addresses
 	}
-	tmp, err := json.Marshal(connectivity)
+	tmp, err := json.ConfigStd.Marshal(connectivity)
 	Expect(err).ToNot(HaveOccurred())
 	return string(tmp)
 }
@@ -6478,7 +6478,7 @@ func addL3Connectivity(connectivityStr string, hostId strfmt.UUID) string {
 		Expect(json.Unmarshal([]byte(connectivityStr), &connectivity)).ToNot(HaveOccurred())
 	}
 	connectivity.MajorityGroups[network.IPv4.String()] = []strfmt.UUID{hostId}
-	tmp, err := json.Marshal(connectivity)
+	tmp, err := json.ConfigStd.Marshal(connectivity)
 	Expect(err).ToNot(HaveOccurred())
 	return string(tmp)
 }

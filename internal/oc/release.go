@@ -1,7 +1,7 @@
 package oc
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -585,7 +585,7 @@ func getIdmsContents(mirrorConfig []mirrorregistries.RegistriesConf) ([]byte, er
 	}
 
 	// Convert to json first so json tags are handled
-	jsonData, err := json.Marshal(&idms)
+	jsonData, err := json.ConfigStd.Marshal(&idms)
 	if err != nil {
 		return nil, err
 	}
@@ -645,7 +645,7 @@ func getIcspContents(mirrorConfig []mirrorregistries.RegistriesConf) ([]byte, er
 	}
 
 	// Convert to json first so json tags are handled
-	jsonData, err := json.Marshal(&icsp)
+	jsonData, err := json.ConfigStd.Marshal(&icsp)
 	if err != nil {
 		return nil, err
 	}

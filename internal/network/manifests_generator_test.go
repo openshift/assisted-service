@@ -3,7 +3,7 @@ package network
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"regexp"
 
@@ -43,7 +43,7 @@ var _ = Describe("chrony manifest", func() {
 	createHost := func(sources []*models.NtpSource) *models.Host {
 		var sourcesText string
 		if sources != nil {
-			sourcesBytes, err := json.Marshal(&sources)
+			sourcesBytes, err := json.ConfigStd.Marshal(&sources)
 			Expect(err).ToNot(HaveOccurred())
 			sourcesText = string(sourcesBytes)
 		}

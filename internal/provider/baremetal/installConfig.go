@@ -1,7 +1,7 @@
 package baremetal
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"slices"
 	"sort"

@@ -2,7 +2,7 @@ package common
 
 import (
 	"crypto/x509"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"encoding/pem"
 	"errors"
 	"fmt"

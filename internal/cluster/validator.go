@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"encoding/json"
 	"fmt"
+	json "github.com/bytedance/sonic"
 	"reflect"
 	"strings"
 	"time"
@@ -616,7 +616,7 @@ func (v *clusterValidator) skipNetworkHostPrefixCheck(c *clusterPreprocessContex
 	networkType := swag.StringValue(c.cluster.NetworkType)
 	if c.cluster.InstallConfigOverrides != "" {
 		// use networkType from install-config overrides if set
-		overrideDecoder := json.NewDecoder(strings.NewReader(c.cluster.InstallConfigOverrides))
+		overrideDecoder := json.ConfigStd.NewDecoder(strings.NewReader(c.cluster.InstallConfigOverrides))
 		overrideDecoder.DisallowUnknownFields()
 
 		cfg := &installcfg.InstallerConfigBaremetal{}

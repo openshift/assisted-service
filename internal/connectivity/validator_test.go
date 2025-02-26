@@ -1,7 +1,7 @@
 package connectivity
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -40,7 +40,7 @@ var _ = Describe("get valid interfaces", func() {
 	})
 
 	It("valid interfaces", func() {
-		hw, err := json.Marshal(&inventory)
+		hw, err := json.ConfigStd.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host.Inventory = string(hw)
 		interfaces, err := connectivityValidator.GetHostValidInterfaces(host)

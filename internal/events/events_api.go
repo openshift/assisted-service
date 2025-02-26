@@ -2,7 +2,7 @@ package events
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"net/http"
 	"time"
 

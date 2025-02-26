@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"strings"
 
@@ -198,7 +198,7 @@ var _ = Describe("installcmd", func() {
 			inventory := models.Inventory{
 				Disks: disks,
 			}
-			b, err := json.Marshal(&inventory)
+			b, err := json.ConfigStd.Marshal(&inventory)
 			Expect(err).To(Not(HaveOccurred()))
 			return string(b)
 		}

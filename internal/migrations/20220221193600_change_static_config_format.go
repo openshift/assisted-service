@@ -1,7 +1,7 @@
 package migrations
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"sort"
 	"strings"
@@ -66,7 +66,7 @@ func migrateInfraenvStaticConfigFormat(db *gorm.DB, infraEnv *models.InfraEnv) e
 	if len(staticNetworkConfig) == 0 {
 		staticNetworkConfigStr = ""
 	} else {
-		b, err := json.Marshal(&staticNetworkConfig)
+		b, err := json.ConfigStd.Marshal(&staticNetworkConfig)
 		if err != nil {
 			return err
 		}

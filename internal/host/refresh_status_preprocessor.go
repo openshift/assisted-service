@@ -2,7 +2,7 @@ package host
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"sort"
 	"strings"

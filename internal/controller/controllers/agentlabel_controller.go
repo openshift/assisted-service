@@ -18,7 +18,7 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 
 	"github.com/itchyny/gojq"
@@ -65,7 +65,7 @@ func (r *AgentLabelReconciler) Reconcile(origCtx context.Context, req ctrl.Reque
 
 	// Get the inventory into interfaces by way of json marshal/unmarshal
 	var inventoryInterface interface{}
-	jsonInventory, _ := json.Marshal(agent.Status.Inventory)
+	jsonInventory, _ := json.ConfigStd.Marshal(agent.Status.Inventory)
 	_ = json.Unmarshal(jsonInventory, &inventoryInterface)
 
 	classifications := aiv1beta1.AgentClassificationList{}

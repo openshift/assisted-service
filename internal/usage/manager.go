@@ -2,7 +2,7 @@ package usage
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -54,7 +54,7 @@ func (m *UsageManager) Remove(usages FeatureUsage, name string) {
 }
 
 func (m *UsageManager) Save(db *gorm.DB, clusterId strfmt.UUID, usages FeatureUsage) {
-	b, err := json.Marshal(usages)
+	b, err := json.ConfigStd.Marshal(usages)
 	if err == nil {
 		err = db.Model(&common.Cluster{}).Where("id = ?", clusterId).Update("feature_usage", string(b)).Error
 		if err != nil {

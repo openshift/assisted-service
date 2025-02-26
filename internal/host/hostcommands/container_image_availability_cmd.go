@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -88,7 +88,7 @@ func (cmd *imageAvailabilityCmd) prepareParam(ctx context.Context, host *models.
 		Timeout: int64(cmd.timeoutSeconds),
 	}
 
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		cmd.log.WithError(err).Errorf("Failed to JSON marshal %+v", request)
 		return "", err

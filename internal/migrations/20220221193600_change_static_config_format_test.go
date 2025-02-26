@@ -1,7 +1,7 @@
 package migrations
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
@@ -67,7 +67,7 @@ var _ = Describe("Migrate static config format", func() {
 			common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
 			common.FormatStaticConfigHostYAML("nic20", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
 		}
-		b, err := json.Marshal(&staticNetworkConfig)
+		b, err := json.ConfigStd.Marshal(&staticNetworkConfig)
 		Expect(err).ToNot(HaveOccurred())
 		staticNetworkConfigJSONStr = string(b)
 		infraEnvID1 = strfmt.UUID(uuid.New().String())
