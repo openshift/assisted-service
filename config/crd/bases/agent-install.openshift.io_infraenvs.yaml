@@ -88,6 +88,11 @@ spec:
                 default: x86_64
                 description: CpuArchitecture specifies the target CPU architecture.
                   Default is x86_64
+                enum:
+                - arm64
+                - ppc64le
+                - x86_64
+                - s390x
                 type: string
               ignitionConfigOverride:
                 description: Json formatted string containing the user overrides for
