@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"net/url"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"text/template"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"

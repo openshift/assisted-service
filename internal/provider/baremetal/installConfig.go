@@ -1,12 +1,12 @@
 package baremetal
 
 import (
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"slices"
 	"sort"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/swag"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"

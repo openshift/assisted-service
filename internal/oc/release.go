@@ -1,7 +1,6 @@
 package oc
 
 import (
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
+	json "github.com/bytedance/sonic"
 	"github.com/hashicorp/go-version"
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"

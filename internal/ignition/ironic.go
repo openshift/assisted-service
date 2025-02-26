@@ -2,7 +2,6 @@ package ignition
 
 import (
 	json "github.com/bytedance/sonic"
-
 	ignition_config_types_32 "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/openshift/assisted-service/internal/common"
 	iccignition "github.com/openshift/image-customization-controller/pkg/ignition"

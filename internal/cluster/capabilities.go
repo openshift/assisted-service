@@ -2,7 +2,6 @@ package cluster
 
 import (
 	json "github.com/bytedance/sonic"
-
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"

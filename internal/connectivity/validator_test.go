@@ -1,9 +1,9 @@
 package connectivity
 
 import (
-	json "github.com/bytedance/sonic"
 	"testing"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"

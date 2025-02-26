@@ -2,7 +2,6 @@ package common
 
 import (
 	json "github.com/bytedance/sonic"
-
 	"github.com/openshift/assisted-service/models"
 )
 

@@ -2,7 +2,6 @@ package ignition
 
 import (
 	json "github.com/bytedance/sonic"
-
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_32 "github.com/coreos/ignition/v2/config/v3_2"
 	. "github.com/onsi/ginkgo"

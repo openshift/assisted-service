@@ -3,9 +3,9 @@ package validations
 import (
 	"encoding/base64"
 	"fmt"
-	json "github.com/bytedance/sonic"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"

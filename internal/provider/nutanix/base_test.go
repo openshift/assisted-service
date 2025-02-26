@@ -2,7 +2,6 @@ package nutanix
 
 import (
 	json "github.com/bytedance/sonic"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"

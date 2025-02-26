@@ -2,11 +2,11 @@ package cluster
 
 import (
 	"fmt"
-	json "github.com/bytedance/sonic"
 	"reflect"
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-multierror"

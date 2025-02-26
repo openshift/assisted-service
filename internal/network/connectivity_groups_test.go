@@ -1,11 +1,11 @@
 package network
 
 import (
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"

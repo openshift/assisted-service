@@ -1,7 +1,6 @@
 package spec
 
 import (
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	json "github.com/bytedance/sonic"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -2,7 +2,6 @@ package openshiftai
 
 import (
 	json "github.com/bytedance/sonic"
-
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
 )

@@ -1,7 +1,6 @@
 package hostutil
 
 import (
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/coreos/ignition/v2/config/v3_2"
 	ignition_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/swag"

@@ -1,9 +1,9 @@
 package network
 
 import (
-	json "github.com/bytedance/sonic"
 	"net"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/golang-collections/go-datastructures/bitarray"
 	"github.com/openshift/assisted-service/internal/common"

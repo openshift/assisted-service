@@ -3,12 +3,12 @@ package events
 import (
 	"context"
 	"database/sql"
-	json "github.com/bytedance/sonic"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"

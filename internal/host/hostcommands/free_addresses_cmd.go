@@ -2,9 +2,9 @@ package hostcommands
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"net"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"

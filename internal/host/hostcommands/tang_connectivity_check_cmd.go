@@ -2,8 +2,8 @@ package hostcommands
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 
+	json "github.com/bytedance/sonic"
 	ignition_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"

@@ -2,7 +2,6 @@ package ignition
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	config_32 "github.com/coreos/ignition/v2/config/v3_2"
 	config_32_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/strfmt"

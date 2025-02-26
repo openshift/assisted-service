@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
-	json "github.com/bytedance/sonic"
 	errpkg "errors"
 	"fmt"
 	"io"
@@ -29,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"

@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	json "github.com/bytedance/sonic"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -27,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
