@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"time"
 
 	"github.com/alecthomas/units"

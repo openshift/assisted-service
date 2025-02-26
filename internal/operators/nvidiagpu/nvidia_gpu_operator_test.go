@@ -2,7 +2,7 @@ package nvidiagpu
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -26,7 +26,7 @@ var _ = Describe("Operator", func() {
 	DescribeTable(
 		"Validate hosts",
 		func(inventory *models.Inventory, expected api.ValidationResult) {
-			data, err := json.Marshal(inventory)
+			data, err := json.ConfigStd.Marshal(inventory)
 			Expect(err).ToNot(HaveOccurred())
 			host := &models.Host{
 				Inventory: string(data),

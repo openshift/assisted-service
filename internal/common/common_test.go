@@ -2,8 +2,8 @@ package common
 
 import (
 	"crypto/rand"
-	"encoding/json"
 	"fmt"
+	json "github.com/bytedance/sonic"
 	"math"
 	"math/big"
 	"testing"
@@ -345,7 +345,7 @@ var _ = Describe("db features", func() {
 
 /**
 * This test is to ensure that our assumptions about how golang handles the serialisation of a map is consistent with how we understand this to work.
-* to cover any changes in the implementation of json.Marshal that could affect the order in which items are serialized.
+* to cover any changes in the implementation of json.ConfigStd.Marshal that could affect the order in which items are serialized.
  */
 var _ = Describe("JSON serialization checks", func() {
 	It("json serialization of a map should return a consistent string for the same entries irrespective of the order in which they were added", func() {
@@ -363,7 +363,7 @@ var _ = Describe("JSON serialization checks", func() {
 				slice = append(slice[:index], slice[index+1:]...)
 				m[value] = value
 			}
-			j, e := json.Marshal(m)
+			j, e := json.ConfigStd.Marshal(m)
 			if e != nil {
 				fmt.Println("Error")
 			}

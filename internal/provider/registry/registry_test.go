@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"testing"
 
@@ -603,7 +603,7 @@ func getVsphereInventoryStr(hostname, bootMode string, ipv4, ipv6 bool) string {
 		SerialNumber: "VMware-12 34 56 78 90 12 ab cd-ef gh 12 34 56 67 89 90",
 		Virtual:      true,
 	}
-	ret, _ := json.Marshal(&inventory)
+	ret, _ := json.ConfigStd.Marshal(&inventory)
 	return string(ret)
 }
 
@@ -615,7 +615,7 @@ func getBaremetalInventoryStr(hostname, bootMode string, ipv4, ipv6 bool) string
 		SerialNumber: "",
 		Virtual:      false,
 	}
-	ret, _ := json.Marshal(&inventory)
+	ret, _ := json.ConfigStd.Marshal(&inventory)
 	return string(ret)
 }
 
@@ -627,7 +627,7 @@ func getNutanixInventoryStr(hostname, bootMode string, ipv4, ipv6 bool) string {
 		SerialNumber: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
 		Virtual:      true,
 	}
-	ret, _ := json.Marshal(&inventory)
+	ret, _ := json.ConfigStd.Marshal(&inventory)
 	return string(ret)
 }
 

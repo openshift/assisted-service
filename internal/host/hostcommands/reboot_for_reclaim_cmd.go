@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 
 	"github.com/openshift/assisted-service/models"
@@ -25,7 +25,7 @@ func (c *rebootForReclaimCmd) GetSteps(ctx context.Context, host *models.Host) (
 	request := models.RebootForReclaimRequest{
 		HostFsMountDir: &c.HostFSMountDir,
 	}
-	requestBytes, err := json.Marshal(request)
+	requestBytes, err := json.ConfigStd.Marshal(request)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal RebootForReclaimRequest: %w", err)
 	}

@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"path"
 	"strings"
@@ -193,7 +193,7 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 	}
 
 	if len(controllerManifests) > 0 {
-		content, err := json.Marshal(controllerManifests)
+		content, err := json.ConfigStd.Marshal(controllerManifests)
 		if err != nil {
 			return err
 		}

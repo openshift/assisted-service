@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -423,7 +423,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			if len(internalKargs) == 0 {
 				return nil
 			}
-			b, err := json.Marshal(&internalKargs)
+			b, err := json.ConfigStd.Marshal(&internalKargs)
 			Expect(err).ToNot(HaveOccurred())
 			return swag.String(string(b))
 		}

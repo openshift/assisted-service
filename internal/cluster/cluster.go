@@ -2,8 +2,8 @@ package cluster
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	json "github.com/bytedance/sonic"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -326,7 +326,7 @@ func (m *Manager) didValidationChanged(newValidationRes, currentValidationRes Va
 }
 
 func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *common.Cluster, newValidationRes ValidationsStatus) (*common.Cluster, error) {
-	b, err := json.Marshal(newValidationRes)
+	b, err := json.ConfigStd.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err
 	}
@@ -1082,7 +1082,7 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 }
 
 func (m *Manager) uploadDataAsFile(ctx context.Context, log logrus.FieldLogger, data interface{}, fileName string, objectHandler s3wrapper.API) error {
-	marshalled, err := json.MarshalIndent(data, "", " ")
+	marshalled, err := json.ConfigStd.MarshalIndent(data, "", " ")
 	if err != nil {
 		log.WithError(err).Warnf("Failed to marshall data for %s", fileName)
 		return err
@@ -1314,7 +1314,7 @@ func (m *Manager) detectAndStoreCollidingIPsForCluster(cluster *common.Cluster, 
 		}
 	}
 
-	b, err := json.Marshal(&collidingIPSWithMacs)
+	b, err := json.ConfigStd.Marshal(&collidingIPSWithMacs)
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -1409,7 +1409,7 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	connectivity.L3ConnectedAddresses = connectedAddresses
-	b, err := json.Marshal(&connectivity)
+	b, err := json.ConfigStd.Marshal(&connectivity)
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}

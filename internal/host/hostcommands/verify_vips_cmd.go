@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -56,7 +56,7 @@ func (f *verifyVipsCmd) prepareParam(host *models.Host) (string, error) {
 		})
 	}
 
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		f.log.WithError(err).Warn("Json marshal")
 		return "", err

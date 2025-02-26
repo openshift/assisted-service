@@ -1,7 +1,7 @@
 package hostutil
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 	"time"
@@ -159,7 +159,7 @@ func GenerateTestHostWithNetworkAddress(hostID, infraEnvID, clusterID strfmt.UUI
 
 func GenerateTestConnectivityReport() string {
 	c := models.ConnectivityReport{RemoteHosts: []*models.ConnectivityRemoteHost{}}
-	b, err := json.Marshal(&c)
+	b, err := json.ConfigStd.Marshal(&c)
 	Expect(err).NotTo(HaveOccurred())
 	return string(b)
 }
@@ -191,7 +191,7 @@ func generateTestAPIVIpConnectivityResponseString(ignition string, isSuccess boo
 		IsSuccess: isSuccess,
 		Ignition:  ignition,
 	}
-	bytes, err := json.Marshal(checkAPIResponse)
+	bytes, err := json.ConfigStd.Marshal(checkAPIResponse)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(bytes)
 }
@@ -235,7 +235,7 @@ func GenerateTestTangConnectivity(success bool) string {
 		}
 	}
 
-	bytes, err := json.Marshal(checkAPIResponse)
+	bytes, err := json.ConfigStd.Marshal(checkAPIResponse)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(bytes)
 }
@@ -296,7 +296,7 @@ func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: systemPlatform, SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -329,7 +329,7 @@ func GenerateMasterInventoryWithNetworks(ips ...string) string {
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -360,7 +360,7 @@ func GenerateMasterInventoryWithNetworksOnSameInterface(v4ips []string, v6ips []
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -387,7 +387,7 @@ func GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname string, cpuflags 
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -417,7 +417,7 @@ func GenerateMasterInventoryWithHostnameAndCpuFlagsDualStack(hostname string, cp
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -445,7 +445,7 @@ func GenerateInventoryWithResources(cpu, memory int64, hostname string, gpus ...
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -477,7 +477,7 @@ func GenerateInventoryWithResourcesAndMultipleDisk(cpu, memory int64, hostname s
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
@@ -504,7 +504,7 @@ func GenerateInventoryWithResourcesWithBytes(cpu, physicalMemory int64, usableMe
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }

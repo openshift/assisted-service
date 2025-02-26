@@ -2,7 +2,7 @@ package host
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"math"
 	"net/http"
@@ -863,7 +863,7 @@ func (m *Manager) UpdateNodeSkipDiskFormatting(ctx context.Context, h *models.Ho
 }
 
 func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {
-	bytes, err := json.Marshal(ntpSources)
+	bytes, err := json.ConfigStd.Marshal(ntpSources)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to marshal NTP sources for host %s", h.ID.String())
 	}
@@ -877,7 +877,7 @@ func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*m
 }
 
 func (m *Manager) UpdateDomainNameResolution(ctx context.Context, h *models.Host, domainResolutionResponse models.DomainResolutionResponse, db *gorm.DB) error {
-	response, err := json.Marshal(domainResolutionResponse)
+	response, err := json.ConfigStd.Marshal(domainResolutionResponse)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to marshal domain name resolution for host %s", h.ID.String())
 	}
@@ -1198,7 +1198,7 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 }
 
 func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes ValidationsStatus) (*common.Host, error) {
-	b, err := json.Marshal(newValidationRes)
+	b, err := json.ConfigStd.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err
 	}

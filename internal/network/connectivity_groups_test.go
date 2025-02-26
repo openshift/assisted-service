@@ -1,7 +1,7 @@
 package network
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 	"strings"
@@ -143,7 +143,7 @@ func createConnectivityReport(remoteHosts ...*models.ConnectivityRemoteHost) str
 	report := models.ConnectivityReport{
 		RemoteHosts: remoteHosts,
 	}
-	b, err := json.Marshal(&report)
+	b, err := json.ConfigStd.Marshal(&report)
 	Expect(err).ToNot(HaveOccurred())
 	return string(b)
 }
@@ -165,7 +165,7 @@ func makeInventory(node *node) string {
 		}
 		inventory.Interfaces = append(inventory.Interfaces, newInterface)
 	}
-	b, err := json.Marshal(&inventory)
+	b, err := json.ConfigStd.Marshal(&inventory)
 	Expect(err).ToNot(HaveOccurred())
 	return string(b)
 }

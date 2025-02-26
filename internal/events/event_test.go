@@ -2,7 +2,7 @@ package events
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net/http"
 	"testing"
@@ -77,7 +77,7 @@ var _ = Describe("Add event", func() {
 		Expect(time.Time(*dbEvent.EventTime)).To(BeTemporally("~", time.Now(), 100*time.Millisecond))
 	}
 	marshal := func(v interface{}) string {
-		b, err := json.Marshal(v)
+		b, err := json.ConfigStd.Marshal(v)
 		Expect(err).ToNot(HaveOccurred())
 		return string(b)
 	}

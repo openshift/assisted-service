@@ -3,7 +3,7 @@ package host
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"math"
 	"net"

@@ -1,7 +1,7 @@
 package common
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/openshift/assisted-service/models"
 )
@@ -24,7 +24,7 @@ func MarshalImageStatuses(statuses ImageStatuses) (string, error) {
 		b   []byte
 		err error
 	)
-	if b, err = json.Marshal(&statuses); err != nil {
+	if b, err = json.ConfigStd.Marshal(&statuses); err != nil {
 		return "", err
 	}
 	return string(b), nil

@@ -1,8 +1,8 @@
 package releasesources
 
 import (
-	"encoding/json"
 	"fmt"
+	json "github.com/bytedance/sonic"
 	"net/http"
 	"net/url"
 
@@ -92,7 +92,7 @@ func requestAndDecode(rawUrl string, decodeInto any) error {
 		return errors.Wrapf(err, "an error occurred while making http request to %s", rawUrl)
 	}
 
-	err = json.NewDecoder(response.Body).Decode(&decodeInto)
+	err = json.ConfigStd.NewDecoder(response.Body).Decode(&decodeInto)
 	if err != nil {
 		return errors.Wrapf(err, "an error occurred while decoding the response to a request made to %s", rawUrl)
 	}

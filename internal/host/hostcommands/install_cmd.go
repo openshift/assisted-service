@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net"
 	"net/netip"
@@ -195,7 +195,7 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 
 	request.Proxy = i.getProxyArguments(cluster.Name, cluster.BaseDNSDomain, cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
 
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		i.log.WithError(err).Warn("Json marshal")
 		return "", err
@@ -248,7 +248,7 @@ func (i *installCmd) getMustGatherArgument(mustGatherMap versions.MustGatherVers
 		return mustGatherMap["ocp"], nil
 	}
 
-	arg, err := json.Marshal(mustGatherMap)
+	arg, err := json.ConfigStd.Marshal(mustGatherMap)
 	if err != nil {
 		i.log.WithError(err).Errorf("can not encode must-gather image map")
 		return "", err
@@ -557,7 +557,7 @@ func toJSONString(args []string) (string, error) {
 	if len(args) == 0 {
 		return "", nil
 	}
-	argsBytes, err := json.Marshal(args)
+	argsBytes, err := json.ConfigStd.Marshal(args)
 	if err != nil {
 		return "", err
 	}

@@ -2,7 +2,7 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -94,7 +94,7 @@ var _ = Describe("tangConnectivitycheckcmd", func() {
 		imported := true
 		cluster.Imported = &imported
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
+		apiVipConnectivity, err := json.ConfigStd.Marshal(models.APIVipConnectivityResponse{
 			IsSuccess: true,
 			Ignition:  hostIgnitionWithoutLuks,
 		})
@@ -109,7 +109,7 @@ var _ = Describe("tangConnectivitycheckcmd", func() {
 		imported := true
 		cluster.Imported = &imported
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
+		apiVipConnectivity, err := json.ConfigStd.Marshal(models.APIVipConnectivityResponse{
 			IsSuccess: true,
 			Ignition:  hostIgnitionWithoutClevis,
 		})
@@ -126,7 +126,7 @@ var _ = Describe("tangConnectivitycheckcmd", func() {
 			imported := true
 			cluster.Imported = &imported
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-			apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
+			apiVipConnectivity, err := json.ConfigStd.Marshal(models.APIVipConnectivityResponse{
 				IsSuccess: true,
 				Ignition:  hostIgnition,
 			})

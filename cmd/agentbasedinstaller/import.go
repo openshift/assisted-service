@@ -2,7 +2,7 @@ package agentbasedinstaller
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"io/fs"
 	"os"

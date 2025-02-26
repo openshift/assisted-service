@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"net/http"
 	"os"
@@ -272,7 +272,7 @@ var _ = Describe("agent reconcile", func() {
 		}
 		var bytesValidationInfo []byte
 		var err error
-		bytesValidationInfo, err = json.Marshal(validationInfo)
+		bytesValidationInfo, err = json.ConfigStd.Marshal(validationInfo)
 		Expect(err).To(BeNil())
 		stringifiedValidationInfo := string(bytesValidationInfo)
 
@@ -514,7 +514,7 @@ var _ = Describe("agent reconcile", func() {
 
 		})
 		marshalLabels := func(m map[string]string) string {
-			b, err := json.Marshal(&m)
+			b, err := json.ConfigStd.Marshal(&m)
 			Expect(err).ToNot(HaveOccurred())
 			return string(b)
 		}
@@ -1790,7 +1790,7 @@ var _ = Describe("agent reconcile", func() {
 		var j []string
 		err = json.Unmarshal([]byte(installerArgs), &j)
 		Expect(err).To(BeNil())
-		arrBytes, _ := json.Marshal(j)
+		arrBytes, _ := json.ConfigStd.Marshal(j)
 		commonHost.InstallerArgs = string(arrBytes)
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
@@ -1892,7 +1892,7 @@ var _ = Describe("agent reconcile", func() {
 				{Path: "/dev/sdb", Bootable: false, DriveType: models.DriveTypeHDD},
 			},
 		}
-		inv, _ := json.Marshal(&inventory)
+		inv, _ := json.ConfigStd.Marshal(&inventory)
 		commonHost := &common.Host{
 			Host: models.Host{
 				ID:         &hostId,
@@ -1961,7 +1961,7 @@ var _ = Describe("agent reconcile", func() {
 				SourceState: srcState,
 			},
 		}
-		ntp, _ := json.Marshal(&ntpSources)
+		ntp, _ := json.ConfigStd.Marshal(&ntpSources)
 		commonHost := &common.Host{
 			Host: models.Host{
 				ID:         &hostId,
@@ -2388,7 +2388,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			Routes: common.TestDefaultRouteConfiguration,
 		}
 
-		b, err := json.Marshal(inventory)
+		b, err := json.ConfigStd.Marshal(inventory)
 		Expect(err).To(Not(HaveOccurred()))
 		return string(b)
 	}
@@ -3188,7 +3188,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 						},
 					},
 				}
-				installConfigData, err := json.Marshal(installConfig)
+				installConfigData, err := json.ConfigStd.Marshal(installConfig)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(db.Model(backEndCluster).Update("install_config_overrides", installConfigData).Error).ShouldNot(HaveOccurred())
 			}
@@ -4669,7 +4669,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		}
 		var bytesValidationInfo []byte
 		var err error
-		bytesValidationInfo, err = json.Marshal(validationInfo)
+		bytesValidationInfo, err = json.ConfigStd.Marshal(validationInfo)
 		Expect(err).To(BeNil())
 		stringifiedValidationInfo := string(bytesValidationInfo)
 
@@ -4952,7 +4952,7 @@ var _ = Describe("createNewHost", func() {
 		hostInventory := models.Inventory{}
 		hostInventory.SystemVendor = &models.SystemVendor{}
 		hostInventory.SystemVendor.Manufacturer = "RedHat"
-		inventory, err := json.Marshal(hostInventory)
+		inventory, err := json.ConfigStd.Marshal(hostInventory)
 		Expect(err).To(BeNil())
 		Expect(host.Inventory).To(Equal(string(inventory)))
 	})

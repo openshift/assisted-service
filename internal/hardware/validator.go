@@ -2,7 +2,7 @@ package hardware
 
 import (
 	"context"
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"fmt"
 	"math"
 	"net/netip"

@@ -1,7 +1,7 @@
 package hostcommands
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -33,7 +33,7 @@ func convertHostsToConnectivityCheckParams(currentHostId *strfmt.UUID, hosts []*
 	if len(connectivityCheckHosts) == 0 {
 		return "", nil
 	}
-	jsonData, err := json.Marshal(connectivityCheckHosts)
+	jsonData, err := json.ConfigStd.Marshal(connectivityCheckHosts)
 	return string(jsonData), err
 }
 

@@ -1,7 +1,7 @@
 package external
 
 import (
-	"encoding/json"
+	json "github.com/bytedance/sonic"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,7 +21,7 @@ var _ = Describe("oci", func() {
 		})
 
 		setHostInventory := func(inventory *models.Inventory, host *models.Host) {
-			data, err := json.Marshal(inventory)
+			data, err := json.ConfigStd.Marshal(inventory)
 			Expect(err).To(BeNil())
 			host.Inventory = string(data)
 		}
