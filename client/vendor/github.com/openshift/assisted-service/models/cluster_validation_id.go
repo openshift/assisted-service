@@ -131,6 +131,12 @@ const (
 
 	// ClusterValidationIDNmstateRequirementsSatisfied captures enum value "nmstate-requirements-satisfied"
 	ClusterValidationIDNmstateRequirementsSatisfied ClusterValidationID = "nmstate-requirements-satisfied"
+
+	// ClusterValidationIDAmdGpuRequirementsSatisfied captures enum value "amd-gpu-requirements-satisfied"
+	ClusterValidationIDAmdGpuRequirementsSatisfied ClusterValidationID = "amd-gpu-requirements-satisfied"
+
+	// ClusterValidationIDKmmRequirementsSatisfied captures enum value "kmm-requirements-satisfied"
+	ClusterValidationIDKmmRequirementsSatisfied ClusterValidationID = "kmm-requirements-satisfied"
 )
 
 // for schema
@@ -138,7 +144,7 @@ var clusterValidationIdEnum []interface{}
 
 func init() {
 	var res []ClusterValidationID
-	if err := json.Unmarshal([]byte(`["machine-cidr-defined","cluster-cidr-defined","service-cidr-defined","no-cidrs-overlapping","networks-same-address-families","network-prefix-valid","machine-cidr-equals-to-calculated-cidr","api-vips-defined","api-vips-valid","ingress-vips-defined","ingress-vips-valid","all-hosts-are-ready-to-install","sufficient-masters-count","dns-domain-defined","pull-secret-set","ntp-server-configured","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","cnv-requirements-satisfied","lvm-requirements-satisfied","mce-requirements-satisfied","mtv-requirements-satisfied","osc-requirements-satisfied","network-type-valid","platform-requirements-satisfied","node-feature-discovery-requirements-satisfied","nvidia-gpu-requirements-satisfied","pipelines-requirements-satisfied","servicemesh-requirements-satisfied","serverless-requirements-satisfied","openshift-ai-requirements-satisfied","authorino-requirements-satisfied","nmstate-requirements-satisfied"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["machine-cidr-defined","cluster-cidr-defined","service-cidr-defined","no-cidrs-overlapping","networks-same-address-families","network-prefix-valid","machine-cidr-equals-to-calculated-cidr","api-vips-defined","api-vips-valid","ingress-vips-defined","ingress-vips-valid","all-hosts-are-ready-to-install","sufficient-masters-count","dns-domain-defined","pull-secret-set","ntp-server-configured","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","cnv-requirements-satisfied","lvm-requirements-satisfied","mce-requirements-satisfied","mtv-requirements-satisfied","osc-requirements-satisfied","network-type-valid","platform-requirements-satisfied","node-feature-discovery-requirements-satisfied","nvidia-gpu-requirements-satisfied","pipelines-requirements-satisfied","servicemesh-requirements-satisfied","serverless-requirements-satisfied","openshift-ai-requirements-satisfied","authorino-requirements-satisfied","nmstate-requirements-satisfied","amd-gpu-requirements-satisfied","kmm-requirements-satisfied"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
