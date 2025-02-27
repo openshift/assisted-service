@@ -45,6 +45,8 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDOPENSHIFTAI:          (&OpenShiftAIFeature{}).New(),
 	models.FeatureSupportLevelIDAUTHORINO:            (&AuthorinoFeature{}).New(),
 	models.FeatureSupportLevelIDNMSTATE:              (&NmstateFeature{}).New(),
+	models.FeatureSupportLevelIDAMDGPU:               (&AMDGPUFeature{}).New(),
+	models.FeatureSupportLevelIDKMM:                  (&KMMFeature{}).New(),
 
 	// Platform features
 	models.FeatureSupportLevelIDNUTANIXINTEGRATION:      (&NutanixIntegrationFeature{}).New(),
