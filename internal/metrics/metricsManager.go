@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/alecthomas/units"
@@ -39,6 +40,8 @@ const (
 	counterFilesystemUsagePercentage              = "assisted_installer_filesystem_usage_percentage"
 	histogramMonitoredHostsDurationMs             = "assisted_installer_monitored_hosts_duration_ms"
 	histogramMonitoredClustersDurationMs          = "assisted_installer_monitored_clusters_duration_ms"
+	counterInstallerReleaseCache                  = "assisted_installer_release_cache"
+	counterInstallerReleaseCacheEviction          = "assisted_installer_release_cache_eviction"
 )
 
 const (
@@ -61,6 +64,8 @@ const (
 	counterDescriptionFilesystemUsagePercentage              = "The percentage of the filesystem usage by the service"
 	histogramDescriptionMonitoredHostsDurationMs             = "Histogram/sum/count of monitored hosts duration (ms)"
 	histogramDescriptionMonitoredClustersDurationMs          = "Histogram/sum/count of monitored clusters duration (ms)"
+	counterDescriptionInstallerReleaseCache                  = "Counts the cache hit status for the labelled release"
+	counterDescriptionInstallerReleaseCacheEviction          = "Counts the number of times that at least one release was evicted"
 )
 
 const (
@@ -77,6 +82,9 @@ const (
 	imageLabel                 = "imageName"
 	hosts                      = "hosts"
 	clusters                   = "clusters"
+	labelCacheHit              = "hit"
+	labelReleaseID             = "releaseId"
+	labelSuccess               = "success"
 )
 
 type API interface {
@@ -94,6 +102,8 @@ type API interface {
 	FileSystemUsage(usageInPercentage float64)
 	MonitoredHostsDurationMs(monitoredHostsMillis float64)
 	MonitoredClustersDurationMs(monitoredClustersMillis float64)
+	InstallerCacheGetReleaseCached(releaseId string, cacheHit bool)
+	InstallerCacheReleaseEvicted(success bool)
 }
 
 type MetricsManager struct {
@@ -119,7 +129,10 @@ type MetricsManager struct {
 	serviceLogicFilesystemUsagePercentage              *prometheus.GaugeVec
 	serviceLogicMonitoredHostsDurationMs               *prometheus.HistogramVec
 	serviceLogicMonitoredClustersDurationMs            *prometheus.HistogramVec
-	collectors                                         []prometheus.Collector
+	serviceLogicInstallerReleaseCache                  *prometheus.CounterVec
+	serviceLogicInstallerReleaseEvicted                *prometheus.CounterVec
+
+	collectors []prometheus.Collector
 }
 
 var _ API = &MetricsManager{}
@@ -290,6 +303,22 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 			Help:      histogramDescriptionMonitoredClustersDurationMs,
 			Buckets:   []float64{10, 100, 200, 500, 1000, 10000, 30000},
 		}, []string{}),
+
+		serviceLogicInstallerReleaseCache: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterInstallerReleaseCache,
+				Help:      counterDescriptionInstallerReleaseCache,
+			}, []string{labelReleaseID, labelCacheHit}),
+
+		serviceLogicInstallerReleaseEvicted: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterInstallerReleaseCacheEviction,
+				Help:      counterDescriptionInstallerReleaseCacheEviction,
+			}, []string{labelSuccess}),
 	}
 
 	m.collectors = append(m.collectors, newDirectoryUsageCollector(metricsManagerConfig.DirectoryUsageMonitorConfig.Directories, diskStatsHelper, log))
@@ -314,6 +343,8 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 		m.serviceLogicFilesystemUsagePercentage,
 		m.serviceLogicMonitoredHostsDurationMs,
 		m.serviceLogicMonitoredClustersDurationMs,
+		m.serviceLogicInstallerReleaseCache,
+		m.serviceLogicInstallerReleaseEvicted,
 	)
 
 	for _, collector := range m.collectors {
@@ -487,4 +518,12 @@ func (m *MetricsManager) MonitoredClustersDurationMs(monitoredClustersMs float64
 
 func bytesToGib(bytes int64) int64 {
 	return bytes / int64(units.GiB)
+}
+
+func (m *MetricsManager) InstallerCacheGetReleaseCached(releaseId string, cacheHit bool) {
+	m.serviceLogicInstallerReleaseCache.WithLabelValues(releaseId, fmt.Sprintf("%t", cacheHit)).Inc()
+}
+
+func (m *MetricsManager) InstallerCacheReleaseEvicted(success bool) {
+	m.serviceLogicInstallerReleaseEvicted.WithLabelValues(fmt.Sprintf("%t", success)).Inc()
 }

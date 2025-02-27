@@ -94,6 +94,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		manifestsAPI   *manifestsapi.MockManifestsAPI
 		eventsHandler  *eventsapi.MockHandler
 		installerCache *installercache.Installers
+		metricsAPI     *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -105,12 +106,13 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		err1 = os.WriteFile(examplePath, []byte(bootstrap1), 0600)
 		Expect(err1).NotTo(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
+		metricsAPI = metrics.NewMockAPI(ctrl)
 		installerCacheConfig := installercache.Config{
 			CacheDir:       filepath.Join(workDir, "some-dir", "installercache"),
 			MaxCapacity:    installercache.Size(5),
 			MaxReleaseSize: installercache.Size(5),
 		}
-		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
+		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metricsAPI, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
 		Expect(err).NotTo(HaveOccurred())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
@@ -262,6 +264,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		ctrl           *gomock.Controller
 		manifestsAPI   *manifestsapi.MockManifestsAPI
 		eventsHandler  eventsapi.Handler
+		metricsAPI     *metrics.MockAPI
 		installerCache *installercache.Installers
 	)
 
@@ -286,12 +289,13 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		ctrl = gomock.NewController(GinkgoT())
 		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 		eventsHandler = eventsapi.NewMockHandler(ctrl)
+		metricsAPI = metrics.NewMockAPI(ctrl)
 		installerCacheConfig := installercache.Config{
 			CacheDir:       filepath.Join(workDir, "some-dir", "installercache"),
 			MaxCapacity:    installercache.Size(5),
 			MaxReleaseSize: installercache.Size(5),
 		}
-		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
+		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metricsAPI, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -456,6 +460,7 @@ var _ = Describe("createHostIgnitions", func() {
 		workDir        string
 		manifestsAPI   *manifestsapi.MockManifestsAPI
 		eventsHandler  eventsapi.Handler
+		metricsAPI     *metrics.MockAPI
 		installerCache *installercache.Installers
 	)
 
@@ -476,13 +481,14 @@ var _ = Describe("createHostIgnitions", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 		eventsHandler = eventsapi.NewMockHandler(ctrl)
+		metricsAPI = metrics.NewMockAPI(ctrl)
 		cluster = testCluster()
 		installerCacheConfig := installercache.Config{
 			CacheDir:       filepath.Join(workDir, "some-dir", "installercache"),
 			MaxCapacity:    installercache.Size(5),
 			MaxReleaseSize: installercache.Size(5),
 		}
-		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
+		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metricsAPI, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -1779,6 +1785,7 @@ var _ = Describe("Bare metal host generation", func() {
 		ctrl           *gomock.Controller
 		manifestsAPI   *manifestsapi.MockManifestsAPI
 		eventsHandler  eventsapi.Handler
+		metricsAPI     *metrics.MockAPI
 		installerCache *installercache.Installers
 	)
 
@@ -1789,13 +1796,14 @@ var _ = Describe("Bare metal host generation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 		eventsHandler = eventsapi.NewMockHandler(ctrl)
+		metricsAPI = metrics.NewMockAPI(ctrl)
 		installerCacheConfig := installercache.Config{
 			CacheDir:                  filepath.Join(workDir, "some-dir", "installercache"),
 			MaxCapacity:               installercache.Size(5),
 			MaxReleaseSize:            installercache.Size(5),
 			ReleaseFetchRetryInterval: 1 * time.Microsecond,
 		}
-		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
+		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metricsAPI, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -1889,6 +1897,7 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 		ctrl           *gomock.Controller
 		manifestsAPI   *manifestsapi.MockManifestsAPI
 		eventsHandler  eventsapi.Handler
+		metricsAPI     *metrics.MockAPI
 		installerCache *installercache.Installers
 	)
 
@@ -1920,13 +1929,14 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 		eventsHandler = eventsapi.NewMockHandler(ctrl)
+		metricsAPI = metrics.NewMockAPI(ctrl)
 		installerCacheConfig := installercache.Config{
 			CacheDir:                  filepath.Join(workDir, "some-dir", "installercache"),
 			MaxCapacity:               installercache.Size(5),
 			MaxReleaseSize:            installercache.Size(5),
 			ReleaseFetchRetryInterval: 1 * time.Microsecond,
 		}
-		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
+		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metricsAPI, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
 		Expect(err).NotTo(HaveOccurred())
 	})
 
