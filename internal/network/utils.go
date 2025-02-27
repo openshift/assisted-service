@@ -491,24 +491,51 @@ func IsLoadBalancerUserManaged(c *common.Cluster) bool {
 	return c != nil && c.LoadBalancer != nil && c.LoadBalancer.Type == models.LoadBalancerTypeUserManaged
 }
 
-// FindSourceIPInMachineNetwork is a helper function to locate the source IP within a given machine network.
-func FindSourceIPInMachineNetwork(outgoingNicName string, mNetwork *net.IPNet, interfaces []*models.Interface) (string, error) {
-	var sourceIP string
+// IsNicBelongsAnyMachineNetwork is a helper function to find a nic within the machine networks.
+func IsNicBelongsAnyMachineNetwork(outgoingNicName string, mNetworks []*net.IPNet, interfaces []*models.Interface, isIPV6 bool) (bool, error) {
+	var addresses []string
 	for _, nic := range interfaces {
-		if nic.Name == outgoingNicName {
-			addresses := append(nic.IPV4Addresses, nic.IPV6Addresses...)
-			for _, address := range addresses {
-				ip, _, err := net.ParseCIDR(address)
-				if err != nil {
-					return "", errors.New("internal error - failed to parse outgoing nic address CIDR")
-				}
-				// If an address is found in the machine network, we are done
-				if mNetwork.Contains(ip) {
-					sourceIP = address
-					break
-				}
+		if nic.Name != outgoingNicName {
+			continue
+		}
+		if isIPV6 {
+			addresses = nic.IPV6Addresses
+		} else {
+			addresses = nic.IPV4Addresses
+		}
+		for _, address := range addresses {
+			ip, _, err := net.ParseCIDR(address)
+			if err != nil {
+				return false, fmt.Errorf("internal error - failed to parse outgoing nic address CIDR: %w", err)
+			}
+
+			// If an address is found in any machine network, we are done
+			if IsIPBelongsToAnyMachineNetwork(ip, mNetworks) {
+				return true, nil
 			}
 		}
 	}
-	return sourceIP, nil
+	return false, nil
+}
+
+func IsIPBelongsToAnyMachineNetwork(IP net.IP, mNetworks []*net.IPNet) bool {
+	for _, mNetwork := range mNetworks {
+		// If an address is found in the machine network, we are done
+		if mNetwork.Contains(IP) {
+			return true
+		}
+	}
+	return false
+}
+
+func ComputeParsedMachineNetworks(mNetworks []*models.MachineNetwork) ([]*net.IPNet, error) {
+	machineNetworks := make([]*net.IPNet, len(mNetworks))
+	for i, machineNet := range mNetworks {
+		_, mNetwork, err := net.ParseCIDR(string(machineNet.Cidr))
+		if err != nil {
+			return nil, fmt.Errorf("internal error - failed to parse machine network CIDR: %w", err)
+		}
+		machineNetworks[i] = mNetwork
+	}
+	return machineNetworks, nil
 }

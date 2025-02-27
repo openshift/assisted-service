@@ -346,27 +346,34 @@ func (v *validator) isMtuValidAllInterfaces(c *validationContext, connectivityRe
 
 // isMtuValidInMachineNetwork - intended for CMN, focusing exclusively on the MTU reports for the machine network.
 func (v *validator) isMtuValidInMachineNetwork(c *validationContext, connectivityReport *models.ConnectivityReport) (ValidationStatus, string) {
-	for _, machineNet := range c.cluster.MachineNetworks {
-		_, mNetwork, err := net.ParseCIDR(string(machineNet.Cidr))
-		if err != nil {
-			return ValidationError, "Internal error - failed to parse machine network CIDR"
-		}
-		for _, r := range connectivityReport.RemoteHosts {
-			for _, mtuReport := range r.MtuReport {
-				sourceIP, err := network.FindSourceIPInMachineNetwork(mtuReport.OutgoingNic, mNetwork, c.inventory.Interfaces)
-				if err != nil {
-					return ValidationError, err.Error()
+	parsedMachineNetworks, err := network.ComputeParsedMachineNetworks(c.cluster.MachineNetworks)
+	if err != nil {
+		return ValidationFailure, err.Error()
+	}
+	for _, r := range connectivityReport.RemoteHosts {
+		for _, mtuReport := range r.MtuReport {
+			remoteIP := net.ParseIP(mtuReport.RemoteIPAddress)
+			isRemoteIPV6 := remoteIP.To4() == nil // If To4() is nil, it's IPv6
+
+			// We are only interested in the source IP within machine networks. If it is not part of any machine network, we don't need to consider it.
+			findSourceIP, err := network.IsNicBelongsAnyMachineNetwork(mtuReport.OutgoingNic, parsedMachineNetworks, c.inventory.Interfaces, isRemoteIPV6)
+			if err != nil {
+				return ValidationError, err.Error()
+			}
+			if !findSourceIP {
+				continue
+			}
+
+			// We are only interested in the remote IP within machine networks. If it is not part of any machine network, we don't need to consider it.
+			if network.IsIPBelongsToAnyMachineNetwork(remoteIP, parsedMachineNetworks) {
+				if !mtuReport.MtuSuccessful {
+					return ValidationFailure, fmt.Sprintf("MTU is broken. Interface: %s, remote IP address: %s", mtuReport.OutgoingNic, mtuReport.RemoteIPAddress)
 				}
-				remoteIP := net.ParseIP(mtuReport.RemoteIPAddress)
-				if mNetwork.Contains(remoteIP) && sourceIP != "" {
-					if !mtuReport.MtuSuccessful {
-						return ValidationFailure, fmt.Sprintf("MTU is broken. Interface: %s, remote IP address: %s", mtuReport.OutgoingNic, mtuReport.RemoteIPAddress)
-					}
-				}
+				return ValidationSuccess, "MTU is ok"
 			}
 		}
 	}
-	return ValidationSuccess, "MTU is ok"
+	return "", ""
 }
 
 func (v *validator) isConnected(c *validationContext) (ValidationStatus, string) {
