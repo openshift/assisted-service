@@ -7923,7 +7923,6 @@ func init() {
         "Applying olm manifests",
         "Waiting for olm operators csv initialization",
         "Waiting for olm operators csv",
-        "Waiting for OLM operator setup jobs",
         "Done"
       ]
     },
@@ -18980,7 +18979,6 @@ func init() {
         "Applying olm manifests",
         "Waiting for olm operators csv initialization",
         "Waiting for olm operators csv",
-        "Waiting for OLM operator setup jobs",
         "Done"
       ]
     },
