@@ -139,6 +139,7 @@ func (feature *OdfFeature) getIncompatibleFeatures(string) *[]models.FeatureSupp
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDLVM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 	}
 }
 
@@ -595,6 +596,7 @@ func (f *OpenShiftAIFeature) getIncompatibleFeatures(string) *[]models.FeatureSu
 		// mechanism doesn't currently understand operator dependencies, so we need to add these explicitly.
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDSNO,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 	}
 }
 
