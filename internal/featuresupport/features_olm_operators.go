@@ -740,3 +740,83 @@ func (feature *NmstateFeature) getFeatureActiveLevel(cluster *common.Cluster, _ 
 	}
 	return activeLevelNotActive
 }
+
+// AMDGPUFeature describes the support for the AMD GPU operator.
+type AMDGPUFeature struct{}
+
+func (f *AMDGPUFeature) New() SupportLevelFeature {
+	return &AMDGPUFeature{}
+}
+
+func (f *AMDGPUFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDAMDGPU
+}
+
+func (f *AMDGPUFeature) GetName() string {
+	return "AMD GPU"
+}
+
+func (f *AMDGPUFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(f, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelDevPreview
+}
+
+func (f *AMDGPUFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+	}
+}
+
+func (f *AMDGPUFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *AMDGPUFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("amd-gpu", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// KMMFeature describes the support for the KMM operator.
+type KMMFeature struct{}
+
+func (f *KMMFeature) New() SupportLevelFeature {
+	return &KMMFeature{}
+}
+
+func (f *KMMFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDKMM
+}
+
+func (f *KMMFeature) GetName() string {
+	return "Kernel Module Management"
+}
+
+func (f *KMMFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(f, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelDevPreview
+}
+
+func (f *KMMFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *KMMFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *KMMFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("kmm", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}

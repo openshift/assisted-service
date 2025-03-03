@@ -181,4 +181,140 @@ var _ = Describe("Operator", func() {
 			},
 		),
 	)
+
+	DescribeTable(
+		"Validate cluster",
+		func(inventories []*models.Inventory, expected api.ValidationResult) {
+			hosts := make([]*models.Host, len(inventories))
+			for i, inventory := range inventories {
+				var inventoryJSON string
+				if inventory != nil {
+					data, err := json.Marshal(inventory)
+					Expect(err).ToNot(HaveOccurred())
+					inventoryJSON = string(data)
+				}
+				hosts[i] = &models.Host{
+					Inventory: inventoryJSON,
+				}
+			}
+			cluster := &common.Cluster{
+				Cluster: models.Cluster{
+					Hosts: hosts,
+				},
+			}
+			actual, _ := operator.ValidateCluster(ctx, cluster)
+			Expect(actual).To(Equal(expected))
+		},
+		Entry(
+			"Fails if there are no hosts",
+			[]*models.Inventory{},
+			api.ValidationResult{
+				Status:       api.Failure,
+				ValidationId: operator.GetHostValidationID(),
+				Reasons: []string{
+					"The NVIDIA GPU operator requires at least one supported NVIDIA GPU, but " +
+						"there is none in the discovered hosts.",
+				},
+			},
+		),
+		Entry(
+			"Fails if there are hosts but no inventory",
+			[]*models.Inventory{
+				nil,
+			},
+			api.ValidationResult{
+				Status:       api.Failure,
+				ValidationId: operator.GetHostValidationID(),
+				Reasons: []string{
+					"The NVIDIA GPU operator requires at least one supported NVIDIA GPU, but " +
+						"there is none in the discovered hosts.",
+				},
+			},
+		),
+		Entry(
+			"Fails if there are hosts but no GPU",
+			[]*models.Inventory{
+				{},
+			},
+			api.ValidationResult{
+				Status:       api.Failure,
+				ValidationId: operator.GetHostValidationID(),
+				Reasons: []string{
+					"The NVIDIA GPU operator requires at least one supported NVIDIA GPU, but " +
+						"there is none in the discovered hosts.",
+				},
+			},
+		),
+		Entry(
+			"Fails if there are hosts and unsupported GPUs",
+			[]*models.Inventory{
+				{
+					Gpus: []*models.Gpu{{
+						VendorID: "1af4",
+					}},
+				},
+			},
+			api.ValidationResult{
+				Status:       api.Failure,
+				ValidationId: operator.GetHostValidationID(),
+				Reasons: []string{
+					"The NVIDIA GPU operator requires at least one supported NVIDIA GPU, but " +
+						"there is none in the discovered hosts.",
+				},
+			},
+		),
+		Entry(
+			"Succeeds if there are hosts and supported GPUs",
+			[]*models.Inventory{
+				{
+					Gpus: []*models.Gpu{{
+						VendorID: nvidiaVendorID,
+					}},
+				},
+			},
+			api.ValidationResult{
+				Status:       api.Success,
+				ValidationId: operator.GetHostValidationID(),
+				Reasons:      nil,
+			},
+		),
+		Entry(
+			"Succeeds if there are hosts and a mix of supported and unsupported GPUs",
+			[]*models.Inventory{
+				{
+					Gpus: []*models.Gpu{
+						{
+							VendorID: "1af4",
+						},
+						{
+							VendorID: nvidiaVendorID,
+						},
+					},
+				},
+			},
+			api.ValidationResult{
+				Status:       api.Success,
+				ValidationId: operator.GetHostValidationID(),
+				Reasons:      nil,
+			},
+		),
+		Entry(
+			"Succeeds if there are two hosts and only one of them has a supported GPU",
+			[]*models.Inventory{
+				{},
+				{
+					Gpus: []*models.Gpu{
+						{
+							VendorID: nvidiaVendorID,
+						},
+					},
+				},
+			},
+			api.ValidationResult{
+				Status:       api.Success,
+				ValidationId: operator.GetHostValidationID(),
+				Reasons:      nil,
+			},
+		),
+	)
 })

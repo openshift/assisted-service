@@ -1,8 +1,11 @@
+{{ if .Cluster }}
+{{ range .Cluster.MonitoredOperators }}
+{{ if eq .Name "nvidia-gpu" }}
 apiVersion: dashboard.opendatahub.io/v1
 kind: AcceleratorProfile
 metadata:
   namespace: redhat-ods-applications
-  name: migrated-gpu
+  name: nvidia-gpu
 spec:
   displayName: NVIDIA GPU
   enabled: true
@@ -11,3 +14,6 @@ spec:
   - key: nvidia.com/gpu
     operator: Exists
     effect: NoSchedule
+{{ end }}
+{{ end }}
+{{ end }}
