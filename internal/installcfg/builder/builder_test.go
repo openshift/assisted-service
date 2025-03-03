@@ -803,6 +803,35 @@ location = "%s"
 			return mirrors, imageDigestMirrors
 		}
 
+		It("service MirrorRegistriesConfig and cluster MirrorRegistryConfiguration are both set - only MirrorRegistryConfiguration applied", func() {
+			var result installcfg.InstallerConfigBaremetal
+			cluster.OpenshiftVersion = "4.16.0-0.0"
+
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("service-ca-data"), nil).Times(1)
+
+			// Set cluster-level MirrorRegistryConfiguration
+			mirrors, imageDigestMirrors := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			cluster.SetMirrorRegistryConfiguration(mirrors)
+
+			// Generate install config
+			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = json.Unmarshal(data, &result)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Ensure only one mirror registry source is applied
+			Expect(len(result.ImageDigestSources)).To(Equal(len(imageDigestMirrors)))
+			Expect(len(result.ImageDigestSources)).To(Equal(1))
+			Expect(result.ImageDigestSources[0].Source).To(Equal(imageDigestMirrors[0].Source))
+			Expect(len(result.ImageDigestSources[0].Mirrors)).To(Equal(len(imageDigestMirrors[0].Mirrors)))
+			Expect(result.ImageDigestSources[0].Mirrors[0]).To(Equal(string(imageDigestMirrors[0].Mirrors[0])))
+
+			// Validate trust bundle concatenation
+			Expect(result.AdditionalTrustBundle).To(Equal(fmt.Sprintf("%s\n%s", "service-ca-data", mirrorRegistryCertificate)))
+		})
+
 		It("success - cluster holds mirror registry configurations", func() {
 			var result installcfg.InstallerConfigBaremetal
 			cluster.OpenshiftVersion = "4.16.0-0.0"
