@@ -773,6 +773,40 @@ location = "%s"
 			Expect(count).Should(Equal(2))
 		})
 
+		It("service MirrorRegistriesConfig and cluster MirrorRegistryConfiguration are both set - only MirrorRegistryConfiguration applied", func() {
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+
+			// These mocks are not needed here; they are only included to demonstrate that having service mirror configurations
+			// does not affect the mirror registry configuration in the ignition file.
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).AnyTimes()
+			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("some ca config"), nil).AnyTimes()
+			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorRegistries().Return([]byte("some mirror registries config"), nil).AnyTimes()
+
+			mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			Expect(infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConf)).NotTo(HaveOccurred())
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "registries.conf") {
+					count += 1
+
+					parts := strings.Split(*f.FileEmbedded1.Contents.Source, ",")
+					Expect(len(parts)).Should(Equal(2))
+					encodedData := parts[1]
+					decodedData, err := base64.StdEncoding.DecodeString(encodedData)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(decodedData)).To(Equal(getSecureRegistryToml()))
+				} else if strings.HasSuffix(f.Path, "domain.crt") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(2))
+		})
+
 		It("produce ignition with insecure cluster mirror registries config", func() {
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 
