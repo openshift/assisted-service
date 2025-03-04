@@ -6397,6 +6397,15 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "high_availability_mode": {
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
+        },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
           "type": "array",
@@ -6759,6 +6768,15 @@ func init() {
         "disk_encryption": {
           "description": "Installation disks encryption mode and host roles to be applied.",
           "$ref": "#/definitions/disk-encryption"
+        },
+        "high_availability_mode": {
+          "description": "(DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
         },
         "http_proxy": {
           "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
@@ -17460,6 +17478,15 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "high_availability_mode": {
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
+        },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
           "type": "array",
@@ -17822,6 +17849,15 @@ func init() {
         "disk_encryption": {
           "description": "Installation disks encryption mode and host roles to be applied.",
           "$ref": "#/definitions/disk-encryption"
+        },
+        "high_availability_mode": {
+          "description": "(DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
         },
         "http_proxy": {
           "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",

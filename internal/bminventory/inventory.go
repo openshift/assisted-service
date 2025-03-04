@@ -335,7 +335,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 		params.NewClusterParams.SchedulableMasters = swag.Bool(false)
 	}
 
-	params.NewClusterParams.ControlPlaneCount = getDefaultMasterCountParams(params.NewClusterParams.ControlPlaneCount)
+	params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount = common.GetDefaultControlPlaneCount(params.NewClusterParams.ControlPlaneCount, params.NewClusterParams.HighAvailabilityMode)
 
 	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%s", getPlatformType(params.NewClusterParams.Platform), common.BoolPtrForLog(params.NewClusterParams.UserManagedNetworking))
 	platform, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.ControlPlaneCount, params.NewClusterParams.CPUArchitecture)
@@ -346,7 +346,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 
 	params.NewClusterParams.Platform = platform
 	params.NewClusterParams.UserManagedNetworking = userManagedNetworking
-	log.Infof("Cluster control-plane-count is set to %d, setting platform type to %s and user-managed-networking to %s", swag.Int64Value(params.NewClusterParams.ControlPlaneCount), getPlatformType(platform), common.BoolPtrForLog(userManagedNetworking))
+	log.Infof("Cluster control_plane_count is set to %d, setting platform type to %s and user-managed-networking to %s", swag.Int64Value(params.NewClusterParams.ControlPlaneCount), getPlatformType(platform), common.BoolPtrForLog(userManagedNetworking))
 
 	if params.NewClusterParams.AdditionalNtpSource == nil {
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
@@ -378,8 +378,7 @@ func getDefaultNetworkType(params installer.V2RegisterClusterParams) (*string, e
 		return nil, err
 	}
 
-	isSingleNodeCluster := *params.NewClusterParams.ControlPlaneCount == 1
-
+	isSingleNodeCluster := params.NewClusterParams.ControlPlaneCount == swag.Int64(1)
 	if isOpenShiftVersionRecentEnough || isSingleNodeCluster {
 		return swag.String(models.ClusterCreateParamsNetworkTypeOVNKubernetes), nil
 	} else {
@@ -1893,7 +1892,7 @@ func (b *bareMetalInventory) refreshInventory(ctx context.Context, cluster *comm
 }
 
 func (b *bareMetalInventory) v2NoneHaModeClusterUpdateValidations(cluster *common.Cluster, params installer.V2UpdateClusterParams) error {
-	if swag.Int64Value(&cluster.ControlPlaneCount) != 3 {
+	if cluster.ControlPlaneCount != 1 {
 		return nil
 	}
 
@@ -1965,10 +1964,62 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 
 	// We don't want to update ControlPlaneCount in day2 clusters as we don't know the previous hosts
 	if params.ClusterUpdateParams.ControlPlaneCount != nil && swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
-
+		if err := validateHighAvailabilityWithControlPlaneCount(
+			swag.StringValue(cluster.HighAvailabilityMode),
+			swag.Int64Value(params.ClusterUpdateParams.ControlPlaneCount),
+			cluster.OpenshiftVersion,
+		); err != nil {
+			return installer.V2UpdateClusterParams{}, err
+		}
 	}
 
 	return *params, nil
+}
+
+func validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, controlPlaneCount int64, openshiftVersion string) error {
+	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeNone &&
+		controlPlaneCount != 1 {
+		return common.NewApiError(
+			http.StatusBadRequest,
+			errors.New("single-node clusters must have a single control plane node"),
+		)
+	}
+
+	nonStandardHAOCPControlPlaneNotSuported, err := common.BaseVersionLessThan(common.MinimumVersionForNonStandardHAOCPControlPlane, openshiftVersion)
+	if err != nil {
+		return err
+	}
+
+	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull &&
+		controlPlaneCount != common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder &&
+		nonStandardHAOCPControlPlaneNotSuported {
+		return common.NewApiError(
+			http.StatusBadRequest,
+			fmt.Errorf(
+				"there should be exactly %d dedicated control plane nodes for high availability mode %s in openshift version older than %s",
+				common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder,
+				highAvailabilityMode,
+				common.MinimumVersionForNonStandardHAOCPControlPlane,
+			),
+		)
+	}
+
+	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull &&
+		(controlPlaneCount < common.MinMasterHostsNeededForInstallationInHaMode ||
+			controlPlaneCount > common.MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer) {
+		return common.NewApiError(
+			http.StatusBadRequest,
+			fmt.Errorf(
+				"there should be %d-%d dedicated control plane nodes for high availability mode %s in openshift version %s or newer",
+				common.MinMasterHostsNeededForInstallationInHaMode,
+				common.MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer,
+				highAvailabilityMode,
+				common.MinimumVersionForNonStandardHAOCPControlPlane,
+			),
+		)
+	}
+
+	return nil
 }
 
 func (b *bareMetalInventory) V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder {
@@ -2895,8 +2946,8 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	b.setUsage(swag.BoolValue(cluster.VipDhcpAllocation), usage.VipDhcpAllocationUsage, nil, usages)
 	b.setUsage(cluster.AdditionalNtpSource != "", usage.AdditionalNtpSourceUsage, &map[string]interface{}{
 		"source_count": len(strings.Split(cluster.AdditionalNtpSource, ","))}, usages)
-	b.setUsage(cluster.ControlPlaneCount == 3,
-		usage.ControlPlaneCountUsage, nil, usages)
+	b.setUsage(cluster.ControlPlaneCount == 1,
+		usage.SingleNodeOpenShiftUsage, nil, usages)
 	b.setProxyUsage(&cluster.HTTPProxy, &cluster.HTTPProxy, &cluster.NoProxy, usages)
 	olmOperators := funk.Filter(cluster.MonitoredOperators, func(op *models.MonitoredOperator) bool {
 		return op != nil && op.OperatorType == models.OperatorTypeOlm
@@ -2954,7 +3005,7 @@ func (b *bareMetalInventory) setProxyUsage(httpProxy *string, httpsProxy *string
 }
 
 func (b *bareMetalInventory) setUserManagedNetworkingAndMultiNodeUsage(userManagedNetworking bool, controlPlaneCount int64, usages map[string]models.Usage) {
-	b.setUsage(userManagedNetworking && controlPlaneCount == 3,
+	b.setUsage(userManagedNetworking && controlPlaneCount >= int64(common.MinMasterHostsNeededForInstallationInHaMode),
 		usage.UserManagedNetworkingWithMultiNode, nil, usages)
 }
 
@@ -6726,14 +6777,6 @@ func (b *bareMetalInventory) HandleVerifyVipsResponse(ctx context.Context, host 
 		return errors.Errorf("host %s infra-env %s: empty cluster id", host.ID.String(), host.InfraEnvID.String())
 	}
 	return b.clusterApi.HandleVerifyVipsResponse(ctx, *host.ClusterID, stepReply)
-}
-
-func getDefaultMasterCountParams(controlPlaneCount *int64) *int64 {
-	if controlPlaneCount == nil {
-		return swag.Int64(common.AllowedNumberOfMasterHostsInNoneHaMode)
-	}
-
-	return controlPlaneCount
 }
 
 // extractMirroredRegistriesFromConfig takes a MirrorRegistryConfiguration and returns a list of source
