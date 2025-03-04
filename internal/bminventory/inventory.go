@@ -1893,7 +1893,7 @@ func (b *bareMetalInventory) refreshInventory(ctx context.Context, cluster *comm
 }
 
 func (b *bareMetalInventory) v2NoneHaModeClusterUpdateValidations(cluster *common.Cluster, params installer.V2UpdateClusterParams) error {
-	if swag.Int64Value(&cluster.ControlPlaneCount) != 3 {
+	if swag.Int64Value(&cluster.ControlPlaneCount) != 1 {
 		return nil
 	}
 
@@ -1964,9 +1964,9 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 	}
 
 	// We don't want to update ControlPlaneCount in day2 clusters as we don't know the previous hosts
-	if params.ClusterUpdateParams.ControlPlaneCount != nil && swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
+	/*if params.ClusterUpdateParams.ControlPlaneCount != nil && swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 
-	}
+	}*/
 
 	return *params, nil
 }
@@ -2895,7 +2895,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	b.setUsage(swag.BoolValue(cluster.VipDhcpAllocation), usage.VipDhcpAllocationUsage, nil, usages)
 	b.setUsage(cluster.AdditionalNtpSource != "", usage.AdditionalNtpSourceUsage, &map[string]interface{}{
 		"source_count": len(strings.Split(cluster.AdditionalNtpSource, ","))}, usages)
-	b.setUsage(cluster.ControlPlaneCount == 3,
+	b.setUsage(cluster.ControlPlaneCount == 1,
 		usage.ControlPlaneCountUsage, nil, usages)
 	b.setProxyUsage(&cluster.HTTPProxy, &cluster.HTTPProxy, &cluster.NoProxy, usages)
 	olmOperators := funk.Filter(cluster.MonitoredOperators, func(op *models.MonitoredOperator) bool {

@@ -113,7 +113,7 @@ func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetwork
 	if userManagedNetworking == nil &&
 		cluster != nil &&
 		platform != nil &&
-		cluster.ControlPlaneCount == int64(3) && // no need to check SNO, it will be validated later in the update/creation
+		cluster.ControlPlaneCount >= int64(3) && // no need to check SNO, it will be validated later in the update/creation
 		(!(isClusterPlatformBM(cluster) && isPlatformNone(platform)) &&
 			!(isClusterPlatformNone(cluster) && isPlatformBM(platform))) {
 
@@ -270,7 +270,7 @@ func GetClusterPlatformByControlPlaneCount(platform *models.Platform, userManage
 				return platform, swag.Bool(true), nil
 			}
 		}
-	} else { // *controlPlaneCount >= 3
+	} else { // *controlPlaneCount == 1
 		if isPlatformBM(platform) {
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform on single node OpenShift", *platform.Type))
 		}

@@ -603,7 +603,7 @@ var _ = Describe("RegisterHost", func() {
 		} {
 			test := test
 
-			It(fmt.Sprintf("cluster availability mode %s expected default host role %s",
+			It(fmt.Sprintf("cluster availability mode %d expected default host role %s",
 				test.ctrlPlaneCount, test.expectedRole), func() {
 				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.ctrlPlaneCount)
 				infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
@@ -7803,7 +7803,7 @@ var _ = Describe("V2UpdateCluster", func() {
 
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(int64(actual.ControlPlaneCount)).To(Equal(1))
+					Expect(actual.ControlPlaneCount).To(Equal(1))
 				})
 
 				It("s390x with SNO - incompatible on 4.12", func() {
@@ -16170,7 +16170,7 @@ var _ = Describe("RegisterCluster", func() {
 					var dbCluster common.Cluster
 					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
-					Expect(*&dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(3)))
+					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(3)))
 				})
 
 				It("control_plane_count is set to 1", func() {
@@ -16190,7 +16190,7 @@ var _ = Describe("RegisterCluster", func() {
 					var dbCluster common.Cluster
 					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
-					Expect(*&dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(1)))
+					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(1)))
 				})
 
 				It("not set", func() {
@@ -16209,7 +16209,7 @@ var _ = Describe("RegisterCluster", func() {
 					var dbCluster common.Cluster
 					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
-					Expect(*&dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(3)))
+					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(3)))
 					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(3))
 				})
 			})
@@ -16305,7 +16305,7 @@ var _ = Describe("RegisterCluster", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount: swag.Int64(1),
+						ControlPlaneCount: swag.Int64(3),
 					},
 				})
 

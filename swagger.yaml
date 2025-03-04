@@ -4877,6 +4877,13 @@ definitions:
         minLength: 1
         maxLength: 54
         description: Name of the OpenShift cluster.
+      high_availability_mode:
+        type: string
+        enum: ['Full', 'None']
+        default: 'Full'
+        description: |
+          (DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+          over multiple master nodes whereas 'None' installs a full cluster over one node.
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
@@ -5249,6 +5256,13 @@ definitions:
         description: |
           Indicates the type of this object. Will be 'Cluster' if this is a complete object,
           'AddHostsCluster' for cluster that add hosts to existing OCP cluster,
+      high_availability_mode:
+        type: string
+        enum: ['Full', 'None']
+        default: 'Full'
+        description: |
+          Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+          over multiple master nodes whereas 'None' installs a full cluster over one node.
       id:
         type: string
         format: uuid
