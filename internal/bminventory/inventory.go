@@ -1440,6 +1440,36 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	return cluster, nil
 }
 
+func (b *bareMetalInventory) validateReleaseImageForDay2HostInstall(ctx context.Context, host *models.Host, cluster *common.Cluster) error {
+	inventory, err := common.UnmarshalInventory(host.Inventory)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal host inventory: %w", err)
+	}
+
+	// only validate if the host will require the release image to install coreos to the existing root filesystem
+	if inventory == nil || inventory.Boot == nil || inventory.Boot.DeviceType != models.BootDeviceTypePersistent {
+		return nil
+	}
+
+	cpuArch := cluster.CPUArchitecture
+	// cluster cpu arch is not set for imported clusters get the infraenv arch in this case
+	if cpuArch == "" {
+		var infraEnv *common.InfraEnv
+		infraEnv, err = common.GetInfraEnvFromDB(b.db, host.InfraEnvID)
+		if err != nil {
+			return fmt.Errorf("failed to get infraenv from database: %w", err)
+		}
+		cpuArch = infraEnv.CPUArchitecture
+	}
+
+	_, err = b.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cpuArch, cluster.PullSecret)
+	if err != nil {
+		return fmt.Errorf("no release image found for host: %w", err)
+	}
+
+	return nil
+}
+
 func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, infraEnvId strfmt.UUID, hostId strfmt.UUID) error {
 
 	log := logutil.FromContext(ctx, b.log)
@@ -1471,6 +1501,11 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 		if cluster, err = common.GetClusterFromDBForUpdate(tx, clusterId, common.UseEagerLoading); err != nil {
 			return err
 		}
+
+		if err = b.validateReleaseImageForDay2HostInstall(ctx, &h.Host, cluster); err != nil {
+			return err
+		}
+
 		// move host to installing
 		err = b.createAndUploadDay2NodeIgnition(ctx, cluster, &h.Host, h.IgnitionEndpointToken, h.IgnitionEndpointHTTPHeaders)
 		if err != nil {
@@ -1544,6 +1579,11 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 	if cluster, err = common.GetClusterFromDB(b.db, *h.ClusterID, common.SkipEagerLoading); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+
+	if err = b.validateReleaseImageForDay2HostInstall(ctx, h, cluster); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
 	err = b.createAndUploadDay2NodeIgnition(ctx, cluster, h, host.IgnitionEndpointToken, host.IgnitionEndpointHTTPHeaders)
 	if err != nil {
 		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)

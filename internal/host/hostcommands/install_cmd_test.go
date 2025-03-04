@@ -504,6 +504,23 @@ var _ = Describe("installcmd arguments", func() {
 			request := generateRequestForStep(stepReply[0])
 			Expect(request.CoreosImage).To(Equal(testCoreOSImage))
 		})
+
+		It("provides the coreos image when the boot device is persistent for day2 cluters", func() {
+			host.Inventory = `{"boot": {"device_type": "persistent"}}`
+			Expect(db.Model(cluster).UpdateColumn("kind", models.ClusterKindAddHostsCluster).Error).ToNot(HaveOccurred())
+			testCoreOSImage := "example.com/coreos/image:latest"
+			mockRelease = oc.NewMockRelease(ctrl)
+			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
+			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
+			mockRelease.EXPECT().GetCoreOSImage(gomock.Any(), *common.TestDefaultConfig.ReleaseImage.URL, gomock.Any(), gomock.Any()).Return(testCoreOSImage, nil).AnyTimes()
+
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions, true, true)
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			request := generateRequestForStep(stepReply[0])
+			Expect(request.CoreosImage).To(Equal(testCoreOSImage))
+		})
 	})
 
 	Context("installer args", func() {
