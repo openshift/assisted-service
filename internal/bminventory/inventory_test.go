@@ -603,7 +603,7 @@ var _ = Describe("RegisterHost", func() {
 		} {
 			test := test
 
-			It(fmt.Sprintf("cluster availability mode %s expected default host role %s",
+			It(fmt.Sprintf("cluster availability mode %d expected default host role %s",
 				test.ctrlPlaneCount, test.expectedRole), func() {
 				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.ctrlPlaneCount)
 				infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
@@ -1968,7 +1968,7 @@ var _ = Describe("cluster", func() {
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 			actual := reply.(*installer.V2RegisterClusterCreated)
-			Expect(actual.Payload.ControlPlaneCount).To(Equal(swag.Int64(noneHaMode)))
+			Expect(actual.Payload.ControlPlaneCount).To(Equal(noneHaMode))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
@@ -2010,7 +2010,7 @@ var _ = Describe("cluster", func() {
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 			actual := reply.(*installer.V2RegisterClusterCreated)
-			Expect(actual.Payload.ControlPlaneCount).To(Equal(swag.Int64(noneHaMode)))
+			Expect(actual.Payload.ControlPlaneCount).To(Equal(noneHaMode))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
@@ -2028,7 +2028,7 @@ var _ = Describe("cluster", func() {
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 			actual := reply.(*installer.V2RegisterClusterCreated)
-			Expect(actual.Payload.ControlPlaneCount).To(Equal(swag.Int64(noneHaMode)))
+			Expect(actual.Payload.ControlPlaneCount).To(Equal(noneHaMode))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
@@ -2077,7 +2077,7 @@ var _ = Describe("cluster", func() {
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
-		Expect(actual.Payload.ControlPlaneCount).To(Equal(swag.Int64(noneHaMode)))
+		Expect(actual.Payload.ControlPlaneCount).To(Equal(noneHaMode))
 		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 		Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 	})
@@ -7803,7 +7803,7 @@ var _ = Describe("V2UpdateCluster", func() {
 
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(int64(actual.ControlPlaneCount)).To(Equal(1))
+					Expect(actual.ControlPlaneCount).To(Equal(int64(1)))
 				})
 
 				It("s390x with SNO - incompatible on 4.12", func() {
@@ -7833,7 +7833,7 @@ var _ = Describe("V2UpdateCluster", func() {
 
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.Int64(actual.ControlPlaneCount)).To(Equal(1))
+					Expect(actual.ControlPlaneCount).To(Equal(int64(1)))
 				})
 
 				It("ppc64le with SNO - incompatible on 4.12", func() {
@@ -8021,9 +8021,10 @@ var _ = Describe("V2UpdateCluster", func() {
 				It("update to invalid value, non-standard HA OCP Control Plane not supported", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                &clusterID,
-							OpenshiftVersion:  "4.16",
-							ControlPlaneCount: 3,
+							ID:                   &clusterID,
+							OpenshiftVersion:     "4.16",
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							ControlPlaneCount:    3,
 						},
 					}
 
@@ -8033,7 +8034,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							ControlPlaneCount: swag.Int64(6),
+							ControlPlaneCount: swag.Int64(4),
 						},
 					})
 
@@ -8043,9 +8044,10 @@ var _ = Describe("V2UpdateCluster", func() {
 				It("update to invalid value, non-standard HA OCP Control Plane supported", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                &clusterID,
-							OpenshiftVersion:  "4.18",
-							ControlPlaneCount: 3,
+							ID:                   &clusterID,
+							OpenshiftVersion:     "4.18",
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							ControlPlaneCount:    3,
 						},
 					}
 
@@ -8065,9 +8067,10 @@ var _ = Describe("V2UpdateCluster", func() {
 				It("update amount to != 1 when SNO", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                &clusterID,
-							OpenshiftVersion:  "4.16",
-							ControlPlaneCount: 1,
+							ID:                   &clusterID,
+							OpenshiftVersion:     "4.16",
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+							ControlPlaneCount:    1,
 						},
 					}
 
@@ -8087,9 +8090,10 @@ var _ = Describe("V2UpdateCluster", func() {
 				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version < %s", common.MinimumVersionForNonStandardHAOCPControlPlane), func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                &clusterID,
-							OpenshiftVersion:  "4.16",
-							ControlPlaneCount: 3,
+							ID:                   &clusterID,
+							OpenshiftVersion:     "4.16",
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							ControlPlaneCount:    3,
 						},
 					}
 
@@ -8113,9 +8117,10 @@ var _ = Describe("V2UpdateCluster", func() {
 				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version >= %s", common.MinimumVersionForNonStandardHAOCPControlPlane), func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
-							ID:                &clusterID,
-							OpenshiftVersion:  "4.18",
-							ControlPlaneCount: 4,
+							ID:                   &clusterID,
+							OpenshiftVersion:     "4.18",
+							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+							ControlPlaneCount:    4,
 						},
 					}
 
@@ -14722,7 +14727,7 @@ var _ = Describe("RegisterCluster", func() {
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 			actual := reply.(*installer.V2RegisterClusterCreated).Payload
-			Expect(swag.Int64(actual.ControlPlaneCount)).To(Equal(int64(1)))
+			Expect(actual.ControlPlaneCount).To(Equal(int64(1)))
 			Expect(actual.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureS390x))
 		})
 
@@ -16170,7 +16175,7 @@ var _ = Describe("RegisterCluster", func() {
 					var dbCluster common.Cluster
 					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
-					Expect(*&dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(3)))
+					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(3)))
 				})
 
 				It("control_plane_count is set to 1", func() {
@@ -16190,7 +16195,7 @@ var _ = Describe("RegisterCluster", func() {
 					var dbCluster common.Cluster
 					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
-					Expect(*&dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(1)))
+					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(1)))
 				})
 
 				It("not set", func() {
@@ -16209,7 +16214,7 @@ var _ = Describe("RegisterCluster", func() {
 					var dbCluster common.Cluster
 					db.Where("id = ?", clusterID.String()).Take(&dbCluster)
 
-					Expect(*&dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(3)))
+					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(int64(3)))
 					Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(3))
 				})
 			})
@@ -16259,8 +16264,9 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 6 control planes, multi-node, non-standard HA OCP Control Plane not supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount: swag.Int64(6),
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    swag.Int64(6),
 					},
 				})
 
@@ -16274,8 +16280,9 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 6 control planes, multi-node, non-standard HA OCP Control Plane supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:  swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount: swag.Int64(6),
+						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    swag.Int64(6),
 					},
 				})
 
@@ -16289,8 +16296,9 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 3 control planes, single-node", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount: swag.Int64(1),
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+						ControlPlaneCount:    swag.Int64(3),
 					},
 				})
 
@@ -16304,8 +16312,9 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 1 control plane, mutli-node", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount: swag.Int64(1),
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    swag.Int64(1),
 					},
 				})
 
@@ -16319,8 +16328,9 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 4 control planes, multi-node, non-standard HA OCP Control Plane not supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:  swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
-						ControlPlaneCount: swag.Int64(4),
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    swag.Int64(4),
 					},
 				})
 

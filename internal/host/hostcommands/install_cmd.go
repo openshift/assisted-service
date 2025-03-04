@@ -120,7 +120,6 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 	///TODO: check if cluster.ControlPlaneCount is always set
 	//haMode := int64(3)
 	//if cluster.ControlPlaneCount != nil {
-	haMode := cluster.ControlPlaneCount
 	//}
 
 	request := models.InstallCmdRequest{
@@ -128,7 +127,7 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		ClusterID:         host.ClusterID,
 		HostID:            host.ID,
 		InfraEnvID:        &host.InfraEnvID,
-		ControlPlaneCount: haMode,
+		ControlPlaneCount: cluster.ControlPlaneCount,
 		ControllerImage:   swag.String(i.instructionConfig.ControllerImage),
 		CheckCvo:          swag.Bool(i.instructionConfig.CheckClusterVersion),
 		InstallerImage:    swag.String(i.instructionConfig.InstallerImage),

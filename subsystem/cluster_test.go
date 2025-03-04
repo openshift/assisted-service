@@ -1271,7 +1271,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
 			utils_test.VerifyUsageSet(getReply.Payload.FeatureUsage,
-				models.Usage{Name: usage.ControlPlaneCountUsage},
+				models.Usage{Name: usage.SingleNodeOpenShiftUsage},
 				models.Usage{Name: usage.HyperthreadingUsage, Data: map[string]interface{}{"hyperthreading_enabled": models.ClusterHyperthreadingAll}})
 			utils_test.VerifyUsageNotSet(getReply.Payload.FeatureUsage,
 				strings.ToUpper("console"),
@@ -1391,7 +1391,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
 			utils_test.VerifyUsageSet(getReply.Payload.FeatureUsage,
-				models.Usage{Name: usage.ControlPlaneCountUsage},
+				models.Usage{Name: usage.SingleNodeOpenShiftUsage},
 				models.Usage{Name: usage.DualStackUsage})
 			utils_test.VerifyUsageNotSet(getReply.Payload.FeatureUsage,
 				strings.ToUpper("console"),
@@ -1431,7 +1431,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
 			utils_test.VerifyUsageSet(getReply.Payload.FeatureUsage,
-				models.Usage{Name: usage.ControlPlaneCountUsage},
+				models.Usage{Name: usage.SingleNodeOpenShiftUsage},
 				models.Usage{Name: usage.DualStackUsage},
 				models.Usage{Name: usage.DualStackVipsUsage})
 			utils_test.VerifyUsageNotSet(getReply.Payload.FeatureUsage,
