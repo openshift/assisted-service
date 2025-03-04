@@ -2,10 +2,10 @@ package metrics
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/alecthomas/units"
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"

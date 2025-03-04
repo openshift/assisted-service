@@ -1,7 +1,6 @@
 package oc
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
+	json "github.com/bytedance/sonic"
 	"github.com/hashicorp/go-version"
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
@@ -585,7 +585,7 @@ func getIdmsContents(mirrorConfig []mirrorregistries.RegistriesConf) ([]byte, er
 	}
 
 	// Convert to json first so json tags are handled
-	jsonData, err := json.Marshal(&idms)
+	jsonData, err := json.ConfigStd.Marshal(&idms)
 	if err != nil {
 		return nil, err
 	}
@@ -645,7 +645,7 @@ func getIcspContents(mirrorConfig []mirrorregistries.RegistriesConf) ([]byte, er
 	}
 
 	// Convert to json first so json tags are handled
-	jsonData, err := json.Marshal(&icsp)
+	jsonData, err := json.ConfigStd.Marshal(&icsp)
 	if err != nil {
 		return nil, err
 	}

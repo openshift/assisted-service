@@ -3,12 +3,12 @@ package uploader
 import (
 	"archive/tar"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	eventModels "github.com/openshift/assisted-service/pkg/uploader/models"
 )
 

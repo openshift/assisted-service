@@ -1,9 +1,9 @@
 package json
 
 import (
-	"encoding/json"
 	"io"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/runtime"
 )
 
@@ -11,7 +11,7 @@ import (
 // documents while rejecting requests that contain unknown fields.
 func UnknownFieldsRejectingConsumer() runtime.Consumer {
 	return runtime.ConsumerFunc(func(reader io.Reader, data interface{}) error {
-		dec := json.NewDecoder(reader)
+		dec := json.ConfigStd.NewDecoder(reader)
 		dec.UseNumber()
 		dec.DisallowUnknownFields()
 		return dec.Decode(data)

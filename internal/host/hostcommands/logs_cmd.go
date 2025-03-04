@@ -2,10 +2,10 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
 	"net"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
@@ -48,7 +48,7 @@ func (i *logsCmd) prepareParam(ctx context.Context, host *models.Host) (string, 
 		MasterIps:       mastersIPs,
 	}
 
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		i.log.WithError(err).Warn("Json marshal")
 		return "", err

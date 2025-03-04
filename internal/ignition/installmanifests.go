@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -15,6 +14,7 @@ import (
 	"sort"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -880,7 +880,7 @@ func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *
 		HardwareDetails: &hw,
 		PoweredOn:       true,
 	}
-	statusJSON, err := json.Marshal(status)
+	statusJSON, err := json.ConfigStd.Marshal(status)
 	if err != nil {
 		return err
 	}
@@ -1094,7 +1094,7 @@ func (g *installerGenerator) updatePointerIgnitionMCP(poolName string, ignitionS
 			r.Source = swag.String(strings.Replace(swag.StringValue(r.Source), "config/worker", "config/"+poolName, 1))
 		}
 	}
-	b, err := json.Marshal(config)
+	b, err := json.ConfigStd.Marshal(config)
 	if err != nil {
 		return "", err
 	}
@@ -1150,7 +1150,7 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 		}
 	}
 
-	configBytes, err := json.Marshal(config)
+	configBytes, err := json.ConfigStd.Marshal(config)
 	if err != nil {
 		return err
 	}
