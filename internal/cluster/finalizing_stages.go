@@ -26,7 +26,7 @@ var finalizingStagesTimeoutsDefaultsHardTimeous = map[models.FinalizingStage]tim
 	models.FinalizingStageWaitingForOlmOperatorsCsv:               generalWaitTimeout,
 	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization: generalWaitTimeout,
 	models.FinalizingStageWaitingForOLMOperatorSetupJobs:          shortWaitTimeout,
-	models.FinalizingStageDone:                                    shortWaitTimeout,
+	models.FinalizingStageDone:                                    generalWaitTimeout,
 }
 
 var finalizingStagesTimeoutsDefaultsSoftTimeouts = map[models.FinalizingStage]time.Duration{
@@ -36,7 +36,7 @@ var finalizingStagesTimeoutsDefaultsSoftTimeouts = map[models.FinalizingStage]ti
 	models.FinalizingStageWaitingForOlmOperatorsCsv:               generalWaitTimeout,
 	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization: generalWaitTimeout,
 	models.FinalizingStageWaitingForOLMOperatorSetupJobs:          shortWaitTimeout,
-	models.FinalizingStageDone:                                    shortWaitTimeout,
+	models.FinalizingStageDone:                                    generalWaitTimeout,
 }
 
 var finalizingStages = []models.FinalizingStage{
