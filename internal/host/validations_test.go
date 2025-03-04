@@ -2699,7 +2699,25 @@ var _ = Describe("Validations test", func() {
 			cluster *common.Cluster
 			host    *models.Host
 		)
-		DescribeTable("MTU validations across CMN and UMN", func(mtuReports []*models.MtuReport, validationStatus ValidationStatus, isUMN, isDay2 bool) {
+
+		mNet := []*models.MachineNetwork{
+			{
+				Cidr:      "1.2.3.1/24",
+				ClusterID: clusterID,
+			},
+		}
+
+		multipleMNets := []*models.MachineNetwork{
+			{
+				Cidr:      "1.2.3.1/24",
+				ClusterID: clusterID,
+			},
+			{
+				Cidr:      "1.2.4.1/24",
+				ClusterID: clusterID,
+			},
+		}
+		DescribeTable("MTU validations across CMN and UMN", func(mtuReports []*models.MtuReport, mNets []*models.MachineNetwork, validationStatus ValidationStatus, isUMN, isDay2 bool, inventory string) {
 			mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 
 			if isDay2 {
@@ -2714,13 +2732,7 @@ var _ = Describe("Validations test", func() {
 			}
 
 			cluster.UserManagedNetworking = &isUMN
-			mNet := []*models.MachineNetwork{
-				{
-					Cidr:      "1.2.3.1/24",
-					ClusterID: clusterID,
-				},
-			}
-			cluster.MachineNetworks = mNet
+			cluster.MachineNetworks = mNets
 
 			connectivityReport := &models.ConnectivityReport{}
 			connectivityReport.RemoteHosts = append(connectivityReport.RemoteHosts, &models.ConnectivityRemoteHost{
@@ -2730,34 +2742,69 @@ var _ = Describe("Validations test", func() {
 			report, err := hostutil.MarshalConnectivityReport(connectivityReport)
 			Expect(err).To(BeNil())
 			host.Connectivity = report
-			host.Inventory = hostutil.GenerateMasterInventory()
+			if inventory != "" {
+				host.Inventory = inventory
+			}
 			Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
 			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
 
 			mockAndRefreshStatus(host)
 
 			refreshedHost := &hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
-			fmt.Println(host.ValidationsInfo)
 			status, _, ok := getValidationResult(refreshedHost.ValidationsInfo, IsMtuValid)
 			Expect(ok).To(BeTrue(), fmt.Sprintf("debuuging info: status %s, isOK: %t host: %#v cluster: %#v", status, ok, host, cluster))
-			Expect(status).To(Equal(validationStatus))
+			Expect(status).To(Equal(validationStatus), fmt.Sprintf("debuuging info: host: %#v cluster: %#v", host, cluster))
 		},
-			Entry("isMtuValidInMachineNetwork (CMN) - Happy flow - MTU reports in the machine network are successful", []*models.MtuReport{
-				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
-				{MtuSuccessful: false, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
-			}, ValidationSuccess, false, false),
-			Entry("isMtuValidInMachineNetwork (CMN) - Bad flow - MTU reports in the machine network are unsuccessful", []*models.MtuReport{
-				{MtuSuccessful: false, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
-			}, ValidationFailure, false, false),
-			Entry("isMtuValidAllInterfaces (UMN) - Happy flow - all Mtu reports successful", []*models.MtuReport{
+
+			Entry("isMtuValidInMachineNetwork (CMN) - Happy flow - all reports where both sourceIP and remoteIP are within the machine network are successful", []*models.MtuReport{
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},  // sourceIP and remoteIP are in machine net
+				{MtuSuccessful: false, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"}, // sourceIP in machine net, remoteIP not
+				{MtuSuccessful: false, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth1"}, // remoteIP in machine net, sourceIP not
+			}, mNet, ValidationSuccess, false, false, ""),
+			Entry("isMtuValidInMachineNetwork (CMN) - Bad flow - at least one report where both sourceIP and remoteIP are within the machine network is unsuccessful", []*models.MtuReport{
+				{MtuSuccessful: false, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"}, // sourceIP and remoteIP are in machine net
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},  // sourceIP in machine net, remoteIP not
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth1"},  // remoteIP in machine net, sourceIP not
+			}, mNet, ValidationFailure, false, false, ""),
+			Entry("isMtuValidInMachineNetwork (CMN) - Happy flow - all reports where both sourceIP and remoteIP are within any of the machine networks are successful", []*models.MtuReport{
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},  // sourceIP and remoteIP are in machine net
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},  // sourceIP and remoteIP are in machine net
+				{MtuSuccessful: false, RemoteIPAddress: "1.2.5.5", OutgoingNic: "eth0"}, // sourceIP in machine net, remoteIP not
+				{MtuSuccessful: false, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth1"}, // remoteIP in machine net, sourceIP not
+			}, multipleMNets, ValidationSuccess, false, false, ""),
+			Entry("isMtuValidInMachineNetwork (CMN) - Bad flow - at least one report where both sourceIP and remoteIP are within any of the machine networks is unsuccessful", []*models.MtuReport{
+				{MtuSuccessful: false, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"}, // sourceIP and remoteIP are in machine net
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},  // sourceIP and remoteIP are in machine net
+			}, multipleMNets, ValidationFailure, false, false, ""),
+			Entry("isMtuValidInMachineNetwork (CMN) - Happy flow - Dual stack", []*models.MtuReport{
+				{MtuSuccessful: true, RemoteIPAddress: "1001:db8::11", OutgoingNic: "eth0"}, // sourceIP and remoteIP are in machine net
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},      // sourceIP and remoteIP are in machine net
+			}, common.TestDualStackNetworking.MachineNetworks, ValidationSuccess, false, false, ""),
+			Entry("isMtuValidInMachineNetwork (CMN) - Bad flow - Dual stack", []*models.MtuReport{
+				{MtuSuccessful: false, RemoteIPAddress: "1001:db8::11", OutgoingNic: "eth0"}, // sourceIP and remoteIP are in machine net
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},       // sourceIP and remoteIP are in machine net
+			}, common.TestDualStackNetworking.MachineNetworks, ValidationFailure, false, false, ""),
+			Entry("isMtuValidInMachineNetwork (CMN) - Happy flow - Dual stack, source nic has IPv6 and IPv4, IPv4 in machine net, IPv6 isn't in machine net, remoteIP in machine network.", []*models.MtuReport{
+				{MtuSuccessful: false, RemoteIPAddress: "1001:db8::11", OutgoingNic: "eth1"}, // sourceIP and remoteIP are in machine net
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth1"},       // sourceIP and remoteIP are in machine net
+			}, common.TestDualStackNetworking.MachineNetworks, ValidationSuccess, false, false, common.GenerateHostInventoryInterfaceIPV4InMNetIPV6Doesnt(func(inventory *models.Inventory) {})),
+			Entry("isMtuValidAllInterfaces (UMN) - Happy flow - all reports successful", []*models.MtuReport{
 				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
 				{MtuSuccessful: true, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
-			}, ValidationSuccess, true, false),
-			Entry("isMtuValidAllInterfaces (UMN) - Bad flow - all MTU reports are unsuccessful", []*models.MtuReport{
-				{MtuSuccessful: false, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
+			}, mNet, ValidationSuccess, true, false, ""),
+			Entry("isMtuValidAllInterfaces (UMN) - Bad flow - at least one unsucessfull report", []*models.MtuReport{
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.3.5", OutgoingNic: "eth0"},
 				{MtuSuccessful: false, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
-			}, ValidationFailure, true, false),
-			Entry("Day 2 cluster - the validation should be skipped", []*models.MtuReport{}, ValidationSuccess, false, true),
+			}, mNet, ValidationFailure, true, false, ""),
+			Entry("isMtuValidAllInterfaces (UMN) - Happy flow - Dual stack, all reports successful", []*models.MtuReport{
+				{MtuSuccessful: true, RemoteIPAddress: "1001:db8::11", OutgoingNic: "eth0"},
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
+			}, common.TestDualStackNetworking.MachineNetworks, ValidationSuccess, true, false, ""),
+			Entry("isMtuValidAllInterfaces (UMN) - Bad flow - Dual stack, at least one unsucessfull report", []*models.MtuReport{
+				{MtuSuccessful: false, RemoteIPAddress: "1001:db9::11", OutgoingNic: "eth0"},
+				{MtuSuccessful: true, RemoteIPAddress: "1.2.4.5", OutgoingNic: "eth0"},
+			}, common.TestDualStackNetworking.MachineNetworks, ValidationFailure, true, false, ""),
+			Entry("Day 2 cluster - the validation should be skipped", []*models.MtuReport{}, mNet, ValidationSuccess, false, true, ""),
 		)
 	})
 
