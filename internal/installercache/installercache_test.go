@@ -71,6 +71,7 @@ var _ = Describe("installer cache", func() {
 		manager         *Installers
 		cacheDir        string
 		eventsHandler   *eventsapi.MockHandler
+		metricsAPI      *metrics.MockAPI
 		ctx             context.Context
 		diskStatsHelper metrics.DiskStatsHelper
 	)
@@ -85,17 +86,17 @@ var _ = Describe("installer cache", func() {
 	}
 
 	BeforeEach(func() {
-
 		ctrl = gomock.NewController(GinkgoT())
 		diskStatsHelper = metrics.NewOSDiskStatsHelper(logrus.New())
 		mockRelease = oc.NewMockRelease(ctrl)
 		eventsHandler = eventsapi.NewMockHandler(ctrl)
+		metricsAPI = metrics.NewMockAPI(ctrl)
 		var err error
 		cacheDir, err = os.MkdirTemp("/tmp", "cacheDir")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(os.Mkdir(filepath.Join(cacheDir, "quay.io"), 0755)).To(Succeed())
 		Expect(os.Mkdir(filepath.Join(filepath.Join(cacheDir, "quay.io"), "release-dev"), 0755)).To(Succeed())
-		manager, err = New(getInstallerCacheConfig(12, 5), eventsHandler, diskStatsHelper, logrus.New())
+		manager, err = New(getInstallerCacheConfig(12, 5), eventsHandler, metricsAPI, diskStatsHelper, logrus.New())
 		Expect(err).NotTo(HaveOccurred())
 		ctx = context.TODO()
 	})
@@ -131,15 +132,22 @@ var _ = Describe("installer cache", func() {
 		mockRelease.EXPECT().Extract(gomock.Any(), releaseID,
 			gomock.Any(), manager.config.CacheDir, gomock.Any(), version).
 			DoAndReturn(writeMockedReleaseToDisk).AnyTimes()
+
+		metricsAPI.EXPECT().InstallerCacheReleaseEvicted(gomock.Any()).AnyTimes()
+
 	}
 
-	testGet := func(releaseID, version string, clusterID strfmt.UUID, expectCached bool) (string, string) {
+	testGet := func(releaseID, version string, clusterID strfmt.UUID, expectCached bool, expectedMajorMinorVersion string) (string, string) {
 		workdir := filepath.Join(manager.config.CacheDir, "quay.io", "release-dev")
 		fname := filepath.Join(workdir, releaseID)
 		if !expectCached {
 			mockReleaseCalls(releaseID, version)
 		}
 		expectEventsSent()
+		mockReleaseCalls(releaseID, version)
+		expectEventsSent()
+		mockRelease.EXPECT().GetMajorMinorVersion(gomock.Any(), releaseID, gomock.Any(), gomock.Any()).Return(expectedMajorMinorVersion, nil).Times(1)
+		metricsAPI.EXPECT().InstallerCacheGetReleaseCached(expectedMajorMinorVersion, gomock.Any()).AnyTimes()
 		l, err := manager.Get(ctx, releaseID, "mirror", "pull-secret", mockRelease, version, clusterID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(l.releaseID).To(Equal(releaseID))
@@ -157,9 +165,10 @@ var _ = Describe("installer cache", func() {
 	}
 
 	type test struct {
-		releaseID string
-		version   string
-		clusterID strfmt.UUID
+		releaseID         string
+		version           string
+		clusterID         strfmt.UUID
+		majorMinorVersion string
 	}
 
 	getUsedBytesForDirectory := func(directory string) uint64 {
@@ -189,6 +198,8 @@ var _ = Describe("installer cache", func() {
 	runTest := func(t test, manager *Installers) (*Release, error) {
 		expectEventsSent()
 		mockReleaseCalls(t.releaseID, t.version)
+		mockRelease.EXPECT().GetMajorMinorVersion(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(t.majorMinorVersion, nil).AnyTimes()
+		metricsAPI.EXPECT().InstallerCacheGetReleaseCached(t.majorMinorVersion, gomock.Any()).AnyTimes()
 		return manager.Get(ctx, t.releaseID, "mirror", "pull-secret", mockRelease, t.version, t.clusterID)
 	}
 
@@ -221,7 +232,7 @@ var _ = Describe("installer cache", func() {
 	// returns the first error encountered or nil if no error encountered.
 	runParallelTest := func(maxCapacity int64, maxReleaseSize int64, tests []test) error {
 		var err error
-		manager, err = New(getInstallerCacheConfig(maxCapacity, maxReleaseSize), eventsHandler, diskStatsHelper, getLogger())
+		manager, err = New(getInstallerCacheConfig(maxCapacity, maxReleaseSize), eventsHandler, metricsAPI, diskStatsHelper, getLogger())
 		Expect(err).ToNot(HaveOccurred())
 		var wg sync.WaitGroup
 		var reportedError error
@@ -244,11 +255,11 @@ var _ = Describe("installer cache", func() {
 		maxCapacity := int64(10)
 		maxReleaseSize := int64(5)
 		err := runParallelTest(maxCapacity, maxReleaseSize, []test{
-			{releaseID: "4.17.11-x86_64", version: "4.17.11"},
-			{releaseID: "4.17.11-x86_64", version: "4.17.11"},
-			{releaseID: "4.17.11-x86_64", version: "4.17.11"},
-			{releaseID: "4.17.11-x86_64", version: "4.17.11"},
-			{releaseID: "4.17.11-x86_64", version: "4.17.11"},
+			{releaseID: "4.17.11-x86_64", version: "4.17.11", majorMinorVersion: "4.17"},
+			{releaseID: "4.17.11-x86_64", version: "4.17.11", majorMinorVersion: "4.17"},
+			{releaseID: "4.17.11-x86_64", version: "4.17.11", majorMinorVersion: "4.17"},
+			{releaseID: "4.17.11-x86_64", version: "4.17.11", majorMinorVersion: "4.17"},
+			{releaseID: "4.17.11-x86_64", version: "4.17.11", majorMinorVersion: "4.17"},
 		})
 		Expect(err).ToNot(HaveOccurred())
 		// Now measure disk usage, we should be under the cache size
@@ -259,11 +270,11 @@ var _ = Describe("installer cache", func() {
 		maxCapacity := int64(25)
 		maxReleaseSize := int64(5)
 		err := runParallelTest(maxCapacity, maxReleaseSize, []test{
-			{releaseID: "4.17.11-x86_64", version: "4.17.11"},
-			{releaseID: "4.18.11-x86_64", version: "4.18.11"},
-			{releaseID: "4.19.11-x86_64", version: "4.19.11"},
-			{releaseID: "4.20.11-x86_64", version: "4.20.11"},
-			{releaseID: "4.21.11-x86_64", version: "4.21.11"},
+			{releaseID: "4.17.11-x86_64", version: "4.17.11", majorMinorVersion: "4.17"},
+			{releaseID: "4.18.11-x86_64", version: "4.18.11", majorMinorVersion: "4.17"},
+			{releaseID: "4.19.11-x86_64", version: "4.19.11", majorMinorVersion: "4.17"},
+			{releaseID: "4.20.11-x86_64", version: "4.20.11", majorMinorVersion: "4.17"},
+			{releaseID: "4.21.11-x86_64", version: "4.21.11", majorMinorVersion: "4.17"},
 		})
 		Expect(err).ToNot(HaveOccurred())
 		// Now measure disk usage, we should be under the cache size
@@ -274,8 +285,8 @@ var _ = Describe("installer cache", func() {
 		maxCapacity := int64(5)
 		maxReleaseSize := int64(5)
 		err := runParallelTest(maxCapacity, maxReleaseSize, []test{
-			{releaseID: "4.17.11-x86_64", version: "4.17.11"},
-			{releaseID: "4.18.11-x86_64", version: "4.18.11"},
+			{releaseID: "4.17.11-x86_64", version: "4.17.11", majorMinorVersion: "4.17"},
+			{releaseID: "4.18.11-x86_64", version: "4.18.11", majorMinorVersion: "4.18"},
 		})
 		Expect(err).ToNot(HaveOccurred())
 		// Now measure disk usage, we should be under the cache size
@@ -284,41 +295,41 @@ var _ = Describe("installer cache", func() {
 		// Now assert that a retry would work, there should be enough space for another release
 		// use a brand new release ID to prove we are not hitting cache here.
 		err = runParallelTest(maxCapacity, maxReleaseSize, []test{
-			{releaseID: "4.19.11-x86_64", version: "4.19.11"},
+			{releaseID: "4.19.11-x86_64", version: "4.19.11", majorMinorVersion: "4.19"},
 		})
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("Should raise error on construction if max release size is larger than cache and cache is enabled", func() {
-		_, err := New(getInstallerCacheConfig(5, 10), eventsHandler, diskStatsHelper, logrus.New())
+		_, err := New(getInstallerCacheConfig(5, 10), eventsHandler, metricsAPI, diskStatsHelper, logrus.New())
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("config.MaxReleaseSize (10 bytes) must not be greater than config.MaxCapacity (5 bytes)"))
 	})
 
 	It("Should raise error on construction if max release size is zero and cache is enabled", func() {
-		_, err := New(getInstallerCacheConfig(5, 0), eventsHandler, diskStatsHelper, logrus.New())
+		_, err := New(getInstallerCacheConfig(5, 0), eventsHandler, metricsAPI, diskStatsHelper, logrus.New())
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("config.MaxReleaseSize (0 bytes) must not be zero"))
 	})
 
 	It("Should not raise error on construction if max release size is larger than cache and cache eviction is disabled", func() {
-		_, err := New(getInstallerCacheConfig(0, 10), eventsHandler, diskStatsHelper, logrus.New())
+		_, err := New(getInstallerCacheConfig(0, 10), eventsHandler, metricsAPI, diskStatsHelper, logrus.New())
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("Should not raise error on construction if max release size is zero and cache eviction is disabled", func() {
-		_, err := New(getInstallerCacheConfig(0, 0), eventsHandler, diskStatsHelper, logrus.New())
+		_, err := New(getInstallerCacheConfig(0, 0), eventsHandler, metricsAPI, diskStatsHelper, logrus.New())
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("when cache limit is zero - eviction is skipped", func() {
 		var err error
-		manager, err = New(getInstallerCacheConfig(0, 5), eventsHandler, diskStatsHelper, logrus.New())
+		manager, err = New(getInstallerCacheConfig(0, 5), eventsHandler, metricsAPI, diskStatsHelper, logrus.New())
 		Expect(err).ToNot(HaveOccurred())
 		clusterId := strfmt.UUID(uuid.New().String())
-		r1, _ := testGet("4.8", "4.8.0", clusterId, false)
-		r2, _ := testGet("4.9", "4.9.0", clusterId, false)
-		r3, _ := testGet("4.10", "4.10.0", clusterId, false)
+		r1, _ := testGet("4.8", "4.8.0", clusterId, false, "4.8")
+		r2, _ := testGet("4.9", "4.9.0", clusterId, false, "4.9")
+		r3, _ := testGet("4.10", "4.10.0", clusterId, false, "4.10")
 
 		By("verify that the no file was deleted")
 		_, err = os.Stat(r1)
@@ -329,12 +340,12 @@ var _ = Describe("installer cache", func() {
 		Expect(os.IsNotExist(err)).To(BeFalse())
 	})
 
-	It("exising files access time is updated", func() {
+	It("existing files access time is updated", func() {
 		clusterId := strfmt.UUID(uuid.New().String())
-		_, _ = testGet("4.8", "4.8.0", clusterId, false)
-		r2, _ := testGet("4.9", "4.9.0", clusterId, false)
-		r1, _ := testGet("4.8", "4.8.0", clusterId, true)
-		r3, _ := testGet("4.10", "4.10.0", clusterId, false)
+		_, _ = testGet("4.8", "4.8.0", clusterId, false, "4.8")
+		r2, _ := testGet("4.9", "4.9.0", clusterId, false, "4.9")
+		r1, _ := testGet("4.8", "4.8.0", clusterId, true, "4.8")
+		r3, _ := testGet("4.10", "4.10.0", clusterId, false, "4.10")
 
 		By("verify that the oldest file was deleted")
 		_, err := os.Stat(r1)
@@ -349,9 +360,9 @@ var _ = Describe("installer cache", func() {
 
 	It("evicts the oldest file", func() {
 		clusterId := strfmt.UUID(uuid.New().String())
-		r1, _ := testGet("4.8", "4.8.0", clusterId, false)
-		r2, _ := testGet("4.9", "4.9.0", clusterId, false)
-		r3, _ := testGet("4.10", "4.10.0", clusterId, false)
+		r1, _ := testGet("4.8", "4.8.0", clusterId, false, "4.8")
+		r2, _ := testGet("4.9", "4.9.0", clusterId, false, "4.9")
+		r3, _ := testGet("4.10", "4.10.0", clusterId, false, "4.10")
 
 		By("verify that the oldest file was deleted")
 		_, err := os.Stat(r1)
@@ -369,8 +380,11 @@ var _ = Describe("installer cache", func() {
 		releaseID := "4.10-orig"
 		releaseMirrorID := ""
 		version := "4.10.0"
+		majorMinorVersion := "4.10"
 		clusterID := strfmt.UUID(uuid.NewString())
+		mockRelease.EXPECT().GetMajorMinorVersion(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(majorMinorVersion, nil).AnyTimes()
 		mockReleaseCalls(releaseID, version)
+		metricsAPI.EXPECT().InstallerCacheGetReleaseCached(majorMinorVersion, false)
 		l, err := manager.Get(ctx, releaseID, releaseMirrorID, "pull-secret", mockRelease, version, clusterID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(l.releaseID).To(Equal(releaseID))
@@ -389,7 +403,6 @@ var _ = Describe("installer cache", func() {
 
 		numberOfLinks := 10
 		numberOfExpiredLinks := 5
-
 		directory, err := os.MkdirTemp("", "testPruneExpiredHardLinks")
 		Expect(err).ToNot(HaveOccurred())
 

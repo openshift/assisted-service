@@ -36,6 +36,7 @@ type Installers struct {
 	eventsHandler   eventsapi.Handler
 	diskStatsHelper metrics.DiskStatsHelper
 	config          Config
+	metricsAPI      metrics.API
 }
 
 type Size int64
@@ -116,7 +117,7 @@ func (rl *Release) Cleanup(ctx context.Context) error {
 }
 
 // New constructs an installer cache with a given storage capacity
-func New(config Config, eventsHandler eventsapi.Handler, diskStatsHelper metrics.DiskStatsHelper, log logrus.FieldLogger) (*Installers, error) {
+func New(config Config, eventsHandler eventsapi.Handler, metricsAPI metrics.API, diskStatsHelper metrics.DiskStatsHelper, log logrus.FieldLogger) (*Installers, error) {
 	if config.MaxCapacity > 0 && config.MaxReleaseSize == 0 {
 		return nil, fmt.Errorf("config.MaxReleaseSize (%d bytes) must not be zero", config.MaxReleaseSize)
 	}
@@ -128,6 +129,7 @@ func New(config Config, eventsHandler eventsapi.Handler, diskStatsHelper metrics
 		eventsHandler:   eventsHandler,
 		diskStatsHelper: diskStatsHelper,
 		config:          config,
+		metricsAPI:      metricsAPI,
 	}, nil
 }
 
@@ -135,6 +137,11 @@ func New(config Config, eventsHandler eventsapi.Handler, diskStatsHelper metrics
 // the referenced release image. Tries the mirror release image first if it's set. It is safe for concurrent use. A cache of
 // binaries is maintained to reduce re-downloading of the same release.
 func (i *Installers) Get(ctx context.Context, releaseID, releaseIDMirror, pullSecret string, ocRelease oc.Release, ocpVersion string, clusterID strfmt.UUID) (*Release, error) {
+	majorMinorVersion, err := ocRelease.GetMajorMinorVersion(i.log, releaseID, releaseIDMirror, pullSecret)
+	if err != nil {
+		i.log.Warnf("unable to get majorMinorVersion to record metric for %s falling back to full URI", releaseID)
+		majorMinorVersion = "unknown"
+	}
 	for {
 		select {
 		case <-ctx.Done():
@@ -142,6 +149,7 @@ func (i *Installers) Get(ctx context.Context, releaseID, releaseIDMirror, pullSe
 		default:
 			release, err := i.get(releaseID, releaseIDMirror, pullSecret, ocRelease, ocpVersion, clusterID)
 			if err == nil {
+				i.metricsAPI.InstallerCacheGetReleaseCached(majorMinorVersion, release.cached)
 				return release, nil
 			}
 			_, isCapacityError := err.(*errorInsufficientCacheCapacity)
@@ -303,6 +311,7 @@ func (i *Installers) evict() bool {
 		}
 		evicted = true
 	}
+	i.metricsAPI.InstallerCacheReleaseEvicted(evicted)
 	return evicted
 }
 
@@ -334,8 +343,7 @@ func (i *Installers) pruneExpiredHardLinks(links []*fileInfo, gracePeriod time.D
 		grace := graceTime.Unix()
 		if finfo.info.ModTime().Unix() < grace {
 			i.log.Infof("attempting to prune hard link %s", finfo.path)
-			err := os.Remove(finfo.path)
-			if err != nil {
+			if err := os.Remove(finfo.path); err != nil {
 				i.log.WithError(err).Errorf("failed to prune hard link %s", finfo.path)
 			}
 		}

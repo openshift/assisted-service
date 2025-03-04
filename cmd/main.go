@@ -492,7 +492,7 @@ func main() {
 	Options.BMConfig.S3EndpointURL = newUrl
 
 	Options.InstallerCacheConfig.CacheDir = filepath.Join(Options.GeneratorConfig.GetWorkingDirectory(), "installercache")
-	installerCache, err := installercache.New(Options.InstallerCacheConfig, eventsHandler, diskStatsHelper, log)
+	installerCache, err := installercache.New(Options.InstallerCacheConfig, eventsHandler, metricsManager, diskStatsHelper, log)
 	failOnError(err, "failed to instantiate installercache")
 
 	generator := generator.New(log, objectHandler, Options.GeneratorConfig, providerRegistry, manifestsApi, eventsHandler, installerCache)
