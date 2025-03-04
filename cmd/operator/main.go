@@ -45,8 +45,10 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -86,6 +88,17 @@ func init() {
 	utilruntime.Must(certtypes.AddToScheme(scheme))
 }
 
+func validateManagedClusterCRDExists(mgr manager.Manager) error {
+	gvk, err := apiutil.GVKForObject(&clusterv1.ManagedCluster{}, mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+	if _, err = mgr.GetRESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
@@ -112,6 +125,10 @@ func main() {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+	if validateManagedClusterCRDExists(mgr) != nil {
+		setupLog.Error(err, "Managed Cluster CRD does not exist in cluster")
 		os.Exit(1)
 	}
 
