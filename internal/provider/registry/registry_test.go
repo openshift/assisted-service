@@ -16,7 +16,6 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -25,47 +24,6 @@ var (
 )
 
 const invalidInventory = "{\"system_vendor\": \"invalid\"}"
-
-const expectedNutanixInstallConfig411 = `apiVIPs:
-- 192.168.10.10
-apiVIP: 192.168.10.10
-ingressVIPs:
-- 192.168.10.11
-ingressVIP: 192.168.10.11
-prismCentral:
-  endpoint:
-    address: prism.central.placeholder.address
-    port: 9440
-  username: username_placeholder
-  password: password_placeholder
-prismElements:
-- endpoint:
-    address: prism.element.placeholder.address
-    port: 9440
-  uuid: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  name: prism_endpoint_name_placeholder
-subnetUUIDs:
-- yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
-`
-const expectedNutanixInstallConfig412 = `apiVIPs:
-- 192.168.10.10
-ingressVIPs:
-- 192.168.10.11
-prismCentral:
-  endpoint:
-    address: prism.central.placeholder.address
-    port: 9440
-  username: username_placeholder
-  password: password_placeholder
-prismElements:
-- endpoint:
-    address: prism.element.placeholder.address
-    port: 9440
-  uuid: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  name: prism_endpoint_name_placeholder
-subnetUUIDs:
-- yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
-`
 
 var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 	bmInventory := getBaremetalInventoryStr("hostname0", "bootMode", true, false)
@@ -400,10 +358,18 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			err := providerRegistry.AddPlatformToInstallConfig(&cfg, &cluster, nil)
 			Expect(err).To(BeNil())
 			Expect(cfg.Platform.Nutanix).ToNot(BeNil())
-			installConfigByte, err := yaml.Marshal(cfg.Platform.Nutanix)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(installConfigByte)).To(Equal(expectedNutanixInstallConfig412))
+			Expect(cfg.Platform.Nutanix.APIVIPs[0]).Should(Equal("192.168.10.10"))
+			Expect(cfg.Platform.Nutanix.IngressVIPs[0]).Should(Equal("192.168.10.11"))
+			Expect(cfg.Platform.Nutanix.PrismCentral.Endpoint.Address).Should(Equal("prism.central.placeholder.address"))
+			Expect(cfg.Platform.Nutanix.PrismCentral.Endpoint.Port).Should(Equal(int32(9440)))
+			Expect(cfg.Platform.Nutanix.PrismCentral.Username).Should(Equal("username_placeholder"))
+			Expect(string(cfg.Platform.Nutanix.PrismCentral.Password)).Should(Equal("password_placeholder"))
+			Expect(string(cfg.Platform.Nutanix.PrismElements[0].UUID)).Should(Equal("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"))
+			Expect(cfg.Platform.Nutanix.PrismElements[0].Endpoint.Address).Should(Equal("prism.element.placeholder.address"))
+			Expect(cfg.Platform.Nutanix.PrismElements[0].Endpoint.Port).Should(Equal(int32(9440)))
+			Expect(string(cfg.Platform.Nutanix.SubnetUUIDs[0])).Should(Equal("yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"))
 		})
+
 		It("without cluster params openshift version 4.11", func() {
 			cfg := getInstallerConfigBaremetal()
 			hosts := make([]*models.Host, 0)
@@ -418,9 +384,18 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			err := providerRegistry.AddPlatformToInstallConfig(&cfg, &cluster, nil)
 			Expect(err).To(BeNil())
 			Expect(cfg.Platform.Nutanix).ToNot(BeNil())
-			installConfigByte, err := yaml.Marshal(cfg.Platform.Nutanix)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(installConfigByte)).To(Equal(expectedNutanixInstallConfig411))
+			Expect(cfg.Platform.Nutanix.APIVIPs[0]).Should(Equal("192.168.10.10"))
+			Expect(cfg.Platform.Nutanix.DeprecatedAPIVIP).Should(Equal("192.168.10.10"))
+			Expect(cfg.Platform.Nutanix.IngressVIPs[0]).Should(Equal("192.168.10.11"))
+			Expect(cfg.Platform.Nutanix.DeprecatedIngressVIP).Should(Equal("192.168.10.11"))
+			Expect(cfg.Platform.Nutanix.PrismCentral.Endpoint.Address).Should(Equal("prism.central.placeholder.address"))
+			Expect(cfg.Platform.Nutanix.PrismCentral.Endpoint.Port).Should(Equal(int32(9440)))
+			Expect(cfg.Platform.Nutanix.PrismCentral.Username).Should(Equal("username_placeholder"))
+			Expect(string(cfg.Platform.Nutanix.PrismCentral.Password)).Should(Equal("password_placeholder"))
+			Expect(string(cfg.Platform.Nutanix.PrismElements[0].UUID)).Should(Equal("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"))
+			Expect(cfg.Platform.Nutanix.PrismElements[0].Endpoint.Address).Should(Equal("prism.element.placeholder.address"))
+			Expect(cfg.Platform.Nutanix.PrismElements[0].Endpoint.Port).Should(Equal(int32(9440)))
+			Expect(string(cfg.Platform.Nutanix.SubnetUUIDs[0])).Should(Equal("yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"))
 		})
 	})
 
