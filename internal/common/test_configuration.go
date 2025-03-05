@@ -645,3 +645,28 @@ func FormatStaticConfigHostYAML(nicPrimary, nicSecondary, ip4Master, ip4Secondar
 	output, _ := yaml.Marshal(staticNetworkConfig)
 	return &models.HostStaticNetworkConfig{MacInterfaceMap: macInterfaceMap, NetworkYaml: string(output)}
 }
+
+func GenerateHostInventoryInterfaceIPV4InMNetIPV6Doesnt(mutateFn func(*models.Inventory)) string {
+	inventory := &models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth1",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				IPV6Addresses: []string{
+					"1001:db9::10/120",
+				},
+			},
+		},
+		Disks:        []*models.Disk{{SizeBytes: conversions.GibToBytes(120), DriveType: models.DriveTypeHDD}},
+		CPU:          &models.CPU{Count: 16},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Routes:       TestDefaultRouteConfiguration,
+	}
+	mutateFn(inventory)
+	b, err := json.Marshal(inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
