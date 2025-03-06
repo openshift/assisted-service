@@ -2,9 +2,11 @@ package operators
 
 import (
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
+	"github.com/openshift/assisted-service/internal/operators/amdgpu"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/authorino"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
+	"github.com/openshift/assisted-service/internal/operators/kmm"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
@@ -60,6 +62,8 @@ func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, o
 		authorino.NewAuthorinoOperator(log),
 		osc.NewOscOperator(log),
 		nmstate.NewNmstateOperator(log),
+		amdgpu.NewAMDGPUOperator(log),
+		kmm.NewKMMOperator(log),
 	)
 }
 
