@@ -233,6 +233,11 @@ type InstallerConfigBaremetal struct {
 		Name           string `json:"name"`
 		Replicas       int    `json:"replicas"`
 	} `json:"controlPlane"`
+	Arbiter struct {
+		Hyperthreading string `json:"hyperthreading,omitempty"`
+		Name           string `json:"name"`
+		Replicas       int    `json:"replicas"`
+	} `json:"arbiter"`
 	Platform              Platform            `json:"platform"`
 	BootstrapInPlace      *BootstrapInPlace   `json:"bootstrapInPlace,omitempty"`
 	FIPS                  bool                `json:"fips"`
