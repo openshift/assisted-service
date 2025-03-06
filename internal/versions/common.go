@@ -2,11 +2,11 @@ package versions
 
 import (
 	context "context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"

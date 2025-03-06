@@ -2,10 +2,10 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -69,7 +69,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 			Timeout: defaultImageAvailabilityTimeoutSeconds,
 		}
 
-		b, err := json.Marshal(&request)
+		b, err := json.ConfigStd.Marshal(&request)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(strings.Join(step[0].Args, " ")).To(ContainSubstring(string(b)))
 	})

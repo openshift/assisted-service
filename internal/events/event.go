@@ -3,12 +3,12 @@ package events
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -512,7 +512,7 @@ func toProps(attrs ...interface{}) (result string, err error) {
 
 	if len(props) > 0 {
 		var b []byte
-		if b, err = json.Marshal(props); err == nil {
+		if b, err = json.ConfigStd.Marshal(props); err == nil {
 			return string(b), nil
 		}
 	}

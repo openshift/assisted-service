@@ -2,9 +2,9 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
@@ -66,7 +66,7 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 	}
 	request.RequestHeaders = requestHeaders
 
-	requestBytes, err := json.Marshal(request)
+	requestBytes, err := json.ConfigStd.Marshal(request)
 	if err != nil {
 		c.log.WithError(err).Errorf("failed to marshal APIVipConnectivityRequest")
 		return nil, err

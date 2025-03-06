@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"sync"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
@@ -68,7 +68,7 @@ func (c *spokeClientCache) Get(clusterDeployment *hivev1.ClusterDeployment,
 }
 
 func (c *spokeClientCache) calculateSecretHash(secret *corev1.Secret) (string, error) {
-	data, err := json.Marshal(secret.Data)
+	data, err := json.ConfigStd.Marshal(secret.Data)
 	if err != nil {
 		return "", err
 	}

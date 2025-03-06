@@ -2,10 +2,10 @@ package validations
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -106,13 +106,13 @@ func AddRHRegPullSecret(secret, rhCred string) (string, error) {
 		return "", errors.Errorf("invalid pull secret")
 	}
 	var s imagePullSecret
-	err := json.Unmarshal([]byte(strings.TrimSpace(secret)), &s)
+	err := json.ConfigStd.Unmarshal([]byte(strings.TrimSpace(secret)), &s)
 	if err != nil {
 		return secret, errors.Errorf("invalid pull secret: %v", err)
 	}
 	s.Auths[stageRegistry] = make(map[string]interface{})
 	s.Auths[stageRegistry]["auth"] = base64.StdEncoding.EncodeToString([]byte(rhCred))
-	ps, err := json.Marshal(s)
+	ps, err := json.ConfigStd.Marshal(s)
 	if err != nil {
 		return secret, err
 	}

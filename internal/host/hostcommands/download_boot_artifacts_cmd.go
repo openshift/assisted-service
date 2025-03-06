@@ -2,10 +2,10 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/imageservice"
@@ -72,7 +72,7 @@ func (c *downloadBootArtifactsCmd) GetSteps(ctx context.Context, host *models.Ho
 		HostFsMountDir: &c.hostFSMountDir,
 	}
 
-	requestBytes, err := json.Marshal(request)
+	requestBytes, err := json.ConfigStd.Marshal(request)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal DownloadBootArtifactsRequest: %w", err)
 	}
