@@ -11,7 +11,7 @@ import (
 )
 
 // GenerateManifests generates manifests for the operator.
-func (o *operator) GenerateManifests(_ *common.Cluster) (openshiftManifests map[string][]byte, customManifests []byte,
+func (o *operator) GenerateManifests(cluster *common.Cluster) (openshiftManifests map[string][]byte, customManifests []byte,
 	err error) {
 	openshiftManifests = map[string][]byte{}
 	openshiftTemplatePaths, err := fs.Glob(templatesRoot, "openshift/*.yaml")
@@ -21,7 +21,7 @@ func (o *operator) GenerateManifests(_ *common.Cluster) (openshiftManifests map[
 	for _, openshiftTemplatePath := range openshiftTemplatePaths {
 		manifestName := path.Base(openshiftTemplatePath)
 		var manifestContent []byte
-		manifestContent, err = o.executeTemplate(openshiftTemplatePath)
+		manifestContent, err = o.executeTemplate(openshiftTemplatePath, cluster)
 		if err != nil {
 			return
 		}
@@ -35,7 +35,7 @@ func (o *operator) GenerateManifests(_ *common.Cluster) (openshiftManifests map[
 	}
 	for _, customTemplatePath := range customTemplatePaths {
 		var manifestContent []byte
-		manifestContent, err = o.executeTemplate(customTemplatePath)
+		manifestContent, err = o.executeTemplate(customTemplatePath, cluster)
 		if err != nil {
 			return
 		}
@@ -48,7 +48,7 @@ func (o *operator) GenerateManifests(_ *common.Cluster) (openshiftManifests map[
 	return
 }
 
-func (o operator) executeTemplate(name string) (result []byte, err error) {
+func (o operator) executeTemplate(name string, cluster *common.Cluster) (result []byte, err error) {
 	template := o.templates.Lookup(name)
 	if template == nil {
 		err = fmt.Errorf("failed to find template '%s'", name)
@@ -57,10 +57,12 @@ func (o operator) executeTemplate(name string) (result []byte, err error) {
 	type Data struct {
 		Operator *models.MonitoredOperator
 		Config   *Config
+		Cluster  *common.Cluster
 	}
 	data := &Data{
 		Operator: &Operator,
 		Config:   o.config,
+		Cluster:  cluster,
 	}
 	buffer := &bytes.Buffer{}
 	err = template.Execute(buffer, data)

@@ -4258,6 +4258,8 @@ definitions:
       - 'AUTHORINO'
       - 'USER_MANAGED_LOAD_BALANCER'
       - 'NMSTATE'
+      - 'AMD_GPU'
+      - 'KMM'
 
   architecture-support-level-id:
     type: string
@@ -6666,6 +6668,8 @@ definitions:
       - 'authorino-requirements-satisfied'
       - 'mtu-valid'
       - 'nmstate-requirements-satisfied'
+      - 'amd-gpu-requirements-satisfied'
+      - 'kmm-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -7047,6 +7051,8 @@ definitions:
       - 'openshift-ai-requirements-satisfied'
       - 'authorino-requirements-satisfied'
       - 'nmstate-requirements-satisfied'
+      - 'amd-gpu-requirements-satisfied'
+      - 'kmm-requirements-satisfied'
 
   logs_type:
     type: string
