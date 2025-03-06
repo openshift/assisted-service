@@ -2718,6 +2718,7 @@ paths:
               - 'mce'
               - 'node_feature_discovery'
               - 'serverless'
+              - 'nmstate'
         "401":
           description: Unauthorized.
           schema:
