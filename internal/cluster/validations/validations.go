@@ -205,12 +205,14 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	if params.VipDhcpAllocation != nil {
 		targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
 	}
+	hamode, ctrlcount := common.GetDefaultControlPlaneCount(params.ControlPlaneCount, params.HighAvailabilityMode)
 	targetConfiguration.ID = &clusterId
 	targetConfiguration.APIVips = params.APIVips
 	targetConfiguration.IngressVips = params.IngressVips
 	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
+	targetConfiguration.HighAvailabilityMode = hamode
+	targetConfiguration.ControlPlaneCount = swag.Int64Value(ctrlcount)
 	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
-	targetConfiguration.HighAvailabilityMode = params.HighAvailabilityMode
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
@@ -300,7 +302,7 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.APIVips = apiVips
 	targetConfiguration.IngressVips = ingressVips
 	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
-	targetConfiguration.HighAvailabilityMode = cluster.HighAvailabilityMode
+	targetConfiguration.ControlPlaneCount = cluster.ControlPlaneCount
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
@@ -702,8 +704,8 @@ func ValidateDiskEncryptionParams(diskEncryptionParams *models.DiskEncryption, D
 	return nil
 }
 
-func ValidateHighAvailabilityModeWithPlatform(highAvailabilityMode *string, platform *models.Platform) error {
-	if swag.StringValue(highAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+func ValidateControlPlaneCountWithPlatform(controlPlaneCount *int64, platform *models.Platform) error {
+	if swag.Int64Value(controlPlaneCount) == int64(1) {
 		if platform != nil && platform.Type != nil && *platform.Type != models.PlatformTypeNone && !common.IsPlatformExternal(platform) {
 			return errors.Errorf("Single node cluster is not supported alongside %s platform", *platform.Type)
 		}

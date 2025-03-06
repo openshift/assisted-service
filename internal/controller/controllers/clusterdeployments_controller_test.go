@@ -898,8 +898,8 @@ var _ = Describe("cluster reconcile", func() {
 				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
 				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Do(func(ctx, kubeKey, arg3 interface{}, params installer.V2RegisterClusterParams) {
-						Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
-							To(Equal(HighAvailabilityModeNone))
+						Expect(swag.Int64Value(params.NewClusterParams.ControlPlaneCount)).
+							To(Equal(ControlPlaneCount))
 					}).Return(clusterReply, nil)
 				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
@@ -1220,8 +1220,8 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx, kubeKey, arg3 interface{}, params installer.V2RegisterClusterParams) {
-					Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
-						To(Equal(HighAvailabilityModeNone))
+					Expect(swag.Int64Value(params.NewClusterParams.ControlPlaneCount)).
+						To(Equal(ControlPlaneCount))
 				}).Return(clusterReply, nil)
 
 			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
@@ -4031,19 +4031,19 @@ var _ = Describe("cluster reconcile", func() {
 			hostIP := "1.2.3.4"
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:                   &sId,
-					Name:                 clusterName,
-					OpenshiftVersion:     "4.8",
-					ClusterNetworks:      clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
-					ServiceNetworks:      serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
-					NetworkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
-					Status:               swag.String(models.ClusterStatusInstalling),
-					IngressVips:          []*models.IngressVip{{ClusterID: sId, IP: models.IP(hostIP)}},
-					APIVips:              []*models.APIVip{{ClusterID: sId, IP: models.IP(hostIP)}},
-					BaseDNSDomain:        defaultClusterSpec.BaseDomain,
-					SSHPublicKey:         defaultAgentClusterInstallSpec.SSHPublicKey,
-					Hyperthreading:       models.ClusterHyperthreadingAll,
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+					ID:                &sId,
+					Name:              clusterName,
+					OpenshiftVersion:  "4.8",
+					ClusterNetworks:   clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:   serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+					Status:            swag.String(models.ClusterStatusInstalling),
+					IngressVips:       []*models.IngressVip{{ClusterID: sId, IP: models.IP(hostIP)}},
+					APIVips:           []*models.APIVip{{ClusterID: sId, IP: models.IP(hostIP)}},
+					BaseDNSDomain:     defaultClusterSpec.BaseDomain,
+					SSHPublicKey:      defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:    models.ClusterHyperthreadingAll,
+					ControlPlaneCount: int64(1),
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -4841,130 +4841,130 @@ var _ = Describe("TestConditions", func() {
 
 var _ = Describe("selectClusterNetworkType", func() {
 	tests := []struct {
-		clusterServiceNetworks    []*models.ServiceNetwork
-		paramServiceNetworks      []*models.ServiceNetwork
-		paramHighAvailabilityMode string
-		resultNetworkType         string
-		openShiftVersion          string
+		clusterServiceNetworks []*models.ServiceNetwork
+		paramServiceNetworks   []*models.ServiceNetwork
+		paramControlPlaneCount int64
+		resultNetworkType      string
+		openShiftVersion       string
 	}{
 		{
-			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:      []*models.ServiceNetwork{},
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
-			openShiftVersion:          "4.11.3-ec",
-			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:   []*models.ServiceNetwork{},
+			paramControlPlaneCount: int64(3),
+			openShiftVersion:       "4.11.3-ec",
+			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:      []*models.ServiceNetwork{},
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
-			openShiftVersion:          "4.10.7-fc.5",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:   []*models.ServiceNetwork{},
+			paramControlPlaneCount: int64(1),
+			openShiftVersion:       "4.10.7-fc.5",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:      []*models.ServiceNetwork{},
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
-			openShiftVersion:          "4.9-rc.4",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:   []*models.ServiceNetwork{},
+			paramControlPlaneCount: int64(3),
+			openShiftVersion:       "4.9-rc.4",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:      []*models.ServiceNetwork{},
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
-			openShiftVersion:          "4.11.0",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:   []*models.ServiceNetwork{},
+			paramControlPlaneCount: int64(1),
+			openShiftVersion:       "4.11.0",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
-			openShiftVersion:          "4.11.0",
-			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(3),
+			openShiftVersion:       "4.11.0",
+			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
-			openShiftVersion:          "4.11.0",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(1),
+			openShiftVersion:       "4.11.0",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
-			openShiftVersion:          "4.11.0",
-			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(3),
+			openShiftVersion:       "4.11.0",
+			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
-			openShiftVersion:          "4.11.0",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(1),
+			openShiftVersion:       "4.11.0",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
-			openShiftVersion:          "4.11.0",
-			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(3),
+			openShiftVersion:       "4.11.0",
+			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv6Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
-			openShiftVersion:          "4.11.0",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: common.TestIPv6Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(1),
+			openShiftVersion:       "4.11.0",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
-			paramServiceNetworks:      []*models.ServiceNetwork{{Cidr: "1003:db8::/119"}},
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
-			openShiftVersion:          "4.11.0",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
+			paramServiceNetworks:   []*models.ServiceNetwork{{Cidr: "1003:db8::/119"}},
+			paramControlPlaneCount: int64(3),
+			openShiftVersion:       "4.11.0",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
-			paramServiceNetworks:      []*models.ServiceNetwork{{Cidr: "1003:db8::/119"}},
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
-			openShiftVersion:          "4.11.0",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
+			paramServiceNetworks:   []*models.ServiceNetwork{{Cidr: "1003:db8::/119"}},
+			paramControlPlaneCount: int64(1),
+			openShiftVersion:       "4.11.0",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
-			openShiftVersion:          "4.12.0",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(3),
+			openShiftVersion:       "4.12.0",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
-			openShiftVersion:          "4.12.0-0.0",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(3),
+			openShiftVersion:       "4.12.0-0.0",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
-			openShiftVersion:          "4.12.0-ec.3",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(1),
+			openShiftVersion:       "4.12.0-ec.3",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeFull,
-			openShiftVersion:          "4.11.0-ec.3",
-			resultNetworkType:         models.ClusterNetworkTypeOpenShiftSDN,
+			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(3),
+			openShiftVersion:       "4.11.0-ec.3",
+			resultNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
 		},
 		{
-			clusterServiceNetworks:    common.TestIPv4Networking.ServiceNetworks,
-			paramServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-			paramHighAvailabilityMode: models.ClusterHighAvailabilityModeNone,
-			openShiftVersion:          "4.11.0-ec.3",
-			resultNetworkType:         models.ClusterNetworkTypeOVNKubernetes,
+			clusterServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			paramServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+			paramControlPlaneCount: int64(1),
+			openShiftVersion:       "4.11.0-ec.3",
+			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 	}
 	for i := range tests {
@@ -4975,11 +4975,11 @@ var _ = Describe("selectClusterNetworkType", func() {
 			}
 
 			cluster := &common.Cluster{Cluster: models.Cluster{
-				ServiceNetworks:      t.clusterServiceNetworks,
-				ClusterNetworks:      common.TestIPv4Networking.ClusterNetworks,
-				MachineNetworks:      common.TestIPv4Networking.MachineNetworks,
-				HighAvailabilityMode: &t.paramHighAvailabilityMode,
-				OpenshiftVersion:     t.openShiftVersion,
+				ServiceNetworks:   t.clusterServiceNetworks,
+				ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
+				MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				ControlPlaneCount: t.paramControlPlaneCount,
+				OpenshiftVersion:  t.openShiftVersion,
 			}}
 			networkType, err := selectClusterNetworkType(ClusterUpdateParams, cluster)
 			Expect(err).To(BeNil())

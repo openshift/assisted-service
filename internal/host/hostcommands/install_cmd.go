@@ -117,21 +117,21 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		role = models.HostRoleBootstrap
 	}
 
-	haMode := models.ClusterHighAvailabilityModeFull
-	if cluster.HighAvailabilityMode != nil {
-		haMode = *cluster.HighAvailabilityMode
-	}
+	///TODO: check if cluster.ControlPlaneCount is always set
+	//haMode := int64(3)
+	//if cluster.ControlPlaneCount != nil {
+	//}
 
 	request := models.InstallCmdRequest{
-		Role:                 &role,
-		ClusterID:            host.ClusterID,
-		HostID:               host.ID,
-		InfraEnvID:           &host.InfraEnvID,
-		HighAvailabilityMode: &haMode,
-		ControllerImage:      swag.String(i.instructionConfig.ControllerImage),
-		CheckCvo:             swag.Bool(i.instructionConfig.CheckClusterVersion),
-		InstallerImage:       swag.String(i.instructionConfig.InstallerImage),
-		BootDevice:           swag.String(bootdevice),
+		Role:              &role,
+		ClusterID:         host.ClusterID,
+		HostID:            host.ID,
+		InfraEnvID:        &host.InfraEnvID,
+		ControlPlaneCount: cluster.ControlPlaneCount,
+		ControllerImage:   swag.String(i.instructionConfig.ControllerImage),
+		CheckCvo:          swag.Bool(i.instructionConfig.CheckClusterVersion),
+		InstallerImage:    swag.String(i.instructionConfig.InstallerImage),
+		BootDevice:        swag.String(bootdevice),
 	}
 	if i.enableSkipMcoReboot {
 		request.EnableSkipMcoReboot = featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDSKIPMCOREBOOT,
