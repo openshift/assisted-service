@@ -37,8 +37,8 @@ const (
 	counterClusterValidationFailed                = "assisted_installer_cluster_validation_is_in_failed_status_on_cluster_deletion"
 	counterClusterValidationChanged               = "assisted_installer_cluster_validation_failed_after_success_before_installation"
 	counterFilesystemUsagePercentage              = "assisted_installer_filesystem_usage_percentage"
-	counterMonitoredHosts                         = "assisted_installer_monitored_hosts"
-	counterMonitoredClusters                      = "assisted_installer_monitored_clusters"
+	histogramMonitoredHostsDurationMs             = "assisted_installer_monitored_hosts_duration_ms"
+	histogramMonitoredClustersDurationMs          = "assisted_installer_monitored_clusters_duration_ms"
 )
 
 const (
@@ -59,8 +59,8 @@ const (
 	counterDescriptionClusterValidationFailed                = "Number of cluster validation errors"
 	counterDescriptionClusterValidationChanged               = "Number of cluster validations that already succeed but start to fail again"
 	counterDescriptionFilesystemUsagePercentage              = "The percentage of the filesystem usage by the service"
-	counterDescriptionMonitoredHosts                         = "Number of hosts monitored by host monitor"
-	counterDescriptionMonitoredClusters                      = "Number of clusters monitored by cluster monitor"
+	histogramDescriptionMonitoredHostsDurationMs             = "Histogram/sum/count of monitored hosts duration (ms)"
+	histogramDescriptionMonitoredClustersDurationMs          = "Histogram/sum/count of monitored clusters duration (ms)"
 )
 
 const (
@@ -92,8 +92,8 @@ type API interface {
 	DiskSyncDuration(syncDuration int64)
 	ImagePullStatus(imageName, resultStatus string, downloadRate float64)
 	FileSystemUsage(usageInPercentage float64)
-	MonitoredHostsCount(monitoredHosts int64)
-	MonitoredClusterCount(monitoredClusters int64)
+	MonitoredHostsDurationMs(monitoredHostsMillis float64)
+	MonitoredClustersDurationMs(monitoredClustersMillis float64)
 }
 
 type MetricsManager struct {
@@ -117,8 +117,8 @@ type MetricsManager struct {
 	serviceLogicClusterValidationFailed                *prometheus.CounterVec
 	serviceLogicClusterValidationChanged               *prometheus.CounterVec
 	serviceLogicFilesystemUsagePercentage              *prometheus.GaugeVec
-	serviceLogicMonitoredHosts                         *prometheus.GaugeVec
-	serviceLogicMonitoredClusters                      *prometheus.GaugeVec
+	serviceLogicMonitoredHostsDurationMs               *prometheus.HistogramVec
+	serviceLogicMonitoredClustersDurationMs            *prometheus.HistogramVec
 	collectors                                         []prometheus.Collector
 }
 
@@ -275,19 +275,21 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 			}, []string{},
 		),
 
-		serviceLogicMonitoredHosts: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		serviceLogicMonitoredHostsDurationMs: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
 			Subsystem: subsystem,
-			Name:      counterMonitoredHosts,
-			Help:      counterDescriptionMonitoredHosts,
-		}, []string{hosts}),
+			Name:      histogramMonitoredHostsDurationMs,
+			Help:      histogramDescriptionMonitoredHostsDurationMs,
+			Buckets:   []float64{10, 100, 200, 500, 1000, 10000, 30000},
+		}, []string{}),
 
-		serviceLogicMonitoredClusters: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		serviceLogicMonitoredClustersDurationMs: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
 			Subsystem: subsystem,
-			Name:      counterMonitoredClusters,
-			Help:      counterDescriptionMonitoredClusters,
-		}, []string{hosts}),
+			Name:      histogramMonitoredClustersDurationMs,
+			Help:      histogramDescriptionMonitoredClustersDurationMs,
+			Buckets:   []float64{10, 100, 200, 500, 1000, 10000, 30000},
+		}, []string{}),
 	}
 
 	m.collectors = append(m.collectors, newDirectoryUsageCollector(metricsManagerConfig.DirectoryUsageMonitorConfig.Directories, diskStatsHelper, log))
@@ -310,8 +312,8 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 		m.serviceLogicClusterValidationChanged,
 		m.serviceLogicClusterImagePullStatus,
 		m.serviceLogicFilesystemUsagePercentage,
-		m.serviceLogicMonitoredHosts,
-		m.serviceLogicMonitoredClusters,
+		m.serviceLogicMonitoredHostsDurationMs,
+		m.serviceLogicMonitoredClustersDurationMs,
 	)
 
 	for _, collector := range m.collectors {
@@ -475,12 +477,12 @@ func (m *MetricsManager) FileSystemUsage(usageInPercentage float64) {
 	m.serviceLogicFilesystemUsagePercentage.WithLabelValues().Set(usageInPercentage)
 }
 
-func (m *MetricsManager) MonitoredHostsCount(monitoredHosts int64) {
-	m.serviceLogicMonitoredHosts.WithLabelValues(hosts).Set(float64(monitoredHosts))
+func (m *MetricsManager) MonitoredHostsDurationMs(monitoredHostsMs float64) {
+	m.serviceLogicMonitoredHostsDurationMs.WithLabelValues().Observe(monitoredHostsMs)
 }
 
-func (m *MetricsManager) MonitoredClusterCount(monitoredClusters int64) {
-	m.serviceLogicMonitoredClusters.WithLabelValues(clusters).Set(float64(monitoredClusters))
+func (m *MetricsManager) MonitoredClustersDurationMs(monitoredClustersMs float64) {
+	m.serviceLogicMonitoredClustersDurationMs.WithLabelValues().Observe(monitoredClustersMs)
 }
 
 func bytesToGib(bytes int64) int64 {
