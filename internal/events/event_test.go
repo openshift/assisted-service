@@ -51,7 +51,7 @@ var _ = Describe("Add event", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		log := logrus.WithField("pkg", "events")
 		theEvents = New(db, nil, commontesting.GetDummyNotificationStream(ctrl), log)
-		cfg := &auth.Config{AuthType: auth.TypeRHSSO, EnableOrgTenancy: true}
+		cfg := &auth.Config{AuthType: auth.TypeRHSSO, EnableOrgTenancy: true, EnableOcmAuthz: false}
 		authz_handler := auth.NewAuthzHandler(cfg, nil, logrus.New(), db)
 		theEvents.(*Events).authz = authz_handler
 		api = &Api{handler: theEvents, log: log}
@@ -424,7 +424,7 @@ var _ = Describe("Events library", func() {
 
 		JustBeforeEach(func() {
 			//inject RHSSO authorizer to the event handler
-			cfg := &auth.Config{AuthType: auth.TypeRHSSO, EnableOrgTenancy: true}
+			cfg := &auth.Config{AuthType: auth.TypeRHSSO, EnableOrgTenancy: true, EnableOcmAuthz: false}
 			authz_handler := auth.NewAuthzHandler(cfg, nil, logrus.New(), db)
 			theEvents.(*Events).authz = authz_handler
 		})
