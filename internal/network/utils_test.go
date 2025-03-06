@@ -11,6 +11,11 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+var mNetworks = []*net.IPNet{
+	{IP: net.IP{192, 168, 10, 0}, Mask: net.IPv4Mask(255, 255, 255, 0)},
+	{IP: net.IP{192, 168, 11, 0}, Mask: net.IPv4Mask(255, 255, 255, 0)},
+}
+
 var _ = Describe("host IP address families", func() {
 	It("host doesn't have interfaces", func() {
 		host := &models.Host{
@@ -1054,15 +1059,39 @@ var _ = Describe("FindInterfaceByIP", func() {
 	)
 })
 
-var _ = Describe("FindSourceIPInMachineNetwork", func() {
-	DescribeTable("", func(outgoingNicName string, machineNet *models.MachineNetwork, interfaces []*models.Interface, expectedIP string) {
-		_, mNetwork, err := net.ParseCIDR(string(machineNet.Cidr))
+var _ = Describe("IsNicBelongsAnyMachineNetwork", func() {
+	DescribeTable("", func(outgoingNicName string, mNetworks []*net.IPNet, interfaces []*models.Interface, isIPV6 bool, expectedResult bool) {
+		isNicBelongs, err := IsNicBelongsAnyMachineNetwork(outgoingNicName, mNetworks, interfaces, isIPV6)
 		Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Debugging info: %v", err))
-		sourceIP, err := FindSourceIPInMachineNetwork(outgoingNicName, mNetwork, interfaces)
-		Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Debugging info: %v", err))
-		Expect(sourceIP).To(Equal(expectedIP), fmt.Sprintf("Debugging info: sourceIP: %s, expectedIP: %s", sourceIP, expectedIP))
+		Expect(isNicBelongs).To(Equal(expectedResult), fmt.Sprintf("Debugging info: actualResult: %t, expectedResult: %t", isNicBelongs, expectedResult))
 	},
-		Entry("source IP in machine network", "eth0", &models.MachineNetwork{Cidr: "192.168.10.0/24"}, []*models.Interface{{IPV4Addresses: []string{"192.168.10.2/24"}, Name: "eth0"}}, "192.168.10.2/24"),
-		Entry("source IP doesn't in machine network", "eth0", &models.MachineNetwork{Cidr: "192.168.10.1/24"}, []*models.Interface{{IPV4Addresses: []string{"192.168.11.2/24"}, Name: "eth0"}}, ""),
+		Entry("nic belongs to a machine network", "eth0", mNetworks, []*models.Interface{{IPV4Addresses: []string{"192.168.10.2/24"}, Name: "eth0"}}, false, true),
+		Entry("nic doesn't belongs to any machine network", "eth0", mNetworks, []*models.Interface{{IPV4Addresses: []string{"192.168.12.2/24"}, Name: "eth0"}}, false, false),
 	)
+})
+
+var _ = Describe("IsIPBelongsToAnyMachineNetwork", func() {
+	DescribeTable("", func(ip net.IP, mNetworks []*net.IPNet, expectedResult bool) {
+		isIPBelongs := IsIPBelongsToAnyMachineNetwork(ip, mNetworks)
+		Expect(isIPBelongs).To(Equal(expectedResult))
+	},
+		Entry("IP belongs to a machine network", net.IP{192, 168, 10, 0}, mNetworks, true),
+		Entry("IP doesn't belongs to any machine network", net.IP{192, 168, 12, 0}, mNetworks, false),
+	)
+})
+
+var _ = Describe("ComputeParsedMachineNetworks", func() {
+	mNets := []*models.MachineNetwork{
+		{Cidr: "192.168.10.0/24"},
+	}
+	expectedResult := []*net.IPNet{
+		{
+			IP:   net.IP{192, 168, 10, 0},        // Network Address
+			Mask: net.IPv4Mask(255, 255, 255, 0), // Subnet Mask
+		},
+	}
+	parsedMachineNetworks, err := ComputeParsedMachineNetworks(mNets)
+	Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Debugging info: %v", err))
+	Expect(parsedMachineNetworks).To(Equal(expectedResult))
+
 })
