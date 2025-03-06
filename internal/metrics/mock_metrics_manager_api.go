@@ -169,28 +169,28 @@ func (mr *MockAPIMockRecorder) InstallationStarted() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallationStarted", reflect.TypeOf((*MockAPI)(nil).InstallationStarted))
 }
 
-// MonitoredClusterCount mocks base method.
-func (m *MockAPI) MonitoredClusterCount(monitoredClusters int64) {
+// MonitoredClustersDurationMs mocks base method.
+func (m *MockAPI) MonitoredClustersDurationMs(monitoredClustersMillis float64) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "MonitoredClusterCount", monitoredClusters)
+	m.ctrl.Call(m, "MonitoredClustersDurationMs", monitoredClustersMillis)
 }
 
-// MonitoredClusterCount indicates an expected call of MonitoredClusterCount.
-func (mr *MockAPIMockRecorder) MonitoredClusterCount(monitoredClusters interface{}) *gomock.Call {
+// MonitoredClustersDurationMs indicates an expected call of MonitoredClustersDurationMs.
+func (mr *MockAPIMockRecorder) MonitoredClustersDurationMs(monitoredClustersMillis interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MonitoredClusterCount", reflect.TypeOf((*MockAPI)(nil).MonitoredClusterCount), monitoredClusters)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MonitoredClustersDurationMs", reflect.TypeOf((*MockAPI)(nil).MonitoredClustersDurationMs), monitoredClustersMillis)
 }
 
-// MonitoredHostsCount mocks base method.
-func (m *MockAPI) MonitoredHostsCount(monitoredHosts int64) {
+// MonitoredHostsDurationMs mocks base method.
+func (m *MockAPI) MonitoredHostsDurationMs(monitoredHostsMillis float64) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "MonitoredHostsCount", monitoredHosts)
+	m.ctrl.Call(m, "MonitoredHostsDurationMs", monitoredHostsMillis)
 }
 
-// MonitoredHostsCount indicates an expected call of MonitoredHostsCount.
-func (mr *MockAPIMockRecorder) MonitoredHostsCount(monitoredHosts interface{}) *gomock.Call {
+// MonitoredHostsDurationMs indicates an expected call of MonitoredHostsDurationMs.
+func (mr *MockAPIMockRecorder) MonitoredHostsDurationMs(monitoredHostsMillis interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MonitoredHostsCount", reflect.TypeOf((*MockAPI)(nil).MonitoredHostsCount), monitoredHosts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MonitoredHostsDurationMs", reflect.TypeOf((*MockAPI)(nil).MonitoredHostsDurationMs), monitoredHostsMillis)
 }
 
 // ReportHostInstallationMetrics mocks base method.
