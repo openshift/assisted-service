@@ -259,14 +259,34 @@ var _ = Describe("Infra_Env", func() {
 			"qbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3f" +
 			"AC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAq" +
 			"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
+		newAdditionalSshKeys := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCu17Y2lrPLmz8oADdgMnKf36gh+cMmAcLe8U5jTnDS/GtvP+6kjrUWdwkHB6BtfI/uJb" +
+			"G38rx9LARAWi9DwF64IAj0YL83jxCnxv7vx/99Cd89G687Pu0b/RRpt7nRgqTUOmmYwDtJU1Ij2ZLzgTTG/2o1nysaYKoVXRS9FpffU/62" +
+			"NKxoNResvbE9tg86Wdsj3JmeDT682+Kc0ijBYu/g1tbOveU5Cd+YLJExQzjJNYQs0PD+CpDFjNjZSP1e/Pf4wytRTb6Uj5AQ3O3WOvRLH7" +
+			"LJi5FfGyhgvqpNO8R/vupYvmVORzluPRrfpqO/cO2pfjlvddM+1X5Ay7bGaZ47EcDWo4rvfHneS4XH1UWFS1YTAfpcJTfsgYTowe4Agy3t" +
+			"FTdote0+e5lti88PHzhCTOtgqQcFSGBT8FE7BD0b7TcCSh58nhghyJQc89ctdnZXYATEMwIwxiQtw+IWG/Aj0LK6TwJxtu06peDADH6jvI" +
+			"4r6XDPipEeNKQcTo2fl7s= root@edge-17.edge.lab.eng.rdu2.redhat.com\n" +
+			"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCrCWWAdSvvNRYrE9Qje1VllQktaPelRZh2svB7JoDQ1TEWcyYpJp4SIYyGzdZPEvlz2R" +
+			"M0WoAQB/QOLUQQiDuc9wBOtPXhEcC9Jh16wXnQCpEO1P/qAgb9FwAd0PKqE8bltQnwWNdBv1Slf1k0bJdDMq2RNWh26D1oUDNwUd2ENJ9W" +
+			"l4Gow1wWEUceBN2DRyL5NN2r5ZcI8zYT6HR/O4bgrI3sMnKHZo0Wk00I5tDtyH52vGwzV/KgKK0ughQD9XmUzvw9YuN/0q+RCZn294Q7a1" +
+			"Xg6Uhj2E37ToHxUhP5ZN4VMrxznw3HngieqIHXNxZTXjvDYTowuFBu8yRl5TwuQEyBaZstZWRuvDfOVoaeG9DXZnHBxe1j9x+omfibGFFh" +
+			"ZeDPbJqJVmhw6EgDEt5It/pXRn1SvKv90ouwoFboDSvuPby7yFTY70GN5lqMePbXjCPa3GPVM1qfv3l+MoLBJU28wxvruYCL3BEWDgTBMA" +
+			"vCj9OVo8aYsnRPWWBwpwk= root@edge-17.edge.lab.eng.rdu2.redhat.com\n" +
+			"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCjWoWRWq38B3OUQU+TGxOZkir0l2iLHza3xKvJ3wpaJO3yI+C7zoKtprtbbBfkkqpGGJ" +
+			"d3p9ntb1KTRpJ6aPOPhYrJx7IKT6pZfGHaML+zwmQD53K8xIanzBSR8DAcI4BRDnNPBGmwzHHMlFNkpNj5VyWx30uiRQ528wC+YewriQh2" +
+			"FlaxvVXxiijjeiZd5fXKkGLnUN3Xsq8RJS2z1zikqcGbqltE1EdZXGF7MmKPtUBsiznj+awRLWqi8V4cRCodC41vFSK1NdZY7d15htyYLX" +
+			"0Xe7cdRGnh4HYPKp5udoxWtDis+QGE6aIQQfYpD3NOrsurzqLlXD6scLUYQgmMT8sWcEX1N3YfIemyoGuZ73uTxPVOi2AcJ29ds9RihoTL" +
+			"oLEbMU/diq2HAR8Uvk/KPhNgkSP69hyOBQdg4sY8qZyy6LTBq2+PVlWuOQ/FHU/lBtoUFUExnX5PYXDj39oXvp2/u2EzG8UY4xu0+ykZHS" +
+			"Nz/NZzsxk5xmw70bB5G/E= root@edge-17.edge.lab.eng.rdu2.redhat.com"
+
 		updateParams := &installer.UpdateInfraEnvParams{
 			InfraEnvID: infraEnvID,
 			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
-				ImageType:              models.ImageTypeMinimalIso,
-				IgnitionConfigOverride: `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
-				SSHAuthorizedKey:       swag.String(newSshKey),
-				Proxy:                  &models.Proxy{HTTPProxy: swag.String("http://proxy.proxy"), HTTPSProxy: nil, NoProxy: swag.String("proxy.proxy")},
-				OpenshiftVersion:       swag.String("4.16"),
+				ImageType:                   models.ImageTypeMinimalIso,
+				IgnitionConfigOverride:      `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
+				SSHAuthorizedKey:            swag.String(newSshKey),
+				AdditionalSSHAuthorizedKeys: swag.String(newAdditionalSshKeys),
+				Proxy:                       &models.Proxy{HTTPProxy: swag.String("http://proxy.proxy"), HTTPSProxy: nil, NoProxy: swag.String("proxy.proxy")},
+				OpenshiftVersion:            swag.String("4.16"),
 			},
 		}
 
@@ -274,6 +294,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(err).NotTo(HaveOccurred())
 		updateInfraEnv := res.Payload
 		Expect(updateInfraEnv.SSHAuthorizedKey).To(Equal(newSshKey))
+		Expect(updateInfraEnv.AdditionalSSHAuthorizedKeys).To(Equal(newAdditionalSshKeys))
 		Expect(swag.StringValue(updateInfraEnv.Proxy.HTTPProxy)).To(Equal("http://proxy.proxy"))
 		Expect(swag.StringValue(updateInfraEnv.Proxy.HTTPSProxy)).To(BeEmpty())
 		Expect(swag.StringValue(updateInfraEnv.Proxy.NoProxy)).To(Equal("proxy.proxy"))
