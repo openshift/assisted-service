@@ -6566,6 +6566,8 @@ var allValidationIDs = []validationID{
 	AreOpenShiftAIRequirementsSatisfied,
 	AreAuthorinoRequirementsSatisfied,
 	AreNmstateRequirementsSatisfied,
+	AreAMDGPURequirementsSatisfied,
+	AreKMMRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{
