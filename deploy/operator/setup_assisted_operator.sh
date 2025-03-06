@@ -101,6 +101,9 @@ EOF
 }
 
 function install_from_catalog_source() {
+  # ensure that the necessary MCE CRDs are installed.
+  oc apply -f ${__root}/hack/crds/mce
+
   catalog_source_name="${1}"
   if [ "${ASSISTED_UPGRADE_OPERATOR}" = "true" ]; then
    catalog_source=${ASSISTED_SERVICE_OPERATOR_CATALOG}
