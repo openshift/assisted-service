@@ -8766,6 +8766,10 @@ func init() {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         },
+        "additional_ssh_authorized_keys": {
+          "description": "A set of additional SSH public keys that can be used for debugging the installation.",
+          "type": "string"
+        },
         "additional_trust_bundle": {
           "description": "PEM-encoded X.509 certificate bundle. Hosts discovered by this\ninfra-env will trust the certificates in this bundle. Clusters formed\nfrom the hosts discovered by this infra-env will also trust the\ncertificates in this bundle.",
           "type": "string",
@@ -8910,6 +8914,11 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "additional_ssh_authorized_keys": {
+          "description": "A set of additional SSH public keys that can be used for debugging the installation.",
+          "type": "string",
+          "x-nullable": true
+        },
         "additional_trust_bundle": {
           "description": "PEM-encoded X.509 certificate bundle. Hosts discovered by this\ninfra-env will trust the certificates in this bundle. Clusters formed\nfrom the hosts discovered by this infra-env will also trust the\ncertificates in this bundle.",
           "type": "string",
@@ -8984,6 +8993,11 @@ func init() {
       "properties": {
         "additional_ntp_sources": {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "additional_ssh_authorized_keys": {
+          "description": "A set of additional SSH public keys that can be used for debugging the installation.",
           "type": "string",
           "x-nullable": true
         },
@@ -19825,6 +19839,10 @@ func init() {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         },
+        "additional_ssh_authorized_keys": {
+          "description": "A set of additional SSH public keys that can be used for debugging the installation.",
+          "type": "string"
+        },
         "additional_trust_bundle": {
           "description": "PEM-encoded X.509 certificate bundle. Hosts discovered by this\ninfra-env will trust the certificates in this bundle. Clusters formed\nfrom the hosts discovered by this infra-env will also trust the\ncertificates in this bundle.",
           "type": "string",
@@ -19970,6 +19988,11 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "additional_ssh_authorized_keys": {
+          "description": "A set of additional SSH public keys that can be used for debugging the installation.",
+          "type": "string",
+          "x-nullable": true
+        },
         "additional_trust_bundle": {
           "description": "PEM-encoded X.509 certificate bundle. Hosts discovered by this\ninfra-env will trust the certificates in this bundle. Clusters formed\nfrom the hosts discovered by this infra-env will also trust the\ncertificates in this bundle.",
           "type": "string",
@@ -20044,6 +20067,11 @@ func init() {
       "properties": {
         "additional_ntp_sources": {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "additional_ssh_authorized_keys": {
+          "description": "A set of additional SSH public keys that can be used for debugging the installation.",
           "type": "string",
           "x-nullable": true
         },

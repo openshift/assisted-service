@@ -178,6 +178,9 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	if infraEnv.Spec.SSHAuthorizedKey != internalInfraEnv.SSHAuthorizedKey {
 		updateParams.InfraEnvUpdateParams.SSHAuthorizedKey = &infraEnv.Spec.SSHAuthorizedKey
 	}
+	if len(infraEnv.Spec.AdditionalSSHAuthorizedKeys) > 0 {
+		updateParams.InfraEnvUpdateParams.AdditionalSSHAuthorizedKeys = swag.String(strings.Join(infraEnv.Spec.AdditionalSSHAuthorizedKeys[:], "\n"))
+	}
 	if strings.TrimSpace(infraEnv.Spec.AdditionalTrustBundle) != internalInfraEnv.AdditionalTrustBundle {
 		updateParams.InfraEnvUpdateParams.AdditionalTrustBundle = &infraEnv.Spec.AdditionalTrustBundle
 	}
@@ -450,6 +453,10 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 
 	if len(infraEnv.Spec.KernelArguments) > 0 {
 		createParams.InfraenvCreateParams.KernelArguments = internalKernelArgs(infraEnv.Spec.KernelArguments)
+	}
+
+	if len(infraEnv.Spec.AdditionalSSHAuthorizedKeys) > 0 {
+		createParams.InfraenvCreateParams.AdditionalSSHAuthorizedKeys = swag.String(strings.Join(infraEnv.Spec.AdditionalSSHAuthorizedKeys[:], "\n"))
 	}
 
 	return createParams

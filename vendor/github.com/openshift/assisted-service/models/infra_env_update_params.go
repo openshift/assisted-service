@@ -23,6 +23,9 @@ type InfraEnvUpdateParams struct {
 	// A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
 	AdditionalNtpSources *string `json:"additional_ntp_sources,omitempty"`
 
+	// A set of additional SSH public keys that can be used for debugging the installation.
+	AdditionalSSHAuthorizedKeys *string `json:"additional_ssh_authorized_keys,omitempty"`
+
 	// Allows users to change the additional_trust_bundle infra-env field
 	// Max Length: 65535
 	AdditionalTrustBundle *string `json:"additional_trust_bundle,omitempty"`

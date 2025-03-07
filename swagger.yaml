@@ -7424,6 +7424,9 @@ definitions:
       ssh_authorized_key:
         type: string
         description: SSH public key for debugging the installation.
+      additional_ssh_authorized_keys:
+        type: string
+        description: A set of additional SSH public keys that can be used for debugging the installation.
       pull_secret_set:
         type: boolean
         description: True if the pull secret has been added to the cluster.
@@ -7539,6 +7542,10 @@ definitions:
         type: string
         description: SSH public key for debugging the installation.
         x-nullable: true
+      additional_ssh_authorized_keys:
+        type: string
+        description: A set of additional SSH public keys that can be used for debugging the installation.
+        x-nullable: true
       pull_secret:
         type: string
         description: The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
@@ -7589,6 +7596,10 @@ definitions:
       ssh_authorized_key:
         type: string
         description: SSH public key for debugging the installation.
+        x-nullable: true
+      additional_ssh_authorized_keys:
+        type: string
+        description: A set of additional SSH public keys that can be used for debugging the installation.
         x-nullable: true
       pull_secret:
         type: string
