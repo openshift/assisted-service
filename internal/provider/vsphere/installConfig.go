@@ -5,12 +5,14 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/swag"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
+	errorWrap "github.com/pkg/errors"
 )
 
 func setPlatformValues(openshiftVersion string, platform *installcfg.VsphereInstallConfigPlatform) {
@@ -52,6 +54,29 @@ func setPlatformValues(openshiftVersion string, platform *installcfg.VsphereInst
 	}
 }
 
+func (p vsphereProvider) addLoadBalancer(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+	if cluster.LoadBalancer == nil {
+		return nil
+	}
+	switch cluster.LoadBalancer.Type {
+	case models.LoadBalancerTypeClusterManaged:
+		// Nothing, this is the default.
+	case models.LoadBalancerTypeUserManaged:
+		cfg.Platform.Vsphere.LoadBalancer = &configv1.VSpherePlatformLoadBalancer{
+			Type: configv1.LoadBalancerTypeUserManaged,
+		}
+	default:
+		return fmt.Errorf(
+			"load balancer type is set to unsupported value '%s', supported values are "+
+				"'%s' and '%s'",
+			cluster.LoadBalancer.Type,
+			models.LoadBalancerTypeClusterManaged,
+			models.LoadBalancerTypeUserManaged,
+		)
+	}
+	return nil
+}
+
 func (p vsphereProvider) AddPlatformToInstallConfig(
 	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster, infraEnvs []*common.InfraEnv) error {
 	vsPlatform := &installcfg.VsphereInstallConfigPlatform{}
@@ -85,5 +110,10 @@ func (p vsphereProvider) AddPlatformToInstallConfig(
 	cfg.Platform = installcfg.Platform{
 		Vsphere: vsPlatform,
 	}
+
+	if err := p.addLoadBalancer(cfg, cluster); err != nil {
+		return errorWrap.Wrap(err, "failed to set vSphere's cluster install-config.yaml load balancer as user-managed")
+	}
+
 	return nil
 }
