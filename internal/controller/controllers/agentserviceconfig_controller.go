@@ -19,13 +19,13 @@ package controllers
 import (
 	"context"
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
@@ -2114,7 +2114,7 @@ func getMustGatherImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceCon
 	if len(mustGatherVersions) == 0 {
 		return MustGatherImages()
 	}
-	encodedVersions, err := json.Marshal(mustGatherVersions)
+	encodedVersions, err := json.ConfigStd.Marshal(mustGatherVersions)
 	if err != nil {
 		log.WithError(err).Error(fmt.Sprintf("Problem marshaling must gather images (%v) to string, returning default %v", mustGatherVersions, MustGatherImages()))
 		return MustGatherImages()
@@ -2157,7 +2157,7 @@ func getOSImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec)
 		return OSImages()
 	}
 
-	encodedOSImages, err := json.Marshal(osImages)
+	encodedOSImages, err := json.ConfigStd.Marshal(osImages)
 	if err != nil {
 		log.WithError(err).Error(fmt.Sprintf("Problem marshaling OSImages (%v) to string, returning default %v", osImages, OSImages()))
 		return OSImages()

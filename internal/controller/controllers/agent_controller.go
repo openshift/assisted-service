@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -27,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -806,7 +806,7 @@ func (r *AgentReconciler) shouldApproveCSRsForAgent(ctx context.Context, agent *
 }
 
 func marshalNodeLabels(nodeLabels map[string]string) (string, error) {
-	b, err := json.Marshal(&nodeLabels)
+	b, err := json.ConfigStd.Marshal(&nodeLabels)
 	if err != nil {
 		return "", err
 	}
@@ -1111,7 +1111,7 @@ func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, log logrus.Fi
 	}
 
 	// as we marshalling same var or []string, there is no point to verify error on marshalling it
-	argsBytes, _ := json.Marshal(agentSpecInstallerArgs.Args)
+	argsBytes, _ := json.ConfigStd.Marshal(agentSpecInstallerArgs.Args)
 	// we need to validate if the equal one more after marshalling
 	if string(argsBytes) == host.InstallerArgs {
 		log.Debugf("Nothing to update, installer args were already set")

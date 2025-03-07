@@ -2,12 +2,12 @@ package metrics
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
+	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -410,9 +410,8 @@ func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clus
 		}
 		installationStageStr := string(currentStage)
 
-		var hwInfo models.Inventory
 		hwVendor, hwProduct := UnknownHWValue, UnknownHWValue
-		if err := json.Unmarshal([]byte(h.Inventory), &hwInfo); err == nil {
+		if hwInfo, err := common.UnmarshalInventory(h.Inventory); err == nil {
 			if hwInfo.SystemVendor != nil {
 				hwVendor = hwInfo.SystemVendor.Manufacturer
 				hwProduct = hwInfo.SystemVendor.ProductName
@@ -455,8 +454,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 		clusterVersion, roleStr, hwVendor, hwProduct, diskType, installationStageStr)
 	m.serviceLogicClusterHosts.WithLabelValues(roleStr, installationStageStr).Inc()
 
-	var hwInfo models.Inventory
-	err := json.Unmarshal([]byte(h.Inventory), &hwInfo)
+	hwInfo, err := common.UnmarshalInventory(h.Inventory)
 	if err != nil {
 		log.Errorf("failed to report host hardware installation metrics for %s", h.ID)
 		return

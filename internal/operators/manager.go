@@ -4,11 +4,11 @@ import (
 	"container/list"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
@@ -193,7 +193,7 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 	}
 
 	if len(controllerManifests) > 0 {
-		content, err := json.Marshal(controllerManifests)
+		content, err := json.ConfigStd.Marshal(controllerManifests)
 		if err != nil {
 			return err
 		}

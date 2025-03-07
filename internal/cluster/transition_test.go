@@ -2,12 +2,12 @@ package cluster
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -5303,7 +5303,7 @@ func makeFreeAddresses(network string, ips ...strfmt.IPv4) *models.FreeNetworkAd
 
 func makeFreeNetworksAddressesStr(elems ...*models.FreeNetworkAddresses) string {
 	toMarshal := models.FreeNetworksAddresses(elems)
-	b, err := json.Marshal(&toMarshal)
+	b, err := json.ConfigStd.Marshal(&toMarshal)
 	Expect(err).ToNot(HaveOccurred())
 	return string(b)
 }
