@@ -6013,7 +6013,8 @@ func init() {
                   "lvm",
                   "mce",
                   "node_feature_discovery",
-                  "serverless"
+                  "serverless",
+                  "nmstate"
                 ]
               }
             }
@@ -16985,7 +16986,8 @@ func init() {
                   "lvm",
                   "mce",
                   "node_feature_discovery",
-                  "serverless"
+                  "serverless",
+                  "nmstate"
                 ]
               }
             }
