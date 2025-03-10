@@ -64,6 +64,13 @@ spec:
                 items:
                   type: string
                 type: array
+              additionalSSHAuthorizedKeys:
+                description: |-
+                  AdditionalSSHAuthorizedKeys is a set of additional SSH public keys that can be used for
+                  debugging the installation.
+                items:
+                  type: string
+                type: array
               additionalTrustBundle:
                 description: |-
                   PEM-encoded X.509 certificate bundle. Hosts discovered by this
