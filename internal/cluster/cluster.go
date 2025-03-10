@@ -665,9 +665,9 @@ func (m *Manager) ClusterMonitoring() {
 	}
 }
 
-func CanDownloadFiles(c *common.Cluster) (err error) {
-	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{
+func getDownloadFilesAllowedStatuses() []string {
+
+	return []string{
 		models.ClusterStatusInstalling,
 		models.ClusterStatusFinalizing,
 		models.ClusterStatusInstalled,
@@ -676,7 +676,13 @@ func CanDownloadFiles(c *common.Cluster) (err error) {
 		models.ClusterStatusCancelled,
 		models.ClusterStatusInstallingPendingUserAction,
 	}
-	if !funk.Contains(allowedStatuses, clusterStatus) {
+}
+
+func CanDownloadFiles(c *common.Cluster) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+
+	allowedStatuses := getDownloadFilesAllowedStatuses()
+	if !funk.Contains(getDownloadFilesAllowedStatuses(), clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, files can be downloaded only when status is one of: %s",
 			c.ID, clusterStatus, allowedStatuses)
 	}
@@ -693,6 +699,23 @@ func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 		models.ClusterStatusCancelled,
 		models.ClusterStatusInstallingPendingUserAction,
 	}
+	if !funk.Contains(allowedStatuses, clusterStatus) {
+		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only when status is one of: %s",
+			c.ID, clusterStatus, constants.Kubeconfig, allowedStatuses)
+	}
+
+	return err
+}
+
+func CanDownloadKubeconfigNoIngress(c *common.Cluster, agentInstaller bool) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+	if !agentInstaller {
+		return CanDownloadFiles(c)
+	}
+
+	// For agent installer, kubeconfig can be generated, and retrieved, prior to cluster installation.
+	allowedStatuses := getDownloadFilesAllowedStatuses()
+	allowedStatuses = append(allowedStatuses, models.ClusterStatusReady, models.ClusterStatusPreparingForInstallation)
 	if !funk.Contains(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only when status is one of: %s",
 			c.ID, clusterStatus, constants.Kubeconfig, allowedStatuses)
