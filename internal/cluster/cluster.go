@@ -701,6 +701,28 @@ func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 	return err
 }
 
+func CanDownloadKubeconfigNoIngress(c *common.Cluster, kubeconfig_before_install_complete bool) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+	allowedStatuses := []string{
+		models.ClusterStatusInstalling,
+		models.ClusterStatusFinalizing,
+		models.ClusterStatusInstalled,
+		models.ClusterStatusError,
+		models.ClusterStatusAddingHosts,
+		models.ClusterStatusCancelled,
+		models.ClusterStatusInstallingPendingUserAction,
+	}
+	if kubeconfig_before_install_complete {
+		allowedStatuses = append(allowedStatuses, models.ClusterStatusReady, models.ClusterStatusPreparingForInstallation)
+	}
+	if !funk.Contains(allowedStatuses, clusterStatus) {
+		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only when status is one of: %s",
+			c.ID, clusterStatus, constants.KubeconfigNoIngress, allowedStatuses)
+	}
+
+	return err
+}
+
 func (m *Manager) IsOperatorAvailable(c *common.Cluster, operatorName string) bool {
 	// TODO: MGMT-4458
 	// Backward-compatible solution for clusters that don't have monitored operators data
