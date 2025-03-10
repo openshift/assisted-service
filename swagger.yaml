@@ -6612,6 +6612,7 @@ definitions:
       - 'master'
       - 'worker'
       - 'bootstrap'
+      - 'arbiter'
 
   host-validation-id:
     type: string
