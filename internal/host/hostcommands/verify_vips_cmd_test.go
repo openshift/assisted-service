@@ -2,8 +2,8 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"

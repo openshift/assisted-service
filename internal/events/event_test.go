@@ -2,12 +2,12 @@ package events
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -77,7 +77,7 @@ var _ = Describe("Add event", func() {
 		Expect(time.Time(*dbEvent.EventTime)).To(BeTemporally("~", time.Now(), 100*time.Millisecond))
 	}
 	marshal := func(v interface{}) string {
-		b, err := json.Marshal(v)
+		b, err := json.ConfigStd.Marshal(v)
 		Expect(err).ToNot(HaveOccurred())
 		return string(b)
 	}

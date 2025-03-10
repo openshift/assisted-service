@@ -2,8 +2,8 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -59,7 +59,7 @@ var _ = Describe("disk_performance", func() {
 
 	It("returns no steps when boot device is persistent", func() {
 		inventory := &models.Inventory{Boot: &models.Boot{DeviceType: models.BootDeviceTypePersistent}}
-		invBytes, err := json.Marshal(inventory)
+		invBytes, err := json.ConfigStd.Marshal(inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host.Inventory = string(invBytes)
 		steps, err := dCmd.GetSteps(ctx, &host)

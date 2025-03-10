@@ -2,9 +2,9 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
 	"net"
 
+	json "github.com/bytedance/sonic"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -76,7 +76,7 @@ func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
 	for _, cidr := range networks {
 		request = append(request, cidr)
 	}
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		f.log.WithError(err).Warn("Json marshal")
 		return "", err

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"text/template"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -507,7 +507,7 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 
 	setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
 
-	configBytes, err := json.Marshal(config)
+	configBytes, err := json.ConfigStd.Marshal(config)
 	if err != nil {
 		return nil, err
 	}
@@ -524,7 +524,7 @@ func getUserSSHKey(sshKey string) (string, error) {
 	userAuthBlock["passwordHash"] = "!"
 	userAuthBlock["sshAuthorizedKeys"] = keys
 	userAuthBlock["groups"] = [1]string{"sudo"}
-	blockByte, err := json.Marshal(userAuthBlock)
+	blockByte, err := json.ConfigStd.Marshal(userAuthBlock)
 	if err != nil {
 		return "", fmt.Errorf("failed to build user ssh key block: %w", err)
 	}
@@ -561,7 +561,7 @@ func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, er
 		httpsProxyAttr += `"httpsProxy": "` + httpsProxy + `"`
 	}
 	if noProxy != "" {
-		noProxyStr, err := json.Marshal(strings.Split(noProxy, ","))
+		noProxyStr, err := json.ConfigStd.Marshal(strings.Split(noProxy, ","))
 		if err != nil {
 			return "", err
 		}

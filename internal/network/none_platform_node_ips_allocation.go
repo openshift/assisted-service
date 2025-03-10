@@ -1,13 +1,13 @@
 package network
 
 import (
-	"encoding/json"
 	stderrors "errors"
 	"fmt"
 	"net"
 	"sort"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
