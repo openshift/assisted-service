@@ -500,6 +500,7 @@ func deployAgentCRD(ctx context.Context, client k8sclient.Client,
 			},
 			Annotations: map[string]string{
 				controllers.AgentStateAnnotation: agentState,
+				controllers.AgentRoleAnnotation:  string(spec.Role),
 			},
 		},
 		Spec: *spec,
@@ -5612,7 +5613,7 @@ spec:
 	})
 })
 
-var _ = PDescribe("bmac reconcile flow", func() { // Disabled until MGMT-19596 is resolved
+var _ = Describe("bmac reconcile flow", func() {
 	if !Options.EnableKubeAPI {
 		return
 	}
@@ -5628,9 +5629,13 @@ var _ = PDescribe("bmac reconcile flow", func() { // Disabled until MGMT-19596 i
 	)
 
 	BeforeEach(func() {
+		db = utils_test.TestContext.GetDB()
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		snoAciSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployClusterImageSetCRD(ctx, kubeClient, snoAciSpec.ImageSetRef)
+		deployAgentClusterInstallCRD(ctx, kubeClient, snoAciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 
 		infraNsName = types.NamespacedName{
 			Name:      "infraenv",
@@ -5657,19 +5662,19 @@ var _ = PDescribe("bmac reconcile flow", func() { // Disabled until MGMT-19596 i
 			Namespace: Options.Namespace,
 			Name:      createBMHCRDNameFromID(host.ID.String()),
 		}
-		db = utils_test.TestContext.GetDB()
 	})
 
 	Context("sno reconcile flow", func() {
 		It("reconciles the infraenv", func() {
 			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
+			bmh.Spec.BootMACAddress = getAgentMac(ctx, kubeClient, agentNsName)
 			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
 			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
 
 			Eventually(func() bool {
 				bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
 				return bmh.Spec.Image != nil && bmh.Spec.Image.URL != ""
-			}, "30s", "10s").Should(Equal(true))
+			}, "90s", "10s").Should(Equal(true))
 
 			Expect(bmh.Spec.AutomatedCleaningMode).To(Equal(metal3_v1alpha1.CleaningModeDisabled))
 			Expect(bmh.ObjectMeta.Annotations).To(HaveKey(controllers.BMH_INSPECT_ANNOTATION))
@@ -5694,20 +5699,31 @@ var _ = PDescribe("bmac reconcile flow", func() { // Disabled until MGMT-19596 i
 					return false
 				}
 				return true
-			}, "60s", "10s").Should(Equal(true))
+			}, "90s", "10s").Should(Equal(true))
 		})
 		It("reconcile bmh cluster deployment", func() {
 			const (
 				clusterNamespace = "cluster-namespace"
 				clusterName      = "cluster-name"
 			)
+			// Infraenv needs to have no cluster reference before we run this test
+			// otherwise the label will not be applied.
+			By("Clear cluster reference on infraenv")
+			infraEnv := getInfraEnvCRD(ctx, kubeClient, types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      infraNsName.Name,
+			})
+			infraEnv.Spec.ClusterRef = nil
+			Expect(kubeClient.Update(ctx, infraEnv)).ToNot(HaveOccurred())
+
 			By("Set cluster reference annotation on BMH")
 			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
+			bmh.Spec.BootMACAddress = getAgentMac(ctx, kubeClient, agentNsName)
+			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
 			if bmh.ObjectMeta.Annotations == nil {
 				bmh.ObjectMeta.Annotations = make(map[string]string)
 				bmh.ObjectMeta.Annotations[controllers.BMH_CLUSTER_REFERENCE] = fmt.Sprintf(`%s/%s`, clusterNamespace, clusterName)
 			}
-
 			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
 
 			Eventually(func() bool {
@@ -5717,7 +5733,7 @@ var _ = PDescribe("bmac reconcile flow", func() { // Disabled until MGMT-19596 i
 					Name:      clusterName,
 					Namespace: clusterNamespace,
 				})
-			}, "60s", "10s").Should(Equal(true))
+			}, "90s", "10s").Should(Equal(true))
 
 			By("Clear cluster reference annotation on BMH")
 			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
@@ -5730,12 +5746,12 @@ var _ = PDescribe("bmac reconcile flow", func() { // Disabled until MGMT-19596 i
 				// expect agent cluster reference to be set
 				agent := getAgentCRD(ctx, kubeClient, agentNsName)
 				return agent.Spec.ClusterDeploymentName == nil
-			}, "60s", "10s").Should(Equal(true))
+			}, "90s", "10s").Should(Equal(true))
 		})
 	})
 })
 
-var _ = PDescribe("PreprovisioningImage reconcile flow", func() { // Disabled until MGMT-19596 is resolved
+var _ = PDescribe("PreprovisioningImage reconcile flow", func() { // Disabled until MGMT-20104 is resolved
 	if !Options.EnableKubeAPI {
 		return
 	}
@@ -5935,7 +5951,7 @@ var _ = PDescribe("PreprovisioningImage reconcile flow", func() { // Disabled un
 	})
 })
 
-var _ = PDescribe("restore Host by Agent flow", func() { // Disabled until MGMT-19596 is resolved
+var _ = Describe("restore Host by Agent flow", func() {
 	if !Options.EnableKubeAPI {
 		return
 	}
@@ -5955,6 +5971,7 @@ var _ = PDescribe("restore Host by Agent flow", func() { // Disabled until MGMT-
 	)
 
 	BeforeEach(func() {
+		db = utils_test.TestContext.GetDB()
 		secretRef = deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec = getDefaultClusterDeploymentSpec(secretRef)
 		aciSNOSpec = getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
@@ -5974,7 +5991,6 @@ var _ = PDescribe("restore Host by Agent flow", func() { // Disabled until MGMT-
 			Name:      "agent" + randomNameSuffix(),
 			Namespace: Options.Namespace,
 		}
-		db = utils_test.TestContext.GetDB()
 	})
 
 	It("Should restore a bound Host if missing", func() {
