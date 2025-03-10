@@ -37,6 +37,11 @@
       name: generated
       state: directory
 
+  - name: write the cluster image set crd
+    template:
+      src: "clusterImageSet.j2"
+      dest: "generated/clusterImageSet.yaml"
+
   - name: write the infraEnv crd
     template:
       src: "infraEnv.j2"
