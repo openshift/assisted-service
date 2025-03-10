@@ -369,11 +369,10 @@ func (v *validator) isMtuValidInMachineNetwork(c *validationContext, connectivit
 				if !mtuReport.MtuSuccessful {
 					return ValidationFailure, fmt.Sprintf("MTU is broken. Interface: %s, remote IP address: %s", mtuReport.OutgoingNic, mtuReport.RemoteIPAddress)
 				}
-				return ValidationSuccess, "MTU is ok"
 			}
 		}
 	}
-	return "", ""
+	return ValidationSuccess, "MTU is ok"
 }
 
 func (v *validator) isConnected(c *validationContext) (ValidationStatus, string) {
