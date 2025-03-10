@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -125,6 +126,9 @@ type Config struct {
 
 	// InfraEnv ID for the ephemeral installer. Should not be set explicitly.Ephemeral (agent) installer sets this env var
 	InfraEnvID strfmt.UUID `envconfig:"INFRA_ENV_ID" default:""`
+
+	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
+	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
 }
 
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
@@ -3920,7 +3924,7 @@ func (b *bareMetalInventory) V2GetPresignedForClusterFiles(ctx context.Context, 
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
-	} else if err = b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
+	} else if err = b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName, false); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -4034,7 +4038,7 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 	return fileName, downloadFileName, nil
 }
 
-func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID, fileName string) error {
+func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID, fileName string, kubeconfig_before_install bool) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Checking cluster file for download: %s for cluster %s", fileName, clusterID)
 
@@ -4052,6 +4056,8 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	switch fileName {
 	case constants.Kubeconfig:
 		err = clusterPkg.CanDownloadKubeconfig(cluster)
+	case constants.KubeconfigNoIngress:
+		err = clusterPkg.CanDownloadKubeconfigNoIngress(cluster, kubeconfig_before_install)
 	case constants.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
@@ -6208,9 +6214,33 @@ func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, p
 	// At the finalizing phase, we create the kubeconfig file and add the ingress CA.
 	// An ingress CA isn't required for normal login but for oauth login which isn't a common use case.
 	// Here we fallback to the kubeconfig-noingress for the kubeconfig filename.
-	if err != nil && params.FileName == constants.Kubeconfig {
+	if err != nil && fileName == constants.Kubeconfig {
 		fileName = constants.KubeconfigNoIngress
-		respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, constants.KubeconfigNoIngress, params.ClusterID.String())
+
+		respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, fileName, params.ClusterID.String(), false)
+		if err != nil && b.Config.ClusterTLSCertOverrideDir != "" {
+			// Since only ABI uses ClusterTLSCertOverrideDir, if it is set and the tls directory is empty then the
+			// kubeconfig must be generated here for retrieval prior to cluster installation.
+			entries, readerr := os.ReadDir(b.Config.ClusterTLSCertOverrideDir)
+			if readerr == nil && len(entries) == 0 {
+				// The certs have not been created yet, so create them along with the kubeconfig
+				// via the 'openshift-install crate ignition-configs' command
+				cluster, clustererr := b.getCluster(ctx, params.ClusterID.String())
+				if clustererr != nil {
+					return common.GenerateErrorResponder(clustererr)
+				}
+				_, err = b.InstallClusterInternal(ctx, installer.V2InstallClusterParams{
+					ClusterID: *cluster.ID})
+				if err != nil {
+					return common.GenerateErrorResponder(err)
+				}
+
+				// TODO copy generated certs to TLS Override dir so they will be used when
+				// creating for the cluster
+
+				respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, fileName, params.ClusterID.String(), true)
+			}
+		}
 	}
 
 	if err != nil {
@@ -6229,16 +6259,16 @@ func (b *bareMetalInventory) V2DownloadClusterFiles(ctx context.Context, params 
 }
 
 func (b *bareMetalInventory) V2DownloadClusterFilesInternal(ctx context.Context, params installer.V2DownloadClusterFilesParams) (io.ReadCloser, int64, error) {
-	return b.v2DownloadClusterFilesInternal(ctx, params.FileName, params.ClusterID.String())
+	return b.v2DownloadClusterFilesInternal(ctx, params.FileName, params.ClusterID.String(), false)
 }
 
 func (b *bareMetalInventory) V2DownloadClusterCredentialsInternal(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error) {
-	return b.v2DownloadClusterFilesInternal(ctx, params.FileName, params.ClusterID.String())
+	return b.v2DownloadClusterFilesInternal(ctx, params.FileName, params.ClusterID.String(), false)
 }
 
-func (b *bareMetalInventory) v2DownloadClusterFilesInternal(ctx context.Context, fileName, clusterId string) (io.ReadCloser, int64, error) {
+func (b *bareMetalInventory) v2DownloadClusterFilesInternal(ctx context.Context, fileName, clusterId string, kubeconfig_before_install bool) (io.ReadCloser, int64, error) {
 	log := logutil.FromContext(ctx, b.log)
-	if err := b.checkFileForDownload(ctx, clusterId, fileName); err != nil {
+	if err := b.checkFileForDownload(ctx, clusterId, fileName, kubeconfig_before_install); err != nil {
 		return nil, 0, err
 	}
 
