@@ -119,7 +119,7 @@ This deployment option have multiple optional parameters that should be used in 
 1. `INGRESS_DOMAIN` - By default deployment script will try to get the domain prefix from OpenShift ingress controller. If you don't have access to it then you may specify the domain yourself. For example: `apps.ocp.prod.psi.redhat.com`
 1. `DISABLE_TLS` - Based on the target environment, routes that are being used are HTTPS. Setting it to true will make HTTP routes instead.
 
-To set the parameters simply add them in the end of the command, for example:
+To set the parameters simply add them at the end of the command, for example:
 
 ```shell
 skipper make deploy-all TARGET=oc-ingress APPLY_NAMESPACE=False INGRESS_DOMAIN=apps.ocp.prod.psi.redhat.com
