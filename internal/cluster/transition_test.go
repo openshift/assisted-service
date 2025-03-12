@@ -559,15 +559,14 @@ var _ = Describe("Reset cluster", func() {
 			}
 		})
 		It(fmt.Sprintf("resets API VIP and Ingress VIP in case of single node cluster from state %s", t.state), func() {
-			haMode := models.ClusterHighAvailabilityModeNone
 			hostIP := "1.2.3.4"
 			cluster = common.Cluster{
 				Cluster: models.Cluster{
-					ID:                   &clusterId,
-					Status:               swag.String(t.state),
-					HighAvailabilityMode: &haMode,
-					APIVips:              []*models.APIVip{{IP: models.IP(hostIP)}},
-					IngressVips:          []*models.IngressVip{{IP: models.IP(hostIP)}},
+					ID:                &clusterId,
+					Status:            swag.String(t.state),
+					ControlPlaneCount: 1,
+					APIVips:           []*models.APIVip{{IP: models.IP(hostIP)}},
+					IngressVips:       []*models.IngressVip{{IP: models.IP(hostIP)}},
 				},
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -2582,7 +2581,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					isServiceCidrDefined:                {status: ValidationSuccess, messagePattern: "Service Network CIDR is defined"},
 					noCidrOverlapping:                   {status: ValidationSuccess, messagePattern: "No CIDRS are overlapping"},
 					networkPrefixValid:                  {status: ValidationSuccess, messagePattern: "Cluster Network prefix is valid."},
-					isNetworkTypeValid:                  {status: ValidationFailure, messagePattern: regexp.QuoteMeta("High-availability mode 'None' (SNO) is not supported by OpenShiftSDN; use another network type instead")},
+					isNetworkTypeValid:                  {status: ValidationFailure, messagePattern: regexp.QuoteMeta("Control Plane Count '1' (SNO) is not supported by OpenShiftSDN; use another network type instead")},
 				}),
 				errorExpected:     false,
 				controlPlaneCount: 1,
@@ -2617,8 +2616,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				}
 
 				if t.sno {
-					ha := models.ClusterHighAvailabilityModeNone
-					cluster.HighAvailabilityMode = &ha
+					cluster.ControlPlaneCount = 1
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -4997,24 +4995,22 @@ var _ = Describe("Single node", func() {
 		}
 		for i := range tests {
 			t := tests[i]
-			haMode := models.ClusterHighAvailabilityModeNone
 			It(t.name, func() {
 				cluster = common.Cluster{
 					Cluster: models.Cluster{
-						ClusterNetworks:      common.TestIPv4Networking.ClusterNetworks,
-						ServiceNetworks:      common.TestIPv4Networking.ServiceNetworks,
-						MachineNetworks:      common.TestIPv4Networking.MachineNetworks,
-						APIVips:              common.TestIPv4Networking.APIVips,
-						IngressVips:          common.TestIPv4Networking.IngressVips,
-						ID:                   &clusterId,
-						Status:               &t.srcState,
-						StatusInfo:           &t.srcStatusInfo,
-						BaseDNSDomain:        "test.com",
-						PullSecretSet:        t.pullSecretSet,
-						NetworkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
-						HighAvailabilityMode: &haMode,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
-						ControlPlaneCount:    1,
+						ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
+						ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+						MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
+						APIVips:           common.TestIPv4Networking.APIVips,
+						IngressVips:       common.TestIPv4Networking.IngressVips,
+						ID:                &clusterId,
+						Status:            &t.srcState,
+						StatusInfo:        &t.srcStatusInfo,
+						BaseDNSDomain:     "test.com",
+						PullSecretSet:     t.pullSecretSet,
+						NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount: 1,
 					},
 				}
 
@@ -5117,7 +5113,7 @@ var _ = Describe("installation timeout", func() {
 				OpenshiftVersion:       "4.15",
 				EmailDomain:            "redhat.com",
 				OrgSoftTimeoutsEnabled: true,
-				HighAvailabilityMode:   swag.String(models.ClusterHighAvailabilityModeNone),
+				ControlPlaneCount:      1,
 				Hosts: []*models.Host{
 					{
 						ID:         &id,

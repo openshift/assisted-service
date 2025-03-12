@@ -21,7 +21,7 @@
   },
   "email_domain": "Unknown",
   "feature_usage": "{\"VIP auto alloc.\":{\"id\":\"VIP_AUTO_ALLOC\",\"name\":\"VIP auto alloc.\"}}",
-  "high_availability_mode": "Full",
+  "control_plane_count": 3,
   "host_networks": [],
   "hosts": [],
   "href": "/api/assisted-install/v2/clusters/948b8ba9-798f-4310-bb08-67a6b56ebdcc",

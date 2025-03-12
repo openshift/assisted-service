@@ -5262,7 +5262,7 @@ definitions:
         enum: ['Full', 'None']
         default: 'Full'
         description: |
-          Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+          (DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
           over multiple master nodes whereas 'None' installs a full cluster over one node.
       id:
         type: string
@@ -6811,13 +6811,6 @@ definitions:
         pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$'
         type: string
         description: Assisted installer image
-      high_availability_mode:
-        type: string
-        enum: ['Full', 'None']
-        default: 'Full'
-        description: |
-          Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
-          over multiple master nodes whereas 'None' installs a full cluster over one node.
       control_plane_count:
         type: integer
         description: Specifies the required number of control plane nodes that should be part of the cluster.

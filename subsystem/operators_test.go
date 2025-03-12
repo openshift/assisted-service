@@ -231,7 +231,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 	Context("OLM operators", func() {
 		ctx := context.Background()
-		registerNewCluster := func(openshiftVersion string, highAvailabilityMode string, operators []*models.OperatorCreateParams, cpuArchitecture *string, vipDhcpAllocation *bool) *installer.V2RegisterClusterCreated {
+		registerNewCluster := func(openshiftVersion string, ctrlPlaneCount int64, operators []*models.OperatorCreateParams, cpuArchitecture *string, vipDhcpAllocation *bool) *installer.V2RegisterClusterCreated {
 			var err error
 			var cluster *installer.V2RegisterClusterCreated
 			clusterCIDR := "10.128.0.0/14"
@@ -239,25 +239,25 @@ var _ = Describe("Operators endpoint tests", func() {
 
 			if vipDhcpAllocation == nil {
 				vipDhcpAllocation = swag.Bool(true)
-				if highAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+				if ctrlPlaneCount == int64(1) {
 					vipDhcpAllocation = swag.Bool(false)
 				}
 			}
 
 			cluster, err = utils_test.TestContext.User2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("test-cluster"),
-					OpenshiftVersion:     swag.String(openshiftVersion),
-					HighAvailabilityMode: swag.String(highAvailabilityMode),
-					PullSecret:           swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
-					CPUArchitecture:      swag.StringValue(cpuArchitecture),
-					OlmOperators:         operators,
-					BaseDNSDomain:        "example.com",
-					ClusterNetworks:      []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-					ServiceNetworks:      []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-					SSHPublicKey:         utils_test.SshPublicKey,
-					VipDhcpAllocation:    vipDhcpAllocation,
-					NetworkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
+					Name:              swag.String("test-cluster"),
+					OpenshiftVersion:  swag.String(openshiftVersion),
+					ControlPlaneCount: swag.Int64(ctrlPlaneCount),
+					PullSecret:        swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
+					CPUArchitecture:   swag.StringValue(cpuArchitecture),
+					OlmOperators:      operators,
+					BaseDNSDomain:     "example.com",
+					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					SSHPublicKey:      utils_test.SshPublicKey,
+					VipDhcpAllocation: vipDhcpAllocation,
+					NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
 				},
 			})
 
@@ -272,7 +272,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			// Register cluster with ppc64le CPU architecture
 			cluster := registerNewCluster(
 				"4.13.0",
-				models.ClusterHighAvailabilityModeFull,
+				int64(common.MinMasterHostsNeededForInstallationInHaMode),
 				nil,
 				swag.String(models.ClusterCPUArchitectureS390x),
 				swag.Bool(false),
@@ -343,7 +343,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		It("LSO as ODF dependency on ARM arch", func() {
 			cluster := registerNewCluster(
 				"4.13-multi",
-				models.ClusterHighAvailabilityModeFull,
+				int64(common.MinMasterHostsNeededForInstallationInHaMode),
 				nil,
 				swag.String(models.ClusterCPUArchitectureArm64),
 				nil,
@@ -385,7 +385,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		It("should lvm installed as cnv dependency", func() {
 			cluster := registerNewCluster(
 				"4.12.0",
-				models.ClusterHighAvailabilityModeNone,
+				int64(1),
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
 				nil,
 				nil,
@@ -415,7 +415,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		It("should lvm have right subscription name on 4.12", func() {
 			cluster := registerNewCluster(
 				"4.12.0",
-				models.ClusterHighAvailabilityModeNone,
+				int64(1),
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
 				nil,
 				nil,
@@ -438,7 +438,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		It("should lvm have right subscription name on 4.11", func() {
 			cluster := registerNewCluster(
 				"4.11",
-				models.ClusterHighAvailabilityModeNone,
+				int64(1),
 				[]*models.OperatorCreateParams{{Name: lvm.Operator.Name}},
 				nil,
 				nil,

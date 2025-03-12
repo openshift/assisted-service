@@ -320,6 +320,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
 				PlatformType: hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			operation:       admissionv1.Create,
 			expectedAllowed: true,
@@ -329,6 +333,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
 				PlatformType: hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			operation:       admissionv1.Create,
 			expectedAllowed: false,
@@ -390,6 +398,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
 				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			operation:       admissionv1.Create,
 			expectedAllowed: true,
@@ -399,6 +411,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
 				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			operation:       admissionv1.Create,
 			expectedAllowed: false,
@@ -457,6 +473,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
 				PlatformType: hiveext.VSpherePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			operation:       admissionv1.Create,
 			expectedAllowed: true,
@@ -466,6 +486,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
 				PlatformType: hiveext.VSpherePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			operation:       admissionv1.Create,
 			expectedAllowed: true,
@@ -475,6 +499,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
 				PlatformType: hiveext.NutanixPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			operation:       admissionv1.Create,
 			expectedAllowed: true,
@@ -484,6 +512,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
 				PlatformType: hiveext.NutanixPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			operation:       admissionv1.Create,
 			expectedAllowed: false,
@@ -492,6 +524,10 @@ var _ = Describe("ACI web validate", func() {
 			name: "ACI update None platform with userManagedNetworking set to false not is allowed",
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking: hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			oldSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
@@ -505,6 +541,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
 				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			oldSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
@@ -518,6 +558,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
 				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			oldSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
@@ -530,6 +574,10 @@ var _ = Describe("ACI web validate", func() {
 			name: "ACI update BareMetalPlatformType platform with platform None is not allowed",
 			newSpec: hiveext.AgentClusterInstallSpec{
 				PlatformType: hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			oldSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
@@ -542,6 +590,10 @@ var _ = Describe("ACI web validate", func() {
 			name: "ACI update BareMetalPlatformType platform with userManagedNetworking set to true is not allowed",
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking: hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			oldSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
@@ -616,6 +668,10 @@ var _ = Describe("ACI web validate", func() {
 					PlatformName:           "test",
 					CloudControllerManager: "",
 				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			operation:       admissionv1.Create,
 			expectedAllowed: true,
@@ -628,6 +684,10 @@ var _ = Describe("ACI web validate", func() {
 				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
 					PlatformName:           "test",
 					CloudControllerManager: "",
+				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
 				},
 			},
 			operation:       admissionv1.Create,
@@ -642,6 +702,7 @@ var _ = Describe("ACI web validate", func() {
 					PlatformName:           "test",
 					CloudControllerManager: "",
 				},
+
 				ProvisionRequirements: hiveext.ProvisionRequirements{
 					ControlPlaneAgents: 1,
 					WorkerAgents:       0,
@@ -741,6 +802,10 @@ var _ = Describe("ACI web validate", func() {
 			name: "ACI update External platform with userManagedNetworking set to false not is allowed",
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking: hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			oldSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
@@ -758,6 +823,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
 				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			oldSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
@@ -775,6 +844,10 @@ var _ = Describe("ACI web validate", func() {
 			newSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
 				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
 			},
 			oldSpec: hiveext.AgentClusterInstallSpec{
 				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
@@ -794,6 +867,10 @@ var _ = Describe("ACI web validate", func() {
 				ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
 					PlatformName:           "test",
 					CloudControllerManager: "",
+				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
 				},
 			},
 			oldSpec: hiveext.AgentClusterInstallSpec{

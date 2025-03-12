@@ -19,10 +19,9 @@ import (
 
 var _ = Describe("CNV operator", func() {
 	var (
-		log        = logrus.New()
-		operator   api.Operator
-		fullHaMode = models.ClusterHighAvailabilityModeFull
-		noneHaMode = models.ClusterHighAvailabilityModeNone
+		log      = logrus.New()
+		operator api.Operator
+		sno      = int64(1)
 	)
 
 	BeforeEach(func() {
@@ -38,9 +37,9 @@ var _ = Describe("CNV operator", func() {
 		operator = cnv.NewCNVOperator(log, cfg)
 	})
 
-	DescribeTable("getDependencies", func(ocpVersion string, haMode string, expectedOperator string) {
+	DescribeTable("getDependencies", func(ocpVersion string, haMode int64, expectedOperator string) {
 		cluster := common.Cluster{
-			Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: ocpVersion},
+			Cluster: models.Cluster{ControlPlaneCount: haMode, OpenshiftVersion: ocpVersion},
 		}
 
 		requirements, err := operator.GetDependencies(&cluster)
@@ -50,11 +49,11 @@ var _ = Describe("CNV operator", func() {
 		Expect(requirements[0]).To(BeEquivalentTo(expectedOperator))
 	},
 
-		Entry("LVM, Single node 4.12", "4.12", models.ClusterHighAvailabilityModeNone, lvm.Operator.Name),
-		Entry("LSO, Multi node 4.15", "4.15", models.ClusterHighAvailabilityModeFull, lso.Operator.Name),
-		Entry("LSO, Multi node 4.21", "4.21", models.ClusterHighAvailabilityModeFull, lso.Operator.Name),
-		Entry("LSO, Multi node 4.12", "4.12", models.ClusterHighAvailabilityModeFull, lso.Operator.Name),
-		Entry("LSO, Single node 4.11", "4.11", models.ClusterHighAvailabilityModeNone, lso.Operator.Name),
+		Entry("LVM, Single node 4.12", "4.12", int64(1), lvm.Operator.Name),
+		Entry("LSO, Multi node 4.15", "4.15", int64(common.MinMasterHostsNeededForInstallationInHaMode), lso.Operator.Name),
+		Entry("LSO, Multi node 4.21", "4.21", int64(common.MinMasterHostsNeededForInstallationInHaMode), lso.Operator.Name),
+		Entry("LSO, Multi node 4.12", "4.12", int64(common.MinMasterHostsNeededForInstallationInHaMode), lso.Operator.Name),
+		Entry("LSO, Single node 4.11", "4.11", int64(1), lso.Operator.Name),
 	)
 
 	Context("host requirements", func() {
@@ -62,9 +61,8 @@ var _ = Describe("CNV operator", func() {
 		var cluster common.Cluster
 
 		BeforeEach(func() {
-			mode := models.ClusterHighAvailabilityModeFull
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &mode, OpenshiftVersion: lvm.LvmsMinOpenshiftVersion4_12},
+				Cluster: models.Cluster{ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, OpenshiftVersion: lvm.LvmsMinOpenshiftVersion4_12},
 			}
 		})
 
@@ -228,9 +226,8 @@ var _ = Describe("CNV operator", func() {
 
 		It("should return reqs for SNO", func() {
 			host := models.Host{Role: models.HostRoleMaster}
-			haMode := models.ClusterHighAvailabilityModeNone
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: lvm.LvmsMinOpenshiftVersion4_12},
+				Cluster: models.Cluster{ControlPlaneCount: 1, OpenshiftVersion: lvm.LvmsMinOpenshiftVersion4_12},
 			}
 
 			requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
@@ -283,17 +280,17 @@ var _ = Describe("CNV operator", func() {
 				api.ValidationResult{Status: api.Failure, ValidationId: cnvOperator.GetHostValidationID(), Reasons: []string{"CPU does not have virtualization support"}},
 			),
 			Entry("SNO and there is no disk with bigger size than threshold for HPP",
-				&common.Cluster{Cluster: models.Cluster{OpenshiftVersion: "4.10", HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{masterWithLessDiskSizeAndVirt}}},
+				&common.Cluster{Cluster: models.Cluster{OpenshiftVersion: "4.10", ControlPlaneCount: sno, Hosts: []*models.Host{masterWithLessDiskSizeAndVirt}}},
 				masterWithLessDiskSizeAndVirt,
 				api.ValidationResult{Status: api.Failure, ValidationId: cnvOperator.GetHostValidationID(), Reasons: []string{"OpenShift Virtualization on SNO requires an additional disk with 53 GB (50 Gi) in order to provide persistent storage for VMs, using hostpath-provisioner"}},
 			),
 			Entry("SNO and there is a disk with bigger size than threshold for HPP",
-				&common.Cluster{Cluster: models.Cluster{OpenshiftVersion: "4.10", HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{masterWithOneSatisfyingDiskAndVirt}}},
+				&common.Cluster{Cluster: models.Cluster{OpenshiftVersion: "4.10", ControlPlaneCount: sno, Hosts: []*models.Host{masterWithOneSatisfyingDiskAndVirt}}},
 				masterWithOneSatisfyingDiskAndVirt,
 				api.ValidationResult{Status: api.Success, ValidationId: cnvOperator.GetHostValidationID(), Reasons: nil},
 			),
 			Entry("Non SNO and there is no disk with bigger size than threshold for HPP shouldn't bother us",
-				&common.Cluster{Cluster: models.Cluster{OpenshiftVersion: "4.10", HighAvailabilityMode: &fullHaMode, Hosts: []*models.Host{masterWithLessDiskSizeAndVirt}}},
+				&common.Cluster{Cluster: models.Cluster{OpenshiftVersion: "4.10", ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, Hosts: []*models.Host{masterWithLessDiskSizeAndVirt}}},
 				masterWithLessDiskSizeAndVirt,
 				api.ValidationResult{Status: api.Success, ValidationId: cnvOperator.GetHostValidationID(), Reasons: nil},
 			),
@@ -325,16 +322,16 @@ var _ = Describe("CNV operator", func() {
 		Expect(requirements.Requirements.Master.Qualitative).To(BeEquivalentTo(requirements.Requirements.Worker.Qualitative))
 	},
 		Entry("for non-SNO", cnv.Config{SNOPoolSizeRequestHPPGib: 50}, common.Cluster{Cluster: models.Cluster{
-			OpenshiftVersion:     "4.10",
-			HighAvailabilityMode: &fullHaMode,
+			OpenshiftVersion:  "4.10",
+			ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
 		}}),
 		Entry("for SNO", cnv.Config{SNOPoolSizeRequestHPPGib: 50, SNOInstallHPP: true}, common.Cluster{Cluster: models.Cluster{
-			OpenshiftVersion:     "4.10",
-			HighAvailabilityMode: &noneHaMode,
+			OpenshiftVersion:  "4.10",
+			ControlPlaneCount: sno,
 		}}),
 		Entry("for SNO and opt out of HPP via env var", cnv.Config{SNOPoolSizeRequestHPPGib: 50, SNOInstallHPP: false}, common.Cluster{Cluster: models.Cluster{
-			OpenshiftVersion:     "4.10",
-			HighAvailabilityMode: &noneHaMode,
+			OpenshiftVersion:  "4.10",
+			ControlPlaneCount: sno,
 		}}),
 	)
 
