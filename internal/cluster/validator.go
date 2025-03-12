@@ -191,7 +191,7 @@ func (v *clusterValidator) areVipsDefined(c *clusterPreprocessContext, vipsWrapp
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: User Managed Networking", vipsWrapper.Name())
 	}
-	if swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+	if c.cluster.ControlPlaneCount == 1 {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: SNO", vipsWrapper.Name())
 	}
 	if vipsWrapper.Len() > 0 {
@@ -220,7 +220,7 @@ func (v *clusterValidator) areVipsValid(c *clusterPreprocessContext, vipsWrapper
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: User Managed Networking", vipsWrapper.Name())
 	}
-	if swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+	if c.cluster.ControlPlaneCount == 1 {
 		return ValidationSuccess, fmt.Sprintf("%s virtual IPs are not required: SNO", vipsWrapper.Name())
 	}
 
@@ -318,8 +318,8 @@ func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) (Vali
 	if hasClusterNetworksUnsupportedByNetworkType(c.cluster) {
 		return ValidationFailure, "The cluster is configured with IPv6 which is not supported by OpenShiftSDN; use OVNKubernetes instead"
 	}
-	if isHighAvailabilityModeUnsupportedByNetworkType(c.cluster) {
-		return ValidationFailure, "High-availability mode 'None' (SNO) is not supported by OpenShiftSDN; use another network type instead"
+	if isControlPlaneCountUnsupportedByNetworkType(c.cluster) {
+		return ValidationFailure, "Control Plane Count '1' (SNO) is not supported by OpenShiftSDN; use another network type instead"
 	}
 	if isVipDhcpAllocationAndOVN(c.cluster) {
 		return ValidationFailure, "VIP DHCP allocation is not supported when the cluster is configured to use OVNKubernetes."
@@ -336,8 +336,8 @@ func hasClusterNetworksUnsupportedByNetworkType(cluster *common.Cluster) bool {
 	})) && cluster.NetworkType != nil && swag.StringValue(cluster.NetworkType) != models.ClusterNetworkTypeOVNKubernetes
 }
 
-func isHighAvailabilityModeUnsupportedByNetworkType(cluster *common.Cluster) bool {
-	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone &&
+func isControlPlaneCountUnsupportedByNetworkType(cluster *common.Cluster) bool {
+	return cluster.ControlPlaneCount == 1 &&
 		cluster.NetworkType != nil && swag.StringValue(cluster.NetworkType) == models.ClusterNetworkTypeOpenShiftSDN
 }
 

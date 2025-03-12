@@ -1886,9 +1886,9 @@ var _ = Describe("Refresh Host", func() {
 			"over_timeout":  90 * time.Minute,
 		}
 
-		ClusterHighAvailabilityModes := []string{models.ClusterHighAvailabilityModeNone, models.ClusterHighAvailabilityModeFull}
-		for i := range ClusterHighAvailabilityModes {
-			highAvailabilityMode := ClusterHighAvailabilityModes[i]
+		ClusterControlPlaneCounts := []int64{1, 3, 4, 5}
+		for i := range ClusterControlPlaneCounts {
+			controlPlaneCount := ClusterControlPlaneCounts[i]
 			for j := range installationStages {
 				stage := installationStages[j]
 				for passedTimeKey, passedTimeValue := range timePassedTypes {
@@ -1911,7 +1911,7 @@ var _ = Describe("Refresh Host", func() {
 						host.Progress = &progress
 						Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 						cluster = hostutil.GenerateTestCluster(clusterId)
-						cluster.HighAvailabilityMode = &highAvailabilityMode
+						cluster.ControlPlaneCount = controlPlaneCount
 						cluster.OrgSoftTimeoutsEnabled = true
 						Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
@@ -2034,9 +2034,9 @@ var _ = Describe("Refresh Host", func() {
 			"over_timeout":  90 * time.Minute,
 		}
 
-		ClusterHighAvailabilityModes := []string{models.ClusterHighAvailabilityModeNone, models.ClusterHighAvailabilityModeFull}
-		for i := range ClusterHighAvailabilityModes {
-			highAvailabilityMode := ClusterHighAvailabilityModes[i]
+		ClusterControlPlaneCounts := []int64{1, 3, 4, 5}
+		for i := range ClusterControlPlaneCounts {
+			controlPlaneCount := ClusterControlPlaneCounts[i]
 			for j := range installationStages {
 				stage := installationStages[j]
 				for passedTimeKey, passedTimeValue := range timePassedTypes {
@@ -2062,7 +2062,7 @@ var _ = Describe("Refresh Host", func() {
 							host.Progress = &progress
 							Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 							cluster = hostutil.GenerateTestCluster(clusterId)
-							cluster.HighAvailabilityMode = &highAvailabilityMode
+							cluster.ControlPlaneCount = controlPlaneCount
 							cluster.OrgSoftTimeoutsEnabled = true
 							Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
@@ -5439,7 +5439,7 @@ var _ = Describe("Refresh Host", func() {
 				cluster.UserManagedNetworking = swag.Bool(t.userManagedNetworking)
 				cluster.Name = common.TestDefaultConfig.ClusterName
 				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
-				cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+				cluster.ControlPlaneCount = 1
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 				Expect(hapi.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())

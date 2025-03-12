@@ -88,6 +88,7 @@ const (
 )
 
 const HighAvailabilityModeNone = "None"
+const ControlPlaneCountOne = int64(1)
 const defaultRequeueAfterOnError = 10 * time.Second
 const longerRequeueAfterOnError = 1 * time.Minute
 
@@ -1424,6 +1425,7 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 	if clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
 		clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0 {
 		clusterParams.HighAvailabilityMode = swag.String(HighAvailabilityModeNone)
+		clusterParams.ControlPlaneCount = swag.Int64(ControlPlaneCountOne)
 	}
 
 	if hyperthreadingInSpec(clusterInstall) {
