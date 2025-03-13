@@ -1,5 +1,6 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.21 AS golang
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.21 AS golang
 
+ENV GOFLAGS ""
 RUN go install gotest.tools/gotestsum@latest
 
 FROM quay.io/centos/centos:stream9
@@ -13,7 +14,7 @@ RUN dnf install --enablerepo=crb -y \
 RUN git config --system --add safe.directory '*'
 
 ENV GOROOT=/usr/lib/golang
-ENV GOPATH=/opt/app-root/src/go
+ENV GOPATH=/go
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 COPY --from=golang $GOPATH $GOPATH
