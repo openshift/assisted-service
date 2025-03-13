@@ -299,6 +299,8 @@ func (feature *OciIntegrationFeature) getIncompatibleFeatures(string) *[]models.
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
 		models.FeatureSupportLevelIDNMSTATE,
+		models.FeatureSupportLevelIDODF,
+		models.FeatureSupportLevelIDOPENSHIFTAI,
 	}
 }
 
