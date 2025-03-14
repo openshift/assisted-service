@@ -205,12 +205,14 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	if params.VipDhcpAllocation != nil {
 		targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
 	}
+	haMode, controlPlaneCount := common.GetDefaultHighAvailabilityAndMasterCountParams(params.HighAvailabilityMode, params.ControlPlaneCount)
 	targetConfiguration.ID = &clusterId
 	targetConfiguration.APIVips = params.APIVips
 	targetConfiguration.IngressVips = params.IngressVips
 	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
+	targetConfiguration.ControlPlaneCount = swag.Int64Value(controlPlaneCount)
 	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
-	targetConfiguration.HighAvailabilityMode = params.HighAvailabilityMode
+	targetConfiguration.HighAvailabilityMode = haMode
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
@@ -300,11 +302,14 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.APIVips = apiVips
 	targetConfiguration.IngressVips = ingressVips
 	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
-	targetConfiguration.HighAvailabilityMode = cluster.HighAvailabilityMode
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
 	targetConfiguration.LoadBalancer = cluster.LoadBalancer
+
+	if params.ControlPlaneCount != nil {
+		targetConfiguration.ControlPlaneCount = *params.ControlPlaneCount
+	}
 
 	if params.LoadBalancer != nil {
 		targetConfiguration.LoadBalancer = params.LoadBalancer
@@ -702,8 +707,8 @@ func ValidateDiskEncryptionParams(diskEncryptionParams *models.DiskEncryption, D
 	return nil
 }
 
-func ValidateHighAvailabilityModeWithPlatform(highAvailabilityMode *string, platform *models.Platform) error {
-	if swag.StringValue(highAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+func ValidateControlPlaneCountWithPlatform(controlPlaneCount *int64, platform *models.Platform) error {
+	if swag.Int64Value(controlPlaneCount) == 1 {
 		if platform != nil && platform.Type != nil && *platform.Type != models.PlatformTypeNone && !common.IsPlatformExternal(platform) {
 			return errors.Errorf("Single node cluster is not supported alongside %s platform", *platform.Type)
 		}

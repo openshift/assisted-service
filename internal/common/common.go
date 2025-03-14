@@ -185,7 +185,7 @@ func GetBootstrapHost(cluster *Cluster) *models.Host {
 }
 
 func IsSingleNodeCluster(cluster *Cluster) bool {
-	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
+	return cluster.ControlPlaneCount == 1
 }
 
 func IsDay2Cluster(cluster *Cluster) bool {
@@ -682,7 +682,7 @@ func GetHostsByEachRole(cluster *models.Cluster, effectiveRoles bool) ([]*models
 }
 
 func ShouldMastersBeSchedulable(cluster *models.Cluster) bool {
-	if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterCreateParamsHighAvailabilityModeNone {
+	if cluster.ControlPlaneCount == 1 {
 		return true
 	}
 
@@ -700,4 +700,33 @@ func IsMirrorConfigurationSet(conf *MirrorRegistryConfiguration) bool {
 	}
 
 	return false
+}
+
+func GetDefaultHighAvailabilityAndMasterCountParams(highAvailabilityMode *string, controlPlaneCount *int64) (*string, *int64) {
+	// Both not set, multi node by default
+	if highAvailabilityMode == nil && controlPlaneCount == nil {
+		return swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+			swag.Int64(MinMasterHostsNeededForInstallationInHaMode)
+	}
+
+	// only highAvailabilityMode set
+	if controlPlaneCount == nil {
+		if *highAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+			return highAvailabilityMode, swag.Int64(AllowedNumberOfMasterHostsInNoneHaMode)
+		}
+
+		return highAvailabilityMode, swag.Int64(MinMasterHostsNeededForInstallationInHaMode)
+	}
+
+	// only controlPlaneCount set
+	if highAvailabilityMode == nil {
+		if *controlPlaneCount == AllowedNumberOfMasterHostsInNoneHaMode {
+			return swag.String(models.ClusterHighAvailabilityModeNone), controlPlaneCount
+		}
+
+		return swag.String(models.ClusterHighAvailabilityModeFull), controlPlaneCount
+	}
+
+	// both are set
+	return highAvailabilityMode, controlPlaneCount
 }

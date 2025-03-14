@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
-	"github.com/go-openapi/swag"
 	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -378,7 +377,7 @@ func TestHandler_ListManagedDomains(t *testing.T) {
 }
 
 func setUpSNO(cluster *common.Cluster, bootstrapIPAddress string) {
-	cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+	cluster.ControlPlaneCount = 1
 	cluster.Hosts = make([]*models.Host, 1)
 	cluster.Hosts[0] = &models.Host{
 		Bootstrap: true,

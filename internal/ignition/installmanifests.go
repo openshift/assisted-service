@@ -317,7 +317,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		return err
 	}
 
-	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+	if g.cluster.ControlPlaneCount == 1 {
 		err = g.bootstrapInPlaceIgnitionsCreate(ctx, installerPath, envVars)
 	} else {
 		err = g.runCreateCommand(ctx, installerPath, "ignition-configs", envVars)
@@ -775,7 +775,7 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 	}
 
 	config.Storage.Files = newFiles
-	if swag.StringValue(g.cluster.HighAvailabilityMode) != models.ClusterHighAvailabilityModeNone {
+	if g.cluster.ControlPlaneCount != 1 {
 		setFileInIgnition(config, "/opt/openshift/assisted-install-bootstrap", "data:,", false, 420, false)
 	}
 

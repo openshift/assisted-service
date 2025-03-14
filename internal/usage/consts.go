@@ -7,8 +7,8 @@ const (
 	RequestedHostnameUsage string = "Requested hostname"
 	//usage of proxy
 	ProxyUsage string = "Proxy"
-	//usage of SNO (No High Availability Mode)
-	HighAvailabilityModeUsage string = "SNO"
+	//usage of SNO (1 Control Plane node)
+	SingleNodeOpenShiftUsage string = "SNO"
 	//usage of day2 hosts
 	Day2HostUsage string = "Day2 hosts"
 	//usage of VIP auto allocation
