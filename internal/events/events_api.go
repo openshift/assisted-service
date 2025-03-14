@@ -2,10 +2,10 @@ package events
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"

@@ -2,10 +2,10 @@ package hostcommands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -91,7 +91,7 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 		Domains: domains,
 	}
 
-	b, err := json.Marshal(&request)
+	b, err := json.ConfigStd.Marshal(&request)
 	if err != nil {
 		f.log.WithError(err).Warn("Json marshal")
 		return "", err

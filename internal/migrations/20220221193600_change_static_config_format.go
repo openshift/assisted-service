@@ -1,11 +1,11 @@
 package migrations
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-gormigrate/gormigrate/v2"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -66,7 +66,7 @@ func migrateInfraenvStaticConfigFormat(db *gorm.DB, infraEnv *models.InfraEnv) e
 	if len(staticNetworkConfig) == 0 {
 		staticNetworkConfigStr = ""
 	} else {
-		b, err := json.Marshal(&staticNetworkConfig)
+		b, err := json.ConfigStd.Marshal(&staticNetworkConfig)
 		if err != nil {
 			return err
 		}

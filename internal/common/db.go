@@ -1,10 +1,10 @@
 package common
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	v1 "github.com/openshift/api/config/v1"
@@ -642,7 +642,7 @@ func ConvertMirrorRegistryConfigToString(configuration *MirrorRegistryConfigurat
 		return "", nil
 	}
 
-	data, err := json.Marshal(configuration)
+	data, err := json.ConfigStd.Marshal(configuration)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal MirrorRegistryConfiguration: %w", err)
 	}

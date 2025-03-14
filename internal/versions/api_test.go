@@ -2,12 +2,12 @@ package versions
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"os"
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/swag"
 	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
