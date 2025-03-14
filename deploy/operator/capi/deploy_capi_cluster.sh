@@ -101,6 +101,9 @@ spec:
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+  - mirrors:
+    - ${OCP_MIRROR_REGISTRY}
+    source: registry.redhat.io
 EOM
     else
       cat << EOM > mirrors-config.yaml
@@ -116,6 +119,9 @@ spec:
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+  - mirrors:
+    - ${OCP_MIRROR_REGISTRY}
+    source: registry.redhat.io
 EOM
     fi
     oc apply --wait=true -f mirrors-config.yaml
@@ -127,6 +133,9 @@ EOM
 - mirrors:
   - ${OCP_MIRROR_REGISTRY}
   source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+- mirrors:
+  - ${OCP_MIRROR_REGISTRY}
+  source: registry.redhat.io
 EOM
     export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources /tmp/ics-hc.yaml"
     export EXTRA_HYPERSHIFT_CLI_MOUNTS="$EXTRA_HYPERSHIFT_CLI_MOUNTS -v /tmp/ics-hc.yaml:/tmp/ics-hc.yaml"
