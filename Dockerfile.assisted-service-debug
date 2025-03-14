@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.21 AS golang
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.21 AS golang
 
 RUN GOFLAGS=-mod=mod go install github.com/go-delve/delve/cmd/dlv@v1.21.2
 
@@ -7,7 +7,7 @@ FROM quay.io/centos/centos:stream9 AS builder
 RUN dnf install --enablerepo=crb -y gcc git nmstate-devel openssl-devel make && dnf clean all
 
 ENV GOROOT=/usr/lib/golang
-ENV GOPATH=/opt/app-root/src/go
+ENV GOPATH=/go
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 # For build-minimal target
 ENV DEBUG_SERVICE=true
