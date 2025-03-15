@@ -145,12 +145,19 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		cpuArch = infraEnv.CPUArchitecture
 	}
 
-	releaseImage, err := i.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cpuArch, cluster.PullSecret)
-	if err != nil {
-		return "", err
+	installToDisk := inventory != nil && inventory.Boot != nil && inventory.Boot.DeviceType == models.BootDeviceTypePersistent
+
+	// Get release image for host only if it's either not a day-2 host or it's installing to disk
+	var releaseImage *models.ReleaseImage
+	var err error
+	if installToDisk || swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
+		releaseImage, err = i.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cpuArch, cluster.PullSecret)
+		if err != nil {
+			return "", err
+		}
 	}
 
-	if inventory != nil && inventory.Boot != nil && inventory.Boot.DeviceType == models.BootDeviceTypePersistent {
+	if installToDisk {
 		request.CoreosImage, err = i.ocRelease.GetCoreOSImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
 		if err != nil {
 			return "", err
