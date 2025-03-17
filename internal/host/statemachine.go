@@ -966,6 +966,9 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		If(AreNmstateRequirementsSatisfied),
 		If(AreAMDGPURequirementsSatisfied),
 		If(AreKMMRequirementsSatisfied),
+		If(AreNodeHealthcheckRequirementsSatisfied),
+		If(AreSelfNodeRemediationRequirementsSatisfied),
+		If(AreFenceAgentsRemediationRequirementsSatisfied),
 		/*
 					 * MGMT-15213: The release domain is not resolved correctly when there is a mirror or proxy.  In this case
 					 * validation might fail, but the installation may succeed.

@@ -7056,7 +7056,10 @@ func init() {
         "authorino-requirements-satisfied",
         "nmstate-requirements-satisfied",
         "amd-gpu-requirements-satisfied",
-        "kmm-requirements-satisfied"
+        "kmm-requirements-satisfied",
+        "node-healthcheck-requirements-satisfied",
+        "self-node-remediation-requirements-satisfied",
+        "fence-agents-remediation-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -7912,7 +7915,10 @@ func init() {
         "USER_MANAGED_LOAD_BALANCER",
         "NMSTATE",
         "AMD_GPU",
-        "KMM"
+        "KMM",
+        "NODE_HEALTHCHECK",
+        "SELF_NODE_REMEDIATION",
+        "FENCE_AGENTS_REMEDIATION"
       ]
     },
     "finalizing-stage": {
@@ -8541,7 +8547,10 @@ func init() {
         "mtu-valid",
         "nmstate-requirements-satisfied",
         "amd-gpu-requirements-satisfied",
-        "kmm-requirements-satisfied"
+        "kmm-requirements-satisfied",
+        "node-healthcheck-requirements-satisfied",
+        "self-node-remediation-requirements-satisfied",
+        "fence-agents-remediation-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -18147,7 +18156,10 @@ func init() {
         "authorino-requirements-satisfied",
         "nmstate-requirements-satisfied",
         "amd-gpu-requirements-satisfied",
-        "kmm-requirements-satisfied"
+        "kmm-requirements-satisfied",
+        "node-healthcheck-requirements-satisfied",
+        "self-node-remediation-requirements-satisfied",
+        "fence-agents-remediation-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -18970,7 +18982,10 @@ func init() {
         "USER_MANAGED_LOAD_BALANCER",
         "NMSTATE",
         "AMD_GPU",
-        "KMM"
+        "KMM",
+        "NODE_HEALTHCHECK",
+        "SELF_NODE_REMEDIATION",
+        "FENCE_AGENTS_REMEDIATION"
       ]
     },
     "finalizing-stage": {
@@ -19599,7 +19614,10 @@ func init() {
         "mtu-valid",
         "nmstate-requirements-satisfied",
         "amd-gpu-requirements-satisfied",
-        "kmm-requirements-satisfied"
+        "kmm-requirements-satisfied",
+        "node-healthcheck-requirements-satisfied",
+        "self-node-remediation-requirements-satisfied",
+        "fence-agents-remediation-requirements-satisfied"
       ]
     },
     "host_network": {

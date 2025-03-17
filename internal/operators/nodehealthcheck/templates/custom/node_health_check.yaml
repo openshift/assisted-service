@@ -1,0 +1,24 @@
+apiVersion: remediation.medik8s.io/v1alpha1
+kind: NodeHealthCheck
+metadata:
+  name: node-healthcheck-self-node-remediation-workers
+spec:
+  selector:
+    matchExpressions:
+      - key: node-role.kubernetes.io/control-plane
+        operator: DoesNotExist
+      - key: node-role.kubernetes.io/master
+        operator: DoesNotExist
+  remediationTemplate:
+    apiVersion: self-node-remediation.medik8s.io/v1alpha1
+    kind: SelfNodeRemediationTemplate
+    namespace: {{ .Operator.Namespace }}
+    name: {{ .Config.SelfNodeRemediationTemplateName }}
+  minHealthy: {{ .Config.MinPercentageOfMatchingNodesForRemediation }}
+  unhealthyConditions:
+    - type: Ready
+      status: "False"
+      duration: {{ .Config.UnreadyDuration }}
+    - type: Ready
+      status: Unknown
+      duration: {{ .Config.UnknownDuration }}

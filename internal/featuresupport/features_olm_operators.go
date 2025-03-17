@@ -3,6 +3,9 @@ package featuresupport
 import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
+	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
+	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 )
@@ -816,6 +819,114 @@ func (f *KMMFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLev
 
 func (f *KMMFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if isOperatorActivated("kmm", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// NodeHealthcheckFeature describes the support for the Node Healthcheck operator.
+type NodeHealthcheckFeature struct{}
+
+func (f *NodeHealthcheckFeature) New() SupportLevelFeature {
+	return &NodeHealthcheckFeature{}
+}
+
+func (f *NodeHealthcheckFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDNODEHEALTHCHECK
+}
+
+func (f *NodeHealthcheckFeature) GetName() string {
+	return nodehealthcheck.OperatorFullName
+}
+
+func (f *NodeHealthcheckFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelDevPreview
+}
+
+func (f *NodeHealthcheckFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *NodeHealthcheckFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDSNO,
+	}
+}
+
+func (f *NodeHealthcheckFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(nodehealthcheck.Operator.Name, cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// SelfNodeRemediationFeature describes the support for the Self Node Remediation operator.
+type SelfNodeRemediationFeature struct{}
+
+func (f *SelfNodeRemediationFeature) New() SupportLevelFeature {
+	return &SelfNodeRemediationFeature{}
+}
+
+func (f *SelfNodeRemediationFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDSELFNODEREMEDIATION
+}
+
+func (f *SelfNodeRemediationFeature) GetName() string {
+	return selfnoderemediation.OperatorFullName
+}
+
+func (f *SelfNodeRemediationFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelDevPreview
+}
+
+func (f *SelfNodeRemediationFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *SelfNodeRemediationFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDSNO,
+	}
+}
+
+func (f *SelfNodeRemediationFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(nodehealthcheck.Operator.Name, cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// FenceAgentsRemediationFeature describes the support for the Fence Agents Remediation operator.
+type FenceAgentsRemediationFeature struct{}
+
+func (f *FenceAgentsRemediationFeature) New() SupportLevelFeature {
+	return &FenceAgentsRemediationFeature{}
+}
+
+func (f *FenceAgentsRemediationFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDFENCEAGENTSREMEDIATION
+}
+
+func (f *FenceAgentsRemediationFeature) GetName() string {
+	return fenceagentsremediation.OperatorFullName
+}
+
+func (f *FenceAgentsRemediationFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelDevPreview
+}
+
+func (f *FenceAgentsRemediationFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *FenceAgentsRemediationFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDSNO,
+	}
+}
+
+func (f *FenceAgentsRemediationFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(nodehealthcheck.Operator.Name, cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive

@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/authorino"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
+	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kmm"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
@@ -27,11 +28,13 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/mtv"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
+	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
 	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
 	"github.com/openshift/assisted-service/internal/operators/osc"
 	"github.com/openshift/assisted-service/internal/operators/pipelines"
+	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
 	"github.com/openshift/assisted-service/internal/operators/serverless"
 	"github.com/openshift/assisted-service/internal/operators/servicemesh"
 	"github.com/openshift/assisted-service/models"
@@ -67,6 +70,9 @@ var _ = Describe("Operators endpoint tests", func() {
 				nmstate.Operator.Name,
 				amdgpu.Operator.Name,
 				kmm.Operator.Name,
+				nodehealthcheck.Operator.Name,
+				selfnoderemediation.Operator.Name,
+				fenceagentsremediation.Operator.Name,
 			))
 		})
 
