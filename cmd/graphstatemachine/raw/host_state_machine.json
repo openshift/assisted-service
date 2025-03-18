@@ -56,7 +56,8 @@
       "transition_type": "HostProgressChanged",
       "source_states": [
         "installing-in-progress",
-        "installing"
+        "installing",
+        "installing-pending-user-action"
       ],
       "destination_state": "added-to-existing-cluster",
       "name": "host progress changed to added-to-existing-cluster for day2 host",
@@ -271,6 +272,15 @@
         "preparing-for-installation"
       ],
       "destination_state": "preparing-failed",
+      "name": "Preparing timed out host move to known",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "preparing-failed",
       "name": "Preparing failed image pull host move to preparing failed",
       "description": "TODO: Document this transition rule"
     },
@@ -355,7 +365,43 @@
       ],
       "destination_state": "error",
       "name": "Move installing host to error when connection times out",
-      "description": "TODO: Document this transition rule."
+      "description": "When host is in one of the installation phases and soft timeout is not enabled and host fails to connect to assisted service, move the host to error"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing"
+      ],
+      "destination_state": "installing",
+      "name": "Keep installing host when connection times out",
+      "description": "When host is in one of the installation phases and soft timeout is enabled and host fails to connect to assisted service, keep installing host and indicate that timeout has occurred"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing"
+      ],
+      "destination_state": "installing",
+      "name": "Keep installing host when host recovers from disconnection",
+      "description": "When host is in one of the installation phases and soft timeout is enabled and host recovers from disconnection to assisted service, keep installing host and clear the disconnection indication"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing-in-progress"
+      ],
+      "destination_state": "installing-in-progress",
+      "name": "Keep installing host when connection times out",
+      "description": "When host is in one of the installation phases and soft timeout is enabled and host fails to connect to assisted service, keep installing host and indicate that timeout has occurred"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing-in-progress"
+      ],
+      "destination_state": "installing-in-progress",
+      "name": "Keep installing host when host recovers from disconnection",
+      "description": "When host is in one of the installation phases and soft timeout is enabled and host recovers from disconnection to assisted service, keep installing host and clear the disconnection indication"
     },
     {
       "transition_type": "RefreshHost",
@@ -372,8 +418,35 @@
         "installing-in-progress"
       ],
       "destination_state": "error",
-      "name": "Move to error on timeout if host is in particular installation in progress stages",
-      "description": "TODO: Document this transition rule."
+      "name": "Move to error on timeout if host is in particular installation in progress stages other than [writing-image-to-disk, rebooting]",
+      "description": "The transition is triggered when soft timeouts is not enabled which means that timeout expiration causes a host to move to error"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing-in-progress"
+      ],
+      "destination_state": "error",
+      "name": "Move to error on timeout if host is in particular installation in progress stage writing-image-to-disk",
+      "description": "The transition is triggered when soft timeouts is not enabled which means that timeout expiration causes a host to move to error"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing-in-progress"
+      ],
+      "destination_state": "installing-in-progress",
+      "name": "Indicate that timeout occurred and continue installation in particular installation in progress stages other than [writing-image-to-disk, rebooting]",
+      "description": "The transition is triggered when soft timeouts is enabled which means that timeout expiration causes event generation only"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing-in-progress"
+      ],
+      "destination_state": "installing-in-progress",
+      "name": "Indicate that timeout occurred and continue installation in particular installation in progress stage writing-image-to-disk",
+      "description": "The transition is triggered when soft timeouts is enabled which means that timeout expiration causes event generation only"
     },
     {
       "transition_type": "RefreshHost",
@@ -445,7 +518,8 @@
         "disconnected",
         "discovering",
         "insufficient",
-        "known"
+        "known",
+        "pending-for-input"
       ],
       "destination_state": "insufficient",
       "name": "Host has insufficient hardware",
