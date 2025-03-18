@@ -42,7 +42,10 @@ Transition rules are the rules that define the required source states and condit
 * [Refresh preparing cluster - failed](#refresh-preparing-cluster---failed)
 * [TODO: Name this transition](#todo-name-this-transition)
 * [Timed out while waiting for user](#timed-out-while-waiting-for-user)
+* [Timed out while installing](#timed-out-while-installing)
 * [Timed out while finalizing](#timed-out-while-finalizing)
+* [Finalizing stage timed out.  Move to error](#finalizing-stage-timed-out--move-to-error)
+* [Finalizing stage is taking too long.  Emit an appropriate event](#finalizing-stage-is-taking-too-long--emit-an-appropriate-event)
 * [TODO: Name this transition](#todo-name-this-transition)
 * [TODO: Name this transition](#todo-name-this-transition)
 * [TODO: Name this transition](#todo-name-this-transition)
@@ -67,104 +70,110 @@ Transition rules are the rules that define the required source states and condit
 The cluster is fully installed and is ready to accept new hosts. Installed clusters usually transition to this state automatically when installation is complete, depending on the configuration of the service. This is the initial state for imported clusters, as they are already installed
 
 #### Transition types where this is the source state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition types where this is the destination state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition rules where this is the source state
 ![source_adding-hosts](./media/source_adding-hosts.svg)
 
-* [Maintain adding-hosts state](#maintain-adding-hosts-state)
+* [Transition Rule Maintain adding-hosts state](#transition-rule-maintain-adding-hosts-state)
 
 #### Transition rules where this is the destination state
 ![destination_adding-hosts](./media/destination_adding-hosts.svg)
 
-* [Maintain adding-hosts state](#maintain-adding-hosts-state)
+* [Transition Rule Maintain adding-hosts state](#transition-rule-maintain-adding-hosts-state)
 
 ### Cancelled
 The cluster installation was cancelled by the user. Cluster must be reset to be able to install again
 
 #### Transition types where this is the source state
-* [RefreshStatus](#refreshstatus)
-* [Reset Cluster](#reset-cluster)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
+* [Transition Type Reset Cluster](#transition-type-reset-cluster)
 
 #### Transition types where this is the destination state
-* [Cancel Installation](#cancel-installation)
-* [RefreshStatus](#refreshstatus)
+* [Transition Type Cancel Installation](#transition-type-cancel-installation)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition rules where this is the source state
 ![source_cancelled](./media/source_cancelled.svg)
 
-* [Log collection timeout during cancelled](#log-collection-timeout-during-cancelled)
-* [Maintain cancelled state](#maintain-cancelled-state)
-* [Reset installation](#reset-installation)
+* [Transition Rule Log collection timeout during cancelled](#transition-rule-log-collection-timeout-during-cancelled)
+* [Transition Rule Maintain cancelled state](#transition-rule-maintain-cancelled-state)
+* [Transition Rule Reset installation](#transition-rule-reset-installation)
 
 #### Transition rules where this is the destination state
 ![destination_cancelled](./media/destination_cancelled.svg)
 
-* [Cancel installation of installing cluster](#cancel-installation-of-installing-cluster)
-* [Log collection timeout during cancelled](#log-collection-timeout-during-cancelled)
-* [Maintain cancelled state](#maintain-cancelled-state)
+* [Transition Rule Cancel installation of installing cluster](#transition-rule-cancel-installation-of-installing-cluster)
+* [Transition Rule Log collection timeout during cancelled](#transition-rule-log-collection-timeout-during-cancelled)
+* [Transition Rule Maintain cancelled state](#transition-rule-maintain-cancelled-state)
 
 ### Error
 The cluster has encountered an error during installation and cannot proceed. Usually due to a timeout
 
 #### Transition types where this is the source state
-* [Cancel Installation](#cancel-installation)
-* [RefreshStatus](#refreshstatus)
-* [Reset Cluster](#reset-cluster)
+* [Transition Type Cancel Installation](#transition-type-cancel-installation)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
+* [Transition Type Reset Cluster](#transition-type-reset-cluster)
 
 #### Transition types where this is the destination state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition rules where this is the source state
 ![source_error](./media/source_error.svg)
 
-* [Cancel installation of installing cluster](#cancel-installation-of-installing-cluster)
-* [Log collection timeout during error](#log-collection-timeout-during-error)
-* [Maintain error state](#maintain-error-state)
-* [Reset installation](#reset-installation)
+* [Transition Rule Cancel installation of installing cluster](#transition-rule-cancel-installation-of-installing-cluster)
+* [Transition Rule Log collection timeout during error](#transition-rule-log-collection-timeout-during-error)
+* [Transition Rule Maintain error state](#transition-rule-maintain-error-state)
+* [Transition Rule Reset installation](#transition-rule-reset-installation)
 
 #### Transition rules where this is the destination state
 ![destination_error](./media/destination_error.svg)
 
-* [Installation error](#installation-error)
-* [Log collection timeout during error](#log-collection-timeout-during-error)
-* [Maintain error state](#maintain-error-state)
-* [TODO: Name this transition](#todo-name-this-transition)
-* [Timed out while finalizing](#timed-out-while-finalizing)
-* [Timed out while waiting for user](#timed-out-while-waiting-for-user)
+* [Transition Rule Finalizing stage timed out.  Move to error](#transition-rule-finalizing-stage-timed-out--move-to-error)
+* [Transition Rule Installation error](#transition-rule-installation-error)
+* [Transition Rule Log collection timeout during error](#transition-rule-log-collection-timeout-during-error)
+* [Transition Rule Maintain error state](#transition-rule-maintain-error-state)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
+* [Transition Rule Timed out while finalizing](#transition-rule-timed-out-while-finalizing)
+* [Transition Rule Timed out while installing](#transition-rule-timed-out-while-installing)
+* [Transition Rule Timed out while waiting for user](#transition-rule-timed-out-while-waiting-for-user)
 
 ### Finalizing
 The cluster has sufficient ready control-plane and worker nodes, but OCP is still finalizing the installation
 
 #### Transition types where this is the source state
-* [Cancel Installation](#cancel-installation)
-* [RefreshStatus](#refreshstatus)
-* [Reset Cluster](#reset-cluster)
+* [Transition Type Cancel Installation](#transition-type-cancel-installation)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
+* [Transition Type Reset Cluster](#transition-type-reset-cluster)
 
 #### Transition types where this is the destination state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition rules where this is the source state
 ![source_finalizing](./media/source_finalizing.svg)
 
-* [Cancel installation of installing cluster](#cancel-installation-of-installing-cluster)
-* [Finalizing complete](#finalizing-complete)
-* [Maintain finalizing state](#maintain-finalizing-state)
-* [Reset installation](#reset-installation)
-* [TODO: Name this transition](#todo-name-this-transition)
-* [Timed out while finalizing](#timed-out-while-finalizing)
-* [Update AMS subscription](#update-ams-subscription)
+* [Transition Rule Cancel installation of installing cluster](#transition-rule-cancel-installation-of-installing-cluster)
+* [Transition Rule Finalizing complete](#transition-rule-finalizing-complete)
+* [Transition Rule Finalizing stage is taking too long.  Emit an appropriate event](#transition-rule-finalizing-stage-is-taking-too-long--emit-an-appropriate-event)
+* [Transition Rule Finalizing stage timed out.  Move to error](#transition-rule-finalizing-stage-timed-out--move-to-error)
+* [Transition Rule Maintain finalizing state](#transition-rule-maintain-finalizing-state)
+* [Transition Rule Reset installation](#transition-rule-reset-installation)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
+* [Transition Rule Timed out while finalizing](#transition-rule-timed-out-while-finalizing)
+* [Transition Rule Timed out while installing](#transition-rule-timed-out-while-installing)
+* [Transition Rule Update AMS subscription](#transition-rule-update-ams-subscription)
 
 #### Transition rules where this is the destination state
 ![destination_finalizing](./media/destination_finalizing.svg)
 
-* [Maintain finalizing state](#maintain-finalizing-state)
-* [Move to finalizing](#move-to-finalizing)
-* [TODO: Name this transition](#todo-name-this-transition)
-* [Update AMS subscription](#update-ams-subscription)
+* [Transition Rule Finalizing stage is taking too long.  Emit an appropriate event](#transition-rule-finalizing-stage-is-taking-too-long--emit-an-appropriate-event)
+* [Transition Rule Maintain finalizing state](#transition-rule-maintain-finalizing-state)
+* [Transition Rule Move to finalizing](#transition-rule-move-to-finalizing)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
+* [Transition Rule Update AMS subscription](#transition-rule-update-ams-subscription)
 
 ### Initial
 The initial state of the state machine. This is a synthetic state that is not actually part of the state machine. It appears in documentation when transition rules hold a single source state that is an empty string
@@ -185,185 +194,186 @@ The initial state of the state machine. This is a synthetic state that is not ac
 The cluster installation is considered complete, all operators are healthy and the cluster is ready to use
 
 #### Transition types where this is the source state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition types where this is the destination state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition rules where this is the source state
 ![source_installed](./media/source_installed.svg)
 
-* [Maintain installed state](#maintain-installed-state)
+* [Transition Rule Maintain installed state](#transition-rule-maintain-installed-state)
 
 #### Transition rules where this is the destination state
 ![destination_installed](./media/destination_installed.svg)
 
-* [Finalizing complete](#finalizing-complete)
-* [Maintain installed state](#maintain-installed-state)
+* [Transition Rule Finalizing complete](#transition-rule-finalizing-complete)
+* [Transition Rule Maintain installed state](#transition-rule-maintain-installed-state)
 
 ### Installing
 The cluster installation is in progress
 
 #### Transition types where this is the source state
-* [Cancel Installation](#cancel-installation)
-* [RefreshStatus](#refreshstatus)
-* [Reset Cluster](#reset-cluster)
+* [Transition Type Cancel Installation](#transition-type-cancel-installation)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
+* [Transition Type Reset Cluster](#transition-type-reset-cluster)
 
 #### Transition types where this is the destination state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition rules where this is the source state
 ![source_installing](./media/source_installing.svg)
 
-* [Cancel installation of installing cluster](#cancel-installation-of-installing-cluster)
-* [Installation error](#installation-error)
-* [Move to finalizing](#move-to-finalizing)
-* [Reset installation](#reset-installation)
-* [Stay in installing](#stay-in-installing)
-* [TODO: Name this transition](#todo-name-this-transition)
+* [Transition Rule Cancel installation of installing cluster](#transition-rule-cancel-installation-of-installing-cluster)
+* [Transition Rule Installation error](#transition-rule-installation-error)
+* [Transition Rule Move to finalizing](#transition-rule-move-to-finalizing)
+* [Transition Rule Reset installation](#transition-rule-reset-installation)
+* [Transition Rule Stay in installing](#transition-rule-stay-in-installing)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
+* [Transition Rule Timed out while installing](#transition-rule-timed-out-while-installing)
 
 #### Transition rules where this is the destination state
 ![destination_installing](./media/destination_installing.svg)
 
-* [Refresh preparing cluster - done preparing](#refresh-preparing-cluster---done-preparing)
-* [Stay in installing](#stay-in-installing)
-* [TODO: Name this transition](#todo-name-this-transition)
+* [Transition Rule Refresh preparing cluster - done preparing](#transition-rule-refresh-preparing-cluster---done-preparing)
+* [Transition Rule Stay in installing](#transition-rule-stay-in-installing)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
 
 ### Installing, Pending User Action
 Installation is in progress, but is blocked and cannot continue until the user takes action
 
 #### Transition types where this is the source state
-* [Cancel Installation](#cancel-installation)
-* [RefreshStatus](#refreshstatus)
-* [Reset Cluster](#reset-cluster)
+* [Transition Type Cancel Installation](#transition-type-cancel-installation)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
+* [Transition Type Reset Cluster](#transition-type-reset-cluster)
 
 #### Transition types where this is the destination state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition rules where this is the source state
 ![source_installing-pending-user-action](./media/source_installing-pending-user-action.svg)
 
-* [Cancel installation of installing cluster](#cancel-installation-of-installing-cluster)
-* [Reset installation](#reset-installation)
-* [TODO: Name this transition](#todo-name-this-transition)
-* [Timed out while waiting for user](#timed-out-while-waiting-for-user)
+* [Transition Rule Cancel installation of installing cluster](#transition-rule-cancel-installation-of-installing-cluster)
+* [Transition Rule Reset installation](#transition-rule-reset-installation)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
+* [Transition Rule Timed out while waiting for user](#transition-rule-timed-out-while-waiting-for-user)
 
 #### Transition rules where this is the destination state
 ![destination_installing-pending-user-action](./media/destination_installing-pending-user-action.svg)
 
-* [TODO: Name this transition](#todo-name-this-transition)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
 
 ### Insufficient
 This is the initial state for regular, non-imported clusters
 
 #### Transition types where this is the source state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition types where this is the destination state
-* [RefreshStatus](#refreshstatus)
-* [Reset Cluster](#reset-cluster)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
+* [Transition Type Reset Cluster](#transition-type-reset-cluster)
 
 #### Transition rules where this is the source state
 ![source_insufficient](./media/source_insufficient.svg)
 
-* [Refresh discovering cluster - detect insufficient](#refresh-discovering-cluster---detect-insufficient)
-* [Refresh discovering cluster - detect ready](#refresh-discovering-cluster---detect-ready)
-* [Refresh discovering cluster - detect required input](#refresh-discovering-cluster---detect-required-input)
-* [TODO: Name this transition](#todo-name-this-transition)
+* [Transition Rule Refresh discovering cluster - detect insufficient](#transition-rule-refresh-discovering-cluster---detect-insufficient)
+* [Transition Rule Refresh discovering cluster - detect ready](#transition-rule-refresh-discovering-cluster---detect-ready)
+* [Transition Rule Refresh discovering cluster - detect required input](#transition-rule-refresh-discovering-cluster---detect-required-input)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
 
 #### Transition rules where this is the destination state
 ![destination_insufficient](./media/destination_insufficient.svg)
 
-* [Refresh discovering cluster - detect insufficient](#refresh-discovering-cluster---detect-insufficient)
-* [Refresh preparing cluster - insufficient](#refresh-preparing-cluster---insufficient)
-* [Reset installation](#reset-installation)
-* [TODO: Name this transition](#todo-name-this-transition)
+* [Transition Rule Refresh discovering cluster - detect insufficient](#transition-rule-refresh-discovering-cluster---detect-insufficient)
+* [Transition Rule Refresh preparing cluster - insufficient](#transition-rule-refresh-preparing-cluster---insufficient)
+* [Transition Rule Reset installation](#transition-rule-reset-installation)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
 
 ### Pending For Input
 The cluster is not ready for installation because it needs more information from the user
 
 #### Transition types where this is the source state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition types where this is the destination state
-* [RefreshStatus](#refreshstatus)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition rules where this is the source state
 ![source_pending-for-input](./media/source_pending-for-input.svg)
 
-* [Refresh discovering cluster - detect insufficient](#refresh-discovering-cluster---detect-insufficient)
-* [Refresh discovering cluster - detect ready](#refresh-discovering-cluster---detect-ready)
-* [Refresh discovering cluster - detect required input](#refresh-discovering-cluster---detect-required-input)
-* [TODO: Name this transition](#todo-name-this-transition)
+* [Transition Rule Refresh discovering cluster - detect insufficient](#transition-rule-refresh-discovering-cluster---detect-insufficient)
+* [Transition Rule Refresh discovering cluster - detect ready](#transition-rule-refresh-discovering-cluster---detect-ready)
+* [Transition Rule Refresh discovering cluster - detect required input](#transition-rule-refresh-discovering-cluster---detect-required-input)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
 
 #### Transition rules where this is the destination state
 ![destination_pending-for-input](./media/destination_pending-for-input.svg)
 
-* [Refresh discovering cluster - detect required input](#refresh-discovering-cluster---detect-required-input)
-* [TODO: Name this transition](#todo-name-this-transition)
+* [Transition Rule Refresh discovering cluster - detect required input](#transition-rule-refresh-discovering-cluster---detect-required-input)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
 
 ### Preparing For Installation
 A transient state between Ready and Installing, cluster hosts are performing pre-installation validations
 
 #### Transition types where this is the source state
-* [Cancel Installation](#cancel-installation)
-* [RefreshStatus](#refreshstatus)
-* [Reset Cluster](#reset-cluster)
+* [Transition Type Cancel Installation](#transition-type-cancel-installation)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
+* [Transition Type Reset Cluster](#transition-type-reset-cluster)
 
 #### Transition types where this is the destination state
-* [PrepareForInstallation](#prepareforinstallation)
-* [RefreshStatus](#refreshstatus)
+* [Transition Type PrepareForInstallation](#transition-type-prepareforinstallation)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition rules where this is the source state
 ![source_preparing-for-installation](./media/source_preparing-for-installation.svg)
 
-* [Cancel installation of preparing cluster](#cancel-installation-of-preparing-cluster)
-* [Maintain preparing-for-installation state](#maintain-preparing-for-installation-state)
-* [Refresh preparing cluster - detect timeout](#refresh-preparing-cluster---detect-timeout)
-* [Refresh preparing cluster - done preparing](#refresh-preparing-cluster---done-preparing)
-* [Refresh preparing cluster - failed](#refresh-preparing-cluster---failed)
-* [Refresh preparing cluster - insufficient](#refresh-preparing-cluster---insufficient)
-* [Reset installation](#reset-installation)
+* [Transition Rule Cancel installation of preparing cluster](#transition-rule-cancel-installation-of-preparing-cluster)
+* [Transition Rule Maintain preparing-for-installation state](#transition-rule-maintain-preparing-for-installation-state)
+* [Transition Rule Refresh preparing cluster - detect timeout](#transition-rule-refresh-preparing-cluster---detect-timeout)
+* [Transition Rule Refresh preparing cluster - done preparing](#transition-rule-refresh-preparing-cluster---done-preparing)
+* [Transition Rule Refresh preparing cluster - failed](#transition-rule-refresh-preparing-cluster---failed)
+* [Transition Rule Refresh preparing cluster - insufficient](#transition-rule-refresh-preparing-cluster---insufficient)
+* [Transition Rule Reset installation](#transition-rule-reset-installation)
 
 #### Transition rules where this is the destination state
 ![destination_preparing-for-installation](./media/destination_preparing-for-installation.svg)
 
-* [Maintain preparing-for-installation state](#maintain-preparing-for-installation-state)
-* [Start installation](#start-installation)
+* [Transition Rule Maintain preparing-for-installation state](#transition-rule-maintain-preparing-for-installation-state)
+* [Transition Rule Start installation](#transition-rule-start-installation)
 
 ### Ready
 The cluster is ready to begin installation
 
 #### Transition types where this is the source state
-* [PrepareForInstallation](#prepareforinstallation)
-* [RefreshStatus](#refreshstatus)
+* [Transition Type PrepareForInstallation](#transition-type-prepareforinstallation)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition types where this is the destination state
-* [Cancel Installation](#cancel-installation)
-* [RefreshStatus](#refreshstatus)
+* [Transition Type Cancel Installation](#transition-type-cancel-installation)
+* [Transition Type RefreshStatus](#transition-type-refreshstatus)
 
 #### Transition rules where this is the source state
 ![source_ready](./media/source_ready.svg)
 
-* [Refresh discovering cluster - detect insufficient](#refresh-discovering-cluster---detect-insufficient)
-* [Refresh discovering cluster - detect ready](#refresh-discovering-cluster---detect-ready)
-* [Refresh discovering cluster - detect required input](#refresh-discovering-cluster---detect-required-input)
-* [Start installation](#start-installation)
-* [TODO: Name this transition](#todo-name-this-transition)
+* [Transition Rule Refresh discovering cluster - detect insufficient](#transition-rule-refresh-discovering-cluster---detect-insufficient)
+* [Transition Rule Refresh discovering cluster - detect ready](#transition-rule-refresh-discovering-cluster---detect-ready)
+* [Transition Rule Refresh discovering cluster - detect required input](#transition-rule-refresh-discovering-cluster---detect-required-input)
+* [Transition Rule Start installation](#transition-rule-start-installation)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
 
 #### Transition rules where this is the destination state
 ![destination_ready](./media/destination_ready.svg)
 
-* [Cancel installation of preparing cluster](#cancel-installation-of-preparing-cluster)
-* [Refresh discovering cluster - detect ready](#refresh-discovering-cluster---detect-ready)
-* [Refresh preparing cluster - detect timeout](#refresh-preparing-cluster---detect-timeout)
-* [Refresh preparing cluster - failed](#refresh-preparing-cluster---failed)
+* [Transition Rule Cancel installation of preparing cluster](#transition-rule-cancel-installation-of-preparing-cluster)
+* [Transition Rule Refresh discovering cluster - detect ready](#transition-rule-refresh-discovering-cluster---detect-ready)
+* [Transition Rule Refresh preparing cluster - detect timeout](#transition-rule-refresh-preparing-cluster---detect-timeout)
+* [Transition Rule Refresh preparing cluster - failed](#transition-rule-refresh-preparing-cluster---failed)
 
 
 ## Transition Types
 Transition types are the events that can cause a state transition
 
-### Cancel Installation
+### Transition Type Cancel Installation
 Triggered when the user cancels the installation
 
 #### Source states where this transition type applies
@@ -379,9 +389,9 @@ Triggered when the user cancels the installation
 #### Transition rules using this transition type
 ![transition_type_CancelInstallation](./media/transition_type_CancelInstallation.svg)
 
-* [Cancel installation of installing cluster](#cancel-installation-of-installing-cluster)
-* [Cancel installation of preparing cluster](#cancel-installation-of-preparing-cluster)
-### PrepareForInstallation
+* [Transition Rule Cancel installation of installing cluster](#transition-rule-cancel-installation-of-installing-cluster)
+* [Transition Rule Cancel installation of preparing cluster](#transition-rule-cancel-installation-of-preparing-cluster)
+### Transition Type PrepareForInstallation
 Triggered when the user starts the installation
 
 #### Source states where this transition type applies
@@ -392,8 +402,8 @@ Triggered when the user starts the installation
 #### Transition rules using this transition type
 ![transition_type_PrepareForInstallation](./media/transition_type_PrepareForInstallation.svg)
 
-* [Start installation](#start-installation)
-### RefreshStatus
+* [Transition Rule Start installation](#transition-rule-start-installation)
+### Transition Type RefreshStatus
 Triggered on some clusters periodically by the background cluster monitor goroutine that runs on the leader instance of the Assisted Service. Responsible for driving transitions between states that require re-evaluation of all the validation results and potential timeout conditions
 
 #### Source states where this transition type applies
@@ -424,30 +434,33 @@ Triggered on some clusters periodically by the background cluster monitor gorout
 #### Transition rules using this transition type
 ![transition_type_RefreshStatus](./media/transition_type_RefreshStatus.svg)
 
-* [Finalizing complete](#finalizing-complete)
-* [Installation error](#installation-error)
-* [Log collection timeout during cancelled](#log-collection-timeout-during-cancelled)
-* [Log collection timeout during error](#log-collection-timeout-during-error)
-* [Maintain adding-hosts state](#maintain-adding-hosts-state)
-* [Maintain cancelled state](#maintain-cancelled-state)
-* [Maintain error state](#maintain-error-state)
-* [Maintain finalizing state](#maintain-finalizing-state)
-* [Maintain installed state](#maintain-installed-state)
-* [Maintain preparing-for-installation state](#maintain-preparing-for-installation-state)
-* [Move to finalizing](#move-to-finalizing)
-* [Refresh discovering cluster - detect insufficient](#refresh-discovering-cluster---detect-insufficient)
-* [Refresh discovering cluster - detect ready](#refresh-discovering-cluster---detect-ready)
-* [Refresh discovering cluster - detect required input](#refresh-discovering-cluster---detect-required-input)
-* [Refresh preparing cluster - detect timeout](#refresh-preparing-cluster---detect-timeout)
-* [Refresh preparing cluster - done preparing](#refresh-preparing-cluster---done-preparing)
-* [Refresh preparing cluster - failed](#refresh-preparing-cluster---failed)
-* [Refresh preparing cluster - insufficient](#refresh-preparing-cluster---insufficient)
-* [Stay in installing](#stay-in-installing)
-* [TODO: Name this transition](#todo-name-this-transition)
-* [Timed out while finalizing](#timed-out-while-finalizing)
-* [Timed out while waiting for user](#timed-out-while-waiting-for-user)
-* [Update AMS subscription](#update-ams-subscription)
-### Reset Cluster
+* [Transition Rule Finalizing complete](#transition-rule-finalizing-complete)
+* [Transition Rule Finalizing stage is taking too long.  Emit an appropriate event](#transition-rule-finalizing-stage-is-taking-too-long--emit-an-appropriate-event)
+* [Transition Rule Finalizing stage timed out.  Move to error](#transition-rule-finalizing-stage-timed-out--move-to-error)
+* [Transition Rule Installation error](#transition-rule-installation-error)
+* [Transition Rule Log collection timeout during cancelled](#transition-rule-log-collection-timeout-during-cancelled)
+* [Transition Rule Log collection timeout during error](#transition-rule-log-collection-timeout-during-error)
+* [Transition Rule Maintain adding-hosts state](#transition-rule-maintain-adding-hosts-state)
+* [Transition Rule Maintain cancelled state](#transition-rule-maintain-cancelled-state)
+* [Transition Rule Maintain error state](#transition-rule-maintain-error-state)
+* [Transition Rule Maintain finalizing state](#transition-rule-maintain-finalizing-state)
+* [Transition Rule Maintain installed state](#transition-rule-maintain-installed-state)
+* [Transition Rule Maintain preparing-for-installation state](#transition-rule-maintain-preparing-for-installation-state)
+* [Transition Rule Move to finalizing](#transition-rule-move-to-finalizing)
+* [Transition Rule Refresh discovering cluster - detect insufficient](#transition-rule-refresh-discovering-cluster---detect-insufficient)
+* [Transition Rule Refresh discovering cluster - detect ready](#transition-rule-refresh-discovering-cluster---detect-ready)
+* [Transition Rule Refresh discovering cluster - detect required input](#transition-rule-refresh-discovering-cluster---detect-required-input)
+* [Transition Rule Refresh preparing cluster - detect timeout](#transition-rule-refresh-preparing-cluster---detect-timeout)
+* [Transition Rule Refresh preparing cluster - done preparing](#transition-rule-refresh-preparing-cluster---done-preparing)
+* [Transition Rule Refresh preparing cluster - failed](#transition-rule-refresh-preparing-cluster---failed)
+* [Transition Rule Refresh preparing cluster - insufficient](#transition-rule-refresh-preparing-cluster---insufficient)
+* [Transition Rule Stay in installing](#transition-rule-stay-in-installing)
+* [Transition Rule TODO: Name this transition](#transition-rule-todo-name-this-transition)
+* [Transition Rule Timed out while finalizing](#transition-rule-timed-out-while-finalizing)
+* [Transition Rule Timed out while installing](#transition-rule-timed-out-while-installing)
+* [Transition Rule Timed out while waiting for user](#transition-rule-timed-out-while-waiting-for-user)
+* [Transition Rule Update AMS subscription](#transition-rule-update-ams-subscription)
+### Transition Type Reset Cluster
 Triggered when the user resets the cluster
 
 #### Source states where this transition type applies
@@ -463,12 +476,12 @@ Triggered when the user resets the cluster
 #### Transition rules using this transition type
 ![transition_type_ResetCluster](./media/transition_type_ResetCluster.svg)
 
-* [Reset installation](#reset-installation)
+* [Transition Rule Reset installation](#transition-rule-reset-installation)
 
 ## Transition Rules
 Transition rules are the rules that define the required source states and conditions needed to move to a particular destination state when a particular transition type happens
 
-### Cancel installation of installing cluster
+### Transition Rule Cancel installation of installing cluster
 Move cluster to the cancelled state when user cancels installation
 
 #### Source states
@@ -480,8 +493,8 @@ Move cluster to the cancelled state when user cancels installation
 #### Destination state
 [Cancelled](#cancelled)
 
-### Cancel installation of preparing cluster
-Cancelling a cluster during preperation simply cancels the preperation and moves it back to the ready, rather than putting the cluster in the cancelled state
+### Transition Rule Cancel installation of preparing cluster
+Cancelling a cluster during preparation simply cancels the preparation and moves it back to the ready, rather than putting the cluster in the cancelled state
 
 #### Source states
 * [Preparing For Installation](#preparing-for-installation)
@@ -489,7 +502,7 @@ Cancelling a cluster during preperation simply cancels the preperation and moves
 #### Destination state
 [Ready](#ready)
 
-### Start installation
+### Transition Rule Start installation
 Begins preparing the cluster for installation
 
 #### Source states
@@ -498,7 +511,7 @@ Begins preparing the cluster for installation
 #### Destination state
 [Preparing For Installation](#preparing-for-installation)
 
-### Refresh discovering cluster - detect required input
+### Transition Rule Refresh discovering cluster - detect required input
 In order for this transition to be fired at least one of the validations in requiredInputFieldsExistNonDhcp must fail. This transition handles the case that there is missing input that has to be provided from a user or other external means
 
 #### Source states
@@ -509,8 +522,8 @@ In order for this transition to be fired at least one of the validations in requ
 #### Destination state
 [Pending For Input](#pending-for-input)
 
-### Refresh discovering cluster - detect insufficient
-In order for this transition to be fired at least one of the validations in isSufficientForInstallNonDhcp must fail. This transition handles the case that one of the required validations that are required in order for the cluster to be in ready state  has failed
+### Transition Rule Refresh discovering cluster - detect insufficient
+In order for this transition to be fired at least one of the validations in isSufficientForInstallNonDhcp must fail. This transition handles the case that one of the required validations that are required in order for the cluster to be in ready state has failed
 
 #### Source states
 * [Pending For Input](#pending-for-input)
@@ -520,7 +533,7 @@ In order for this transition to be fired at least one of the validations in isSu
 #### Destination state
 [Insufficient](#insufficient)
 
-### TODO: Name this transition
+### Transition Rule TODO: Name this transition
 In order for this transition to be fired at least one of the validation IsMachineCidrDefined must fail. This transition handles the case that there is missing input that has to be provided from a user or other external means
 
 #### Source states
@@ -531,7 +544,7 @@ In order for this transition to be fired at least one of the validation IsMachin
 #### Destination state
 [Pending For Input](#pending-for-input)
 
-### TODO: Name this transition
+### Transition Rule TODO: Name this transition
 In order for this transition to be fired at least one of the validations in isSufficientForInstallDhcp must fail. This transition handles the case that one of the required validations that are required in order for the host to be in known state (ready for installation) has failed
 
 #### Source states
@@ -542,7 +555,7 @@ In order for this transition to be fired at least one of the validations in isSu
 #### Destination state
 [Insufficient](#insufficient)
 
-### Refresh discovering cluster - detect ready
+### Transition Rule Refresh discovering cluster - detect ready
 This transition is fired when all validations pass
 
 #### Source states
@@ -553,7 +566,7 @@ This transition is fired when all validations pass
 #### Destination state
 [Ready](#ready)
 
-### Refresh preparing cluster - detect timeout
+### Transition Rule Refresh preparing cluster - detect timeout
 This transition is fired when the preparing installation reach the timeout
 
 #### Source states
@@ -562,7 +575,7 @@ This transition is fired when the preparing installation reach the timeout
 #### Destination state
 [Ready](#ready)
 
-### Refresh preparing cluster - done preparing
+### Transition Rule Refresh preparing cluster - done preparing
 This transition is fired when cluster installation preperation is complete and all hosts within the cluster have also finished preparing
 
 #### Source states
@@ -571,7 +584,7 @@ This transition is fired when cluster installation preperation is complete and a
 #### Destination state
 [Installing](#installing)
 
-### Refresh preparing cluster - insufficient
+### Transition Rule Refresh preparing cluster - insufficient
 TODO: Document this transition
 
 #### Source states
@@ -580,7 +593,7 @@ TODO: Document this transition
 #### Destination state
 [Insufficient](#insufficient)
 
-### Refresh preparing cluster - failed
+### Transition Rule Refresh preparing cluster - failed
 TODO: Document this transition
 
 #### Source states
@@ -589,7 +602,7 @@ TODO: Document this transition
 #### Destination state
 [Ready](#ready)
 
-### TODO: Name this transition
+### Transition Rule TODO: Name this transition
 TODO: Document this transition
 
 #### Source states
@@ -598,7 +611,7 @@ TODO: Document this transition
 #### Destination state
 [Error](#error)
 
-### Timed out while waiting for user
+### Transition Rule Timed out while waiting for user
 User was asked to take action and did not do so in time, give up and display appropriate error
 
 #### Source states
@@ -607,7 +620,17 @@ User was asked to take action and did not do so in time, give up and display app
 #### Destination state
 [Error](#error)
 
-### Timed out while finalizing
+### Transition Rule Timed out while installing
+Cluster installation is taking too long, give up and display appropriate error
+
+#### Source states
+* [Installing](#installing)
+* [Finalizing](#finalizing)
+
+#### Destination state
+[Error](#error)
+
+### Transition Rule Timed out while finalizing
 Cluster finalization took too long, display appropriate error
 
 #### Source states
@@ -616,7 +639,25 @@ Cluster finalization took too long, display appropriate error
 #### Destination state
 [Error](#error)
 
-### TODO: Name this transition
+### Transition Rule Finalizing stage timed out.  Move to error
+Cluster finalization stage took too long, display appropriate error
+
+#### Source states
+* [Finalizing](#finalizing)
+
+#### Destination state
+[Error](#error)
+
+### Transition Rule Finalizing stage is taking too long.  Emit an appropriate event
+Cluster finalization stage is taking too long, emit a warning event and continue installation
+
+#### Source states
+* [Finalizing](#finalizing)
+
+#### Destination state
+[Finalizing](#finalizing)
+
+### Transition Rule TODO: Name this transition
 TODO: Document this transition
 
 #### Source states
@@ -625,7 +666,7 @@ TODO: Document this transition
 #### Destination state
 [Installing, Pending User Action](#installing-pending-user-action)
 
-### TODO: Name this transition
+### Transition Rule TODO: Name this transition
 TODO: Document this transition
 
 #### Source states
@@ -634,7 +675,7 @@ TODO: Document this transition
 #### Destination state
 [Installing](#installing)
 
-### TODO: Name this transition
+### Transition Rule TODO: Name this transition
 TODO: Document this transition
 
 #### Source states
@@ -643,7 +684,7 @@ TODO: Document this transition
 #### Destination state
 [Finalizing](#finalizing)
 
-### TODO: Name this transition
+### Transition Rule TODO: Name this transition
 TODO: Document this transition
 
 #### Source states
@@ -653,7 +694,7 @@ TODO: Document this transition
 #### Destination state
 [Installing, Pending User Action](#installing-pending-user-action)
 
-### Move to finalizing
+### Transition Rule Move to finalizing
 This transition is fired when the cluster is in installing and should move to finalizing
 
 #### Source states
@@ -662,7 +703,7 @@ This transition is fired when the cluster is in installing and should move to fi
 #### Destination state
 [Finalizing](#finalizing)
 
-### Stay in installing
+### Transition Rule Stay in installing
 Installing cluster should stay in installing
 
 #### Source states
@@ -671,7 +712,7 @@ Installing cluster should stay in installing
 #### Destination state
 [Installing](#installing)
 
-### Update AMS subscription
+### Transition Rule Update AMS subscription
 Update AMS subscription with console URL
 
 #### Source states
@@ -680,7 +721,7 @@ Update AMS subscription with console URL
 #### Destination state
 [Finalizing](#finalizing)
 
-### Finalizing complete
+### Transition Rule Finalizing complete
 The cluster has completed finalizing
 
 #### Source states
@@ -689,7 +730,7 @@ The cluster has completed finalizing
 #### Destination state
 [Installed](#installed)
 
-### Installation error
+### Transition Rule Installation error
 This transition is fired when the cluster is in installing and should move to error
 
 #### Source states
@@ -698,7 +739,7 @@ This transition is fired when the cluster is in installing and should move to er
 #### Destination state
 [Error](#error)
 
-### Log collection timeout during error
+### Transition Rule Log collection timeout during error
 Stay in error state and update logs progress to timeout
 
 #### Source states
@@ -707,7 +748,7 @@ Stay in error state and update logs progress to timeout
 #### Destination state
 [Error](#error)
 
-### Log collection timeout during cancelled
+### Transition Rule Log collection timeout during cancelled
 Stay in cancelled state and update logs progress to timeout
 
 #### Source states
@@ -716,7 +757,7 @@ Stay in cancelled state and update logs progress to timeout
 #### Destination state
 [Cancelled](#cancelled)
 
-### Maintain preparing-for-installation state
+### Transition Rule Maintain preparing-for-installation state
 Stay in preparing-for-installation state
 
 #### Source states
@@ -725,7 +766,7 @@ Stay in preparing-for-installation state
 #### Destination state
 [Preparing For Installation](#preparing-for-installation)
 
-### Maintain finalizing state
+### Transition Rule Maintain finalizing state
 Stay in finalizing state
 
 #### Source states
@@ -734,7 +775,7 @@ Stay in finalizing state
 #### Destination state
 [Finalizing](#finalizing)
 
-### Maintain installed state
+### Transition Rule Maintain installed state
 Stay in installed state
 
 #### Source states
@@ -743,7 +784,7 @@ Stay in installed state
 #### Destination state
 [Installed](#installed)
 
-### Maintain error state
+### Transition Rule Maintain error state
 Stay in error state
 
 #### Source states
@@ -752,7 +793,7 @@ Stay in error state
 #### Destination state
 [Error](#error)
 
-### Maintain cancelled state
+### Transition Rule Maintain cancelled state
 Stay in cancelled state
 
 #### Source states
@@ -761,7 +802,7 @@ Stay in cancelled state
 #### Destination state
 [Cancelled](#cancelled)
 
-### Maintain adding-hosts state
+### Transition Rule Maintain adding-hosts state
 Stay in adding-hosts state
 
 #### Source states
@@ -770,7 +811,7 @@ Stay in adding-hosts state
 #### Destination state
 [AddingHosts](#addinghosts)
 
-### Reset installation
+### Transition Rule Reset installation
 Reset the cluster, allowing it to be installed again
 
 #### Source states

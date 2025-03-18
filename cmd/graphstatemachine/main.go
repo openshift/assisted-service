@@ -43,6 +43,14 @@ func hostStateMachine() stateswitch.StateMachine {
 		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
 	).AnyTimes()
 
+	mockTransitionHandler.EXPECT().PostRefreshHostDisconnection(gomock.Any(), gomock.Any()).Return(
+		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+	).AnyTimes()
+
+	mockTransitionHandler.EXPECT().PostHostStageTimeout(gomock.Any()).Return(
+		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+	).AnyTimes()
+
 	return host.NewHostStateMachine(stateswitch.NewStateMachine(), mockTransitionHandler)
 }
 
@@ -55,6 +63,26 @@ func clusterStateMachine() stateswitch.StateMachine {
 	).AnyTimes()
 
 	mockTransitionHandler.EXPECT().PostRefreshLogsProgress(gomock.Any()).Return(
+		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+	).AnyTimes()
+
+	mockTransitionHandler.EXPECT().SendClusterInstallationFailedEvent(gomock.Any()).Return(
+		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+	).AnyTimes()
+
+	mockTransitionHandler.EXPECT().PostRefreshCluster(gomock.Any()).Return(
+		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+	).AnyTimes()
+
+	mockTransitionHandler.EXPECT().PostRefreshCluster(gomock.Any(), gomock.Any()).Return(
+		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+	).AnyTimes()
+
+	mockTransitionHandler.EXPECT().SendClusterInstallationFailedEvent(gomock.Any()).Return(
+		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+	).AnyTimes()
+
+	mockTransitionHandler.EXPECT().SendClusterInstallationFailedEvent(gomock.Any(), gomock.Any()).Return(
 		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
 	).AnyTimes()
 

@@ -19,7 +19,7 @@
       ],
       "destination_state": "ready",
       "name": "Cancel installation of preparing cluster",
-      "description": "Cancelling a cluster during preperation simply cancels the preperation and moves it back to the ready, rather than putting the cluster in the cancelled state"
+      "description": "Cancelling a cluster during preparation simply cancels the preparation and moves it back to the ready, rather than putting the cluster in the cancelled state"
     },
     {
       "transition_type": "PrepareForInstallation",
@@ -50,7 +50,7 @@
       ],
       "destination_state": "insufficient",
       "name": "Refresh discovering cluster - detect insufficient",
-      "description": "In order for this transition to be fired at least one of the validations in isSufficientForInstallNonDhcp must fail. This transition handles the case that one of the required validations that are required in order for the cluster to be in ready state  has failed"
+      "description": "In order for this transition to be fired at least one of the validations in isSufficientForInstallNonDhcp must fail. This transition handles the case that one of the required validations that are required in order for the cluster to be in ready state has failed"
     },
     {
       "transition_type": "RefreshStatus",
@@ -142,11 +142,39 @@
     {
       "transition_type": "RefreshStatus",
       "source_states": [
+        "installing",
+        "finalizing"
+      ],
+      "destination_state": "error",
+      "name": "Timed out while installing",
+      "description": "Cluster installation is taking too long, give up and display appropriate error"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
         "finalizing"
       ],
       "destination_state": "error",
       "name": "Timed out while finalizing",
       "description": "Cluster finalization took too long, display appropriate error"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "finalizing"
+      ],
+      "destination_state": "error",
+      "name": "Finalizing stage timed out.  Move to error",
+      "description": "Cluster finalization stage took too long, display appropriate error"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "finalizing"
+      ],
+      "destination_state": "finalizing",
+      "name": "Finalizing stage is taking too long.  Emit an appropriate event",
+      "description": "Cluster finalization stage is taking too long, emit a warning event and continue installation"
     },
     {
       "transition_type": "RefreshStatus",

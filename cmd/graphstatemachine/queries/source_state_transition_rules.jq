@@ -23,11 +23,14 @@
         }
     ],
     "transitions": [
-        $relevant_rules[]
+        $relevant_rules
+        | to_entries
+        | map( { key } + .value)[]
         | {
             "from": .source_state,
             "to": .destination_state,
             "label": "\($root.transition_types[.transition_type].name) - \(.name)",
+            "id": .key
         }
     ]
 }
