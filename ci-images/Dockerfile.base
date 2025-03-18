@@ -4,8 +4,9 @@ RUN go install gotest.tools/gotestsum@latest
 
 FROM quay.io/centos/centos:stream9
 
-RUN dnf install --enablerepo=crb -y \
-    git unzip make gcc which nmstate-devel python3 openssl-devel
+RUN dnf upgrade -y && dnf install --enablerepo=crb -y \
+    git unzip make gcc which nmstate-devel python3 openssl-devel && \
+    dnf clean all
 
 # Git checks if the user that owns the files on the filesystem match the
 # current user.  We need to disable this check because tests in Prow are
