@@ -94,6 +94,7 @@ function assisted_service() {
   go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
 
   python3 -m venv ${VIRTUAL_ENV:-/opt/venv}
+  source ${VIRTUAL_ENV:-/opt/venv}/bin/activate
   python3 -m pip install --upgrade pip
   python3 -m pip install --no-cache-dir -r ./dev-requirements.txt
 }
