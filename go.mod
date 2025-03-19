@@ -19,7 +19,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a
 	github.com/go-gormigrate/gormigrate/v2 v2.1.2
-	github.com/go-jose/go-jose/v4 v4.0.4
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/go-logr/logr v1.4.1
 	github.com/go-openapi/errors v0.22.0
 	github.com/go-openapi/loads v0.22.0
@@ -70,11 +70,11 @@ require (
 	github.com/segmentio/kafka-go v0.4.38
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/go-http-metrics v0.11.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/thedevsaddam/retry v1.2.1
 	github.com/thoas/go-funk v0.9.3
 	github.com/vincent-petithory/dataurl v1.0.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.32.0
 	golang.org/x/sync v0.11.0
 	golang.org/x/sys v0.30.0
 	gopkg.in/ini.v1 v1.67.0
