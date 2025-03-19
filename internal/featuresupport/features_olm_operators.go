@@ -122,7 +122,8 @@ func (feature *OdfFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelUnavailable
 	}
 
-	if filters.ExternalPlatformName != nil && *filters.ExternalPlatformName == "oci" {
+	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal &&
+		swag.StringValue(filters.ExternalPlatformName) == common.ExternalPlatformNameOci {
 		return models.SupportLevelUnavailable
 	}
 
@@ -575,7 +576,8 @@ func (f *OpenShiftAIFeature) getSupportLevel(filters SupportLevelFilters) models
 		return models.SupportLevelUnavailable
 	}
 
-	if filters.ExternalPlatformName != nil && *filters.ExternalPlatformName == "oci" {
+	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal &&
+		swag.StringValue(filters.ExternalPlatformName) == common.ExternalPlatformNameOci {
 		return models.SupportLevelUnavailable
 	}
 
