@@ -1,13 +1,13 @@
 package network
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 	"net"
 	"strings"
 
 	"github.com/IBM/netaddr"
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/openshift/assisted-service/internal/common"

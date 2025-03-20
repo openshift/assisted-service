@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 
+	json "github.com/bytedance/sonic"
 	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/go-openapi/swag"
@@ -2023,12 +2023,12 @@ var _ = Describe("getMustGatherImages", func() {
 		},
 	}
 	var spec2string = func() string {
-		bytes, err := json.Marshal(outSpecMustGatherImages)
+		bytes, err := json.ConfigStd.Marshal(outSpecMustGatherImages)
 		Expect(err).NotTo(HaveOccurred())
 		return string(bytes)
 	}
 	var env2string = func() string {
-		bytes, err := json.Marshal(defaultEnvMustGatherImages)
+		bytes, err := json.ConfigStd.Marshal(defaultEnvMustGatherImages)
 		Expect(err).NotTo(HaveOccurred())
 		return string(bytes)
 	}
@@ -2135,12 +2135,12 @@ var _ = Describe("getOSImages", func() {
 		},
 	}
 	var spec2string = func() string {
-		bytes, err := json.Marshal(outSpecOsImages)
+		bytes, err := json.ConfigStd.Marshal(outSpecOsImages)
 		Expect(err).NotTo(HaveOccurred())
 		return string(bytes)
 	}
 	var env2string = func() string {
-		bytes, err := json.Marshal(defaultSpecOsImages)
+		bytes, err := json.ConfigStd.Marshal(defaultSpecOsImages)
 		Expect(err).NotTo(HaveOccurred())
 		return string(bytes)
 	}
@@ -2596,7 +2596,7 @@ func newASCWithOSImages() (*aiv1beta1.AgentServiceConfig, string) {
 		},
 	}
 
-	encoded, _ := json.Marshal(models.OsImages{
+	encoded, _ := json.ConfigStd.Marshal(models.OsImages{
 		&models.OsImage{
 			CPUArchitecture:  swag.String(""),
 			OpenshiftVersion: swag.String("4.8"),
@@ -2629,7 +2629,7 @@ func newASCWithMultipleOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, strin
 		},
 	}
 
-	encoded, _ := json.Marshal(models.OsImages{
+	encoded, _ := json.ConfigStd.Marshal(models.OsImages{
 		&models.OsImage{
 			CPUArchitecture:  swag.String(""),
 			OpenshiftVersion: swag.String("4.7"),
@@ -2667,7 +2667,7 @@ func newASCWithDuplicateOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, stri
 		},
 	}
 
-	encoded, _ := json.Marshal(models.OsImages{
+	encoded, _ := json.ConfigStd.Marshal(models.OsImages{
 		&models.OsImage{
 			CPUArchitecture:  swag.String(""),
 			OpenshiftVersion: swag.String("4.7"),
@@ -2702,7 +2702,7 @@ func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
 		},
 	}
 
-	encoded, _ := json.Marshal(models.OsImages{
+	encoded, _ := json.ConfigStd.Marshal(models.OsImages{
 		&models.OsImage{
 			CPUArchitecture:  swag.String(""),
 			OpenshiftVersion: swag.String("4.8.0"),

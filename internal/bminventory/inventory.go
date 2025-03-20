@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/md5" // #nosec
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -14,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -506,7 +506,7 @@ func MarshalNewClusterParamsNoPullSecret(params installer.V2RegisterClusterParam
 		clusterParamsNoPullSecret.PullSecret = &newSecret
 	}
 
-	jsonNewClusterParams, err := json.Marshal(clusterParamsNoPullSecret)
+	jsonNewClusterParams, err := json.ConfigStd.Marshal(clusterParamsNoPullSecret)
 	if err != nil {
 		log.Error("An error occurred while marshaling the new cluster's parameters: ", err)
 		return nil
@@ -2990,7 +2990,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	if err != nil {
 		return fmt.Errorf("failed setting platform usages, error is: %w", err)
 	}
-	featusage, _ := json.Marshal(usages)
+	featusage, _ := json.ConfigStd.Marshal(usages)
 	cluster.FeatureUsage = string(featusage)
 	return nil
 }
@@ -3862,7 +3862,7 @@ func filterReply(expected interface{}, input string) (string, error) {
 	if err := json.Unmarshal([]byte(input), expected); err != nil {
 		return "", err
 	}
-	reply, err := json.Marshal(expected)
+	reply, err := json.ConfigStd.Marshal(expected)
 	if err != nil {
 		return "", err
 	}
@@ -4667,7 +4667,7 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 	if len(hosts) > 0 {
 		msg := fmt.Sprintf("failed to deregister infraEnv %s, %d hosts are still associated", params.InfraEnvID, len(hosts))
 		log.Error(msg)
-		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
+		return common.NewApiError(http.StatusBadRequest, errors.New(msg))
 	}
 
 	if err = b.infraEnvApi.DeregisterInfraEnv(ctx, params.InfraEnvID); err != nil {
@@ -4874,7 +4874,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 		var kernelArguments *string
 		if len(params.InfraenvCreateParams.KernelArguments) > 0 {
 			var b []byte
-			b, err = json.Marshal(&params.InfraenvCreateParams.KernelArguments)
+			b, err = json.ConfigStd.Marshal(&params.InfraenvCreateParams.KernelArguments)
 			if err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
 			}
@@ -5506,7 +5506,7 @@ func (b *bareMetalInventory) updateInfraEnvKernelArguments(params installer.Upda
 	}
 
 	if len(params.InfraEnvUpdateParams.KernelArguments) > 0 {
-		b, err := json.Marshal(&params.InfraEnvUpdateParams.KernelArguments)
+		b, err := json.ConfigStd.Marshal(&params.InfraEnvUpdateParams.KernelArguments)
 		if err != nil {
 			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
 		}
@@ -6056,7 +6056,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallerArgsInternal(ctx context.Conte
 		return nil, err
 	}
 
-	argsBytes, err := json.Marshal(params.InstallerArgsParams.Args)
+	argsBytes, err := json.ConfigStd.Marshal(params.InstallerArgsParams.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -6505,7 +6505,7 @@ func (b *bareMetalInventory) updateIgnitionEndpointHTTPHeaders(ctx context.Conte
 		ignitionEndpointHTTPHeaders[*hdr.Key] = *hdr.Value
 	}
 
-	ignitionEndpointHTTPHeadersStr, err := json.Marshal(ignitionEndpointHTTPHeaders)
+	ignitionEndpointHTTPHeadersStr, err := json.ConfigStd.Marshal(ignitionEndpointHTTPHeaders)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "failed to marshal ignition endpoint HTTP Headers for host %s", host.ID))
 	}

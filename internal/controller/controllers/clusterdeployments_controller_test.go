@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	json "github.com/bytedance/sonic"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -1322,7 +1322,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			var bytesValidationInfo []byte
 			var err error
-			bytesValidationInfo, err = json.Marshal(validationInfo)
+			bytesValidationInfo, err = json.ConfigStd.Marshal(validationInfo)
 			Expect(err).To(BeNil())
 			stringifiedValidationInfo := string(bytesValidationInfo)
 			sId := strfmt.UUID(uuid.New().String())
