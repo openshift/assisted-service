@@ -20,4 +20,5 @@ type Metadata struct {
 	DeploymentType    string `json:"deployment-type"`
 	DeploymentVersion string `json:"deployment-version"`
 	GitRef            string `json:"git-ref"`
+	ClusterConsumer   string `json:"cluster-consumer"`
 }

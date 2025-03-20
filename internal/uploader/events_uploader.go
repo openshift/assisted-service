@@ -186,7 +186,7 @@ func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eve
 	}
 
 	// Add metadata file to bundle
-	metadataFile(tw, cluster.ID, config)
+	metadataFile(tw, cluster, config)
 
 	// produce tar
 	if err := tw.Close(); err != nil {
@@ -199,15 +199,15 @@ func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eve
 	return buffer, nil
 }
 
-func metadataFile(tw *tar.Writer, clusterID *strfmt.UUID, config Config) {
-	metadata := createMetadataContent(config)
+func metadataFile(tw *tar.Writer, cluster *common.Cluster, config Config) {
+	metadata := createMetadataContent(config, cluster)
 
 	if metadataJson, err := json.Marshal(metadata); err == nil {
-		addFile(tw, metadataJson, fmt.Sprintf("%s/%s", *clusterID, metadataFileName)) //nolint:errcheck // errors adding this file shouldn't prevent the data from being sent
+		addFile(tw, metadataJson, fmt.Sprintf("%s/%s", cluster.ID, metadataFileName)) //nolint:errcheck // errors adding this file shouldn't prevent the data from being sent
 	}
 }
 
-func createMetadataContent(config Config) eventModels.Metadata {
+func createMetadataContent(config Config, cluster *common.Cluster) eventModels.Metadata {
 	return eventModels.Metadata{
 		AssistedInstallerServiceVersion:    config.Versions.SelfVersion,
 		DiscoveryAgentVersion:              config.Versions.AgentDockerImg,
@@ -217,6 +217,7 @@ func createMetadataContent(config Config) eventModels.Metadata {
 		DeploymentType:    config.DeploymentType,
 		DeploymentVersion: config.DeploymentVersion,
 		GitRef:            config.AssistedServiceVersion,
+		ClusterConsumer:   cluster.Consumer,
 	}
 }
 
