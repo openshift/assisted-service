@@ -87,6 +87,11 @@ type Cluster struct {
 
 	// A JSON blob in which holds the cluster mirror registry if set
 	MirrorRegistryConfiguration string `json:"mirror_registry_configuration" gorm:"type:TEXT"`
+
+	// Consumer is set by entities such as CAPI's OpenshiftAssisted providers. It's
+	// mainly used for data collection purposes.
+	// This indicates the cluster deployed with assisted service is consumed by CAPI
+	Consumer string `json:"consumer" gorm:"type:TEXT"`
 }
 
 func (c *Cluster) GetClusterID() *strfmt.UUID {
