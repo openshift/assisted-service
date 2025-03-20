@@ -2689,7 +2689,7 @@ var _ = Describe("Validations test", func() {
 				status, message, ok := getValidationResult(refreshedHost.ValidationsInfo, NoIscsiNicBelongsToMachineCidr)
 				Expect(ok).To(BeFalse(), fmt.Sprintf("%s %s", status, message))
 			},
-			Entry("is multi-mode with UMN", &models.Cluster{ID: &clusterID, HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull), UserManagedNetworking: swag.Bool(true)}),
+			Entry("is multi-mode with UMN", &models.Cluster{ID: &clusterID, ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, UserManagedNetworking: swag.Bool(true)}),
 			Entry("is day 2", &models.Cluster{ID: &clusterID, Kind: swag.String(models.ClusterKindAddHostsCluster)}),
 			Entry("is imported", &models.Cluster{ID: &clusterID, Imported: swag.Bool(true)}),
 		)
@@ -3071,8 +3071,8 @@ var _ = Describe("Validations test", func() {
 			}
 			cluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:                   &clusterID,
-					HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+					ID:                &clusterID,
+					ControlPlaneCount: 1,
 				},
 			}
 

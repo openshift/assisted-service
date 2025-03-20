@@ -570,7 +570,7 @@ var _ = Describe("createHostIgnitions", func() {
 					Role:              models.HostRoleMaster,
 				},
 			}
-			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			cluster.ControlPlaneCount = 1
 			cluster.MachineNetworks = network.CreateMachineNetworksArray("3.3.3.0/24")
 
 			// create an ID for each host
@@ -614,7 +614,7 @@ var _ = Describe("createHostIgnitions", func() {
 					Role:              models.HostRoleMaster,
 				},
 			}
-			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
 			cluster.MachineNetworks = network.CreateMachineNetworksArray("3.3.3.0/24")
 
 			// create an ID for each host
@@ -662,7 +662,7 @@ var _ = Describe("createHostIgnitions", func() {
 				Role:              models.HostRoleMaster,
 			},
 		}
-		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
 		cluster.UserManagedNetworking = swag.Bool(true)
 
 		// create an ID for each host
@@ -718,7 +718,7 @@ var _ = Describe("createHostIgnitions", func() {
 				Role:              models.HostRoleMaster,
 			},
 		}
-		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
 		cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged}
 
 		// create an ID for each host
@@ -775,7 +775,7 @@ var _ = Describe("createHostIgnitions", func() {
 				Role:              models.HostRoleMaster,
 			},
 		}
-		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
 		cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeClusterManaged}
 		cluster.MachineNetworks = []*models.MachineNetwork{
 			{Cidr: "192.168.127.0/24"},
@@ -1726,14 +1726,14 @@ var _ = Describe("Set kubelet node ip", func() {
 	})
 	It("sno bootstrap kubelet ip", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
-		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		cluster.ControlPlaneCount = 1
 		basicEnvVars, err = generator.addBootstrapKubeletIpIfRequired(generator.log, basicEnvVars)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(basicEnvVars).Should(ContainElement("OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP=192.168.126.10"))
 	})
 	It("UMN platform bootstrap kubelet ip should not be set", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
-		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
 		basicEnvVars, err = generator.addBootstrapKubeletIpIfRequired(generator.log, basicEnvVars)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(basicEnvVars).ShouldNot(ContainElement("OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP=192.168.126.10"))
@@ -1741,7 +1741,7 @@ var _ = Describe("Set kubelet node ip", func() {
 	})
 	It("UMN platform bootstrap kubelet ip should be set when node-ip-allocations exist", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
-		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
 		generator.nodeIpAllocations = map[strfmt.UUID]*network.NodeIpAllocation{
 			*cluster.Hosts[0].ID: {
 				NodeIp: "192.168.126.11",

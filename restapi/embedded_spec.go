@@ -6399,7 +6399,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "high_availability_mode": {
-          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "description": "(DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
           "default": "Full",
           "enum": [
@@ -9121,15 +9121,6 @@ func init() {
         "enable_skip_mco_reboot": {
           "description": "If true, assisted service will attempt to skip MCO reboot",
           "type": "boolean"
-        },
-        "high_availability_mode": {
-          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
-          "type": "string",
-          "default": "Full",
-          "enum": [
-            "Full",
-            "None"
-          ]
         },
         "host_id": {
           "description": "Host id",
@@ -17490,7 +17481,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "high_availability_mode": {
-          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "description": "(DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
           "default": "Full",
           "enum": [
@@ -20181,15 +20172,6 @@ func init() {
         "enable_skip_mco_reboot": {
           "description": "If true, assisted service will attempt to skip MCO reboot",
           "type": "boolean"
-        },
-        "high_availability_mode": {
-          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
-          "type": "string",
-          "default": "Full",
-          "enum": [
-            "Full",
-            "None"
-          ]
         },
         "host_id": {
           "description": "Host id",

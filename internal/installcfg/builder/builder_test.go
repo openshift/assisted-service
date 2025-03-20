@@ -543,8 +543,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
-		mode := models.ClusterHighAvailabilityModeNone
-		cluster.HighAvailabilityMode = &mode
+		cluster.ControlPlaneCount = 1
 		cluster.Hosts[0].Bootstrap = true
 		cluster.Hosts[0].InstallationDiskPath = "/dev/test"
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}}
@@ -567,8 +566,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
-		mode := models.ClusterHighAvailabilityModeNone
-		cluster.HighAvailabilityMode = &mode
+		cluster.ControlPlaneCount = 1
 		cluster.NetworkType = nil
 		cluster.Hosts[0].Bootstrap = true
 		cluster.Hosts[0].InstallationDiskPath = "/dev/test"
@@ -937,8 +935,7 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 		s := `{"apiVersion": "v3", "baseDomain": "example.com", "metadata": {"name": "things"}}`
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
-		mode := models.ClusterHighAvailabilityModeNone
-		cluster.HighAvailabilityMode = &mode
+		cluster.ControlPlaneCount = 1
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		err := installConfig.ValidateInstallConfigPatch(cluster, clusterInfraenvs, s)
 		Expect(err).ShouldNot(HaveOccurred())

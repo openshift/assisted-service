@@ -65,11 +65,11 @@ var _ = Describe("Cluster with Platform", func() {
 		It("vSphere cluster on OCP 4.12 - Success", func() {
 			cluster, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("test-cluster"),
-					OpenshiftVersion:     swag.String("4.12"),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
-					PullSecret:           swag.String(pullSecret),
-					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+					Name:              swag.String("test-cluster"),
+					OpenshiftVersion:  swag.String("4.12"),
+					ControlPlaneCount: swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode),
+					PullSecret:        swag.String(pullSecret),
+					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -79,14 +79,14 @@ var _ = Describe("Cluster with Platform", func() {
 		It("vSphere cluster on OCP 4.12 with dual stack - Failure", func() {
 			_, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("test-cluster"),
-					OpenshiftVersion:     swag.String("4.12"),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
-					PullSecret:           swag.String(pullSecret),
-					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
-					MachineNetworks:      common.TestDualStackNetworking.MachineNetworks,
-					ClusterNetworks:      common.TestDualStackNetworking.ClusterNetworks,
-					ServiceNetworks:      common.TestDualStackNetworking.ServiceNetworks,
+					Name:              swag.String("test-cluster"),
+					OpenshiftVersion:  swag.String("4.12"),
+					ControlPlaneCount: swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode),
+					PullSecret:        swag.String(pullSecret),
+					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+					MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
+					ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+					ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
 				},
 			})
 			Expect(err).Should(HaveOccurred())
@@ -103,14 +103,14 @@ var _ = Describe("Cluster with Platform", func() {
 		It("vSphere cluster on OCP 4.13 with dual stack - Succeess", func() {
 			_, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("test-cluster"),
-					OpenshiftVersion:     swag.String("4.13"),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
-					PullSecret:           swag.String(pullSecret),
-					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
-					MachineNetworks:      common.TestDualStackNetworking.MachineNetworks,
-					ClusterNetworks:      common.TestDualStackNetworking.ClusterNetworks,
-					ServiceNetworks:      common.TestDualStackNetworking.ServiceNetworks,
+					Name:              swag.String("test-cluster"),
+					OpenshiftVersion:  swag.String("4.13"),
+					ControlPlaneCount: swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode),
+					PullSecret:        swag.String(pullSecret),
+					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+					MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
+					ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
+					ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
 				},
 			})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -1253,16 +1253,16 @@ var _ = Describe("cluster install", func() {
 		It("report usage on default features with SNO", func() {
 			registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:        "example.com",
-					ClusterNetworks:      []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-					ServiceNetworks:      []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-					Name:                 swag.String("sno-cluster"),
-					OpenshiftVersion:     swag.String(snoVersion),
-					PullSecret:           swag.String(pullSecret),
-					SSHPublicKey:         utils_test.SshPublicKey,
-					VipDhcpAllocation:    swag.Bool(false),
-					NetworkType:          swag.String("OVNKubernetes"),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+					BaseDNSDomain:     "example.com",
+					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:              swag.String("sno-cluster"),
+					OpenshiftVersion:  swag.String(snoVersion),
+					PullSecret:        swag.String(pullSecret),
+					SSHPublicKey:      utils_test.SshPublicKey,
+					VipDhcpAllocation: swag.Bool(false),
+					NetworkType:       swag.String("OVNKubernetes"),
+					ControlPlaneCount: swag.Int64(1),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -1271,7 +1271,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
 			utils_test.VerifyUsageSet(getReply.Payload.FeatureUsage,
-				models.Usage{Name: usage.HighAvailabilityModeUsage},
+				models.Usage{Name: usage.SingleNodeOpenShiftUsage},
 				models.Usage{Name: usage.HyperthreadingUsage, Data: map[string]interface{}{"hyperthreading_enabled": models.ClusterHyperthreadingAll}})
 			utils_test.VerifyUsageNotSet(getReply.Payload.FeatureUsage,
 				strings.ToUpper("console"),
@@ -1376,13 +1376,13 @@ var _ = Describe("cluster install", func() {
 					MachineNetworks: []*models.MachineNetwork{
 						{Cidr: models.Subnet(machineCIDR)},
 						{Cidr: models.Subnet(machineCIDRv6)}},
-					Name:                 swag.String("sno-cluster"),
-					OpenshiftVersion:     swag.String(snoVersion),
-					PullSecret:           swag.String(pullSecret),
-					SSHPublicKey:         utils_test.SshPublicKey,
-					VipDhcpAllocation:    swag.Bool(false),
-					NetworkType:          swag.String("OVNKubernetes"),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+					Name:              swag.String("sno-cluster"),
+					OpenshiftVersion:  swag.String(snoVersion),
+					PullSecret:        swag.String(pullSecret),
+					SSHPublicKey:      utils_test.SshPublicKey,
+					VipDhcpAllocation: swag.Bool(false),
+					NetworkType:       swag.String("OVNKubernetes"),
+					ControlPlaneCount: swag.Int64(1),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -1391,7 +1391,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
 			utils_test.VerifyUsageSet(getReply.Payload.FeatureUsage,
-				models.Usage{Name: usage.HighAvailabilityModeUsage},
+				models.Usage{Name: usage.SingleNodeOpenShiftUsage},
 				models.Usage{Name: usage.DualStackUsage})
 			utils_test.VerifyUsageNotSet(getReply.Payload.FeatureUsage,
 				strings.ToUpper("console"),
@@ -1416,13 +1416,13 @@ var _ = Describe("cluster install", func() {
 					MachineNetworks: []*models.MachineNetwork{
 						{Cidr: models.Subnet(machineCIDR)},
 						{Cidr: models.Subnet(machineCIDRv6)}},
-					Name:                 swag.String("sno-cluster"),
-					OpenshiftVersion:     swag.String(dualstackVipsOpenShiftVersion),
-					PullSecret:           swag.String(pullSecret),
-					SSHPublicKey:         utils_test.SshPublicKey,
-					VipDhcpAllocation:    swag.Bool(false),
-					NetworkType:          swag.String("OVNKubernetes"),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+					Name:              swag.String("sno-cluster"),
+					OpenshiftVersion:  swag.String(dualstackVipsOpenShiftVersion),
+					PullSecret:        swag.String(pullSecret),
+					SSHPublicKey:      utils_test.SshPublicKey,
+					VipDhcpAllocation: swag.Bool(false),
+					NetworkType:       swag.String("OVNKubernetes"),
+					ControlPlaneCount: swag.Int64(1),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -1431,7 +1431,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
 			utils_test.VerifyUsageSet(getReply.Payload.FeatureUsage,
-				models.Usage{Name: usage.HighAvailabilityModeUsage},
+				models.Usage{Name: usage.SingleNodeOpenShiftUsage},
 				models.Usage{Name: usage.DualStackUsage},
 				models.Usage{Name: usage.DualStackVipsUsage})
 			utils_test.VerifyUsageNotSet(getReply.Payload.FeatureUsage,
@@ -2792,17 +2792,17 @@ spec:
 		It("OpenshiftVersion does support NoProxy wildcard", func() {
 			_, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:        "example.com",
-					ClusterNetworks:      []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-					ServiceNetworks:      []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-					Name:                 swag.String("sno-cluster"),
-					OpenshiftVersion:     &openshiftVersion,
-					NoProxy:              swag.String("*"),
-					PullSecret:           swag.String(pullSecret),
-					SSHPublicKey:         utils_test.SshPublicKey,
-					VipDhcpAllocation:    swag.Bool(false),
-					NetworkType:          swag.String("OVNKubernetes"),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+					BaseDNSDomain:     "example.com",
+					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:              swag.String("sno-cluster"),
+					OpenshiftVersion:  &openshiftVersion,
+					NoProxy:           swag.String("*"),
+					PullSecret:        swag.String(pullSecret),
+					SSHPublicKey:      utils_test.SshPublicKey,
+					VipDhcpAllocation: swag.Bool(false),
+					NetworkType:       swag.String("OVNKubernetes"),
+					ControlPlaneCount: swag.Int64(1),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())

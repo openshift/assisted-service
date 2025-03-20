@@ -236,12 +236,11 @@ var _ = Describe("Progress bar test", func() {
 		By("Create SNO cluster", func() {
 			clusterId = strfmt.UUID(uuid.New().String())
 			hid1 := strfmt.UUID(uuid.New().String())
-			none := models.ClusterHighAvailabilityModeNone
 			c := common.Cluster{
 				Cluster: models.Cluster{
-					ID:                   &clusterId,
-					Kind:                 swag.String(models.ClusterKindCluster),
-					HighAvailabilityMode: &none,
+					ID:                &clusterId,
+					Kind:              swag.String(models.ClusterKindCluster),
+					ControlPlaneCount: 1,
 					Hosts: []*models.Host{
 						{
 							ID:         &hid1,
@@ -351,13 +350,11 @@ var _ = Describe("Progress bar test", func() {
 
 		var clusterId strfmt.UUID
 		var hid1 strfmt.UUID
-		var none string
 		var c common.Cluster
 
 		BeforeEach(func() {
 			clusterId = strfmt.UUID(uuid.New().String())
 			hid1 = strfmt.UUID(uuid.New().String())
-			none = models.ClusterHighAvailabilityModeNone
 
 			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 			mockDnsApi.EXPECT().CreateDNSRecordSets(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -405,16 +402,16 @@ var _ = Describe("Progress bar test", func() {
 				By(fmt.Sprintf("creating cluster in state %s", t.clusterStatus))
 				c = common.Cluster{
 					Cluster: models.Cluster{
-						ID:                   &clusterId,
-						Kind:                 swag.String(models.ClusterKindCluster),
-						HighAvailabilityMode: &none,
-						MachineNetworks:      []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
-						APIVips:              []*models.APIVip{{IP: "1.2.3.5"}},
-						IngressVips:          []*models.IngressVip{{IP: "1.2.3.6"}},
-						Status:               swag.String(t.clusterStatus),
-						StatusUpdatedAt:      strfmt.DateTime(time.Now()),
-						InstallStartedAt:     t.installStartTime,
-						Progress:             &t.progress,
+						ID:                &clusterId,
+						Kind:              swag.String(models.ClusterKindCluster),
+						ControlPlaneCount: 1,
+						MachineNetworks:   []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
+						APIVips:           []*models.APIVip{{IP: "1.2.3.5"}},
+						IngressVips:       []*models.IngressVip{{IP: "1.2.3.6"}},
+						Status:            swag.String(t.clusterStatus),
+						StatusUpdatedAt:   strfmt.DateTime(time.Now()),
+						InstallStartedAt:  t.installStartTime,
+						Progress:          &t.progress,
 						Hosts: []*models.Host{
 							{
 								ID:         &hid1,

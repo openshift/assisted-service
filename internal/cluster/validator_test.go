@@ -34,12 +34,12 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 
 	It("Returns ValidationPending when cluster and service network are unset and required", func() {
 		userManagedNetworking := true
-		highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+		controlPlaneCount := int64(common.MinMasterHostsNeededForInstallationInHaMode)
 
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                    &clusterID,
 			UserManagedNetworking: &userManagedNetworking,
-			HighAvailabilityMode:  &highAvailabilityMode,
+			ControlPlaneCount:     controlPlaneCount,
 		}}
 
 		status, message := validator.isNetworksSameAddressFamilies(preprocessContext)
@@ -49,12 +49,12 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 
 	It("Returns ValidationPending when machine, cluster and service network are unset and required", func() {
 		userManagedNetworking := true
-		highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeNone
+		controlPlaneCount := int64(1)
 
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                    &clusterID,
 			UserManagedNetworking: &userManagedNetworking,
-			HighAvailabilityMode:  &highAvailabilityMode,
+			ControlPlaneCount:     controlPlaneCount,
 		}}
 
 		status, message := validator.isNetworksSameAddressFamilies(preprocessContext)
@@ -64,7 +64,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 
 	It("Returns ValidationError when service networks contain an invalid CIDR", func() {
 		userManagedNetworking := true
-		highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+		controlPlaneCount := int64(common.MinMasterHostsNeededForInstallationInHaMode)
 
 		serviceNetworks := []*models.ServiceNetwork{
 			{Cidr: "192.168.20.1/24", ClusterID: clusterID},
@@ -79,7 +79,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                    &clusterID,
 			UserManagedNetworking: &userManagedNetworking,
-			HighAvailabilityMode:  &highAvailabilityMode,
+			ControlPlaneCount:     controlPlaneCount,
 			ServiceNetworks:       serviceNetworks,
 			ClusterNetworks:       clusterNetworks,
 		}}
@@ -91,7 +91,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 
 	It("Returns ValidationError when clusterNetworks contain an invalid CIDR", func() {
 		userManagedNetworking := true
-		highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+		controlPlaneCount := int64(common.MinMasterHostsNeededForInstallationInHaMode)
 
 		serviceNetworks := []*models.ServiceNetwork{
 			{Cidr: "192.168.20.1/24", ClusterID: clusterID},
@@ -106,7 +106,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                    &clusterID,
 			UserManagedNetworking: &userManagedNetworking,
-			HighAvailabilityMode:  &highAvailabilityMode,
+			ControlPlaneCount:     controlPlaneCount,
 			ServiceNetworks:       serviceNetworks,
 			ClusterNetworks:       clusterNetworks,
 		}}
@@ -118,7 +118,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 
 	It("Returns ValidationError cluster and service network address families match but there is an invalid CIDR in machine network", func() {
 		userManagedNetworking := false
-		highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+		controlPlaneCount := int64(common.MinMasterHostsNeededForInstallationInHaMode)
 
 		serviceNetworks := []*models.ServiceNetwork{
 			{Cidr: "192.168.20.1/24", ClusterID: clusterID},
@@ -138,7 +138,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                    &clusterID,
 			UserManagedNetworking: &userManagedNetworking,
-			HighAvailabilityMode:  &highAvailabilityMode,
+			ControlPlaneCount:     controlPlaneCount,
 			ServiceNetworks:       serviceNetworks,
 			ClusterNetworks:       clusterNetworks,
 			MachineNetworks:       machineNetworks,
@@ -151,7 +151,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 
 	It("Returns ValidationFailure when the address families of service and cluster networks do not match", func() {
 		userManagedNetworking := true
-		highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+		controlPlaneCount := int64(common.MinMasterHostsNeededForInstallationInHaMode)
 
 		serviceNetworks := []*models.ServiceNetwork{
 			{Cidr: "192.168.20.1/24", ClusterID: clusterID},
@@ -164,7 +164,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                    &clusterID,
 			UserManagedNetworking: &userManagedNetworking,
-			HighAvailabilityMode:  &highAvailabilityMode,
+			ControlPlaneCount:     controlPlaneCount,
 			ServiceNetworks:       serviceNetworks,
 			ClusterNetworks:       clusterNetworks,
 		}}
@@ -176,7 +176,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 
 	It("Returns ValidationFailure cluster and service network address families match but mismatch for machine network families", func() {
 		userManagedNetworking := false
-		highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+		controlPlaneCount := int64(common.MinMasterHostsNeededForInstallationInHaMode)
 
 		serviceNetworks := []*models.ServiceNetwork{
 			{Cidr: "192.168.20.1/24", ClusterID: clusterID},
@@ -195,7 +195,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                    &clusterID,
 			UserManagedNetworking: &userManagedNetworking,
-			HighAvailabilityMode:  &highAvailabilityMode,
+			ControlPlaneCount:     controlPlaneCount,
 			ServiceNetworks:       serviceNetworks,
 			ClusterNetworks:       clusterNetworks,
 			MachineNetworks:       machineNetworks,
@@ -208,7 +208,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 
 	It("Returns ValidationSuccess when machine, service and cluster network families match and they are all required", func() {
 		userManagedNetworking := false
-		highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+		controlPlaneCount := int64(common.MinMasterHostsNeededForInstallationInHaMode)
 
 		serviceNetworks := []*models.ServiceNetwork{
 			{Cidr: "192.168.20.1/24", ClusterID: clusterID},
@@ -227,7 +227,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                    &clusterID,
 			UserManagedNetworking: &userManagedNetworking,
-			HighAvailabilityMode:  &highAvailabilityMode,
+			ControlPlaneCount:     controlPlaneCount,
 			ServiceNetworks:       serviceNetworks,
 			ClusterNetworks:       clusterNetworks,
 			MachineNetworks:       machineNetworks,
@@ -240,7 +240,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 
 	It("Returns ValidationSuccess when service and cluster network families match and machine network is not required", func() {
 		userManagedNetworking := true
-		highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+		controlPlaneCount := int64(common.MinMasterHostsNeededForInstallationInHaMode)
 
 		serviceNetworks := []*models.ServiceNetwork{
 			{Cidr: "192.168.20.1/24", ClusterID: clusterID},
@@ -252,7 +252,7 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                    &clusterID,
 			UserManagedNetworking: &userManagedNetworking,
-			HighAvailabilityMode:  &highAvailabilityMode,
+			ControlPlaneCount:     controlPlaneCount,
 			ServiceNetworks:       serviceNetworks,
 			ClusterNetworks:       clusterNetworks,
 		}}
@@ -346,8 +346,8 @@ var _ = Describe("areVipsValid", func() {
 
 			It("SNO", func() {
 				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
-					ID:                   &clusterID,
-					HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+					ID:                &clusterID,
+					ControlPlaneCount: 1,
 				}}
 
 				status, message := lcontext.function(preprocessContext)
@@ -646,64 +646,64 @@ var _ = Describe("areVipsValid", func() {
 	}
 })
 
-var _ = Describe("Network type matches high availability mode", func() {
+var _ = Describe("Network type matches high control plane count", func() {
 	tests := []struct {
-		highAvailabilityMode *string
-		networkType          *string
-		invalid              bool
+		controlPlaneCount int64
+		networkType       *string
+		invalid           bool
 	}{
 		{
-			highAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
-			networkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
-			invalid:              false,
+			controlPlaneCount: 1,
+			networkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+			invalid:           false,
 		},
 		{
-			highAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
-			networkType:          swag.String("CalicoOrWhatever"),
-			invalid:              false,
+			controlPlaneCount: 1,
+			networkType:       swag.String("CalicoOrWhatever"),
+			invalid:           false,
 		},
 		{
-			highAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
-			networkType:          swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-			invalid:              true,
+			controlPlaneCount: 1,
+			networkType:       swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+			invalid:           true,
 		},
 		{
-			highAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
-			networkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
-			invalid:              false,
+			controlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
+			networkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+			invalid:           false,
 		},
 		{
-			highAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
-			networkType:          swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-			invalid:              false,
+			controlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
+			networkType:       swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+			invalid:           false,
 		},
 		{
-			highAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
-			networkType:          swag.String("CalicoOrWhatever"),
-			invalid:              false,
+			controlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
+			networkType:       swag.String("CalicoOrWhatever"),
+			invalid:           false,
 		},
 		{
-			highAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
-			networkType:          nil,
-			invalid:              false,
+			controlPlaneCount: 1,
+			networkType:       nil,
+			invalid:           false,
 		},
 		{
-			highAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
-			networkType:          nil,
-			invalid:              false,
+			controlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
+			networkType:       nil,
+			invalid:           false,
 		},
 	}
 	for _, test := range tests {
 		t := test
-		It(fmt.Sprintf("Availability mode: %s, network type: %s", swag.StringValue(t.highAvailabilityMode), swag.StringValue(t.networkType)),
+		It(fmt.Sprintf("Control plane count: %d, network type: %s", t.controlPlaneCount, swag.StringValue(t.networkType)),
 			func() {
 				cluster := common.Cluster{
 					Cluster: models.Cluster{
-						HighAvailabilityMode: t.highAvailabilityMode,
-						NetworkType:          t.networkType,
+						ControlPlaneCount: t.controlPlaneCount,
+						NetworkType:       t.networkType,
 					},
 				}
-				Expect(isHighAvailabilityModeUnsupportedByNetworkType(&cluster)).To(Equal(t.invalid))
+				Expect(isControlPlaneCountUnsupportedByNetworkType(&cluster)).To(Equal(t.invalid))
 			})
 	}
 })
@@ -920,10 +920,9 @@ var _ = Describe("SufficientMastersCount", func() {
 				clusterId: clusterID,
 				cluster: &common.Cluster{
 					Cluster: models.Cluster{
-						ID:                   &clusterID,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-						ControlPlaneCount:    3,
+						ID:                &clusterID,
+						OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount: 3,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,
@@ -953,10 +952,9 @@ var _ = Describe("SufficientMastersCount", func() {
 				clusterId: clusterID,
 				cluster: &common.Cluster{
 					Cluster: models.Cluster{
-						ID:                   &clusterID,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
-						ControlPlaneCount:    1,
+						ID:                &clusterID,
+						OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount: 1,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,
@@ -980,10 +978,9 @@ var _ = Describe("SufficientMastersCount", func() {
 				clusterId: clusterID,
 				cluster: &common.Cluster{
 					Cluster: models.Cluster{
-						ID:                   &clusterID,
-						OpenshiftVersion:     common.MinimumVersionForNonStandardHAOCPControlPlane,
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-						ControlPlaneCount:    5,
+						ID:                &clusterID,
+						OpenshiftVersion:  common.MinimumVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount: 5,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,
@@ -1021,10 +1018,9 @@ var _ = Describe("SufficientMastersCount", func() {
 				clusterId: clusterID,
 				cluster: &common.Cluster{
 					Cluster: models.Cluster{
-						ID:                   &clusterID,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-						ControlPlaneCount:    3,
+						ID:                &clusterID,
+						OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount: 3,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,
@@ -1060,10 +1056,9 @@ var _ = Describe("SufficientMastersCount", func() {
 				clusterId: clusterID,
 				cluster: &common.Cluster{
 					Cluster: models.Cluster{
-						ID:                   &clusterID,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
-						ControlPlaneCount:    1,
+						ID:                &clusterID,
+						OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount: 1,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,
@@ -1090,10 +1085,9 @@ var _ = Describe("SufficientMastersCount", func() {
 				clusterId: clusterID,
 				cluster: &common.Cluster{
 					Cluster: models.Cluster{
-						ID:                   &clusterID,
-						OpenshiftVersion:     testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
-						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
-						ControlPlaneCount:    1,
+						ID:                &clusterID,
+						OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount: 1,
 						Hosts: []*models.Host{
 							{
 								Role: models.HostRoleMaster,

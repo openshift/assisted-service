@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-openapi/swag"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
@@ -364,8 +363,9 @@ func isUserManagedNetworkingSetToFalseWithSNO(newObject *hiveext.AgentClusterIns
 
 func validateCreatePlatformAndUMN(newObject *hiveext.AgentClusterInstall) error {
 	platform := common.PlatformTypeToPlatform(newObject.Spec)
+	ctrlPlaneCount := int64(newObject.Spec.ProvisionRequirements.ControlPlaneAgents)
 	_, _, err := provider.GetActualCreateClusterPlatformParams(
-		platform, newObject.Spec.Networking.UserManagedNetworking, getHighAvailabilityMode(newObject, nil), "")
+		platform, newObject.Spec.Networking.UserManagedNetworking, &ctrlPlaneCount, "")
 	return err
 }
 
@@ -387,37 +387,15 @@ func validateUpdatePlatformAndUMNUpdate(oldObject, newObject *hiveext.AgentClust
 		userManagedNetworking = oldObject.Spec.Networking.UserManagedNetworking
 	}
 
+	ctrlPlaneCount := int64(newObject.Spec.ProvisionRequirements.ControlPlaneAgents)
 	_, _, err := provider.GetActualCreateClusterPlatformParams(
-		platform, userManagedNetworking, getHighAvailabilityMode(oldObject, newObject), "")
+		platform, userManagedNetworking, &ctrlPlaneCount, "")
 	return err
 }
 
 func isSNO(newObject *hiveext.AgentClusterInstall) bool {
 	return newObject.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
 		newObject.Spec.ProvisionRequirements.WorkerAgents == 0
-}
-
-func getHighAvailabilityMode(originalObject, updatesObject *hiveext.AgentClusterInstall) *string {
-	if originalObject == nil {
-		return swag.String("")
-	}
-
-	controlPlaneAgents := originalObject.Spec.ProvisionRequirements.ControlPlaneAgents
-	workerAgents := originalObject.Spec.ProvisionRequirements.WorkerAgents
-
-	if updatesObject != nil {
-		if controlPlaneAgents != updatesObject.Spec.ProvisionRequirements.ControlPlaneAgents {
-			controlPlaneAgents = updatesObject.Spec.ProvisionRequirements.ControlPlaneAgents
-		}
-		if workerAgents != updatesObject.Spec.ProvisionRequirements.WorkerAgents {
-			workerAgents = updatesObject.Spec.ProvisionRequirements.WorkerAgents
-		}
-	}
-
-	if controlPlaneAgents == 1 && workerAgents == 0 { // SNO
-		return swag.String(models.ClusterHighAvailabilityModeNone)
-	}
-	return swag.String(models.ClusterHighAvailabilityModeFull)
 }
 
 // diffReporter is a simple custom reporter that only records differences

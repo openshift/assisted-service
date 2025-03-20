@@ -9,14 +9,13 @@ import (
 )
 
 var _ = Describe("LVM manifest generation", func() {
-	noneHighAvailabilityMode := models.ClusterHighAvailabilityModeNone
 	operator := NewLvmOperator(common.GetTestLog())
 	var cluster *common.Cluster
 
 	getCluster := func(openshiftVersion string) *common.Cluster {
 		cluster := common.Cluster{Cluster: models.Cluster{
-			OpenshiftVersion:     openshiftVersion,
-			HighAvailabilityMode: &noneHighAvailabilityMode,
+			OpenshiftVersion:  openshiftVersion,
+			ControlPlaneCount: 1,
 		}}
 		Expect(common.IsSingleNodeCluster(&cluster)).To(BeTrue())
 		return &cluster

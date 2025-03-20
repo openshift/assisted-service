@@ -47,9 +47,8 @@ var _ = Describe("OSC Operator", func() {
 		var cluster common.Cluster
 
 		BeforeEach(func() {
-			mode := models.ClusterHighAvailabilityModeFull
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &mode},
+				Cluster: models.Cluster{ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode},
 			}
 		})
 
@@ -77,9 +76,8 @@ var _ = Describe("OSC Operator", func() {
 		var cluster common.Cluster
 
 		BeforeEach(func() {
-			mode := models.ClusterHighAvailabilityModeFull
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &mode},
+				Cluster: models.Cluster{ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode},
 			}
 		})
 

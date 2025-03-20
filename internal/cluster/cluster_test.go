@@ -1406,7 +1406,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				UserManagedNetworking: swag.Bool(t.userManagedNetworking),
 			}}
 			if t.sno {
-				c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+				c.ControlPlaneCount = 1
 				c.UserManagedNetworking = swag.Bool(true)
 			}
 			if t.clusterNetworks != nil {
@@ -3039,7 +3039,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		manifestsGenerator.EXPECT().AddDiskEncryptionManifest(ctx, gomock.Any(), &c).Return(nil)
 		manifestsGenerator.EXPECT().AddNicReapply(ctx, gomock.Any(), &c).Return(nil)
 		mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		c.ControlPlaneCount = 1
 		err := capi.GenerateAdditionalManifests(ctx, &c)
 		Expect(err).To(Not(HaveOccurred()))
 	})
@@ -3048,7 +3048,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		manifestsGenerator.EXPECT().IsSNODNSMasqEnabled().Return(true).Times(1)
 		manifestsGenerator.EXPECT().AddDnsmasqForSingleNode(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error")).Times(1)
-		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		c.ControlPlaneCount = 1
 		err := capi.GenerateAdditionalManifests(ctx, &c)
 		Expect(err).To(HaveOccurred())
 	})
@@ -3062,7 +3062,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		manifestsGenerator.EXPECT().AddDiskEncryptionManifest(ctx, gomock.Any(), &c).Return(nil)
 		manifestsGenerator.EXPECT().AddNicReapply(ctx, gomock.Any(), &c).Return(nil)
 		mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		c.ControlPlaneCount = 1
 		err := capi.GenerateAdditionalManifests(ctx, &c)
 		Expect(err).To(Not(HaveOccurred()))
 	})
