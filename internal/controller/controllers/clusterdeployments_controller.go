@@ -1176,6 +1176,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 		update = true
 	}
 
+	if label := clusterInstall.GetLabels()[hiveext.ClusterConsumerLabel]; label != cluster.Consumer {
+		params.Consumer = label
+		update = true
+	}
+
 	if !update {
 		return cluster, nil
 	}
@@ -1462,6 +1467,10 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 
 	if len(olmOperators) != 0 {
 		clusterParams.OlmOperators = olmOperators
+	}
+
+	if label := clusterInstall.GetLabels()[hiveext.ClusterConsumerLabel]; label != "" {
+		clusterParams.Consumer = label
 	}
 
 	return clusterParams
