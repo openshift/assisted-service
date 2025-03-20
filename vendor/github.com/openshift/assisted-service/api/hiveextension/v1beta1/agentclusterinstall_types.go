@@ -82,6 +82,8 @@ const (
 	ClusterLastInstallationPreparationFailedErrorReason string                             = "The last installation preparation failed"
 	ClusterLastInstallationPreparationPending           string                             = "Cluster preparation has never been performed for this cluster"
 	ClusterLastInstallationPreparationFailedCondition   hivev1.ClusterInstallConditionType = "LastInstallationPreparationFailed"
+
+	ClusterConsumerLabel string = "agentclusterinstalls.agent-install.openshift.io/consumer"
 )
 
 // +genclient
