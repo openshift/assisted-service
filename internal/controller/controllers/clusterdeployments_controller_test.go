@@ -1287,6 +1287,19 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(params.CPUArchitecture).To(Equal(cpuArch))
 			Expect(params.OpenshiftVersion).To(Equal(&openshiftVersion))
 		})
+
+		It("create new param with consumer label and tags - success", func() {
+			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+			aci.Labels = map[string]string{hiveext.ClusterConsumerLabel: "CAPIOpenshiftAssisted"}
+
+			params := CreateClusterParams(cluster, aci, "", "4.10.0-rc1", "x86_64", nil, nil)
+			Expect(params.Name).To(Equal(&cluster.Spec.ClusterName))
+			Expect(params.Tags).NotTo(BeNil())
+			Expect(*params.Tags).To((Equal("CAPIOpenshiftAssisted")))
+		})
 	})
 
 	Context("Add validationsInfo to agentclusterinstall", func() {
