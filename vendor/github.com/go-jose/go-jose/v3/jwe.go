@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/go-jose/go-jose.v2/json"
+	"github.com/go-jose/go-jose/v3/json"
 )
 
 // rawJSONWebEncryption represents a raw JWE JSON object. Used for parsing/serializing.
@@ -86,11 +86,12 @@ func (obj JSONWebEncryption) mergedHeaders(recipient *recipientInfo) rawHeader {
 func (obj JSONWebEncryption) computeAuthData() []byte {
 	var protected string
 
-	if obj.original != nil && obj.original.Protected != nil {
+	switch {
+	case obj.original != nil && obj.original.Protected != nil:
 		protected = obj.original.Protected.base64()
-	} else if obj.protected != nil {
+	case obj.protected != nil:
 		protected = base64.RawURLEncoding.EncodeToString(mustSerializeJSON((obj.protected)))
-	} else {
+	default:
 		protected = ""
 	}
 
@@ -103,7 +104,7 @@ func (obj JSONWebEncryption) computeAuthData() []byte {
 	return output
 }
 
-// ParseEncrypted parses an encrypted message in compact or full serialization format.
+// ParseEncrypted parses an encrypted message in compact or JWE JSON Serialization format.
 func ParseEncrypted(input string) (*JSONWebEncryption, error) {
 	input = stripWhitespace(input)
 	if strings.HasPrefix(input, "{") {
@@ -169,7 +170,7 @@ func (parsed *rawJSONWebEncryption) sanitized() (*JSONWebEncryption, error) {
 	} else {
 		obj.recipients = make([]recipientInfo, len(parsed.Recipients))
 		for r := range parsed.Recipients {
-			encryptedKey, err := base64.RawURLEncoding.DecodeString(parsed.Recipients[r].EncryptedKey)
+			encryptedKey, err := base64URLDecode(parsed.Recipients[r].EncryptedKey)
 			if err != nil {
 				return nil, err
 			}
@@ -201,32 +202,33 @@ func (parsed *rawJSONWebEncryption) sanitized() (*JSONWebEncryption, error) {
 
 // parseEncryptedCompact parses a message in compact format.
 func parseEncryptedCompact(input string) (*JSONWebEncryption, error) {
-	parts := strings.Split(input, ".")
-	if len(parts) != 5 {
+	// Five parts is four separators
+	if strings.Count(input, ".") != 4 {
 		return nil, fmt.Errorf("go-jose/go-jose: compact JWE format must have five parts")
 	}
+	parts := strings.SplitN(input, ".", 5)
 
-	rawProtected, err := base64.RawURLEncoding.DecodeString(parts[0])
+	rawProtected, err := base64URLDecode(parts[0])
 	if err != nil {
 		return nil, err
 	}
 
-	encryptedKey, err := base64.RawURLEncoding.DecodeString(parts[1])
+	encryptedKey, err := base64URLDecode(parts[1])
 	if err != nil {
 		return nil, err
 	}
 
-	iv, err := base64.RawURLEncoding.DecodeString(parts[2])
+	iv, err := base64URLDecode(parts[2])
 	if err != nil {
 		return nil, err
 	}
 
-	ciphertext, err := base64.RawURLEncoding.DecodeString(parts[3])
+	ciphertext, err := base64URLDecode(parts[3])
 	if err != nil {
 		return nil, err
 	}
 
-	tag, err := base64.RawURLEncoding.DecodeString(parts[4])
+	tag, err := base64URLDecode(parts[4])
 	if err != nil {
 		return nil, err
 	}
@@ -251,13 +253,13 @@ func (obj JSONWebEncryption) CompactSerialize() (string, error) {
 
 	serializedProtected := mustSerializeJSON(obj.protected)
 
-	return fmt.Sprintf(
-		"%s.%s.%s.%s.%s",
-		base64.RawURLEncoding.EncodeToString(serializedProtected),
-		base64.RawURLEncoding.EncodeToString(obj.recipients[0].encryptedKey),
-		base64.RawURLEncoding.EncodeToString(obj.iv),
-		base64.RawURLEncoding.EncodeToString(obj.ciphertext),
-		base64.RawURLEncoding.EncodeToString(obj.tag)), nil
+	return base64JoinWithDots(
+		serializedProtected,
+		obj.recipients[0].encryptedKey,
+		obj.iv,
+		obj.ciphertext,
+		obj.tag,
+	), nil
 }
 
 // FullSerialize serializes an object using the full JSON serialization format.

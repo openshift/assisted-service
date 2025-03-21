@@ -27,7 +27,7 @@ import (
 	"strings"
 	"unicode"
 
-	"gopkg.in/go-jose/go-jose.v2/json"
+	"github.com/go-jose/go-jose/v3/json"
 )
 
 // Helper function to serialize known-good objects.
@@ -167,7 +167,7 @@ func (b *byteBuffer) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	decoded, err := base64.RawURLEncoding.DecodeString(encoded)
+	decoded, err := base64URLDecode(encoded)
 	if err != nil {
 		return err
 	}
@@ -195,4 +195,43 @@ func (b byteBuffer) bigInt() *big.Int {
 
 func (b byteBuffer) toInt() int {
 	return int(b.bigInt().Int64())
+}
+
+// base64URLDecode is implemented as defined in https://www.rfc-editor.org/rfc/rfc7515.html#appendix-C
+func base64URLDecode(value string) ([]byte, error) {
+	value = strings.TrimRight(value, "=")
+	return base64.RawURLEncoding.DecodeString(value)
+}
+
+func base64EncodeLen(sl []byte) int {
+	return base64.RawURLEncoding.EncodedLen(len(sl))
+}
+
+func base64JoinWithDots(inputs ...[]byte) string {
+	if len(inputs) == 0 {
+		return ""
+	}
+
+	// Count of dots.
+	totalCount := len(inputs) - 1
+
+	for _, input := range inputs {
+		totalCount += base64EncodeLen(input)
+	}
+
+	out := make([]byte, totalCount)
+	startEncode := 0
+	for i, input := range inputs {
+		base64.RawURLEncoding.Encode(out[startEncode:], input)
+
+		if i == len(inputs)-1 {
+			continue
+		}
+
+		startEncode += base64EncodeLen(input)
+		out[startEncode] = '.'
+		startEncode++
+	}
+
+	return string(out)
 }
