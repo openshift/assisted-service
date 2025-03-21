@@ -279,7 +279,7 @@ github.com/go-errors/errors
 # github.com/go-gormigrate/gormigrate/v2 v2.1.2
 ## explicit; go 1.18
 github.com/go-gormigrate/gormigrate/v2
-# github.com/go-jose/go-jose/v4 v4.0.4
+# github.com/go-jose/go-jose/v4 v4.0.5
 ## explicit; go 1.21
 github.com/go-jose/go-jose/v4
 github.com/go-jose/go-jose/v4/cipher
@@ -991,9 +991,10 @@ github.com/stoewer/go-strcase
 # github.com/stretchr/objx v0.5.2
 ## explicit; go 1.20
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.9.0
+# github.com/stretchr/testify v1.10.0
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
+github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/mock
 # github.com/testcontainers/testcontainers-go v0.29.1
 ## explicit; go 1.21
@@ -1147,7 +1148,7 @@ go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapgrpc
-# golang.org/x/crypto v0.31.0 => github.com/openshift/golang-crypto v0.33.1-0.20250310193910-9003f682e581
+# golang.org/x/crypto v0.32.0 => github.com/openshift/golang-crypto v0.33.1-0.20250310193910-9003f682e581
 ## explicit; go 1.20
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
