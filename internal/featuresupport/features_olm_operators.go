@@ -122,6 +122,11 @@ func (feature *OdfFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelUnavailable
 	}
 
+	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal &&
+		swag.StringValue(filters.ExternalPlatformName) == common.ExternalPlatformNameOci {
+		return models.SupportLevelUnavailable
+	}
+
 	return models.SupportLevelSupported
 }
 
@@ -135,6 +140,7 @@ func (feature *OdfFeature) getIncompatibleFeatures(string) *[]models.FeatureSupp
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDLVM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 	}
 }
 
@@ -570,6 +576,11 @@ func (f *OpenShiftAIFeature) getSupportLevel(filters SupportLevelFilters) models
 		return models.SupportLevelUnavailable
 	}
 
+	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal &&
+		swag.StringValue(filters.ExternalPlatformName) == common.ExternalPlatformNameOci {
+		return models.SupportLevelUnavailable
+	}
+
 	return models.SupportLevelDevPreview
 }
 
@@ -587,6 +598,7 @@ func (f *OpenShiftAIFeature) getIncompatibleFeatures(string) *[]models.FeatureSu
 		// mechanism doesn't currently understand operator dependencies, so we need to add these explicitly.
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDSNO,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 	}
 }
 
