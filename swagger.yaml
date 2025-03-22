@@ -5021,6 +5021,9 @@ definitions:
         x-nullable: true
       load_balancer:
         $ref: '#/definitions/load_balancer'
+      consumer:
+        type: string
+        description: Consumer is set by entities such as CAPI's OpenshiftAssisted providers. Mainly used for data collection purposes.
 
   host-update-params:
     type: object
@@ -5206,6 +5209,9 @@ definitions:
         x-nullable: true
       load_balancer:
         $ref: '#/definitions/load_balancer'
+      consumer:
+        type: string
+        description: Consumer is set by entities such as CAPI's OpenshiftAssisted providers. Mainly used for data collection purposes.
 
   import-cluster-params:
     type: object

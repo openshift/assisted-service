@@ -6747,6 +6747,10 @@ func init() {
           },
           "x-nullable": true
         },
+        "consumer": {
+          "description": "Consumer is set by entities such as CAPI's OpenshiftAssisted providers. Mainly used for data collection purposes.",
+          "type": "string"
+        },
         "control_plane_count": {
           "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
           "type": "integer",
@@ -10673,6 +10677,10 @@ func init() {
             "$ref": "#/definitions/cluster_network"
           },
           "x-nullable": true
+        },
+        "consumer": {
+          "description": "Consumer is set by entities such as CAPI's OpenshiftAssisted providers. Mainly used for data collection purposes.",
+          "type": "string"
         },
         "control_plane_count": {
           "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
@@ -17829,6 +17837,10 @@ func init() {
           },
           "x-nullable": true
         },
+        "consumer": {
+          "description": "Consumer is set by entities such as CAPI's OpenshiftAssisted providers. Mainly used for data collection purposes.",
+          "type": "string"
+        },
         "control_plane_count": {
           "description": "Specifies the required number of control plane nodes that should be part of the cluster.",
           "type": "integer",
@@ -21687,6 +21699,10 @@ func init() {
             "$ref": "#/definitions/cluster_network"
           },
           "x-nullable": true
+        },
+        "consumer": {
+          "description": "Consumer is set by entities such as CAPI's OpenshiftAssisted providers. Mainly used for data collection purposes.",
+          "type": "string"
         },
         "control_plane_count": {
           "description": "Specifies the required number of control plane nodes that should be part of the cluster.",

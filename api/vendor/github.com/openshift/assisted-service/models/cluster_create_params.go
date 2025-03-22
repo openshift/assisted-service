@@ -42,6 +42,9 @@ type ClusterCreateParams struct {
 	// Cluster networks that are associated with this cluster.
 	ClusterNetworks []*ClusterNetwork `json:"cluster_networks"`
 
+	// Consumer is set by entities such as CAPI's OpenshiftAssisted providers. Mainly used for data collection purposes.
+	Consumer string `json:"consumer,omitempty"`
+
 	// Specifies the required number of control plane nodes that should be part of the cluster.
 	ControlPlaneCount *int64 `json:"control_plane_count,omitempty"`
 

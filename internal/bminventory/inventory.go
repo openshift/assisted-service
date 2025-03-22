@@ -664,6 +664,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 		KubeKeyNamespace:            kubeKey.Namespace,
 		TriggerMonitorTimestamp:     time.Now(),
 		MachineNetworkCidrUpdatedAt: time.Now(),
+		Consumer:                    params.NewClusterParams.Consumer,
 	}
 
 	if err = cluster.SetMirrorRegistryConfiguration(mirrorRegistryConfiguration); err != nil {
@@ -2577,6 +2578,10 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	if params.ClusterUpdateParams.ControlPlaneCount != nil && *params.ClusterUpdateParams.ControlPlaneCount != cluster.ControlPlaneCount {
 		updates["control_plane_count"] = *params.ClusterUpdateParams.ControlPlaneCount
+	}
+
+	if params.ClusterUpdateParams.Consumer != "" && params.ClusterUpdateParams.Consumer != cluster.Consumer {
+		updates["consumer"] = params.ClusterUpdateParams.Consumer
 	}
 
 	if len(updates) > 0 {
