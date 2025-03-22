@@ -71,6 +71,16 @@ var ClusterOwnerFileNames = []string{
 	"kubeconfig-noingress",
 }
 
+var KubeConfigNoIngressAllowedStatuses = []string{
+	models.ClusterStatusInstalling,
+	models.ClusterStatusFinalizing,
+	models.ClusterStatusInstalled,
+	models.ClusterStatusError,
+	models.ClusterStatusAddingHosts,
+	models.ClusterStatusCancelled,
+	models.ClusterStatusInstallingPendingUserAction,
+}
+
 //go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go
 
 type RegistrationAPI interface {
@@ -696,6 +706,17 @@ func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 	if !funk.Contains(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only when status is one of: %s",
 			c.ID, clusterStatus, constants.Kubeconfig, allowedStatuses)
+	}
+
+	return err
+}
+
+func CanDownloadKubeconfigNoIngress(c *common.Cluster) (err error) {
+	clusterStatus := swag.StringValue(c.Status)
+
+	if !funk.Contains(KubeConfigNoIngressAllowedStatuses, clusterStatus) {
+		err = errors.Errorf("canDownloadKubeConfigNoIngress cluster %s is in %s state, %s can be downloaded only when status is one of: %s",
+			c.ID, clusterStatus, constants.KubeconfigNoIngress, KubeConfigNoIngressAllowedStatuses)
 	}
 
 	return err
