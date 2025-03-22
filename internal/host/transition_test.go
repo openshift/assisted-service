@@ -6568,6 +6568,9 @@ var allValidationIDs = []validationID{
 	AreNmstateRequirementsSatisfied,
 	AreAMDGPURequirementsSatisfied,
 	AreKMMRequirementsSatisfied,
+	AreNodeHealthcheckRequirementsSatisfied,
+	AreSelfNodeRemediationRequirementsSatisfied,
+	AreFenceAgentsRemediationRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{

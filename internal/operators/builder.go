@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/authorino"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
+	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kmm"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
@@ -13,11 +14,13 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/mtv"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
+	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
 	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
 	"github.com/openshift/assisted-service/internal/operators/osc"
 	"github.com/openshift/assisted-service/internal/operators/pipelines"
+	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
 	"github.com/openshift/assisted-service/internal/operators/serverless"
 	"github.com/openshift/assisted-service/internal/operators/servicemesh"
 	"github.com/openshift/assisted-service/models"
@@ -64,6 +67,9 @@ func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, o
 		nmstate.NewNmstateOperator(log),
 		amdgpu.NewAMDGPUOperator(log),
 		kmm.NewKMMOperator(log),
+		nodehealthcheck.NewNodeHealthcheckOperator(log),
+		selfnoderemediation.NewSelfNodeRemediationOperator(log),
+		fenceagentsremediation.NewFenceAgentsRemediationOperator(log),
 	)
 }
 

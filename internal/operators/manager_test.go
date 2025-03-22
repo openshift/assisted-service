@@ -20,13 +20,16 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
+	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
+	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
+	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
 	"github.com/openshift/assisted-service/internal/operators/serverless"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -451,7 +454,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(17))
+			Expect(results).To(HaveLen(20))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -482,7 +485,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(17))
+			Expect(results).To(HaveLen(20))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
@@ -502,6 +505,9 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDAmdGpuRequirementsSatisfied), Reasons: []string{"amd-gpu is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKmmRequirementsSatisfied), Reasons: []string{"kmm is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNodeHealthcheckRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", nodehealthcheck.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDSelfNodeRemediationRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", selfnoderemediation.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", fenceagentsremediation.Operator.Name)}},
 			))
 		})
 	})
@@ -513,7 +519,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(17))
+			Expect(results).To(HaveLen(20))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -532,6 +538,9 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDAmdGpuRequirementsSatisfied), Reasons: []string{"amd-gpu is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKmmRequirementsSatisfied), Reasons: []string{"kmm is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNodeHealthcheckRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", nodehealthcheck.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDSelfNodeRemediationRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", selfnoderemediation.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", fenceagentsremediation.Operator.Name)}},
 			))
 		})
 
@@ -543,7 +552,7 @@ var _ = Describe("Operators manager", func() {
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(17))
+			Expect(results).To(HaveLen(20))
 
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
@@ -563,6 +572,9 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNmstateRequirementsSatisfied), Reasons: []string{"nmstate is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDAmdGpuRequirementsSatisfied), Reasons: []string{"amd-gpu is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKmmRequirementsSatisfied), Reasons: []string{"kmm is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNodeHealthcheckRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", nodehealthcheck.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDSelfNodeRemediationRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", selfnoderemediation.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", fenceagentsremediation.Operator.Name)}},
 			))
 		})
 
@@ -711,6 +723,9 @@ var _ = Describe("Operators manager", func() {
 				"nmstate",
 				"amd-gpu",
 				"kmm",
+				nodehealthcheck.Operator.Name,
+				selfnoderemediation.Operator.Name,
+				fenceagentsremediation.Operator.Name,
 			))
 		})
 
