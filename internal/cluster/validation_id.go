@@ -49,6 +49,7 @@ const (
 	AreNodeHealthcheckRequirementsSatisfied        = ValidationID(models.ClusterValidationIDNodeHealthcheckRequirementsSatisfied)
 	AreSelfNodeRemediationRequirementsSatisfied    = ValidationID(models.ClusterValidationIDSelfNodeRemediationRequirementsSatisfied)
 	AreFenceAgentsRemediationRequirementsSatisfied = ValidationID(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied)
+	AreNodeMaintenanceRequirementsSatisfied        = ValidationID(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied)
 )
 
 func (v ValidationID) Category() (string, error) {
@@ -80,7 +81,8 @@ func (v ValidationID) Category() (string, error) {
 		IsKMMRequirementsSatisfied,
 		AreNodeHealthcheckRequirementsSatisfied,
 		AreSelfNodeRemediationRequirementsSatisfied,
-		AreFenceAgentsRemediationRequirementsSatisfied:
+		AreFenceAgentsRemediationRequirementsSatisfied,
+		AreNodeMaintenanceRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected cluster validation id %s", string(v)))

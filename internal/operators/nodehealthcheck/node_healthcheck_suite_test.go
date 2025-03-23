@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestNodeFeatureDiscoveryOperator(t *testing.T) {
+func TestNodeHealthcheckOperator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Node Healthcheck operator")
+	RunSpecs(t, "Node Healthcheck Operator")
 }

@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
+	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
 	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
@@ -73,6 +74,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				nodehealthcheck.Operator.Name,
 				selfnoderemediation.Operator.Name,
 				fenceagentsremediation.Operator.Name,
+				nodemaintenance.Operator.Name,
 			))
 		})
 

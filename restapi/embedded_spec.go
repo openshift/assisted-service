@@ -6000,21 +6000,27 @@ func init() {
               "items": {
                 "type": "string",
                 "enum": [
+                  "amd-gpu",
                   "lso",
                   "mtv",
-                  "openshift_ai",
+                  "openshift-ai",
                   "osc",
                   "servicemesh",
                   "authorino",
                   "cnv",
-                  "nvidia_gpu",
+                  "nvidia-gpu",
                   "pipelines",
                   "odf",
                   "lvm",
                   "mce",
-                  "node_feature_discovery",
+                  "node-feature-discovery",
                   "serverless",
-                  "nmstate"
+                  "nmstate",
+                  "kmm",
+                  "node-healthcheck",
+                  "self-node-remediation",
+                  "fence-agents-remediation",
+                  "node-maintenance"
                 ]
               }
             }
@@ -7059,7 +7065,8 @@ func init() {
         "kmm-requirements-satisfied",
         "node-healthcheck-requirements-satisfied",
         "self-node-remediation-requirements-satisfied",
-        "fence-agents-remediation-requirements-satisfied"
+        "fence-agents-remediation-requirements-satisfied",
+        "node-maintenance-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -7918,7 +7925,8 @@ func init() {
         "KMM",
         "NODE_HEALTHCHECK",
         "SELF_NODE_REMEDIATION",
-        "FENCE_AGENTS_REMEDIATION"
+        "FENCE_AGENTS_REMEDIATION",
+        "NODE_MAINTENANCE"
       ]
     },
     "finalizing-stage": {
@@ -8550,7 +8558,8 @@ func init() {
         "kmm-requirements-satisfied",
         "node-healthcheck-requirements-satisfied",
         "self-node-remediation-requirements-satisfied",
-        "fence-agents-remediation-requirements-satisfied"
+        "fence-agents-remediation-requirements-satisfied",
+        "node-maintenance-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -16973,21 +16982,27 @@ func init() {
               "items": {
                 "type": "string",
                 "enum": [
+                  "amd-gpu",
                   "lso",
                   "mtv",
-                  "openshift_ai",
+                  "openshift-ai",
                   "osc",
                   "servicemesh",
                   "authorino",
                   "cnv",
-                  "nvidia_gpu",
+                  "nvidia-gpu",
                   "pipelines",
                   "odf",
                   "lvm",
                   "mce",
-                  "node_feature_discovery",
+                  "node-feature-discovery",
                   "serverless",
-                  "nmstate"
+                  "nmstate",
+                  "kmm",
+                  "node-healthcheck",
+                  "self-node-remediation",
+                  "fence-agents-remediation",
+                  "node-maintenance"
                 ]
               }
             }
@@ -18150,7 +18165,8 @@ func init() {
         "kmm-requirements-satisfied",
         "node-healthcheck-requirements-satisfied",
         "self-node-remediation-requirements-satisfied",
-        "fence-agents-remediation-requirements-satisfied"
+        "fence-agents-remediation-requirements-satisfied",
+        "node-maintenance-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -18976,7 +18992,8 @@ func init() {
         "KMM",
         "NODE_HEALTHCHECK",
         "SELF_NODE_REMEDIATION",
-        "FENCE_AGENTS_REMEDIATION"
+        "FENCE_AGENTS_REMEDIATION",
+        "NODE_MAINTENANCE"
       ]
     },
     "finalizing-stage": {
@@ -19608,7 +19625,8 @@ func init() {
         "kmm-requirements-satisfied",
         "node-healthcheck-requirements-satisfied",
         "self-node-remediation-requirements-satisfied",
-        "fence-agents-remediation-requirements-satisfied"
+        "fence-agents-remediation-requirements-satisfied",
+        "node-maintenance-requirements-satisfied"
       ]
     },
     "host_network": {

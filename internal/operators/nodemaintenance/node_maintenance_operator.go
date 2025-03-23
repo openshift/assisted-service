@@ -1,4 +1,4 @@
-package fenceagentsremediation
+package nodemaintenance
 
 import (
 	"text/template"
@@ -27,8 +27,8 @@ type operator struct {
 	templates *template.Template
 }
 
-// NewFenceAgentsRemediationOperator creates new Fence Agents Remediation Operator.
-func NewFenceAgentsRemediationOperator(log logrus.FieldLogger) *operator {
+// NewNodeMaintenance creates new Node Maintenance Operator.
+func NewNodeMaintenanceOperator(log logrus.FieldLogger) *operator {
 	templates, err := templating.LoadTemplates(templatesRoot)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -51,17 +51,17 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	return []string{operatorsCommon.NodeHealthcheckOperatorName}, nil
+	return []string{}, nil
 }
 
 // GetClusterValidationID returns cluster validation ID for the Operator
 func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied)
+	return string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied)
 }
 
 // GetHostValidationID returns host validation ID for the Operator
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDFenceAgentsRemediationRequirementsSatisfied)
+	return string(models.HostValidationIDNodeMaintenanceRequirementsSatisfied)
 }
 
 // GetProperties provides description of operator properties
@@ -76,7 +76,7 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 
 // GetFeatureSupportID returns the operator unique feature-support ID
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
-	return models.FeatureSupportLevelIDFENCEAGENTSREMEDIATION
+	return models.FeatureSupportLevelIDNODEMAINTENANCE
 }
 
 // GetBundleLabels returns the list of bundles names associated with the operator

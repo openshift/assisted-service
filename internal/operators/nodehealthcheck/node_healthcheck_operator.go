@@ -7,7 +7,6 @@ import (
 	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
-	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
 	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -15,7 +14,7 @@ import (
 
 var Operator = models.MonitoredOperator{
 	Namespace:        operatorNamespace,
-	Name:             operatorName,
+	Name:             operatorscommon.NodeHealthcheckOperatorName,
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: operatorSubscriptionName,
 	TimeoutSeconds:   30 * 60,
@@ -42,7 +41,7 @@ func NewNodeHealthcheckOperator(log logrus.FieldLogger) *operator {
 		log.Fatal(err.Error())
 	}
 	return &operator{
-		log:       log.WithField("operator", operatorName),
+		log:       log.WithField("operator", operatorscommon.NodeHealthcheckOperatorName),
 		config:    config,
 		templates: templates,
 	}
@@ -50,7 +49,7 @@ func NewNodeHealthcheckOperator(log logrus.FieldLogger) *operator {
 
 // GetName reports the name of an operator this Operator manages
 func (o *operator) GetName() string {
-	return operatorName
+	return operatorscommon.NodeHealthcheckOperatorName
 }
 
 // GetFullName reports the full name of the specified Operator
@@ -60,7 +59,7 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	return []string{selfnoderemediation.Operator.Name}, nil
+	return []string{operatorscommon.SelfNodeRemediationOperatorName}, nil
 }
 
 // GetClusterValidationID returns cluster validation ID for the Operator
