@@ -196,10 +196,10 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 // which is used by the default gateway.
 func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) error {
 	// get the IPv4 or the IPv6 of the interface connected to the iSCSI target
-	if disk.Iscsi == nil {
+	if disk.Iscsi == nil || disk.Iscsi.HostIPAddress == "" {
 		return fmt.Errorf("Host IP address is not available")
-
 	}
+
 	iSCSIHostIP, err := netip.ParseAddr(disk.Iscsi.HostIPAddress)
 	if err != nil {
 		return fmt.Errorf("Cannot parse iSCSI host IP %s: %w", disk.Iscsi.HostIPAddress, err)
