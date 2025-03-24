@@ -1699,7 +1699,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(6))
+				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(7))
 				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
 					corev1.VolumeMount{
 						Name:      mirrorRegistryConfigVolume,
@@ -1759,7 +1759,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(6))
+				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(7))
 				Expect(found.Spec.Template.Spec.Volumes).To(ContainElement(
 					corev1.Volume{
 						Name: "trusted-ca-certs",
@@ -1767,10 +1767,27 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 							ConfigMap: &corev1.ConfigMapVolumeSource{
 								Items: []corev1.KeyToPath{{
 									Key:  caBundleKey,
-									Path: common.MirrorRegistriesCertificateFile,
+									Path: common.SystemCertificateBundle,
 								}},
 								LocalObjectReference: corev1.LocalObjectReference{
 									Name: assistedCAConfigMapName,
+								},
+								DefaultMode: swag.Int32(420),
+							},
+						},
+					},
+				))
+				Expect(found.Spec.Template.Spec.Volumes).To(ContainElement(
+					corev1.Volume{
+						Name: mirrorRegistryCertBundleVolume,
+						VolumeSource: corev1.VolumeSource{
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								Items: []corev1.KeyToPath{{
+									Key:  mirrorRegistryRefCertKey,
+									Path: common.MirrorRegistriesCertificateFile,
+								}},
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: testMirrorRegConfigmapName,
 								},
 								DefaultMode: swag.Int32(420),
 							},
@@ -1787,6 +1804,13 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
 					corev1.VolumeMount{
 						Name:      "trusted-ca-certs",
+						MountPath: common.SystemCertificateBundlePath,
+						SubPath:   common.SystemCertificateBundle,
+					}),
+				)
+				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
+					corev1.VolumeMount{
+						Name:      mirrorRegistryCertBundleVolume,
 						MountPath: common.MirrorRegistriesCertificatePath,
 						SubPath:   common.MirrorRegistriesCertificateFile,
 					}),

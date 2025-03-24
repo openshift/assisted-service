@@ -15,15 +15,19 @@ type ServiceMirrorRegistriesConfigBuilder interface {
 	ExtractLocationMirrorDataFromRegistries() ([]RegistriesConf, error)
 }
 
+type fileReader func(name string) ([]byte, error)
+
 type mirrorRegistriesConfigBuilder struct {
 	MirrorRegistriesConfigPath      string
 	MirrorRegistriesCertificatePath string
+	fileReader                      fileReader
 }
 
 func New() ServiceMirrorRegistriesConfigBuilder {
 	return &mirrorRegistriesConfigBuilder{
 		MirrorRegistriesConfigPath:      common.MirrorRegistriesConfigPath,
 		MirrorRegistriesCertificatePath: common.MirrorRegistriesCertificatePath,
+		fileReader:                      os.ReadFile,
 	}
 }
 
@@ -59,7 +63,12 @@ func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
 // the mirror registries are not configured.
 // empty dir is due to the way we mao configmap in the assisted-service pod
 func (m *mirrorRegistriesConfigBuilder) GetMirrorCA() ([]byte, error) {
-	return os.ReadFile(m.MirrorRegistriesCertificatePath)
+	bytes, err := m.fileReader(m.MirrorRegistriesCertificatePath)
+	if err != nil {
+		// fallback to tls-ca-bundle.pem (used by ABI)
+		return m.fileReader(common.SystemCertificateBundlePath)
+	}
+	return bytes, nil
 }
 
 // GetMirrorRegistries returns error if the file is not present, which will also indicate that
