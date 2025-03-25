@@ -125,6 +125,9 @@ type Config struct {
 
 	// InfraEnv ID for the ephemeral installer. Should not be set explicitly.Ephemeral (agent) installer sets this env var
 	InfraEnvID strfmt.UUID `envconfig:"INFRA_ENV_ID" default:""`
+
+	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
+	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
 }
 
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
@@ -1808,7 +1811,6 @@ func (b *bareMetalInventory) setInstallConfigOverridesUsage(featureUsages string
 
 func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster, clusterInfraenvs []*common.InfraEnv) error {
 	log := logutil.FromContext(ctx, b.log)
-
 	rhRootCa := ignition.RedhatRootCA
 	if !b.Config.InstallRHCa {
 		rhRootCa = ""
@@ -4062,6 +4064,9 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	switch fileName {
 	case constants.Kubeconfig:
 		err = clusterPkg.CanDownloadKubeconfig(cluster)
+	case constants.KubeconfigNoIngress:
+		agentInstaller := b.Config.ClusterTLSCertOverrideDir != ""
+		err = clusterPkg.CanDownloadKubeconfigNoIngress(cluster, agentInstaller)
 	case constants.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
@@ -6218,9 +6223,18 @@ func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, p
 	// At the finalizing phase, we create the kubeconfig file and add the ingress CA.
 	// An ingress CA isn't required for normal login but for oauth login which isn't a common use case.
 	// Here we fallback to the kubeconfig-noingress for the kubeconfig filename.
-	if err != nil && params.FileName == constants.Kubeconfig {
+	if err != nil && fileName == constants.Kubeconfig {
 		fileName = constants.KubeconfigNoIngress
-		respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, constants.KubeconfigNoIngress, params.ClusterID.String())
+
+		if b.Config.ClusterTLSCertOverrideDir != "" {
+			// Since only ABI uses ClusterTLSCertOverrideDir, if it is set then
+			// kubeconfig must be generated here for retrieval prior to cluster installation.
+			if agentErr := b.generateAgentInstallerKubeconfig(ctx, params); agentErr != nil {
+				b.log.WithError(agentErr).Errorf("failed to generate agent installer kubeconfig")
+				return common.GenerateErrorResponder(agentErr)
+			}
+		}
+		respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, fileName, params.ClusterID.String())
 	}
 
 	if err != nil {
@@ -6801,6 +6815,27 @@ func (b *bareMetalInventory) HandleVerifyVipsResponse(ctx context.Context, host 
 		return errors.Errorf("host %s infra-env %s: empty cluster id", host.ID.String(), host.InfraEnvID.String())
 	}
 	return b.clusterApi.HandleVerifyVipsResponse(ctx, *host.ClusterID, stepReply)
+}
+
+func (b *bareMetalInventory) generateAgentInstallerKubeconfig(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) error {
+	cluster, err := common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading)
+	if err != nil {
+		return err
+	}
+
+	clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
+	if err != nil {
+		b.log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
+		return err
+	}
+
+	if err = b.generateClusterInstallConfig(ctx, *cluster, clusterInfraenvs); err != nil {
+		b.log.WithError(err).Errorf("failed to generate cluster install config for cluster %s", cluster.ID.String())
+		return err
+	}
+	b.log.Infof("ignition generated for cluster for agent installer kubeconfig %s", cluster.ID.String())
+
+	return nil
 }
 
 // extractMirroredRegistriesFromConfig takes a MirrorRegistryConfiguration and returns a list of source
