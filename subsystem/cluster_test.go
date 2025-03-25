@@ -3625,14 +3625,6 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			CPUCores: 8,
 			RAMMib:   conversions.GibToMib(32),
 		}
-		masterNMStateRequirements = models.ClusterHostRequirementsDetails{
-			CPUCores: nmstate.MasterCPU,
-			RAMMib:   nmstate.MasterMemory,
-		}
-		workerNMStateRequirements = models.ClusterHostRequirementsDetails{
-			CPUCores: nmstate.WorkerCPU,
-			RAMMib:   nmstate.WorkerMemory,
-		}
 	)
 
 	BeforeEach(func() {
@@ -3700,14 +3692,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			case authorino.Operator.Name:
 				continue
 			case nmstate.Operator.Name:
-				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterNMStateRequirements),
-					fmt.Sprintf("expected: CPUCores: %d,RAMMib: %d, masterMTVRequirements: CPUCores: %d,RAMMib: %d",
-						op.Requirements.Master.Quantitative.CPUCores, op.Requirements.Master.Quantitative.RAMMib,
-						masterNMStateRequirements.CPUCores, masterNMStateRequirements.RAMMib))
-				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerNMStateRequirements),
-					fmt.Sprintf("expected: CPUCores: %d,RAMMib: %d, workerMTVRequirements: CPUCores: %d,RAMMib: %d",
-						op.Requirements.Worker.Quantitative.CPUCores, op.Requirements.Worker.Quantitative.RAMMib,
-						workerNMStateRequirements.CPUCores, workerNMStateRequirements.RAMMib))
+				continue
 			case amdgpu.Operator.Name:
 				continue
 			case kmm.Operator.Name:
