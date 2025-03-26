@@ -1,29 +1,33 @@
 # OLM operator plugins development
 
 ## Existing plugins
-  - [Local Storage Operator (LSO)](../../internal/operators/lso)
+  - [AMD GPU Operator (AMDGPU)](../../internal/operators/amdgpu)
+  - [Authorino](../../internal/operators/authorino)
   - [OpenShift Virtualization (CNV)](../../internal/operators/cnv)
-  - [OpenShift Data Foundation (ODF)](../../internal/operators/odf)
+  - [Fence Agents Remediation (FAR)](../../internal/operators/fenceagentsremediation)
+  - [Kernel Module Management (KMM)](../../internal/operators/kmm)
+  - [Local Storage Operator (LSO)](../../internal/operators/lso)
   - [Logical Volume Manager (LVM)](../../internal/operators/lvm)
   - [Multi-Cluster Engine (MCE)](../../internal/operators/mce)
+  - [Migration Toolkit for Virtualization (MTV)](../../internal/operators/mtv)
+  - [NMState](../../internal/operators/nmstate)
+  - [Node Feature Discovery](../../internal/operators/nodefeaturediscovery)
+  - [Node Health Check Operator(NHO)](../../internal/operators/nodehealthcheck)
+  - [Node Maintenance](../../internal/operators/nodemaintenance)
+  - [NVIDIA GPU Operator](../../internal/operators/nvidiagpu)
+  - [OpenShift Data Foundation (ODF)](../../internal/operators/odf)
+  - [OpenShift AI](../../internal/operators/openshiftai)
+  - [OpenShift Service Mesh (OSC)](../../internal/operators/osc)
+  - [OpenShift Pipelines](../../internal/operators/pipelines)
+  - [Self Node Remediation (SNR)](../../internal/operators/selfnoderemediation)
+  - [OpenShift Serverless](../../internal/operators/serverless)
+  - [OpenShift Service Mesh](../../internal/operators/servicemesh)
 
 ## How to implement a new OLM operator plugin
 
 To implement support for a new OLM operator plugin you need to make following changes:
 
  1. Introduce new validation IDs for the new operator in the [swagger specification](../../swagger.yaml):
-    - for feature support level:
-      ```yaml
-      feature-support-level-id:
-        type: string
-        enum:
-          - 'SNO'
-          ...
-          - 'LVM'
-          - 'ODF'
-          - 'LSO'
-          - 'CNV'
-      ```
     - for host validation:
       ```yaml
       host-validation-id:
@@ -48,11 +52,37 @@ To implement support for a new OLM operator plugin you need to make following ch
           - 'odf-requirements-satisfied'
           - 'lvm-requirements-satisfied'
       ```
- 1. Regenerate code by running
-    ```shell script
-    skipper make generate
-    ```
- 1. Create and add the new validation IDs to proper category - "operators":
+ 2. Introduce new feature support ID in the [swagger specification](../../swagger.yaml):
+  ```yaml
+  feature-support-level-id:
+    type: string
+    enum:
+      - 'SNO'
+      ...
+      - 'LVM'
+      - 'ODF'
+      - 'LSO'
+      - 'CNV'
+  ```
+ 3. Add the operator's name to the enum list for `/v2/supported-operators` endpoint [swagger specification](../../swagger.yaml):
+  ```yaml
+    type: array
+    items:
+      type: string
+      enum:
+      - 'amd-gpu'
+      - 'lso'
+      - 'mtv'
+      - 'openshift-ai'
+      ...
+      - 'osc'
+      - 'servicemesh'
+  ```
+ 4. Regenerate code by running
+  ```shell script
+  skipper make generate
+  ```
+ 5. Create and add the new validation IDs to proper category - "operators":
     - for [cluster validation](../../internal/cluster/validation_id.go):
       ```go
       func (v validationID) category() (string, error) {
@@ -67,7 +97,7 @@ To implement support for a new OLM operator plugin you need to make following ch
         case AreLsoRequirementsSatisfied, AreCnvRequirementsSatisfied, AreOdfRequirementsSatisfied, AreLvmRequirementsSatisfied:
       		return "operators", nil
       ```
- 1. Modify the installation state machine by adding the new validationIDs to the list of required checks:
+ 6. Modify the installation state machine by adding the new validationIDs to the list of required checks:
     - for [cluster](../../internal/cluster/statemachine.go):
       ```go
       var requiredForInstall = stateswitch.And(...,
@@ -79,7 +109,7 @@ To implement support for a new OLM operator plugin you need to make following ch
       		...,
       		If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(AreOdfRequirementsSatisfied), If(AreLvmRequirementsSatisfied))
       ```
- 1. Add the new feature to the OLM operators list and implement the [SupportLevelFeature interface](../../internal/featuresupport/support_level_feature.go)
+ 7. Add the new feature to the OLM operators list and implement the [SupportLevelFeature interface](../../internal/featuresupport/support_level_feature.go)
     - add feature to the [support level list](../../internal/featuresupport/feature_support_level.go):
       ```go
 	      // Olm Operators features
@@ -98,15 +128,13 @@ To implement support for a new OLM operator plugin you need to make following ch
       - [for other existing operators](../../internal/featuresupport/features_olm_operators.go)
       - [for platforms](../../internal/featuresupport/features_platforms.go)
 
- 1. Implement the [Operator interface](../../internal/operators/api/api.go)
- 1. Plug the new `Operator` implementation in the [OperatorManager constructor](../../internal/operators/builder.go):
-    ```go
-    func NewManager(log logrus.FieldLogger) Manager {
-    	return NewManagerWithOperators(log, lso.NewLSOperator(), cnv.NewCnvOperator(log), odf.NewOdfOperator(log), lvm.NewLvmOperator(log))
-    }
-    ```
- 1. Implement tests verifying new OLM operator installation and validation, i.e. in [internal/bminventory/inventory_test.go](../../internal/bminventory/inventory_test.go)
- 1. Make sure all the tests are green
+ 8. Implement the [Operator interface](../../internal/operators/api/api.go)
+ 9. Plug the new `Operator` implementation in the [OperatorManager constructor](../../internal/operators/builder.go):
+  ```go
+  func NewManager(log logrus.FieldLogger) Manager {
+    return NewManagerWithOperators(log, lso.NewLSOperator(), cnv.NewCnvOperator(log), odf.NewOdfOperator(log), lvm.NewLvmOperator(log))
+  }
+  ```
 
 ## Notes about the Operator interface
 
