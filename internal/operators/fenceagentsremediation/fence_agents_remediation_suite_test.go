@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestNodeFeatureDiscoveryOperator(t *testing.T) {
+func TestFenceAgentsRemediationOperator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Fence Agents Remediation")
 }

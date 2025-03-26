@@ -2704,21 +2704,27 @@ paths:
             items:
               type: string
               enum:
+              - 'amd-gpu'
               - 'lso'
               - 'mtv'
-              - 'openshift_ai'
+              - 'openshift-ai'
               - 'osc'
               - 'servicemesh'
               - 'authorino'
               - 'cnv'
-              - 'nvidia_gpu'
+              - 'nvidia-gpu'
               - 'pipelines'
               - 'odf'
               - 'lvm'
               - 'mce'
-              - 'node_feature_discovery'
+              - 'node-feature-discovery'
               - 'serverless'
               - 'nmstate'
+              - 'kmm'
+              - 'node-healthcheck'
+              - 'self-node-remediation'
+              - 'fence-agents-remediation'
+              - 'node-maintenance'
         "401":
           description: Unauthorized.
           schema:
@@ -4264,6 +4270,7 @@ definitions:
       - 'NODE_HEALTHCHECK'
       - 'SELF_NODE_REMEDIATION'
       - 'FENCE_AGENTS_REMEDIATION'
+      - 'NODE_MAINTENANCE'
 
   architecture-support-level-id:
     type: string
@@ -6677,6 +6684,7 @@ definitions:
       - 'node-healthcheck-requirements-satisfied'
       - 'self-node-remediation-requirements-satisfied'
       - 'fence-agents-remediation-requirements-satisfied'
+      - 'node-maintenance-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -7056,6 +7064,7 @@ definitions:
       - 'node-healthcheck-requirements-satisfied'
       - 'self-node-remediation-requirements-satisfied'
       - 'fence-agents-remediation-requirements-satisfied'
+      - 'node-maintenance-requirements-satisfied'
 
   logs_type:
     type: string

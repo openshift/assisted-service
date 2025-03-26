@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
+	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
 	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
@@ -70,6 +71,7 @@ func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, o
 		nodehealthcheck.NewNodeHealthcheckOperator(log),
 		selfnoderemediation.NewSelfNodeRemediationOperator(log),
 		fenceagentsremediation.NewFenceAgentsRemediationOperator(log),
+		nodemaintenance.NewNodeMaintenanceOperator(log),
 	)
 }
 

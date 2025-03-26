@@ -5,6 +5,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
+	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
 	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
@@ -902,7 +903,7 @@ func (f *SelfNodeRemediationFeature) getIncompatibleFeatures(string) *[]models.F
 }
 
 func (f *SelfNodeRemediationFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	if isOperatorActivated(nodehealthcheck.Operator.Name, cluster, clusterUpdateParams) {
+	if isOperatorActivated(selfnoderemediation.Operator.Name, cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
@@ -938,7 +939,43 @@ func (f *FenceAgentsRemediationFeature) getIncompatibleFeatures(string) *[]model
 }
 
 func (f *FenceAgentsRemediationFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	if isOperatorActivated(nodehealthcheck.Operator.Name, cluster, clusterUpdateParams) {
+	if isOperatorActivated(fenceagentsremediation.Operator.Name, cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// NodeMaintenanceFeature describes the support for the Node Maintenance Operator.
+type NodeMaintenanceFeature struct{}
+
+func (f *NodeMaintenanceFeature) New() SupportLevelFeature {
+	return &NodeMaintenanceFeature{}
+}
+
+func (f *NodeMaintenanceFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDNODEMAINTENANCE
+}
+
+func (f *NodeMaintenanceFeature) GetName() string {
+	return fenceagentsremediation.OperatorFullName
+}
+
+func (f *NodeMaintenanceFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelDevPreview
+}
+
+func (f *NodeMaintenanceFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *NodeMaintenanceFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDSNO,
+	}
+}
+
+func (f *NodeMaintenanceFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(nodemaintenance.Operator.Name, cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive

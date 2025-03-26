@@ -43,6 +43,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
+	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
 	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
@@ -3660,7 +3661,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-		Expect(requirements.Operators).To(HaveLen(20))
+		Expect(requirements.Operators).To(HaveLen(21))
 		for _, op := range requirements.Operators {
 			switch op.OperatorName {
 			case lso.Operator.Name:
@@ -3717,6 +3718,8 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			case selfnoderemediation.Operator.Name:
 				continue
 			case fenceagentsremediation.Operator.Name:
+				continue
+			case nodemaintenance.Operator.Name:
 				continue
 			default:
 				Fail("Unexpected operator")
