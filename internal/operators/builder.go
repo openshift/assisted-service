@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kmm"
+	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
@@ -72,6 +73,7 @@ func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, o
 		selfnoderemediation.NewSelfNodeRemediationOperator(log),
 		fenceagentsremediation.NewFenceAgentsRemediationOperator(log),
 		nodemaintenance.NewNodeMaintenanceOperator(log),
+		kubedescheduler.NewKubeDeschedulerOperator(log),
 	)
 }
 

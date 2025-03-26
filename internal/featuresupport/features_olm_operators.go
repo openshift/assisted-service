@@ -4,6 +4,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
+	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
 	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
 	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
@@ -976,6 +977,42 @@ func (f *NodeMaintenanceFeature) getIncompatibleFeatures(string) *[]models.Featu
 
 func (f *NodeMaintenanceFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if isOperatorActivated(nodemaintenance.Operator.Name, cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// KubeDeschedulerFeature describes the support for the Kube Descheduler Operator.
+type KubeDeschedulerFeature struct{}
+
+func (f *KubeDeschedulerFeature) New() SupportLevelFeature {
+	return &KubeDeschedulerFeature{}
+}
+
+func (f *KubeDeschedulerFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDKUBEDESCHEDULER
+}
+
+func (f *KubeDeschedulerFeature) GetName() string {
+	return fenceagentsremediation.OperatorFullName
+}
+
+func (f *KubeDeschedulerFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelDevPreview
+}
+
+func (f *KubeDeschedulerFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *KubeDeschedulerFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDSNO,
+	}
+}
+
+func (f *KubeDeschedulerFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(kubedescheduler.Operator.Name, cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive

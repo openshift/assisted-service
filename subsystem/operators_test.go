@@ -22,6 +22,7 @@ import (
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kmm"
+	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
@@ -75,6 +76,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				selfnoderemediation.Operator.Name,
 				fenceagentsremediation.Operator.Name,
 				nodemaintenance.Operator.Name,
+				kubedescheduler.Operator.Name,
 			))
 		})
 
