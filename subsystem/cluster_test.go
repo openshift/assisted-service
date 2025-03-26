@@ -103,11 +103,11 @@ var _ = Describe("Cluster with Platform", func() {
 			Expect(*e.Payload.Reason).To(ContainSubstring("Dual-Stack"))
 		})
 
-		It("vSphere cluster on OCP 4.13 with dual stack - Succeess", func() {
+		It("vSphere cluster on OCP 4.14 with dual stack - Succeess", func() {
 			_, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String("4.13"),
+					OpenshiftVersion:  swag.String("4.14"),
 					ControlPlaneCount: swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode),
 					PullSecret:        swag.String(pullSecret),
 					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
@@ -3765,11 +3765,11 @@ var _ = Describe("Preflight Cluster Requirements for lvms", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("should be reported for 4.13 cluster", func() {
+	It("should be reported for 4.14 cluster", func() {
 		var cluster, err = utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String("4.13.0"),
+				OpenshiftVersion:  swag.String("4.14.0"),
 				PullSecret:        swag.String(pullSecret),
 				BaseDNSDomain:     "example.com",
 				VipDhcpAllocation: swag.Bool(true),

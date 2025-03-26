@@ -66,7 +66,7 @@ const (
 	clusterAgentClusterInstallNamePrefix = "test-agent-cluster-install"
 	doneStateInfo                        = "Done"
 	clusterInstallStateInfo              = "Cluster is installed"
-	clusterImageSetName                  = "openshift-v4.9.0"
+	clusterImageSetName                  = "openshift-v4.12.0"
 )
 
 const additionalTrustCertificate = `-----BEGIN CERTIFICATE-----

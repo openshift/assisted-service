@@ -277,7 +277,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		It("LSO as ODF dependency on Z CPU architecture", func() {
 			// Register cluster with ppc64le CPU architecture
 			cluster := registerNewCluster(
-				"4.13.0",
+				"4.14.0",
 				int64(common.MinMasterHostsNeededForInstallationInHaMode),
 				nil,
 				swag.String(models.ClusterCPUArchitectureS390x),
@@ -290,7 +290,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			infraEnvParams := installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("infra-env-1"),
-					OpenshiftVersion: "4.13.0",
+					OpenshiftVersion: "4.14.0",
 					ClusterID:        cluster.Payload.ID,
 					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
 					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
@@ -348,7 +348,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 		It("LSO as ODF dependency on ARM arch", func() {
 			cluster := registerNewCluster(
-				"4.13-multi",
+				"4.14-multi",
 				int64(common.MinMasterHostsNeededForInstallationInHaMode),
 				nil,
 				swag.String(models.ClusterCPUArchitectureArm64),
@@ -360,7 +360,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			infraEnvParams := installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("infra-env-1"),
-					OpenshiftVersion: "4.13.0",
+					OpenshiftVersion: "4.14.0",
 					ClusterID:        cluster.Payload.ID,
 					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
 					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
@@ -418,7 +418,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			))
 		})
 
-		It("should lvm have right subscription name on 4.12", func() {
+		It("should lvm have right subscription name when installed as cnv dependency", func() {
 			cluster := registerNewCluster(
 				"4.12.0",
 				int64(1),
@@ -441,9 +441,9 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(operatorSubscriptionName).To(Equal(lvm.LvmsSubscriptionName))
 		})
 
-		It("should lvm have right subscription name on 4.11", func() {
+		It("should lvm have right subscription name", func() {
 			cluster := registerNewCluster(
-				"4.11",
+				"4.12",
 				int64(1),
 				[]*models.OperatorCreateParams{{Name: lvm.Operator.Name}},
 				nil,

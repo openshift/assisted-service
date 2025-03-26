@@ -116,13 +116,13 @@ var _ = Describe("Feature support levels API", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("Update umn true fail on 4.13 with s390x with infra-env", func() {
-				expectedError := "cannot use Cluster Managed Networking because it's not compatible with the s390x architecture on version 4.13"
-				cluster, err := registerNewCluster("4.13-multi", common.S390xCPUArchitecture, int64(common.MinMasterHostsNeededForInstallationInHaMode), swag.Bool(true))
+			It("Update umn true fail on 4.14 with s390x with infra-env", func() {
+				expectedError := "cannot use Cluster Managed Networking because it's not compatible with the s390x architecture on version 4.14"
+				cluster, err := registerNewCluster("4.14-multi", common.S390xCPUArchitecture, int64(common.MinMasterHostsNeededForInstallationInHaMode), swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 
-				infraEnv, err := registerNewInfraEnv(cluster.Payload.ID, "4.13", "s390x")
+				infraEnv, err := registerNewInfraEnv(cluster.Payload.ID, "4.14", "s390x")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(infraEnv.Payload.CPUArchitecture).To(Equal("s390x"))
 
@@ -138,8 +138,8 @@ var _ = Describe("Feature support levels API", func() {
 			})
 
 			It("Create infra-env after updating OLM operators on s390x architecture ", func() {
-				expectedError := "cannot use OpenShift Virtualization because it's not compatible with the s390x architecture on version 4.13"
-				cluster, err := registerNewCluster("4.13-multi", common.S390xCPUArchitecture, int64(common.MinMasterHostsNeededForInstallationInHaMode), swag.Bool(true))
+				expectedError := "cannot use OpenShift Virtualization because it's not compatible with the s390x architecture on version 4.14"
+				cluster, err := registerNewCluster("4.14-multi", common.S390xCPUArchitecture, int64(common.MinMasterHostsNeededForInstallationInHaMode), swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 
@@ -155,7 +155,7 @@ var _ = Describe("Feature support levels API", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				_, err = registerNewInfraEnv(cluster.Payload.ID, "4.13", "s390x")
+				_, err = registerNewInfraEnv(cluster.Payload.ID, "4.14", "s390x")
 				err2 := err.(*installer.RegisterInfraEnvBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
 			})
@@ -210,14 +210,14 @@ var _ = Describe("Feature support levels API", func() {
 		})
 
 		Context("Register cluster", func() {
-			It("Register cluster won't fail on 4.13 with s390x", func() {
-				cluster, err := registerNewCluster("4.13", "s390x", int64(common.MinMasterHostsNeededForInstallationInHaMode), swag.Bool(true))
+			It("Register cluster won't fail on 4.14 with s390x", func() {
+				cluster, err := registerNewCluster("4.14", "s390x", int64(common.MinMasterHostsNeededForInstallationInHaMode), swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.S390xCPUArchitecture))
 			})
 
-			It("Register cluster won't fail on 4.13 with s390x without UMN", func() {
-				cluster, err := registerNewCluster("4.13", "s390x", int64(common.MinMasterHostsNeededForInstallationInHaMode), nil)
+			It("Register cluster won't fail on 4.14 with s390x without UMN", func() {
+				cluster, err := registerNewCluster("4.14", "s390x", int64(common.MinMasterHostsNeededForInstallationInHaMode), nil)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.S390xCPUArchitecture))
 			})
@@ -229,8 +229,8 @@ var _ = Describe("Feature support levels API", func() {
 				err2 := err.(*installer.V2RegisterClusterBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
 			})
-			It("SNO with s390x fails on SNO isn't compatible with architecture success on 4.13", func() {
-				cluster, err := registerNewCluster("4.13", "s390x", int64(1), nil)
+			It("SNO with s390x fails on SNO isn't compatible with architecture success on 4.14", func() {
+				cluster, err := registerNewCluster("4.14", "s390x", int64(1), nil)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal(common.S390xCPUArchitecture))
 				Expect(cluster.Payload.ControlPlaneCount).To(Equal(int64(1)))
