@@ -1,0 +1,8 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  namespace: {{ .Operator.Namespace }}
+  name: openshift-node-availability
+spec:
+  targetNamespaces:
+  - {{ .Operator.Namespace }}

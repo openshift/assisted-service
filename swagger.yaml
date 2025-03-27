@@ -2725,6 +2725,7 @@ paths:
               - 'self-node-remediation'
               - 'fence-agents-remediation'
               - 'node-maintenance'
+              - 'kube-descheduler'
         "401":
           description: Unauthorized.
           schema:
@@ -4271,6 +4272,7 @@ definitions:
       - 'SELF_NODE_REMEDIATION'
       - 'FENCE_AGENTS_REMEDIATION'
       - 'NODE_MAINTENANCE'
+      - 'KUBE_DESCHEDULER'
 
   architecture-support-level-id:
     type: string
@@ -6685,6 +6687,7 @@ definitions:
       - 'self-node-remediation-requirements-satisfied'
       - 'fence-agents-remediation-requirements-satisfied'
       - 'node-maintenance-requirements-satisfied'
+      - 'kube-descheduler-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -7065,6 +7068,7 @@ definitions:
       - 'self-node-remediation-requirements-satisfied'
       - 'fence-agents-remediation-requirements-satisfied'
       - 'node-maintenance-requirements-satisfied'
+      - 'kube-descheduler-requirements-satisfied'
 
   logs_type:
     type: string

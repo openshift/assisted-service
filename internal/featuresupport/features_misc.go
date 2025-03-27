@@ -53,6 +53,7 @@ func (feature *SnoFeature) getIncompatibleFeatures(string) *[]models.FeatureSupp
 		models.FeatureSupportLevelIDSELFNODEREMEDIATION,
 		models.FeatureSupportLevelIDFENCEAGENTSREMEDIATION,
 		models.FeatureSupportLevelIDNODEMAINTENANCE,
+		models.FeatureSupportLevelIDKUBEDESCHEDULER,
 	}
 }
 

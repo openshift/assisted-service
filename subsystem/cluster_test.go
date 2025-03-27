@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kmm"
+	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
@@ -3661,7 +3662,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-		Expect(requirements.Operators).To(HaveLen(21))
+		Expect(requirements.Operators).To(HaveLen(22))
 		for _, op := range requirements.Operators {
 			switch op.OperatorName {
 			case lso.Operator.Name:
@@ -3720,6 +3721,8 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			case fenceagentsremediation.Operator.Name:
 				continue
 			case nodemaintenance.Operator.Name:
+				continue
+			case kubedescheduler.Operator.Name:
 				continue
 			default:
 				Fail("Unexpected operator")

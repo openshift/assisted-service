@@ -6020,7 +6020,8 @@ func init() {
                   "node-healthcheck",
                   "self-node-remediation",
                   "fence-agents-remediation",
-                  "node-maintenance"
+                  "node-maintenance",
+                  "kube-descheduler"
                 ]
               }
             }
@@ -7066,7 +7067,8 @@ func init() {
         "node-healthcheck-requirements-satisfied",
         "self-node-remediation-requirements-satisfied",
         "fence-agents-remediation-requirements-satisfied",
-        "node-maintenance-requirements-satisfied"
+        "node-maintenance-requirements-satisfied",
+        "kube-descheduler-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -7926,7 +7928,8 @@ func init() {
         "NODE_HEALTHCHECK",
         "SELF_NODE_REMEDIATION",
         "FENCE_AGENTS_REMEDIATION",
-        "NODE_MAINTENANCE"
+        "NODE_MAINTENANCE",
+        "KUBE_DESCHEDULER"
       ]
     },
     "finalizing-stage": {
@@ -8559,7 +8562,8 @@ func init() {
         "node-healthcheck-requirements-satisfied",
         "self-node-remediation-requirements-satisfied",
         "fence-agents-remediation-requirements-satisfied",
-        "node-maintenance-requirements-satisfied"
+        "node-maintenance-requirements-satisfied",
+        "kube-descheduler-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -17002,7 +17006,8 @@ func init() {
                   "node-healthcheck",
                   "self-node-remediation",
                   "fence-agents-remediation",
-                  "node-maintenance"
+                  "node-maintenance",
+                  "kube-descheduler"
                 ]
               }
             }
@@ -18166,7 +18171,8 @@ func init() {
         "node-healthcheck-requirements-satisfied",
         "self-node-remediation-requirements-satisfied",
         "fence-agents-remediation-requirements-satisfied",
-        "node-maintenance-requirements-satisfied"
+        "node-maintenance-requirements-satisfied",
+        "kube-descheduler-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -18993,7 +18999,8 @@ func init() {
         "NODE_HEALTHCHECK",
         "SELF_NODE_REMEDIATION",
         "FENCE_AGENTS_REMEDIATION",
-        "NODE_MAINTENANCE"
+        "NODE_MAINTENANCE",
+        "KUBE_DESCHEDULER"
       ]
     },
     "finalizing-stage": {
@@ -19626,7 +19633,8 @@ func init() {
         "node-healthcheck-requirements-satisfied",
         "self-node-remediation-requirements-satisfied",
         "fence-agents-remediation-requirements-satisfied",
-        "node-maintenance-requirements-satisfied"
+        "node-maintenance-requirements-satisfied",
+        "kube-descheduler-requirements-satisfied"
       ]
     },
     "host_network": {

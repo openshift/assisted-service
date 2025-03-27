@@ -52,6 +52,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDSELFNODEREMEDIATION:    (&SelfNodeRemediationFeature{}).New(),
 	models.FeatureSupportLevelIDFENCEAGENTSREMEDIATION: (&FenceAgentsRemediationFeature{}).New(),
 	models.FeatureSupportLevelIDNODEMAINTENANCE:        (&NodeMaintenanceFeature{}).New(),
+	models.FeatureSupportLevelIDKUBEDESCHEDULER:        (&KubeDeschedulerFeature{}).New(),
 
 	// Platform features
 	models.FeatureSupportLevelIDNUTANIXINTEGRATION:  (&NutanixIntegrationFeature{}).New(),
