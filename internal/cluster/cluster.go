@@ -666,7 +666,6 @@ func (m *Manager) ClusterMonitoring() {
 }
 
 func getDownloadFilesAllowedStatuses() []string {
-
 	return []string{
 		models.ClusterStatusInstalling,
 		models.ClusterStatusFinalizing,
@@ -678,19 +677,16 @@ func getDownloadFilesAllowedStatuses() []string {
 	}
 }
 
-func CanDownloadFiles(c *common.Cluster) (err error) {
+func checkDownloadAllowed(c *common.Cluster, file string, allowed []string) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-
-	allowedStatuses := getDownloadFilesAllowedStatuses()
-	if !funk.Contains(getDownloadFilesAllowedStatuses(), clusterStatus) {
-		err = errors.Errorf("cluster %s is in %s state, files can be downloaded only when status is one of: %s",
-			c.ID, clusterStatus, allowedStatuses)
+	if !funk.Contains(allowed, clusterStatus) {
+		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only when status is one of: %s",
+			c.ID, clusterStatus, file, allowed)
 	}
 	return err
 }
 
 func CanDownloadKubeconfig(c *common.Cluster) (err error) {
-	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{
 		models.ClusterStatusFinalizing,
 		models.ClusterStatusInstalled,
@@ -699,29 +695,23 @@ func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 		models.ClusterStatusCancelled,
 		models.ClusterStatusInstallingPendingUserAction,
 	}
-	if !funk.Contains(allowedStatuses, clusterStatus) {
-		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only when status is one of: %s",
-			c.ID, clusterStatus, constants.Kubeconfig, allowedStatuses)
-	}
-
-	return err
+	return checkDownloadAllowed(c, constants.Kubeconfig, allowedStatuses)
 }
 
-func CanDownloadKubeconfigNoIngress(c *common.Cluster, agentInstaller bool) (err error) {
-	clusterStatus := swag.StringValue(c.Status)
+func CanDownloadFiles(c *common.Cluster) (err error) {
+	allowedStatuses := getDownloadFilesAllowedStatuses()
+	return checkDownloadAllowed(c, "files", allowedStatuses)
+}
+
+func CanDownloadKubeconfigFiles(c *common.Cluster, file string, agentInstaller bool) (err error) {
 	if !agentInstaller {
 		return CanDownloadFiles(c)
 	}
 
-	// For agent installer, kubeconfig can be generated, and retrieved, prior to cluster installation.
+	// For agent installer, kubeconfig files can be generated, and retrieved, prior to cluster installation.
 	allowedStatuses := getDownloadFilesAllowedStatuses()
 	allowedStatuses = append(allowedStatuses, models.ClusterStatusReady, models.ClusterStatusPreparingForInstallation)
-	if !funk.Contains(allowedStatuses, clusterStatus) {
-		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only when status is one of: %s",
-			c.ID, clusterStatus, constants.Kubeconfig, allowedStatuses)
-	}
-
-	return err
+	return checkDownloadAllowed(c, file, allowedStatuses)
 }
 
 func (m *Manager) IsOperatorAvailable(c *common.Cluster, operatorName string) bool {
