@@ -30,7 +30,7 @@ var _ = Describe("Host tests", func() {
 		cluster, err = utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
+				OpenshiftVersion:  swag.String(defaultOpenshiftVersion),
 				PullSecret:        swag.String(pullSecret),
 				VipDhcpAllocation: swag.Bool(true),
 			},

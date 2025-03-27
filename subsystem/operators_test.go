@@ -133,7 +133,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
+					OpenshiftVersion:  swag.String(defaultOpenshiftVersion),
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      utils_test.SshPublicKey,
 					VipDhcpAllocation: swag.Bool(true),
