@@ -4064,9 +4064,11 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	switch fileName {
 	case constants.Kubeconfig:
 		err = clusterPkg.CanDownloadKubeconfig(cluster)
+	case constants.KubeadminPassword:
+		fallthrough
 	case constants.KubeconfigNoIngress:
-		agentInstaller := b.Config.ClusterTLSCertOverrideDir != ""
-		err = clusterPkg.CanDownloadKubeconfigNoIngress(cluster, agentInstaller)
+		agentInstaller := b.installerInvoker == "agent-installer"
+		err = clusterPkg.CanDownloadKubeconfigFiles(cluster, fileName, agentInstaller)
 	case constants.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
@@ -6219,22 +6221,24 @@ func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, p
 	fileName := params.FileName
 	respBody, contentLength, err := b.V2DownloadClusterCredentialsInternal(ctx, params)
 
-	// Kubeconfig-noingress has been created during the installation, but it does not have the ingress CA.
-	// At the finalizing phase, we create the kubeconfig file and add the ingress CA.
-	// An ingress CA isn't required for normal login but for oauth login which isn't a common use case.
-	// Here we fallback to the kubeconfig-noingress for the kubeconfig filename.
-	if err != nil && fileName == constants.Kubeconfig {
-		fileName = constants.KubeconfigNoIngress
+	if err != nil {
+		// Kubeconfig-noingress has been created during the installation, but it does not have the ingress CA.
+		// At the finalizing phase, we create the kubeconfig file and add the ingress CA.
+		// An ingress CA isn't required for normal login but for oauth login which isn't a common use case.
+		// Here we fallback to the kubeconfig-noingress for the kubeconfig filename.
+		if fileName == constants.Kubeconfig {
+			fileName = constants.KubeconfigNoIngress
+			respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, fileName, params.ClusterID.String())
+		}
 
-		if b.Config.ClusterTLSCertOverrideDir != "" {
-			// Since only ABI uses ClusterTLSCertOverrideDir, if it is set then
-			// kubeconfig must be generated here for retrieval prior to cluster installation.
+		if err != nil && common.IsNotFoundError(err) && b.installerInvoker == "agent-installer" {
+			// For ABI, kubeconfig must be generated here for retrieval prior to cluster installation, only if file not found.
 			if agentErr := b.generateAgentInstallerKubeconfig(ctx, params); agentErr != nil {
 				b.log.WithError(agentErr).Errorf("failed to generate agent installer kubeconfig")
 				return common.GenerateErrorResponder(agentErr)
 			}
+			respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, fileName, params.ClusterID.String())
 		}
-		respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, fileName, params.ClusterID.String())
 	}
 
 	if err != nil {
