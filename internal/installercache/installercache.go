@@ -181,7 +181,7 @@ func (i *Installers) extractReleaseIfNeeded(path, releaseID, releaseIDMirror, pu
 	if err != nil && !os.IsNotExist(err) {
 		return 0, false, errors.Wrapf(err, "could not determine disk usage information for cache dir %s", i.config.CacheDir)
 	}
-	if i.shouldEvict(int64(usedBytes)) && !i.evict() {
+	if i.shouldEvict(int64(usedBytes)) && !i.evict() { // nolint: gosec
 		return 0, false, &errorInsufficientCacheCapacity{Message: fmt.Sprintf("insufficient capacity in %s to store release", i.config.CacheDir)}
 	}
 	extractStartTime := time.Now()

@@ -4675,7 +4675,7 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 	if len(hosts) > 0 {
 		msg := fmt.Sprintf("failed to deregister infraEnv %s, %d hosts are still associated", params.InfraEnvID, len(hosts))
 		log.Error(msg)
-		return common.NewApiError(http.StatusBadRequest, fmt.Errorf(msg))
+		return common.NewApiError(http.StatusBadRequest, errors.New(msg))
 	}
 
 	if err = b.infraEnvApi.DeregisterInfraEnv(ctx, params.InfraEnvID); err != nil {

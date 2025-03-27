@@ -223,8 +223,8 @@ func (feature *DualStackVipsFeature) getFeatureActiveLevel(cluster *common.Clust
 	if cluster == nil {
 		return activeLevelNotActive
 	}
-	if (cluster.APIVips != nil && len(cluster.APIVips) > 1 && clusterUpdateParams == nil) ||
-		(cluster.APIVips != nil && len(cluster.APIVips) > 1 && clusterUpdateParams != nil && (clusterUpdateParams.APIVips == nil || len(clusterUpdateParams.APIVips) > 1)) ||
+	if (len(cluster.APIVips) > 1 && clusterUpdateParams == nil) ||
+		(len(cluster.APIVips) > 1 && clusterUpdateParams != nil && (clusterUpdateParams.APIVips == nil || len(clusterUpdateParams.APIVips) > 1)) ||
 		(cluster.APIVips != nil && len(cluster.APIVips) <= 1 && clusterUpdateParams != nil && clusterUpdateParams.APIVips != nil && len(clusterUpdateParams.APIVips) > 1) {
 		return activeLevelActive
 	}
