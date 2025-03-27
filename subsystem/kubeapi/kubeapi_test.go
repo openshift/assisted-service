@@ -66,7 +66,7 @@ const (
 	clusterAgentClusterInstallNamePrefix = "test-agent-cluster-install"
 	doneStateInfo                        = "Done"
 	clusterInstallStateInfo              = "Cluster is installed"
-	clusterImageSetName                  = "openshift-v4.9.0"
+	clusterImageSetName                  = "openshift-v4.16.0"
 )
 
 const additionalTrustCertificate = `-----BEGIN CERTIFICATE-----
@@ -135,12 +135,10 @@ gmY=
 
 var (
 	imageSetsData = map[string]string{
-		"openshift-v4.9.0":        "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
-		"openshift-v4.10.0":       "quay.io/openshift-release-dev/ocp-release:4.10.6-x86_64",
-		"openshift-v4.10.0-arm":   "quay.io/openshift-release-dev/ocp-release:4.10.6-aarch64",
-		"openshift-v4.11.0":       "quay.io/openshift-release-dev/ocp-release:4.11.0-x86_64",
-		"openshift-v4.11.0-multi": "quay.io/openshift-release-dev/ocp-release:4.11.0-multi",
-		"openshift-v4.14.0":       "quay.io/openshift-release-dev/ocp-release:4.14.0-ec.4-x86_64",
+		"openshift-v4.16.0":       "quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64",
+		"openshift-v4.16.0-multi": "quay.io/openshift-release-dev/ocp-release:4.16.0-multi",
+		"openshift-v4.17.0":       "quay.io/openshift-release-dev/ocp-release:4.17.0-ec.4-x86_64",
+		"openshift-v4.17.0-arm":   "quay.io/openshift-release-dev/ocp-release:4.17.0-aarch64",
 		"openshift-v4.18.0-ec.2":  "quay.io/openshift-release-dev/ocp-release:4.18.0-ec.2-x86_64",
 	}
 )
@@ -1586,7 +1584,7 @@ location = "%s"
 	It("deploy nutanix platform", func() {
 		aciSpec.PlatformType = hiveext.NutanixPlatformType
 		imageSetRef4_11 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.11.0",
+			Name: "openshift-v4.16.0",
 		}
 		aciSpec.ImageSetRef = imageSetRef4_11
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
@@ -1708,7 +1706,7 @@ location = "%s"
 		}()
 
 		imageSetRef4_14 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.14.0",
+			Name: "openshift-v4.17.0",
 		}
 		aciSpecExternalPlatform.ImageSetRef = imageSetRef4_14
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpecExternalPlatform.ImageSetRef)
@@ -2271,16 +2269,16 @@ location = "%s"
 	})
 
 	It("[kube-cpu-arch]mismatch cpu architecture between infra-env and bound cluster", func() {
-		By("deploy cluster with openshiftVersion 4.10 and x86_64")
-		imageSetRef4_10 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.10.0",
+		By("deploy cluster with openshiftVersion 4.17 and x86_64")
+		imageSetRef4_17 := &hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.17.0",
 		}
-		aciSpec.ImageSetRef = imageSetRef4_10
+		aciSpec.ImageSetRef = imageSetRef4_17
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 
-		By("deploy infraenv with a reference to openshiftVersion 4.10 cluster and arm64")
+		By("deploy infraenv with a reference to openshiftVersion 4.17 cluster and arm64")
 		infraEnvSpec.CpuArchitecture = "arm64"
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 
@@ -2293,11 +2291,11 @@ location = "%s"
 	})
 
 	It("[multiarch] Create multiarch cluster and bind infraenvs", func() {
-		By("deploy cluster with openshiftVersion 4.11 and multiarch")
-		imageSetRef4_11 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.11.0-multi",
+		By("deploy cluster with openshiftVersion 4.16 and multiarch")
+		imageSetRef4_16 := &hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.16.0-multi",
 		}
-		aciSpec.ImageSetRef = imageSetRef4_11
+		aciSpec.ImageSetRef = imageSetRef4_16
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
@@ -2308,7 +2306,7 @@ location = "%s"
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.CPUArchitecture).Should(Equal("multi"))
-		Expect(cluster.OcpReleaseImage).Should(Equal("quay.io/openshift-release-dev/ocp-release:4.11.0-multi"))
+		Expect(cluster.OcpReleaseImage).Should(Equal("quay.io/openshift-release-dev/ocp-release:4.16.0-multi"))
 
 		By("deploy infraenv with arm64 architecure")
 		infraEnvSpec.CpuArchitecture = "arm64"
@@ -2955,7 +2953,7 @@ location = "%s"
 
 	It("[kube-cpu-arch]deploy ClusterDeployment with arm64 architecture", func() {
 		//Note: arm is supported with user managed networking only
-		armImageSetRef := &hivev1.ClusterImageSetReference{Name: "openshift-v4.10.0-arm"}
+		armImageSetRef := &hivev1.ClusterImageSetReference{Name: "openshift-v4.17.0-arm"}
 		aciSNOSpec.ImageSetRef = armImageSetRef
 		deployClusterImageSetCRD(ctx, kubeClient, armImageSetRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -3401,10 +3399,10 @@ location = "%s"
 
 		By("new deployment with NoProxy")
 		aciSpec.Proxy = &hiveext.Proxy{HTTPProxy: "", HTTPSProxy: "", NoProxy: "*"}
-		imageSetRef4_11 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.11.0",
+		imageSetRef4_16 := &hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.16.0",
 		}
-		aciSpec.ImageSetRef = imageSetRef4_11
+		aciSpec.ImageSetRef = imageSetRef4_16
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
@@ -3416,7 +3414,7 @@ location = "%s"
 
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.CPUArchitecture).Should(Equal(common.X86CPUArchitecture))
-		Expect(cluster.OcpReleaseImage).Should(Equal("quay.io/openshift-release-dev/ocp-release:4.11.0-x86_64"))
+		Expect(cluster.OcpReleaseImage).Should(Equal("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"))
 	})
 
 	It("deploy infraEnv with NoProxy wildcard", func() {

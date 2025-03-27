@@ -501,11 +501,12 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation failure
 			h := &utils_test.TestContext.RegisterHost(*infraEnvID).Host
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDMachineCidrDefined)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDMachineCidrDefined), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 
 			// create a validation success
 			utils_test.TestContext.GenerateHWPostStepReply(ctx, h, utils_test.ValidHwInfo, "master-0")
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDMachineCidrDefined)
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDMachineCidrDefined), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDMachineCidrDefined, false)
@@ -604,9 +605,11 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation success
 			h := &utils_test.TestContext.RegisterHost(*infraEnvID).Host
+
 			err := db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDBelongsToMachineCidr), hostValidationChangedMetric)
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDBelongsToMachineCidr), hostValidationFailedMetric)
@@ -615,7 +618,7 @@ var _ = Describe("Metrics tests", func() {
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("")}).Error
 			Expect(err).NotTo(HaveOccurred())
 			// machine-cidr doesn't change after it is set
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDBelongsToMachineCidr)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDBelongsToMachineCidr), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDBelongsToMachineCidr, true)
@@ -630,18 +633,22 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation failure
 			h := &utils_test.TestContext.RegisterHost(*infraEnvID).Host
+
 			err := db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
+
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("")}).Error
 			Expect(err).NotTo(HaveOccurred())
 			// machine-cidr removed after the network interface was deleted
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDBelongsToMachineCidr)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDBelongsToMachineCidr), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 
 			// create a validation success
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDBelongsToMachineCidr, false)
@@ -699,12 +706,14 @@ var _ = Describe("Metrics tests", func() {
 			h2 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h2", ips[1])
 			h3 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h3", ips[2])
 			h4 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h4", ips[3])
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
+
 			generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 
 			// create a validation failure
 			generateFullMeshConnectivity(ctx, ips[0], h2, h3, h4)
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "h1", models.HostValidationIDBelongsToMajorityGroup, true)
@@ -729,12 +738,14 @@ var _ = Describe("Metrics tests", func() {
 			h2 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h2", ips[1])
 			h3 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h3", ips[2])
 			h4 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h4", ips[3])
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
+
 			generateFullMeshConnectivity(ctx, ips[0], h2, h3, h4)
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 
 			// create a validation success
 			generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
-			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
+			Eventually(utils_test.TestContext.WaitForHostValidationStatusHelper(clusterID, *infraEnvID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup), pollDefaultTimeout, pollDefaultInterval).Should(BeTrue())
 
 			// check generated events
 			assertHostValidationEvent(ctx, clusterID, "h1", models.HostValidationIDBelongsToMajorityGroup, false)
