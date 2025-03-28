@@ -143,10 +143,10 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 			&models.ReleaseImage{
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				CPUArchitectures: []string{},
-				OpenshiftVersion: swag.String("4.11.1"),
-				URL:              swag.String("release_4.11.1"),
+				OpenshiftVersion: swag.String("4.12.1"),
+				URL:              swag.String("release_4.12.1"),
 				Default:          true,
-				Version:          swag.String("4.11.1-chocobomb-for-test"),
+				Version:          swag.String("4.12.1-chocobomb-for-test"),
 			},
 		}
 
@@ -159,9 +159,9 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 
-		version := val.Payload["4.11.1"]
+		version := val.Payload["4.12.1"]
 		Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
-		Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test")))
+		Expect(version.DisplayName).Should(Equal(swag.String("4.12.1-chocobomb-for-test")))
 		Expect(version.Default).Should(Equal(true))
 	})
 
@@ -170,10 +170,10 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 			&models.ReleaseImage{
 				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture, "risc-v"},
-				OpenshiftVersion: swag.String("4.11.1"),
-				URL:              swag.String("release_4.11.1"),
+				OpenshiftVersion: swag.String("4.12.1"),
+				URL:              swag.String("release_4.12.1"),
 				Default:          true,
-				Version:          swag.String("4.11.1-chocobomb-for-test-multi"),
+				Version:          swag.String("4.12.1-chocobomb-for-test-multi"),
 			},
 		}
 		osImages := readDefaultOsImages()
@@ -185,10 +185,10 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 
-		version := val.Payload["4.11.1"]
+		version := val.Payload["4.12.1"]
 		Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
 		Expect(version.CPUArchitectures).ShouldNot(ContainElement("risc-v"))
-		Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test-multi")))
+		Expect(version.DisplayName).Should(Equal(swag.String("4.12.1-chocobomb-for-test-multi")))
 		Expect(version.Default).Should(Equal(true))
 	})
 
@@ -200,24 +200,24 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 			&models.ReleaseImage{
 				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
 				CPUArchitectures: []string{common.ARM64CPUArchitecture},
-				OpenshiftVersion: swag.String("4.11.1"),
-				URL:              swag.String("release_4.11.1"),
-				Version:          swag.String("4.11.1-chocobomb-for-test"),
+				OpenshiftVersion: swag.String("4.12.1"),
+				URL:              swag.String("release_4.12.1"),
+				Version:          swag.String("4.12.1-chocobomb-for-test"),
 			},
 			&models.ReleaseImage{
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture},
-				OpenshiftVersion: swag.String("4.11.1"),
-				URL:              swag.String("release_4.11.1"),
-				Version:          swag.String("4.11.1-chocobomb-for-test"),
+				OpenshiftVersion: swag.String("4.12.1"),
+				URL:              swag.String("release_4.12.1"),
+				Version:          swag.String("4.12.1-chocobomb-for-test"),
 			},
 			&models.ReleaseImage{
 				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-				OpenshiftVersion: swag.String("4.11.1"),
-				URL:              swag.String("release_4.11.1"),
+				OpenshiftVersion: swag.String("4.12.1"),
+				URL:              swag.String("release_4.12.1"),
 				Default:          true,
-				Version:          swag.String("4.11.1-chocobomb-for-test"),
+				Version:          swag.String("4.12.1-chocobomb-for-test"),
 			},
 		}
 		osImages := readDefaultOsImages()
@@ -229,11 +229,11 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 
-		version := val.Payload["4.11.1"]
+		version := val.Payload["4.12.1"]
 		Expect(version.CPUArchitectures).Should(ContainElement(common.ARM64CPUArchitecture))
 		Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
 		Expect(len(version.CPUArchitectures)).Should(Equal(2))
-		Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test")))
+		Expect(version.DisplayName).Should(Equal(swag.String("4.12.1-chocobomb-for-test")))
 		Expect(version.Default).Should(Equal(true))
 	})
 
