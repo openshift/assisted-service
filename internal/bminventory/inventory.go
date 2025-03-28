@@ -531,9 +531,6 @@ func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(
 	if err := validations.ValidateDualStackNetworks(params.NewClusterParams, false, false); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if err := validations.ValidatePlatformCapability(params.NewClusterParams.Platform, ctx, b.authzHandler); err != nil {
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
 	return nil
 }
 
@@ -1992,10 +1989,6 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 	}
 
 	if err := b.validateIgnitionEndpoint(params.ClusterUpdateParams.IgnitionEndpoint, log); err != nil {
-		return installer.V2UpdateClusterParams{}, err
-	}
-
-	if err := validations.ValidatePlatformCapability(params.ClusterUpdateParams.Platform, ctx, b.authzHandler); err != nil {
 		return installer.V2UpdateClusterParams{}, err
 	}
 

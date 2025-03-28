@@ -2,7 +2,6 @@ package validations
 
 import (
 	"bytes"
-	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -21,8 +20,6 @@ import (
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/pkg/auth"
-	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/tang"
 	"github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
@@ -732,36 +729,6 @@ func ValidateIgnitionImageSize(config string) error {
 	if ignitionImageSize > IgnitionImageSizePadding {
 		return errors.New(fmt.Sprintf("The ignition archive size (%d KiB) is over the maximum allowable size (%d KiB)",
 			ignitionImageSize/1024, IgnitionImageSizePadding/1024))
-	}
-
-	return nil
-}
-
-func ValidatePlatformCapability(platform *models.Platform, ctx context.Context, authzHandler auth.Authorizer) error {
-	if platform == nil || platform.Type == nil {
-		return nil
-	}
-
-	var checked bool
-
-	if common.IsOciExternalIntegrationEnabled(platform) {
-		available, err := authzHandler.HasOrgBasedCapability(ctx, ocm.PlatformOciCapabilityName)
-		if err == nil && available {
-			return nil
-		}
-		checked = true
-	}
-
-	if *platform.Type == models.PlatformTypeExternal {
-		available, err := authzHandler.HasOrgBasedCapability(ctx, ocm.PlatformExternalCapabilityName)
-		if err == nil && available {
-			return nil
-		}
-		checked = true
-	}
-
-	if checked {
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Platform %s is not available", *platform.Type))
 	}
 
 	return nil

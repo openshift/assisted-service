@@ -19177,7 +19177,6 @@ var _ = Describe("Platform tests", func() {
 			payload.Username = "user1"
 			payload.Organization = "org1"
 			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
-			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformExternalCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
 			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.SoftTimeoutsCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String("4.14")
@@ -19214,8 +19213,6 @@ var _ = Describe("Platform tests", func() {
 			payload.Username = "user1"
 			payload.Organization = "org1"
 			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
-			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformExternalCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
-			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.SoftTimeoutsCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String("4.14")
@@ -19252,7 +19249,6 @@ var _ = Describe("Platform tests", func() {
 			payload.Username = "user1"
 			payload.Organization = "org1"
 			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
-			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
 			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.SoftTimeoutsCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String("4.14")
