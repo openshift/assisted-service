@@ -2900,7 +2900,7 @@ spec:
 					ClusterNetworks:      []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:      []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:                 swag.String("sno-cluster"),
-					OpenshiftVersion:     swag.String("4.9.0"),
+					OpenshiftVersion:     swag.String("4.12.0"),
 					NoProxy:              swag.String("*"),
 					PullSecret:           swag.String(pullSecret),
 					SSHPublicKey:         sshPublicKey,

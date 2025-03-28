@@ -400,29 +400,6 @@ var _ = Describe("Operators endpoint tests", func() {
 
 			Expect(operatorSubscriptionName).To(Equal(lvm.LvmsSubscriptionName))
 		})
-
-		It("should lvm have right subscription name on 4.11", func() {
-			cluster := registerNewCluster(
-				"4.11.0",
-				models.ClusterHighAvailabilityModeNone,
-				[]*models.OperatorCreateParams{{Name: lvm.Operator.Name}},
-				nil,
-				nil,
-			)
-			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
-
-			Expect(err).ToNot(HaveOccurred())
-
-			var operatorSubscriptionName string
-			for _, op := range ops.GetPayload() {
-				if op.Name == "lvm" {
-					operatorSubscriptionName = op.SubscriptionName
-					break
-				}
-			}
-
-			Expect(operatorSubscriptionName).To(Equal(lvm.LvmoSubscriptionName))
-		})
 	})
 
 	Context("Monitored operators", func() {
