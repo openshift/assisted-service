@@ -736,7 +736,7 @@ var _ = Describe("V2ListClusters", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:     "example.com",
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
+				OpenshiftVersion:  swag.String(defaultOpenshiftVersion),
 				PullSecret:        swag.String(pullSecret),
 				SSHPublicKey:      sshPublicKey,
 				VipDhcpAllocation: swag.Bool(true),
@@ -869,7 +869,7 @@ var _ = Describe("cluster install - DHCP", func() {
 				ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 				ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
+				OpenshiftVersion:  swag.String(defaultOpenshiftVersion),
 				PullSecret:        swag.String(pullSecret),
 				SSHPublicKey:      sshPublicKey,
 				VipDhcpAllocation: swag.Bool(true),
@@ -4692,7 +4692,7 @@ var _ = Describe("Installation progress", func() {
 					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
+					OpenshiftVersion:  swag.String(defaultOpenshiftVersion),
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      sshPublicKey,
 					NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
@@ -4783,7 +4783,7 @@ var _ = Describe("disk encryption", func() {
 			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(VipAutoAllocOpenshiftVersion),
+					OpenshiftVersion: swag.String(defaultOpenshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     sshPublicKey,
 					BaseDNSDomain:    "example.com",
@@ -4855,7 +4855,7 @@ var _ = Describe("disk encryption", func() {
 				NewClusterParams: &models.ClusterCreateParams{
 					BaseDNSDomain:     "example.com",
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
+					OpenshiftVersion:  swag.String(defaultOpenshiftVersion),
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      sshPublicKey,
 					VipDhcpAllocation: swag.Bool(true),
