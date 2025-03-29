@@ -75,6 +75,10 @@ func (a *ApiErrorResponse) Code() int32 {
 	return a.StatusCode()
 }
 
+func (a *ApiErrorResponse) Err() error {
+        return a.err
+}
+
 func NewApiError(statusCode int32, err error) *ApiErrorResponse {
 	return &ApiErrorResponse{
 		statusCode: statusCode,
