@@ -1,12 +1,14 @@
 package mirrorregistries
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 func TestMirrorRegistriesConfig(t *testing.T) {
@@ -77,6 +79,7 @@ var _ = Describe("Generator tests", func() {
 			m := mirrorRegistriesConfigBuilder{
 				MirrorRegistriesConfigPath:      "/tmp/this-file-for-sure-does-not-exist",
 				MirrorRegistriesCertificatePath: "/tmp/this-file-for-sure-does-not-exist",
+				fileReader:                      os.ReadFile,
 			}
 			res := m.IsMirrorRegistriesConfigured()
 			Expect(res).Should(Equal(false))
@@ -101,6 +104,7 @@ var _ = Describe("Generator tests", func() {
 				m = mirrorRegistriesConfigBuilder{
 					MirrorRegistriesConfigPath:      tempRegistriesFile.Name(),
 					MirrorRegistriesCertificatePath: tempCAFile.Name(),
+					fileReader:                      os.ReadFile,
 				}
 			})
 
@@ -132,6 +136,59 @@ var _ = Describe("Generator tests", func() {
 		})
 	})
 
+	var _ = Describe("GetMirrorCA", func() {
+		var (
+			m *mirrorRegistriesConfigBuilder
+		)
+
+		It("should return registry bundle when registry bundle exists", func() {
+			reader := func(name string) ([]byte, error) {
+				return []byte("mirror registry bundle"), nil
+			}
+
+			m = &mirrorRegistriesConfigBuilder{
+				MirrorRegistriesCertificatePath: common.MirrorRegistriesCertificatePath,
+				fileReader:                      reader,
+			}
+
+			result, err := m.GetMirrorCA()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(result).To(Equal([]byte("mirror registry bundle")))
+		})
+
+		It("should return the system CA bundle when registry bundle doesn't exist", func() {
+			reader := func(path string) ([]byte, error) {
+				if path == common.MirrorRegistriesCertificatePath {
+					return nil, errors.New("file not found")
+				}
+				return []byte("system CA bundle"), nil
+			}
+
+			m = &mirrorRegistriesConfigBuilder{
+				MirrorRegistriesCertificatePath: common.MirrorRegistriesCertificatePath,
+				fileReader:                      reader,
+			}
+
+			result, err := m.GetMirrorCA()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(result).To(Equal([]byte("system CA bundle")))
+		})
+
+		It("should return an error if both files don't exist", func() {
+			reader := func(path string) ([]byte, error) {
+				return nil, errors.New("file not found")
+			}
+
+			m = &mirrorRegistriesConfigBuilder{
+				MirrorRegistriesCertificatePath: common.MirrorRegistriesCertificatePath,
+				fileReader:                      reader,
+			}
+
+			result, err := m.GetMirrorCA()
+			Expect(err).Should(HaveOccurred())
+			Expect(result).To(BeNil())
+		})
+	})
 })
 
 const (
