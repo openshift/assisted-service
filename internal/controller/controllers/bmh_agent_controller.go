@@ -1889,10 +1889,14 @@ func (r *BMACReconciler) drainAgentNode(ctx context.Context, log logrus.FieldLog
 		DeleteEmptyDirData:  true,
 		GracePeriodSeconds:  -1,
 		Timeout:             20 * time.Second,
-		OnPodDeletedOrEvicted: func(pod *corev1.Pod, usingEviction bool) {
+		OnPodDeletionOrEvictionFinished: func(pod *corev1.Pod, usingEviction bool, err error) {
 			verbStr := "Deleted"
 			if usingEviction {
 				verbStr = "Evicted"
+			}
+			if err != nil {
+				log.Warnf("%s Pod %s/%s from Node %s, %s", verbStr, pod.Namespace, pod.Name, nodeName, err.Error())
+				return
 			}
 			log.Infof("%s Pod %s/%s from Node %s", verbStr, pod.Namespace, pod.Name, nodeName)
 		},
@@ -1908,7 +1912,7 @@ func (r *BMACReconciler) drainAgentNode(ctx context.Context, log logrus.FieldLog
 		return false, errors.Wrapf(err, "failed to cordon node %s", nodeName)
 	}
 	if err := r.Drainer.RunNodeDrain(drainHelper, nodeName); err != nil {
-		log.WithError(err).Warnf("failed to drain node %s within timeout", nodeName)
+		log.WithError(err).Warnf("failed to drain node %s within %d timeout", nodeName, drainHelper.Timeout)
 		log.Debugf("node %s drain output: %s", nodeName, out)
 		return true, nil
 	}
