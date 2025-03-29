@@ -240,7 +240,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		It("LSO as ODF dependency on Z CPU architecture", func() {
 			// Register cluster with ppc64le CPU architecture
 			cluster := registerNewCluster(
-				"4.13.0",
+				"4.14.0",
 				models.ClusterHighAvailabilityModeFull,
 				nil,
 				swag.String(models.ClusterCPUArchitectureS390x),
@@ -253,7 +253,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			infraEnvParams := installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("infra-env-1"),
-					OpenshiftVersion: "4.13.0",
+					OpenshiftVersion: "4.14.0",
 					ClusterID:        cluster.Payload.ID,
 					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
 					SSHAuthorizedKey: swag.String(sshPublicKey),
@@ -311,7 +311,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 		It("LSO as ODF dependency on ARM arch", func() {
 			cluster := registerNewCluster(
-				"4.13-multi",
+				"4.14-multi",
 				models.ClusterHighAvailabilityModeFull,
 				nil,
 				swag.String(models.ClusterCPUArchitectureArm64),
@@ -323,7 +323,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			infraEnvParams := installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("infra-env-1"),
-					OpenshiftVersion: "4.13.0",
+					OpenshiftVersion: "4.14.0",
 					ClusterID:        cluster.Payload.ID,
 					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
 					SSHAuthorizedKey: swag.String(sshPublicKey),
@@ -348,12 +348,12 @@ var _ = Describe("Operators endpoint tests", func() {
 				ClusterID: *cluster.Payload.ID,
 			})
 			reason := err.(*installer.V2UpdateClusterBadRequest).Payload.Reason
-			Expect(*reason).To(ContainSubstring("cannot use Local Storage Operator because it's not compatible with the arm64 architecture on version 4.13"))
+			Expect(*reason).To(ContainSubstring("cannot use Local Storage Operator because it's not compatible with the arm64 architecture on version 4.14"))
 		})
 
 		It("should lvm installed as cnv dependency", func() {
 			cluster := registerNewCluster(
-				"4.12.0",
+				"4.14.0",
 				models.ClusterHighAvailabilityModeNone,
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
 				nil,
@@ -381,9 +381,9 @@ var _ = Describe("Operators endpoint tests", func() {
 			))
 		})
 
-		It("should lvm have right subscription name on 4.12", func() {
+		It("should lvm have right subscription name on 4.14", func() {
 			cluster := registerNewCluster(
-				"4.12.0",
+				"4.14.0",
 				models.ClusterHighAvailabilityModeNone,
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
 				nil,
@@ -402,29 +402,6 @@ var _ = Describe("Operators endpoint tests", func() {
 			}
 
 			Expect(operatorSubscriptionName).To(Equal(lvm.LvmsSubscriptionName))
-		})
-
-		It("should lvm have right subscription name on 4.11", func() {
-			cluster := registerNewCluster(
-				"4.11",
-				models.ClusterHighAvailabilityModeNone,
-				[]*models.OperatorCreateParams{{Name: lvm.Operator.Name}},
-				nil,
-				nil,
-			)
-			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
-
-			Expect(err).ToNot(HaveOccurred())
-
-			var operatorSubscriptionName string
-			for _, op := range ops.GetPayload() {
-				if op.Name == "lvm" {
-					operatorSubscriptionName = op.SubscriptionName
-					break
-				}
-			}
-
-			Expect(operatorSubscriptionName).To(Equal(lvm.LvmoSubscriptionName))
 		})
 	})
 
