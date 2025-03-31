@@ -872,7 +872,7 @@ var _ = Describe("createHostIgnitions", func() {
 			}
 		}
 		Expect(scriptFile).NotTo(BeNil())
-		Expect(*scriptFile.FileEmbedded1.Contents.Source).To(Equal("data:text/plain;charset=utf-8;base64,IyEvYmluL2Jhc2gKCnNldCAtZXV4CnVuc2hhcmUgLS1tb3VudAptb3VudCAtb3JlbW91bnQscncgL3N5c3Jvb3QKb3N0cmVlIGFkbWluIHVuZGVwbG95IDEKcm0gLXJmIC9zeXNyb290L29zdHJlZS9kZXBsb3kvcmhjb3MK"))
+		Expect(*scriptFile.FileEmbedded1.Contents.Source).To(Equal("data:text/plain;charset=utf-8;base64,IyEvYmluL2Jhc2gKCnNldCAtZXV4CnVuc2hhcmUgLS1tb3VudAptb3VudCAtb3JlbW91bnQscncgL3N5c3Jvb3QKcnBtLW9zdHJlZSBjbGVhbnVwIC0tb3M9cmhjb3MgLXIKcnBtLW9zdHJlZSBjbGVhbnVwIC0tb3M9aW5zdGFsbCAtcgpzeXN0ZW1jdGwgc3RvcCBycG0tb3N0cmVlZApybSAtcmYgL3N5c3Jvb3Qvb3N0cmVlL2RlcGxveS9yaGNvcwpzeXN0ZW1jdGwgc3RhcnQgcnBtLW9zdHJlZWQK"))
 
 		var unit *config_32_types.Unit
 		for idx, u := range config.Systemd.Units {
