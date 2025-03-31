@@ -1092,6 +1092,15 @@ func newAssistedTrustedCACM(ctx context.Context, log logrus.FieldLogger, asc ASC
 		}
 	}
 
+	// Ensure no duplicate certificates in the CA bundle
+	caBundle, numOfDuplicates, err := common.RemoveDuplicatesFromCaBundle(b.String())
+	if err != nil {
+		return nil, nil, err
+	}
+	if numOfDuplicates > 0 {
+		log.Infof("Removed %d duplicate certificates from CA bundle", numOfDuplicates)
+	}
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      assistedCAConfigMapName,
@@ -1104,7 +1113,7 @@ func newAssistedTrustedCACM(ctx context.Context, log logrus.FieldLogger, asc ASC
 			return err
 		}
 		cm.Data = map[string]string{
-			caBundleKey: b.String(),
+			caBundleKey: caBundle,
 		}
 		return nil
 	}
