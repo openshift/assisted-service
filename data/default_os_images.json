@@ -212,25 +212,25 @@
     {
         "openshift_version": "4.19",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/4.19.0-ec.3/rhcos-4.19.0-ec.3-x86_64-live-iso.x86_64.iso",
-        "version": "9.6.20250121-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/4.19.0-ec.4/rhcos-4.19.0-ec.4-x86_64-live-iso.x86_64.iso",
+        "version": "9.6.20250321-0"
     },
     {
         "openshift_version": "4.19",
         "cpu_architecture": "arm64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/4.19.0-ec.3/rhcos-4.19.0-ec.3-aarch64-live-iso.aarch64.iso",
-        "version": "9.6.20250121-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/4.19.0-ec.4/rhcos-4.19.0-ec.4-aarch64-live-iso.aarch64.iso",
+        "version": "9.6.20250321-0"
     },
     {
         "openshift_version": "4.19",
         "cpu_architecture": "ppc64le",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/pre-release/4.19.0-ec.3/rhcos-4.19.0-ec.3-ppc64le-live-iso.ppc64le.iso",
-        "version": "9.6.20250121-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/pre-release/4.19.0-ec.4/rhcos-4.19.0-ec.4-ppc64le-live-iso.ppc64le.iso",
+        "version": "9.6.20250321-0"
     },
     {
         "openshift_version": "4.19",
         "cpu_architecture": "s390x",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/4.19.0-ec.3/rhcos-4.19.0-ec.3-s390x-live-iso.s390x.iso",
-        "version": "9.6.20250121-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/4.19.0-ec.4/rhcos-4.19.0-ec.4-s390x-live-iso.s390x.iso",
+        "version": "9.6.20250321-0"
     }
 ]
