@@ -4067,8 +4067,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	case constants.KubeadminPassword:
 		fallthrough
 	case constants.KubeconfigNoIngress:
-		agentInstaller := b.installerInvoker == "agent-installer"
-		err = clusterPkg.CanDownloadKubeconfigFiles(cluster, fileName, agentInstaller)
+		err = clusterPkg.CanDownloadKubeconfigFiles(cluster, fileName, b.installerInvoker)
 	case constants.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:

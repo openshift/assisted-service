@@ -703,8 +703,8 @@ func CanDownloadFiles(c *common.Cluster) (err error) {
 	return checkDownloadAllowed(c, "files", allowedStatuses)
 }
 
-func CanDownloadKubeconfigFiles(c *common.Cluster, file string, agentInstaller bool) (err error) {
-	if !agentInstaller {
+func CanDownloadKubeconfigFiles(c *common.Cluster, file, installerInvoker string) (err error) {
+	if installerInvoker != "agent-installer" {
 		return CanDownloadFiles(c)
 	}
 
