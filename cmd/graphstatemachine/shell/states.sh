@@ -1,6 +1,6 @@
 echo "## States" >>"${OUT_FILE}"
 for state in $(jq '.states | keys[]' -r "${JSON}"); do
-	echo Processing "$state"
+	echo @@@@@@@@@@@@@@@@@@@@ Processing "$state"
 	state_name=$(getStateName "$state")
 	state_description=$(getStateDescription "$state")
 
@@ -10,14 +10,14 @@ for state in $(jq '.states | keys[]' -r "${JSON}"); do
 
 	echo "#### Transition types where this is the source state" >>"${OUT_FILE}"
 	for transition_type in $(getSourceStateTransitionTypes "$state"); do
-		echo "* $(github_markdown_linkify "$(getTransitionTypeName "$transition_type")")" >>"${OUT_FILE}"
+		echo "* $(github_markdown_linkify "Transition Type $(getTransitionTypeName "$transition_type")")" >>"${OUT_FILE}"
 	done
 
 	echo "" >>"${OUT_FILE}"
 
 	echo "#### Transition types where this is the destination state" >>"${OUT_FILE}"
 	for transition_type in $(getDestinationStateTransitionTypes "$state"); do
-		echo "* $(github_markdown_linkify "$(getTransitionTypeName "$transition_type")")" >>"${OUT_FILE}"
+		echo "* $(github_markdown_linkify "Transition Type $(getTransitionTypeName "$transition_type")")" >>"${OUT_FILE}"
 	done
 
 	echo "" >>"${OUT_FILE}"
@@ -37,7 +37,7 @@ for state in $(jq '.states | keys[]' -r "${JSON}"); do
 	echo "" >>"${OUT_FILE}"
 
 	getSourceStateTransitionRules "$state" | while read -r transition_rule; do
-		echo "* $(github_markdown_linkify "$transition_rule")" >>"${OUT_FILE}"
+		echo "* $(github_markdown_linkify "Transition Rule $transition_rule")" >>"${OUT_FILE}"
 	done
 
 	echo "" >>"${OUT_FILE}"
@@ -58,7 +58,7 @@ for state in $(jq '.states | keys[]' -r "${JSON}"); do
 
 	getDestinationStateTransitionRules "$state" | while read -r transition_rule; do
 		echo Processing "$state" "$transition_rule"
-		echo "* $(github_markdown_linkify "$transition_rule")" >>"${OUT_FILE}"
+		echo "* $(github_markdown_linkify "Transition Rule $transition_rule")" >>"${OUT_FILE}"
 	done
 
 	echo "" >>"${OUT_FILE}"
