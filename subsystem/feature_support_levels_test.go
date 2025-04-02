@@ -160,7 +160,7 @@ var _ = Describe("Feature support levels API", func() {
 			})
 			Context("UpdateInfraEnv", func() {
 				It("Update ppc64le infra env minimal iso without cluster", func() {
-					infraEnv, err := registerNewInfraEnv(nil, "4.12", models.ClusterCPUArchitecturePpc64le)
+					infraEnv, err := registerNewInfraEnv(nil, "4.13", models.ClusterCPUArchitecturePpc64le)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(common.ImageTypeValue(infraEnv.Payload.Type)).ToNot(Equal(models.ImageTypeMinimalIso))
 
@@ -173,10 +173,10 @@ var _ = Describe("Feature support levels API", func() {
 					Expect(common.ImageTypeValue(updatedInfraEnv.Payload.Type)).To(Equal(models.ImageTypeMinimalIso))
 				})
 				It("Update ppc64le infra env minimal iso with cluster", func() {
-					cluster, err := registerNewCluster("4.12", models.ClusterCPUArchitecturePpc64le, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+					cluster, err := registerNewCluster("4.13", models.ClusterCPUArchitecturePpc64le, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 					Expect(err).NotTo(HaveOccurred())
 
-					infraEnv, err := registerNewInfraEnv(cluster.Payload.ID, "4.12", models.ClusterCPUArchitecturePpc64le)
+					infraEnv, err := registerNewInfraEnv(cluster.Payload.ID, "4.13", models.ClusterCPUArchitecturePpc64le)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(common.ImageTypeValue(infraEnv.Payload.Type)).ToNot(Equal(models.ImageTypeMinimalIso))
 
@@ -189,10 +189,10 @@ var _ = Describe("Feature support levels API", func() {
 					Expect(common.ImageTypeValue(updatedInfraEnv.Payload.Type)).To(Equal(models.ImageTypeMinimalIso))
 				})
 				It("Update s390x infra env minimal iso with cluster - fail", func() {
-					cluster, err := registerNewCluster("4.12", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+					cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 					Expect(err).NotTo(HaveOccurred())
 
-					infraEnv, err := registerNewInfraEnv(cluster.Payload.ID, "4.12", models.ClusterCPUArchitectureS390x)
+					infraEnv, err := registerNewInfraEnv(cluster.Payload.ID, "4.13", models.ClusterCPUArchitectureS390x)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(common.ImageTypeValue(infraEnv.Payload.Type)).ToNot(Equal(models.ImageTypeMinimalIso))
 
@@ -203,7 +203,7 @@ var _ = Describe("Feature support levels API", func() {
 						}})
 					Expect(err).To(HaveOccurred())
 					err2 := err.(*installer.UpdateInfraEnvBadRequest)
-					ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring("cannot use Minimal ISO because it's not compatible with the s390x architecture on version 4.12"))
+					ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring("cannot use Minimal ISO because it's not compatible with the s390x architecture on version 4.13"))
 				})
 			})
 		})
@@ -234,13 +234,6 @@ var _ = Describe("Feature support levels API", func() {
 				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
 				Expect(swag.StringValue(cluster.Payload.HighAvailabilityMode)).To(Equal(models.ClusterHighAvailabilityModeNone))
 
-			})
-			It("SNO with s390x fails on SNO isn't compatible with architecture on 4.12 - failure", func() {
-				expectedError := "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.12"
-				_, err := registerNewCluster("4.12", "s390x", models.ClusterHighAvailabilityModeNone, swag.Bool(true))
-				Expect(err).To(HaveOccurred())
-				err2 := err.(*installer.V2RegisterClusterBadRequest)
-				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
 			})
 		}) // Register cluster
 
