@@ -145,6 +145,10 @@ EOM
     # 7. reference the control plane operator image in the mirrored registry which will be added as a CLI flag when creating the hosted cluster
     export CONTROL_PLANE_OPERATOR_IMAGE=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for hypershift)
     export CONTROL_PLANE_OPERATOR_IMAGE="${OCP_MIRROR_REGISTRY}@$(oc image info $CONTROL_PLANE_OPERATOR_IMAGE -ojson | jq -r '.digest')"
+
+    # disconnected hypershift starting from ACM 2.13/MCE 2.8 requires the olm catalog be explicitly disabled and placed on the guest cluster
+    # or it'll block the nodepool from deploying properly, which will prevent installing any hosts to the hosted cluster.
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --olm-catalog-placement Guest --olm-disable-default-sources"
 fi
 
 # TODO: make SSH public key configurable
