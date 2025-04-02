@@ -179,11 +179,11 @@ var _ = Describe("Cluster with Platform", func() {
 	ctx := context.Background()
 
 	Context("vSphere", func() {
-		It("vSphere cluster on OCP 4.12 - Success", func() {
+		It("vSphere cluster on OCP 4.14 - Success", func() {
 			cluster, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                 swag.String("test-cluster"),
-					OpenshiftVersion:     swag.String("4.12"),
+					OpenshiftVersion:     swag.String("4.14"),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					PullSecret:           swag.String(pullSecret),
 					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
@@ -193,35 +193,11 @@ var _ = Describe("Cluster with Platform", func() {
 			Expect(*cluster.GetPayload().Platform.Type).Should(Equal(models.PlatformTypeVsphere))
 		})
 
-		It("vSphere cluster on OCP 4.12 with dual stack - Failure", func() {
+		It("vSphere cluster on OCP 4.14 with dual stack - Succeess", func() {
 			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                 swag.String("test-cluster"),
-					OpenshiftVersion:     swag.String("4.12"),
-					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
-					PullSecret:           swag.String(pullSecret),
-					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
-					MachineNetworks:      common.TestDualStackNetworking.MachineNetworks,
-					ClusterNetworks:      common.TestDualStackNetworking.ClusterNetworks,
-					ServiceNetworks:      common.TestDualStackNetworking.ServiceNetworks,
-				},
-			})
-			Expect(err).Should(HaveOccurred())
-
-			// Message can be one of those two:
-			// cannot use Dual-Stack because it's not compatible with vSphere Platform Integration
-			// cannot use vSphere Platform Integration because it's not compatible with Dual-Stack
-			e := err.(*installer.V2RegisterClusterBadRequest)
-			Expect(*e.Payload.Reason).To(ContainSubstring("cannot use"))
-			Expect(*e.Payload.Reason).To(ContainSubstring("vSphere Platform Integration"))
-			Expect(*e.Payload.Reason).To(ContainSubstring("Dual-Stack"))
-		})
-
-		It("vSphere cluster on OCP 4.13 with dual stack - Succeess", func() {
-			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("test-cluster"),
-					OpenshiftVersion:     swag.String("4.13"),
+					OpenshiftVersion:     swag.String("4.14"),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					PullSecret:           swag.String(pullSecret),
 					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
@@ -3754,49 +3730,18 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 
 var _ = Describe("Preflight Cluster Requirements for lvms", func() {
 	var (
-		ctx                             = context.Background()
-		masterLVMRequirementsBefore4_13 = models.ClusterHostRequirementsDetails{
-			CPUCores: 1,
-			RAMMib:   1200,
-		}
+		ctx                   = context.Background()
 		masterLVMRequirements = models.ClusterHostRequirementsDetails{
 			CPUCores: 1,
 			RAMMib:   400,
 		}
 	)
-	It("should be reported for 4.12 cluster", func() {
+
+	It("should be reported for 4.14 cluster", func() {
 		var cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String("4.12.0"),
-				PullSecret:        swag.String(pullSecret),
-				BaseDNSDomain:     "example.com",
-				VipDhcpAllocation: swag.Bool(true),
-			},
-		})
-		Expect(err).ToNot(HaveOccurred())
-		clusterID := *cluster.GetPayload().ID
-		params := installer.V2GetPreflightRequirementsParams{ClusterID: clusterID}
-
-		response, err := userBMClient.Installer.V2GetPreflightRequirements(ctx, &params)
-		Expect(err).ToNot(HaveOccurred())
-		requirements := response.GetPayload()
-		for _, op := range requirements.Operators {
-			switch op.OperatorName {
-			case lvm.Operator.Name:
-				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterLVMRequirementsBefore4_13))
-				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
-			}
-		}
-		_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("should be reported for 4.13 cluster", func() {
-		var cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String("4.13.0"),
+				OpenshiftVersion:  swag.String("4.14.0"),
 				PullSecret:        swag.String(pullSecret),
 				BaseDNSDomain:     "example.com",
 				VipDhcpAllocation: swag.Bool(true),
