@@ -33,6 +33,9 @@ const (
 	mixedTypesInMultipath                   = "Multipath device has paths of different types, but they must all be the same type"
 	wrongISCSINetworkTemplate               = "iSCSI host IP %s is the same as host IP, they must be different"
 	ErrsInIscsiDisableMultipathInstallation = "Installation on multipath device is not possible due to errors on at least one iSCSI disk"
+	iscsiHostIPNotAvailable                 = "Host IP address is not available"
+	iscsiNetworkInterfaceNotFound           = "Cannot find the network interface behind the default route"
+	iscsiHostIPParseErrorTemplate           = "Cannot parse iSCSI host IP %s: %w"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
@@ -56,6 +59,12 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 		compileDiskReasonTemplate(tooSmallDiskTemplate, ".*", ".*"),
 		compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*"),
 		compileDiskReasonTemplate(wrongMultipathTypeTemplate, ".*"),
+		compileDiskReasonTemplate(mixedTypesInMultipath),
+		compileDiskReasonTemplate(wrongISCSINetworkTemplate, ".*"),
+		compileDiskReasonTemplate(ErrsInIscsiDisableMultipathInstallation),
+		compileDiskReasonTemplate(iscsiHostIPNotAvailable),
+		compileDiskReasonTemplate(iscsiNetworkInterfaceNotFound),
+		compileDiskReasonTemplate(iscsiHostIPParseErrorTemplate, ".*", ".*"),
 	}
 
 	return &validator{
@@ -197,12 +206,12 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) error {
 	// get the IPv4 or the IPv6 of the interface connected to the iSCSI target
 	if disk.Iscsi == nil || disk.Iscsi.HostIPAddress == "" {
-		return fmt.Errorf("Host IP address is not available")
+		return fmt.Errorf(iscsiHostIPNotAvailable)
 	}
 
 	iSCSIHostIP, err := netip.ParseAddr(disk.Iscsi.HostIPAddress)
 	if err != nil {
-		return fmt.Errorf("Cannot parse iSCSI host IP %s: %w", disk.Iscsi.HostIPAddress, err)
+		return fmt.Errorf(iscsiHostIPParseErrorTemplate, disk.Iscsi.HostIPAddress, err)
 	}
 
 	defaultRoute := network.GetDefaultRouteByFamily(inventory.Routes, iSCSIHostIP.Is6())
@@ -214,7 +223,7 @@ func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) erro
 		return i.Name == defaultRoute.Interface
 	})
 	if !ok {
-		return fmt.Errorf("Cannot find the network interface behind the default route")
+		return fmt.Errorf(iscsiNetworkInterfaceNotFound)
 	}
 
 	// look if one of the IP assigned to the default interface interface
