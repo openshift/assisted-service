@@ -13,12 +13,60 @@ import (
 
 //go:generate mockgen -source=authorization.go -package=ocm -destination=mock_authorization.go
 type OCMAuthorization interface {
+	ResourceReview(ctx context.Context, username, action, resourceType string) (clusterIds []string, clusterUuids []string, err error)
 	AccessReview(ctx context.Context, username, action, subscriptionId, resourceType string) (allowed bool, err error)
 	CapabilityReview(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error)
 }
 
 type authorization struct {
 	client *Client
+}
+
+func (a authorization) ResourceReview(ctx context.Context, username, action, resourceType string) (clusterIds []string, clusterUuids []string, err error) {
+	defer commonutils.MeasureOperation("OCM-ResourceReview", a.client.log, a.client.metricsApi)()
+	resourceReview := a.client.connection.Authorizations().V1().ResourceReview()
+
+	requestBuilder := azv1.NewResourceReviewRequest().
+		AccountUsername(username).
+		Action(action).
+		ResourceType(resourceType)
+
+	request, err := requestBuilder.Build()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	postResp, err := resourceReview.Post().
+		Request(request).
+		SendContext(ctx)
+	if err != nil {
+		if postResp != nil {
+			a.client.logger.Error(context.Background(), "Fail to send ResourceReview. Response: %v", postResp)
+			if postResp.Status() >= 400 && postResp.Status() < 500 {
+				return nil, nil, common.NewInfraError(http.StatusUnauthorized, err)
+			}
+			if postResp.Status() >= 500 {
+				return nil, nil, common.NewApiError(http.StatusServiceUnavailable, err)
+			}
+		}
+		return nil, nil, common.NewApiError(http.StatusServiceUnavailable, err)
+	}
+
+	response, ok := postResp.GetReview()
+	if !ok {
+		return nil, nil, errors.Errorf("Empty response from authorization post request")
+	}
+
+	clusterIds, ok = response.GetClusterIDs()
+	if !ok {
+		return nil, nil, errors.Errorf("Failed to get cluster IDs from the response")
+	}
+
+	clusterUuids, ok = response.GetClusterUUIDs()
+	if !ok {
+		return nil, nil, errors.Errorf("Failed to get cluster UUIDs from the response")
+	}
+	return clusterIds, clusterUuids, nil
 }
 
 func (a authorization) AccessReview(ctx context.Context, username, action, subscriptionId, resourceType string) (allowed bool, err error) {

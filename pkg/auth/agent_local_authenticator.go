@@ -59,6 +59,10 @@ func (a *AgentLocalAuthenticator) EnableOrgTenancy() bool {
 	return false
 }
 
+func (a *AgentLocalAuthenticator) EnableOcmAuthz() bool {
+	return false
+}
+
 func (a *AgentLocalAuthenticator) EnableOrgBasedFeatureGates() bool {
 	return false
 }

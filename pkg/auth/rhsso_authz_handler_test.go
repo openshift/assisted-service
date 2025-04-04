@@ -147,7 +147,7 @@ var _ = Describe("OwnedBy", func() {
 		Context("tenancy disabled", func() {
 
 			BeforeEach(func() {
-				cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: false}
+				cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: false, EnableOcmAuthz: false}
 				handler = NewAuthzHandler(cfg, nil, logrus.New(), db)
 			})
 
@@ -157,7 +157,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Find(&records)
 				Expect(results.RowsAffected, 4)
 			})
 			It("admin user - non-empty query", func() {
@@ -166,7 +167,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Where("name = ?", "A").Find(&records)
 				Expect(results.RowsAffected, 3)
 				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
 			})
@@ -176,7 +178,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedByUser(ctx, db, "user1").Find(&records)
+				results, _ := handler.OwnedByUser(ctx, db, "", "user1")
+				results.Find(&records)
 				Expect(results.RowsAffected, 2)
 				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
 			})
@@ -187,7 +190,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Find(&records)
 				Expect(results.RowsAffected, 2)
 				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
 			})
@@ -197,7 +201,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Where("name = ?", "A").Find(&records)
 				Expect(results.RowsAffected, 2)
 				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
 				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
@@ -208,7 +213,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedByUser(ctx, db, "user1").Find(&records)
+				results, _ := handler.OwnedByUser(ctx, db, "", "user1")
+				results.Find(&records)
 				Expect(results.RowsAffected, 2)
 				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
 			})
@@ -218,13 +224,14 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedByUser(ctx, db, "user2").Find(&records)
+				results, _ := handler.OwnedByUser(ctx, db, "", "user2")
+				results.Find(&records)
 				Expect(results.RowsAffected, 0)
 			})
 		})
 		Context("tenancy enabled", func() {
 			BeforeEach(func() {
-				cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: true}
+				cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: true, EnableOcmAuthz: false}
 				handler = NewAuthzHandler(cfg, nil, logrus.New(), db)
 			})
 			It("admin user - empty query", func() {
@@ -233,7 +240,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Find(&records)
 				Expect(results.RowsAffected, 4)
 			})
 			It("admin user - non-empty query", func() {
@@ -242,7 +250,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Where("name = ?", "A").Find(&records)
 				Expect(results.RowsAffected, 3)
 				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
 			})
@@ -252,7 +261,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Find(&records)
 				Expect(results.RowsAffected, 2)
 				Expect(AllRecordsHasOrgId(records, "org1")).To(BeTrue())
 			})
@@ -262,7 +272,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				results, _ := handler.OwnedBy(ctx, db, "")
+				results.Find(&records).Where("name = ?", "A").Find(&records)
 				Expect(results.RowsAffected, 1)
 				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
 				Expect(AllRecordsHasOrgId(records, "org1")).To(BeTrue())
@@ -274,7 +285,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedByUser(ctx, db, "user1").Find(&records)
+				results, _ := handler.OwnedByUser(ctx, db, "", "user1")
+				results.Find(&records)
 				Expect(results.RowsAffected, 1)
 				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
 			})
@@ -285,7 +297,8 @@ var _ = Describe("OwnedBy", func() {
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 				var records []common.Cluster
-				results := handler.OwnedByUser(ctx, db, "user2").Find(&records)
+				results, _ := handler.OwnedByUser(ctx, db, "", "user2")
+				results.Find(&records)
 				Expect(results.RowsAffected, 0)
 			})
 		})
@@ -345,7 +358,7 @@ var _ = Describe("HasAccessTo", func() {
 	BeforeEach(func() {
 		ctx = context.TODO()
 		ctrl = gomock.NewController(GinkgoT())
-		cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: true}
+		cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: true, EnableOcmAuthz: false}
 		mockOcmAuthorization = ocm.NewMockOCMAuthorization(ctrl)
 		ocmClient := &ocm.Client{
 			Authentication: ocm.NewMockOCMAuthentication(ctrl),
