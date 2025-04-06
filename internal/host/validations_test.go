@@ -1622,6 +1622,7 @@ var _ = Describe("Validations test", func() {
 			updateHostInventory(func(inventory *models.Inventory) {
 				for _, disk := range inventory.Disks {
 					disk.HasUUID = false
+					disk.InstallationEligibility.Eligible = true
 				}
 			})
 
@@ -1639,12 +1640,20 @@ var _ = Describe("Validations test", func() {
 				SizeBytes: conversions.GibToBytes(120),
 				DriveType: "CDROM",
 				HasUUID:   false,
+				InstallationEligibility: models.DiskInstallationEligibility{
+					Eligible:           true,
+					NotEligibleReasons: []string{},
+				},
 			}
 
 			HDD := &models.Disk{
 				SizeBytes: conversions.GibToBytes(120),
 				DriveType: "HDD",
 				HasUUID:   true,
+				InstallationEligibility: models.DiskInstallationEligibility{
+					Eligible:           true,
+					NotEligibleReasons: []string{},
+				},
 			}
 
 			updateHostInventory(func(inventory *models.Inventory) {
