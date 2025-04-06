@@ -327,6 +327,10 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		if err != nil {
 			return "", err
 		}
+		installerArgs, err = appendRaidArgs(installerArgs, installationDisk)
+		if err != nil {
+			return "", err
+		}
 
 		// When using ISCSI along OCI, we expect the user (via a
 		// script) to configure the network statically on the nodes as
@@ -436,6 +440,20 @@ func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk, 
 		installerArgs, err = appendISCSIArgs(installerArgs, iscsiDisk, inventory, hasUserConfiguredIP)
 		if err != nil {
 			return nil, err
+		}
+	}
+	return installerArgs, nil
+}
+
+func appendRaidArgs(installerArgs []string, installationDisk *models.Disk) ([]string, error) {
+	// Add kernel args for Intel VROC
+	if installationDisk.DriveType != models.DriveTypeRAID {
+		return installerArgs, nil
+	}
+	args := []string{"rd.md=1", "rd.auto=1"}
+	for _, arg := range args {
+		if !lo.Contains(installerArgs, arg) {
+			installerArgs = append(installerArgs, "--append-karg", arg)
 		}
 	}
 	return installerArgs, nil
