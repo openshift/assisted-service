@@ -420,13 +420,20 @@ func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk, 
 		return installerArgs, nil
 	}
 
-	installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
+	installerArgs = append(installerArgs, "--append-karg", "rw", "--append-karg", "rd.multipath=default")
 	var err error
 	iSCSIDisks := hostutil.GetDisksOfHolderByType(inventory.Disks, installationDisk, models.DriveTypeISCSI)
-	for _, iscsiDisk := range iSCSIDisks {
-		installerArgs, err = appendISCSIArgs(installerArgs, iscsiDisk, inventory, hasUserConfiguredIP)
-		if err != nil {
-			return nil, err
+
+	// Currently, we append the root karg for multipath setups that are not iSCSI.
+	// Once we confirm it's unnecessary for other types, it can be safely removed.
+	if len(iSCSIDisks) == 0 {
+		installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root")
+	} else {
+		for _, iscsiDisk := range iSCSIDisks {
+			installerArgs, err = appendISCSIArgs(installerArgs, iscsiDisk, inventory, hasUserConfiguredIP)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return installerArgs, nil
