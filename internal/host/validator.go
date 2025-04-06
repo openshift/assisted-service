@@ -1692,7 +1692,10 @@ func (v *validator) isVSphereDiskUUIDEnabled(c *validationContext) (ValidationSt
 		// if any of them doesn't have that flag, it's likely because the user has forgotten to
 		// enable `disk.EnableUUID` for this virtual machine
 		// See https://access.redhat.com/solutions/4606201
-		if v.hwValidator.IsValidStorageDeviceType(disk, c.inventory.CPU.Architecture, "") && !disk.HasUUID {
+		// Additionally checking if the disk is eligible for installation before verifying the UUID flag
+		if disk.InstallationEligibility.Eligible &&
+			v.hwValidator.IsValidStorageDeviceType(disk, c.inventory.CPU.Architecture, "") &&
+			!disk.HasUUID {
 			return ValidationFailure, "VSphere disk.EnableUUID isn't enabled for this virtual machine, it's necessary for disks to be mounted properly"
 		}
 	}
