@@ -243,8 +243,7 @@
             "x86_64"
         ],
         "url": "quay.io/openshift-release-dev/ocp-release:4.18.6-x86_64",
-        "version": "4.18.6",
-        "default": true
+        "version": "4.18.6"
     },
     {
         "openshift_version": "4.18",
@@ -275,7 +274,8 @@
         ],
         "url": "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.4-x86_64",
         "support_level": "beta",
-        "version": "4.19.0-ec.4"
+        "version": "4.19.0-ec.4",
+        "default": true
     },
     {
         "openshift_version": "4.19",
