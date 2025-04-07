@@ -65,7 +65,14 @@ func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config,
 // GenerateInstallConfig creates install config and ignition files
 func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string) error {
 	log := logutil.FromContext(ctx, k.log)
-	err := os.MkdirAll(k.workDir, 0o755)
+
+	entries, err := os.ReadDir(k.workDir)
+	if err == nil && len(entries) > 0 {
+		log.Infof("Work directory %s already exists, skipping generation of InstallConfig", k.workDir)
+		return nil
+	}
+
+	err = os.MkdirAll(k.workDir, 0o755)
 	if err != nil {
 		return err
 	}
