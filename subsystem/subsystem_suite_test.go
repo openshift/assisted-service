@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -33,12 +34,9 @@ import (
 var log *logrus.Logger
 var wiremock *utils_test.WireMock
 var kubeClient k8sclient.Client
+var openshiftVersionLong string = "4.11.59"
 var openshiftVersion string = "4.11"
-var snoVersion string = "4.11"
 var multiarchOpenshiftVersion string = "4.11.0-multi"
-var dualstackVipsOpenShiftVersion string = "4.12.0"
-var VipAutoAllocOpenshiftVersion string = "4.14.0"
-var SDNNetworkTypeOpenshiftVersion string = "4.14.0"
 var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
 
 const (
@@ -103,6 +101,13 @@ func setupKubeClient() {
 	}
 }
 
+func getShortVersion(version string) string {
+	if segments := strings.Split(version, "."); len(segments) >= 2 {
+		version = segments[0] + "." + segments[1]
+	}
+	return version
+}
+
 func init() {
 	var err error
 	log = logrus.New()
@@ -144,7 +149,7 @@ func init() {
 		client.New(badAgentClientCfg),
 		pollDefaultInterval,
 		pollDefaultTimeout,
-		VipAutoAllocOpenshiftVersion,
+		openshiftVersion,
 	)
 
 	if Options.AuthType == auth.TypeRHSSO {
@@ -175,7 +180,10 @@ func init() {
 		&versions.V2ListSupportedOpenshiftVersionsParams{}); err == nil {
 		for openshiftVersionString, openshiftVersionStruct := range reply.GetPayload() {
 			if openshiftVersionStruct.Default {
-				openshiftVersion = openshiftVersionString
+				openshiftVersionLong = openshiftVersionString
+				openshiftVersion = getShortVersion(openshiftVersionString)
+				utils_test.TestContext.VipAutoAllocOpenshiftVersion = openshiftVersion
+				multiarchOpenshiftVersion = openshiftVersion + "-multi"
 				break
 			}
 		}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
+	"github.com/openshift/assisted-service/client/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/subsystem/utils_test"
@@ -32,7 +34,7 @@ import (
 var log *logrus.Logger
 var wiremock *utils_test.WireMock
 var kubeClient k8sclient.Client
-var VipAutoAllocOpenshiftVersion string = "4.14.0"
+var openshiftVersion string = "4.14.0"
 var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
 
 var Options struct {
@@ -97,6 +99,13 @@ func setupKubeClient() {
 	}
 }
 
+func getShortVersion(version string) string {
+	if segments := strings.Split(version, "."); len(segments) >= 2 {
+		version = segments[0] + "." + segments[1]
+	}
+	return version
+}
+
 func init() {
 	var err error
 	log = logrus.New()
@@ -131,7 +140,7 @@ func init() {
 		nil,
 		pollDefaultInterval,
 		pollDefaultTimeout,
-		VipAutoAllocOpenshiftVersion,
+		openshiftVersion,
 	)
 
 	if Options.AuthType == auth.TypeRHSSO {
@@ -154,6 +163,17 @@ func init() {
 
 		if err = wiremock.CreateWiremockStubsForOCM(); err != nil {
 			logrus.Fatal("Failed to init wiremock stubs, ", err)
+		}
+	}
+
+	// Use the default openshift version
+	if reply, err := utils_test.TestContext.UserBMClient.Versions.V2ListSupportedOpenshiftVersions(context.Background(),
+		&versions.V2ListSupportedOpenshiftVersionsParams{}); err == nil {
+		for openshiftVersionString, openshiftVersionStruct := range reply.GetPayload() {
+			if openshiftVersionStruct.Default {
+				openshiftVersion = getShortVersion(openshiftVersionString)
+				break
+			}
 		}
 	}
 }
