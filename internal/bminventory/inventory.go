@@ -4141,7 +4141,8 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 	}
 	var consoleURL string
 	if operatorscommon.HasOperator(cluster.Cluster.MonitoredOperators, operators.OperatorConsole.Name) {
-		if !b.clusterApi.IsOperatorAvailable(&cluster, operators.OperatorConsole.Name) {
+		// For the agent-installer, the console URL needs to be available prior to the finalizing stage
+		if b.installerInvoker != "agent-installer" && !b.clusterApi.IsOperatorAvailable(&cluster, operators.OperatorConsole.Name) {
 			err := errors.New("console-url isn't available yet, it will be once console operator is ready as part of cluster finalizing stage")
 			log.WithError(err).Error("Failed to validate if operator is available")
 			return nil, common.NewApiError(http.StatusConflict, err)
