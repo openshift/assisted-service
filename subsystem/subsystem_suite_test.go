@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -34,11 +35,7 @@ var log *logrus.Logger
 var wiremock *utils_test.WireMock
 var kubeClient k8sclient.Client
 var openshiftVersion string = "4.11"
-var snoVersion string = "4.11"
 var multiarchOpenshiftVersion string = "4.11.0-multi"
-var dualstackVipsOpenShiftVersion string = "4.12.0"
-var VipAutoAllocOpenshiftVersion string = "4.14.0"
-var SDNNetworkTypeOpenshiftVersion string = "4.14.0"
 var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
 
 const (
@@ -103,6 +100,13 @@ func setupKubeClient() {
 	}
 }
 
+func getShortVersion(version string) string {
+	if segments := strings.Split(version, "."); len(segments) >= 2 {
+		version = segments[0] + "." + segments[1]
+	}
+	return version
+}
+
 func init() {
 	var err error
 	log = logrus.New()
@@ -144,7 +148,7 @@ func init() {
 		client.New(badAgentClientCfg),
 		pollDefaultInterval,
 		pollDefaultTimeout,
-		VipAutoAllocOpenshiftVersion,
+		openshiftVersion,
 	)
 
 	if Options.AuthType == auth.TypeRHSSO {
@@ -169,13 +173,20 @@ func init() {
 			logrus.Fatal("Failed to init wiremock stubs, ", err)
 		}
 	}
+	logrus.Info("<<<ZZZ>>> Fetching default openshift version")
+
+	reply, err := utils_test.TestContext.UserBMClient.Versions.V2ListSupportedOpenshiftVersions(context.Background(), &versions.V2ListSupportedOpenshiftVersionsParams{})
 
 	// Use the default openshift version
-	if reply, err := utils_test.TestContext.UserBMClient.Versions.V2ListSupportedOpenshiftVersions(context.Background(),
-		&versions.V2ListSupportedOpenshiftVersionsParams{}); err == nil {
+	if err == nil {
 		for openshiftVersionString, openshiftVersionStruct := range reply.GetPayload() {
+			logrus.Infof("  <<<ZZZ>>> %v", openshiftVersionString)
+			logrus.Infof("  <<<ZZZ>>> %v", openshiftVersionStruct)
 			if openshiftVersionStruct.Default {
-				openshiftVersion = openshiftVersionString
+				openshiftVersion = getShortVersion(openshiftVersionString)
+				utils_test.TestContext.VipAutoAllocOpenshiftVersion = openshiftVersion
+				multiarchOpenshiftVersion = openshiftVersion + "-multi"
+				logrus.Infof("    <<<ZZZ>>> Got it! -> %v", openshiftVersion)
 				break
 			}
 		}
