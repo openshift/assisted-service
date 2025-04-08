@@ -570,6 +570,16 @@ var _ = Describe("Events library", func() {
 				evs := response.GetEvents()
 				Expect(len(evs)).To(Equal(0))
 			})
+
+			It("can fetch events by host id when org tenancy is not enabled", func() {
+				cfg := &auth.Config{AuthType: auth.TypeRHSSO, EnableOrgTenancy: false}
+				authz_handler := auth.NewAuthzHandler(cfg, nil, logrus.New(), db)
+				theEvents.(*Events).authz = authz_handler
+				response, err := theEvents.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(nil, []strfmt.UUID{host}, nil))
+				Expect(err).ShouldNot(HaveOccurred())
+				evs := response.GetEvents()
+				Expect(len(evs)).To(Equal(2))
+			})
 		})
 	})
 
