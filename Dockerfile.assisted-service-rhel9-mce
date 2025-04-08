@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/go-toolset:1.21 AS builder
+FROM --platform=$BUILDPLATFORM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.21 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
