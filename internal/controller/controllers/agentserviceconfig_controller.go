@@ -1848,7 +1848,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						Items: []corev1.KeyToPath{{
 							Key:  caBundleKey,
-							Path: common.MirrorRegistriesCertificateFile,
+							Path: common.SystemCertificateBundle,
 						}},
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: assistedCAConfigMapName,
@@ -1862,8 +1862,8 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			corev1.VolumeMount{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},
 			corev1.VolumeMount{
 				Name:      "trusted-ca-certs",
-				MountPath: common.MirrorRegistriesCertificatePath,
-				SubPath:   common.MirrorRegistriesCertificateFile,
+				MountPath: common.SystemCertificateBundlePath,
+				SubPath:   common.SystemCertificateBundle,
 			},
 		)
 		healthCheckScheme = corev1.URISchemeHTTPS
@@ -1977,7 +1977,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			return nil, nil, pkgerror.Wrapf(err, "Unable to mark mirror configmap for backup")
 		}
 
-		volume := corev1.Volume{
+		registriesConfVolume := corev1.Volume{
 			Name: mirrorRegistryConfigVolume,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -1993,16 +1993,37 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			},
 		}
 
+		caBundleVolume := corev1.Volume{
+			Name: mirrorRegistryCertBundleVolume,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: *asc.spec.MirrorRegistryRef,
+					DefaultMode:          swag.Int32(420),
+					Items: []corev1.KeyToPath{
+						{
+							Key:  mirrorRegistryRefCertKey,
+							Path: common.MirrorRegistriesCertificateFile,
+						},
+					},
+				},
+			},
+		}
+
 		serviceContainer.VolumeMounts = append(
 			serviceContainer.VolumeMounts,
 			corev1.VolumeMount{
 				Name:      mirrorRegistryConfigVolume,
 				MountPath: common.MirrorRegistriesConfigDir,
 			},
+			corev1.VolumeMount{
+				Name:      mirrorRegistryCertBundleVolume,
+				MountPath: common.MirrorRegistriesCertificatePath,
+				SubPath:   common.MirrorRegistriesCertificateFile,
+			},
 		)
 
 		// add our mirror registry config to volumes
-		volumes = append(volumes, volume)
+		volumes = append(volumes, registriesConfVolume, caBundleVolume)
 	}
 
 	deploymentLabels := map[string]string{

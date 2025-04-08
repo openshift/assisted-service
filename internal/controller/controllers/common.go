@@ -48,6 +48,7 @@ const (
 	mirrorRegistryRefCertKey         = caBundleKey
 	mirrorRegistryRefRegistryConfKey = "registries.conf"
 	mirrorRegistryConfigVolume       = "mirror-registry-config"
+	mirrorRegistryCertBundleVolume   = "mirror-registry-ca-bundle"
 	WatchResourceLabel               = "agent-install.openshift.io/watch"
 	WatchResourceValue               = "true"
 	BackupLabel                      = "cluster.open-cluster-management.io/backup"
