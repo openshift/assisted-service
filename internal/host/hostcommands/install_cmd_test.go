@@ -732,7 +732,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","root=/dev/disk/by-label/dm-mpath-root","--append-karg","rw","--append-karg","rd.multipath=default"]`))
+		Expect(args).To(Equal(`["--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","root=/dev/disk/by-label/dm-mpath-root"]`), fmt.Sprintf("debugging info: expected args: %s", args))
 	})
 	It("multipath iSCSI installation disk", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
@@ -770,7 +770,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Debug info: Unmarshalled Inventory: %+v, Host's Inventory: %s", inventory, host.Inventory))
-		Expect(args).To(Equal(`["--append-karg","root=/dev/disk/by-label/dm-mpath-root","--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1","--append-karg","ip=eth1:dhcp"]`), fmt.Sprintf("Debug info: Actual args returned: %s", args))
+		Expect(args).To(Equal(`["--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1","--append-karg","ip=eth1:dhcp"]`), fmt.Sprintf("Debug info: Actual args returned: %s", args))
 	})
 	It("multipath iSCSI installation disk with 2 different nics", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
@@ -812,7 +812,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Debug info: Unmarshalled Inventory: %+v, Host's Inventory: %s", inventory, host.Inventory))
-		Expect(args).To(Equal(`["--append-karg","root=/dev/disk/by-label/dm-mpath-root","--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1","--append-karg","ip=eth0:dhcp","--append-karg","ip=eth1:dhcp"]`), fmt.Sprintf("Debug info: Actual args returned: %s", args))
+		Expect(args).To(Equal(`["--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1","--append-karg","ip=eth0:dhcp","--append-karg","ip=eth1:dhcp"]`), fmt.Sprintf("Debug info: Actual args returned: %s", args))
 	})
 	It("non-multipath installation disk", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
