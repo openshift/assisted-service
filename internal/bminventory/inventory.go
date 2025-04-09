@@ -122,6 +122,7 @@ type Config struct {
 	ISOImageType                        string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
 	IPv6Support                         bool              `envconfig:"IPV6_SUPPORT" default:"true"`
 	DiskEncryptionSupport               bool              `envconfig:"DISK_ENCRYPTION_SUPPORT" default:"true"`
+	TNAClustersSupport                  bool              `envconfig:"TNA_CLUSTERS_SUPPORT" default:"false"`
 
 	// InfraEnv ID for the ephemeral installer. Should not be set explicitly.Ephemeral (agent) installer sets this env var
 	InfraEnvID strfmt.UUID `envconfig:"INFRA_ENV_ID" default:""`
@@ -6410,6 +6411,11 @@ func (b *bareMetalInventory) updateHostRole(ctx context.Context, host *common.Ho
 	if hostRole == nil {
 		log.Infof("No request for role update for host %s", host.ID)
 		return nil
+	}
+	if !b.TNAClustersSupport && models.HostRole(*hostRole) == models.HostRoleArbiter {
+		err := errors.Errorf("TNA clusters support is disabled, cannot set role arbiter to host %s in infra-env %s", host.ID, host.InfraEnvID)
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	err := b.hostApi.UpdateRole(ctx, &host.Host, models.HostRole(*hostRole), db)
 	if err != nil {

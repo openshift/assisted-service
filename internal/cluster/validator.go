@@ -388,6 +388,12 @@ func (v *clusterValidator) SufficientMastersCount(c *clusterPreprocessContext) (
 		status = ValidationFailure
 	}
 
+	if numMasters < common.MinMasterHostsNeededForInstallationInHaMode &&
+		numMasters >= common.MinMasterHostsNeededForInstallationInHaArbiterMode &&
+		!common.IsClusterTopologyHighlyAvailableArbiter(c.cluster) {
+		status = ValidationFailure
+	}
+
 	// validate workers (for SNO)
 	if c.cluster.ControlPlaneCount == 1 && numWorkers != common.AllowedNumberOfWorkersInNoneHaMode {
 		status = ValidationFailure

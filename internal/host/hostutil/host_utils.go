@@ -95,9 +95,9 @@ func ValidateHostname(hostname string) error {
 }
 
 func IsRoleValid(requestedRole models.HostRole, isDay2Host bool) bool {
-	roleSet := map[models.HostRole]struct{}{models.HostRoleAutoAssign: {}, models.HostRoleBootstrap: {}, models.HostRoleMaster: {}, models.HostRoleWorker: {}}
+	roleSet := map[models.HostRole]struct{}{models.HostRoleAutoAssign: {}, models.HostRoleBootstrap: {}, models.HostRoleMaster: {}, models.HostRoleArbiter: {}, models.HostRoleWorker: {}}
 	if isDay2Host {
-		roleSet = map[models.HostRole]struct{}{models.HostRoleAutoAssign: {}, models.HostRoleMaster: {}, models.HostRoleWorker: {}}
+		roleSet = map[models.HostRole]struct{}{models.HostRoleAutoAssign: {}, models.HostRoleMaster: {}, models.HostRoleArbiter: {}, models.HostRoleWorker: {}}
 	}
 
 	_, exists := roleSet[requestedRole]

@@ -126,6 +126,9 @@ func GetNodeRole(node *v1.Node) models.HostRole {
 		if label == "node-role.kubernetes.io/master" {
 			return models.HostRoleMaster
 		}
+		if label == "node-role.kubernetes.io/arbiter" {
+			return models.HostRoleArbiter
+		}
 	}
 	return models.HostRoleWorker
 }
