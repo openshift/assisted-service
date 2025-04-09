@@ -82,7 +82,7 @@ func (v *validator) isValidRoleForInstallation(c *validationContext) bool {
 	if c.infraEnv != nil {
 		return false
 	}
-	validRoles := []string{string(models.HostRoleMaster), string(models.HostRoleWorker)}
+	validRoles := []string{string(models.HostRoleMaster), string(models.HostRoleArbiter), string(models.HostRoleWorker)}
 	return funk.ContainsString(validRoles, string(c.host.Role))
 }
 

@@ -465,18 +465,20 @@ var _ = Describe("GetHostsByEachRole", func() {
 
 		It("with effective roles", func() {
 			effectiveRoles := true
-			masterHosts, workerHosts, autoAssignHosts := GetHostsByEachRole(cluster, effectiveRoles)
+			masterHosts, arbiterHosts, workerHosts, autoAssignHosts := GetHostsByEachRole(cluster, effectiveRoles)
 
 			Expect(masterHosts).To(HaveLen(3))
+			Expect(arbiterHosts).To(HaveLen(0))
 			Expect(workerHosts).To(HaveLen(3))
 			Expect(autoAssignHosts).To(HaveLen(1))
 		})
 
 		It("with non-effective roles", func() {
 			effectiveRoles := false
-			masterHosts, workerHosts, autoAssignHosts := GetHostsByEachRole(cluster, effectiveRoles)
+			masterHosts, arbiterHosts, workerHosts, autoAssignHosts := GetHostsByEachRole(cluster, effectiveRoles)
 
 			Expect(masterHosts).To(HaveLen(0))
+			Expect(arbiterHosts).To(HaveLen(0))
 			Expect(workerHosts).To(HaveLen(1))
 			Expect(autoAssignHosts).To(HaveLen(6))
 		})
