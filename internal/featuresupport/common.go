@@ -23,6 +23,12 @@ func ValidateActiveFeatures(log logrus.FieldLogger, cluster *common.Cluster, inf
 	if cluster == nil {
 		return err
 	}
+
+	if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		log.Infof("skipping feature support validation: cluster %s is of kind AddHostsCluster", cluster.ID.String())
+		return nil
+	}
+
 	activatedFeatures := getActivatedFeatures(log, cluster, infraEnv, updateParams)
 	for _, feature := range activatedFeatures {
 		logFields := logrus.Fields{
@@ -50,6 +56,10 @@ func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string
 	var openshiftVersion *string
 	if cluster != nil {
 		openshiftVersion = &cluster.OpenshiftVersion
+	}
+	if cluster != nil && swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		log.Infof("skipping feature support validation: cluster %s is of kind AddHostsCluster", cluster.ID.String())
+		return nil
 	}
 
 	activatedFeatures := getActivatedFeatures(log, cluster, infraEnv, updateParams)
