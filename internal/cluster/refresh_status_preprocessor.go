@@ -18,9 +18,9 @@ import (
 	operatorcommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 type ValidationResult struct {
@@ -72,7 +72,7 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	if c.cluster != nil {
 		ignoredValidations, err = common.DeserializeJSONList(c.cluster.IgnoredClusterValidations)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, fmt.Sprintf("Unable to deserialize ignored cluster validations for cluster %s", string(*c.cluster.ID)))
+			return nil, nil, fmt.Errorf("unable to deserialize ignored cluster validations for cluster %s: %w", c.cluster.ID.String(), err)
 		}
 	}
 
@@ -102,7 +102,7 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	// dependency, and then we will need to validate that secure boot is disabled.
 	err = r.recalculateOperatorDependencies(ctx, c)
 	if err != nil {
-		err = errors.Wrapf(err, "failed to recalculate operator dependencies for cluster '%s'", c.clusterId)
+		err = fmt.Errorf("failed to recalculate operator dependencies for cluster '%s': %w", c.clusterId, err)
 		return nil, nil, err
 	}
 
@@ -151,72 +151,87 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 func (r *refreshPreprocessor) recalculateOperatorDependencies(ctx context.Context, c *clusterPreprocessContext) error {
 	// Calculate and save the operators that have been added, updated or deleted:
 	operatorsBeforeResolve := c.cluster.MonitoredOperators
+
 	operatorsAfterResolve, err := r.operatorsAPI.ResolveDependencies(c.cluster, c.cluster.MonitoredOperators)
 	if err != nil {
-		return errors.Wrapf(
-			err,
-			"failed to resolve operator dependencies for cluster '%s'",
-			c.clusterId,
-		)
+		return fmt.Errorf("failed to resolve operator dependencies: %w", err)
 	}
+
 	var addedOperators, updatedOperators, deletedOperators []*models.MonitoredOperator
+
 	for _, operatorAfterResolve := range operatorsAfterResolve {
 		if operatorAfterResolve.ClusterID == "" {
 			operatorAfterResolve.ClusterID = c.clusterId
 		}
-		operatorBeforeREsolve := operatorcommon.GetOperator(operatorsBeforeResolve, operatorAfterResolve.Name)
-		if operatorBeforeREsolve != nil {
-			if !reflect.DeepEqual(operatorAfterResolve, operatorBeforeREsolve) {
+
+		operatorBeforeResolve := operatorcommon.GetOperator(operatorsBeforeResolve, operatorAfterResolve.Name)
+		if operatorBeforeResolve != nil {
+			if !reflect.DeepEqual(operatorAfterResolve, operatorBeforeResolve) {
 				updatedOperators = append(updatedOperators, operatorAfterResolve)
 			}
 		} else {
 			addedOperators = append(addedOperators, operatorAfterResolve)
 		}
 	}
+
 	for _, operatorBeforeResolve := range operatorsBeforeResolve {
 		if !operatorcommon.HasOperator(operatorsAfterResolve, operatorBeforeResolve.Name) {
 			deletedOperators = append(deletedOperators, operatorBeforeResolve)
 		}
 	}
-	for _, addedOperator := range addedOperators {
-		err = c.db.Save(addedOperator).Error
-		if err != nil {
-			return errors.Wrapf(
-				err,
-				"failed to add operator '%s' to cluster '%s'",
-				addedOperator.Name, *c.cluster.ID,
-			)
-		}
+
+	// If nothing changed, nothing needs to be done
+	if len(addedOperators) == 0 && len(deletedOperators) == 0 && len(updatedOperators) == 0 {
+		return nil
 	}
-	for _, updatedOperator := range updatedOperators {
-		err = c.db.Save(updatedOperator).Error
-		if err != nil {
-			return errors.Wrapf(
-				err,
-				"failed to update operator '%s' for cluster '%s'",
-				updatedOperator.Name, *c.cluster.ID,
-			)
-		}
+
+	// Validate with cluster CPU architecture
+	err = r.operatorsAPI.EnsureOperatorPrerequisite(c.cluster, c.cluster.OpenshiftVersion, c.cluster.CPUArchitecture, operatorsAfterResolve)
+	if err != nil {
+		return fmt.Errorf("failed to validate operator prerequisite: %w", err)
 	}
-	for _, deletedOperator := range deletedOperators {
-		err = c.db.Delete(deletedOperator).Error
-		if err != nil {
-			return errors.Wrapf(
-				err,
-				"failed to delete operator '%s' from cluster '%s'",
-				deletedOperator.Name,
-				c.clusterId,
-			)
-		}
-	}
+
 	c.cluster.MonitoredOperators = operatorsAfterResolve
 
-	// If any operator has been added or deleted then we need to update the corresponding feature usage:
-	if len(addedOperators) > 0 || len(deletedOperators) > 0 {
-		err = r.recalculateOperatorFeatureUsage(c, addedOperators, deletedOperators)
-		if err != nil {
-			return err
+	err = c.db.Transaction(func(tx *gorm.DB) error {
+		for _, addedOperator := range addedOperators {
+			err = tx.Save(addedOperator).Error
+			if err != nil {
+				return fmt.Errorf("failed to add operator '%s': %w", addedOperator.Name, err)
+			}
 		}
+
+		for _, updatedOperator := range updatedOperators {
+			err = tx.Save(updatedOperator).Error
+			if err != nil {
+				return fmt.Errorf("failed to update operator '%s': %w", updatedOperator.Name, err)
+			}
+		}
+
+		for _, deletedOperator := range deletedOperators {
+			err = tx.Delete(deletedOperator).Error
+			if err != nil {
+				return fmt.Errorf("failed to delete operator '%s': %w", deletedOperator.Name, err)
+			}
+		}
+
+		// If any operator has been added or deleted then we need to update the corresponding feature usage
+		if len(addedOperators) > 0 || len(deletedOperators) > 0 {
+			err = r.recalculateOperatorFeatureUsage(c, tx, addedOperators, deletedOperators)
+			if err != nil {
+				return fmt.Errorf("failed to recalculate operator feature usage: %w", err)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("transaction to update monitored operators, the associated usage and reset roles failed: %w", err)
+	}
+
+	// If everything went smoothly, notify about the change
+	if len(addedOperators) > 0 || len(deletedOperators) > 0 {
 		err = r.notifyOperatorFeatureUsageChange(ctx, c, addedOperators, deletedOperators)
 		if err != nil {
 			return err
@@ -226,37 +241,35 @@ func (r *refreshPreprocessor) recalculateOperatorDependencies(ctx context.Contex
 	return nil
 }
 
-func (r *refreshPreprocessor) recalculateOperatorFeatureUsage(c *clusterPreprocessContext,
+func (r *refreshPreprocessor) recalculateOperatorFeatureUsage(c *clusterPreprocessContext, db *gorm.DB,
 	addedOperators, deletedOperators []*models.MonitoredOperator) error {
 	if r.usageAPI == nil {
 		return nil
 	}
+
 	usages, err := usage.Unmarshal(c.cluster.FeatureUsage)
 	if err != nil {
-		return errors.Wrapf(
-			err,
-			"failed to read feature usage from cluster '%s'",
-			c.clusterId,
-		)
+		return fmt.Errorf("failed to read feature usage: %w", err)
 	}
+
 	for _, addedOperator := range addedOperators {
 		featureName := strings.ToUpper(addedOperator.Name)
 		r.usageAPI.Add(usages, featureName, nil)
 	}
+
 	for _, deletedOperator := range deletedOperators {
 		featureName := strings.ToUpper(deletedOperator.Name)
 		r.usageAPI.Remove(usages, featureName)
 	}
+
 	data, err := json.Marshal(usages)
 	if err != nil {
-		return errors.Wrapf(
-			err,
-			"failed to write feature usage to cluster '%s'",
-			c.clusterId,
-		)
+		return fmt.Errorf("failed to write feature usage: %w", err)
 	}
+
 	c.cluster.FeatureUsage = string(data)
-	r.usageAPI.Save(c.db, c.clusterId, usages)
+	r.usageAPI.Save(db, c.clusterId, usages)
+
 	return nil
 }
 

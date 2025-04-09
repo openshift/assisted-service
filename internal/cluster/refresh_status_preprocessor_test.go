@@ -118,6 +118,10 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		mockOperatorManager.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	}
 
+	mockOperatorEnsureOperatorPrerequisiteSuccess := func() {
+		mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	}
+
 	Context("Skipping Validations", func() {
 
 		cantBeIgnored := common.NonIgnorableClusterValidations
@@ -149,7 +153,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 			validationContext.cluster.IgnoredClusterValidations = "bad JSON"
 			_, _, err := preprocessor.preprocess(ctx, validationContext)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Unable to deserialize ignored cluster validations"))
+			Expect(err.Error()).To(ContainSubstring("unable to deserialize ignored cluster validations"))
 		})
 
 		It("Should allow permitted ignorable validations to be ignored", func() {
@@ -215,6 +219,8 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 				},
 			)
 			mockOperatorValidationsSuccess()
+			mockOperatorEnsureOperatorPrerequisiteSuccess()
+
 			_, _, err := preprocessor.preprocess(ctx, validationContext)
 			Expect(err).ToNot(HaveOccurred())
 

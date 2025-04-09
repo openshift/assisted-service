@@ -126,4 +126,3 @@ func GetOperator(operators []*models.MonitoredOperator, operatorName string) *mo
 	}
 	return nil
 }
-
