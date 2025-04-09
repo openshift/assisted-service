@@ -11,18 +11,11 @@ var BundleVirtualization = &models.Bundle{
 	Description: "Run virtual machines alongside containers on one platform.",
 }
 
-// BundleOpenShiftAINVIDIA contains the basic information of the 'openshift-ai-nvidia' bundle.
-var BundleOpenShiftAINVIDIA = &models.Bundle{
-	ID:          "openshift-ai-nvidia",
-	Title:       "OpenShift AI (NVIDIA)",
-	Description: "Train, serve, monitor and manage AI/ML models and applications using NVIDIA GPUs.",
-}
-
-// BundleOpenShiftAIAMD contains the basic information of the 'openshift-ai-amd' bundle.
-var BundleOpenShiftAIAMD = &models.Bundle{
-	ID:          "openshift-ai-amd",
-	Title:       "OpenShift AI (AMD)",
-	Description: "Train, serve, monitor and manage AI/ML models and applications using AMD GPUs.",
+// BundleOpenShiftAI contains the basic information of the 'openshift-ai' bundle.
+var BundleOpenShiftAI = &models.Bundle{
+	ID:          "openshift-ai",
+	Title:       "OpenShift AI",
+	Description: "Train, serve, monitor and manage AI/ML models and applications using GPUs.",
 }
 
 // Bundles is the list of valid bundles. Note that this list contains the basic information of the
@@ -30,6 +23,5 @@ var BundleOpenShiftAIAMD = &models.Bundle{
 // is part of the bundle. That is calculated dynamically scanning the operators.
 var Bundles = []*models.Bundle{
 	BundleVirtualization,
-	BundleOpenShiftAINVIDIA,
-	BundleOpenShiftAIAMD,
+	BundleOpenShiftAI,
 }
