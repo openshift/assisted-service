@@ -31,7 +31,7 @@ type HostUpdateParams struct {
 	HostName *string `json:"host_name,omitempty"`
 
 	// host role
-	// Enum: [auto-assign master worker]
+	// Enum: [auto-assign master arbiter worker]
 	HostRole *string `json:"host_role,omitempty"`
 
 	// JSON-formatted string of additional HTTP headers when fetching the ignition.
@@ -133,7 +133,7 @@ var hostUpdateParamsTypeHostRolePropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["auto-assign","master","worker"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["auto-assign","master","arbiter","worker"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -148,6 +148,9 @@ const (
 
 	// HostUpdateParamsHostRoleMaster captures enum value "master"
 	HostUpdateParamsHostRoleMaster string = "master"
+
+	// HostUpdateParamsHostRoleArbiter captures enum value "arbiter"
+	HostUpdateParamsHostRoleArbiter string = "arbiter"
 
 	// HostUpdateParamsHostRoleWorker captures enum value "worker"
 	HostUpdateParamsHostRoleWorker string = "worker"

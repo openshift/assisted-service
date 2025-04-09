@@ -1005,6 +1005,38 @@ var _ = Describe("SufficientMastersCount", func() {
 			Expect(status).To(Equal(ValidationSuccess))
 			Expect(message).To(Equal("The cluster has the exact amount of dedicated control plane nodes."))
 		})
+
+		It("with TNA Cluster, 2 masters with arbiter", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{
+					Cluster: models.Cluster{
+						ID:                &clusterID,
+						OpenshiftVersion:  common.MinimumVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount: 2,
+						Hosts: []*models.Host{
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleArbiter,
+							},
+						},
+					}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal("The cluster has the exact amount of dedicated control plane nodes."))
+		})
 	})
 
 	Context("fails validation", func() {
@@ -1102,6 +1134,35 @@ var _ = Describe("SufficientMastersCount", func() {
 			status, message := validator.SufficientMastersCount(preprocessContext)
 			Expect(status).To(Equal(ValidationFailure))
 			Expect(message).To(Equal("Single-node clusters must have a single control plane node and no workers."))
+		})
+
+		It("with TNA cluster, 2 masters without arbiter", func() {
+			mockHostAPI.EXPECT().
+				IsValidMasterCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{
+					Cluster: models.Cluster{
+						ID:                &clusterID,
+						OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						ControlPlaneCount: 2,
+						Hosts: []*models.Host{
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+						},
+					}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(Equal("The cluster must have exactly 2 dedicated control plane nodes and at least 1 arbiter node. Add or remove hosts, or change their roles configurations to meet the requirement."))
 		})
 	})
 })

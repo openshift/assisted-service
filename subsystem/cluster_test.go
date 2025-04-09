@@ -5111,9 +5111,9 @@ var _ = Describe("Verify role assignment for non-standard HA OCP Control Plane c
 			}
 
 			c := reply.Payload
-			masters, workers, autoAssign := common.GetHostsByEachRole(c, true)
+			masters, arbiters, workers, autoAssign := common.GetHostsByEachRole(c, true)
 
-			return len(masters) == 4 && len(workers) == 1 && len(autoAssign) == 0
+			return len(masters) == 4 && len(arbiters) == 0 && len(workers) == 1 && len(autoAssign) == 0
 
 		}, "60s", "2s").Should(BeTrue())
 	})

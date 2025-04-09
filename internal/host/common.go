@@ -58,6 +58,9 @@ var BootstrapStages = [...]models.HostStage{
 	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageJoined,
 	models.HostStageDone,
 }
+
+// MasterStages is used for both standard control plane nodes (master nodes) and arbiter nodes.
+// Arbiter nodes are used to achieve quorum for the etcd, so they follow the same installation flow as master nodes.
 var MasterStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
 	models.HostStageWritingImageToDisk, models.HostStageRebooting,
@@ -212,7 +215,7 @@ func FindMatchingStages(role models.HostRole, bootstrap, isSNO bool) []models.Ho
 		} else {
 			stages = BootstrapStages[:]
 		}
-	case role == models.HostRoleMaster:
+	case role == models.HostRoleMaster || role == models.HostRoleArbiter:
 		stages = MasterStages[:]
 	case role == models.HostRoleWorker:
 		stages = WorkerStages[:]

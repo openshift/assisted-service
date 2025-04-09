@@ -122,6 +122,7 @@ type Config struct {
 	ISOImageType                        string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
 	IPv6Support                         bool              `envconfig:"IPV6_SUPPORT" default:"true"`
 	DiskEncryptionSupport               bool              `envconfig:"DISK_ENCRYPTION_SUPPORT" default:"true"`
+	TNAClustersSupport                  bool              `envconfig:"TNA_CLUSTERS_SUPPORT" default:"false"`
 
 	// InfraEnv ID for the ephemeral installer. Should not be set explicitly.Ephemeral (agent) installer sets this env var
 	InfraEnvID strfmt.UUID `envconfig:"INFRA_ENV_ID" default:""`
@@ -448,7 +449,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 	}
 
 	// should be called after defaults were set
-	if err := validateHighAvailabilityWithControlPlaneCount(
+	if err := b.validateHighAvailabilityWithControlPlaneCount(
 		swag.StringValue(params.NewClusterParams.HighAvailabilityMode),
 		swag.Int64Value(params.NewClusterParams.ControlPlaneCount),
 		swag.StringValue(params.NewClusterParams.OpenshiftVersion),
@@ -521,7 +522,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(
 	params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount = common.GetDefaultHighAvailabilityAndMasterCountParams(
 		params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount,
 	)
-	if err := validateHighAvailabilityWithControlPlaneCount(*params.NewClusterParams.HighAvailabilityMode, *params.NewClusterParams.ControlPlaneCount, *params.NewClusterParams.OpenshiftVersion); err != nil {
+	if err := b.validateHighAvailabilityWithControlPlaneCount(*params.NewClusterParams.HighAvailabilityMode, *params.NewClusterParams.ControlPlaneCount, *params.NewClusterParams.OpenshiftVersion); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	if err := validations.ValidateClusterCreateIPAddresses(b.IPv6Support, id, params.NewClusterParams); err != nil {
@@ -1935,7 +1936,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 
 	// We don't want to update ControlPlaneCount in day2 clusters as we don't know the previous hosts
 	if params.ClusterUpdateParams.ControlPlaneCount != nil && swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
-		if err := validateHighAvailabilityWithControlPlaneCount(
+		if err := b.validateHighAvailabilityWithControlPlaneCount(
 			swag.StringValue(cluster.HighAvailabilityMode),
 			swag.Int64Value(params.ClusterUpdateParams.ControlPlaneCount),
 			cluster.OpenshiftVersion,
@@ -1995,7 +1996,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 	return *params, nil
 }
 
-func validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, controlPlaneCount int64, openshiftVersion string) error {
+func (b *bareMetalInventory) validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, controlPlaneCount int64, openshiftVersion string) error {
 	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeNone &&
 		controlPlaneCount != 1 {
 		return common.NewApiError(
@@ -2004,14 +2005,14 @@ func validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, 
 		)
 	}
 
-	nonStandardHAOCPControlPlaneNotSuported, err := common.BaseVersionLessThan(common.MinimumVersionForNonStandardHAOCPControlPlane, openshiftVersion)
+	nonStandardHAOCPControlPlaneNotSupported, err := common.BaseVersionLessThan(common.MinimumVersionForNonStandardHAOCPControlPlane, openshiftVersion)
 	if err != nil {
 		return err
 	}
 
 	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull &&
 		controlPlaneCount != common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder &&
-		nonStandardHAOCPControlPlaneNotSuported {
+		nonStandardHAOCPControlPlaneNotSupported {
 		return common.NewApiError(
 			http.StatusBadRequest,
 			fmt.Errorf(
@@ -2023,19 +2024,32 @@ func validateHighAvailabilityWithControlPlaneCount(highAvailabilityMode string, 
 		)
 	}
 
-	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull &&
-		(controlPlaneCount < common.MinMasterHostsNeededForInstallationInHaMode ||
-			controlPlaneCount > common.MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer) {
-		return common.NewApiError(
-			http.StatusBadRequest,
-			fmt.Errorf(
-				"there should be %d-%d dedicated control plane nodes for high availability mode %s in openshift version %s or newer",
-				common.MinMasterHostsNeededForInstallationInHaMode,
-				common.MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer,
-				highAvailabilityMode,
-				common.MinimumVersionForNonStandardHAOCPControlPlane,
-			),
-		)
+	arbiterClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForArbiterClusters, openshiftVersion)
+	if err != nil {
+		return err
+	}
+
+	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull {
+		var minMasterHostsNeededForInstallation int64 = common.MinMasterHostsNeededForInstallationInHaMode
+		minVersion := common.MinimumVersionForNonStandardHAOCPControlPlane
+		if arbiterClustersSupported && b.TNAClustersSupport {
+			minMasterHostsNeededForInstallation = common.MinMasterHostsNeededForInstallationInHaArbiterMode
+			minVersion = common.MinimumVersionForArbiterClusters
+		}
+
+		if controlPlaneCount < minMasterHostsNeededForInstallation ||
+			controlPlaneCount > common.MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer {
+			return common.NewApiError(
+				http.StatusBadRequest,
+				fmt.Errorf(
+					"there should be %d-%d dedicated control plane nodes for high availability mode %s in openshift version %s or newer",
+					minMasterHostsNeededForInstallation,
+					common.MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer,
+					highAvailabilityMode,
+					minVersion,
+				),
+			)
+		}
 	}
 
 	return nil
@@ -6328,7 +6342,7 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 
-		err = b.updateHostRole(ctx, host, params.HostUpdateParams.HostRole, tx)
+		err = b.updateHostRole(ctx, host, params.HostUpdateParams.HostRole, cluster, tx)
 		if err != nil {
 			return err
 		}
@@ -6405,11 +6419,32 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 	return host, nil
 }
 
-func (b *bareMetalInventory) updateHostRole(ctx context.Context, host *common.Host, hostRole *string, db *gorm.DB) error {
+func (b *bareMetalInventory) updateHostRole(ctx context.Context, host *common.Host, hostRole *string, cluster *common.Cluster, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, b.log)
 	if hostRole == nil {
 		log.Infof("No request for role update for host %s", host.ID)
 		return nil
+	}
+	if models.HostRole(*hostRole) == models.HostRoleArbiter {
+		if !b.TNAClustersSupport {
+			err := errors.Errorf("TNA clusters support is disabled, cannot set role arbiter to host %s in infra-env %s", host.ID, host.InfraEnvID)
+			log.Error(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		if cluster == nil || cluster.OpenshiftVersion == "" {
+			err := errors.Errorf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForArbiterClusters)
+			log.Error(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		arbiterClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForArbiterClusters, cluster.OpenshiftVersion)
+		if err != nil {
+			return err
+		}
+		if !arbiterClustersSupported {
+			err := errors.Errorf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForArbiterClusters)
+			log.Error(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 	err := b.hostApi.UpdateRole(ctx, &host.Host, models.HostRole(*hostRole), db)
 	if err != nil {

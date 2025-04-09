@@ -257,7 +257,7 @@ func (th *transitionHandler) createClusterCompletionStatusInfo(ctx context.Conte
 		statusInfo = StatusInfoDegraded
 		statusInfo += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
 	} else {
-		_, installedWorkers := HostsInStatus(cluster, []string{models.HostStatusInstalled})
+		_, _, installedWorkers := HostsInStatus(cluster, []string{models.HostStatusInstalled})
 		if installedWorkers < common.NumberOfWorkers(cluster) {
 			statusInfo = StatusInfoNotAllWorkersInstalled
 		}
@@ -513,8 +513,9 @@ func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.St
 //   - For High Availability cluster, the number of master nodes should match the user's request, and not less than the minimum. The worker node requirement depends on this request:
 //     If the user requested at least two workers, there must be at least two, indicating non-schedulable masters were intended.
 //     If the user requested fewer than two workers, any number of workers is acceptable.
+//   - For TNA Clusters the same conditions apply as for High Availability Clusters, but we also need to check that at least one arbiter node is in the correct status.
 func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, statuses []string) bool {
-	mastersInSomeInstallingStatus, workersInSomeInstallingStatus := HostsInStatus(sCluster.cluster, statuses)
+	mastersInSomeInstallingStatus, arbitersInSomeInstallingStatus, workersInSomeInstallingStatus := HostsInStatus(sCluster.cluster, statuses)
 
 	if sCluster.cluster.ControlPlaneCount == 1 {
 		return mastersInSomeInstallingStatus == common.AllowedNumberOfMasterHostsInNoneHaMode &&
@@ -522,11 +523,21 @@ func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, sta
 	}
 
 	// hosts roles are known at this stage
-	masters, workers, _ := common.GetHostsByEachRole(&sCluster.cluster.Cluster, false)
+	masters, arbiters, workers, _ := common.GetHostsByEachRole(&sCluster.cluster.Cluster, false)
 	numberOfExpectedMasters := len(masters)
+	numberOfExpectedArbiters := len(arbiters)
+
+	minMasterHostsNeeded := common.MinMasterHostsNeededForInstallationInHaMode
+	if numberOfExpectedArbiters != 0 {
+		minMasterHostsNeeded = common.MinMasterHostsNeededForInstallationInHaArbiterMode
+		// validate arbiters
+		if arbitersInSomeInstallingStatus == 0 {
+			return false
+		}
+	}
 
 	// validate masters
-	if numberOfExpectedMasters < common.MinMasterHostsNeededForInstallationInHaMode ||
+	if numberOfExpectedMasters < minMasterHostsNeeded ||
 		mastersInSomeInstallingStatus < numberOfExpectedMasters {
 		return false
 	}
