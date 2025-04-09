@@ -21,8 +21,7 @@ var Operator = models.MonitoredOperator{
 	SubscriptionName: "nfd",
 	TimeoutSeconds:   30 * 60,
 	Bundles: pq.StringArray{
-		operatorscommon.BundleOpenShiftAIAMD.ID,
-		operatorscommon.BundleOpenShiftAINVIDIA.ID,
+		operatorscommon.BundleOpenShiftAI.ID,
 	},
 }
 

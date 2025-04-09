@@ -21,7 +21,7 @@ var Operator = models.MonitoredOperator{
 	SubscriptionName: "kernel-module-management",
 	TimeoutSeconds:   30 * 60,
 	Bundles: pq.StringArray{
-		operatorscommon.BundleOpenShiftAIAMD.ID,
+		operatorscommon.BundleOpenShiftAI.ID,
 	},
 }
 
