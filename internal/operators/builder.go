@@ -49,6 +49,9 @@ type Options struct {
 
 // NewManager creates new instance of an Operator Manager
 func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, options Options, objectHandler s3wrapper.API) *Manager {
+	nvidiaGPUOperator := nvidiagpu.NewNvidiaGPUOperator(log)
+	amdGPUOperator := amdgpu.NewAMDGPUOperator(log)
+
 	return NewManagerWithOperators(
 		log, manifestAPI, options, objectHandler,
 		lso.NewLSOperator(),
@@ -59,15 +62,15 @@ func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, o
 		mce.NewMceOperator(log),
 		mtv.NewMTVOperator(log),
 		nodefeaturediscovery.NewNodeFeatureDiscoveryOperator(log),
-		nvidiagpu.NewNvidiaGPUOperator(log),
+		nvidiaGPUOperator,
 		pipelines.NewPipelinesOperator(log),
 		servicemesh.NewServiceMeshOperator(log),
 		serverless.NewServerLessOperator(log),
-		openshiftai.NewOpenShiftAIOperator(log),
+		openshiftai.NewOpenShiftAIOperator(log, nvidiaGPUOperator, amdGPUOperator),
 		authorino.NewAuthorinoOperator(log),
 		osc.NewOscOperator(log),
 		nmstate.NewNmstateOperator(log),
-		amdgpu.NewAMDGPUOperator(log),
+		amdGPUOperator,
 		kmm.NewKMMOperator(log),
 		nodehealthcheck.NewNodeHealthcheckOperator(log),
 		selfnoderemediation.NewSelfNodeRemediationOperator(log),
