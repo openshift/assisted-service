@@ -233,6 +233,11 @@ type InstallerConfigBaremetal struct {
 		Name           string `json:"name"`
 		Replicas       int    `json:"replicas"`
 	} `json:"controlPlane"`
+	Arbiter *struct {
+		Hyperthreading string `json:"hyperthreading,omitempty"`
+		Name           string `json:"name"`
+		Replicas       int    `json:"replicas"`
+	} `json:"arbiter,omitempty"`
 	Platform              Platform            `json:"platform"`
 	BootstrapInPlace      *BootstrapInPlace   `json:"bootstrapInPlace,omitempty"`
 	FIPS                  bool                `json:"fips"`
@@ -245,6 +250,7 @@ type InstallerConfigBaremetal struct {
 	ImageDigestSources            []ImageDigestSource  `json:"imageDigestSources,omitempty"`
 	Capabilities                  *Capabilities        `json:"capabilities,omitempty"`
 	FeatureSet                    configv1.FeatureSet  `json:"featureSet,omitempty"`
+	FeatureGates                  []string             `json:"featureGates,omitempty"`
 }
 
 func (c *InstallerConfigBaremetal) Validate() error {

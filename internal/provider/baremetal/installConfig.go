@@ -22,18 +22,22 @@ import (
 func (p *baremetalProvider) AddPlatformToInstallConfig(
 	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster, infraEnvs []*common.InfraEnv) error {
 	// set hosts
-	numMasters := cfg.ControlPlane.Replicas
-	// TODO: will we always have just one compute?
-	numWorkers := cfg.Compute[0].Replicas
-	hosts := make([]installcfg.Host, numWorkers+numMasters)
+	numHosts := len(cluster.Hosts)
+	hosts := make([]installcfg.Host, numHosts)
 
 	yamlHostIdx := 0
-	sortedHosts := make([]*models.Host, len(cluster.Hosts))
+	sortedHosts := make([]*models.Host, numHosts)
 	copy(sortedHosts, cluster.Hosts)
 	sort.Slice(sortedHosts, func(i, j int) bool {
-		// sort logic: masters before workers, between themselves - by hostname
+		// sort logic: masters then arbiters then workers, between themselves - by hostname
 		if sortedHosts[i].Role != sortedHosts[j].Role {
-			return sortedHosts[i].Role == models.HostRoleMaster
+			if sortedHosts[i].Role == models.HostRoleMaster {
+				return true
+			}
+			if sortedHosts[j].Role == models.HostRoleMaster {
+				return false
+			}
+			return sortedHosts[i].Role == models.HostRoleArbiter
 		}
 		return hostutil.GetHostnameForMsg(sortedHosts[i]) < hostutil.GetHostnameForMsg(sortedHosts[j])
 	})

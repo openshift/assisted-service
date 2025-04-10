@@ -390,7 +390,7 @@ paths:
           name: role
           description: Role to request.
           type: string
-          enum: ['master', 'worker', 'auto-assign']
+          enum: ['master', 'arbiter', 'worker', 'auto-assign']
           required: false
         - in: query
           description: Hosts status to request.
@@ -5040,7 +5040,7 @@ definitions:
       host_role:
         type: string
         x-nullable: true
-        enum: ['auto-assign', 'master', 'worker']
+        enum: ['auto-assign', 'master', 'arbiter', 'worker']
       host_name:
         type: string
         x-nullable: true
@@ -6615,6 +6615,7 @@ definitions:
     enum:
       - 'auto-assign'
       - 'master'
+      - 'arbiter'
       - 'worker'
 
   host-role:
@@ -6622,6 +6623,7 @@ definitions:
     enum:
       - 'auto-assign'
       - 'master'
+      - 'arbiter'
       - 'worker'
       - 'bootstrap'
 

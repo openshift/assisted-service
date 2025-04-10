@@ -54,6 +54,7 @@ const (
 
 	MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer       = 5
 	MinMasterHostsNeededForInstallationInHaMode                      = 3
+	MinMasterHostsNeededForInstallationInHaArbiterMode               = 2
 	AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder = 3
 	AllowedNumberOfMasterHostsInNoneHaMode                           = 1
 	AllowedNumberOfWorkersInNoneHaMode                               = 0
@@ -768,4 +769,8 @@ func GetDefaultHighAvailabilityAndMasterCountParams(highAvailabilityMode *string
 
 	// both are set
 	return highAvailabilityMode, controlPlaneCount
+}
+
+func IsClusterTopologyHighlyAvailableArbiter(cluster *Cluster) bool {
+	return funk.NotEmpty(GetHostsByRole(cluster, models.HostRoleArbiter))
 }
