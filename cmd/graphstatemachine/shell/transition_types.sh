@@ -6,7 +6,7 @@ for transition_type in $(jq '.transition_types | keys[]' -r "${JSON}"); do
 	transition_type_name=$(getTransitionTypeName "$transition_type")
 	transition_type_description=$(getTransitionTypeDescription "$transition_type")
 
-	echo "### $transition_type_name" >>"${OUT_FILE}"
+	echo "### Transition Type $transition_type_name" >>"${OUT_FILE}"
 	echo "$transition_type_description" >>"${OUT_FILE}"
 	echo "" >>"${OUT_FILE}"
 
@@ -39,7 +39,7 @@ for transition_type in $(jq '.transition_types | keys[]' -r "${JSON}"); do
 
 	getTransitionTypeTransitionRules "$transition_type" | while read -r transition_rule; do
 		echo Processing "$state" "$transition_rule"
-		echo "* $(github_markdown_linkify "$transition_rule")" >>"${OUT_FILE}"
+		echo "* $(github_markdown_linkify "Transition Rule $transition_rule")" >>"${OUT_FILE}"
 	done
 done
 echo "" >>"${OUT_FILE}"
