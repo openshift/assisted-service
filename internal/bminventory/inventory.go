@@ -3121,6 +3121,8 @@ func (b *bareMetalInventory) updateClusterCPUFeatureUsage(cpuArchitecture string
 	}
 }
 
+// This code is very similar to internal/cluster/refresh_status_preprocessor.go:recalculateOperatorDependencies
+// TODO: Refactor this to a common place if possible
 func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
 	if params.ClusterUpdateParams.OlmOperators == nil {
 		return nil

@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/internal/uploader"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/commonutils"
@@ -176,7 +177,8 @@ type Manager struct {
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.Notifier, eventsHandler eventsapi.Handler,
 	uploadClient uploader.Client, hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
 	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API,
-	dnsApi dns.DNSApi, authHandler auth.Authenticator, manifestApi manifestsapi.ManifestsAPI, softTimeoutsEnabled bool) *Manager {
+	dnsApi dns.DNSApi, authHandler auth.Authenticator, manifestApi manifestsapi.ManifestsAPI, softTimeoutsEnabled bool,
+	usageApi usage.API) *Manager {
 	th := &transitionHandler{
 		log:                 log,
 		db:                  db,
@@ -198,7 +200,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.N
 		sm:                    NewClusterStateMachine(th),
 		metricAPI:             metricApi,
 		manifestsGeneratorAPI: manifestsGeneratorAPI,
-		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi),
+		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi, usageApi, eventsHandler),
 		hostAPI:               hostAPI,
 		leaderElector:         leaderElector,
 		prevMonitorInvokedAt:  time.Now(),
