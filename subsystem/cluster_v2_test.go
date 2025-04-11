@@ -541,7 +541,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 			clusterReq, err := utils_test.TestContext.User2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                  swag.String("test-cluster"),
-					OpenshiftVersion:      swag.String("4.12-multi"),
+					OpenshiftVersion:      swag.String("4.16-multi"),
 					PullSecret:            swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
 					BaseDNSDomain:         "example.com",
 					UserManagedNetworking: swag.Bool(true),
@@ -580,7 +580,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 			_, err := utils_test.TestContext.UserBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("test-infra-env"),
-					OpenshiftVersion: "4.12",
+					OpenshiftVersion: "4.16",
 					PullSecret:       swag.String(pullSecret),
 					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
 					ImageType:        models.ImageTypeMinimalIso,
