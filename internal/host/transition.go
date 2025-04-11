@@ -753,6 +753,16 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 		)
 
 		statusInfo := th.replaceMacros(template, sHost, params)
+		// varchar(2048) in the db
+		if len(statusInfo) > 2040 {
+			// varchar(2048) means maximum 2048 characters in postgres, which translates into different
+			// byte length in different encodings (chosen when the db is created).
+			// This is the most restrictive, so it should be ok for all character sets.
+			// It could truncate in the middle of a rune, but it's very unlikely.
+			th.log.Warnf("StatusInfo is too long, truncating to 2040 characters: %s", statusInfo)
+
+			statusInfo = statusInfo[:2040]
+		}
 
 		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != statusInfo {
 			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
