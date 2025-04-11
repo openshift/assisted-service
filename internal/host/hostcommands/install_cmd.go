@@ -318,6 +318,10 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		if err != nil {
 			return "", err
 		}
+		installerArgs, err = appendRaidArgs(installerArgs, installationDisk)
+		if err != nil {
+			return "", err
+		}
 
 		// When using ISCSI along OCI, we expect the user (via a
 		// script) to configure the network statically on the nodes as
@@ -415,18 +419,39 @@ func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inve
 	return installerArgs, nil
 }
 
+func appendRaidArgs(installerArgs []string, installationDisk *models.Disk) ([]string, error) {
+	// Add kernel args for Intel VROC
+	if installationDisk.DriveType != models.DriveTypeRAID {
+		return installerArgs, nil
+	}
+	args := []string{"rd.md=1", "rd.auto=1"}
+	for _, arg := range args {
+		if !lo.Contains(installerArgs, arg) {
+			installerArgs = append(installerArgs, "--append-karg", arg)
+		}
+	}
+	return installerArgs, nil
+}
+
 func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasUserConfiguredIP bool) ([]string, error) {
 	if installationDisk.DriveType != models.DriveTypeMultipath {
 		return installerArgs, nil
 	}
 
-	installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
+	installerArgs = append(installerArgs, "--append-karg", "rw", "--append-karg", "rd.multipath=default")
 	var err error
 	iSCSIDisks := hostutil.GetDisksOfHolderByType(inventory.Disks, installationDisk, models.DriveTypeISCSI)
-	for _, iscsiDisk := range iSCSIDisks {
-		installerArgs, err = appendISCSIArgs(installerArgs, iscsiDisk, inventory, hasUserConfiguredIP)
-		if err != nil {
-			return nil, err
+
+	// Currently, we append the root karg for multipath setups that are not iSCSI.
+	// Once we confirm it's unnecessary for other types, it can be safely removed.
+	if len(iSCSIDisks) == 0 {
+		installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root")
+	} else {
+		for _, iscsiDisk := range iSCSIDisks {
+			installerArgs, err = appendISCSIArgs(installerArgs, iscsiDisk, inventory, hasUserConfiguredIP)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return installerArgs, nil

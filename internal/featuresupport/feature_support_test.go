@@ -1,9 +1,11 @@
 package featuresupport
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -457,6 +459,29 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			params := models.V2ClusterUpdateParams{UserManagedNetworking: swag.Bool(false)}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, &params)).To(Not(BeNil()))
 		})
+		It("Ignore validation on AddHostCluster", func() {
+			logBuffer := bytes.Buffer{}
+			testLogger := logrus.New()
+			testLogger.SetOutput(&logBuffer)
+
+			clusterID := strfmt.UUID("e679ea3f-3b85-40e0-8dc9-82fd6945d9b2")
+			cluster := common.Cluster{Cluster: models.Cluster{
+				ID:                &clusterID,
+				OpenshiftVersion:  "4.19",
+				Kind:              swag.String(models.ClusterKindAddHostsCluster),
+				CPUArchitecture:   models.ClusterCPUArchitectureS390x,
+				ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
+				Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}}
+
+			infraEnv := models.InfraEnv{
+				ClusterID:       *cluster.ID,
+				CPUArchitecture: models.ClusterCPUArchitectureS390x,
+			}
+
+			Expect(ValidateActiveFeatures(logrus.NewEntry(testLogger), &cluster, &infraEnv, nil)).To(BeNil())
+			Expect(logBuffer.String()).To(ContainSubstring("skipping feature support validation:"))
+		})
 		It("Update s390x cluster", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:      "4.13",
@@ -866,6 +891,30 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 
 		Context("Test validate active features", func() {
+			It("Ignore validation on AddHostCluster", func() {
+				logBuffer := bytes.Buffer{}
+				testLogger := logrus.New()
+				testLogger.SetOutput(&logBuffer)
+
+				clusterID := strfmt.UUID("e679ea3f-3b85-40e0-8dc9-82fd6945d9b2")
+				cluster := common.Cluster{Cluster: models.Cluster{
+					ID:                &clusterID,
+					OpenshiftVersion:  "4.19",
+					Kind:              swag.String(models.ClusterKindAddHostsCluster),
+					CPUArchitecture:   models.ClusterCPUArchitectureS390x,
+					ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
+					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+				}}
+
+				infraEnv := models.InfraEnv{
+					ClusterID:       *cluster.ID,
+					CPUArchitecture: models.ClusterCPUArchitectureS390x,
+				}
+
+				Expect(ValidateIncompatibleFeatures(logrus.NewEntry(testLogger), models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)).To(BeNil())
+				Expect(logBuffer.String()).To(ContainSubstring("skipping feature support validation:"))
+			})
+
 			DescribeTable(
 				"Valid VipDhcpAllocation and OpenShift version",
 				func(openshiftVersion string) {
