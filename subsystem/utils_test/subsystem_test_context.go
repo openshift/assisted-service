@@ -38,7 +38,7 @@ type SubsystemTestContext struct {
 	BadAgentBMClient             *client.AssistedInstall
 	pollDefaultInterval          time.Duration
 	pollDefaultTimeout           time.Duration
-	vipAutoAllocOpenshiftVersion string
+	VipAutoAllocOpenshiftVersion string
 }
 
 func NewSubsystemTestContext(
@@ -54,7 +54,7 @@ func NewSubsystemTestContext(
 	badAgentBMClient *client.AssistedInstall,
 	pollDefaultInterval time.Duration,
 	pollDefaultTimeout time.Duration,
-	vipAutoAllocOpenshiftVersion string,
+	VipAutoAllocOpenshiftVersion string,
 ) *SubsystemTestContext {
 	return &SubsystemTestContext{
 		log:                          log,
@@ -69,7 +69,7 @@ func NewSubsystemTestContext(
 		BadAgentBMClient:             badAgentBMClient,
 		pollDefaultInterval:          pollDefaultInterval,
 		pollDefaultTimeout:           pollDefaultTimeout,
-		vipAutoAllocOpenshiftVersion: vipAutoAllocOpenshiftVersion,
+		VipAutoAllocOpenshiftVersion: VipAutoAllocOpenshiftVersion,
 	}
 }
 
@@ -699,10 +699,9 @@ func (t *SubsystemTestContext) RegisterCluster(ctx context.Context, client *clie
 	var cluster, err = client.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
 			Name:              swag.String(clusterName),
-			OpenshiftVersion:  swag.String(t.vipAutoAllocOpenshiftVersion),
+			OpenshiftVersion:  swag.String(t.VipAutoAllocOpenshiftVersion),
 			PullSecret:        swag.String(pullSecret),
 			BaseDNSDomain:     "example.com",
-			VipDhcpAllocation: swag.Bool(true),
 		},
 	})
 	if err != nil {
