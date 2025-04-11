@@ -692,6 +692,8 @@ func (th *transitionHandler) PostHostPreparationTimeout() stateswitch.PostTransi
 			failingConditons = append(failingConditons, statusInfoPreparationTimeoutImageAvailability)
 		}
 		statusInfo := strings.Replace(statusInfoPreparationTimeout, "$FAILING_CONDITIONS", strings.Join(failingConditons, "\n"), 1)
+		statusInfo = hostutil.TruncateStatusInfo(statusInfo, th.log)
+
 		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != statusInfo {
 			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
 				th.eventsHandler, th.stream, sHost.host.InfraEnvID, *sHost.host.ID,
@@ -753,6 +755,7 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 		)
 
 		statusInfo := th.replaceMacros(template, sHost, params)
+		statusInfo = hostutil.TruncateStatusInfo(statusInfo, th.log)
 
 		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != statusInfo {
 			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
