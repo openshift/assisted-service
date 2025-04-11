@@ -34,6 +34,7 @@ const (
 	mustGatherImageName            = "must-gather"
 	okdRPMSImageName               = "okd-rpms"
 	coreosImageName                = "rhel-coreos"
+	streamCoreOSImageName          = "stream-coreos"
 	DefaultTries                   = 5
 	DefaltRetryDelay               = time.Second * 5
 	staticInstallerRequiredVersion = "4.16.0-0.alpha"
@@ -126,7 +127,16 @@ func (r *release) GetMustGatherImage(log logrus.FieldLogger, releaseImage string
 
 // GetCoreOSImage gets rhel-coreos image URL from the release image or releaseImageMirror, if provided.
 func (r *release) GetCoreOSImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
-	return r.getImageByName(log, coreosImageName, releaseImage, releaseImageMirror, pullSecret)
+	imageName := coreosImageName
+	if isOKD(releaseImage) {
+		imageName = streamCoreOSImageName
+	}
+	return r.getImageByName(log, imageName, releaseImage, releaseImageMirror, pullSecret)
+}
+
+// Returns true if the image matches OKD release image pattern
+func isOKD(image string) bool {
+	return strings.Contains(image, "okd")
 }
 
 func (r *release) getImageByName(log logrus.FieldLogger, imageName, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
