@@ -67,7 +67,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	log := logutil.FromContext(ctx, k.log)
 
 	entries, err := os.ReadDir(k.workDir)
-	if err == nil && len(entries) > 0 {
+	if k.Config.InstallInvoker == "agent-installer" && err == nil && len(entries) > 0 {
 		log.Infof("Work directory %s already exists, skipping generation of InstallConfig", k.workDir)
 		return nil
 	}
