@@ -128,10 +128,12 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		InstallerImage:    swag.String(i.instructionConfig.InstallerImage),
 		BootDevice:        swag.String(bootdevice),
 	}
-	if i.enableSkipMcoReboot {
-		request.EnableSkipMcoReboot = featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDSKIPMCOREBOOT,
-			cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))
-	}
+
+	request.EnableSkipMcoReboot = i.enableSkipMcoReboot && featuresupport.IsFeatureAvailable(
+		models.FeatureSupportLevelIDSKIPMCOREBOOT,
+		cluster.OpenshiftVersion,
+		swag.String(cluster.CPUArchitecture),
+	) && !hostutil.IsDay2Host(host) // skip MCO reboot feature is currently not supported for day2 host
 	request.NotifyNumReboots = i.notifyNumReboots
 
 	cpuArch := cluster.CPUArchitecture
