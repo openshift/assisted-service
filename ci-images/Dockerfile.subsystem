@@ -4,7 +4,7 @@ ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin/kubectl /usr/bin/
-COPY --from=registry.k8s.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
+COPY --from=registry.k8s.io/kustomize/kustomize:v5.6.0 /app/kustomize /usr/bin/
 
 RUN dnf install -y openssl
 
