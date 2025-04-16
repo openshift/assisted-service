@@ -88,7 +88,7 @@ ARG GID=0
 RUN mkdir $WORK_DIR && chmod 775 $WORK_DIR && chown $UID:$GID $WORK_DIR
 
 # downstream this can be installed as an RPM
-COPY --from=quay.io/openshift/origin-cli:4.12 /usr/bin/oc /usr/local/bin/
+COPY --from=quay.io/openshift/origin-cli:4.20 /usr/bin/oc /usr/local/bin/
 
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /build/assisted-service-operator /assisted-service-operator
