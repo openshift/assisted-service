@@ -108,7 +108,7 @@ var _ = Describe("installcmd", func() {
 		})
 	})
 	DescribeTable("enable MCO reboot values",
-		func(enableMcoReboot bool, version string, architecture string, expected bool) {
+		func(enableMcoReboot bool, version string, architecture string, day2 bool, expected bool) {
 			installCommand := NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, enableMcoReboot, true)
 			mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
 			mockGetReleaseImage(1)
@@ -117,18 +117,25 @@ var _ = Describe("installcmd", func() {
 				"openshift_version": version,
 				"cpu_architecture":  architecture,
 			}).Error).ToNot(HaveOccurred())
+
+			if day2 {
+				host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+			}
+
 			installCmdSteps, stepErr = installCommand.GetSteps(ctx, &host)
 			validateInstallCommand(installCommand, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, common.MinMasterHostsNeededForInstallationInHaMode, expected, version, true)
 		},
-		Entry("Enbale MCO reboot is false", false, "4.15.0", models.ClusterCPUArchitectureX8664, false),
-		Entry("Enbale MCO reboot is true. Lower version", true, "4.14.0", models.ClusterCPUArchitectureX8664, false),
-		Entry("Enbale MCO reboot is true. Equal version", true, "4.15.0", models.ClusterCPUArchitectureX8664, true),
-		Entry("Enbale MCO reboot is true. Empty version", true, "", models.ClusterCPUArchitectureX8664, false),
-		Entry("Enbale MCO reboot is true. Higher version - x86_64", true, "4.16.0", models.ClusterCPUArchitectureX8664, true),
-		Entry("Enbale MCO reboot is true. Higher version - aarch64", true, "4.16.0", models.ClusterCPUArchitectureAarch64, true),
-		Entry("Enbale MCO reboot is true. Higher version - arm64", true, "4.16.0", models.ClusterCPUArchitectureArm64, true),
-		Entry("Enbale MCO reboot is true. Higher version - ppc64le", true, "4.16.0", models.ClusterCPUArchitecturePpc64le, true),
-		Entry("Enbale MCO reboot is true. Higher version - s390x", true, "4.16.0", models.ClusterCPUArchitectureS390x, true),
+		Entry("Enable MCO reboot is false", false, "4.15.0", models.ClusterCPUArchitectureX8664, false, false),
+		Entry("Enable MCO reboot is true. day2 host", true, "4.16.0", models.ClusterCPUArchitectureX8664, true, false),
+		Entry("Enable MCO reboot is true. day1 host", true, "4.16.0", models.ClusterCPUArchitectureX8664, false, true),
+		Entry("Enable MCO reboot is true. Lower version", true, "4.14.0", models.ClusterCPUArchitectureX8664, false, false),
+		Entry("Enable MCO reboot is true. Equal version", true, "4.15.0", models.ClusterCPUArchitectureX8664, false, true),
+		Entry("Enable MCO reboot is true. Empty version", true, "", models.ClusterCPUArchitectureX8664, false, false),
+		Entry("Enable MCO reboot is true. Higher version - x86_64", true, "4.16.0", models.ClusterCPUArchitectureX8664, false, true),
+		Entry("Enable MCO reboot is true. Higher version - aarch64", true, "4.16.0", models.ClusterCPUArchitectureAarch64, false, true),
+		Entry("Enable MCO reboot is true. Higher version - arm64", true, "4.16.0", models.ClusterCPUArchitectureArm64, false, true),
+		Entry("Enable MCO reboot is true. Higher version - ppc64le", true, "4.16.0", models.ClusterCPUArchitecturePpc64le, false, true),
+		Entry("Enable MCO reboot is true. Higher version - s390x", true, "4.16.0", models.ClusterCPUArchitectureS390x, false, true),
 	)
 
 	DescribeTable("notify num reboots",
