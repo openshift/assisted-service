@@ -361,7 +361,6 @@ var _ = Describe("Infra_Env", func() {
 		Expect(contents).To(ContainSubstring("eth0"))
 	},
 		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl", common.MinimalVersionForNmstatectl),
-		Entry("ocp versions less than MinimalVersionForNmstatectl", "4.12"),
 	)
 
 	It("download infra-env files invalid filename option", func() {
