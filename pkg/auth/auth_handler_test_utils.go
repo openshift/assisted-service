@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-jose/go-jose"
-	"github.com/go-jose/go-jose/json"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/json"
+        "github.com/golang-jwt/jwt/v4"
 )
 
 func GetTokenAndCert(withLateIat bool) (string, []byte) {
