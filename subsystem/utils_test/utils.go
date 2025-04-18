@@ -3,6 +3,11 @@ package utils_test
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/units"
@@ -12,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	usageMgr "github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	yaml "gopkg.in/yaml.v3"
 )
 
 const (
@@ -283,4 +289,72 @@ func GetValidWorkerHwInfoWithCIDR(cidr string) *models.Inventory {
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
+}
+
+func CopyDir(src string, dst string) error {
+	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, _ := filepath.Rel(src, path)
+		targetPath := filepath.Join(dst, relPath)
+
+		if d.IsDir() {
+			return os.MkdirAll(targetPath, 0755)
+		}
+		return copyFile(path, targetPath)
+	})
+}
+
+func copyFile(srcFile string, dstFile string) error {
+	in, err := os.Open(srcFile)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dstFile)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	return err
+}
+
+func UpdateYAMLField(filePath string, fieldPath string, oldValue string, newValue string) error {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	var yamlMap map[string]interface{}
+	if err = yaml.Unmarshal(data, &yamlMap); err != nil {
+		return err
+	}
+
+	keys := strings.Split(fieldPath, ".")
+	curr := yamlMap
+	for i, key := range keys {
+		if i == len(keys)-1 {
+			if str, ok := curr[key].(string); ok {
+				curr[key] = strings.Replace(str, oldValue, newValue, 1)
+			}
+		} else {
+			next, ok := curr[key].(map[string]interface{})
+			if !ok {
+				next = make(map[string]interface{})
+				curr[key] = next
+			}
+			curr = next
+		}
+	}
+
+	modifiedData, err := yaml.Marshal(yamlMap)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filePath, modifiedData, 0600)
 }

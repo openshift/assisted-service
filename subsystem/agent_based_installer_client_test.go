@@ -2,6 +2,8 @@ package subsystem
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,23 +19,51 @@ import (
 // A new authentication scheme suited to the agent-based installer will be implemented
 // in the future and utils_test.TestContext.UserBMClient should be replaced at that time.
 var _ = Describe("RegisterClusterAndInfraEnv", func() {
-	ctx := context.Background()
+	var (
+		ctx         = context.Background()
+		tmpDir      string
+		tmpCrdsDir  string
+		originalDir = "../docs/hive-integration/crds"
+		origWD      string
+	)
+
+	BeforeEach(func() {
+		var err error
+		tmpDir, err = os.MkdirTemp("", "testenv")
+		Expect(err).NotTo(HaveOccurred())
+
+		tmpCrdsDir = filepath.Join(tmpDir, "crds")
+		err = utils_test.CopyDir(originalDir, tmpCrdsDir)
+		Expect(err).NotTo(HaveOccurred())
+
+		origWD, err = os.Getwd()
+		Expect(err).NotTo(HaveOccurred())
+
+		err = os.Chdir(tmpDir)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		_ = os.Chdir(origWD)
+		_ = os.RemoveAll(tmpDir)
+	})
 
 	It("good flow", func() {
+		_ = utils_test.UpdateYAMLField(filepath.Join(tmpCrdsDir, "clusterImageSet.yaml"), "spec.releaseImage", "4.15.0", openshiftVersionLong)
 		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
-			"../docs/hive-integration/crds/clusterDeployment.yaml",
-			"../docs/hive-integration/crds/agentClusterInstall.yaml",
-			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "")
+			filepath.Join("crds", "clusterDeployment.yaml"),
+			filepath.Join("crds", "agentClusterInstall.yaml"),
+			filepath.Join("crds", "clusterImageSet.yaml"), "", "")
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
 		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
-		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring("4.15.0"))
+		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring(openshiftVersion))
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
 		Expect(modelCluster.Name).To(Equal("test-cluster"))
 
 		modelInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
-			modelCluster, "../docs/hive-integration/crds/infraEnv.yaml",
-			"../docs/hive-integration/crds/nmstate.yaml", "full-iso", "")
+			modelCluster, filepath.Join("crds", "infraEnv.yaml"),
+			filepath.Join("crds", "nmstate.yaml"), "full-iso", "")
 
 		Expect(registerInfraEnvErr).NotTo(HaveOccurred())
 		Expect(*modelInfraEnv.Name).To(Equal("myinfraenv"))
@@ -42,21 +72,24 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 	})
 
 	It("InstallConfig override good flow", func() {
+		_ = utils_test.UpdateYAMLField(filepath.Join(tmpCrdsDir, "clusterImageSet.yaml"), "spec.releaseImage", "4.15.0", openshiftVersionLong)
 		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
-			"../docs/hive-integration/crds/clusterDeployment.yaml",
-			"../docs/hive-integration/crds/agentClusterInstall-with-installconfig-overrides.yaml",
-			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "")
+			filepath.Join("crds", "clusterDeployment.yaml"),
+			filepath.Join("crds", "agentClusterInstall-with-installconfig-overrides.yaml"),
+			filepath.Join("crds", "clusterImageSet.yaml"), "", "")
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
 		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
-		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring("4.15.0"))
+		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring(openshiftVersion))
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
 		Expect(modelCluster.InstallConfigOverrides).To(Equal(`{"fips": true}`))
 		Expect(modelCluster.Name).To(Equal("test-cluster"))
 
 		modelInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
-			modelCluster, "../docs/hive-integration/crds/infraEnv.yaml",
-			"../docs/hive-integration/crds/nmstate.yaml", "full-iso", "")
+			modelCluster,
+			filepath.Join("crds", "infraEnv.yaml"),
+			filepath.Join("crds", "nmstate.yaml"),
+			"full-iso", "")
 
 		Expect(registerInfraEnvErr).NotTo(HaveOccurred())
 		Expect(*modelInfraEnv.Name).To(Equal("myinfraenv"))
@@ -65,10 +98,12 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 	})
 
 	It("missing one of the ZTP manifests", func() {
+		_ = utils_test.UpdateYAMLField(filepath.Join(tmpCrdsDir, "clusterImageSet.yaml"), "spec.releaseImage", "4.15.0", openshiftVersionLong)
 		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
 			"file-does-not-exist",
-			"../docs/hive-integration/crds/agentClusterInstall.yaml",
-			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "")
+			filepath.Join("crds", "agentClusterInstall.yaml"),
+			filepath.Join("crds", "clusterImageSet.yaml"),
+			"", "")
 		Expect(registerClusterErr).To(HaveOccurred())
 		Expect(modelCluster).To(BeNil())
 	})
