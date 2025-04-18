@@ -458,7 +458,7 @@ func main() {
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig, db)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		notificationStream, eventsHandler, uploadClient, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager,
-		ocmClient, objectHandler, dnsApi, authHandler, manifestsApi, Options.EnableSoftTimeouts)
+		ocmClient, objectHandler, dnsApi, authHandler, manifestsApi, Options.EnableSoftTimeouts, usageManager)
 	infraEnvApi := infraenv.NewManager(log.WithField("pkg", "host-state"), db, objectHandler)
 
 	clusterEventsUploader := thread.New(
