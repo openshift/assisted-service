@@ -720,7 +720,7 @@ func (g *installerGenerator) expandMultiDocYaml(ctx context.Context, manifestPat
 // bootstrap ignition file
 func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath string) error {
 	log := logutil.FromContext(ctx, g.log)
-	//nolint:shadow
+
 	config, err := parseIgnitionFile(bootstrapPath)
 	if err != nil {
 		g.log.Error(err)
@@ -742,7 +742,7 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 			g.fixMOTDFile(&config.Storage.Files[i])
 		case isBMHFile(&config.Storage.Files[i]):
 			// extract bmh
-			bmh, err2 := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
+			bmh, err2 := fileToBMH(&config.Storage.Files[i])
 			if err2 != nil {
 				log.Errorf("error parsing File contents to BareMetalHost: %v", err2)
 				return err2
