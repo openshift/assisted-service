@@ -1390,9 +1390,11 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 		{Name: "IMAGE_SERVICE_BASE_URL", Value: imageServiceBaseURL},
 		{Name: "INSECURE_SKIP_VERIFY", Value: skipVerifyTLS},
 		{Name: "DATA_DIR", Value: "/data"},
+		{Name: "DATA_TEMP_DIR", Value: "/data_temp"},
 	}
 	volumeMounts := []corev1.VolumeMount{
 		{Name: "image-service-data", MountPath: "/data"},
+		{Name: "data-temp-volume", MountPath: "/data_temp"},
 	}
 	var healthCheckScheme corev1.URIScheme
 
@@ -1605,6 +1607,13 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 				},
 			})
 		}
+
+		volumes = ensureVolume(volumes, corev1.Volume{
+			Name: "data-temp-volume",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
 
 		statefulSet.Spec.Template.Spec.Volumes = volumes
 
