@@ -264,7 +264,7 @@ func updateAnnotations(log logrus.FieldLogger, agent *v1beta1.Agent, h *models.H
 	updated = setAgentAnnotation(log, agent, AgentInventoryAnnotation, h.Inventory) || updated
 	updated = setAgentAnnotation(log, agent, AgentValidationsInfoAnnotation, h.ValidationsInfo) || updated
 	if h.Progress != nil {
-		updated = setAgentAnnotation(log, agent, AgentCurrentStageAnnotation, string(h.Progress.CurrentStage))
+		updated = setAgentAnnotation(log, agent, AgentCurrentStageAnnotation, string(h.Progress.CurrentStage)) || updated
 	}
 	return updated
 }
