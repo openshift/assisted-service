@@ -365,7 +365,7 @@ func (v *clusterValidator) SufficientMastersCount(c *clusterPreprocessContext) (
 		message string
 	)
 
-	masters, workers, autoAssignHosts := common.GetHostsByEachRole(&c.cluster.Cluster, true)
+	masters, arbiters, workers, autoAssignHosts := common.GetHostsByEachRole(&c.cluster.Cluster, true)
 	for _, h := range autoAssignHosts {
 		//if allocated masters count is less than the desired count, find eligible hosts
 		//from the candidate pool to match the master count criteria
@@ -381,10 +381,17 @@ func (v *clusterValidator) SufficientMastersCount(c *clusterPreprocessContext) (
 	}
 
 	numWorkers := len(workers)
+	numArbiters := len(arbiters)
 	numMasters := len(masters)
 
 	// validate masters
 	if numMasters != int(c.cluster.ControlPlaneCount) {
+		status = ValidationFailure
+	}
+
+	if numMasters < common.MinMasterHostsNeededForInstallationInHaMode &&
+		numMasters >= common.MinMasterHostsNeededForInstallationInHaArbiterMode &&
+		numArbiters == 0 {
 		status = ValidationFailure
 	}
 

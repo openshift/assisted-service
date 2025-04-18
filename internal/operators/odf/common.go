@@ -11,7 +11,7 @@ import (
 // getODFDeploymentMode returns the ODF deployment mode based on the cluster
 // configuration and the minimum number of hosts required for ODF installation.
 func getODFDeploymentMode(cluster *models.Cluster, odfMinimumHosts int64) odfDeploymentMode {
-	masterHosts, workerHosts, autoAssignHosts := common.GetHostsByEachRole(cluster, false)
+	masterHosts, _, workerHosts, autoAssignHosts := common.GetHostsByEachRole(cluster, false)
 
 	masterCount := len(masterHosts)
 	workerCount := len(workerHosts)

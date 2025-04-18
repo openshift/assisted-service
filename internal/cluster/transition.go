@@ -522,11 +522,16 @@ func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, sta
 	}
 
 	// hosts roles are known at this stage
-	masters, workers, _ := common.GetHostsByEachRole(&sCluster.cluster.Cluster, false)
+	masters, arbiters, workers, _ := common.GetHostsByEachRole(&sCluster.cluster.Cluster, false)
 	numberOfExpectedMasters := len(masters)
+	numberOfExpectedArbiters := len(arbiters)
 
 	// validate masters
-	if numberOfExpectedMasters < common.MinMasterHostsNeededForInstallationInHaMode ||
+	minMasterHostsNeeded := common.MinMasterHostsNeededForInstallationInHaMode
+	if numberOfExpectedArbiters != 0 {
+		minMasterHostsNeeded = common.MinMasterHostsNeededForInstallationInHaArbiterMode
+	}
+	if numberOfExpectedMasters < minMasterHostsNeeded ||
 		mastersInSomeInstallingStatus < numberOfExpectedMasters {
 		return false
 	}
