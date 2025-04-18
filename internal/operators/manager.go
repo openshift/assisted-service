@@ -346,30 +346,52 @@ func (mgr *Manager) GetOperatorProperties(operatorName string) (models.OperatorP
 }
 
 func (mgr *Manager) ResolveDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
-	allDependentOperators, err := mgr.getDependencies(cluster, operators)
-	if err != nil {
-		return operators, nil
-	}
+	ret := make([]*models.MonitoredOperator, 0)
+	alreadyPresent := make([]string, 0)
+	currentDependencies := make(map[string]*models.MonitoredOperator)
 
-	inputOperatorNames := make([]string, len(operators))
-	for _, inputOperator := range operators {
-		inputOperatorNames = append(inputOperatorNames, inputOperator.Name)
-	}
+	// Compute list of operator without dependencies (they might be not required anymore)
+	for _, operator := range operators {
+		if operator.DependencyOnly {
+			// Keep the current dependency definition to be sure, properties and others fields are consistent
+			currentDependencies[operator.Name] = operator
 
-	for operatorName := range allDependentOperators {
-		if funk.Contains(inputOperatorNames, operatorName) {
 			continue
 		}
 
-		operator, err := mgr.GetOperatorByName(operatorName)
+		ret = append(ret, operator)
+		alreadyPresent = append(alreadyPresent, operator.Name)
+	}
+
+	// Get dependent operators
+	allDependentOperators, err := mgr.getDependencies(cluster, ret)
+	if err != nil {
+		return nil, err
+	}
+
+	for operatorName := range allDependentOperators {
+		if funk.Contains(alreadyPresent, operatorName) {
+			continue
+		}
+
+		operator, err := mgr.getDependency(operatorName, currentDependencies)
 		if err != nil {
 			return nil, err
 		}
 
-		operators = append(operators, operator)
+		ret = append(ret, operator)
+		alreadyPresent = append(alreadyPresent, operatorName)
 	}
 
-	return operators, nil
+	return ret, nil
+}
+
+func (mgr *Manager) getDependency(name string, definitions map[string]*models.MonitoredOperator) (*models.MonitoredOperator, error) {
+	if ret, ok := definitions[name]; ok {
+		return ret, nil
+	}
+
+	return mgr.GetOperatorByName(name)
 }
 
 func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) (map[string]bool, error) {
@@ -425,6 +447,7 @@ func (mgr *Manager) GetOperatorByName(operatorName string) (*models.MonitoredOpe
 		TimeoutSeconds:   operator.TimeoutSeconds,
 		Namespace:        operator.Namespace,
 		SubscriptionName: operator.SubscriptionName,
+		DependencyOnly:   operator.DependencyOnly,
 	}, nil
 }
 
