@@ -27,6 +27,9 @@ type MonitoredOperator struct {
 	// Format: uuid
 	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primaryKey"`
 
+	// Whether the operator can't be installed without being required by another operator.
+	DependencyOnly bool `json:"dependency_only,omitempty"`
+
 	// Unique name of the operator.
 	Name string `json:"name,omitempty" gorm:"primaryKey"`
 

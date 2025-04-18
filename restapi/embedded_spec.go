@@ -9686,6 +9686,10 @@ func init() {
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primaryKey\""
         },
+        "dependency_only": {
+          "description": "Whether the operator can't be installed without being required by another operator.",
+          "type": "boolean"
+        },
         "name": {
           "description": "Unique name of the operator.",
           "type": "string",
@@ -20747,6 +20751,10 @@ func init() {
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primaryKey\""
+        },
+        "dependency_only": {
+          "description": "Whether the operator can't be installed without being required by another operator.",
+          "type": "boolean"
         },
         "name": {
           "description": "Unique name of the operator.",

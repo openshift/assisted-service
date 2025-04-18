@@ -4122,6 +4122,9 @@ definitions:
             package: github.com/lib/pq
           hints:
             noValidation: true
+      dependency_only:
+        type: boolean
+        description: Whether the operator can't be installed without being required by another operator.
 
   operator-monitor-report:
     type: object
