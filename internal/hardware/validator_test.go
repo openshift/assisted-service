@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/netip"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/alecthomas/units"
+	"github.com/dustin/go-humanize"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -190,13 +192,13 @@ var _ = Describe("Disk eligibility", func() {
 		By("Check iSCSI is not eligible when host IPv4 address isn't set")
 		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(notEligibleReasons).To(ContainElement("Host IP address is not available"))
+		Expect(notEligibleReasons).To(ContainElement(iscsiHostIPNotAvailable))
 
 		By("Check iSCSI is not eligible when host IPv4 address is an empty string")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: ""}
 		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(notEligibleReasons).To(ContainElement("Host IP address is not available"))
+		Expect(notEligibleReasons).To(ContainElement(iscsiHostIPNotAvailable))
 
 		By("Check iSCSI is eligible when host IPv4 address is not part of default network interface")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
@@ -208,7 +210,7 @@ var _ = Describe("Disk eligibility", func() {
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1.2.3.4"}
 		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(notEligibleReasons).To(ContainElement("iSCSI host IP 1.2.3.4 is the same as host IP, they must be different"))
+		Expect(notEligibleReasons).To(ContainElement(fmt.Sprintf(wrongISCSINetworkTemplate, "1.2.3.4")))
 
 		By("Check iSCSI is eligible when host IPv6 address is not part of default network interface")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1002:db8::10"}
@@ -220,7 +222,7 @@ var _ = Describe("Disk eligibility", func() {
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1001:db8::10"}
 		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(notEligibleReasons).To(ContainElement("iSCSI host IP 1001:db8::10 is the same as host IP, they must be different"))
+		Expect(notEligibleReasons).To(ContainElement(fmt.Sprintf(wrongISCSINetworkTemplate, "1001:db8::10")))
 
 		By("Check iSCSI on older version is not eligible")
 		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "4.5.6.7"}
@@ -627,6 +629,223 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(notEligibleReasons).To(ContainElements(existingReasons))
 		Expect(notEligibleReasons).To(HaveLen(len(existingReasons) + 1))
+	})
+
+	It("Check all error message types are properly deduplicated", func() {
+		cluster.OpenshiftVersion = "4.15.0"
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil).AnyTimes()
+
+		By("Check tooSmallDiskTemplate deduplication")
+		// Use a small disk that will fail the size check
+		testDisk.SizeBytes = tooSmallSize
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+
+		requirements, err := hwvalidator.GetClusterHostRequirements(ctx, &cluster, &host)
+		Expect(err).ToNot(HaveOccurred())
+		minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
+
+		expectedMsg := fmt.Sprintf(
+			tooSmallDiskTemplate,
+			humanize.Bytes(uint64(testDisk.SizeBytes)),
+			humanize.Bytes(uint64(minSizeBytes)),
+		)
+
+		// First call to generate the error
+		firstCallReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(firstCallReasons).To(HaveLen(1))
+		Expect(firstCallReasons[0]).To(Equal(expectedMsg))
+
+		// Second call should deduplicate
+		secondCallReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(secondCallReasons).To(HaveLen(1))
+		Expect(secondCallReasons[0]).To(Equal(expectedMsg))
+
+		By("Check wrongDriveTypeTemplate deduplication")
+		// Reset disk size and set invalid drive type
+		testDisk.SizeBytes = bigEnoughSize
+		testDisk.DriveType = models.DriveTypeODD
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+
+		expectedMsg = fmt.Sprintf(
+			wrongDriveTypeTemplate,
+			testDisk.DriveType,
+			strings.Join(hwvalidator.(*validator).getValidDeviceStorageTypes(inventory.CPU.Architecture, cluster.OpenshiftVersion), ", "),
+		)
+
+		// First call to generate the error
+		firstCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(firstCallReasons).To(HaveLen(1))
+		Expect(firstCallReasons[0]).To(Equal(expectedMsg))
+
+		// Second call should deduplicate
+		secondCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(secondCallReasons).To(HaveLen(1))
+		Expect(secondCallReasons[0]).To(Equal(expectedMsg))
+
+		By("Check wrongMultipathTypeTemplate deduplication")
+		testDisk.DriveType = models.DriveTypeMultipath
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+		// Empty inventory.Disks to trigger the multipath error
+		inventory.Disks = []*models.Disk{&testDisk}
+
+		expectedMsg = fmt.Sprintf(wrongMultipathTypeTemplate, fmt.Sprintf("%s, %s", models.DriveTypeFC, models.DriveTypeISCSI))
+
+		// First call to generate the error
+		firstCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(firstCallReasons).To(HaveLen(1))
+		Expect(firstCallReasons[0]).To(Equal(expectedMsg))
+
+		// Second call should deduplicate
+		secondCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(secondCallReasons).To(HaveLen(1))
+		Expect(secondCallReasons[0]).To(Equal(expectedMsg))
+
+		By("Check mixedTypesInMultipath deduplication")
+		testDisk.DriveType = models.DriveTypeMultipath
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+
+		// Add both FC and iSCSI disks to trigger mixed types error
+		fcDisk := models.Disk{Name: "sda", DriveType: models.DriveTypeFC, Holders: testDisk.Name}
+		iscsiDisk := models.Disk{
+			Name:      "sdb",
+			DriveType: models.DriveTypeISCSI,
+			Holders:   testDisk.Name,
+			// Add valid iSCSI config to prevent iSCSI validation error
+			Iscsi: &models.Iscsi{HostIPAddress: "4.5.6.7"},
+		}
+		inventory.Disks = []*models.Disk{&testDisk, &fcDisk, &iscsiDisk}
+
+		// First call to generate the error
+		firstCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(firstCallReasons).To(HaveLen(1))
+		Expect(firstCallReasons[0]).To(Equal(mixedTypesInMultipath))
+
+		// Second call should deduplicate
+		secondCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(secondCallReasons).To(HaveLen(1))
+		Expect(secondCallReasons[0]).To(Equal(mixedTypesInMultipath))
+
+		By("Check ErrsInIscsiDisableMultipathInstallation deduplication")
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+
+		testDisk.Name = "dm-0"
+		testDisk.DriveType = models.DriveTypeMultipath
+
+		iscsiDisk = models.Disk{
+			Name:      "sda",
+			DriveType: models.DriveTypeISCSI,
+			Holders:   testDisk.Name,
+			// Missing Iscsi config to trigger the error
+		}
+
+		inventory.Disks = []*models.Disk{&testDisk, &iscsiDisk}
+
+		// First call to generate the error
+		firstCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(firstCallReasons).To(HaveLen(1))
+		Expect(firstCallReasons[0]).To(Equal(ErrsInIscsiDisableMultipathInstallation))
+
+		// Second call should deduplicate
+		secondCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(secondCallReasons).To(HaveLen(1))
+		Expect(secondCallReasons[0]).To(Equal(ErrsInIscsiDisableMultipathInstallation))
+
+		By("Check iscsiHostIPNotAvailable deduplication")
+		testDisk.DriveType = models.DriveTypeISCSI
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+		// No iSCSI config to trigger the error
+		testDisk.Iscsi = nil
+
+		// First call to generate the error
+		firstCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(firstCallReasons).To(HaveLen(1))
+		Expect(firstCallReasons[0]).To(Equal(iscsiHostIPNotAvailable))
+
+		// Second call should deduplicate
+		secondCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(secondCallReasons).To(HaveLen(1))
+		Expect(secondCallReasons[0]).To(Equal(iscsiHostIPNotAvailable))
+
+		By("Check wrongISCSINetworkTemplate deduplication")
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: "1.2.3.4"}
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+
+		// Setup routes and interfaces to trigger the network error
+		inventory.Routes = []*models.Route{{
+			Family:      int32(common.IPv4),
+			Interface:   "eth0",
+			Gateway:     "192.168.1.1",
+			Destination: "0.0.0.0",
+		}}
+		inventory.Interfaces = []*models.Interface{{
+			Name:          "eth0",
+			IPV4Addresses: []string{"1.2.3.4/24"},
+		}}
+
+		expectedMsg = fmt.Sprintf(wrongISCSINetworkTemplate, "1.2.3.4")
+
+		// First call to generate the error
+		firstCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(firstCallReasons).To(HaveLen(1))
+		Expect(firstCallReasons[0]).To(Equal(expectedMsg))
+
+		// Second call should deduplicate
+		secondCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(secondCallReasons).To(HaveLen(1))
+		Expect(secondCallReasons[0]).To(Equal(expectedMsg))
+
+		By("Check iscsiNetworkInterfaceNotFound deduplication")
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+		// Keep route but remove interface to trigger not found error
+		inventory.Interfaces = []*models.Interface{}
+
+		// First call to generate the error
+		firstCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(firstCallReasons).To(HaveLen(1))
+		Expect(firstCallReasons[0]).To(Equal(iscsiNetworkInterfaceNotFound))
+
+		// Second call should deduplicate
+		secondCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(secondCallReasons).To(HaveLen(1))
+		Expect(secondCallReasons[0]).To(Equal(iscsiNetworkInterfaceNotFound))
+
+		By("Check iscsiHostIPParseErrorTemplate deduplication")
+		invalidIP := "invalid-ip-address"
+		testDisk.DriveType = models.DriveTypeISCSI
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: invalidIP}
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+
+		// Simulate the same parse error the real code would produce
+		_, parseErr := netip.ParseAddr(invalidIP)
+		expectedMsg = fmt.Errorf(iscsiHostIPParseErrorTemplate, invalidIP, parseErr).Error()
+
+		// First call to generate the error
+		firstCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(firstCallReasons).To(HaveLen(1))
+		Expect(firstCallReasons[0]).To(Equal(expectedMsg))
+
+		// Second call should deduplicate
+		secondCallReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(secondCallReasons).To(HaveLen(1))
+		Expect(secondCallReasons[0]).To(Equal(expectedMsg))
 	})
 })
 
