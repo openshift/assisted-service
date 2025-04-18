@@ -134,6 +134,21 @@ func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, infraEnvId strfmt.UUID, hostI
 	return host, nil
 }
 
+func TruncateStatusInfo(statusInfo string, log logrus.FieldLogger) string {
+	// varchar(2048) in the db
+	if len(statusInfo) > StatusInfoMaxLength {
+		// varchar(2048) means maximum 2048 characters in postgres, which translates into different
+		// byte length in different encodings (chosen when the db is created).
+		// This is the most restrictive, so it should be ok for all character sets.
+		// It could truncate in the middle of a rune, but it's very unlikely.
+		log.Warnf("StatusInfo is too long, truncating to %d characters: %s", StatusInfoMaxLength, statusInfo)
+
+		statusInfo = statusInfo[:StatusInfoMaxLength]
+	}
+
+	return statusInfo
+}
+
 func hostExistsInDB(db *gorm.DB, hostId, infraEnvId strfmt.UUID, where map[string]interface{}) bool {
 	where["id"] = hostId.String()
 	where["infra_env_id"] = infraEnvId.String()

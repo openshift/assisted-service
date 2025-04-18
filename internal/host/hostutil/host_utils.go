@@ -28,6 +28,8 @@ import (
 const (
 	MaxHostnameLength = 63
 	HostnamePattern   = "^[a-z0-9][a-z0-9-]{0,62}(?:[.][a-z0-9-]{1,63})*$"
+
+	StatusInfoMaxLength = 2040
 )
 
 var ForbiddenHostnames = []string{
