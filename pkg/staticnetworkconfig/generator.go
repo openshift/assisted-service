@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/nmstate/nmstate/rust/src/go/nmstate"
+	"github.com/nmstate/nmstate/rust/src/go/nmstate/v2"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
