@@ -238,7 +238,7 @@ spec:
         - name: name
           value: buildah
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-buildah:0.4@sha256:a16437e1b910d4a36728c94e5e6e79f542787bf0588ad4b5c9dd67cef446e233
+          value: quay.io/konflux-ci/tekton-catalog/task-buildah:0.4@sha256:ad681435bc98dbfe766a1a53555ca40a9437b857db0e348c0f80f23985e7d1db
         - name: kind
           value: task
         resolver: bundles
@@ -261,7 +261,7 @@ spec:
         - name: name
           value: source-build
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-source-build:0.2@sha256:56190463c3841dbbee69ab6d7a64da065710a745391ca147193f644bd079d273
+          value: quay.io/konflux-ci/tekton-catalog/task-source-build:0.2@sha256:23877bc67736b0e98bb72bb74867ecd7615ad5fa7a1bc236d28726829de611bc
         - name: kind
           value: task
         resolver: bundles
@@ -354,7 +354,7 @@ spec:
         - name: name
           value: sast-snyk-check
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-sast-snyk-check:0.3@sha256:1a8c1482d800f091cb8096f31d23a2e2935062c2a32a286805f4b2d8e094169a
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-snyk-check:0.4@sha256:0d22dbaa528c8edf59aafab3600a0537b5408b80a4f69dd9cb616620795ecdc8
         - name: kind
           value: task
         resolver: bundles
@@ -379,7 +379,7 @@ spec:
         - name: name
           value: clamav-scan
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-clamav-scan:0.2@sha256:dd7b678be8f48ff831e0be614f76434b495b580342b6019d8dd38f395b0cd999
+          value: quay.io/konflux-ci/tekton-catalog/task-clamav-scan:0.2@sha256:11b1684965b64f1fa7c65f90a3524413022246a3863eaba188c84eb4bf0b687a
         - name: kind
           value: task
         resolver: bundles
@@ -418,7 +418,7 @@ spec:
         - name: name
           value: sast-coverity-check
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-sast-coverity-check:0.2@sha256:e414153f290fdaee491144ae28e7d4e16130660cff1ed9621b8a724b3bdf3c6f
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-coverity-check:0.3@sha256:3956dbef5a0ba304a8109133c2fcce3d5db2235438ca31919532da451cf809fd
         - name: kind
           value: task
         resolver: bundles
@@ -464,7 +464,7 @@ spec:
         - name: name
           value: sast-shell-check
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-sast-shell-check:0.1@sha256:b4167347d57e189289ebc0df61ed937cfd969bd1220e154b226d4517bfb14cb7
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-shell-check:0.1@sha256:188a4f6a582ac43d4de46c3998ded3c2a8ee237fb0604d90559a3b6e0aa62b0f
         - name: kind
           value: task
         resolver: bundles
@@ -487,7 +487,7 @@ spec:
         - name: name
           value: sast-unicode-check
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check:0.1@sha256:33f4ca4d3cc58c011f280fc7c62fae1e202bbd7e989a8a4678039302f14c5ed9
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check:0.2@sha256:e4a5215b45b1886a185a9db8ab392f8440c2b0848f76d719885637cf8d2628ed
         - name: kind
           value: task
         resolver: bundles
