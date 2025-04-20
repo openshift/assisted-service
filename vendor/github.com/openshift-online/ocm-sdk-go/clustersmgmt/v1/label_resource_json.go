@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readLabelDeleteRequest(request *LabelDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeLabelDeleteRequest(request *LabelDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readLabelDeleteResponse(response *LabelDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeLabelDeleteResponse(response *LabelDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readLabelGetRequest(request *LabelGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeLabelGetRequest(request *LabelGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readLabelGetResponse(response *LabelGetResponse, reader io.Reader) error {
 	response.body, err = UnmarshalLabel(reader)
 	return err
 }
-func writeLabelGetResponse(response *LabelGetServerResponse, w http.ResponseWriter) error {
-	return MarshalLabel(response.body, w)
-}
-func readLabelUpdateRequest(request *LabelUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalLabel(r.Body)
-	return err
-}
 func writeLabelUpdateRequest(request *LabelUpdateRequest, writer io.Writer) error {
 	return MarshalLabel(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readLabelUpdateResponse(response *LabelUpdateResponse, reader io.Reader) er
 	var err error
 	response.body, err = UnmarshalLabel(reader)
 	return err
-}
-func writeLabelUpdateResponse(response *LabelUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalLabel(response.body, w)
 }

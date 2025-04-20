@@ -37,6 +37,11 @@ func (b *AddOnInstallationListBuilder) Items(values ...*AddOnInstallationBuilder
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *AddOnInstallationListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *AddOnInstallationListBuilder) Copy(list *AddOnInstallationList) *AddOnInstallationListBuilder {
 	if list == nil || list.items == nil {

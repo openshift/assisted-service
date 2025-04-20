@@ -37,6 +37,11 @@ func (b *ValueUnitListBuilder) Items(values ...*ValueUnitBuilder) *ValueUnitList
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *ValueUnitListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *ValueUnitListBuilder) Copy(list *ValueUnitList) *ValueUnitListBuilder {
 	if list == nil || list.items == nil {

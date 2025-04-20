@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // ClusterMetricsNodesBuilder contains the data and logic needed to build 'cluster_metrics_nodes' objects.
-//
-//
 type ClusterMetricsNodesBuilder struct {
 	bitmap_ uint32
 	compute float64
@@ -35,9 +33,12 @@ func NewClusterMetricsNodes() *ClusterMetricsNodesBuilder {
 	return &ClusterMetricsNodesBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *ClusterMetricsNodesBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // Compute sets the value of the 'compute' attribute to the given value.
-//
-//
 func (b *ClusterMetricsNodesBuilder) Compute(value float64) *ClusterMetricsNodesBuilder {
 	b.compute = value
 	b.bitmap_ |= 1
@@ -45,8 +46,6 @@ func (b *ClusterMetricsNodesBuilder) Compute(value float64) *ClusterMetricsNodes
 }
 
 // Infra sets the value of the 'infra' attribute to the given value.
-//
-//
 func (b *ClusterMetricsNodesBuilder) Infra(value float64) *ClusterMetricsNodesBuilder {
 	b.infra = value
 	b.bitmap_ |= 2
@@ -54,8 +53,6 @@ func (b *ClusterMetricsNodesBuilder) Infra(value float64) *ClusterMetricsNodesBu
 }
 
 // Master sets the value of the 'master' attribute to the given value.
-//
-//
 func (b *ClusterMetricsNodesBuilder) Master(value float64) *ClusterMetricsNodesBuilder {
 	b.master = value
 	b.bitmap_ |= 4
@@ -63,8 +60,6 @@ func (b *ClusterMetricsNodesBuilder) Master(value float64) *ClusterMetricsNodesB
 }
 
 // Total sets the value of the 'total' attribute to the given value.
-//
-//
 func (b *ClusterMetricsNodesBuilder) Total(value float64) *ClusterMetricsNodesBuilder {
 	b.total = value
 	b.bitmap_ |= 8

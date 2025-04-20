@@ -24,8 +24,6 @@ import (
 )
 
 // OrganizationBuilder contains the data and logic needed to build 'organization' objects.
-//
-//
 type OrganizationBuilder struct {
 	bitmap_      uint32
 	id           string
@@ -64,9 +62,12 @@ func (b *OrganizationBuilder) HREF(value string) *OrganizationBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *OrganizationBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Capabilities sets the value of the 'capabilities' attribute to the given values.
-//
-//
 func (b *OrganizationBuilder) Capabilities(values ...*CapabilityBuilder) *OrganizationBuilder {
 	b.capabilities = make([]*CapabilityBuilder, len(values))
 	copy(b.capabilities, values)
@@ -75,8 +76,6 @@ func (b *OrganizationBuilder) Capabilities(values ...*CapabilityBuilder) *Organi
 }
 
 // CreatedAt sets the value of the 'created_at' attribute to the given value.
-//
-//
 func (b *OrganizationBuilder) CreatedAt(value time.Time) *OrganizationBuilder {
 	b.createdAt = value
 	b.bitmap_ |= 16
@@ -84,8 +83,6 @@ func (b *OrganizationBuilder) CreatedAt(value time.Time) *OrganizationBuilder {
 }
 
 // EbsAccountID sets the value of the 'ebs_account_ID' attribute to the given value.
-//
-//
 func (b *OrganizationBuilder) EbsAccountID(value string) *OrganizationBuilder {
 	b.ebsAccountID = value
 	b.bitmap_ |= 32
@@ -93,8 +90,6 @@ func (b *OrganizationBuilder) EbsAccountID(value string) *OrganizationBuilder {
 }
 
 // ExternalID sets the value of the 'external_ID' attribute to the given value.
-//
-//
 func (b *OrganizationBuilder) ExternalID(value string) *OrganizationBuilder {
 	b.externalID = value
 	b.bitmap_ |= 64
@@ -102,8 +97,6 @@ func (b *OrganizationBuilder) ExternalID(value string) *OrganizationBuilder {
 }
 
 // Labels sets the value of the 'labels' attribute to the given values.
-//
-//
 func (b *OrganizationBuilder) Labels(values ...*LabelBuilder) *OrganizationBuilder {
 	b.labels = make([]*LabelBuilder, len(values))
 	copy(b.labels, values)
@@ -112,8 +105,6 @@ func (b *OrganizationBuilder) Labels(values ...*LabelBuilder) *OrganizationBuild
 }
 
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *OrganizationBuilder) Name(value string) *OrganizationBuilder {
 	b.name = value
 	b.bitmap_ |= 256
@@ -121,8 +112,6 @@ func (b *OrganizationBuilder) Name(value string) *OrganizationBuilder {
 }
 
 // UpdatedAt sets the value of the 'updated_at' attribute to the given value.
-//
-//
 func (b *OrganizationBuilder) UpdatedAt(value time.Time) *OrganizationBuilder {
 	b.updatedAt = value
 	b.bitmap_ |= 512

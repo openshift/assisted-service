@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readResourceQuotaDeleteRequest(request *ResourceQuotaDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeResourceQuotaDeleteRequest(request *ResourceQuotaDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readResourceQuotaDeleteResponse(response *ResourceQuotaDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeResourceQuotaDeleteResponse(response *ResourceQuotaDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readResourceQuotaGetRequest(request *ResourceQuotaGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeResourceQuotaGetRequest(request *ResourceQuotaGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readResourceQuotaGetResponse(response *ResourceQuotaGetResponse, reader io.
 	response.body, err = UnmarshalResourceQuota(reader)
 	return err
 }
-func writeResourceQuotaGetResponse(response *ResourceQuotaGetServerResponse, w http.ResponseWriter) error {
-	return MarshalResourceQuota(response.body, w)
-}
-func readResourceQuotaUpdateRequest(request *ResourceQuotaUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalResourceQuota(r.Body)
-	return err
-}
 func writeResourceQuotaUpdateRequest(request *ResourceQuotaUpdateRequest, writer io.Writer) error {
 	return MarshalResourceQuota(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readResourceQuotaUpdateResponse(response *ResourceQuotaUpdateResponse, read
 	var err error
 	response.body, err = UnmarshalResourceQuota(reader)
 	return err
-}
-func writeResourceQuotaUpdateResponse(response *ResourceQuotaUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalResourceQuota(response.body, w)
 }

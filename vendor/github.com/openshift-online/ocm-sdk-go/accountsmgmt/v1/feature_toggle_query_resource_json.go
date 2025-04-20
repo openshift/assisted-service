@@ -19,16 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readFeatureToggleQueryPostRequest(request *FeatureToggleQueryPostServerRequest, r *http.Request) error {
-	var err error
-	request.request, err = UnmarshalFeatureToggleQueryRequest(r)
-	return err
-}
 func writeFeatureToggleQueryPostRequest(request *FeatureToggleQueryPostRequest, writer io.Writer) error {
 	return MarshalFeatureToggleQueryRequest(request.request, writer)
 }
@@ -36,7 +28,4 @@ func readFeatureToggleQueryPostResponse(response *FeatureToggleQueryPostResponse
 	var err error
 	response.response, err = UnmarshalFeatureToggle(reader)
 	return err
-}
-func writeFeatureToggleQueryPostResponse(response *FeatureToggleQueryPostServerResponse, w http.ResponseWriter) error {
-	return MarshalFeatureToggle(response.response, w)
 }

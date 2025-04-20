@@ -21,16 +21,10 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
 
-func readResourceQuotasAddRequest(request *ResourceQuotasAddServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalResourceQuota(r.Body)
-	return err
-}
 func writeResourceQuotasAddRequest(request *ResourceQuotasAddRequest, writer io.Writer) error {
 	return MarshalResourceQuota(request.body, writer)
 }
@@ -38,32 +32,6 @@ func readResourceQuotasAddResponse(response *ResourceQuotasAddResponse, reader i
 	var err error
 	response.body, err = UnmarshalResourceQuota(reader)
 	return err
-}
-func writeResourceQuotasAddResponse(response *ResourceQuotasAddServerResponse, w http.ResponseWriter) error {
-	return MarshalResourceQuota(response.body, w)
-}
-func readResourceQuotasListRequest(request *ResourceQuotasListServerRequest, r *http.Request) error {
-	var err error
-	query := r.URL.Query()
-	request.page, err = helpers.ParseInteger(query, "page")
-	if err != nil {
-		return err
-	}
-	if request.page == nil {
-		request.page = helpers.NewInteger(1)
-	}
-	request.search, err = helpers.ParseString(query, "search")
-	if err != nil {
-		return err
-	}
-	request.size, err = helpers.ParseInteger(query, "size")
-	if err != nil {
-		return err
-	}
-	if request.size == nil {
-		request.size = helpers.NewInteger(100)
-	}
-	return nil
 }
 func writeResourceQuotasListRequest(request *ResourceQuotasListRequest, writer io.Writer) error {
 	return nil
@@ -89,7 +57,7 @@ func readResourceQuotasListResponse(response *ResourceQuotasListResponse, reader
 			value := iterator.ReadInt()
 			response.total = &value
 		case "items":
-			items := readResourceQuotaList(iterator)
+			items := ReadResourceQuotaList(iterator)
 			response.items = &ResourceQuotaList{
 				items: items,
 			}
@@ -98,56 +66,4 @@ func readResourceQuotasListResponse(response *ResourceQuotasListResponse, reader
 		}
 	}
 	return iterator.Error
-}
-func writeResourceQuotasListResponse(response *ResourceQuotasListServerResponse, w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.status)
-	stream := helpers.NewStream(w)
-	stream.WriteObjectStart()
-	stream.WriteObjectField("kind")
-	count := 1
-	stream.WriteString(ResourceQuotaListKind)
-	if response.items != nil && response.items.href != "" {
-		stream.WriteMore()
-		stream.WriteObjectField("href")
-		stream.WriteString(response.items.href)
-		count++
-	}
-	if response.page != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("page")
-		stream.WriteInt(*response.page)
-		count++
-	}
-	if response.size != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("size")
-		stream.WriteInt(*response.size)
-		count++
-	}
-	if response.total != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("total")
-		stream.WriteInt(*response.total)
-		count++
-	}
-	if response.items != nil {
-		if response.items.items != nil {
-			if count > 0 {
-				stream.WriteMore()
-			}
-			stream.WriteObjectField("items")
-			writeResourceQuotaList(response.items.items, stream)
-			count++
-		}
-	}
-	stream.WriteObjectEnd()
-	stream.Flush()
-	return stream.Error
 }

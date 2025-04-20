@@ -37,6 +37,11 @@ func (b *AddOnParameterListBuilder) Items(values ...*AddOnParameterBuilder) *Add
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *AddOnParameterListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *AddOnParameterListBuilder) Copy(list *AddOnParameterList) *AddOnParameterListBuilder {
 	if list == nil || list.items == nil {

@@ -40,6 +40,7 @@ type CloudProvider struct {
 	href        string
 	displayName string
 	name        string
+	regions     []*CloudRegion
 }
 
 // Kind returns the name of the type of the object.
@@ -53,7 +54,7 @@ func (o *CloudProvider) Kind() string {
 	return CloudProviderKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *CloudProvider) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -147,6 +148,29 @@ func (o *CloudProvider) GetName() (value string, ok bool) {
 	return
 }
 
+// Regions returns the value of the 'regions' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// (optional) Provider's regions - only included when listing providers with `fetchRegions=true`.
+func (o *CloudProvider) Regions() []*CloudRegion {
+	if o != nil && o.bitmap_&32 != 0 {
+		return o.regions
+	}
+	return nil
+}
+
+// GetRegions returns the value of the 'regions' attribute and
+// a flag indicating if the attribute has a value.
+//
+// (optional) Provider's regions - only included when listing providers with `fetchRegions=true`.
+func (o *CloudProvider) GetRegions() (value []*CloudRegion, ok bool) {
+	ok = o != nil && o.bitmap_&32 != 0
+	if ok {
+		value = o.regions
+	}
+	return
+}
+
 // CloudProviderListKind is the name of the type used to represent list of objects of
 // type 'cloud_provider'.
 const CloudProviderListKind = "CloudProviderList"
@@ -206,6 +230,29 @@ func (l *CloudProviderList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *CloudProviderList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *CloudProviderList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *CloudProviderList) SetItems(items []*CloudProvider) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *CloudProviderList) Items() []*CloudProvider {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

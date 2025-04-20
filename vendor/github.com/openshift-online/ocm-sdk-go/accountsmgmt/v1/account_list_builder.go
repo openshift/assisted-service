@@ -37,6 +37,11 @@ func (b *AccountListBuilder) Items(values ...*AccountBuilder) *AccountListBuilde
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *AccountListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *AccountListBuilder) Copy(list *AccountList) *AccountListBuilder {
 	if list == nil || list.items == nil {

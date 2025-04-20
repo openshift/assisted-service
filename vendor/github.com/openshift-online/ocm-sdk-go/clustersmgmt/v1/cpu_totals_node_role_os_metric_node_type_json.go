@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalCPUTotalsNodeRoleOSMetricNode writes a value of the 'CPU_totals_node_role_OS_metric_node' type to the given writer.
 func MarshalCPUTotalsNodeRoleOSMetricNode(object *CPUTotalsNodeRoleOSMetricNode, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeCPUTotalsNodeRoleOSMetricNode(object, stream)
-	stream.Flush()
+	WriteCPUTotalsNodeRoleOSMetricNode(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeCPUTotalsNodeRoleOSMetricNode writes a value of the 'CPU_totals_node_role_OS_metric_node' type to the given stream.
-func writeCPUTotalsNodeRoleOSMetricNode(object *CPUTotalsNodeRoleOSMetricNode, stream *jsoniter.Stream) {
+// WriteCPUTotalsNodeRoleOSMetricNode writes a value of the 'CPU_totals_node_role_OS_metric_node' type to the given stream.
+func WriteCPUTotalsNodeRoleOSMetricNode(object *CPUTotalsNodeRoleOSMetricNode, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -46,8 +48,7 @@ func writeCPUTotalsNodeRoleOSMetricNode(object *CPUTotalsNodeRoleOSMetricNode, s
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("cpu_totals")
-		writeCPUTotalNodeRoleOSMetricNodeList(object.cpuTotals, stream)
-		count++
+		WriteCPUTotalNodeRoleOSMetricNodeList(object.cpuTotals, stream)
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeCPUTotalsNodeRoleOSMetricNode(object *CPUTotalsNodeRoleOSMetricNode, s
 // UnmarshalCPUTotalsNodeRoleOSMetricNode reads a value of the 'CPU_totals_node_role_OS_metric_node' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalCPUTotalsNodeRoleOSMetricNode(source interface{}) (object *CPUTotalsNodeRoleOSMetricNode, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readCPUTotalsNodeRoleOSMetricNode(iterator)
+	object = ReadCPUTotalsNodeRoleOSMetricNode(iterator)
 	err = iterator.Error
 	return
 }
 
-// readCPUTotalsNodeRoleOSMetricNode reads a value of the 'CPU_totals_node_role_OS_metric_node' type from the given iterator.
-func readCPUTotalsNodeRoleOSMetricNode(iterator *jsoniter.Iterator) *CPUTotalsNodeRoleOSMetricNode {
+// ReadCPUTotalsNodeRoleOSMetricNode reads a value of the 'CPU_totals_node_role_OS_metric_node' type from the given iterator.
+func ReadCPUTotalsNodeRoleOSMetricNode(iterator *jsoniter.Iterator) *CPUTotalsNodeRoleOSMetricNode {
 	object := &CPUTotalsNodeRoleOSMetricNode{}
 	for {
 		field := iterator.ReadObject()
@@ -77,7 +75,7 @@ func readCPUTotalsNodeRoleOSMetricNode(iterator *jsoniter.Iterator) *CPUTotalsNo
 		}
 		switch field {
 		case "cpu_totals":
-			value := readCPUTotalNodeRoleOSMetricNodeList(iterator)
+			value := ReadCPUTotalNodeRoleOSMetricNodeList(iterator)
 			object.cpuTotals = value
 			object.bitmap_ |= 1
 		default:

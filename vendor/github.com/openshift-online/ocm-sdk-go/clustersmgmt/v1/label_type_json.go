@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalLabel writes a value of the 'label' type to the given writer.
 func MarshalLabel(object *Label, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeLabel(object, stream)
-	stream.Flush()
+	WriteLabel(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeLabel writes a value of the 'label' type to the given stream.
-func writeLabel(object *Label, stream *jsoniter.Stream) {
+// WriteLabel writes a value of the 'label' type to the given stream.
+func WriteLabel(object *Label, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -79,7 +81,6 @@ func writeLabel(object *Label, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("value")
 		stream.WriteString(object.value)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -87,20 +88,17 @@ func writeLabel(object *Label, stream *jsoniter.Stream) {
 // UnmarshalLabel reads a value of the 'label' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalLabel(source interface{}) (object *Label, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readLabel(iterator)
+	object = ReadLabel(iterator)
 	err = iterator.Error
 	return
 }
 
-// readLabel reads a value of the 'label' type from the given iterator.
-func readLabel(iterator *jsoniter.Iterator) *Label {
+// ReadLabel reads a value of the 'label' type from the given iterator.
+func ReadLabel(iterator *jsoniter.Iterator) *Label {
 	object := &Label{}
 	for {
 		field := iterator.ReadObject()

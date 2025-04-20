@@ -20,15 +20,15 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -79,6 +79,16 @@ func (c *IdentityProviderClient) Update() *IdentityProviderUpdateRequest {
 		transport: c.transport,
 		path:      c.path,
 	}
+}
+
+// HtpasswdUsers returns the target 'HT_passwd_users' resource.
+//
+// Reference to the resource that manages the collection of _HTPasswd_ IDP users
+func (c *IdentityProviderClient) HtpasswdUsers() *HTPasswdUsersClient {
+	return NewHTPasswdUsersClient(
+		c.transport,
+		path.Join(c.path, "htpasswd_users"),
+	)
 }
 
 // IdentityProviderPollRequest is the request for the Poll method.
@@ -180,16 +190,12 @@ func (r *IdentityProviderPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *IdentityProviderPollResponse) Body() *IdentityProvider {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *IdentityProviderPollResponse) GetBody() (value *IdentityProvider, ok bool) {
 	return r.response.GetBody()
 }
@@ -219,6 +225,13 @@ func (r *IdentityProviderDeleteRequest) Parameter(name string, value interface{}
 // Header adds a request header.
 func (r *IdentityProviderDeleteRequest) Header(name string, value interface{}) *IdentityProviderDeleteRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *IdentityProviderDeleteRequest) Impersonate(user string) *IdentityProviderDeleteRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -254,8 +267,14 @@ func (r *IdentityProviderDeleteRequest) SendContext(ctx context.Context) (result
 	result = &IdentityProviderDeleteResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -316,6 +335,13 @@ func (r *IdentityProviderGetRequest) Header(name string, value interface{}) *Ide
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *IdentityProviderGetRequest) Impersonate(user string) *IdentityProviderGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -348,15 +374,21 @@ func (r *IdentityProviderGetRequest) SendContext(ctx context.Context) (result *I
 	result = &IdentityProviderGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readIdentityProviderGetResponse(result, response.Body)
+	err = readIdentityProviderGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -396,8 +428,6 @@ func (r *IdentityProviderGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *IdentityProviderGetResponse) Body() *IdentityProvider {
 	if r == nil {
 		return nil
@@ -407,8 +437,6 @@ func (r *IdentityProviderGetResponse) Body() *IdentityProvider {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *IdentityProviderGetResponse) GetBody() (value *IdentityProvider, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -438,9 +466,14 @@ func (r *IdentityProviderUpdateRequest) Header(name string, value interface{}) *
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *IdentityProviderUpdateRequest) Impersonate(user string) *IdentityProviderUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *IdentityProviderUpdateRequest) Body(value *IdentityProvider) *IdentityProviderUpdateRequest {
 	r.body = value
 	return r
@@ -471,7 +504,7 @@ func (r *IdentityProviderUpdateRequest) SendContext(ctx context.Context) (result
 		Method: "PATCH",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -484,29 +517,25 @@ func (r *IdentityProviderUpdateRequest) SendContext(ctx context.Context) (result
 	result = &IdentityProviderUpdateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readIdentityProviderUpdateResponse(result, response.Body)
+	err = readIdentityProviderUpdateResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'update' method.
-func (r *IdentityProviderUpdateRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *IdentityProviderUpdateRequest) stream(stream *jsoniter.Stream) {
 }
 
 // IdentityProviderUpdateResponse is the response for the 'update' method.
@@ -542,8 +571,6 @@ func (r *IdentityProviderUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *IdentityProviderUpdateResponse) Body() *IdentityProvider {
 	if r == nil {
 		return nil
@@ -553,8 +580,6 @@ func (r *IdentityProviderUpdateResponse) Body() *IdentityProvider {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *IdentityProviderUpdateResponse) GetBody() (value *IdentityProvider, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
