@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readIdentityProviderDeleteRequest(request *IdentityProviderDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeIdentityProviderDeleteRequest(request *IdentityProviderDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readIdentityProviderDeleteResponse(response *IdentityProviderDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeIdentityProviderDeleteResponse(response *IdentityProviderDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readIdentityProviderGetRequest(request *IdentityProviderGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeIdentityProviderGetRequest(request *IdentityProviderGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readIdentityProviderGetResponse(response *IdentityProviderGetResponse, read
 	response.body, err = UnmarshalIdentityProvider(reader)
 	return err
 }
-func writeIdentityProviderGetResponse(response *IdentityProviderGetServerResponse, w http.ResponseWriter) error {
-	return MarshalIdentityProvider(response.body, w)
-}
-func readIdentityProviderUpdateRequest(request *IdentityProviderUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalIdentityProvider(r.Body)
-	return err
-}
 func writeIdentityProviderUpdateRequest(request *IdentityProviderUpdateRequest, writer io.Writer) error {
 	return MarshalIdentityProvider(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readIdentityProviderUpdateResponse(response *IdentityProviderUpdateResponse
 	var err error
 	response.body, err = UnmarshalIdentityProvider(reader)
 	return err
-}
-func writeIdentityProviderUpdateResponse(response *IdentityProviderUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalIdentityProvider(response.body, w)
 }

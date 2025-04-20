@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -91,6 +93,13 @@ func (r *VersionsListRequest) Header(name string, value interface{}) *VersionsLi
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *VersionsListRequest) Impersonate(user string) *VersionsListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Order sets the value of the 'order' parameter.
 //
 // Order criteria.
@@ -100,10 +109,9 @@ func (r *VersionsListRequest) Header(name string, value interface{}) *VersionsLi
 // the names of the columns of a table. For example, in order to sort the versions
 // descending by identifier the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // id desc
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then the order of the
 // results is undefined.
@@ -129,10 +137,9 @@ func (r *VersionsListRequest) Page(value int) *VersionsListRequest {
 // the names of the columns of a table. For example, in order to retrieve all the
 // versions that are enabled:
 //
-// [source,sql]
-// ----
+// ```sql
 // enabled = 't'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the versions
 // that the user has permission to see will be returned.
@@ -195,15 +202,21 @@ func (r *VersionsListRequest) SendContext(ctx context.Context) (result *Versions
 	result = &VersionsListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readVersionsListResponse(result, response.Body)
+	err = readVersionsListResponse(result, reader)
 	if err != nil {
 		return
 	}

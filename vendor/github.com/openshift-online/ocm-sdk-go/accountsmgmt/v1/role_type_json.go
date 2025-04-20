@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalRole writes a value of the 'role' type to the given writer.
 func MarshalRole(object *Role, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeRole(object, stream)
-	stream.Flush()
+	WriteRole(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeRole writes a value of the 'role' type to the given stream.
-func writeRole(object *Role, stream *jsoniter.Stream) {
+// WriteRole writes a value of the 'role' type to the given stream.
+func WriteRole(object *Role, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -78,8 +80,7 @@ func writeRole(object *Role, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("permissions")
-		writePermissionList(object.permissions, stream)
-		count++
+		WritePermissionList(object.permissions, stream)
 	}
 	stream.WriteObjectEnd()
 }
@@ -87,20 +88,17 @@ func writeRole(object *Role, stream *jsoniter.Stream) {
 // UnmarshalRole reads a value of the 'role' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalRole(source interface{}) (object *Role, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readRole(iterator)
+	object = ReadRole(iterator)
 	err = iterator.Error
 	return
 }
 
-// readRole reads a value of the 'role' type from the given iterator.
-func readRole(iterator *jsoniter.Iterator) *Role {
+// ReadRole reads a value of the 'role' type from the given iterator.
+func ReadRole(iterator *jsoniter.Iterator) *Role {
 	object := &Role{}
 	for {
 		field := iterator.ReadObject()
@@ -124,7 +122,7 @@ func readRole(iterator *jsoniter.Iterator) *Role {
 			object.name = value
 			object.bitmap_ |= 8
 		case "permissions":
-			value := readPermissionList(iterator)
+			value := ReadPermissionList(iterator)
 			object.permissions = value
 			object.bitmap_ |= 16
 		default:

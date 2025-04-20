@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalClusterMetricsNodes writes a value of the 'cluster_metrics_nodes' type to the given writer.
 func MarshalClusterMetricsNodes(object *ClusterMetricsNodes, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeClusterMetricsNodes(object, stream)
-	stream.Flush()
+	WriteClusterMetricsNodes(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeClusterMetricsNodes writes a value of the 'cluster_metrics_nodes' type to the given stream.
-func writeClusterMetricsNodes(object *ClusterMetricsNodes, stream *jsoniter.Stream) {
+// WriteClusterMetricsNodes writes a value of the 'cluster_metrics_nodes' type to the given stream.
+func WriteClusterMetricsNodes(object *ClusterMetricsNodes, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -74,7 +76,6 @@ func writeClusterMetricsNodes(object *ClusterMetricsNodes, stream *jsoniter.Stre
 		}
 		stream.WriteObjectField("total")
 		stream.WriteFloat64(object.total)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -82,20 +83,17 @@ func writeClusterMetricsNodes(object *ClusterMetricsNodes, stream *jsoniter.Stre
 // UnmarshalClusterMetricsNodes reads a value of the 'cluster_metrics_nodes' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalClusterMetricsNodes(source interface{}) (object *ClusterMetricsNodes, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readClusterMetricsNodes(iterator)
+	object = ReadClusterMetricsNodes(iterator)
 	err = iterator.Error
 	return
 }
 
-// readClusterMetricsNodes reads a value of the 'cluster_metrics_nodes' type from the given iterator.
-func readClusterMetricsNodes(iterator *jsoniter.Iterator) *ClusterMetricsNodes {
+// ReadClusterMetricsNodes reads a value of the 'cluster_metrics_nodes' type from the given iterator.
+func ReadClusterMetricsNodes(iterator *jsoniter.Iterator) *ClusterMetricsNodes {
 	object := &ClusterMetricsNodes{}
 	for {
 		field := iterator.ReadObject()

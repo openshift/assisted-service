@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readGenericLabelDeleteRequest(request *GenericLabelDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeGenericLabelDeleteRequest(request *GenericLabelDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readGenericLabelDeleteResponse(response *GenericLabelDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeGenericLabelDeleteResponse(response *GenericLabelDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readGenericLabelGetRequest(request *GenericLabelGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeGenericLabelGetRequest(request *GenericLabelGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readGenericLabelGetResponse(response *GenericLabelGetResponse, reader io.Re
 	response.body, err = UnmarshalLabel(reader)
 	return err
 }
-func writeGenericLabelGetResponse(response *GenericLabelGetServerResponse, w http.ResponseWriter) error {
-	return MarshalLabel(response.body, w)
-}
-func readGenericLabelUpdateRequest(request *GenericLabelUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalLabel(r.Body)
-	return err
-}
 func writeGenericLabelUpdateRequest(request *GenericLabelUpdateRequest, writer io.Writer) error {
 	return MarshalLabel(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readGenericLabelUpdateResponse(response *GenericLabelUpdateResponse, reader
 	var err error
 	response.body, err = UnmarshalLabel(reader)
 	return err
-}
-func writeGenericLabelUpdateResponse(response *GenericLabelUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalLabel(response.body, w)
 }

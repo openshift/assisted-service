@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readRoleBindingDeleteRequest(request *RoleBindingDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeRoleBindingDeleteRequest(request *RoleBindingDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readRoleBindingDeleteResponse(response *RoleBindingDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeRoleBindingDeleteResponse(response *RoleBindingDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readRoleBindingGetRequest(request *RoleBindingGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeRoleBindingGetRequest(request *RoleBindingGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readRoleBindingGetResponse(response *RoleBindingGetResponse, reader io.Read
 	response.body, err = UnmarshalRoleBinding(reader)
 	return err
 }
-func writeRoleBindingGetResponse(response *RoleBindingGetServerResponse, w http.ResponseWriter) error {
-	return MarshalRoleBinding(response.body, w)
-}
-func readRoleBindingUpdateRequest(request *RoleBindingUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalRoleBinding(r.Body)
-	return err
-}
 func writeRoleBindingUpdateRequest(request *RoleBindingUpdateRequest, writer io.Writer) error {
 	return MarshalRoleBinding(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readRoleBindingUpdateResponse(response *RoleBindingUpdateResponse, reader i
 	var err error
 	response.body, err = UnmarshalRoleBinding(reader)
 	return err
-}
-func writeRoleBindingUpdateResponse(response *RoleBindingUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalRoleBinding(response.body, w)
 }

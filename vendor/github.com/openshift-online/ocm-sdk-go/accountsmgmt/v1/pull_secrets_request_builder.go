@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // PullSecretsRequestBuilder contains the data and logic needed to build 'pull_secrets_request' objects.
-//
-//
 type PullSecretsRequestBuilder struct {
 	bitmap_            uint32
 	externalResourceId string
@@ -32,9 +30,12 @@ func NewPullSecretsRequest() *PullSecretsRequestBuilder {
 	return &PullSecretsRequestBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *PullSecretsRequestBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // ExternalResourceId sets the value of the 'external_resource_id' attribute to the given value.
-//
-//
 func (b *PullSecretsRequestBuilder) ExternalResourceId(value string) *PullSecretsRequestBuilder {
 	b.externalResourceId = value
 	b.bitmap_ |= 1

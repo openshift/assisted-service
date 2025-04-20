@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readRoleDeleteRequest(request *RoleDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeRoleDeleteRequest(request *RoleDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readRoleDeleteResponse(response *RoleDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeRoleDeleteResponse(response *RoleDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readRoleGetRequest(request *RoleGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeRoleGetRequest(request *RoleGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readRoleGetResponse(response *RoleGetResponse, reader io.Reader) error {
 	response.body, err = UnmarshalRole(reader)
 	return err
 }
-func writeRoleGetResponse(response *RoleGetServerResponse, w http.ResponseWriter) error {
-	return MarshalRole(response.body, w)
-}
-func readRoleUpdateRequest(request *RoleUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalRole(r.Body)
-	return err
-}
 func writeRoleUpdateRequest(request *RoleUpdateRequest, writer io.Writer) error {
 	return MarshalRole(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readRoleUpdateResponse(response *RoleUpdateResponse, reader io.Reader) erro
 	var err error
 	response.body, err = UnmarshalRole(reader)
 	return err
-}
-func writeRoleUpdateResponse(response *RoleUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalRole(response.body, w)
 }

@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -31,13 +30,16 @@ import (
 // MarshalOrganization writes a value of the 'organization' type to the given writer.
 func MarshalOrganization(object *Organization, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeOrganization(object, stream)
-	stream.Flush()
+	WriteOrganization(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeOrganization writes a value of the 'organization' type to the given stream.
-func writeOrganization(object *Organization, stream *jsoniter.Stream) {
+// WriteOrganization writes a value of the 'organization' type to the given stream.
+func WriteOrganization(object *Organization, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -70,7 +72,7 @@ func writeOrganization(object *Organization, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("capabilities")
-		writeCapabilityList(object.capabilities, stream)
+		WriteCapabilityList(object.capabilities, stream)
 		count++
 	}
 	present_ = object.bitmap_&16 != 0
@@ -106,7 +108,7 @@ func writeOrganization(object *Organization, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("labels")
-		writeLabelList(object.labels, stream)
+		WriteLabelList(object.labels, stream)
 		count++
 	}
 	present_ = object.bitmap_&256 != 0
@@ -125,7 +127,6 @@ func writeOrganization(object *Organization, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("updated_at")
 		stream.WriteString((object.updatedAt).Format(time.RFC3339))
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -133,20 +134,17 @@ func writeOrganization(object *Organization, stream *jsoniter.Stream) {
 // UnmarshalOrganization reads a value of the 'organization' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalOrganization(source interface{}) (object *Organization, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readOrganization(iterator)
+	object = ReadOrganization(iterator)
 	err = iterator.Error
 	return
 }
 
-// readOrganization reads a value of the 'organization' type from the given iterator.
-func readOrganization(iterator *jsoniter.Iterator) *Organization {
+// ReadOrganization reads a value of the 'organization' type from the given iterator.
+func ReadOrganization(iterator *jsoniter.Iterator) *Organization {
 	object := &Organization{}
 	for {
 		field := iterator.ReadObject()
@@ -166,7 +164,7 @@ func readOrganization(iterator *jsoniter.Iterator) *Organization {
 			object.href = iterator.ReadString()
 			object.bitmap_ |= 4
 		case "capabilities":
-			value := readCapabilityList(iterator)
+			value := ReadCapabilityList(iterator)
 			object.capabilities = value
 			object.bitmap_ |= 8
 		case "created_at":
@@ -186,7 +184,7 @@ func readOrganization(iterator *jsoniter.Iterator) *Organization {
 			object.externalID = value
 			object.bitmap_ |= 64
 		case "labels":
-			value := readLabelList(iterator)
+			value := ReadLabelList(iterator)
 			object.labels = value
 			object.bitmap_ |= 128
 		case "name":

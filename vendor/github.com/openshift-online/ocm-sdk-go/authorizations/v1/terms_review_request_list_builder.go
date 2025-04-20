@@ -37,6 +37,11 @@ func (b *TermsReviewRequestListBuilder) Items(values ...*TermsReviewRequestBuild
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *TermsReviewRequestListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *TermsReviewRequestListBuilder) Copy(list *TermsReviewRequestList) *TermsReviewRequestListBuilder {
 	if list == nil || list.items == nil {

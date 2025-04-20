@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalPlan writes a value of the 'plan' type to the given writer.
 func MarshalPlan(object *Plan, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writePlan(object, stream)
-	stream.Flush()
+	WritePlan(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writePlan writes a value of the 'plan' type to the given stream.
-func writePlan(object *Plan, stream *jsoniter.Stream) {
+// WritePlan writes a value of the 'plan' type to the given stream.
+func WritePlan(object *Plan, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -88,7 +90,6 @@ func writePlan(object *Plan, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("type")
 		stream.WriteString(object.type_)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -96,20 +97,17 @@ func writePlan(object *Plan, stream *jsoniter.Stream) {
 // UnmarshalPlan reads a value of the 'plan' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalPlan(source interface{}) (object *Plan, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readPlan(iterator)
+	object = ReadPlan(iterator)
 	err = iterator.Error
 	return
 }
 
-// readPlan reads a value of the 'plan' type from the given iterator.
-func readPlan(iterator *jsoniter.Iterator) *Plan {
+// ReadPlan reads a value of the 'plan' type from the given iterator.
+func ReadPlan(iterator *jsoniter.Iterator) *Plan {
 	object := &Plan{}
 	for {
 		field := iterator.ReadObject()

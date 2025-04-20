@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -31,13 +30,16 @@ import (
 // MarshalRegistry writes a value of the 'registry' type to the given writer.
 func MarshalRegistry(object *Registry, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeRegistry(object, stream)
-	stream.Flush()
+	WriteRegistry(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeRegistry writes a value of the 'registry' type to the given stream.
-func writeRegistry(object *Registry, stream *jsoniter.Stream) {
+// WriteRegistry writes a value of the 'registry' type to the given stream.
+func WriteRegistry(object *Registry, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -134,7 +136,6 @@ func writeRegistry(object *Registry, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("updated_at")
 		stream.WriteString((object.updatedAt).Format(time.RFC3339))
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -142,20 +143,17 @@ func writeRegistry(object *Registry, stream *jsoniter.Stream) {
 // UnmarshalRegistry reads a value of the 'registry' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalRegistry(source interface{}) (object *Registry, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readRegistry(iterator)
+	object = ReadRegistry(iterator)
 	err = iterator.Error
 	return
 }
 
-// readRegistry reads a value of the 'registry' type from the given iterator.
-func readRegistry(iterator *jsoniter.Iterator) *Registry {
+// ReadRegistry reads a value of the 'registry' type from the given iterator.
+func ReadRegistry(iterator *jsoniter.Iterator) *Registry {
 	object := &Registry{}
 	for {
 		field := iterator.ReadObject()

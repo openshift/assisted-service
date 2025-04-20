@@ -37,6 +37,11 @@ func (b *ClusterAuthorizationRequestListBuilder) Items(values ...*ClusterAuthori
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *ClusterAuthorizationRequestListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *ClusterAuthorizationRequestListBuilder) Copy(list *ClusterAuthorizationRequestList) *ClusterAuthorizationRequestListBuilder {
 	if list == nil || list.items == nil {

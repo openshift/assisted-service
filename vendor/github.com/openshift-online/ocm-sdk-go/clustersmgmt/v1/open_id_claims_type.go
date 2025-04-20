@@ -25,6 +25,7 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 type OpenIDClaims struct {
 	bitmap_           uint32
 	email             []string
+	groups            []string
 	name              []string
 	preferredUsername []string
 }
@@ -57,12 +58,35 @@ func (o *OpenIDClaims) GetEmail() (value []string, ok bool) {
 	return
 }
 
+// Groups returns the value of the 'groups' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// List of claims to use as the group name.
+func (o *OpenIDClaims) Groups() []string {
+	if o != nil && o.bitmap_&2 != 0 {
+		return o.groups
+	}
+	return nil
+}
+
+// GetGroups returns the value of the 'groups' attribute and
+// a flag indicating if the attribute has a value.
+//
+// List of claims to use as the group name.
+func (o *OpenIDClaims) GetGroups() (value []string, ok bool) {
+	ok = o != nil && o.bitmap_&2 != 0
+	if ok {
+		value = o.groups
+	}
+	return
+}
+
 // Name returns the value of the 'name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // List of claims to use as the display name.
 func (o *OpenIDClaims) Name() []string {
-	if o != nil && o.bitmap_&2 != 0 {
+	if o != nil && o.bitmap_&4 != 0 {
 		return o.name
 	}
 	return nil
@@ -73,7 +97,7 @@ func (o *OpenIDClaims) Name() []string {
 //
 // List of claims to use as the display name.
 func (o *OpenIDClaims) GetName() (value []string, ok bool) {
-	ok = o != nil && o.bitmap_&2 != 0
+	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
 		value = o.name
 	}
@@ -85,7 +109,7 @@ func (o *OpenIDClaims) GetName() (value []string, ok bool) {
 //
 // List of claims to use as the preferred user name when provisioning a user.
 func (o *OpenIDClaims) PreferredUsername() []string {
-	if o != nil && o.bitmap_&4 != 0 {
+	if o != nil && o.bitmap_&8 != 0 {
 		return o.preferredUsername
 	}
 	return nil
@@ -96,7 +120,7 @@ func (o *OpenIDClaims) PreferredUsername() []string {
 //
 // List of claims to use as the preferred user name when provisioning a user.
 func (o *OpenIDClaims) GetPreferredUsername() (value []string, ok bool) {
-	ok = o != nil && o.bitmap_&4 != 0
+	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
 		value = o.preferredUsername
 	}
@@ -128,6 +152,29 @@ func (l *OpenIDClaimsList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *OpenIDClaimsList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *OpenIDClaimsList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *OpenIDClaimsList) SetItems(items []*OpenIDClaims) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *OpenIDClaimsList) Items() []*OpenIDClaims {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

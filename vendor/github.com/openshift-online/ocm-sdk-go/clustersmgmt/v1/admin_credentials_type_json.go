@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalAdminCredentials writes a value of the 'admin_credentials' type to the given writer.
 func MarshalAdminCredentials(object *AdminCredentials, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeAdminCredentials(object, stream)
-	stream.Flush()
+	WriteAdminCredentials(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeAdminCredentials writes a value of the 'admin_credentials' type to the given stream.
-func writeAdminCredentials(object *AdminCredentials, stream *jsoniter.Stream) {
+// WriteAdminCredentials writes a value of the 'admin_credentials' type to the given stream.
+func WriteAdminCredentials(object *AdminCredentials, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,7 +58,6 @@ func writeAdminCredentials(object *AdminCredentials, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("user")
 		stream.WriteString(object.user)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -64,20 +65,17 @@ func writeAdminCredentials(object *AdminCredentials, stream *jsoniter.Stream) {
 // UnmarshalAdminCredentials reads a value of the 'admin_credentials' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalAdminCredentials(source interface{}) (object *AdminCredentials, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readAdminCredentials(iterator)
+	object = ReadAdminCredentials(iterator)
 	err = iterator.Error
 	return
 }
 
-// readAdminCredentials reads a value of the 'admin_credentials' type from the given iterator.
-func readAdminCredentials(iterator *jsoniter.Iterator) *AdminCredentials {
+// ReadAdminCredentials reads a value of the 'admin_credentials' type from the given iterator.
+func ReadAdminCredentials(iterator *jsoniter.Iterator) *AdminCredentials {
 	object := &AdminCredentials{}
 	for {
 		field := iterator.ReadObject()

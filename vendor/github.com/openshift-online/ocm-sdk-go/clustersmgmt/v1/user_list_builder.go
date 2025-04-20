@@ -37,6 +37,11 @@ func (b *UserListBuilder) Items(values ...*UserBuilder) *UserListBuilder {
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *UserListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *UserListBuilder) Copy(list *UserList) *UserListBuilder {
 	if list == nil || list.items == nil {

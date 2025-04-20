@@ -21,15 +21,11 @@ package v1 // github.com/openshift-online/ocm-sdk-go/jobqueue/v1
 
 import (
 	"io"
-	"net/http"
 	"time"
 
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
 
-func readQueueGetRequest(request *QueueGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeQueueGetRequest(request *QueueGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -37,12 +33,6 @@ func readQueueGetResponse(response *QueueGetResponse, reader io.Reader) error {
 	var err error
 	response.body, err = UnmarshalQueue(reader)
 	return err
-}
-func writeQueueGetResponse(response *QueueGetServerResponse, w http.ResponseWriter) error {
-	return MarshalQueue(response.body, w)
-}
-func readQueuePopRequest(request *QueuePopServerRequest, r *http.Request) error {
-	return nil
 }
 func writeQueuePopRequest(request *QueuePopRequest, writer io.Writer) error {
 	return nil
@@ -103,127 +93,6 @@ func readQueuePopResponse(response *QueuePopResponse, reader io.Reader) error {
 	}
 	return iterator.Error
 }
-func writeQueuePopResponse(response *QueuePopServerResponse, w http.ResponseWriter) error {
-	count := 0
-	stream := helpers.NewStream(w)
-	stream.WriteObjectStart()
-	if response.href != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("href")
-		stream.WriteString(*response.href)
-		count++
-	}
-	if response.id != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("id")
-		stream.WriteString(*response.id)
-		count++
-	}
-	if response.abandonedAt != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("abandoned_at")
-		stream.WriteString((*response.abandonedAt).Format(time.RFC3339))
-		count++
-	}
-	if response.arguments != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("arguments")
-		stream.WriteString(*response.arguments)
-		count++
-	}
-	if response.attempts != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("attempts")
-		stream.WriteInt(*response.attempts)
-		count++
-	}
-	if response.createdAt != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("created_at")
-		stream.WriteString((*response.createdAt).Format(time.RFC3339))
-		count++
-	}
-	if response.kind != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("kind")
-		stream.WriteString(*response.kind)
-		count++
-	}
-	if response.receiptId != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("receipt_id")
-		stream.WriteString(*response.receiptId)
-		count++
-	}
-	if response.updatedAt != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("updated_at")
-		stream.WriteString((*response.updatedAt).Format(time.RFC3339))
-		count++
-	}
-	stream.WriteObjectEnd()
-	stream.Flush()
-	return stream.Error
-}
-func readQueuePushRequest(request *QueuePushServerRequest, r *http.Request) error {
-	iterator, err := helpers.NewIterator(r.Body)
-	if err != nil {
-		return err
-	}
-	for {
-		field := iterator.ReadObject()
-		if field == "" {
-			break
-		}
-		switch field {
-		case "abandoned_at":
-			text := iterator.ReadString()
-			value, err := time.Parse(time.RFC3339, text)
-			if err != nil {
-				iterator.ReportError("", err.Error())
-			}
-			request.abandonedAt = &value
-		case "arguments":
-			value := iterator.ReadString()
-			request.arguments = &value
-		case "attempts":
-			value := iterator.ReadInt()
-			request.attempts = &value
-		case "created_at":
-			text := iterator.ReadString()
-			value, err := time.Parse(time.RFC3339, text)
-			if err != nil {
-				iterator.ReportError("", err.Error())
-			}
-			request.createdAt = &value
-		default:
-			iterator.ReadAny()
-		}
-	}
-	err = iterator.Error
-	if err != nil {
-		return err
-	}
-	return nil
-}
 func writeQueuePushRequest(request *QueuePushRequest, writer io.Writer) error {
 	count := 0
 	stream := helpers.NewStream(writer)
@@ -261,7 +130,10 @@ func writeQueuePushRequest(request *QueuePushRequest, writer io.Writer) error {
 		count++
 	}
 	stream.WriteObjectEnd()
-	stream.Flush()
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 func readQueuePushResponse(response *QueuePushResponse, reader io.Reader) error {
@@ -319,84 +191,4 @@ func readQueuePushResponse(response *QueuePushResponse, reader io.Reader) error 
 		}
 	}
 	return iterator.Error
-}
-func writeQueuePushResponse(response *QueuePushServerResponse, w http.ResponseWriter) error {
-	count := 0
-	stream := helpers.NewStream(w)
-	stream.WriteObjectStart()
-	if response.href != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("href")
-		stream.WriteString(*response.href)
-		count++
-	}
-	if response.id != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("id")
-		stream.WriteString(*response.id)
-		count++
-	}
-	if response.abandonedAt != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("abandoned_at")
-		stream.WriteString((*response.abandonedAt).Format(time.RFC3339))
-		count++
-	}
-	if response.arguments != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("arguments")
-		stream.WriteString(*response.arguments)
-		count++
-	}
-	if response.attempts != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("attempts")
-		stream.WriteInt(*response.attempts)
-		count++
-	}
-	if response.createdAt != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("created_at")
-		stream.WriteString((*response.createdAt).Format(time.RFC3339))
-		count++
-	}
-	if response.kind != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("kind")
-		stream.WriteString(*response.kind)
-		count++
-	}
-	if response.receiptId != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("receipt_id")
-		stream.WriteString(*response.receiptId)
-		count++
-	}
-	if response.updatedAt != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("updated_at")
-		stream.WriteString((*response.updatedAt).Format(time.RFC3339))
-		count++
-	}
-	stream.WriteObjectEnd()
-	stream.Flush()
-	return stream.Error
 }

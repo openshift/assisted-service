@@ -30,20 +30,23 @@ import (
 // the given writer.
 func MarshalMachinePoolList(list []*MachinePool, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeMachinePoolList(list, stream)
-	stream.Flush()
+	WriteMachinePoolList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeMachinePoolList writes a list of value of the 'machine_pool' type to
+// WriteMachinePoolList writes a list of value of the 'machine_pool' type to
 // the given stream.
-func writeMachinePoolList(list []*MachinePool, stream *jsoniter.Stream) {
+func WriteMachinePoolList(list []*MachinePool, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
 			stream.WriteMore()
 		}
-		writeMachinePool(value, stream)
+		WriteMachinePool(value, stream)
 	}
 	stream.WriteArrayEnd()
 }
@@ -55,17 +58,17 @@ func UnmarshalMachinePoolList(source interface{}) (items []*MachinePool, err err
 	if err != nil {
 		return
 	}
-	items = readMachinePoolList(iterator)
+	items = ReadMachinePoolList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readMachinePoolList reads list of values of the ''machine_pool' type from
+// ReadMachinePoolList reads list of values of the ”machine_pool' type from
 // the given iterator.
-func readMachinePoolList(iterator *jsoniter.Iterator) []*MachinePool {
+func ReadMachinePoolList(iterator *jsoniter.Iterator) []*MachinePool {
 	list := []*MachinePool{}
 	for iterator.ReadArray() {
-		item := readMachinePool(iterator)
+		item := ReadMachinePool(iterator)
 		list = append(list, item)
 	}
 	return list

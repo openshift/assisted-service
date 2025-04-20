@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalGitlabIdentityProvider writes a value of the 'gitlab_identity_provider' type to the given writer.
 func MarshalGitlabIdentityProvider(object *GitlabIdentityProvider, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeGitlabIdentityProvider(object, stream)
-	stream.Flush()
+	WriteGitlabIdentityProvider(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeGitlabIdentityProvider writes a value of the 'gitlab_identity_provider' type to the given stream.
-func writeGitlabIdentityProvider(object *GitlabIdentityProvider, stream *jsoniter.Stream) {
+// WriteGitlabIdentityProvider writes a value of the 'gitlab_identity_provider' type to the given stream.
+func WriteGitlabIdentityProvider(object *GitlabIdentityProvider, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -74,7 +76,6 @@ func writeGitlabIdentityProvider(object *GitlabIdentityProvider, stream *jsonite
 		}
 		stream.WriteObjectField("client_secret")
 		stream.WriteString(object.clientSecret)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -82,20 +83,17 @@ func writeGitlabIdentityProvider(object *GitlabIdentityProvider, stream *jsonite
 // UnmarshalGitlabIdentityProvider reads a value of the 'gitlab_identity_provider' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalGitlabIdentityProvider(source interface{}) (object *GitlabIdentityProvider, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readGitlabIdentityProvider(iterator)
+	object = ReadGitlabIdentityProvider(iterator)
 	err = iterator.Error
 	return
 }
 
-// readGitlabIdentityProvider reads a value of the 'gitlab_identity_provider' type from the given iterator.
-func readGitlabIdentityProvider(iterator *jsoniter.Iterator) *GitlabIdentityProvider {
+// ReadGitlabIdentityProvider reads a value of the 'gitlab_identity_provider' type from the given iterator.
+func ReadGitlabIdentityProvider(iterator *jsoniter.Iterator) *GitlabIdentityProvider {
 	object := &GitlabIdentityProvider{}
 	for {
 		field := iterator.ReadObject()
