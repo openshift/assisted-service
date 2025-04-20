@@ -2951,8 +2951,11 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 		container := ss.Spec.Template.Spec.Containers[0]
 
 		By("ensure no cert volumes are present")
-		Expect(container.VolumeMounts).To(Equal([]corev1.VolumeMount{{Name: "image-service-data", MountPath: "/data"}}))
-		Expect(len(ss.Spec.Template.Spec.Volumes)).To(Equal(0))
+		Expect(container.VolumeMounts).To(Equal([]corev1.VolumeMount{{Name: "image-service-data", MountPath: "/data"}, {Name: "data-temp-volume", MountPath: "/data_temp"}}))
+		for _, vol := range ss.Spec.Template.Spec.Volumes {
+			Expect(vol.Name).NotTo(Equal("tls-certs"))
+			Expect(vol.Name).NotTo(Equal("service-cabundle"))
+		}
 
 		By("ensure env is set up for http")
 		httpsEnvVars := []string{"HTTPS_CERT_FILE", "HTTPS_KEY_FILE", "HTTPS_CA_FILE", "HTTP_LISTEN_PORT"}
