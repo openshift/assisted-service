@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -65,6 +67,16 @@ func (c *ExternalConfigurationClient) Labels() *LabelsClient {
 	return NewLabelsClient(
 		c.transport,
 		path.Join(c.path, "labels"),
+	)
+}
+
+// Manifests returns the target 'manifests' resource.
+//
+// Reference to the resource that manages the collection of manifests.
+func (c *ExternalConfigurationClient) Manifests() *ManifestsClient {
+	return NewManifestsClient(
+		c.transport,
+		path.Join(c.path, "manifests"),
 	)
 }
 
@@ -219,6 +231,13 @@ func (r *ExternalConfigurationGetRequest) Header(name string, value interface{})
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ExternalConfigurationGetRequest) Impersonate(user string) *ExternalConfigurationGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -251,15 +270,21 @@ func (r *ExternalConfigurationGetRequest) SendContext(ctx context.Context) (resu
 	result = &ExternalConfigurationGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readExternalConfigurationGetResponse(result, response.Body)
+	err = readExternalConfigurationGetResponse(result, reader)
 	if err != nil {
 		return
 	}

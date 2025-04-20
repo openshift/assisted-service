@@ -19,28 +19,14 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readFlavourGetRequest(request *FlavourGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeFlavourGetRequest(request *FlavourGetRequest, writer io.Writer) error {
 	return nil
 }
 func readFlavourGetResponse(response *FlavourGetResponse, reader io.Reader) error {
 	var err error
 	response.body, err = UnmarshalFlavour(reader)
-	return err
-}
-func writeFlavourGetResponse(response *FlavourGetServerResponse, w http.ResponseWriter) error {
-	return MarshalFlavour(response.body, w)
-}
-func readFlavourUpdateRequest(request *FlavourUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalFlavour(r.Body)
 	return err
 }
 func writeFlavourUpdateRequest(request *FlavourUpdateRequest, writer io.Writer) error {
@@ -50,7 +36,4 @@ func readFlavourUpdateResponse(response *FlavourUpdateResponse, reader io.Reader
 	var err error
 	response.body, err = UnmarshalFlavour(reader)
 	return err
-}
-func writeFlavourUpdateResponse(response *FlavourUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalFlavour(response.body, w)
 }

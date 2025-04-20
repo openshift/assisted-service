@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -180,16 +179,12 @@ func (r *RolePollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RolePollResponse) Body() *Role {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RolePollResponse) GetBody() (value *Role, ok bool) {
 	return r.response.GetBody()
 }
@@ -219,6 +214,13 @@ func (r *RoleDeleteRequest) Parameter(name string, value interface{}) *RoleDelet
 // Header adds a request header.
 func (r *RoleDeleteRequest) Header(name string, value interface{}) *RoleDeleteRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *RoleDeleteRequest) Impersonate(user string) *RoleDeleteRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -254,8 +256,14 @@ func (r *RoleDeleteRequest) SendContext(ctx context.Context) (result *RoleDelete
 	result = &RoleDeleteResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -316,6 +324,13 @@ func (r *RoleGetRequest) Header(name string, value interface{}) *RoleGetRequest 
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *RoleGetRequest) Impersonate(user string) *RoleGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -348,15 +363,21 @@ func (r *RoleGetRequest) SendContext(ctx context.Context) (result *RoleGetRespon
 	result = &RoleGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readRoleGetResponse(result, response.Body)
+	err = readRoleGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -396,8 +417,6 @@ func (r *RoleGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RoleGetResponse) Body() *Role {
 	if r == nil {
 		return nil
@@ -407,8 +426,6 @@ func (r *RoleGetResponse) Body() *Role {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RoleGetResponse) GetBody() (value *Role, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -438,9 +455,14 @@ func (r *RoleUpdateRequest) Header(name string, value interface{}) *RoleUpdateRe
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *RoleUpdateRequest) Impersonate(user string) *RoleUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *RoleUpdateRequest) Body(value *Role) *RoleUpdateRequest {
 	r.body = value
 	return r
@@ -471,7 +493,7 @@ func (r *RoleUpdateRequest) SendContext(ctx context.Context) (result *RoleUpdate
 		Method: "PATCH",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -484,29 +506,25 @@ func (r *RoleUpdateRequest) SendContext(ctx context.Context) (result *RoleUpdate
 	result = &RoleUpdateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readRoleUpdateResponse(result, response.Body)
+	err = readRoleUpdateResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'update' method.
-func (r *RoleUpdateRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *RoleUpdateRequest) stream(stream *jsoniter.Stream) {
 }
 
 // RoleUpdateResponse is the response for the 'update' method.
@@ -542,8 +560,6 @@ func (r *RoleUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RoleUpdateResponse) Body() *Role {
 	if r == nil {
 		return nil
@@ -553,8 +569,6 @@ func (r *RoleUpdateResponse) Body() *Role {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RoleUpdateResponse) GetBody() (value *Role, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

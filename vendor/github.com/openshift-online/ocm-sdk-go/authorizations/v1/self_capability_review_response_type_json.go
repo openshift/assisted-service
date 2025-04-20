@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalSelfCapabilityReviewResponse writes a value of the 'self_capability_review_response' type to the given writer.
 func MarshalSelfCapabilityReviewResponse(object *SelfCapabilityReviewResponse, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSelfCapabilityReviewResponse(object, stream)
-	stream.Flush()
+	WriteSelfCapabilityReviewResponse(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSelfCapabilityReviewResponse writes a value of the 'self_capability_review_response' type to the given stream.
-func writeSelfCapabilityReviewResponse(object *SelfCapabilityReviewResponse, stream *jsoniter.Stream) {
+// WriteSelfCapabilityReviewResponse writes a value of the 'self_capability_review_response' type to the given stream.
+func WriteSelfCapabilityReviewResponse(object *SelfCapabilityReviewResponse, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -47,7 +49,6 @@ func writeSelfCapabilityReviewResponse(object *SelfCapabilityReviewResponse, str
 		}
 		stream.WriteObjectField("result")
 		stream.WriteString(object.result)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeSelfCapabilityReviewResponse(object *SelfCapabilityReviewResponse, str
 // UnmarshalSelfCapabilityReviewResponse reads a value of the 'self_capability_review_response' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSelfCapabilityReviewResponse(source interface{}) (object *SelfCapabilityReviewResponse, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSelfCapabilityReviewResponse(iterator)
+	object = ReadSelfCapabilityReviewResponse(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSelfCapabilityReviewResponse reads a value of the 'self_capability_review_response' type from the given iterator.
-func readSelfCapabilityReviewResponse(iterator *jsoniter.Iterator) *SelfCapabilityReviewResponse {
+// ReadSelfCapabilityReviewResponse reads a value of the 'self_capability_review_response' type from the given iterator.
+func ReadSelfCapabilityReviewResponse(iterator *jsoniter.Iterator) *SelfCapabilityReviewResponse {
 	object := &SelfCapabilityReviewResponse{}
 	for {
 		field := iterator.ReadObject()

@@ -27,6 +27,7 @@ type AddOnRequirementBuilder struct {
 	id       string
 	data     map[string]interface{}
 	resource string
+	status   *AddOnRequirementStatusBuilder
 	enabled  bool
 }
 
@@ -35,9 +36,12 @@ func NewAddOnRequirement() *AddOnRequirementBuilder {
 	return &AddOnRequirementBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *AddOnRequirementBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // ID sets the value of the 'ID' attribute to the given value.
-//
-//
 func (b *AddOnRequirementBuilder) ID(value string) *AddOnRequirementBuilder {
 	b.id = value
 	b.bitmap_ |= 1
@@ -45,8 +49,6 @@ func (b *AddOnRequirementBuilder) ID(value string) *AddOnRequirementBuilder {
 }
 
 // Data sets the value of the 'data' attribute to the given value.
-//
-//
 func (b *AddOnRequirementBuilder) Data(value map[string]interface{}) *AddOnRequirementBuilder {
 	b.data = value
 	if value != nil {
@@ -58,8 +60,6 @@ func (b *AddOnRequirementBuilder) Data(value map[string]interface{}) *AddOnRequi
 }
 
 // Enabled sets the value of the 'enabled' attribute to the given value.
-//
-//
 func (b *AddOnRequirementBuilder) Enabled(value bool) *AddOnRequirementBuilder {
 	b.enabled = value
 	b.bitmap_ |= 4
@@ -67,11 +67,22 @@ func (b *AddOnRequirementBuilder) Enabled(value bool) *AddOnRequirementBuilder {
 }
 
 // Resource sets the value of the 'resource' attribute to the given value.
-//
-//
 func (b *AddOnRequirementBuilder) Resource(value string) *AddOnRequirementBuilder {
 	b.resource = value
 	b.bitmap_ |= 8
+	return b
+}
+
+// Status sets the value of the 'status' attribute to the given value.
+//
+// Representation of an add-on requirement status.
+func (b *AddOnRequirementBuilder) Status(value *AddOnRequirementStatusBuilder) *AddOnRequirementBuilder {
+	b.status = value
+	if value != nil {
+		b.bitmap_ |= 16
+	} else {
+		b.bitmap_ &^= 16
+	}
 	return b
 }
 
@@ -92,6 +103,11 @@ func (b *AddOnRequirementBuilder) Copy(object *AddOnRequirement) *AddOnRequireme
 	}
 	b.enabled = object.enabled
 	b.resource = object.resource
+	if object.status != nil {
+		b.status = NewAddOnRequirementStatus().Copy(object.status)
+	} else {
+		b.status = nil
+	}
 	return b
 }
 
@@ -108,5 +124,11 @@ func (b *AddOnRequirementBuilder) Build() (object *AddOnRequirement, err error) 
 	}
 	object.enabled = b.enabled
 	object.resource = b.resource
+	if b.status != nil {
+		object.status, err = b.status.Build()
+		if err != nil {
+			return
+		}
+	}
 	return
 }

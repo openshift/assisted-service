@@ -19,28 +19,14 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readOrganizationGetRequest(request *OrganizationGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeOrganizationGetRequest(request *OrganizationGetRequest, writer io.Writer) error {
 	return nil
 }
 func readOrganizationGetResponse(response *OrganizationGetResponse, reader io.Reader) error {
 	var err error
 	response.body, err = UnmarshalOrganization(reader)
-	return err
-}
-func writeOrganizationGetResponse(response *OrganizationGetServerResponse, w http.ResponseWriter) error {
-	return MarshalOrganization(response.body, w)
-}
-func readOrganizationUpdateRequest(request *OrganizationUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalOrganization(r.Body)
 	return err
 }
 func writeOrganizationUpdateRequest(request *OrganizationUpdateRequest, writer io.Writer) error {
@@ -50,7 +36,4 @@ func readOrganizationUpdateResponse(response *OrganizationUpdateResponse, reader
 	var err error
 	response.body, err = UnmarshalOrganization(reader)
 	return err
-}
-func writeOrganizationUpdateResponse(response *OrganizationUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalOrganization(response.body, w)
 }

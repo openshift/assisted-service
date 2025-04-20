@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readMachinePoolDeleteRequest(request *MachinePoolDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeMachinePoolDeleteRequest(request *MachinePoolDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readMachinePoolDeleteResponse(response *MachinePoolDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeMachinePoolDeleteResponse(response *MachinePoolDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readMachinePoolGetRequest(request *MachinePoolGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeMachinePoolGetRequest(request *MachinePoolGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readMachinePoolGetResponse(response *MachinePoolGetResponse, reader io.Read
 	response.body, err = UnmarshalMachinePool(reader)
 	return err
 }
-func writeMachinePoolGetResponse(response *MachinePoolGetServerResponse, w http.ResponseWriter) error {
-	return MarshalMachinePool(response.body, w)
-}
-func readMachinePoolUpdateRequest(request *MachinePoolUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalMachinePool(r.Body)
-	return err
-}
 func writeMachinePoolUpdateRequest(request *MachinePoolUpdateRequest, writer io.Writer) error {
 	return MarshalMachinePool(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readMachinePoolUpdateResponse(response *MachinePoolUpdateResponse, reader i
 	var err error
 	response.body, err = UnmarshalMachinePool(reader)
 	return err
-}
-func writeMachinePoolUpdateResponse(response *MachinePoolUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalMachinePool(response.body, w)
 }

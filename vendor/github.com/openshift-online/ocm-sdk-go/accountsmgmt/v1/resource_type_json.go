@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalResource writes a value of the 'resource' type to the given writer.
 func MarshalResource(object *Resource, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeResource(object, stream)
-	stream.Flush()
+	WriteResource(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeResource writes a value of the 'resource' type to the given stream.
-func writeResource(object *Resource, stream *jsoniter.Stream) {
+// WriteResource writes a value of the 'resource' type to the given stream.
+func WriteResource(object *Resource, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -115,7 +117,6 @@ func writeResource(object *Resource, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("resource_type")
 		stream.WriteString(object.resourceType)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -123,20 +124,17 @@ func writeResource(object *Resource, stream *jsoniter.Stream) {
 // UnmarshalResource reads a value of the 'resource' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalResource(source interface{}) (object *Resource, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readResource(iterator)
+	object = ReadResource(iterator)
 	err = iterator.Error
 	return
 }
 
-// readResource reads a value of the 'resource' type from the given iterator.
-func readResource(iterator *jsoniter.Iterator) *Resource {
+// ReadResource reads a value of the 'resource' type from the given iterator.
+func ReadResource(iterator *jsoniter.Iterator) *Resource {
 	object := &Resource{}
 	for {
 		field := iterator.ReadObject()

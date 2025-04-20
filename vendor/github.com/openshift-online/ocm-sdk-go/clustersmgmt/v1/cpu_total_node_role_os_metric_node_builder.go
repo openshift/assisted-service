@@ -39,9 +39,12 @@ func NewCPUTotalNodeRoleOSMetricNode() *CPUTotalNodeRoleOSMetricNodeBuilder {
 	return &CPUTotalNodeRoleOSMetricNodeBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *CPUTotalNodeRoleOSMetricNodeBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // CPUTotal sets the value of the 'CPU_total' attribute to the given value.
-//
-//
 func (b *CPUTotalNodeRoleOSMetricNodeBuilder) CPUTotal(value float64) *CPUTotalNodeRoleOSMetricNodeBuilder {
 	b.cpuTotal = value
 	b.bitmap_ |= 1
@@ -49,8 +52,6 @@ func (b *CPUTotalNodeRoleOSMetricNodeBuilder) CPUTotal(value float64) *CPUTotalN
 }
 
 // NodeRoles sets the value of the 'node_roles' attribute to the given values.
-//
-//
 func (b *CPUTotalNodeRoleOSMetricNodeBuilder) NodeRoles(values ...string) *CPUTotalNodeRoleOSMetricNodeBuilder {
 	b.nodeRoles = make([]string, len(values))
 	copy(b.nodeRoles, values)
@@ -59,8 +60,6 @@ func (b *CPUTotalNodeRoleOSMetricNodeBuilder) NodeRoles(values ...string) *CPUTo
 }
 
 // OperatingSystem sets the value of the 'operating_system' attribute to the given value.
-//
-//
 func (b *CPUTotalNodeRoleOSMetricNodeBuilder) OperatingSystem(value string) *CPUTotalNodeRoleOSMetricNodeBuilder {
 	b.operatingSystem = value
 	b.bitmap_ |= 4
@@ -68,8 +67,6 @@ func (b *CPUTotalNodeRoleOSMetricNodeBuilder) OperatingSystem(value string) *CPU
 }
 
 // Time sets the value of the 'time' attribute to the given value.
-//
-//
 func (b *CPUTotalNodeRoleOSMetricNodeBuilder) Time(value time.Time) *CPUTotalNodeRoleOSMetricNodeBuilder {
 	b.time = value
 	b.bitmap_ |= 8

@@ -37,6 +37,11 @@ func (b *FeatureToggleQueryRequestListBuilder) Items(values ...*FeatureToggleQue
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *FeatureToggleQueryRequestListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *FeatureToggleQueryRequestListBuilder) Copy(list *FeatureToggleQueryRequestList) *FeatureToggleQueryRequestListBuilder {
 	if list == nil || list.items == nil {

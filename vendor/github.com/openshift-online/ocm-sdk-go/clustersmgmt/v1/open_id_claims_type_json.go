@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalOpenIDClaims writes a value of the 'open_ID_claims' type to the given writer.
 func MarshalOpenIDClaims(object *OpenIDClaims, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeOpenIDClaims(object, stream)
-	stream.Flush()
+	WriteOpenIDClaims(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeOpenIDClaims writes a value of the 'open_ID_claims' type to the given stream.
-func writeOpenIDClaims(object *OpenIDClaims, stream *jsoniter.Stream) {
+// WriteOpenIDClaims writes a value of the 'open_ID_claims' type to the given stream.
+func WriteOpenIDClaims(object *OpenIDClaims, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -46,26 +48,34 @@ func writeOpenIDClaims(object *OpenIDClaims, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("email")
-		writeStringList(object.email, stream)
+		WriteStringList(object.email, stream)
 		count++
 	}
-	present_ = object.bitmap_&2 != 0 && object.name != nil
+	present_ = object.bitmap_&2 != 0 && object.groups != nil
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("groups")
+		WriteStringList(object.groups, stream)
+		count++
+	}
+	present_ = object.bitmap_&4 != 0 && object.name != nil
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("name")
-		writeStringList(object.name, stream)
+		WriteStringList(object.name, stream)
 		count++
 	}
-	present_ = object.bitmap_&4 != 0 && object.preferredUsername != nil
+	present_ = object.bitmap_&8 != 0 && object.preferredUsername != nil
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("preferred_username")
-		writeStringList(object.preferredUsername, stream)
-		count++
+		WriteStringList(object.preferredUsername, stream)
 	}
 	stream.WriteObjectEnd()
 }
@@ -73,20 +83,17 @@ func writeOpenIDClaims(object *OpenIDClaims, stream *jsoniter.Stream) {
 // UnmarshalOpenIDClaims reads a value of the 'open_ID_claims' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalOpenIDClaims(source interface{}) (object *OpenIDClaims, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readOpenIDClaims(iterator)
+	object = ReadOpenIDClaims(iterator)
 	err = iterator.Error
 	return
 }
 
-// readOpenIDClaims reads a value of the 'open_ID_claims' type from the given iterator.
-func readOpenIDClaims(iterator *jsoniter.Iterator) *OpenIDClaims {
+// ReadOpenIDClaims reads a value of the 'open_ID_claims' type from the given iterator.
+func ReadOpenIDClaims(iterator *jsoniter.Iterator) *OpenIDClaims {
 	object := &OpenIDClaims{}
 	for {
 		field := iterator.ReadObject()
@@ -95,17 +102,21 @@ func readOpenIDClaims(iterator *jsoniter.Iterator) *OpenIDClaims {
 		}
 		switch field {
 		case "email":
-			value := readStringList(iterator)
+			value := ReadStringList(iterator)
 			object.email = value
 			object.bitmap_ |= 1
-		case "name":
-			value := readStringList(iterator)
-			object.name = value
+		case "groups":
+			value := ReadStringList(iterator)
+			object.groups = value
 			object.bitmap_ |= 2
-		case "preferred_username":
-			value := readStringList(iterator)
-			object.preferredUsername = value
+		case "name":
+			value := ReadStringList(iterator)
+			object.name = value
 			object.bitmap_ |= 4
+		case "preferred_username":
+			value := ReadStringList(iterator)
+			object.preferredUsername = value
+			object.bitmap_ |= 8
 		default:
 			iterator.ReadAny()
 		}

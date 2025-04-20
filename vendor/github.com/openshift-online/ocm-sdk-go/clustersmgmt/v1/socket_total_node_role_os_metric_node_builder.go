@@ -40,9 +40,12 @@ func NewSocketTotalNodeRoleOSMetricNode() *SocketTotalNodeRoleOSMetricNodeBuilde
 	return &SocketTotalNodeRoleOSMetricNodeBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *SocketTotalNodeRoleOSMetricNodeBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // NodeRoles sets the value of the 'node_roles' attribute to the given values.
-//
-//
 func (b *SocketTotalNodeRoleOSMetricNodeBuilder) NodeRoles(values ...string) *SocketTotalNodeRoleOSMetricNodeBuilder {
 	b.nodeRoles = make([]string, len(values))
 	copy(b.nodeRoles, values)
@@ -51,8 +54,6 @@ func (b *SocketTotalNodeRoleOSMetricNodeBuilder) NodeRoles(values ...string) *So
 }
 
 // OperatingSystem sets the value of the 'operating_system' attribute to the given value.
-//
-//
 func (b *SocketTotalNodeRoleOSMetricNodeBuilder) OperatingSystem(value string) *SocketTotalNodeRoleOSMetricNodeBuilder {
 	b.operatingSystem = value
 	b.bitmap_ |= 2
@@ -60,8 +61,6 @@ func (b *SocketTotalNodeRoleOSMetricNodeBuilder) OperatingSystem(value string) *
 }
 
 // SocketTotal sets the value of the 'socket_total' attribute to the given value.
-//
-//
 func (b *SocketTotalNodeRoleOSMetricNodeBuilder) SocketTotal(value float64) *SocketTotalNodeRoleOSMetricNodeBuilder {
 	b.socketTotal = value
 	b.bitmap_ |= 4
@@ -69,8 +68,6 @@ func (b *SocketTotalNodeRoleOSMetricNodeBuilder) SocketTotal(value float64) *Soc
 }
 
 // Time sets the value of the 'time' attribute to the given value.
-//
-//
 func (b *SocketTotalNodeRoleOSMetricNodeBuilder) Time(value time.Time) *SocketTotalNodeRoleOSMetricNodeBuilder {
 	b.time = value
 	b.bitmap_ |= 8

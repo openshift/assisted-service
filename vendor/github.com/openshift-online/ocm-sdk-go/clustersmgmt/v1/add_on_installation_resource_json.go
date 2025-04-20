@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readAddOnInstallationDeleteRequest(request *AddOnInstallationDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeAddOnInstallationDeleteRequest(request *AddOnInstallationDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readAddOnInstallationDeleteResponse(response *AddOnInstallationDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeAddOnInstallationDeleteResponse(response *AddOnInstallationDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readAddOnInstallationGetRequest(request *AddOnInstallationGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeAddOnInstallationGetRequest(request *AddOnInstallationGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readAddOnInstallationGetResponse(response *AddOnInstallationGetResponse, re
 	response.body, err = UnmarshalAddOnInstallation(reader)
 	return err
 }
-func writeAddOnInstallationGetResponse(response *AddOnInstallationGetServerResponse, w http.ResponseWriter) error {
-	return MarshalAddOnInstallation(response.body, w)
-}
-func readAddOnInstallationUpdateRequest(request *AddOnInstallationUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalAddOnInstallation(r.Body)
-	return err
-}
 func writeAddOnInstallationUpdateRequest(request *AddOnInstallationUpdateRequest, writer io.Writer) error {
 	return MarshalAddOnInstallation(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readAddOnInstallationUpdateResponse(response *AddOnInstallationUpdateRespon
 	var err error
 	response.body, err = UnmarshalAddOnInstallation(reader)
 	return err
-}
-func writeAddOnInstallationUpdateResponse(response *AddOnInstallationUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalAddOnInstallation(response.body, w)
 }
