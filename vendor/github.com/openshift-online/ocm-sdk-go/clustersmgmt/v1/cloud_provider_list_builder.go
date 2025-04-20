@@ -37,6 +37,11 @@ func (b *CloudProviderListBuilder) Items(values ...*CloudProviderBuilder) *Cloud
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *CloudProviderListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *CloudProviderListBuilder) Copy(list *CloudProviderList) *CloudProviderListBuilder {
 	if list == nil || list.items == nil {

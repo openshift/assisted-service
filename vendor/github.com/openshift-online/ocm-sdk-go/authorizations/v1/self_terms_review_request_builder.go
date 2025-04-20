@@ -34,9 +34,12 @@ func NewSelfTermsReviewRequest() *SelfTermsReviewRequestBuilder {
 	return &SelfTermsReviewRequestBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *SelfTermsReviewRequestBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // EventCode sets the value of the 'event_code' attribute to the given value.
-//
-//
 func (b *SelfTermsReviewRequestBuilder) EventCode(value string) *SelfTermsReviewRequestBuilder {
 	b.eventCode = value
 	b.bitmap_ |= 1
@@ -44,8 +47,6 @@ func (b *SelfTermsReviewRequestBuilder) EventCode(value string) *SelfTermsReview
 }
 
 // SiteCode sets the value of the 'site_code' attribute to the given value.
-//
-//
 func (b *SelfTermsReviewRequestBuilder) SiteCode(value string) *SelfTermsReviewRequestBuilder {
 	b.siteCode = value
 	b.bitmap_ |= 2

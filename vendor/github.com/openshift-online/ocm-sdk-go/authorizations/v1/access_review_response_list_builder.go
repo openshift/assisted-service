@@ -37,6 +37,11 @@ func (b *AccessReviewResponseListBuilder) Items(values ...*AccessReviewResponseB
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *AccessReviewResponseListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *AccessReviewResponseListBuilder) Copy(list *AccessReviewResponseList) *AccessReviewResponseListBuilder {
 	if list == nil || list.items == nil {

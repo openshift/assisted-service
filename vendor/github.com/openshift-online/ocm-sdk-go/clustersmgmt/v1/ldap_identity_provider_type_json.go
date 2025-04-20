@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalLDAPIdentityProvider writes a value of the 'LDAP_identity_provider' type to the given writer.
 func MarshalLDAPIdentityProvider(object *LDAPIdentityProvider, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeLDAPIdentityProvider(object, stream)
-	stream.Flush()
+	WriteLDAPIdentityProvider(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeLDAPIdentityProvider writes a value of the 'LDAP_identity_provider' type to the given stream.
-func writeLDAPIdentityProvider(object *LDAPIdentityProvider, stream *jsoniter.Stream) {
+// WriteLDAPIdentityProvider writes a value of the 'LDAP_identity_provider' type to the given stream.
+func WriteLDAPIdentityProvider(object *LDAPIdentityProvider, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -64,7 +66,7 @@ func writeLDAPIdentityProvider(object *LDAPIdentityProvider, stream *jsoniter.St
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("attributes")
-		writeLDAPAttributes(object.attributes, stream)
+		WriteLDAPAttributes(object.attributes, stream)
 		count++
 	}
 	present_ = object.bitmap_&8 != 0
@@ -92,7 +94,6 @@ func writeLDAPIdentityProvider(object *LDAPIdentityProvider, stream *jsoniter.St
 		}
 		stream.WriteObjectField("insecure")
 		stream.WriteBool(object.insecure)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -100,20 +101,17 @@ func writeLDAPIdentityProvider(object *LDAPIdentityProvider, stream *jsoniter.St
 // UnmarshalLDAPIdentityProvider reads a value of the 'LDAP_identity_provider' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalLDAPIdentityProvider(source interface{}) (object *LDAPIdentityProvider, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readLDAPIdentityProvider(iterator)
+	object = ReadLDAPIdentityProvider(iterator)
 	err = iterator.Error
 	return
 }
 
-// readLDAPIdentityProvider reads a value of the 'LDAP_identity_provider' type from the given iterator.
-func readLDAPIdentityProvider(iterator *jsoniter.Iterator) *LDAPIdentityProvider {
+// ReadLDAPIdentityProvider reads a value of the 'LDAP_identity_provider' type from the given iterator.
+func ReadLDAPIdentityProvider(iterator *jsoniter.Iterator) *LDAPIdentityProvider {
 	object := &LDAPIdentityProvider{}
 	for {
 		field := iterator.ReadObject()
@@ -130,7 +128,7 @@ func readLDAPIdentityProvider(iterator *jsoniter.Iterator) *LDAPIdentityProvider
 			object.url = value
 			object.bitmap_ |= 2
 		case "attributes":
-			value := readLDAPAttributes(iterator)
+			value := ReadLDAPAttributes(iterator)
 			object.attributes = value
 			object.bitmap_ |= 4
 		case "bind_dn":

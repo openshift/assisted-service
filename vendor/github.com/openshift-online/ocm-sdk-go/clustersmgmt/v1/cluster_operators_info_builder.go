@@ -32,9 +32,12 @@ func NewClusterOperatorsInfo() *ClusterOperatorsInfoBuilder {
 	return &ClusterOperatorsInfoBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *ClusterOperatorsInfoBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // Operators sets the value of the 'operators' attribute to the given values.
-//
-//
 func (b *ClusterOperatorsInfoBuilder) Operators(values ...*ClusterOperatorInfoBuilder) *ClusterOperatorsInfoBuilder {
 	b.operators = make([]*ClusterOperatorInfoBuilder, len(values))
 	copy(b.operators, values)

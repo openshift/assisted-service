@@ -30,20 +30,23 @@ import (
 // the given writer.
 func MarshalClusterStatusList(list []*ClusterStatus, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeClusterStatusList(list, stream)
-	stream.Flush()
+	WriteClusterStatusList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeClusterStatusList writes a list of value of the 'cluster_status' type to
+// WriteClusterStatusList writes a list of value of the 'cluster_status' type to
 // the given stream.
-func writeClusterStatusList(list []*ClusterStatus, stream *jsoniter.Stream) {
+func WriteClusterStatusList(list []*ClusterStatus, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
 			stream.WriteMore()
 		}
-		writeClusterStatus(value, stream)
+		WriteClusterStatus(value, stream)
 	}
 	stream.WriteArrayEnd()
 }
@@ -55,17 +58,17 @@ func UnmarshalClusterStatusList(source interface{}) (items []*ClusterStatus, err
 	if err != nil {
 		return
 	}
-	items = readClusterStatusList(iterator)
+	items = ReadClusterStatusList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readClusterStatusList reads list of values of the ''cluster_status' type from
+// ReadClusterStatusList reads list of values of the ”cluster_status' type from
 // the given iterator.
-func readClusterStatusList(iterator *jsoniter.Iterator) []*ClusterStatus {
+func ReadClusterStatusList(iterator *jsoniter.Iterator) []*ClusterStatus {
 	list := []*ClusterStatus{}
 	for iterator.ReadArray() {
-		item := readClusterStatus(iterator)
+		item := ReadClusterStatus(iterator)
 		list = append(list, item)
 	}
 	return list

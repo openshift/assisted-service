@@ -30,20 +30,23 @@ import (
 // the given writer.
 func MarshalHTPasswdIdentityProviderList(list []*HTPasswdIdentityProvider, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeHTPasswdIdentityProviderList(list, stream)
-	stream.Flush()
+	WriteHTPasswdIdentityProviderList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeHTPasswdIdentityProviderList writes a list of value of the 'HT_passwd_identity_provider' type to
+// WriteHTPasswdIdentityProviderList writes a list of value of the 'HT_passwd_identity_provider' type to
 // the given stream.
-func writeHTPasswdIdentityProviderList(list []*HTPasswdIdentityProvider, stream *jsoniter.Stream) {
+func WriteHTPasswdIdentityProviderList(list []*HTPasswdIdentityProvider, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
 			stream.WriteMore()
 		}
-		writeHTPasswdIdentityProvider(value, stream)
+		WriteHTPasswdIdentityProvider(value, stream)
 	}
 	stream.WriteArrayEnd()
 }
@@ -55,17 +58,17 @@ func UnmarshalHTPasswdIdentityProviderList(source interface{}) (items []*HTPassw
 	if err != nil {
 		return
 	}
-	items = readHTPasswdIdentityProviderList(iterator)
+	items = ReadHTPasswdIdentityProviderList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readHTPasswdIdentityProviderList reads list of values of the ''HT_passwd_identity_provider' type from
+// ReadHTPasswdIdentityProviderList reads list of values of the ”HT_passwd_identity_provider' type from
 // the given iterator.
-func readHTPasswdIdentityProviderList(iterator *jsoniter.Iterator) []*HTPasswdIdentityProvider {
+func ReadHTPasswdIdentityProviderList(iterator *jsoniter.Iterator) []*HTPasswdIdentityProvider {
 	list := []*HTPasswdIdentityProvider{}
 	for iterator.ReadArray() {
-		item := readHTPasswdIdentityProvider(iterator)
+		item := ReadHTPasswdIdentityProvider(iterator)
 		list = append(list, item)
 	}
 	return list

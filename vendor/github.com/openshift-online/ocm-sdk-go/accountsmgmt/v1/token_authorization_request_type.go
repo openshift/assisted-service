@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // TokenAuthorizationRequest represents the values of the 'token_authorization_request' type.
-//
-//
 type TokenAuthorizationRequest struct {
 	bitmap_            uint32
 	authorizationToken string
@@ -80,6 +78,29 @@ func (l *TokenAuthorizationRequestList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *TokenAuthorizationRequestList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *TokenAuthorizationRequestList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *TokenAuthorizationRequestList) SetItems(items []*TokenAuthorizationRequest) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *TokenAuthorizationRequestList) Items() []*TokenAuthorizationRequest {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

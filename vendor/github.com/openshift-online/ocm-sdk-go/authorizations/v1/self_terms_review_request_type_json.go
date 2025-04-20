@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalSelfTermsReviewRequest writes a value of the 'self_terms_review_request' type to the given writer.
 func MarshalSelfTermsReviewRequest(object *SelfTermsReviewRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSelfTermsReviewRequest(object, stream)
-	stream.Flush()
+	WriteSelfTermsReviewRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSelfTermsReviewRequest writes a value of the 'self_terms_review_request' type to the given stream.
-func writeSelfTermsReviewRequest(object *SelfTermsReviewRequest, stream *jsoniter.Stream) {
+// WriteSelfTermsReviewRequest writes a value of the 'self_terms_review_request' type to the given stream.
+func WriteSelfTermsReviewRequest(object *SelfTermsReviewRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,7 +58,6 @@ func writeSelfTermsReviewRequest(object *SelfTermsReviewRequest, stream *jsonite
 		}
 		stream.WriteObjectField("site_code")
 		stream.WriteString(object.siteCode)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -64,20 +65,17 @@ func writeSelfTermsReviewRequest(object *SelfTermsReviewRequest, stream *jsonite
 // UnmarshalSelfTermsReviewRequest reads a value of the 'self_terms_review_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSelfTermsReviewRequest(source interface{}) (object *SelfTermsReviewRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSelfTermsReviewRequest(iterator)
+	object = ReadSelfTermsReviewRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSelfTermsReviewRequest reads a value of the 'self_terms_review_request' type from the given iterator.
-func readSelfTermsReviewRequest(iterator *jsoniter.Iterator) *SelfTermsReviewRequest {
+// ReadSelfTermsReviewRequest reads a value of the 'self_terms_review_request' type from the given iterator.
+func ReadSelfTermsReviewRequest(iterator *jsoniter.Iterator) *SelfTermsReviewRequest {
 	object := &SelfTermsReviewRequest{}
 	for {
 		field := iterator.ReadObject()
