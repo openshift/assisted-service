@@ -248,6 +248,7 @@ func (s *StaticNetworkConfigGenerator) createNMConnectionFiles(nmstateOutput, ho
 	if len(connectionsList) == 0 {
 		return nil, errors.Errorf("nmstate generated an empty NetworkManager config file content")
 	}
+
 	for _, connection := range connectionsList {
 		connectionElems := connection.([]interface{})
 		fileName := connectionElems[0].(string)
@@ -255,13 +256,23 @@ func (s *StaticNetworkConfigGenerator) createNMConnectionFiles(nmstateOutput, ho
 		if err != nil {
 			return nil, err
 		}
-		s.log.Infof("Adding NMConnection file <%s>", fileName)
+
 		newFile := StaticNetworkConfigData{
 			FilePath:     filepath.Join(hostDir, fileName),
 			FileContents: fileContents,
 		}
+
 		filesList = append(filesList, newFile)
 	}
+
+	if len(filesList) > 0 {
+		s.log.Infof("Adding NMConnection files: <%s>",
+			strings.Join(lo.Map(filesList, func(f StaticNetworkConfigData, _ int) string {
+				return filepath.Base(f.FilePath)
+			}), ">, <"),
+		)
+	}
+
 	return filesList, nil
 }
 
