@@ -1699,7 +1699,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(7))
+				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(6))
 				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
 					corev1.VolumeMount{
 						Name:      mirrorRegistryConfigVolume,
@@ -1708,7 +1708,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 				)
 				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).ShouldNot(ContainElement(
 					corev1.VolumeMount{
-						Name:      mirrorRegistryConfigVolume,
+						Name:      mirrorRegistryCertBundleVolume,
 						MountPath: common.MirrorRegistriesCertificatePath,
 						SubPath:   common.MirrorRegistriesCertificateFile,
 					}),
