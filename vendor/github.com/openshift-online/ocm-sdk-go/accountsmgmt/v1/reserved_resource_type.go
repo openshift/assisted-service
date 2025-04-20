@@ -24,18 +24,18 @@ import (
 )
 
 // ReservedResource represents the values of the 'reserved_resource' type.
-//
-//
 type ReservedResource struct {
-	bitmap_              uint32
-	availabilityZoneType string
-	billingModel         BillingModel
-	count                int
-	createdAt            time.Time
-	resourceName         string
-	resourceType         string
-	updatedAt            time.Time
-	byoc                 bool
+	bitmap_                   uint32
+	availabilityZoneType      string
+	billingMarketplaceAccount string
+	billingModel              BillingModel
+	count                     int
+	createdAt                 time.Time
+	resourceName              string
+	resourceType              string
+	scope                     string
+	updatedAt                 time.Time
+	byoc                      bool
 }
 
 // Empty returns true if the object is empty, i.e. no attribute has a value.
@@ -45,8 +45,6 @@ func (o *ReservedResource) Empty() bool {
 
 // BYOC returns the value of the 'BYOC' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ReservedResource) BYOC() bool {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.byoc
@@ -56,8 +54,6 @@ func (o *ReservedResource) BYOC() bool {
 
 // GetBYOC returns the value of the 'BYOC' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ReservedResource) GetBYOC() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -68,8 +64,6 @@ func (o *ReservedResource) GetBYOC() (value bool, ok bool) {
 
 // AvailabilityZoneType returns the value of the 'availability_zone_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ReservedResource) AvailabilityZoneType() string {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.availabilityZoneType
@@ -79,8 +73,6 @@ func (o *ReservedResource) AvailabilityZoneType() string {
 
 // GetAvailabilityZoneType returns the value of the 'availability_zone_type' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ReservedResource) GetAvailabilityZoneType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
@@ -89,12 +81,29 @@ func (o *ReservedResource) GetAvailabilityZoneType() (value string, ok bool) {
 	return
 }
 
+// BillingMarketplaceAccount returns the value of the 'billing_marketplace_account' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+func (o *ReservedResource) BillingMarketplaceAccount() string {
+	if o != nil && o.bitmap_&4 != 0 {
+		return o.billingMarketplaceAccount
+	}
+	return ""
+}
+
+// GetBillingMarketplaceAccount returns the value of the 'billing_marketplace_account' attribute and
+// a flag indicating if the attribute has a value.
+func (o *ReservedResource) GetBillingMarketplaceAccount() (value string, ok bool) {
+	ok = o != nil && o.bitmap_&4 != 0
+	if ok {
+		value = o.billingMarketplaceAccount
+	}
+	return
+}
+
 // BillingModel returns the value of the 'billing_model' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ReservedResource) BillingModel() BillingModel {
-	if o != nil && o.bitmap_&4 != 0 {
+	if o != nil && o.bitmap_&8 != 0 {
 		return o.billingModel
 	}
 	return BillingModel("")
@@ -102,10 +111,8 @@ func (o *ReservedResource) BillingModel() BillingModel {
 
 // GetBillingModel returns the value of the 'billing_model' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ReservedResource) GetBillingModel() (value BillingModel, ok bool) {
-	ok = o != nil && o.bitmap_&4 != 0
+	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
 		value = o.billingModel
 	}
@@ -114,10 +121,8 @@ func (o *ReservedResource) GetBillingModel() (value BillingModel, ok bool) {
 
 // Count returns the value of the 'count' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ReservedResource) Count() int {
-	if o != nil && o.bitmap_&8 != 0 {
+	if o != nil && o.bitmap_&16 != 0 {
 		return o.count
 	}
 	return 0
@@ -125,10 +130,8 @@ func (o *ReservedResource) Count() int {
 
 // GetCount returns the value of the 'count' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ReservedResource) GetCount() (value int, ok bool) {
-	ok = o != nil && o.bitmap_&8 != 0
+	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
 		value = o.count
 	}
@@ -137,10 +140,8 @@ func (o *ReservedResource) GetCount() (value int, ok bool) {
 
 // CreatedAt returns the value of the 'created_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ReservedResource) CreatedAt() time.Time {
-	if o != nil && o.bitmap_&16 != 0 {
+	if o != nil && o.bitmap_&32 != 0 {
 		return o.createdAt
 	}
 	return time.Time{}
@@ -148,10 +149,8 @@ func (o *ReservedResource) CreatedAt() time.Time {
 
 // GetCreatedAt returns the value of the 'created_at' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ReservedResource) GetCreatedAt() (value time.Time, ok bool) {
-	ok = o != nil && o.bitmap_&16 != 0
+	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
 		value = o.createdAt
 	}
@@ -160,10 +159,8 @@ func (o *ReservedResource) GetCreatedAt() (value time.Time, ok bool) {
 
 // ResourceName returns the value of the 'resource_name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ReservedResource) ResourceName() string {
-	if o != nil && o.bitmap_&32 != 0 {
+	if o != nil && o.bitmap_&64 != 0 {
 		return o.resourceName
 	}
 	return ""
@@ -171,10 +168,8 @@ func (o *ReservedResource) ResourceName() string {
 
 // GetResourceName returns the value of the 'resource_name' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ReservedResource) GetResourceName() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&32 != 0
+	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
 		value = o.resourceName
 	}
@@ -183,10 +178,8 @@ func (o *ReservedResource) GetResourceName() (value string, ok bool) {
 
 // ResourceType returns the value of the 'resource_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ReservedResource) ResourceType() string {
-	if o != nil && o.bitmap_&64 != 0 {
+	if o != nil && o.bitmap_&128 != 0 {
 		return o.resourceType
 	}
 	return ""
@@ -194,22 +187,37 @@ func (o *ReservedResource) ResourceType() string {
 
 // GetResourceType returns the value of the 'resource_type' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ReservedResource) GetResourceType() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&64 != 0
+	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
 		value = o.resourceType
 	}
 	return
 }
 
+// Scope returns the value of the 'scope' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+func (o *ReservedResource) Scope() string {
+	if o != nil && o.bitmap_&256 != 0 {
+		return o.scope
+	}
+	return ""
+}
+
+// GetScope returns the value of the 'scope' attribute and
+// a flag indicating if the attribute has a value.
+func (o *ReservedResource) GetScope() (value string, ok bool) {
+	ok = o != nil && o.bitmap_&256 != 0
+	if ok {
+		value = o.scope
+	}
+	return
+}
+
 // UpdatedAt returns the value of the 'updated_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ReservedResource) UpdatedAt() time.Time {
-	if o != nil && o.bitmap_&128 != 0 {
+	if o != nil && o.bitmap_&512 != 0 {
 		return o.updatedAt
 	}
 	return time.Time{}
@@ -217,10 +225,8 @@ func (o *ReservedResource) UpdatedAt() time.Time {
 
 // GetUpdatedAt returns the value of the 'updated_at' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ReservedResource) GetUpdatedAt() (value time.Time, ok bool) {
-	ok = o != nil && o.bitmap_&128 != 0
+	ok = o != nil && o.bitmap_&512 != 0
 	if ok {
 		value = o.updatedAt
 	}
@@ -252,6 +258,29 @@ func (l *ReservedResourceList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *ReservedResourceList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *ReservedResourceList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *ReservedResourceList) SetItems(items []*ReservedResource) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *ReservedResourceList) Items() []*ReservedResource {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

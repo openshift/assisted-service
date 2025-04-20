@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalKeyRing writes a value of the 'key_ring' type to the given writer.
 func MarshalKeyRing(object *KeyRing, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeKeyRing(object, stream)
-	stream.Flush()
+	WriteKeyRing(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeKeyRing writes a value of the 'key_ring' type to the given stream.
-func writeKeyRing(object *KeyRing, stream *jsoniter.Stream) {
+// WriteKeyRing writes a value of the 'key_ring' type to the given stream.
+func WriteKeyRing(object *KeyRing, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -70,7 +72,6 @@ func writeKeyRing(object *KeyRing, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("name")
 		stream.WriteString(object.name)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -78,20 +79,17 @@ func writeKeyRing(object *KeyRing, stream *jsoniter.Stream) {
 // UnmarshalKeyRing reads a value of the 'key_ring' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalKeyRing(source interface{}) (object *KeyRing, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readKeyRing(iterator)
+	object = ReadKeyRing(iterator)
 	err = iterator.Error
 	return
 }
 
-// readKeyRing reads a value of the 'key_ring' type from the given iterator.
-func readKeyRing(iterator *jsoniter.Iterator) *KeyRing {
+// ReadKeyRing reads a value of the 'key_ring' type from the given iterator.
+func ReadKeyRing(iterator *jsoniter.Iterator) *KeyRing {
 	object := &KeyRing{}
 	for {
 		field := iterator.ReadObject()

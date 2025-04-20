@@ -37,6 +37,11 @@ func (b *EventListBuilder) Items(values ...*EventBuilder) *EventListBuilder {
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *EventListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *EventListBuilder) Copy(list *EventList) *EventListBuilder {
 	if list == nil || list.items == nil {

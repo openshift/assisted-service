@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readAddonInquiryGetRequest(request *AddonInquiryGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeAddonInquiryGetRequest(request *AddonInquiryGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readAddonInquiryGetResponse(response *AddonInquiryGetResponse, reader io.Re
 	var err error
 	response.body, err = UnmarshalAddOn(reader)
 	return err
-}
-func writeAddonInquiryGetResponse(response *AddonInquiryGetServerResponse, w http.ResponseWriter) error {
-	return MarshalAddOn(response.body, w)
 }

@@ -30,20 +30,23 @@ import (
 // the given writer.
 func MarshalPullSecretsRequestList(list []*PullSecretsRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writePullSecretsRequestList(list, stream)
-	stream.Flush()
+	WritePullSecretsRequestList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writePullSecretsRequestList writes a list of value of the 'pull_secrets_request' type to
+// WritePullSecretsRequestList writes a list of value of the 'pull_secrets_request' type to
 // the given stream.
-func writePullSecretsRequestList(list []*PullSecretsRequest, stream *jsoniter.Stream) {
+func WritePullSecretsRequestList(list []*PullSecretsRequest, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
 			stream.WriteMore()
 		}
-		writePullSecretsRequest(value, stream)
+		WritePullSecretsRequest(value, stream)
 	}
 	stream.WriteArrayEnd()
 }
@@ -55,17 +58,17 @@ func UnmarshalPullSecretsRequestList(source interface{}) (items []*PullSecretsRe
 	if err != nil {
 		return
 	}
-	items = readPullSecretsRequestList(iterator)
+	items = ReadPullSecretsRequestList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readPullSecretsRequestList reads list of values of the ''pull_secrets_request' type from
+// ReadPullSecretsRequestList reads list of values of the ”pull_secrets_request' type from
 // the given iterator.
-func readPullSecretsRequestList(iterator *jsoniter.Iterator) []*PullSecretsRequest {
+func ReadPullSecretsRequestList(iterator *jsoniter.Iterator) []*PullSecretsRequest {
 	list := []*PullSecretsRequest{}
 	for iterator.ReadArray() {
-		item := readPullSecretsRequest(iterator)
+		item := ReadPullSecretsRequest(iterator)
 		list = append(list, item)
 	}
 	return list

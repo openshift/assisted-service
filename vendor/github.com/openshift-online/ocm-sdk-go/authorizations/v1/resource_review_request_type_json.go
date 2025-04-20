@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalResourceReviewRequest writes a value of the 'resource_review_request' type to the given writer.
 func MarshalResourceReviewRequest(object *ResourceReviewRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeResourceReviewRequest(object, stream)
-	stream.Flush()
+	WriteResourceReviewRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeResourceReviewRequest writes a value of the 'resource_review_request' type to the given stream.
-func writeResourceReviewRequest(object *ResourceReviewRequest, stream *jsoniter.Stream) {
+// WriteResourceReviewRequest writes a value of the 'resource_review_request' type to the given stream.
+func WriteResourceReviewRequest(object *ResourceReviewRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -58,7 +60,16 @@ func writeResourceReviewRequest(object *ResourceReviewRequest, stream *jsoniter.
 		stream.WriteString(object.action)
 		count++
 	}
-	present_ = object.bitmap_&4 != 0
+	present_ = object.bitmap_&4 != 0 && object.excludeSubscriptionStatuses != nil
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("exclude_subscription_statuses")
+		WriteSubscriptionStatusList(object.excludeSubscriptionStatuses, stream)
+		count++
+	}
+	present_ = object.bitmap_&8 != 0
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
@@ -67,14 +78,13 @@ func writeResourceReviewRequest(object *ResourceReviewRequest, stream *jsoniter.
 		stream.WriteBool(object.reduceClusterList)
 		count++
 	}
-	present_ = object.bitmap_&8 != 0
+	present_ = object.bitmap_&16 != 0
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("resource_type")
 		stream.WriteString(object.resourceType)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -82,20 +92,17 @@ func writeResourceReviewRequest(object *ResourceReviewRequest, stream *jsoniter.
 // UnmarshalResourceReviewRequest reads a value of the 'resource_review_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalResourceReviewRequest(source interface{}) (object *ResourceReviewRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readResourceReviewRequest(iterator)
+	object = ReadResourceReviewRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readResourceReviewRequest reads a value of the 'resource_review_request' type from the given iterator.
-func readResourceReviewRequest(iterator *jsoniter.Iterator) *ResourceReviewRequest {
+// ReadResourceReviewRequest reads a value of the 'resource_review_request' type from the given iterator.
+func ReadResourceReviewRequest(iterator *jsoniter.Iterator) *ResourceReviewRequest {
 	object := &ResourceReviewRequest{}
 	for {
 		field := iterator.ReadObject()
@@ -111,14 +118,18 @@ func readResourceReviewRequest(iterator *jsoniter.Iterator) *ResourceReviewReque
 			value := iterator.ReadString()
 			object.action = value
 			object.bitmap_ |= 2
+		case "exclude_subscription_statuses":
+			value := ReadSubscriptionStatusList(iterator)
+			object.excludeSubscriptionStatuses = value
+			object.bitmap_ |= 4
 		case "reduce_cluster_list":
 			value := iterator.ReadBool()
 			object.reduceClusterList = value
-			object.bitmap_ |= 4
+			object.bitmap_ |= 8
 		case "resource_type":
 			value := iterator.ReadString()
 			object.resourceType = value
-			object.bitmap_ |= 8
+			object.bitmap_ |= 16
 		default:
 			iterator.ReadAny()
 		}

@@ -37,6 +37,11 @@ func (b *PullSecretsRequestListBuilder) Items(values ...*PullSecretsRequestBuild
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *PullSecretsRequestListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *PullSecretsRequestListBuilder) Copy(list *PullSecretsRequestList) *PullSecretsRequestListBuilder {
 	if list == nil || list.items == nil {

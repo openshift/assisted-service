@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalAddOnParameterOption writes a value of the 'add_on_parameter_option' type to the given writer.
 func MarshalAddOnParameterOption(object *AddOnParameterOption, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeAddOnParameterOption(object, stream)
-	stream.Flush()
+	WriteAddOnParameterOption(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeAddOnParameterOption writes a value of the 'add_on_parameter_option' type to the given stream.
-func writeAddOnParameterOption(object *AddOnParameterOption, stream *jsoniter.Stream) {
+// WriteAddOnParameterOption writes a value of the 'add_on_parameter_option' type to the given stream.
+func WriteAddOnParameterOption(object *AddOnParameterOption, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -54,9 +56,26 @@ func writeAddOnParameterOption(object *AddOnParameterOption, stream *jsoniter.St
 		if count > 0 {
 			stream.WriteMore()
 		}
+		stream.WriteObjectField("rank")
+		stream.WriteInt(object.rank)
+		count++
+	}
+	present_ = object.bitmap_&4 != 0 && object.requirements != nil
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("requirements")
+		WriteAddOnRequirementList(object.requirements, stream)
+		count++
+	}
+	present_ = object.bitmap_&8 != 0
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
 		stream.WriteObjectField("value")
 		stream.WriteString(object.value)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -64,20 +83,17 @@ func writeAddOnParameterOption(object *AddOnParameterOption, stream *jsoniter.St
 // UnmarshalAddOnParameterOption reads a value of the 'add_on_parameter_option' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalAddOnParameterOption(source interface{}) (object *AddOnParameterOption, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readAddOnParameterOption(iterator)
+	object = ReadAddOnParameterOption(iterator)
 	err = iterator.Error
 	return
 }
 
-// readAddOnParameterOption reads a value of the 'add_on_parameter_option' type from the given iterator.
-func readAddOnParameterOption(iterator *jsoniter.Iterator) *AddOnParameterOption {
+// ReadAddOnParameterOption reads a value of the 'add_on_parameter_option' type from the given iterator.
+func ReadAddOnParameterOption(iterator *jsoniter.Iterator) *AddOnParameterOption {
 	object := &AddOnParameterOption{}
 	for {
 		field := iterator.ReadObject()
@@ -89,10 +105,18 @@ func readAddOnParameterOption(iterator *jsoniter.Iterator) *AddOnParameterOption
 			value := iterator.ReadString()
 			object.name = value
 			object.bitmap_ |= 1
+		case "rank":
+			value := iterator.ReadInt()
+			object.rank = value
+			object.bitmap_ |= 2
+		case "requirements":
+			value := ReadAddOnRequirementList(iterator)
+			object.requirements = value
+			object.bitmap_ |= 4
 		case "value":
 			value := iterator.ReadString()
 			object.value = value
-			object.bitmap_ |= 2
+			object.bitmap_ |= 8
 		default:
 			iterator.ReadAny()
 		}

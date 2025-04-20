@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalTaint writes a value of the 'taint' type to the given writer.
 func MarshalTaint(object *Taint, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeTaint(object, stream)
-	stream.Flush()
+	WriteTaint(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeTaint writes a value of the 'taint' type to the given stream.
-func writeTaint(object *Taint, stream *jsoniter.Stream) {
+// WriteTaint writes a value of the 'taint' type to the given stream.
+func WriteTaint(object *Taint, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -65,7 +67,6 @@ func writeTaint(object *Taint, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("value")
 		stream.WriteString(object.value)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -73,20 +74,17 @@ func writeTaint(object *Taint, stream *jsoniter.Stream) {
 // UnmarshalTaint reads a value of the 'taint' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalTaint(source interface{}) (object *Taint, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readTaint(iterator)
+	object = ReadTaint(iterator)
 	err = iterator.Error
 	return
 }
 
-// readTaint reads a value of the 'taint' type from the given iterator.
-func readTaint(iterator *jsoniter.Iterator) *Taint {
+// ReadTaint reads a value of the 'taint' type from the given iterator.
+func ReadTaint(iterator *jsoniter.Iterator) *Taint {
 	object := &Taint{}
 	for {
 		field := iterator.ReadObject()

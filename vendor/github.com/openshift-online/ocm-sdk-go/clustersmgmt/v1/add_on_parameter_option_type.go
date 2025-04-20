@@ -23,9 +23,11 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 //
 // Representation of an add-on parameter option.
 type AddOnParameterOption struct {
-	bitmap_ uint32
-	name    string
-	value   string
+	bitmap_      uint32
+	name         string
+	rank         int
+	requirements []*AddOnRequirement
+	value        string
 }
 
 // Empty returns true if the object is empty, i.e. no attribute has a value.
@@ -56,12 +58,58 @@ func (o *AddOnParameterOption) GetName() (value string, ok bool) {
 	return
 }
 
+// Rank returns the value of the 'rank' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Rank of option to be used in cases where editable direction should be restricted.
+func (o *AddOnParameterOption) Rank() int {
+	if o != nil && o.bitmap_&2 != 0 {
+		return o.rank
+	}
+	return 0
+}
+
+// GetRank returns the value of the 'rank' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Rank of option to be used in cases where editable direction should be restricted.
+func (o *AddOnParameterOption) GetRank() (value int, ok bool) {
+	ok = o != nil && o.bitmap_&2 != 0
+	if ok {
+		value = o.rank
+	}
+	return
+}
+
+// Requirements returns the value of the 'requirements' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// List of add-on requirements for this parameter option.
+func (o *AddOnParameterOption) Requirements() []*AddOnRequirement {
+	if o != nil && o.bitmap_&4 != 0 {
+		return o.requirements
+	}
+	return nil
+}
+
+// GetRequirements returns the value of the 'requirements' attribute and
+// a flag indicating if the attribute has a value.
+//
+// List of add-on requirements for this parameter option.
+func (o *AddOnParameterOption) GetRequirements() (value []*AddOnRequirement, ok bool) {
+	ok = o != nil && o.bitmap_&4 != 0
+	if ok {
+		value = o.requirements
+	}
+	return
+}
+
 // Value returns the value of the 'value' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // Value of the add-on parameter option.
 func (o *AddOnParameterOption) Value() string {
-	if o != nil && o.bitmap_&2 != 0 {
+	if o != nil && o.bitmap_&8 != 0 {
 		return o.value
 	}
 	return ""
@@ -72,7 +120,7 @@ func (o *AddOnParameterOption) Value() string {
 //
 // Value of the add-on parameter option.
 func (o *AddOnParameterOption) GetValue() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&2 != 0
+	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
 		value = o.value
 	}
@@ -104,6 +152,29 @@ func (l *AddOnParameterOptionList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *AddOnParameterOptionList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *AddOnParameterOptionList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *AddOnParameterOptionList) SetItems(items []*AddOnParameterOption) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *AddOnParameterOptionList) Items() []*AddOnParameterOption {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

@@ -20,15 +20,13 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -51,19 +49,7 @@ func NewFlavoursClient(transport http.RoundTripper, path string) *FlavoursClient
 	}
 }
 
-// Add creates a request for the 'add' method.
-//
-// Adds a new cluster flavour.
-func (c *FlavoursClient) Add() *FlavoursAddRequest {
-	return &FlavoursAddRequest{
-		transport: c.transport,
-		path:      c.path,
-	}
-}
-
 // List creates a request for the 'list' method.
-//
-//
 func (c *FlavoursClient) List() *FlavoursListRequest {
 	return &FlavoursListRequest{
 		transport: c.transport,
@@ -79,152 +65,6 @@ func (c *FlavoursClient) Flavour(id string) *FlavourClient {
 		c.transport,
 		path.Join(c.path, id),
 	)
-}
-
-// FlavoursAddRequest is the request for the 'add' method.
-type FlavoursAddRequest struct {
-	transport http.RoundTripper
-	path      string
-	query     url.Values
-	header    http.Header
-	body      *Flavour
-}
-
-// Parameter adds a query parameter.
-func (r *FlavoursAddRequest) Parameter(name string, value interface{}) *FlavoursAddRequest {
-	helpers.AddValue(&r.query, name, value)
-	return r
-}
-
-// Header adds a request header.
-func (r *FlavoursAddRequest) Header(name string, value interface{}) *FlavoursAddRequest {
-	helpers.AddHeader(&r.header, name, value)
-	return r
-}
-
-// Body sets the value of the 'body' parameter.
-//
-// Details of the cluster flavour.
-func (r *FlavoursAddRequest) Body(value *Flavour) *FlavoursAddRequest {
-	r.body = value
-	return r
-}
-
-// Send sends this request, waits for the response, and returns it.
-//
-// This is a potentially lengthy operation, as it requires network communication.
-// Consider using a context and the SendContext method.
-func (r *FlavoursAddRequest) Send() (result *FlavoursAddResponse, err error) {
-	return r.SendContext(context.Background())
-}
-
-// SendContext sends this request, waits for the response, and returns it.
-func (r *FlavoursAddRequest) SendContext(ctx context.Context) (result *FlavoursAddResponse, err error) {
-	query := helpers.CopyQuery(r.query)
-	header := helpers.CopyHeader(r.header)
-	buffer := &bytes.Buffer{}
-	err = writeFlavoursAddRequest(r, buffer)
-	if err != nil {
-		return
-	}
-	uri := &url.URL{
-		Path:     r.path,
-		RawQuery: query.Encode(),
-	}
-	request := &http.Request{
-		Method: "POST",
-		URL:    uri,
-		Header: header,
-		Body:   ioutil.NopCloser(buffer),
-	}
-	if ctx != nil {
-		request = request.WithContext(ctx)
-	}
-	response, err := r.transport.RoundTrip(request)
-	if err != nil {
-		return
-	}
-	defer response.Body.Close()
-	result = &FlavoursAddResponse{}
-	result.status = response.StatusCode
-	result.header = response.Header
-	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
-		if err != nil {
-			return
-		}
-		err = result.err
-		return
-	}
-	err = readFlavoursAddResponse(result, response.Body)
-	if err != nil {
-		return
-	}
-	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'add' method.
-func (r *FlavoursAddRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *FlavoursAddRequest) stream(stream *jsoniter.Stream) {
-}
-
-// FlavoursAddResponse is the response for the 'add' method.
-type FlavoursAddResponse struct {
-	status int
-	header http.Header
-	err    *errors.Error
-	body   *Flavour
-}
-
-// Status returns the response status code.
-func (r *FlavoursAddResponse) Status() int {
-	if r == nil {
-		return 0
-	}
-	return r.status
-}
-
-// Header returns header of the response.
-func (r *FlavoursAddResponse) Header() http.Header {
-	if r == nil {
-		return nil
-	}
-	return r.header
-}
-
-// Error returns the response error.
-func (r *FlavoursAddResponse) Error() *errors.Error {
-	if r == nil {
-		return nil
-	}
-	return r.err
-}
-
-// Body returns the value of the 'body' parameter.
-//
-// Details of the cluster flavour.
-func (r *FlavoursAddResponse) Body() *Flavour {
-	if r == nil {
-		return nil
-	}
-	return r.body
-}
-
-// GetBody returns the value of the 'body' parameter and
-// a flag indicating if the parameter has a value.
-//
-// Details of the cluster flavour.
-func (r *FlavoursAddResponse) GetBody() (value *Flavour, ok bool) {
-	ok = r != nil && r.body != nil
-	if ok {
-		value = r.body
-	}
-	return
 }
 
 // FlavoursListRequest is the request for the 'list' method.
@@ -251,6 +91,13 @@ func (r *FlavoursListRequest) Header(name string, value interface{}) *FlavoursLi
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *FlavoursListRequest) Impersonate(user string) *FlavoursListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Order sets the value of the 'order' parameter.
 //
 // Order criteria.
@@ -260,10 +107,9 @@ func (r *FlavoursListRequest) Header(name string, value interface{}) *FlavoursLi
 // the names of the columns of a table. For example, in order to sort the flavours
 // descending by name the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // name desc
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then the order of the
 // results is undefined.
@@ -289,10 +135,9 @@ func (r *FlavoursListRequest) Page(value int) *FlavoursListRequest {
 // the names of the columns of a table. For example, in order to retrieve all the
 // flavours with a name starting with `my`the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // name like 'my%'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the flavours
 // that the user has permission to see will be returned.
@@ -353,15 +198,21 @@ func (r *FlavoursListRequest) SendContext(ctx context.Context) (result *Flavours
 	result = &FlavoursListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readFlavoursListResponse(result, response.Body)
+	err = readFlavoursListResponse(result, reader)
 	if err != nil {
 		return
 	}

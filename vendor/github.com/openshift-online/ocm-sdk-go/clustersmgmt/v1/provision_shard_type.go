@@ -19,6 +19,10 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
+import (
+	time "time"
+)
+
 // ProvisionShardKind is the name of the type used to represent objects
 // of type 'provision_shard'.
 const ProvisionShardKind = "ProvisionShard"
@@ -42,7 +46,14 @@ type ProvisionShard struct {
 	awsBaseDomain            string
 	gcpBaseDomain            string
 	gcpProjectOperator       *ServerConfig
+	cloudProvider            *CloudProvider
+	creationTimestamp        time.Time
 	hiveConfig               *ServerConfig
+	hypershiftConfig         *ServerConfig
+	lastUpdateTimestamp      time.Time
+	managementCluster        string
+	region                   *CloudRegion
+	status                   string
 }
 
 // Kind returns the name of the type of the object.
@@ -56,7 +67,7 @@ func (o *ProvisionShard) Kind() string {
 	return ProvisionShardKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *ProvisionShard) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -105,7 +116,7 @@ func (o *ProvisionShard) Empty() bool {
 // AWSAccountOperatorConfig returns the value of the 'AWS_account_operator_config' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// Contains the configuration for the AWS account operator
+// Contains the configuration for the AWS account operator.
 func (o *ProvisionShard) AWSAccountOperatorConfig() *ServerConfig {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.awsAccountOperatorConfig
@@ -116,7 +127,7 @@ func (o *ProvisionShard) AWSAccountOperatorConfig() *ServerConfig {
 // GetAWSAccountOperatorConfig returns the value of the 'AWS_account_operator_config' attribute and
 // a flag indicating if the attribute has a value.
 //
-// Contains the configuration for the AWS account operator
+// Contains the configuration for the AWS account operator.
 func (o *ProvisionShard) GetAWSAccountOperatorConfig() (value *ServerConfig, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -128,7 +139,7 @@ func (o *ProvisionShard) GetAWSAccountOperatorConfig() (value *ServerConfig, ok 
 // AWSBaseDomain returns the value of the 'AWS_base_domain' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// Contains the AWS base domain
+// Contains the AWS base domain.
 func (o *ProvisionShard) AWSBaseDomain() string {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.awsBaseDomain
@@ -139,7 +150,7 @@ func (o *ProvisionShard) AWSBaseDomain() string {
 // GetAWSBaseDomain returns the value of the 'AWS_base_domain' attribute and
 // a flag indicating if the attribute has a value.
 //
-// Contains the AWS base domain
+// Contains the AWS base domain.
 func (o *ProvisionShard) GetAWSBaseDomain() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -151,7 +162,7 @@ func (o *ProvisionShard) GetAWSBaseDomain() (value string, ok bool) {
 // GCPBaseDomain returns the value of the 'GCP_base_domain' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// Contains the GCP base domain
+// Contains the GCP base domain.
 func (o *ProvisionShard) GCPBaseDomain() string {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.gcpBaseDomain
@@ -162,7 +173,7 @@ func (o *ProvisionShard) GCPBaseDomain() string {
 // GetGCPBaseDomain returns the value of the 'GCP_base_domain' attribute and
 // a flag indicating if the attribute has a value.
 //
-// Contains the GCP base domain
+// Contains the GCP base domain.
 func (o *ProvisionShard) GetGCPBaseDomain() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -174,7 +185,7 @@ func (o *ProvisionShard) GetGCPBaseDomain() (value string, ok bool) {
 // GCPProjectOperator returns the value of the 'GCP_project_operator' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// Contains the configuration for the GCP project operator
+// Contains the configuration for the GCP project operator.
 func (o *ProvisionShard) GCPProjectOperator() *ServerConfig {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.gcpProjectOperator
@@ -185,7 +196,7 @@ func (o *ProvisionShard) GCPProjectOperator() *ServerConfig {
 // GetGCPProjectOperator returns the value of the 'GCP_project_operator' attribute and
 // a flag indicating if the attribute has a value.
 //
-// Contains the configuration for the GCP project operator
+// Contains the configuration for the GCP project operator.
 func (o *ProvisionShard) GetGCPProjectOperator() (value *ServerConfig, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -194,12 +205,60 @@ func (o *ProvisionShard) GetGCPProjectOperator() (value *ServerConfig, ok bool) 
 	return
 }
 
+// CloudProvider returns the value of the 'cloud_provider' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Contains the cloud provider name.
+func (o *ProvisionShard) CloudProvider() *CloudProvider {
+	if o != nil && o.bitmap_&128 != 0 {
+		return o.cloudProvider
+	}
+	return nil
+}
+
+// GetCloudProvider returns the value of the 'cloud_provider' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Contains the cloud provider name.
+func (o *ProvisionShard) GetCloudProvider() (value *CloudProvider, ok bool) {
+	ok = o != nil && o.bitmap_&128 != 0
+	if ok {
+		value = o.cloudProvider
+	}
+	return
+}
+
+// CreationTimestamp returns the value of the 'creation_timestamp' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Date and time when the provision shard was initially created, using the
+// format defined in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt).
+func (o *ProvisionShard) CreationTimestamp() time.Time {
+	if o != nil && o.bitmap_&256 != 0 {
+		return o.creationTimestamp
+	}
+	return time.Time{}
+}
+
+// GetCreationTimestamp returns the value of the 'creation_timestamp' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Date and time when the provision shard was initially created, using the
+// format defined in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt).
+func (o *ProvisionShard) GetCreationTimestamp() (value time.Time, ok bool) {
+	ok = o != nil && o.bitmap_&256 != 0
+	if ok {
+		value = o.creationTimestamp
+	}
+	return
+}
+
 // HiveConfig returns the value of the 'hive_config' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// Contains the configuration for Hive
+// Contains the configuration for Hive.
 func (o *ProvisionShard) HiveConfig() *ServerConfig {
-	if o != nil && o.bitmap_&128 != 0 {
+	if o != nil && o.bitmap_&512 != 0 {
 		return o.hiveConfig
 	}
 	return nil
@@ -208,11 +267,130 @@ func (o *ProvisionShard) HiveConfig() *ServerConfig {
 // GetHiveConfig returns the value of the 'hive_config' attribute and
 // a flag indicating if the attribute has a value.
 //
-// Contains the configuration for Hive
+// Contains the configuration for Hive.
 func (o *ProvisionShard) GetHiveConfig() (value *ServerConfig, ok bool) {
-	ok = o != nil && o.bitmap_&128 != 0
+	ok = o != nil && o.bitmap_&512 != 0
 	if ok {
 		value = o.hiveConfig
+	}
+	return
+}
+
+// HypershiftConfig returns the value of the 'hypershift_config' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Contains the configuration for Hypershift.
+func (o *ProvisionShard) HypershiftConfig() *ServerConfig {
+	if o != nil && o.bitmap_&1024 != 0 {
+		return o.hypershiftConfig
+	}
+	return nil
+}
+
+// GetHypershiftConfig returns the value of the 'hypershift_config' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Contains the configuration for Hypershift.
+func (o *ProvisionShard) GetHypershiftConfig() (value *ServerConfig, ok bool) {
+	ok = o != nil && o.bitmap_&1024 != 0
+	if ok {
+		value = o.hypershiftConfig
+	}
+	return
+}
+
+// LastUpdateTimestamp returns the value of the 'last_update_timestamp' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Date and time when the provision shard was last updated, using the
+// format defined in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt).
+func (o *ProvisionShard) LastUpdateTimestamp() time.Time {
+	if o != nil && o.bitmap_&2048 != 0 {
+		return o.lastUpdateTimestamp
+	}
+	return time.Time{}
+}
+
+// GetLastUpdateTimestamp returns the value of the 'last_update_timestamp' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Date and time when the provision shard was last updated, using the
+// format defined in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt).
+func (o *ProvisionShard) GetLastUpdateTimestamp() (value time.Time, ok bool) {
+	ok = o != nil && o.bitmap_&2048 != 0
+	if ok {
+		value = o.lastUpdateTimestamp
+	}
+	return
+}
+
+// ManagementCluster returns the value of the 'management_cluster' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Contains the name of the management cluster for Hypershift clusters that are assigned to this shard.
+// This field is populated by OCM, and must not be overwritten via API.
+func (o *ProvisionShard) ManagementCluster() string {
+	if o != nil && o.bitmap_&4096 != 0 {
+		return o.managementCluster
+	}
+	return ""
+}
+
+// GetManagementCluster returns the value of the 'management_cluster' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Contains the name of the management cluster for Hypershift clusters that are assigned to this shard.
+// This field is populated by OCM, and must not be overwritten via API.
+func (o *ProvisionShard) GetManagementCluster() (value string, ok bool) {
+	ok = o != nil && o.bitmap_&4096 != 0
+	if ok {
+		value = o.managementCluster
+	}
+	return
+}
+
+// Region returns the value of the 'region' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Contains the cloud-provider region in which the provisioner spins up the cluster.
+func (o *ProvisionShard) Region() *CloudRegion {
+	if o != nil && o.bitmap_&8192 != 0 {
+		return o.region
+	}
+	return nil
+}
+
+// GetRegion returns the value of the 'region' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Contains the cloud-provider region in which the provisioner spins up the cluster.
+func (o *ProvisionShard) GetRegion() (value *CloudRegion, ok bool) {
+	ok = o != nil && o.bitmap_&8192 != 0
+	if ok {
+		value = o.region
+	}
+	return
+}
+
+// Status returns the value of the 'status' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Status of the provision shard. Possible values: active/maintenance/offline.
+func (o *ProvisionShard) Status() string {
+	if o != nil && o.bitmap_&16384 != 0 {
+		return o.status
+	}
+	return ""
+}
+
+// GetStatus returns the value of the 'status' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Status of the provision shard. Possible values: active/maintenance/offline.
+func (o *ProvisionShard) GetStatus() (value string, ok bool) {
+	ok = o != nil && o.bitmap_&16384 != 0
+	if ok {
+		value = o.status
 	}
 	return
 }
@@ -276,6 +454,29 @@ func (l *ProvisionShardList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *ProvisionShardList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *ProvisionShardList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *ProvisionShardList) SetItems(items []*ProvisionShard) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *ProvisionShardList) Items() []*ProvisionShard {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readExternalConfigurationGetRequest(request *ExternalConfigurationGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeExternalConfigurationGetRequest(request *ExternalConfigurationGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readExternalConfigurationGetResponse(response *ExternalConfigurationGetResp
 	var err error
 	response.body, err = UnmarshalExternalConfiguration(reader)
 	return err
-}
-func writeExternalConfigurationGetResponse(response *ExternalConfigurationGetServerResponse, w http.ResponseWriter) error {
-	return MarshalExternalConfiguration(response.body, w)
 }

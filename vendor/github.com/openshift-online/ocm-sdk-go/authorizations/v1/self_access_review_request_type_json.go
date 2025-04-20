@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalSelfAccessReviewRequest writes a value of the 'self_access_review_request' type to the given writer.
 func MarshalSelfAccessReviewRequest(object *SelfAccessReviewRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSelfAccessReviewRequest(object, stream)
-	stream.Flush()
+	WriteSelfAccessReviewRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSelfAccessReviewRequest writes a value of the 'self_access_review_request' type to the given stream.
-func writeSelfAccessReviewRequest(object *SelfAccessReviewRequest, stream *jsoniter.Stream) {
+// WriteSelfAccessReviewRequest writes a value of the 'self_access_review_request' type to the given stream.
+func WriteSelfAccessReviewRequest(object *SelfAccessReviewRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -92,7 +94,6 @@ func writeSelfAccessReviewRequest(object *SelfAccessReviewRequest, stream *jsoni
 		}
 		stream.WriteObjectField("subscription_id")
 		stream.WriteString(object.subscriptionID)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -100,20 +101,17 @@ func writeSelfAccessReviewRequest(object *SelfAccessReviewRequest, stream *jsoni
 // UnmarshalSelfAccessReviewRequest reads a value of the 'self_access_review_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSelfAccessReviewRequest(source interface{}) (object *SelfAccessReviewRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSelfAccessReviewRequest(iterator)
+	object = ReadSelfAccessReviewRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSelfAccessReviewRequest reads a value of the 'self_access_review_request' type from the given iterator.
-func readSelfAccessReviewRequest(iterator *jsoniter.Iterator) *SelfAccessReviewRequest {
+// ReadSelfAccessReviewRequest reads a value of the 'self_access_review_request' type from the given iterator.
+func ReadSelfAccessReviewRequest(iterator *jsoniter.Iterator) *SelfAccessReviewRequest {
 	object := &SelfAccessReviewRequest{}
 	for {
 		field := iterator.ReadObject()
