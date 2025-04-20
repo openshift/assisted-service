@@ -51,6 +51,8 @@ RELEASE_SOURCES = os.environ.get("RELEASE_SOURCES", "")
 OPENSHIFT_RELEASE_SYNCER_INTERVAL = os.environ.get("OPENSHIFT_RELEASE_SYNCER_INTERVAL", "30m")
 IGNORED_OPENSHIFT_VERSIONS = os.environ.get("IGNORED_OPENSHIFT_VERSIONS", "")
 JWKS_URL = os.environ.get("JWKS_URL", "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/certs")
+NVIDIA_REQUIRE_GPU = os.environ.get("NVIDIA_REQUIRE_GPU", "true")
+AMD_REQUIRE_GPU = os.environ.get("AMD_REQUIRE_GPU", "true")
 
 def get_deployment_tag(args):
     if args.deploy_manifest_tag:
@@ -111,6 +113,8 @@ def main():
     data = data.replace('REPLACE_OPENSHIFT_RELEASE_SYNCER_INTERVAL', '"{}"'.format(OPENSHIFT_RELEASE_SYNCER_INTERVAL))
     data = data.replace('REPLACE_IGNORED_OPENSHIFT_VERSIONS', '"{}"'.format(IGNORED_OPENSHIFT_VERSIONS))
     data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(JWKS_URL))
+    data = data.replace('REPLACE_NVIDIA_REQUIRE_GPU', '"{}"'.format(NVIDIA_REQUIRE_GPU))
+    data = data.replace('REPLACE_AMD_REQUIRE_GPU', '"{}"'.format(AMD_REQUIRE_GPU))
 
     versions = {"INSTALLER_IMAGE": "assisted-installer",
                 "CONTROLLER_IMAGE": "assisted-installer-controller",
