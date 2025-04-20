@@ -37,6 +37,11 @@ func (b *OperatorIAMRoleListBuilder) Items(values ...*OperatorIAMRoleBuilder) *O
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *OperatorIAMRoleListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *OperatorIAMRoleListBuilder) Copy(list *OperatorIAMRoleList) *OperatorIAMRoleListBuilder {
 	if list == nil || list.items == nil {

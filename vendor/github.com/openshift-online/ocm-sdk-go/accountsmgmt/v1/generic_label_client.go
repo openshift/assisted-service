@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -180,16 +179,12 @@ func (r *GenericLabelPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *GenericLabelPollResponse) Body() *Label {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *GenericLabelPollResponse) GetBody() (value *Label, ok bool) {
 	return r.response.GetBody()
 }
@@ -219,6 +214,13 @@ func (r *GenericLabelDeleteRequest) Parameter(name string, value interface{}) *G
 // Header adds a request header.
 func (r *GenericLabelDeleteRequest) Header(name string, value interface{}) *GenericLabelDeleteRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *GenericLabelDeleteRequest) Impersonate(user string) *GenericLabelDeleteRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -254,8 +256,14 @@ func (r *GenericLabelDeleteRequest) SendContext(ctx context.Context) (result *Ge
 	result = &GenericLabelDeleteResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -316,6 +324,13 @@ func (r *GenericLabelGetRequest) Header(name string, value interface{}) *Generic
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *GenericLabelGetRequest) Impersonate(user string) *GenericLabelGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -348,15 +363,21 @@ func (r *GenericLabelGetRequest) SendContext(ctx context.Context) (result *Gener
 	result = &GenericLabelGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readGenericLabelGetResponse(result, response.Body)
+	err = readGenericLabelGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -396,8 +417,6 @@ func (r *GenericLabelGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *GenericLabelGetResponse) Body() *Label {
 	if r == nil {
 		return nil
@@ -407,8 +426,6 @@ func (r *GenericLabelGetResponse) Body() *Label {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *GenericLabelGetResponse) GetBody() (value *Label, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -438,9 +455,14 @@ func (r *GenericLabelUpdateRequest) Header(name string, value interface{}) *Gene
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *GenericLabelUpdateRequest) Impersonate(user string) *GenericLabelUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *GenericLabelUpdateRequest) Body(value *Label) *GenericLabelUpdateRequest {
 	r.body = value
 	return r
@@ -471,7 +493,7 @@ func (r *GenericLabelUpdateRequest) SendContext(ctx context.Context) (result *Ge
 		Method: "PATCH",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -484,29 +506,25 @@ func (r *GenericLabelUpdateRequest) SendContext(ctx context.Context) (result *Ge
 	result = &GenericLabelUpdateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readGenericLabelUpdateResponse(result, response.Body)
+	err = readGenericLabelUpdateResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'update' method.
-func (r *GenericLabelUpdateRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *GenericLabelUpdateRequest) stream(stream *jsoniter.Stream) {
 }
 
 // GenericLabelUpdateResponse is the response for the 'update' method.
@@ -542,8 +560,6 @@ func (r *GenericLabelUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *GenericLabelUpdateResponse) Body() *Label {
 	if r == nil {
 		return nil
@@ -553,8 +569,6 @@ func (r *GenericLabelUpdateResponse) Body() *Label {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *GenericLabelUpdateResponse) GetBody() (value *Label, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

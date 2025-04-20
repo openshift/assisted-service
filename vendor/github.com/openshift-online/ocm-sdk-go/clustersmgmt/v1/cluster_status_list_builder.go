@@ -37,6 +37,11 @@ func (b *ClusterStatusListBuilder) Items(values ...*ClusterStatusBuilder) *Clust
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *ClusterStatusListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *ClusterStatusListBuilder) Copy(list *ClusterStatusList) *ClusterStatusListBuilder {
 	if list == nil || list.items == nil {

@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readCurrentAccountGetRequest(request *CurrentAccountGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeCurrentAccountGetRequest(request *CurrentAccountGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readCurrentAccountGetResponse(response *CurrentAccountGetResponse, reader i
 	var err error
 	response.body, err = UnmarshalAccount(reader)
 	return err
-}
-func writeCurrentAccountGetResponse(response *CurrentAccountGetServerResponse, w http.ResponseWriter) error {
-	return MarshalAccount(response.body, w)
 }

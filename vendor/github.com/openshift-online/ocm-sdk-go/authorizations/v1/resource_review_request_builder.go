@@ -23,11 +23,12 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 //
 // Request to perform a resource access review.
 type ResourceReviewRequestBuilder struct {
-	bitmap_           uint32
-	accountUsername   string
-	action            string
-	resourceType      string
-	reduceClusterList bool
+	bitmap_                     uint32
+	accountUsername             string
+	action                      string
+	excludeSubscriptionStatuses []SubscriptionStatus
+	resourceType                string
+	reduceClusterList           bool
 }
 
 // NewResourceReviewRequest creates a new builder of 'resource_review_request' objects.
@@ -35,9 +36,12 @@ func NewResourceReviewRequest() *ResourceReviewRequestBuilder {
 	return &ResourceReviewRequestBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *ResourceReviewRequestBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // AccountUsername sets the value of the 'account_username' attribute to the given value.
-//
-//
 func (b *ResourceReviewRequestBuilder) AccountUsername(value string) *ResourceReviewRequestBuilder {
 	b.accountUsername = value
 	b.bitmap_ |= 1
@@ -45,29 +49,31 @@ func (b *ResourceReviewRequestBuilder) AccountUsername(value string) *ResourceRe
 }
 
 // Action sets the value of the 'action' attribute to the given value.
-//
-//
 func (b *ResourceReviewRequestBuilder) Action(value string) *ResourceReviewRequestBuilder {
 	b.action = value
 	b.bitmap_ |= 2
 	return b
 }
 
-// ReduceClusterList sets the value of the 'reduce_cluster_list' attribute to the given value.
-//
-//
-func (b *ResourceReviewRequestBuilder) ReduceClusterList(value bool) *ResourceReviewRequestBuilder {
-	b.reduceClusterList = value
+// ExcludeSubscriptionStatuses sets the value of the 'exclude_subscription_statuses' attribute to the given values.
+func (b *ResourceReviewRequestBuilder) ExcludeSubscriptionStatuses(values ...SubscriptionStatus) *ResourceReviewRequestBuilder {
+	b.excludeSubscriptionStatuses = make([]SubscriptionStatus, len(values))
+	copy(b.excludeSubscriptionStatuses, values)
 	b.bitmap_ |= 4
 	return b
 }
 
+// ReduceClusterList sets the value of the 'reduce_cluster_list' attribute to the given value.
+func (b *ResourceReviewRequestBuilder) ReduceClusterList(value bool) *ResourceReviewRequestBuilder {
+	b.reduceClusterList = value
+	b.bitmap_ |= 8
+	return b
+}
+
 // ResourceType sets the value of the 'resource_type' attribute to the given value.
-//
-//
 func (b *ResourceReviewRequestBuilder) ResourceType(value string) *ResourceReviewRequestBuilder {
 	b.resourceType = value
-	b.bitmap_ |= 8
+	b.bitmap_ |= 16
 	return b
 }
 
@@ -79,6 +85,12 @@ func (b *ResourceReviewRequestBuilder) Copy(object *ResourceReviewRequest) *Reso
 	b.bitmap_ = object.bitmap_
 	b.accountUsername = object.accountUsername
 	b.action = object.action
+	if object.excludeSubscriptionStatuses != nil {
+		b.excludeSubscriptionStatuses = make([]SubscriptionStatus, len(object.excludeSubscriptionStatuses))
+		copy(b.excludeSubscriptionStatuses, object.excludeSubscriptionStatuses)
+	} else {
+		b.excludeSubscriptionStatuses = nil
+	}
 	b.reduceClusterList = object.reduceClusterList
 	b.resourceType = object.resourceType
 	return b
@@ -90,6 +102,10 @@ func (b *ResourceReviewRequestBuilder) Build() (object *ResourceReviewRequest, e
 	object.bitmap_ = b.bitmap_
 	object.accountUsername = b.accountUsername
 	object.action = b.action
+	if b.excludeSubscriptionStatuses != nil {
+		object.excludeSubscriptionStatuses = make([]SubscriptionStatus, len(b.excludeSubscriptionStatuses))
+		copy(object.excludeSubscriptionStatuses, b.excludeSubscriptionStatuses)
+	}
 	object.reduceClusterList = b.reduceClusterList
 	object.resourceType = b.resourceType
 	return

@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalCloudProvider writes a value of the 'cloud_provider' type to the given writer.
 func MarshalCloudProvider(object *CloudProvider, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeCloudProvider(object, stream)
-	stream.Flush()
+	WriteCloudProvider(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeCloudProvider writes a value of the 'cloud_provider' type to the given stream.
-func writeCloudProvider(object *CloudProvider, stream *jsoniter.Stream) {
+// WriteCloudProvider writes a value of the 'cloud_provider' type to the given stream.
+func WriteCloudProvider(object *CloudProvider, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -81,26 +83,31 @@ func writeCloudProvider(object *CloudProvider, stream *jsoniter.Stream) {
 		stream.WriteString(object.name)
 		count++
 	}
+	present_ = object.bitmap_&32 != 0 && object.regions != nil
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("regions")
+		WriteCloudRegionList(object.regions, stream)
+	}
 	stream.WriteObjectEnd()
 }
 
 // UnmarshalCloudProvider reads a value of the 'cloud_provider' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalCloudProvider(source interface{}) (object *CloudProvider, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readCloudProvider(iterator)
+	object = ReadCloudProvider(iterator)
 	err = iterator.Error
 	return
 }
 
-// readCloudProvider reads a value of the 'cloud_provider' type from the given iterator.
-func readCloudProvider(iterator *jsoniter.Iterator) *CloudProvider {
+// ReadCloudProvider reads a value of the 'cloud_provider' type from the given iterator.
+func ReadCloudProvider(iterator *jsoniter.Iterator) *CloudProvider {
 	object := &CloudProvider{}
 	for {
 		field := iterator.ReadObject()
@@ -127,6 +134,10 @@ func readCloudProvider(iterator *jsoniter.Iterator) *CloudProvider {
 			value := iterator.ReadString()
 			object.name = value
 			object.bitmap_ |= 16
+		case "regions":
+			value := ReadCloudRegionList(iterator)
+			object.regions = value
+			object.bitmap_ |= 32
 		default:
 			iterator.ReadAny()
 		}

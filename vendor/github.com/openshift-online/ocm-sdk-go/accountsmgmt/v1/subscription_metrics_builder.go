@@ -53,9 +53,12 @@ func NewSubscriptionMetrics() *SubscriptionMetricsBuilder {
 	return &SubscriptionMetricsBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *SubscriptionMetricsBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // CloudProvider sets the value of the 'cloud_provider' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) CloudProvider(value string) *SubscriptionMetricsBuilder {
 	b.cloudProvider = value
 	b.bitmap_ |= 1
@@ -63,8 +66,6 @@ func (b *SubscriptionMetricsBuilder) CloudProvider(value string) *SubscriptionMe
 }
 
 // ComputeNodesCpu sets the value of the 'compute_nodes_cpu' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) ComputeNodesCpu(value *ClusterResourceBuilder) *SubscriptionMetricsBuilder {
 	b.computeNodesCpu = value
 	if value != nil {
@@ -76,8 +77,6 @@ func (b *SubscriptionMetricsBuilder) ComputeNodesCpu(value *ClusterResourceBuild
 }
 
 // ComputeNodesMemory sets the value of the 'compute_nodes_memory' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) ComputeNodesMemory(value *ClusterResourceBuilder) *SubscriptionMetricsBuilder {
 	b.computeNodesMemory = value
 	if value != nil {
@@ -89,8 +88,6 @@ func (b *SubscriptionMetricsBuilder) ComputeNodesMemory(value *ClusterResourceBu
 }
 
 // ComputeNodesSockets sets the value of the 'compute_nodes_sockets' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) ComputeNodesSockets(value *ClusterResourceBuilder) *SubscriptionMetricsBuilder {
 	b.computeNodesSockets = value
 	if value != nil {
@@ -102,8 +99,6 @@ func (b *SubscriptionMetricsBuilder) ComputeNodesSockets(value *ClusterResourceB
 }
 
 // ConsoleUrl sets the value of the 'console_url' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) ConsoleUrl(value string) *SubscriptionMetricsBuilder {
 	b.consoleUrl = value
 	b.bitmap_ |= 16
@@ -111,8 +106,6 @@ func (b *SubscriptionMetricsBuilder) ConsoleUrl(value string) *SubscriptionMetri
 }
 
 // Cpu sets the value of the 'cpu' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) Cpu(value *ClusterResourceBuilder) *SubscriptionMetricsBuilder {
 	b.cpu = value
 	if value != nil {
@@ -124,8 +117,6 @@ func (b *SubscriptionMetricsBuilder) Cpu(value *ClusterResourceBuilder) *Subscri
 }
 
 // CriticalAlertsFiring sets the value of the 'critical_alerts_firing' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) CriticalAlertsFiring(value float64) *SubscriptionMetricsBuilder {
 	b.criticalAlertsFiring = value
 	b.bitmap_ |= 64
@@ -133,8 +124,6 @@ func (b *SubscriptionMetricsBuilder) CriticalAlertsFiring(value float64) *Subscr
 }
 
 // HealthState sets the value of the 'health_state' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) HealthState(value string) *SubscriptionMetricsBuilder {
 	b.healthState = value
 	b.bitmap_ |= 128
@@ -142,8 +131,6 @@ func (b *SubscriptionMetricsBuilder) HealthState(value string) *SubscriptionMetr
 }
 
 // Memory sets the value of the 'memory' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) Memory(value *ClusterResourceBuilder) *SubscriptionMetricsBuilder {
 	b.memory = value
 	if value != nil {
@@ -155,8 +142,6 @@ func (b *SubscriptionMetricsBuilder) Memory(value *ClusterResourceBuilder) *Subs
 }
 
 // Nodes sets the value of the 'nodes' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) Nodes(value *ClusterMetricsNodesBuilder) *SubscriptionMetricsBuilder {
 	b.nodes = value
 	if value != nil {
@@ -168,8 +153,6 @@ func (b *SubscriptionMetricsBuilder) Nodes(value *ClusterMetricsNodesBuilder) *S
 }
 
 // OpenshiftVersion sets the value of the 'openshift_version' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) OpenshiftVersion(value string) *SubscriptionMetricsBuilder {
 	b.openshiftVersion = value
 	b.bitmap_ |= 1024
@@ -177,8 +160,6 @@ func (b *SubscriptionMetricsBuilder) OpenshiftVersion(value string) *Subscriptio
 }
 
 // OperatingSystem sets the value of the 'operating_system' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) OperatingSystem(value string) *SubscriptionMetricsBuilder {
 	b.operatingSystem = value
 	b.bitmap_ |= 2048
@@ -186,8 +167,6 @@ func (b *SubscriptionMetricsBuilder) OperatingSystem(value string) *Subscription
 }
 
 // OperatorsConditionFailing sets the value of the 'operators_condition_failing' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) OperatorsConditionFailing(value float64) *SubscriptionMetricsBuilder {
 	b.operatorsConditionFailing = value
 	b.bitmap_ |= 4096
@@ -195,8 +174,6 @@ func (b *SubscriptionMetricsBuilder) OperatorsConditionFailing(value float64) *S
 }
 
 // Region sets the value of the 'region' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) Region(value string) *SubscriptionMetricsBuilder {
 	b.region = value
 	b.bitmap_ |= 8192
@@ -204,8 +181,6 @@ func (b *SubscriptionMetricsBuilder) Region(value string) *SubscriptionMetricsBu
 }
 
 // Sockets sets the value of the 'sockets' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) Sockets(value *ClusterResourceBuilder) *SubscriptionMetricsBuilder {
 	b.sockets = value
 	if value != nil {
@@ -217,8 +192,6 @@ func (b *SubscriptionMetricsBuilder) Sockets(value *ClusterResourceBuilder) *Sub
 }
 
 // State sets the value of the 'state' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) State(value string) *SubscriptionMetricsBuilder {
 	b.state = value
 	b.bitmap_ |= 32768
@@ -226,8 +199,6 @@ func (b *SubscriptionMetricsBuilder) State(value string) *SubscriptionMetricsBui
 }
 
 // StateDescription sets the value of the 'state_description' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) StateDescription(value string) *SubscriptionMetricsBuilder {
 	b.stateDescription = value
 	b.bitmap_ |= 65536
@@ -235,8 +206,6 @@ func (b *SubscriptionMetricsBuilder) StateDescription(value string) *Subscriptio
 }
 
 // Storage sets the value of the 'storage' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) Storage(value *ClusterResourceBuilder) *SubscriptionMetricsBuilder {
 	b.storage = value
 	if value != nil {
@@ -248,8 +217,6 @@ func (b *SubscriptionMetricsBuilder) Storage(value *ClusterResourceBuilder) *Sub
 }
 
 // SubscriptionCpuTotal sets the value of the 'subscription_cpu_total' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) SubscriptionCpuTotal(value float64) *SubscriptionMetricsBuilder {
 	b.subscriptionCpuTotal = value
 	b.bitmap_ |= 262144
@@ -257,8 +224,6 @@ func (b *SubscriptionMetricsBuilder) SubscriptionCpuTotal(value float64) *Subscr
 }
 
 // SubscriptionObligationExists sets the value of the 'subscription_obligation_exists' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) SubscriptionObligationExists(value float64) *SubscriptionMetricsBuilder {
 	b.subscriptionObligationExists = value
 	b.bitmap_ |= 524288
@@ -266,8 +231,6 @@ func (b *SubscriptionMetricsBuilder) SubscriptionObligationExists(value float64)
 }
 
 // SubscriptionSocketTotal sets the value of the 'subscription_socket_total' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) SubscriptionSocketTotal(value float64) *SubscriptionMetricsBuilder {
 	b.subscriptionSocketTotal = value
 	b.bitmap_ |= 1048576
@@ -275,8 +238,6 @@ func (b *SubscriptionMetricsBuilder) SubscriptionSocketTotal(value float64) *Sub
 }
 
 // Upgrade sets the value of the 'upgrade' attribute to the given value.
-//
-//
 func (b *SubscriptionMetricsBuilder) Upgrade(value *ClusterUpgradeBuilder) *SubscriptionMetricsBuilder {
 	b.upgrade = value
 	if value != nil {

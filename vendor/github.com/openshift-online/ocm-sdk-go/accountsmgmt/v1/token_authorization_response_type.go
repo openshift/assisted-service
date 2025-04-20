@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // TokenAuthorizationResponse represents the values of the 'token_authorization_response' type.
-//
-//
 type TokenAuthorizationResponse struct {
 	bitmap_ uint32
 	account *Account
@@ -34,8 +32,6 @@ func (o *TokenAuthorizationResponse) Empty() bool {
 
 // Account returns the value of the 'account' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *TokenAuthorizationResponse) Account() *Account {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.account
@@ -45,8 +41,6 @@ func (o *TokenAuthorizationResponse) Account() *Account {
 
 // GetAccount returns the value of the 'account' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *TokenAuthorizationResponse) GetAccount() (value *Account, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -80,6 +74,29 @@ func (l *TokenAuthorizationResponseList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *TokenAuthorizationResponseList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *TokenAuthorizationResponseList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *TokenAuthorizationResponseList) SetItems(items []*TokenAuthorizationResponse) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *TokenAuthorizationResponseList) Items() []*TokenAuthorizationResponse {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

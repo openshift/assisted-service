@@ -34,8 +34,6 @@ func (o *SelfCapabilityReviewResponse) Empty() bool {
 
 // Result returns the value of the 'result' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SelfCapabilityReviewResponse) Result() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.result
@@ -45,8 +43,6 @@ func (o *SelfCapabilityReviewResponse) Result() string {
 
 // GetResult returns the value of the 'result' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SelfCapabilityReviewResponse) GetResult() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -80,6 +76,29 @@ func (l *SelfCapabilityReviewResponseList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *SelfCapabilityReviewResponseList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *SelfCapabilityReviewResponseList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *SelfCapabilityReviewResponseList) SetItems(items []*SelfCapabilityReviewResponse) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *SelfCapabilityReviewResponseList) Items() []*SelfCapabilityReviewResponse {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

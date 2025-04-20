@@ -71,6 +71,26 @@ func (c *Client) AWSInquiries() *AWSInquiriesClient {
 	)
 }
 
+// DNSDomains returns the target 'DNS_domains' resource.
+//
+// Reference to the resource that manages dns domains.
+func (c *Client) DNSDomains() *DNSDomainsClient {
+	return NewDNSDomainsClient(
+		c.transport,
+		path.Join(c.path, "dns_domains"),
+	)
+}
+
+// GCP returns the target 'GCP' resource.
+//
+// Reference to the resource that manages the collection of gcp endpoints.
+func (c *Client) GCP() *GCPClient {
+	return NewGCPClient(
+		c.transport,
+		path.Join(c.path, "gcp"),
+	)
+}
+
 // GCPInquiries returns the target 'GCP_inquiries' resource.
 //
 // Reference to the resource that manages the collection of gcp inquiries.
@@ -111,6 +131,16 @@ func (c *Client) Clusters() *ClustersClient {
 	)
 }
 
+// Environment returns the target 'environment' resource.
+//
+// Reference to the resource that manages the environment.
+func (c *Client) Environment() *EnvironmentClient {
+	return NewEnvironmentClient(
+		c.transport,
+		path.Join(c.path, "environment"),
+	)
+}
+
 // Events returns the target 'events' resource.
 //
 // Reference to the resource that manages the collection of trackable events.
@@ -141,6 +171,16 @@ func (c *Client) LimitedSupportReasonTemplates() *LimitedSupportReasonTemplatesC
 	)
 }
 
+// LoadBalancerQuotaValues returns the target 'load_balancer_quota_values' resource.
+//
+// Reference to the resource that manages the load balancer quota values.
+func (c *Client) LoadBalancerQuotaValues() *LoadBalancerQuotaValuesClient {
+	return NewLoadBalancerQuotaValuesClient(
+		c.transport,
+		path.Join(c.path, "load_balancer_quota_values"),
+	)
+}
+
 // MachineTypes returns the target 'machine_types' resource.
 //
 // Reference to the resource that manage the collection of machine types.
@@ -148,6 +188,36 @@ func (c *Client) MachineTypes() *MachineTypesClient {
 	return NewMachineTypesClient(
 		c.transport,
 		path.Join(c.path, "machine_types"),
+	)
+}
+
+// NetworkVerifications returns the target 'network_verifications' resource.
+//
+// Reference to the resource that manages network verifications.
+func (c *Client) NetworkVerifications() *NetworkVerificationsClient {
+	return NewNetworkVerificationsClient(
+		c.transport,
+		path.Join(c.path, "network_verifications"),
+	)
+}
+
+// OidcConfigs returns the target 'oidc_configs' resource.
+//
+// Reference to the resource that manages oidc.
+func (c *Client) OidcConfigs() *OidcConfigsClient {
+	return NewOidcConfigsClient(
+		c.transport,
+		path.Join(c.path, "oidc_configs"),
+	)
+}
+
+// PendingDeleteClusters returns the target 'pending_delete_clusters' resource.
+//
+// Reference to the resource that manages the collection of pending delete clusters.
+func (c *Client) PendingDeleteClusters() *PendingDeleteClustersClient {
+	return NewPendingDeleteClustersClient(
+		c.transport,
+		path.Join(c.path, "pending_delete_clusters"),
 	)
 }
 
@@ -168,6 +238,46 @@ func (c *Client) ProvisionShards() *ProvisionShardsClient {
 	return NewProvisionShardsClient(
 		c.transport,
 		path.Join(c.path, "provision_shards"),
+	)
+}
+
+// RegistryAllowlists returns the target 'registry_allowlists' resource.
+//
+// Reference to the resource that manages the collection of registry allowlists.
+func (c *Client) RegistryAllowlists() *RegistryAllowlistsClient {
+	return NewRegistryAllowlistsClient(
+		c.transport,
+		path.Join(c.path, "registry_allowlists"),
+	)
+}
+
+// StorageQuotaValues returns the target 'storage_quota_values' resource.
+//
+// Reference to the resource that manages the storage quota values.
+func (c *Client) StorageQuotaValues() *StorageQuotaValuesClient {
+	return NewStorageQuotaValuesClient(
+		c.transport,
+		path.Join(c.path, "storage_quota_values"),
+	)
+}
+
+// TrustedIPAddresses returns the target 'trusted_ips' resource.
+//
+// Reference to the resource that manages the collection of trusted ip addresses.
+func (c *Client) TrustedIPAddresses() *TrustedIpsClient {
+	return NewTrustedIpsClient(
+		c.transport,
+		path.Join(c.path, "trusted_ip_addresses"),
+	)
+}
+
+// VersionGates returns the target 'version_gates' resource.
+//
+// Reference to version gates.
+func (c *Client) VersionGates() *VersionGatesClient {
+	return NewVersionGatesClient(
+		c.transport,
+		path.Join(c.path, "version_gates"),
 	)
 }
 

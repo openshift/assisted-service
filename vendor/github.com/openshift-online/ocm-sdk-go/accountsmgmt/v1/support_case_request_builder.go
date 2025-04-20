@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // SupportCaseRequestBuilder contains the data and logic needed to build 'support_case_request' objects.
-//
-//
 type SupportCaseRequestBuilder struct {
 	bitmap_        uint32
 	id             string
@@ -60,9 +58,12 @@ func (b *SupportCaseRequestBuilder) HREF(value string) *SupportCaseRequestBuilde
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *SupportCaseRequestBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // ClusterId sets the value of the 'cluster_id' attribute to the given value.
-//
-//
 func (b *SupportCaseRequestBuilder) ClusterId(value string) *SupportCaseRequestBuilder {
 	b.clusterId = value
 	b.bitmap_ |= 8
@@ -70,8 +71,6 @@ func (b *SupportCaseRequestBuilder) ClusterId(value string) *SupportCaseRequestB
 }
 
 // ClusterUuid sets the value of the 'cluster_uuid' attribute to the given value.
-//
-//
 func (b *SupportCaseRequestBuilder) ClusterUuid(value string) *SupportCaseRequestBuilder {
 	b.clusterUuid = value
 	b.bitmap_ |= 16
@@ -79,8 +78,6 @@ func (b *SupportCaseRequestBuilder) ClusterUuid(value string) *SupportCaseReques
 }
 
 // Description sets the value of the 'description' attribute to the given value.
-//
-//
 func (b *SupportCaseRequestBuilder) Description(value string) *SupportCaseRequestBuilder {
 	b.description = value
 	b.bitmap_ |= 32
@@ -88,8 +85,6 @@ func (b *SupportCaseRequestBuilder) Description(value string) *SupportCaseReques
 }
 
 // EventStreamId sets the value of the 'event_stream_id' attribute to the given value.
-//
-//
 func (b *SupportCaseRequestBuilder) EventStreamId(value string) *SupportCaseRequestBuilder {
 	b.eventStreamId = value
 	b.bitmap_ |= 64
@@ -97,8 +92,6 @@ func (b *SupportCaseRequestBuilder) EventStreamId(value string) *SupportCaseRequ
 }
 
 // Severity sets the value of the 'severity' attribute to the given value.
-//
-//
 func (b *SupportCaseRequestBuilder) Severity(value string) *SupportCaseRequestBuilder {
 	b.severity = value
 	b.bitmap_ |= 128
@@ -106,8 +99,6 @@ func (b *SupportCaseRequestBuilder) Severity(value string) *SupportCaseRequestBu
 }
 
 // SubscriptionId sets the value of the 'subscription_id' attribute to the given value.
-//
-//
 func (b *SupportCaseRequestBuilder) SubscriptionId(value string) *SupportCaseRequestBuilder {
 	b.subscriptionId = value
 	b.bitmap_ |= 256
@@ -115,8 +106,6 @@ func (b *SupportCaseRequestBuilder) SubscriptionId(value string) *SupportCaseReq
 }
 
 // Summary sets the value of the 'summary' attribute to the given value.
-//
-//
 func (b *SupportCaseRequestBuilder) Summary(value string) *SupportCaseRequestBuilder {
 	b.summary = value
 	b.bitmap_ |= 512

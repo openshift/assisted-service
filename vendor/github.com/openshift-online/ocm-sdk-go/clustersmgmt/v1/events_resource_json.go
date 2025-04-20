@@ -19,16 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readEventsAddRequest(request *EventsAddServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalEvent(r.Body)
-	return err
-}
 func writeEventsAddRequest(request *EventsAddRequest, writer io.Writer) error {
 	return MarshalEvent(request.body, writer)
 }
@@ -36,7 +28,4 @@ func readEventsAddResponse(response *EventsAddResponse, reader io.Reader) error 
 	var err error
 	response.body, err = UnmarshalEvent(reader)
 	return err
-}
-func writeEventsAddResponse(response *EventsAddServerResponse, w http.ResponseWriter) error {
-	return MarshalEvent(response.body, w)
 }

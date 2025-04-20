@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // RoleBuilder contains the data and logic needed to build 'role' objects.
-//
-//
 type RoleBuilder struct {
 	bitmap_     uint32
 	id          string
@@ -55,9 +53,12 @@ func (b *RoleBuilder) HREF(value string) *RoleBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *RoleBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *RoleBuilder) Name(value string) *RoleBuilder {
 	b.name = value
 	b.bitmap_ |= 8
@@ -65,8 +66,6 @@ func (b *RoleBuilder) Name(value string) *RoleBuilder {
 }
 
 // Permissions sets the value of the 'permissions' attribute to the given values.
-//
-//
 func (b *RoleBuilder) Permissions(values ...*PermissionBuilder) *RoleBuilder {
 	b.permissions = make([]*PermissionBuilder, len(values))
 	copy(b.permissions, values)

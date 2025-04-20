@@ -21,7 +21,7 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
+	"sort"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,24 +30,55 @@ import (
 // MarshalEvent writes a value of the 'event' type to the given writer.
 func MarshalEvent(object *Event, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeEvent(object, stream)
-	stream.Flush()
+	WriteEvent(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeEvent writes a value of the 'event' type to the given stream.
-func writeEvent(object *Event, stream *jsoniter.Stream) {
+// WriteEvent writes a value of the 'event' type to the given stream.
+func WriteEvent(object *Event, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
-	present_ = object.bitmap_&1 != 0
+	present_ = object.bitmap_&1 != 0 && object.body != nil
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("body")
+		if object.body != nil {
+			stream.WriteObjectStart()
+			keys := make([]string, len(object.body))
+			i := 0
+			for key := range object.body {
+				keys[i] = key
+				i++
+			}
+			sort.Strings(keys)
+			for i, key := range keys {
+				if i > 0 {
+					stream.WriteMore()
+				}
+				item := object.body[key]
+				stream.WriteObjectField(key)
+				stream.WriteString(item)
+			}
+			stream.WriteObjectEnd()
+		} else {
+			stream.WriteNil()
+		}
+		count++
+	}
+	present_ = object.bitmap_&2 != 0
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("key")
 		stream.WriteString(object.key)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +86,17 @@ func writeEvent(object *Event, stream *jsoniter.Stream) {
 // UnmarshalEvent reads a value of the 'event' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalEvent(source interface{}) (object *Event, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readEvent(iterator)
+	object = ReadEvent(iterator)
 	err = iterator.Error
 	return
 }
 
-// readEvent reads a value of the 'event' type from the given iterator.
-func readEvent(iterator *jsoniter.Iterator) *Event {
+// ReadEvent reads a value of the 'event' type from the given iterator.
+func ReadEvent(iterator *jsoniter.Iterator) *Event {
 	object := &Event{}
 	for {
 		field := iterator.ReadObject()
@@ -76,10 +104,22 @@ func readEvent(iterator *jsoniter.Iterator) *Event {
 			break
 		}
 		switch field {
+		case "body":
+			value := map[string]string{}
+			for {
+				key := iterator.ReadObject()
+				if key == "" {
+					break
+				}
+				item := iterator.ReadString()
+				value[key] = item
+			}
+			object.body = value
+			object.bitmap_ |= 1
 		case "key":
 			value := iterator.ReadString()
 			object.key = value
-			object.bitmap_ |= 1
+			object.bitmap_ |= 2
 		default:
 			iterator.ReadAny()
 		}

@@ -24,12 +24,36 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 // Representation of a trackable event.
 type Event struct {
 	bitmap_ uint32
+	body    map[string]string
 	key     string
 }
 
 // Empty returns true if the object is empty, i.e. no attribute has a value.
 func (o *Event) Empty() bool {
 	return o == nil || o.bitmap_ == 0
+}
+
+// Body returns the value of the 'body' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Body of the event to track the details of the tracking event as Key value pair
+func (o *Event) Body() map[string]string {
+	if o != nil && o.bitmap_&1 != 0 {
+		return o.body
+	}
+	return nil
+}
+
+// GetBody returns the value of the 'body' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Body of the event to track the details of the tracking event as Key value pair
+func (o *Event) GetBody() (value map[string]string, ok bool) {
+	ok = o != nil && o.bitmap_&1 != 0
+	if ok {
+		value = o.body
+	}
+	return
 }
 
 // Key returns the value of the 'key' attribute, or
@@ -39,7 +63,7 @@ func (o *Event) Empty() bool {
 // uppercase letter followed by alphanumeric characters or
 // underscores. The entire key needs to be smaller than 64 characters.
 func (o *Event) Key() string {
-	if o != nil && o.bitmap_&1 != 0 {
+	if o != nil && o.bitmap_&2 != 0 {
 		return o.key
 	}
 	return ""
@@ -52,7 +76,7 @@ func (o *Event) Key() string {
 // uppercase letter followed by alphanumeric characters or
 // underscores. The entire key needs to be smaller than 64 characters.
 func (o *Event) GetKey() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&1 != 0
+	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
 		value = o.key
 	}
@@ -84,6 +108,29 @@ func (l *EventList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *EventList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *EventList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *EventList) SetItems(items []*Event) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *EventList) Items() []*Event {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

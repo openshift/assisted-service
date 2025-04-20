@@ -32,8 +32,6 @@ const FeatureToggleLinkKind = "FeatureToggleLink"
 const FeatureToggleNilKind = "FeatureToggleNil"
 
 // FeatureToggle represents the values of the 'feature_toggle' type.
-//
-//
 type FeatureToggle struct {
 	bitmap_ uint32
 	id      string
@@ -52,7 +50,7 @@ func (o *FeatureToggle) Kind() string {
 	return FeatureToggleKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *FeatureToggle) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -100,8 +98,6 @@ func (o *FeatureToggle) Empty() bool {
 
 // Enabled returns the value of the 'enabled' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *FeatureToggle) Enabled() bool {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.enabled
@@ -111,8 +107,6 @@ func (o *FeatureToggle) Enabled() bool {
 
 // GetEnabled returns the value of the 'enabled' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *FeatureToggle) GetEnabled() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -180,6 +174,29 @@ func (l *FeatureToggleList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *FeatureToggleList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *FeatureToggleList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *FeatureToggleList) SetItems(items []*FeatureToggle) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *FeatureToggleList) Items() []*FeatureToggle {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

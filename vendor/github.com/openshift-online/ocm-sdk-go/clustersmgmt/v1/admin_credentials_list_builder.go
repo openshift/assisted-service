@@ -37,6 +37,11 @@ func (b *AdminCredentialsListBuilder) Items(values ...*AdminCredentialsBuilder) 
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *AdminCredentialsListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *AdminCredentialsListBuilder) Copy(list *AdminCredentialsList) *AdminCredentialsListBuilder {
 	if list == nil || list.items == nil {

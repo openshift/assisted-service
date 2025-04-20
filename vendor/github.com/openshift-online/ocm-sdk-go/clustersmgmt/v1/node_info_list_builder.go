@@ -37,6 +37,11 @@ func (b *NodeInfoListBuilder) Items(values ...*NodeInfoBuilder) *NodeInfoListBui
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *NodeInfoListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *NodeInfoListBuilder) Copy(list *NodeInfoList) *NodeInfoListBuilder {
 	if list == nil || list.items == nil {

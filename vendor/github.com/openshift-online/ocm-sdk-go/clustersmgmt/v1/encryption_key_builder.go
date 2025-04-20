@@ -54,9 +54,12 @@ func (b *EncryptionKeyBuilder) HREF(value string) *EncryptionKeyBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *EncryptionKeyBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *EncryptionKeyBuilder) Name(value string) *EncryptionKeyBuilder {
 	b.name = value
 	b.bitmap_ |= 8

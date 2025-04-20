@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalClusterConsole writes a value of the 'cluster_console' type to the given writer.
 func MarshalClusterConsole(object *ClusterConsole, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeClusterConsole(object, stream)
-	stream.Flush()
+	WriteClusterConsole(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeClusterConsole writes a value of the 'cluster_console' type to the given stream.
-func writeClusterConsole(object *ClusterConsole, stream *jsoniter.Stream) {
+// WriteClusterConsole writes a value of the 'cluster_console' type to the given stream.
+func WriteClusterConsole(object *ClusterConsole, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -47,7 +49,6 @@ func writeClusterConsole(object *ClusterConsole, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("url")
 		stream.WriteString(object.url)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeClusterConsole(object *ClusterConsole, stream *jsoniter.Stream) {
 // UnmarshalClusterConsole reads a value of the 'cluster_console' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalClusterConsole(source interface{}) (object *ClusterConsole, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readClusterConsole(iterator)
+	object = ReadClusterConsole(iterator)
 	err = iterator.Error
 	return
 }
 
-// readClusterConsole reads a value of the 'cluster_console' type from the given iterator.
-func readClusterConsole(iterator *jsoniter.Iterator) *ClusterConsole {
+// ReadClusterConsole reads a value of the 'cluster_console' type from the given iterator.
+func ReadClusterConsole(iterator *jsoniter.Iterator) *ClusterConsole {
 	object := &ClusterConsole{}
 	for {
 		field := iterator.ReadObject()

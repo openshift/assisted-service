@@ -30,14 +30,17 @@ import (
 // the given writer.
 func MarshalAddOnInstallationStateList(list []AddOnInstallationState, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeAddOnInstallationStateList(list, stream)
-	stream.Flush()
+	WriteAddOnInstallationStateList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeAddOnInstallationStateList writes a list of value of the 'add_on_installation_state' type to
+// WriteAddOnInstallationStateList writes a list of value of the 'add_on_installation_state' type to
 // the given stream.
-func writeAddOnInstallationStateList(list []AddOnInstallationState, stream *jsoniter.Stream) {
+func WriteAddOnInstallationStateList(list []AddOnInstallationState, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
@@ -55,14 +58,14 @@ func UnmarshalAddOnInstallationStateList(source interface{}) (items []AddOnInsta
 	if err != nil {
 		return
 	}
-	items = readAddOnInstallationStateList(iterator)
+	items = ReadAddOnInstallationStateList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readAddOnInstallationStateList reads list of values of the ''add_on_installation_state' type from
+// ReadAddOnInstallationStateList reads list of values of the ”add_on_installation_state' type from
 // the given iterator.
-func readAddOnInstallationStateList(iterator *jsoniter.Iterator) []AddOnInstallationState {
+func ReadAddOnInstallationStateList(iterator *jsoniter.Iterator) []AddOnInstallationState {
 	list := []AddOnInstallationState{}
 	for iterator.ReadArray() {
 		text := iterator.ReadString()
