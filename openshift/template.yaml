@@ -228,6 +228,8 @@ parameters:
   value: "10de"
 - name: AMD_SUPPORTED_GPUS
   value: "1002"
+- name: AMD_GPU_SUPPORTED_OPENSHIFT_VERSIONS
+  value: "4.17"
 apiVersion: v1
 kind: Template
 metadata:
@@ -508,6 +510,8 @@ objects:
                 value: ${NVIDIA_SUPPORTED_GPUS}
               - name: AMD_SUPPORTED_GPUS
                 value: ${AMD_SUPPORTED_GPUS}
+              - name: AMD_GPU_SUPPORTED_OPENSHIFT_VERSIONS
+                value: ${AMD_GPU_SUPPORTED_OPENSHIFT_VERSIONS}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
