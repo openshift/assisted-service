@@ -1838,11 +1838,15 @@ func (m *Manager) UpdateFinalizingStage(ctx context.Context, clusterID strfmt.UU
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("cluster is %s, not in one of allowed statuses: %v", swag.StringValue(cls.Status), allowedStatuses))
 	}
 	if cls.Progress == nil || cls.Progress.FinalizingStage != finalizingStage {
-		if err = m.db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Updates(map[string]interface{}{
-			"progress_finalizing_stage":            finalizingStage,
-			"progress_finalizing_stage_started_at": time.Now(),
-			"progress_finalizing_stage_timed_out":  false,
-		}).Error; err != nil {
+		updates := map[string]interface{}{
+			"progress_finalizing_stage":           finalizingStage,
+			"progress_finalizing_stage_timed_out": false,
+		}
+		// Start timer only in the first finalizing stage
+		if finalizingStage == models.FinalizingStageWaitingForClusterOperators {
+			updates["progress_finalizing_stage_started_at"] = time.Now()
+		}
+		if err = m.db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Updates(updates).Error; err != nil {
 			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "update finalizing stage for cluster %s", clusterID.String()))
 		}
 		eventgen.SendClusterFinalizingStageUpdatedEvent(ctx, m.eventsHandler, clusterID, string(finalizingStage))
