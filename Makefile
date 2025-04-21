@@ -97,6 +97,8 @@ USE_LOCAL_SERVICE := $(or ${USE_LOCAL_SERVICE}, false)
 LOCAL_ASSISTED_SERVICE_IMAGE=localhost/assisted-service:latest
 LOCAL_IMAGE_ARCHIVE=build/assisted_service_image.tar
 HUB_CLUSTER_NAME := $(or ${HUB_CLUSTER_NAME}, assisted-hub-cluster)
+NVIDIA_REQUIRE_GPU := $(or ${NVIDIA_REQUIRE_GPU}, true)
+AMD_REQUIRE_GPU := $(or ${AMD_REQUIRE_GPU}, true)
 
 
 ifeq ($(DISABLE_TLS),true)
