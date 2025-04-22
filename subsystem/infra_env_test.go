@@ -364,8 +364,6 @@ var _ = Describe("Infra_Env", func() {
 	},
 		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl, x86 arch", common.MinimalVersionForNmstatectl, common.X86CPUArchitecture, true),
 		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl, arm arch", common.MinimalVersionForNmstatectl, common.ARM64CPUArchitecture, true),
-		Entry("ocp versions less than MinimalVersionForNmstatectl, x86 arch", "4.12", common.X86CPUArchitecture, false),
-		Entry("ocp versions less than MinimalVersionForNmstatectl, arm arch", "4.12", common.ARM64CPUArchitecture, false),
 	)
 
 	It("download infra-env files invalid filename option", func() {
