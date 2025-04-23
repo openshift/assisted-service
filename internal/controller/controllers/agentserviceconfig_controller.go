@@ -1999,37 +1999,49 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			},
 		}
 
-		caBundleVolume := corev1.Volume{
-			Name: mirrorRegistryCertBundleVolume,
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: *asc.spec.MirrorRegistryRef,
-					DefaultMode:          swag.Int32(420),
-					Items: []corev1.KeyToPath{
-						{
-							Key:  mirrorRegistryRefCertKey,
-							Path: common.MirrorRegistriesCertificateFile,
-						},
-					},
-				},
-			},
-		}
-
 		serviceContainer.VolumeMounts = append(
 			serviceContainer.VolumeMounts,
 			corev1.VolumeMount{
 				Name:      mirrorRegistryConfigVolume,
 				MountPath: common.MirrorRegistriesConfigDir,
 			},
-			corev1.VolumeMount{
-				Name:      mirrorRegistryCertBundleVolume,
-				MountPath: common.MirrorRegistriesCertificatePath,
-				SubPath:   common.MirrorRegistriesCertificateFile,
-			},
 		)
 
 		// add our mirror registry config to volumes
-		volumes = append(volumes, registriesConfVolume, caBundleVolume)
+		volumes = append(volumes, registriesConfVolume)
+
+		// add mirror registry CA bundle to volumes if exists
+		if cm.Data[mirrorRegistryRefCertKey] != "" {
+			// add CA bundle volume to list
+			volumes = append(
+				volumes,
+				corev1.Volume{
+					Name: mirrorRegistryCertBundleVolume,
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: *asc.spec.MirrorRegistryRef,
+							DefaultMode:          swag.Int32(420),
+							Items: []corev1.KeyToPath{
+								{
+									Key:  mirrorRegistryRefCertKey,
+									Path: common.MirrorRegistriesCertificateFile,
+								},
+							},
+						},
+					},
+				},
+			)
+
+			// add volume mount with the CA bundle
+			serviceContainer.VolumeMounts = append(
+				serviceContainer.VolumeMounts,
+				corev1.VolumeMount{
+					Name:      mirrorRegistryCertBundleVolume,
+					MountPath: common.MirrorRegistriesCertificatePath,
+					SubPath:   common.MirrorRegistriesCertificateFile,
+				},
+			)
+		}
 	}
 
 	deploymentLabels := map[string]string{
