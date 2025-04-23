@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
+	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -65,7 +66,9 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(c *common.Cluster) ([]string, error) {
-	result := []string{}
+	result := []string{
+		nodefeaturediscovery.Operator.Name,
+	}
 	return result, nil
 }
 
