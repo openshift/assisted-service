@@ -8,7 +8,7 @@ jq '.transition_rules[]' -c "${JSON}" | while read -r transition_rule_json; do
 	transition_rule_source_states=$(echo "$transition_rule_json" | jq '.source_states[]' -r)
 	transition_rule_destination_state=$(echo "$transition_rule_json" | jq '.destination_state' -r)
 
-	echo "### $transition_rule_name" >>"${OUT_FILE}"
+	echo "### Transition Rule $transition_rule_name" >>"${OUT_FILE}"
 	echo "$transition_rule_description" >>"${OUT_FILE}"
 	echo "" >>"${OUT_FILE}"
 
