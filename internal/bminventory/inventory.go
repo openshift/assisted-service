@@ -3443,15 +3443,15 @@ func readConfiguredAgentImage(fullName string, tagOnly bool) string {
 }
 
 func returnRegisterHostTransitionError(defaultCode int32, err error) error {
-	if isRegisterHostForbidden(err) {
-		return common.NewApiError(http.StatusForbidden, err)
+	if isRegisterHostConflict(err) {
+		return common.NewApiError(http.StatusConflict, err)
 	}
 	return common.NewApiError(defaultCode, err)
 }
 
-func isRegisterHostForbidden(err error) bool {
+func isRegisterHostConflict(err error) bool {
 	if serr, ok := err.(*common.ApiErrorResponse); ok {
-		return serr.StatusCode() == http.StatusForbidden
+		return serr.StatusCode() == http.StatusConflict
 	}
 	return false
 }

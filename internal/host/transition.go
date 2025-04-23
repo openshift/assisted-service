@@ -167,7 +167,7 @@ func (th *transitionHandler) PostRegisterAfterInstallation(sw stateswitch.StateS
 	}
 
 	return common.NewApiError(
-		http.StatusForbidden,
+		http.StatusConflict,
 		errors.New(
 			"Host is trying to register after the cluster has already been installed. "+
 				"That most probably means that the host is booting from the "+
