@@ -1,6 +1,7 @@
 package staticnetworkconfig_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -488,6 +489,46 @@ var _ = Describe("StaticNetworkConfig", func() {
 		formattedOutput, err := staticNetworkGenerator.FormatStaticNetworkConfigForDB(nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(formattedOutput).To(Equal(""))
+	})
+
+	It("logs all NMConnection files in a consolidated format", func() {
+
+		var logBuffer bytes.Buffer
+		testLog := logrus.New()
+		testLog.SetOutput(&logBuffer)
+
+		testGenerator := snc.New(testLog, snc.Config{MinVersionForNmstateService: common.MinimalVersionForNmstatectl})
+
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
+			{
+				MacInterfaceMap: models.MacInterfaceMap{
+					{
+						LogicalNicName: "eth0",
+						MacAddress:     "f8:75:a4:a4:00:fe",
+					},
+					{
+						LogicalNicName: "eth1",
+						MacAddress:     "f8:75:a4:a4:00:ff",
+					},
+					{
+						LogicalNicName: "eth2",
+						MacAddress:     "f8:75:a4:a4:01:00",
+					},
+				},
+				NetworkYaml: multipleInterfacesYAML,
+			},
+		}
+
+		staticNetworkConfigBytes, err := json.Marshal(staticNetworkConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = testGenerator.GenerateStaticNetworkConfigData(context.Background(), string(staticNetworkConfigBytes))
+
+		if err == nil {
+			logOutput := logBuffer.String()
+
+			Expect(logOutput).To(ContainSubstring("Adding NMConnection files: <eth0.nmconnection>, <eth1.nmconnection>, <eth2.nmconnection>"))
+		}
 	})
 })
 
