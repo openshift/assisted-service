@@ -25,7 +25,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-jose/go-jose/v4/json"
+	"github.com/go-jose/go-jose/v3/json"
 )
 
 // NonceSource represents a source of random nonces to go into JWS objects
@@ -49,11 +49,6 @@ type Signer interface {
 //   - JSONWebKey
 //   - []byte (an HMAC key)
 //   - Any type that satisfies the OpaqueSigner interface
-//
-// If the key is an HMAC key, it must have at least as many bytes as the relevant hash output:
-//   - HS256: 32 bytes
-//   - HS384: 48 bytes
-//   - HS512: 64 bytes
 type SigningKey struct {
 	Algorithm SignatureAlgorithm
 	Key       interface{}
@@ -358,15 +353,8 @@ func (ctx *genericSigner) Options() SignerOptions {
 //   - *rsa.PublicKey
 //   - *JSONWebKey
 //   - JSONWebKey
-//   - *JSONWebKeySet
-//   - JSONWebKeySet
 //   - []byte (an HMAC key)
 //   - Any type that implements the OpaqueVerifier interface.
-//
-// If the key is an HMAC key, it must have at least as many bytes as the relevant hash output:
-//   - HS256: 32 bytes
-//   - HS384: 48 bytes
-//   - HS512: 64 bytes
 func (obj JSONWebSignature) Verify(verificationKey interface{}) ([]byte, error) {
 	err := obj.DetachedVerify(obj.payload, verificationKey)
 	if err != nil {
@@ -390,10 +378,7 @@ func (obj JSONWebSignature) UnsafePayloadWithoutVerification() []byte {
 // The verificationKey argument must have one of the types allowed for the
 // verificationKey argument of JSONWebSignature.Verify().
 func (obj JSONWebSignature) DetachedVerify(payload []byte, verificationKey interface{}) error {
-	key, err := tryJWKS(verificationKey, obj.headers()...)
-	if err != nil {
-		return err
-	}
+	key := tryJWKS(verificationKey, obj.headers()...)
 	verifier, err := newVerifier(key)
 	if err != nil {
 		return err
@@ -458,10 +443,7 @@ func (obj JSONWebSignature) VerifyMulti(verificationKey interface{}) (int, Signa
 // The verificationKey argument must have one of the types allowed for the
 // verificationKey argument of JSONWebSignature.Verify().
 func (obj JSONWebSignature) DetachedVerifyMulti(payload []byte, verificationKey interface{}) (int, Signature, error) {
-	key, err := tryJWKS(verificationKey, obj.headers()...)
-	if err != nil {
-		return -1, Signature{}, err
-	}
+	key := tryJWKS(verificationKey, obj.headers()...)
 	verifier, err := newVerifier(key)
 	if err != nil {
 		return -1, Signature{}, err
