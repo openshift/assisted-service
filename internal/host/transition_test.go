@@ -169,7 +169,7 @@ var _ = Describe("RegisterHost", func() {
 				progressStage:         models.HostStageDone,
 				srcState:              models.HostStatusInstalled,
 				dstState:              models.HostStatusInstalled,
-				errorCode:             http.StatusForbidden,
+				errorCode:             http.StatusConflict,
 				expectedEventInfo:     "",
 				expectedNilStatusInfo: true,
 			},
