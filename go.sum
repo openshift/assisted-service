@@ -1022,8 +1022,8 @@ github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
 github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87/go.mod h1:DB/Mf2oTeiAmVVX1gN+NEqweonAPY0TKUwADizj8+ZA=
 github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f h1:LzKRLvLJkWW4+4KsuvMmXJQ81ZZJSm2xxu6jwtn5gN0=
 github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f/go.mod h1:/CLsleDcQ6AFTGKJe9VL3Y4rB9DqX3fQwQv47q2/ZJc=
-github.com/openshift/hive/apis v0.0.0-20231220215202-ad99b9e52d27 h1:9C86viyQl7HE9yg7Gctgx803Oq6DbrCUAberyMVcWDE=
-github.com/openshift/hive/apis v0.0.0-20231220215202-ad99b9e52d27/go.mod h1:RRH8lt09SAiPECNdsbh7Gun0lkcRWi1nYKq6tDp5WxQ=
+github.com/openshift/hive/apis v0.0.0-20241111200437-f2cd591c89c3 h1:0zcRbjZKnmD6cHs2FbetAHWGXMQhsPGgKzntsD1ANQg=
+github.com/openshift/hive/apis v0.0.0-20241111200437-f2cd591c89c3/go.mod h1:zUpIxRlTLXjYiW3WtinO/DHoOalj9ZCv6dXR39h3MyI=
 github.com/openshift/image-customization-controller v0.0.0-20240307203510-394809633b6b h1:SDdbzE3oW2qs7AJj4DT5gk8HDkZYR8DTT1ZfyBhECZ8=
 github.com/openshift/image-customization-controller v0.0.0-20240307203510-394809633b6b/go.mod h1:G9yHOogitMOA0R5UWFmFup00E6nik8Sns/tCYYBU7jE=
 github.com/openshift/library-go v0.0.0-20191003152030-97c62d8a2901/go.mod h1:NBttNjZpWwup/nthuLbPAPSYC8Qyo+BBK5bCtFoyYjo=
