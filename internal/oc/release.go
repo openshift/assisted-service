@@ -2,6 +2,7 @@ package oc
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,7 +22,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/patrickmn/go-cache"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thedevsaddam/retry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -217,7 +217,7 @@ func (r *release) GetImageArchitecture(log logrus.FieldLogger, image, pullSecret
 		//                  feature in oc cli.
 		skopeoImageRaw, err2 := execute(log, r.executer, pullSecret, cmdMultiarch, skopeoAuthArgument)
 		if err2 != nil {
-			return nil, errors.Errorf("failed to inspect image, oc: %v, skopeo: %v", err, err2)
+			return nil, fmt.Errorf("failed to inspect image, oc: %v, skopeo: %v", err, err2)
 		}
 
 		var multiarchContent []string
@@ -233,11 +233,11 @@ func (r *release) GetImageArchitecture(log logrus.FieldLogger, image, pullSecret
 			multiarchContent = append(multiarchContent, res)
 		}, "manifests")
 		if err2 != nil {
-			return nil, errors.Errorf("failed to get image info using oc: %v", err)
+			return nil, fmt.Errorf("failed to get image info using oc: %v", err)
 		}
 
 		if len(multiarchContent) == 0 {
-			return nil, errors.Errorf("image manifest does not contain architecture: %v", skopeoImageRaw)
+			return nil, fmt.Errorf("image manifest does not contain architecture: %v", skopeoImageRaw)
 		}
 
 		return multiarchContent, nil
@@ -262,7 +262,7 @@ func (r *release) getImageValue(imageName, releaseImage string) (*imageValue, er
 	actualIntf, _ := r.imagesMap.GetOrInsert(getImageKey(imageName, releaseImage), &imageValue{})
 	value, ok := actualIntf.(*imageValue)
 	if !ok {
-		return nil, errors.Errorf("unexpected error - could not cast value for image %s release %s", imageName, releaseImage)
+		return nil, fmt.Errorf("unexpected error - could not cast value for image %s release %s", imageName, releaseImage)
 	}
 	return value, nil
 }
