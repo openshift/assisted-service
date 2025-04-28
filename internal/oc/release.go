@@ -2,6 +2,7 @@ package oc
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,7 +22,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/patrickmn/go-cache"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thedevsaddam/retry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +33,8 @@ const (
 	ironicAgentImageName           = "ironic-agent"
 	mustGatherImageName            = "must-gather"
 	okdRPMSImageName               = "okd-rpms"
-	coreosImageName                = "rhel-coreos"
+	rhcosImageName                 = "rhel-coreos"
+	scosImageName                  = "stream-coreos"
 	DefaultTries                   = 5
 	DefaltRetryDelay               = time.Second * 5
 	staticInstallerRequiredVersion = "4.16.0-0.alpha"
@@ -126,7 +127,24 @@ func (r *release) GetMustGatherImage(log logrus.FieldLogger, releaseImage string
 
 // GetCoreOSImage gets rhel-coreos image URL from the release image or releaseImageMirror, if provided.
 func (r *release) GetCoreOSImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
-	return r.getImageByName(log, coreosImageName, releaseImage, releaseImageMirror, pullSecret)
+	var image string
+	var rhcosErr, scosErr error
+	image, rhcosErr = r.getImageByName(log, rhcosImageName, releaseImage, releaseImageMirror, pullSecret)
+	if rhcosErr == nil {
+		return image, nil
+	}
+
+	// if rhcos image is not found, we can try scos image
+	image, scosErr = r.getImageByName(log, scosImageName, releaseImage, releaseImageMirror, pullSecret)
+	if scosErr == nil {
+		log.WithError(rhcosErr).Info("failed to get rhel-coreos image, using stream-coreos image")
+		return image, nil
+	}
+
+	// if neither image is found, return the combined error
+	err := errors.Join(rhcosErr, scosErr)
+	log.WithError(err).Error("failed to get rhel-coreos image and stream-coreos image")
+	return "", fmt.Errorf("failed to get rhel-coreos image and stream-coreos image: %w", err)
 }
 
 func (r *release) getImageByName(log logrus.FieldLogger, imageName, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
@@ -217,7 +235,7 @@ func (r *release) GetImageArchitecture(log logrus.FieldLogger, image, pullSecret
 		//                  feature in oc cli.
 		skopeoImageRaw, err2 := execute(log, r.executer, pullSecret, cmdMultiarch, skopeoAuthArgument)
 		if err2 != nil {
-			return nil, errors.Errorf("failed to inspect image, oc: %v, skopeo: %v", err, err2)
+			return nil, fmt.Errorf("failed to inspect image, oc: %v, skopeo: %v", err, err2)
 		}
 
 		var multiarchContent []string
@@ -233,11 +251,11 @@ func (r *release) GetImageArchitecture(log logrus.FieldLogger, image, pullSecret
 			multiarchContent = append(multiarchContent, res)
 		}, "manifests")
 		if err2 != nil {
-			return nil, errors.Errorf("failed to get image info using oc: %v", err)
+			return nil, fmt.Errorf("failed to get image info using oc: %v", err)
 		}
 
 		if len(multiarchContent) == 0 {
-			return nil, errors.Errorf("image manifest does not contain architecture: %v", skopeoImageRaw)
+			return nil, fmt.Errorf("image manifest does not contain architecture: %v", skopeoImageRaw)
 		}
 
 		return multiarchContent, nil
@@ -262,7 +280,7 @@ func (r *release) getImageValue(imageName, releaseImage string) (*imageValue, er
 	actualIntf, _ := r.imagesMap.GetOrInsert(getImageKey(imageName, releaseImage), &imageValue{})
 	value, ok := actualIntf.(*imageValue)
 	if !ok {
-		return nil, errors.Errorf("unexpected error - could not cast value for image %s release %s", imageName, releaseImage)
+		return nil, fmt.Errorf("unexpected error - could not cast value for image %s release %s", imageName, releaseImage)
 	}
 	return value, nil
 }

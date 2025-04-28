@@ -429,6 +429,69 @@ var _ = Describe("oc", func() {
 			Expect(err).Should(HaveOccurred())
 		})
 	})
+	Context("GetCoreOSImage", func() {
+		It("should return rhel-coreos for OCP image", func() {
+			expectedForImage := "rhel-coreos"
+			image := "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:3c8f6006b25b4c9aef0cfb12de5e44134317f5347bff85eba35af22ad23d964f"
+			mockExecuter.EXPECT().Execute(
+				"oc",
+				"adm",
+				"release",
+				"info",
+				"--image-for="+expectedForImage,
+				"--insecure=true",
+				releaseImageMirror,
+				"--registry-config="+tempFilePath,
+			).
+				Return(image, "", 0).
+				Times(1)
+			coreosImage, err := oc.GetCoreOSImage(log, releaseImage, releaseImageMirror, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(coreosImage).Should(Equal(image))
+		})
+		It("should return stream-coreos for OKD image", func() {
+			streamCoreOSImage := "quay.io/okd/scos-content@sha256:6e78761cdab37d31967c91346458a7981da8a37716c815e5063bea569a3cc43d"
+			mockExecuter.EXPECT().Execute(
+				"oc",
+				"adm",
+				"release",
+				"info",
+				"--image-for=rhel-coreos",
+				"--insecure=true",
+				releaseImageMirror,
+				"--registry-config="+tempFilePath,
+			).
+				Return("", "Error retrieving rhel-coreos image", 1).
+				Times(1)
+			mockExecuter.EXPECT().Execute(
+				"oc",
+				"adm",
+				"release",
+				"info",
+				"--image-for=stream-coreos",
+				"--insecure=true",
+				releaseImageMirror,
+				"--registry-config="+tempFilePath,
+			).
+				Times(0)
+			mockExecuter.EXPECT().Execute(
+				"oc",
+				"adm",
+				"release",
+				"info",
+				"--image-for=stream-coreos",
+				"--insecure=true",
+				releaseImageMirror,
+				"--registry-config="+tempFilePath,
+			).
+				Return(streamCoreOSImage, "", 0).
+				Times(1)
+			okdReleaseImage := "quay.io/okd/scos-release:4.19.0-okd-scos.ec.6"
+			coreosImage, err := oc.GetCoreOSImage(log, okdReleaseImage, releaseImageMirror, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(coreosImage).Should(Equal(streamCoreOSImage))
+		})
+	})
 })
 
 var _ = Describe("getImageFromRelease", func() {
