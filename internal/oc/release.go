@@ -33,7 +33,8 @@ const (
 	ironicAgentImageName           = "ironic-agent"
 	mustGatherImageName            = "must-gather"
 	okdRPMSImageName               = "okd-rpms"
-	coreosImageName                = "rhel-coreos"
+	rhcosImageName                 = "rhel-coreos"
+	scosImageName                  = "stream-coreos"
 	DefaultTries                   = 5
 	DefaltRetryDelay               = time.Second * 5
 	staticInstallerRequiredVersion = "4.16.0-0.alpha"
@@ -126,7 +127,24 @@ func (r *release) GetMustGatherImage(log logrus.FieldLogger, releaseImage string
 
 // GetCoreOSImage gets rhel-coreos image URL from the release image or releaseImageMirror, if provided.
 func (r *release) GetCoreOSImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
-	return r.getImageByName(log, coreosImageName, releaseImage, releaseImageMirror, pullSecret)
+	var image string
+	var rhcosErr, scosErr error
+	image, rhcosErr = r.getImageByName(log, rhcosImageName, releaseImage, releaseImageMirror, pullSecret)
+	if rhcosErr == nil {
+		return image, nil
+	}
+
+	// if rhcos image is not found, we can try scos image
+	image, scosErr = r.getImageByName(log, scosImageName, releaseImage, releaseImageMirror, pullSecret)
+	if scosErr == nil {
+		log.WithError(rhcosErr).Info("failed to get rhel-coreos image, using stream-coreos image")
+		return image, nil
+	}
+
+	// if neither image is found, return the combined error
+	err := errors.Join(rhcosErr, scosErr)
+	log.WithError(err).Error("failed to get rhel-coreos image and stream-coreos image")
+	return "", fmt.Errorf("failed to get rhel-coreos image and stream-coreos image: %w", err)
 }
 
 func (r *release) getImageByName(log logrus.FieldLogger, imageName, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
