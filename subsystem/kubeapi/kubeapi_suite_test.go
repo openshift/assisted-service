@@ -32,7 +32,7 @@ import (
 var log *logrus.Logger
 var wiremock *utils_test.WireMock
 var kubeClient k8sclient.Client
-var VipAutoAllocOpenshiftVersion string = "4.14.0"
+var VipAutoAllocOpenshiftVersion string = "4.16.0"
 var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
 
 var Options struct {
