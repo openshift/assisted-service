@@ -13,11 +13,14 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
+	"github.com/openshift/assisted-service/internal/operators/amdgpu"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
+	"github.com/openshift/assisted-service/internal/operators/openshiftai"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -346,30 +349,63 @@ func (mgr *Manager) GetOperatorProperties(operatorName string) (models.OperatorP
 }
 
 func (mgr *Manager) ResolveDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
-	allDependentOperators, err := mgr.getDependencies(cluster, operators)
-	if err != nil {
-		return operators, nil
-	}
+	ret := make([]*models.MonitoredOperator, 0)
+	alreadyPresent := make([]string, 0)
+	currentDependencies := make(map[string]*models.MonitoredOperator)
 
-	inputOperatorNames := make([]string, len(operators))
-	for _, inputOperator := range operators {
-		inputOperatorNames = append(inputOperatorNames, inputOperator.Name)
-	}
+	// Compute list of operator without dependencies (they might be not required anymore)
+	for _, operator := range operators {
+		if operator.DependencyOnly {
+			// Keep the current dependency definition to be sure, properties and others fields are consistent
+			currentDependencies[operator.Name] = operator
 
-	for operatorName := range allDependentOperators {
-		if funk.Contains(inputOperatorNames, operatorName) {
 			continue
 		}
 
-		operator, err := mgr.GetOperatorByName(operatorName)
+		ret = append(ret, operator)
+		alreadyPresent = append(alreadyPresent, operator.Name)
+	}
+
+	// Get dependent operators
+	allDependentOperators, err := mgr.getDependencies(cluster, ret)
+	if err != nil {
+		return nil, err
+	}
+
+	for operatorName := range allDependentOperators {
+		if funk.Contains(alreadyPresent, operatorName) {
+			continue
+		}
+
+		operator, err := mgr.getDependency(operatorName, currentDependencies)
 		if err != nil {
 			return nil, err
 		}
 
-		operators = append(operators, operator)
+		operator.DependencyOnly = true
+
+		ret = append(ret, operator)
+		alreadyPresent = append(alreadyPresent, operatorName)
 	}
 
-	return operators, nil
+	// If openshift-ai is included, mark nvidia-gpu & amd-gpu as dependency only
+	if operatorscommon.HasOperator(ret, openshiftai.Operator.Name) {
+		for _, operator := range ret {
+			if operator.Name == nvidiagpu.Operator.Name || operator.Name == amdgpu.Operator.Name {
+				operator.DependencyOnly = true
+			}
+		}
+	}
+
+	return ret, nil
+}
+
+func (mgr *Manager) getDependency(name string, definitions map[string]*models.MonitoredOperator) (*models.MonitoredOperator, error) {
+	if ret, ok := definitions[name]; ok {
+		return ret, nil
+	}
+
+	return mgr.GetOperatorByName(name)
 }
 
 func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) (map[string]bool, error) {
@@ -416,7 +452,7 @@ func (mgr *Manager) GetMonitoredOperatorsList() map[string]*models.MonitoredOper
 func (mgr *Manager) GetOperatorByName(operatorName string) (*models.MonitoredOperator, error) {
 	operator, ok := mgr.monitoredOperators[operatorName]
 	if !ok {
-		return nil, fmt.Errorf("Operator %s isn't supported", operatorName)
+		return nil, fmt.Errorf("operator %s isn't supported", operatorName)
 	}
 
 	return &models.MonitoredOperator{

@@ -183,8 +183,8 @@ var _ = Describe("Operator", func() {
 	)
 
 	DescribeTable(
-		"Validate cluster",
-		func(inventories []*models.Inventory, expected api.ValidationResult) {
+		"Cluster Has GPU",
+		func(inventories []*models.Inventory, hasGPU bool) {
 			hosts := make([]*models.Host, len(inventories))
 			for i, inventory := range inventories {
 				var inventoryJSON string
@@ -202,51 +202,30 @@ var _ = Describe("Operator", func() {
 					Hosts: hosts,
 				},
 			}
-			actual, _ := operator.ValidateCluster(ctx, cluster)
-			Expect(actual).To(Equal(expected))
+			actual, _ := operator.ClusterHasGPU(cluster)
+			Expect(actual).To(Equal(hasGPU))
 		},
 		Entry(
-			"Fails if there are no hosts",
+			"Returns false if there are no hosts",
 			[]*models.Inventory{},
-			api.ValidationResult{
-				Status:       api.Failure,
-				ValidationId: operator.GetHostValidationID(),
-				Reasons: []string{
-					"The AMD GPU operator requires at least one supported AMD GPU, but there is " +
-						"none in the discovered hosts.",
-				},
-			},
+			false,
 		),
 		Entry(
-			"Fails if there are hosts but no inventory",
+			"Returns false if there are hosts but no inventory",
 			[]*models.Inventory{
 				nil,
 			},
-			api.ValidationResult{
-				Status:       api.Failure,
-				ValidationId: operator.GetHostValidationID(),
-				Reasons: []string{
-					"The AMD GPU operator requires at least one supported AMD GPU, but there is " +
-						"none in the discovered hosts.",
-				},
-			},
+			false,
 		),
 		Entry(
-			"Fails if there are hosts but no GPU",
+			"Returns false if there are hosts but no GPU",
 			[]*models.Inventory{
 				{},
 			},
-			api.ValidationResult{
-				Status:       api.Failure,
-				ValidationId: operator.GetHostValidationID(),
-				Reasons: []string{
-					"The AMD GPU operator requires at least one supported AMD GPU, but there is " +
-						"none in the discovered hosts.",
-				},
-			},
+			false,
 		),
 		Entry(
-			"Fails if there are hosts and unsupported GPUs",
+			"Returns false if there are hosts and unsupported GPUs",
 			[]*models.Inventory{
 				{
 					Gpus: []*models.Gpu{{
@@ -254,17 +233,10 @@ var _ = Describe("Operator", func() {
 					}},
 				},
 			},
-			api.ValidationResult{
-				Status:       api.Failure,
-				ValidationId: operator.GetHostValidationID(),
-				Reasons: []string{
-					"The AMD GPU operator requires at least one supported AMD GPU, but there is " +
-						"none in the discovered hosts.",
-				},
-			},
+			false,
 		),
 		Entry(
-			"Succeeds if there are hosts and supported GPUs",
+			"Returns true if there are hosts and supported GPUs",
 			[]*models.Inventory{
 				{
 					Gpus: []*models.Gpu{{
@@ -272,14 +244,10 @@ var _ = Describe("Operator", func() {
 					}},
 				},
 			},
-			api.ValidationResult{
-				Status:       api.Success,
-				ValidationId: operator.GetHostValidationID(),
-				Reasons:      nil,
-			},
+			true,
 		),
 		Entry(
-			"Succeeds if there are hosts and a mix of supported and unsupported GPUs",
+			"Returns true if there are hosts and a mix of supported and unsupported GPUs",
 			[]*models.Inventory{
 				{
 					Gpus: []*models.Gpu{
@@ -292,14 +260,10 @@ var _ = Describe("Operator", func() {
 					},
 				},
 			},
-			api.ValidationResult{
-				Status:       api.Success,
-				ValidationId: operator.GetHostValidationID(),
-				Reasons:      nil,
-			},
+			true,
 		),
 		Entry(
-			"Succeeds if there are two hosts and only one of them has a supported GPU",
+			"Returns true if there are two hosts and only one of them has a supported GPU",
 			[]*models.Inventory{
 				{},
 				{
@@ -310,11 +274,28 @@ var _ = Describe("Operator", func() {
 					},
 				},
 			},
-			api.ValidationResult{
-				Status:       api.Success,
-				ValidationId: operator.GetHostValidationID(),
-				Reasons:      nil,
-			},
+			true,
 		),
 	)
+
+	Context("Testing ClusterHasGPU", func() {
+		When("Inventory string is not a valid json", func() {
+			It("Should return an error", func() {
+				host := &models.Host{
+					Inventory: "invalid json",
+				}
+
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						Hosts: []*models.Host{
+							host,
+						},
+					},
+				}
+
+				_, err := operator.ClusterHasGPU(cluster)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
 })
