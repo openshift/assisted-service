@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
 
@@ -235,7 +236,7 @@ func (i *installCmd) getProxyArguments(clusterName, baseDNSDomain, httpProxy, ht
 	} else {
 		noProxyUpdated := []string{}
 		if noProxyTrim != "" {
-			noProxyUpdated = append(noProxyUpdated, noProxyTrim)
+			noProxyUpdated = strings.Split(noProxyTrim, ",")
 		}
 		// if we set proxy we need to update assisted installer no proxy with no proxy params as installer.
 		// it must be able to connect to api int. Added this way for not to pass name and base domain
@@ -245,7 +246,7 @@ func (i *installCmd) getProxyArguments(clusterName, baseDNSDomain, httpProxy, ht
 			".svc",
 			".cluster.local",
 			fmt.Sprintf("api-int.%s.%s", clusterName, baseDNSDomain))
-		proxy.NoProxy = swag.String(strings.Join(noProxyUpdated, ","))
+		proxy.NoProxy = swag.String(strings.Join(funk.UniqString(noProxyUpdated), ","))
 	}
 
 	return &proxy
