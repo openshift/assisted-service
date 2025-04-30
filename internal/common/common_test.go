@@ -239,9 +239,24 @@ var _ = Describe("get hosts by role", func() {
 		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
 		cluster := createClusterFromHosts(hosts)
 		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		arbiters := GetHostsByRole(&cluster, models.HostRoleArbiter)
 		workers := GetHostsByRole(&cluster, models.HostRoleWorker)
 		Expect(masters).Should(HaveLen(3))
+		Expect(arbiters).Should(HaveLen(0))
 		Expect(workers).Should(HaveLen(2))
+	})
+	It("2 masters 1 arbiter", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleArbiter, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		arbiters := GetHostsByRole(&cluster, models.HostRoleArbiter)
+		workers := GetHostsByRole(&cluster, models.HostRoleWorker)
+		Expect(masters).Should(HaveLen(2))
+		Expect(arbiters).Should(HaveLen(1))
+		Expect(workers).Should(HaveLen(0))
 	})
 	It("5 workers", func() {
 		hosts := make([]*models.Host, 0)
@@ -252,8 +267,10 @@ var _ = Describe("get hosts by role", func() {
 		hosts = append(hosts, createHost(models.HostRoleWorker, models.HostStatusKnown))
 		cluster := createClusterFromHosts(hosts)
 		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		arbiters := GetHostsByRole(&cluster, models.HostRoleArbiter)
 		workers := GetHostsByRole(&cluster, models.HostRoleWorker)
 		Expect(masters).Should(HaveLen(0))
+		Expect(arbiters).Should(HaveLen(0))
 		Expect(workers).Should(HaveLen(5))
 	})
 	It("5 masters", func() {
@@ -265,8 +282,10 @@ var _ = Describe("get hosts by role", func() {
 		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
 		cluster := createClusterFromHosts(hosts)
 		masters := GetHostsByRole(&cluster, models.HostRoleMaster)
+		arbiters := GetHostsByRole(&cluster, models.HostRoleArbiter)
 		workers := GetHostsByRole(&cluster, models.HostRoleWorker)
 		Expect(masters).Should(HaveLen(5))
+		Expect(arbiters).Should(HaveLen(0))
 		Expect(workers).Should(HaveLen(0))
 	})
 	It("5 nodes autoassign", func() {
@@ -440,9 +459,17 @@ var _ = Describe("GetHostsByEachRole", func() {
 					Role:          models.HostRoleAutoAssign,
 					SuggestedRole: models.HostRoleMaster,
 				},
+				{ // Host that has been manually assigned to master
+					Role:          models.HostRoleMaster,
+					SuggestedRole: models.HostRoleMaster,
+				},
 				{ // Host that has been automatically assigned
 					Role:          models.HostRoleAutoAssign,
-					SuggestedRole: models.HostRoleMaster,
+					SuggestedRole: models.HostRoleArbiter,
+				},
+				{ // Host that has been manually assigned to arbiter
+					Role:          models.HostRoleArbiter,
+					SuggestedRole: models.HostRoleArbiter,
 				},
 				{ // Host that has been automatically assigned
 					Role:          models.HostRoleAutoAssign,
@@ -465,18 +492,20 @@ var _ = Describe("GetHostsByEachRole", func() {
 
 		It("with effective roles", func() {
 			effectiveRoles := true
-			masterHosts, workerHosts, autoAssignHosts := GetHostsByEachRole(cluster, effectiveRoles)
+			masterHosts, arbiterHosts, workerHosts, autoAssignHosts := GetHostsByEachRole(cluster, effectiveRoles)
 
 			Expect(masterHosts).To(HaveLen(3))
+			Expect(arbiterHosts).To(HaveLen(2))
 			Expect(workerHosts).To(HaveLen(3))
 			Expect(autoAssignHosts).To(HaveLen(1))
 		})
 
 		It("with non-effective roles", func() {
 			effectiveRoles := false
-			masterHosts, workerHosts, autoAssignHosts := GetHostsByEachRole(cluster, effectiveRoles)
+			masterHosts, arbiterHosts, workerHosts, autoAssignHosts := GetHostsByEachRole(cluster, effectiveRoles)
 
-			Expect(masterHosts).To(HaveLen(0))
+			Expect(masterHosts).To(HaveLen(1))
+			Expect(arbiterHosts).To(HaveLen(1))
 			Expect(workerHosts).To(HaveLen(1))
 			Expect(autoAssignHosts).To(HaveLen(6))
 		})
@@ -589,6 +618,27 @@ var _ = Describe("RemoveDuplicatesFromCaBundle", func() {
 		result, _, err := RemoveDuplicatesFromCaBundle(caBundle)
 		Expect(err).To(HaveOccurred())
 		Expect(result).To(Equal(""))
+	})
+})
+
+var _ = Describe("IsClusterTopologyHighlyAvailableArbiter", func() {
+	It("cluster has an arbiter host", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleArbiter, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+
+		Expect(IsClusterTopologyHighlyAvailableArbiter(&cluster)).To(BeTrue())
+	})
+	It("cluster doesn't have an arbiter host", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+
+		Expect(IsClusterTopologyHighlyAvailableArbiter(&cluster)).To(BeFalse())
 	})
 })
 

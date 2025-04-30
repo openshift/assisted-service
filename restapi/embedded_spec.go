@@ -1230,7 +1230,8 @@ func init() {
               "worker.ign",
               "install-config.yaml",
               "custom_manifests.json",
-              "custom_manifests.yaml"
+              "custom_manifests.yaml",
+              "arbiter.ign"
             ],
             "type": "string",
             "description": "The file to be downloaded.",
@@ -1446,6 +1447,7 @@ func init() {
           {
             "enum": [
               "master",
+              "arbiter",
               "worker",
               "auto-assign"
             ],
@@ -8385,6 +8387,7 @@ func init() {
       "enum": [
         "auto-assign",
         "master",
+        "arbiter",
         "worker",
         "bootstrap"
       ]
@@ -8394,6 +8397,7 @@ func init() {
       "enum": [
         "auto-assign",
         "master",
+        "arbiter",
         "worker"
       ]
     },
@@ -8470,6 +8474,7 @@ func init() {
           "enum": [
             "auto-assign",
             "master",
+            "arbiter",
             "worker"
           ],
           "x-nullable": true
@@ -12215,7 +12220,8 @@ func init() {
               "worker.ign",
               "install-config.yaml",
               "custom_manifests.json",
-              "custom_manifests.yaml"
+              "custom_manifests.yaml",
+              "arbiter.ign"
             ],
             "type": "string",
             "description": "The file to be downloaded.",
@@ -12431,6 +12437,7 @@ func init() {
           {
             "enum": [
               "master",
+              "arbiter",
               "worker",
               "auto-assign"
             ],
@@ -19460,6 +19467,7 @@ func init() {
       "enum": [
         "auto-assign",
         "master",
+        "arbiter",
         "worker",
         "bootstrap"
       ]
@@ -19469,6 +19477,7 @@ func init() {
       "enum": [
         "auto-assign",
         "master",
+        "arbiter",
         "worker"
       ]
     },
@@ -19545,6 +19554,7 @@ func init() {
           "enum": [
             "auto-assign",
             "master",
+            "arbiter",
             "worker"
           ],
           "x-nullable": true

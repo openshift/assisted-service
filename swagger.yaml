@@ -390,7 +390,7 @@ paths:
           name: role
           description: Role to request.
           type: string
-          enum: ['master', 'worker', 'auto-assign']
+          enum: ['master', 'arbiter', 'worker', 'auto-assign']
           required: false
         - in: query
           description: Hosts status to request.
@@ -2064,7 +2064,7 @@ paths:
           name: file_name
           description: The file to be downloaded.
           type: string
-          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, install-config.yaml, custom_manifests.json, custom_manifests.yaml]
+          enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, install-config.yaml, custom_manifests.json, custom_manifests.yaml, arbiter.ign]
           required: true
         - in: header
           name: discovery_agent_version
@@ -5043,7 +5043,7 @@ definitions:
       host_role:
         type: string
         x-nullable: true
-        enum: ['auto-assign', 'master', 'worker']
+        enum: ['auto-assign', 'master', 'arbiter', 'worker']
       host_name:
         type: string
         x-nullable: true
@@ -6618,6 +6618,7 @@ definitions:
     enum:
       - 'auto-assign'
       - 'master'
+      - 'arbiter'
       - 'worker'
 
   host-role:
@@ -6625,6 +6626,7 @@ definitions:
     enum:
       - 'auto-assign'
       - 'master'
+      - 'arbiter'
       - 'worker'
       - 'bootstrap'
 

@@ -54,10 +54,12 @@ const (
 
 	MaxMasterHostsNeededForInstallationInHaModeOfOCP418OrNewer       = 5
 	MinMasterHostsNeededForInstallationInHaMode                      = 3
+	MinMasterHostsNeededForInstallationInHaArbiterMode               = 2
 	AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder = 3
 	AllowedNumberOfMasterHostsInNoneHaMode                           = 1
 	AllowedNumberOfWorkersInNoneHaMode                               = 0
 	MinimumVersionForNonStandardHAOCPControlPlane                    = "4.18"
+	MinimumVersionForArbiterClusters                                 = "4.19"
 	MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode    = 2
 
 	MinimumVersionForUserManagedLoadBalancerFeature = "4.16"
@@ -688,13 +690,15 @@ func GetEffectiveRole(host *models.Host) models.HostRole {
 	return host.Role
 }
 
-// GetHostsByEachRole returns the 3 slices of hosts by their effective role for a given cluster:
+// GetHostsByEachRole returns the 4 slices of hosts by their effective role for a given cluster:
 // 1. bootstrap/master hosts
-// 2. worker hosts
-// 3. auto-assign hosts
+// 2. arbiter hosts
+// 3. worker hosts
+// 4. auto-assign hosts
 // Note - The hosts should be preloaded in the cluster
-func GetHostsByEachRole(cluster *models.Cluster, effectiveRoles bool) ([]*models.Host, []*models.Host, []*models.Host) {
+func GetHostsByEachRole(cluster *models.Cluster, effectiveRoles bool) ([]*models.Host, []*models.Host, []*models.Host, []*models.Host) {
 	masterHosts := make([]*models.Host, 0)
+	arbiterHosts := make([]*models.Host, 0)
 	workerHosts := make([]*models.Host, 0)
 	autoAssignHosts := make([]*models.Host, 0)
 
@@ -710,6 +714,8 @@ func GetHostsByEachRole(cluster *models.Cluster, effectiveRoles bool) ([]*models
 		switch role := roleFunction(host); role {
 		case models.HostRoleMaster, models.HostRoleBootstrap:
 			masterHosts = append(masterHosts, host)
+		case models.HostRoleArbiter:
+			arbiterHosts = append(arbiterHosts, host)
 		case models.HostRoleWorker:
 			workerHosts = append(workerHosts, host)
 		case models.HostRoleAutoAssign:
@@ -717,7 +723,7 @@ func GetHostsByEachRole(cluster *models.Cluster, effectiveRoles bool) ([]*models
 		}
 	}
 
-	return masterHosts, workerHosts, autoAssignHosts
+	return masterHosts, arbiterHosts, workerHosts, autoAssignHosts
 }
 
 func ShouldMastersBeSchedulable(cluster *models.Cluster) bool {
@@ -725,7 +731,7 @@ func ShouldMastersBeSchedulable(cluster *models.Cluster) bool {
 		return true
 	}
 
-	_, workers, _ := GetHostsByEachRole(cluster, true)
+	_, _, workers, _ := GetHostsByEachRole(cluster, true)
 	return len(workers) < MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode
 }
 
@@ -768,4 +774,8 @@ func GetDefaultHighAvailabilityAndMasterCountParams(highAvailabilityMode *string
 
 	// both are set
 	return highAvailabilityMode, controlPlaneCount
+}
+
+func IsClusterTopologyHighlyAvailableArbiter(cluster *Cluster) bool {
+	return funk.NotEmpty(GetHostsByRole(cluster, models.HostRoleArbiter))
 }

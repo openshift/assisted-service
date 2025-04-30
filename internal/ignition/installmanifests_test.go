@@ -37,7 +37,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var hostInventory = `{"bmc_address":"0.0.0.0","bmc_v6address":"::/0","boot":{"current_boot_mode":"bios"},"cpu":{"architecture":"x86_64","count":4,"flags":["fpu","vme","de","pse","tsc","msr","pae","mce","cx8","apic","sep","mtrr","pge","mca","cmov","pat","pse36","clflush","mmx","fxsr","sse","sse2","ss","syscall","nx","pdpe1gb","rdtscp","lm","constant_tsc","arch_perfmon","rep_good","nopl","xtopology","cpuid","tsc_known_freq","pni","pclmulqdq","vmx","ssse3","fma","cx16","pcid","sse4_1","sse4_2","x2apic","movbe","popcnt","tsc_deadline_timer","aes","xsave","avx","f16c","rdrand","hypervisor","lahf_lm","abm","3dnowprefetch","cpuid_fault","invpcid_single","pti","ssbd","ibrs","ibpb","stibp","tpr_shadow","vnmi","flexpriority","ept","vpid","ept_ad","fsgsbase","tsc_adjust","bmi1","hle","avx2","smep","bmi2","erms","invpcid","rtm","mpx","avx512f","avx512dq","rdseed","adx","smap","clflushopt","clwb","avx512cd","avx512bw","avx512vl","xsaveopt","xsavec","xgetbv1","xsaves","arat","umip","pku","ospke","md_clear","arch_capabilities"],"frequency":2095.076,"model_name":"Intel(R) Xeon(R) Gold 6152 CPU @ 2.10GHz"},"disks":[{"by_path":"/dev/disk/by-path/pci-0000:00:06.0","drive_type":"HDD","model":"unknown","name":"vda","path":"/dev/vda","serial":"unknown","size_bytes":21474836480,"vendor":"0x1af4","wwn":"unknown"}],"hostname":"test-infra-cluster-master-1.redhat.com","interfaces":[{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.126.11/24"],"ipv6_addresses":["fe80::5054:ff:fe42:1e8d/64"],"mac_address":"52:54:00:42:1e:8d","mtu":1500,"name":"eth0","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"},{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.140.133/24"],"ipv6_addresses":["fe80::5054:ff:feca:7b16/64"],"mac_address":"52:54:00:ca:7b:16","mtu":1500,"name":"eth1","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"}],"memory":{"physical_bytes":17809014784,"usable_bytes":17378611200},"system_vendor":{"manufacturer":"Red Hat","product_name":"KVM"}}`
+var hostInventory = `{"bmc_address":"0.0.0.0","bmc_v6address":"::/0","boot":{"current_boot_mode":"bios"},"cpu":{"architecture":"x86_64","count":4,"flags":["fpu","vme","de","pse","tsc","msr","pae","mce","cx8","apic","sep","mtrr","pge","mca","cmov","pat","pse36","clflush","mmx","fxsr","sse","sse2","ss","syscall","nx","pdpe1gb","rdtscp","lm","constant_tsc","arch_perfmon","rep_good","nopl","xtopology","cpuid","tsc_known_freq","pni","pclmulqdq","vmx","ssse3","fma","cx16","pcid","sse4_1","sse4_2","x2apic","movbe","popcnt","tsc_deadline_timer","aes","xsave","avx","f16c","rdrand","hypervisor","lahf_lm","abm","3dnowprefetch","cpuid_fault","invpcid_single","pti","ssbd","ibrs","ibpb","stibp","tpr_shadow","vnmi","flexpriority","ept","vpid","ept_ad","fsgsbase","tsc_adjust","bmi1","hle","avx2","smep","bmi2","erms","invpcid","rtm","mpx","avx512f","avx512dq","rdseed","adx","smap","clflushopt","clwb","avx512cd","avx512bw","avx512vl","xsaveopt","xsavec","xgetbv1","xsaves","arat","umip","pku","ospke","md_clear","arch_capabilities"],"frequency":2095.076,"model_name":"Intel(R) Xeon(R) Gold 6152 CPU @ 2.10GHz"},"disks":[{"by_path":"/dev/disk/by-path/pci-0000:00:06.0","drive_type":"HDD","model":"unknown","name":"vda","path":"/dev/vda","serial":"unknown","size_bytes":21474836480,"vendor":"0x1af4","wwn":"unknown"}],"hostname":"test-infra-cluster-master-1.redhat.com","interfaces":[{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.126.11/24"],"mac_address":"52:54:00:42:1e:8d","mtu":1500,"name":"eth0","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"},{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.140.133/24"],"mac_address":"52:54:00:ca:7b:16","mtu":1500,"name":"eth1","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"}],"memory":{"physical_bytes":17809014784,"usable_bytes":17378611200},"system_vendor":{"manufacturer":"Red Hat","product_name":"KVM"}}`
 
 func testCluster() *common.Cluster {
 	clusterID := strfmt.UUID(uuid.New().String())
@@ -171,28 +171,32 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 				},
 			}
 		})
-		test := func(masters, workers []*models.Host, masterExpected bool) {
+		test := func(masters, arbiters, workers []*models.Host, role models.HostRole) {
 			masterHostnames := getHostnames(masters)
+			arbiterHostnames := getHostnames(arbiters)
 			workerHostnames := getHostnames(workers)
 			Expect(err).ToNot(HaveOccurred())
 			for i := range config.Storage.Files {
 				if isBMHFile(&config.Storage.Files[i]) {
 					bmhFile, err2 := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
 					Expect(err2).ToNot(HaveOccurred())
-					Expect(bmhIsMaster(bmhFile, masterHostnames, workerHostnames)).To(Equal(masterExpected))
+					Expect(getBmhRole(bmhFile, masterHostnames, arbiterHostnames, workerHostnames)).To(Equal(role))
 					return
 				}
 			}
 			Fail("No BMH file found")
 		}
 		It("Set as master by hostname", func() {
-			test(hosts, nil, true)
+			test(hosts, nil, nil, models.HostRoleMaster)
+		})
+		It("Set as arbiter by hostname", func() {
+			test(nil, hosts, nil, models.HostRoleArbiter)
 		})
 		It("Set as worker by hostname", func() {
-			test(nil, hosts, false)
+			test(nil, nil, hosts, models.HostRoleWorker)
 		})
 		It("Set as master by backward compatibility", func() {
-			test(nil, nil, true)
+			test(nil, nil, nil, models.HostRoleMaster)
 		})
 	})
 
@@ -255,6 +259,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 	var (
 		masterPath     string
+		arbiterPath    string
 		workerPath     string
 		caCertPath     string
 		dbName         string
@@ -274,8 +279,11 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		Expect(err).NotTo(HaveOccurred())
 
 		masterPath = filepath.Join(workDir, "master.ign")
+		arbiterPath = filepath.Join(workDir, "arbiter.ign")
 		workerPath = filepath.Join(workDir, "worker.ign")
 		err = os.WriteFile(masterPath, []byte(ignition), 0600)
+		Expect(err).NotTo(HaveOccurred())
+		err = os.WriteFile(arbiterPath, []byte(ignition), 0600)
 		Expect(err).NotTo(HaveOccurred())
 		err = os.WriteFile(workerPath, []byte(ignition), 0600)
 		Expect(err).NotTo(HaveOccurred())
@@ -319,12 +327,57 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			file := &masterConfig.Storage.Files[0]
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 
+			arbiterBytes, err := os.ReadFile(arbiterPath)
+			Expect(err).NotTo(HaveOccurred())
+			arbiterConfig, _, err := config_32.Parse(arbiterBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(arbiterConfig.Storage.Files).To(HaveLen(0))
+
 			workerBytes, err := os.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
 			workerConfig, _, err := config_32.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(workerConfig.Storage.Files).To(HaveLen(1))
 			file = &masterConfig.Storage.Files[0]
+			Expect(file.Path).To(Equal(common.HostCACertPath))
+		})
+		It("with ca cert file - TNA Cluster", func() {
+			hostID1 := strfmt.UUID(uuid.New().String())
+			hostID2 := strfmt.UUID(uuid.New().String())
+			hostID3 := strfmt.UUID(uuid.New().String())
+			cluster.Hosts = []*models.Host{
+				{ID: &hostID1, Inventory: hostInventory, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+				{ID: &hostID2, Inventory: hostInventory, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+				{ID: &hostID3, Inventory: hostInventory, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleArbiter},
+			}
+			cluster.OpenshiftVersion = common.MinimumVersionForArbiterClusters
+			g := NewGenerator(workDir, cluster, "", "", caCertPath, "", nil, logrus.New(), nil, "", "", manifestsAPI, eventsHandler, installerCache).(*installerGenerator)
+
+			err := g.updateIgnitions()
+			Expect(err).NotTo(HaveOccurred())
+
+			masterBytes, err := os.ReadFile(masterPath)
+			Expect(err).NotTo(HaveOccurred())
+			masterConfig, _, err := config_32.Parse(masterBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(masterConfig.Storage.Files).To(HaveLen(1))
+			file := &masterConfig.Storage.Files[0]
+			Expect(file.Path).To(Equal(common.HostCACertPath))
+
+			arbiterBytes, err := os.ReadFile(arbiterPath)
+			Expect(err).NotTo(HaveOccurred())
+			arbiterConfig, _, err := config_32.Parse(arbiterBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(arbiterConfig.Storage.Files).To(HaveLen(1))
+			file = &arbiterConfig.Storage.Files[0]
+			Expect(file.Path).To(Equal(common.HostCACertPath))
+
+			workerBytes, err := os.ReadFile(workerPath)
+			Expect(err).NotTo(HaveOccurred())
+			workerConfig, _, err := config_32.Parse(workerBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(workerConfig.Storage.Files).To(HaveLen(1))
+			file = &workerConfig.Storage.Files[0]
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 		})
 		It("with no ca cert file", func() {
@@ -338,6 +391,45 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(masterConfig.Storage.Files).To(HaveLen(0))
+
+			arbiterBytes, err := os.ReadFile(arbiterPath)
+			Expect(err).NotTo(HaveOccurred())
+			arbiterConfig, _, err := config_32.Parse(arbiterBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(arbiterConfig.Storage.Files).To(HaveLen(0))
+
+			workerBytes, err := os.ReadFile(workerPath)
+			Expect(err).NotTo(HaveOccurred())
+			workerConfig, _, err := config_32.Parse(workerBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(workerConfig.Storage.Files).To(HaveLen(0))
+		})
+		It("with no ca cert file - TNA Cluster", func() {
+			hostID1 := strfmt.UUID(uuid.New().String())
+			hostID2 := strfmt.UUID(uuid.New().String())
+			hostID3 := strfmt.UUID(uuid.New().String())
+			cluster.Hosts = []*models.Host{
+				{ID: &hostID1, Inventory: hostInventory, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+				{ID: &hostID2, Inventory: hostInventory, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleMaster},
+				{ID: &hostID3, Inventory: hostInventory, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleArbiter},
+			}
+			cluster.OpenshiftVersion = common.MinimumVersionForArbiterClusters
+			g := NewGenerator(workDir, cluster, "", "", "", "", nil, logrus.New(), nil, "", "", manifestsAPI, eventsHandler, installerCache).(*installerGenerator)
+
+			err := g.updateIgnitions()
+			Expect(err).NotTo(HaveOccurred())
+
+			masterBytes, err := os.ReadFile(masterPath)
+			Expect(err).NotTo(HaveOccurred())
+			masterConfig, _, err := config_32.Parse(masterBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(masterConfig.Storage.Files).To(HaveLen(0))
+
+			arbiterBytes, err := os.ReadFile(arbiterPath)
+			Expect(err).NotTo(HaveOccurred())
+			arbiterConfig, _, err := config_32.Parse(arbiterBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(arbiterConfig.Storage.Files).To(HaveLen(0))
 
 			workerBytes, err := os.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
@@ -429,6 +521,27 @@ var _ = Describe("createHostIgnitions", func() {
 		    ]
 		  }
 		}`
+	const testArbiterIgn = `{
+		  "ignition": {
+		    "config": {
+		      "merge": [
+			{
+			  "source": "https://192.168.126.199:22623/config/arbiter"
+			}
+		      ]
+		    },
+		    "security": {
+		      "tls": {
+			"certificateAuthorities": [
+			  {
+			    "source": "data:text/plain;charset=utf-8;base64,LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURFRENDQWZpZ0F3SUJBZ0lJUk90aUgvOC82ckF3RFFZSktvWklodmNOQVFFTEJRQXdKakVTTUJBR0ExVUUKQ3hNSmIzQmxibk5vYVdaME1SQXdEZ1lEVlFRREV3ZHliMjkwTFdOaE1CNFhEVEl3TURreE9ERTVORFV3TVZvWApEVE13TURreE5qRTVORFV3TVZvd0pqRVNNQkFHQTFVRUN4TUpiM0JsYm5Ob2FXWjBNUkF3RGdZRFZRUURFd2R5CmIyOTBMV05oTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUE1c1orVWtaaGsxUWQKeFU3cWI3YXArNFczaS9ZWTFzZktURC8ybDVJTjFJeVhPajlSL1N2VG5SOGYvajNJa1JHMWN5ZXR4bnNlNm1aZwpaOW1IRDJMV0srSEFlTTJSYXpuRkEwVmFwOWxVbVRrd3Vza2Z3QzhnMWJUZUVHUlEyQmFId09KekpvdjF4a0ZICmU2TUZCMlcxek1rTWxLTkwycnlzMzRTeVYwczJpNTFmTTJvTEM2SXRvWU91RVVVa2o0dnVUbThPYm5rV0t4ZnAKR1VGMThmNzVYeHJId0tVUEd0U0lYMGxpVGJNM0tiTDY2V2lzWkFIeStoN1g1dnVaaFYzYXhwTVFMdlczQ2xvcQpTaG9zSXY4SWNZbUJxc210d2t1QkN3cWxibEo2T2gzblFrelorVHhQdGhkdWsrZytzaVBUNi9va0JKU2M2cURjClBaNUNyN3FrR3dJREFRQUJvMEl3UURBT0JnTlZIUThCQWY4RUJBTUNBcVF3RHdZRFZSMFRBUUgvQkFVd0F3RUIKL3pBZEJnTlZIUTRFRmdRVWNSbHFHT1g3MWZUUnNmQ0tXSGFuV3NwMFdmRXdEUVlKS29aSWh2Y05BUUVMQlFBRApnZ0VCQU5Xc0pZMDY2RnNYdzFOdXluMEkwNUtuVVdOMFY4NVJVV2drQk9Wd0J5bHluTVRneGYyM3RaY1FsS0U4CjVHMlp4Vzl5NmpBNkwzMHdSNWhOcnBzM2ZFcUhobjg3UEM3L2tWQWlBOWx6NjBwV2ovTE5GU1hobDkyejBGMEIKcGNUQllFc1JNYU0zTFZOK0tZb3Q2cnJiamlXdmxFMU9hS0Q4dnNBdkk5YXVJREtOdTM0R2pTaUJGWXMrelRjSwphUUlTK3UzRHVYMGpVY001aUgrMmwzNGxNR0hlY2tjS1hnUWNXMGJiT28xNXY1Q2ExenJtQ2hIUHUwQ2NhMU1MCjJaM2MxMHVXZnR2OVZnbC9LcEpzSjM3b0phbTN1Mmp6MXN0K3hHby9iTmVSdHpOMjdXQSttaDZ6bXFwRldYKzUKdWFjZUY1SFRWc0FkbmtJWHpwWXBuek5qb0lFPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+			  }
+			]
+		      }
+		    },
+		    "version": "3.2.0"
+		  }
+		}`
 	const testWorkerIgn = `{
 		  "ignition": {
 		    "config": {
@@ -473,6 +586,10 @@ var _ = Describe("createHostIgnitions", func() {
 		err = os.WriteFile(masterPath, []byte(testMasterIgn), 0600)
 		Expect(err).NotTo(HaveOccurred())
 
+		arbiterPath := filepath.Join(workDir, "arbiter.ign")
+		err = os.WriteFile(arbiterPath, []byte(testArbiterIgn), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
 		workerPath := filepath.Join(workDir, "worker.ign")
 		err = os.WriteFile(workerPath, []byte(testWorkerIgn), 0600)
 		Expect(err).NotTo(HaveOccurred())
@@ -510,6 +627,14 @@ var _ = Describe("createHostIgnitions", func() {
 					Role:              models.HostRoleMaster,
 				},
 				{
+					RequestedHostname: "arbiter0.example.com",
+					Role:              models.HostRoleArbiter,
+				},
+				{
+					RequestedHostname: "arbiter1.example.com",
+					Role:              models.HostRoleArbiter,
+				},
+				{
 					RequestedHostname: "worker0.example.com",
 					Role:              models.HostRoleWorker,
 				},
@@ -540,6 +665,8 @@ var _ = Describe("createHostIgnitions", func() {
 				sourceURL := config.Ignition.Config.Merge[0].Source
 				if host.Role == models.HostRoleMaster {
 					Expect(*sourceURL).To(Equal("https://192.168.126.199:22623/config/master"))
+				} else if host.Role == models.HostRoleArbiter {
+					Expect(*sourceURL).To(Equal("https://192.168.126.199:22623/config/arbiter"))
 				} else if host.Role == models.HostRoleWorker {
 					Expect(*sourceURL).To(Equal("https://192.168.126.199:22623/config/worker"))
 				}
@@ -1136,6 +1263,31 @@ var _ = Describe("Generator UploadToS3", func() {
 		})
 
 		It("validate upload files names", func() {
+			for _, f := range fileNames {
+				fullPath := filepath.Join(generator.workDir, f)
+				key := filepath.Join(cluster.ID.String(), f)
+				mockS3Client.EXPECT().UploadFile(gomock.Any(), fullPath, key).Return(nil).Times(1)
+				mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), key).Return(true, nil).Times(1)
+			}
+			for i := range cluster.Hosts {
+				fullPath := filepath.Join(generator.workDir, hostutil.IgnitionFileName(cluster.Hosts[i]))
+				key := filepath.Join(cluster.ID.String(), hostutil.IgnitionFileName(cluster.Hosts[i]))
+				mockS3Client.EXPECT().UploadFile(gomock.Any(), fullPath, key).Return(nil).Times(1)
+				mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), key).Return(true, nil).Times(1)
+			}
+
+			Expect(generator.UploadToS3(ctx)).Should(Succeed())
+		})
+
+		It("validate upload files names with arbiter", func() {
+			hostID3 := strfmt.UUID(uuid.New().String())
+			generator.cluster.Hosts = append(generator.cluster.Hosts, &models.Host{
+				ID: &hostID3, Status: swag.String(models.HostStatusKnown), Role: models.HostRoleArbiter,
+			})
+			fullPath := filepath.Join(generator.workDir, arbiterIgn)
+			key := filepath.Join(cluster.ID.String(), arbiterIgn)
+			mockS3Client.EXPECT().UploadFile(gomock.Any(), fullPath, key).Return(nil).Times(1)
+			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), key).Return(true, nil).Times(1)
 			for _, f := range fileNames {
 				fullPath := filepath.Join(generator.workDir, f)
 				key := filepath.Join(cluster.ID.String(), f)

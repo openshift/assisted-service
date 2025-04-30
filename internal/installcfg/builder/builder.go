@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/swag"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
@@ -136,6 +137,23 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 
 	if err := i.handleMirrorRegistry(cfg, cluster); err != nil {
 		return nil, err
+	}
+
+	if common.IsClusterTopologyHighlyAvailableArbiter(cluster) {
+		cfg.Arbiter = &struct {
+			Hyperthreading string `json:"hyperthreading,omitempty"`
+			Name           string `json:"name"`
+			Replicas       int    `json:"replicas"`
+		}{
+			// We will update the cluster's hyperthreading to be able to include arbiter later.
+			// For now, we will set arbiter nodes' hyperthreading the same as master nodes'.
+			Hyperthreading: i.getHypethreadingConfiguration(cluster, "master"),
+			Name:           string(models.HostRoleArbiter),
+			Replicas:       i.countHostsByRole(cluster, models.HostRoleArbiter),
+		}
+
+		cfg.FeatureSet = configv1.CustomNoUpgrade
+		cfg.FeatureGates = []string{"HighlyAvailableArbiter=true"}
 	}
 
 	return cfg, nil

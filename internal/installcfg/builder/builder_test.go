@@ -137,6 +137,34 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
+		Expect(result.Arbiter).Should(BeNil())
+		Expect(result.FeatureSet).To(Equal(configv1.Default))
+		Expect(result.FeatureGates).To(HaveLen(0))
+	})
+
+	It("create_configuration_with_all_hosts - TNA cluster", func() {
+		id := strfmt.UUID(uuid.New().String())
+		host4 := models.Host{
+			ID:        &id,
+			ClusterID: cluster.ID,
+			Status:    swag.String(models.HostStatusKnown),
+			Role:      "arbiter",
+			Inventory: getInventoryStr("hostname4", "bootMode", true, true),
+		}
+		cluster.Hosts = []*models.Host{&host1, &host2, &host4}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
+		Expect(result.Arbiter).Should(Not(BeNil()))
+		Expect(result.Arbiter.Replicas).To(Equal(1))
+		Expect(result.FeatureSet).To(Equal(configv1.CustomNoUpgrade))
+		Expect(result.FeatureGates).To(HaveLen(1))
+		Expect(result.FeatureGates[0]).To(Equal("HighlyAvailableArbiter=true"))
 	})
 
 	It("create_configuration_with_hostnames", func() {

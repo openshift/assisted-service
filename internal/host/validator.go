@@ -158,7 +158,7 @@ func (v *validator) getBootDeviceInfo(host *models.Host) (*models.DiskInfo, erro
 
 func (c *validationContext) validateRole() error {
 	switch common.GetEffectiveRole(c.host) {
-	case models.HostRoleMaster, models.HostRoleWorker, models.HostRoleAutoAssign:
+	case models.HostRoleMaster, models.HostRoleArbiter, models.HostRoleWorker, models.HostRoleAutoAssign:
 		return nil
 	default:
 		return errors.Errorf("Illegal role defined: %s", common.GetEffectiveRole(c.host))

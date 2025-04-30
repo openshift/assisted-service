@@ -10424,6 +10424,7 @@ var _ = Describe("infraEnvs host", func() {
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
+		Expect(cfg.TNAClustersSupport).Should(BeFalse())
 		bm = createInventory(db, cfg)
 
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -10450,6 +10451,7 @@ var _ = Describe("infraEnvs host", func() {
 			hostID    strfmt.UUID
 			clusterID strfmt.UUID
 			host      *models.Host
+			cluster   common.Cluster
 		)
 
 		var (
@@ -10466,9 +10468,10 @@ var _ = Describe("infraEnvs host", func() {
 			hostID = strfmt.UUID(uuid.New().String())
 			clusterID = strfmt.UUID(uuid.New().String())
 
-			err := db.Create(&common.Cluster{
+			cluster = common.Cluster{
 				Cluster: models.Cluster{ID: &clusterID},
-			}).Error
+			}
+			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
 			host = &models.Host{
 				ID:         &hostID,
@@ -10511,6 +10514,30 @@ var _ = Describe("infraEnvs host", func() {
 			Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
 		})
 
+		It("update host role arbiter success", func() {
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), models.HostRole("arbiter"), gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			bm.TNAClustersSupport = true
+			cluster.OpenshiftVersion = common.MinimumVersionForArbiterClusters
+			db.Save(&cluster)
+			id, _ := bm.getClusterIDFromHost(db, hostID, infraEnvID)
+			fmt.Printf("cluster id is %s, and clusterId is %s\n", id, clusterID)
+			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+				InfraEnvID: infraEnvID,
+				HostID:     hostID,
+				HostUpdateParams: &models.HostUpdateParams{
+					HostRole: swag.String("arbiter"),
+				},
+			})
+			Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
+		})
+
 		It("update host role failure", func() {
 			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), models.HostRole("master"), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -10526,6 +10553,61 @@ var _ = Describe("infraEnvs host", func() {
 			})
 			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusInternalServerError)))
+		})
+
+		It("update host role arbiter failure - TNA Cluster not supported", func() {
+			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+				InfraEnvID: infraEnvID,
+				HostID:     hostID,
+				HostUpdateParams: &models.HostUpdateParams{
+					HostRole: swag.String("arbiter"),
+				},
+			})
+			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("TNA clusters support is disabled, cannot set role arbiter to host %s in infra-env %s", hostID, infraEnvID)))
+		})
+
+		It("update host role arbiter failure - cluster's openshift version is empty", func() {
+			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			bm.TNAClustersSupport = true
+			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+				InfraEnvID: infraEnvID,
+				HostID:     hostID,
+				HostUpdateParams: &models.HostUpdateParams{
+					HostRole: swag.String("arbiter"),
+				},
+			})
+			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", hostID, infraEnvID, common.MinimumVersionForArbiterClusters)))
+		})
+
+		It(fmt.Sprintf("update host role arbiter failure - cluster's openshift version < %s", common.MinimumVersionForArbiterClusters), func() {
+			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			bm.TNAClustersSupport = true
+			cluster.OpenshiftVersion = common.MinimumVersionForNonStandardHAOCPControlPlane
+			db.Save(&cluster)
+			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+				InfraEnvID: infraEnvID,
+				HostID:     hostID,
+				HostUpdateParams: &models.HostUpdateParams{
+					HostRole: swag.String("arbiter"),
+				},
+			})
+			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", hostID, infraEnvID, common.MinimumVersionForArbiterClusters)))
 		})
 
 		Context("Hostname", func() {
@@ -13848,6 +13930,7 @@ var _ = Describe("RegisterCluster", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		Expect(cfg.DiskEncryptionSupport).Should(BeTrue())
+		Expect(cfg.TNAClustersSupport).Should(BeFalse())
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperatorManager, nil, nil, nil, nil, nil, false, nil)
@@ -16256,6 +16339,27 @@ var _ = Describe("RegisterCluster", func() {
 				Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(5))
 			})
 
+			It(fmt.Sprintf("setting 2 control planes, multi-node with OCP version >= %s", common.MinimumVersionForArbiterClusters), func() {
+				mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, common.MinimumVersionForArbiterClusters)
+
+				bm.TNAClustersSupport = true
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:  swag.String(common.MinimumVersionForArbiterClusters),
+						ControlPlaneCount: swag.Int64(2),
+					},
+				})
+
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				clusterID := actual.Payload.ID
+
+				var dbCluster common.Cluster
+				db.Where("id = ?", clusterID.String()).Take(&dbCluster)
+
+				Expect(dbCluster.ControlPlaneCount).To(BeEquivalentTo(2))
+			})
+
 			It("setting 1 control plane, single-node", func() {
 				mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, testutils.ValidOCPVersionForNonStandardHAOCPControlPlane)
 
@@ -16310,6 +16414,23 @@ var _ = Describe("RegisterCluster", func() {
 				)
 			})
 
+			It("setting 6 control planes, multi-node, Arbiter Clusters supported", func() {
+				bm.TNAClustersSupport = true
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:     swag.String(common.MinimumVersionForArbiterClusters),
+						ControlPlaneCount:    swag.Int64(6),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+					},
+				})
+
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					"there should be 2-5 dedicated control plane nodes for high availability mode Full in openshift version 4.19 or newer",
+				)
+			})
+
 			It("setting 3 control planes, single-node", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
@@ -16348,6 +16469,38 @@ var _ = Describe("RegisterCluster", func() {
 						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 						ControlPlaneCount:    swag.Int64(4),
+					},
+				})
+
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					"there should be exactly 3 dedicated control plane nodes for high availability mode Full in openshift version older than 4.18",
+				)
+			})
+
+			It("setting 2 control planes, multi-node, Arbiter Clusters not supported", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    swag.Int64(2),
+					},
+				})
+
+				verifyApiErrorString(
+					reply,
+					http.StatusBadRequest,
+					"there should be 3-5 dedicated control plane nodes for high availability mode Full in openshift version 4.18 or newer",
+				)
+			})
+
+			It("setting 2 control planes, multi-node, non-standard HA OCP Control Plane not supported", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						ControlPlaneCount:    swag.Int64(2),
 					},
 				})
 

@@ -57,6 +57,7 @@ var S3FileNames = []string{
 	constants.Kubeconfig,
 	"bootstrap.ign",
 	"master.ign",
+	"arbiter.ign",
 	"worker.ign",
 	"metadata.json",
 	"kubeadmin-password",

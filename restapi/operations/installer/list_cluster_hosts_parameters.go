@@ -155,7 +155,7 @@ func (o *ListClusterHostsParams) bindRole(rawData []string, hasKey bool, formats
 // validateRole carries on validations for parameter Role
 func (o *ListClusterHostsParams) validateRole(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("role", "query", *o.Role, []interface{}{"master", "worker", "auto-assign"}, true); err != nil {
+	if err := validate.EnumCase("role", "query", *o.Role, []interface{}{"master", "arbiter", "worker", "auto-assign"}, true); err != nil {
 		return err
 	}
 
