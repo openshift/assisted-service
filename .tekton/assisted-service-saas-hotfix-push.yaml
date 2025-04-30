@@ -343,6 +343,10 @@ spec:
         - "false"
     - name: sast-snyk-check
       params:
+      - name: image-url
+        value: $(tasks.build-container.results.IMAGE_URL)
+      - name: image-digest
+        value: $(tasks.build-container.results.IMAGE_DIGEST)
       - name: ARGS
         value: "--project-name=assisted-service --report --org=3e6fd93b-b325-49dd-8a33-432a0160ab66"
       - name: IGNORE_FILE_PATHS
@@ -392,6 +396,8 @@ spec:
       params:
       - name: image-url
         value: $(tasks.build-container.results.IMAGE_URL)
+      - name: image-digest
+        value: $(tasks.build-container.results.IMAGE_DIGEST)
       - name: IMAGE
         value: $(params.output-image)
       - name: DOCKERFILE
@@ -480,6 +486,8 @@ spec:
       params:
       - name: image-url
         value: $(tasks.build-container.results.IMAGE_URL)
+      - name: image-digest
+        value: $(tasks.build-container.results.IMAGE_DIGEST)
       runAfter:
       - build-container
       taskRef:
