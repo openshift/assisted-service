@@ -181,23 +181,21 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		return ctrl.Result{Requeue: true, RequeueAfter: time.Until(imageTimePlusCooldown)}, nil
 	}
 
-	if image.Status.ImageUrl == infraEnv.Status.ISODownloadURL {
-		log.Info("PreprovisioningImage and InfraEnv images are in sync. Nothing to update.")
-		return ctrl.Result{}, nil
-	}
-	imageUpdated := image.Status.ImageUrl != ""
+	patch := client.MergeFrom(image.DeepCopy())
+	imageUpdated := image.Status.ImageUrl != "" && image.Status.ImageUrl != infraEnv.Status.ISODownloadURL
 	err = r.setImage(image, *infraEnv)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	log.Info("updating status")
-	err = r.Status().Update(ctx, image)
+	err = r.Status().Patch(ctx, image, patch)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	log.Info("PreprovisioningImage updated successfully")
 
 	if imageUpdated {
+		r.Log.Infof("Updating PreprovisioningImage ImageUrl to: %s", infraEnv.Status.ISODownloadURL)
 		if err = r.setBMHRebootAnnotation(ctx, image); err != nil {
 			log.WithError(err).Error("failed to set BMH reboot annotation")
 			return ctrl.Result{}, err
@@ -218,7 +216,6 @@ func initrdExtraKernelParams(infraEnv aiv1beta1.InfraEnv) string {
 }
 
 func (r *PreprovisioningImageReconciler) setImage(image *metal3_v1alpha1.PreprovisioningImage, infraEnv aiv1beta1.InfraEnv) error {
-	r.Log.Infof("Updating PreprovisioningImage ImageUrl to: %s", infraEnv.Status.ISODownloadURL)
 	image.Status.Architecture = infraEnv.Spec.CpuArchitecture
 	if funk.Contains(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatISO) {
 		r.Log.Infof("Updating PreprovisioningImage ImageUrl with ISO artifacts")
@@ -639,6 +636,7 @@ func (r *PreprovisioningImageReconciler) setBMHRebootAnnotation(ctx context.Cont
 
 	patch := client.MergeFrom(bmh.DeepCopy())
 	setAnnotation(&bmh.ObjectMeta, "reboot.metal3.io", "{\"force\": true}")
+	r.Log.Infof("Setting reboot annotation on BMH %s", bmh.Name)
 	if err := r.Patch(ctx, bmh, patch); err != nil {
 		return errors.Wrapf(err, "failed to add reboot annotation to BMH %s", bmhKey)
 	}
