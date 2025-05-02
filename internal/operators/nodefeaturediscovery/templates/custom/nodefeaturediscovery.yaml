@@ -26,6 +26,7 @@ spec:
           - "vendor"
           - "device"
         custom:
+        - name: nvidia-gpu
         - name: amd-gpu
           labels:
             feature.node.kubernetes.io/amd-gpu: "true"
