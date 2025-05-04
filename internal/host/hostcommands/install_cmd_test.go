@@ -655,6 +655,10 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(swag.StringValue(noProxy.HTTPProxy)).Should(Equal("http://10.56.20.90:8080"))
 			Expect(swag.StringValue(noProxy.NoProxy)).Should(Equal("*"))
 		})
+		It("should not create duplicate no_proxy values", func() {
+			noProxy := installCmd.getProxyArguments("t-cluster", "proxy.org", "http://10.56.20.90:8080", "", "127.0.0.1,localhost")
+			Expect(strings.Split(swag.StringValue(noProxy.NoProxy), ",")).Should(ConsistOf("127.0.0.1", "localhost", ".svc", ".cluster.local", "api-int.t-cluster.proxy.org"))
+		})
 	})
 })
 
