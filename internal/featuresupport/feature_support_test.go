@@ -279,6 +279,194 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		)
 	})
 
+	Context("Test TNA", func() {
+		feature := models.FeatureSupportLevelIDTNA
+		openshiftVersionWithoutTNA := "4.18"
+
+		It("test feature availability", func() {
+			Expect(IsFeatureAvailable(feature, common.MinimumVersionForArbiterClusters, nil)).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, openshiftVersionWithoutTNA, nil)).To(BeFalse())
+		})
+
+		DescribeTable("test feature compatability with other features", func(activeFeatures []SupportLevelFeature, shouldSucceed bool) {
+			activeFeatures = append(activeFeatures, &TnaFeature{})
+
+			if shouldSucceed {
+				Expect(
+					isFeaturesCompatibleWithFeatures(
+						common.MinimumVersionForArbiterClusters,
+						activeFeatures),
+				).ToNot(HaveOccurred())
+			} else {
+				Expect(
+					isFeaturesCompatibleWithFeatures(
+						common.MinimumVersionForArbiterClusters,
+						activeFeatures),
+				).To(HaveOccurred())
+			}
+		},
+			Entry(
+				"platform baremetal",
+				[]SupportLevelFeature{&BaremetalPlatformFeature{}},
+				true,
+			),
+
+			Entry(
+				"none platform",
+				[]SupportLevelFeature{&NonePlatformFeature{}},
+				false,
+			),
+
+			Entry(
+				"external platform",
+				[]SupportLevelFeature{&ExternalPlatformFeature{}},
+				false,
+			),
+
+			Entry(
+				"nutanix platform",
+				[]SupportLevelFeature{&NutanixIntegrationFeature{}},
+				false,
+			),
+
+			Entry(
+				"vsphere platform",
+				[]SupportLevelFeature{&VsphereIntegrationFeature{}},
+				false,
+			),
+		)
+
+		DescribeTable(
+			"test feature architecture support",
+			func(arch string, result bool) {
+				Expect(
+					isFeatureCompatibleWithArchitecture(
+						&TnaFeature{},
+						common.MinimumVersionForArbiterClusters,
+						arch,
+					),
+				).To(Equal(result))
+			},
+			Entry(
+				common.X86CPUArchitecture,
+				common.X86CPUArchitecture,
+				true,
+			),
+
+			Entry(
+				common.ARM64CPUArchitecture,
+				common.ARM64CPUArchitecture,
+				true,
+			),
+
+			Entry(
+				common.S390xCPUArchitecture,
+				common.S390xCPUArchitecture,
+				true,
+			),
+
+			Entry(
+				common.PowerCPUArchitecture,
+				common.PowerCPUArchitecture,
+				true,
+			),
+
+			Entry(
+				common.MultiCPUArchitecture,
+				common.MultiCPUArchitecture,
+				true,
+			),
+		)
+
+		DescribeTable(
+			"test feature active level",
+			func(cluster *common.Cluster, result featureActiveLevel) {
+				Expect(
+					(&TnaFeature{}).getFeatureActiveLevel(cluster, nil, nil, nil),
+				).To(Equal(result))
+			},
+			Entry(
+				"active",
+				&common.Cluster{
+					Cluster: models.Cluster{
+						OpenshiftVersion: common.MinimumVersionForArbiterClusters,
+						Hosts: []*models.Host{
+							{Role: models.HostRoleArbiter},
+						},
+						Platform: &models.Platform{
+							Type: models.PlatformTypeBaremetal.Pointer(),
+						},
+					},
+				},
+				activeLevelActive,
+			),
+
+			Entry(
+				"not active - nil cluster",
+				nil,
+				activeLevelNotActive,
+			),
+
+			Entry(
+				"not active - cluster doesn't have arbiter nodes",
+				&common.Cluster{
+					Cluster: models.Cluster{
+						OpenshiftVersion: common.MinimumVersionForArbiterClusters,
+						Hosts: []*models.Host{
+							{Role: models.HostRoleMaster},
+						},
+						Platform: &models.Platform{
+							Type: models.PlatformTypeBaremetal.Pointer(),
+						},
+					},
+				},
+				activeLevelNotActive,
+			),
+		)
+
+		DescribeTable(
+			"test feature support level",
+			func(filters SupportLevelFilters, result models.SupportLevel) {
+				Expect(
+					(&TnaFeature{}).getSupportLevel(filters),
+				).To(Equal(result))
+			},
+			Entry(
+				"tech preview openshift version with platform filter",
+				SupportLevelFilters{
+					OpenshiftVersion: common.MinimumVersionForArbiterClusters,
+					PlatformType:     models.PlatformTypeBaremetal.Pointer(),
+				},
+				models.SupportLevelTechPreview,
+			),
+
+			Entry(
+				"tech preview openshift version without platform filter",
+				SupportLevelFilters{
+					OpenshiftVersion: common.MinimumVersionForArbiterClusters,
+				},
+				models.SupportLevelTechPreview,
+			),
+
+			Entry(
+				"unavailable - platform is not baremetal",
+				SupportLevelFilters{
+					OpenshiftVersion: common.MinimumVersionForArbiterClusters,
+					PlatformType:     models.PlatformTypeNone.Pointer(),
+				},
+				models.SupportLevelUnavailable,
+			),
+
+			Entry(
+				"unavailable - openshift version is too low",
+				SupportLevelFilters{
+					OpenshiftVersion: openshiftVersionWithoutTNA,
+				},
+				models.SupportLevelUnavailable,
+			),
+		)
+	})
+
 	Context("Test MCE not supported under 4.10", func() {
 		feature := models.FeatureSupportLevelIDMCE
 		It(fmt.Sprintf("%s test", feature), func() {
@@ -371,19 +559,19 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			When("GetFeatureSupportList 4.12 with Platform", func() {
 				It(string(*filters.PlatformType)+" "+swag.StringValue(filters.ExternalPlatformName), func() {
 					list := GetFeatureSupportList("dummy", nil, filters.PlatformType, filters.ExternalPlatformName)
-					Expect(len(list)).To(Equal(38))
+					Expect(len(list)).To(Equal(39))
 				})
 			})
 		}
 
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil, nil, nil)
-			Expect(len(list)).To(Equal(43))
+			Expect(len(list)).To(Equal(44))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil, nil, nil)
-			Expect(len(list)).To(Equal(43))
+			Expect(len(list)).To(Equal(44))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {

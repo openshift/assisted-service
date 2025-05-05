@@ -123,6 +123,7 @@ func (feature *NonePlatformFeature) getFeatureActiveLevel(cluster *common.Cluste
 
 func (feature *NonePlatformFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDTNA,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
@@ -178,6 +179,7 @@ func (feature *NutanixIntegrationFeature) getFeatureActiveLevel(cluster *common.
 func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
+		models.FeatureSupportLevelIDTNA,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDMCE,
@@ -237,6 +239,7 @@ func (feature *VsphereIntegrationFeature) getFeatureActiveLevel(cluster *common.
 func (feature *VsphereIntegrationFeature) getIncompatibleFeatures(openshiftVersion string) *[]models.FeatureSupportLevelID {
 	incompatibleFeatures := []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
+		models.FeatureSupportLevelIDTNA,
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDCNV,
@@ -292,6 +295,7 @@ func (feature *OciIntegrationFeature) getSupportLevel(filters SupportLevelFilter
 
 func (feature *OciIntegrationFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDTNA,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDDUALSTACKVIPS,
@@ -348,6 +352,7 @@ func (feature *ExternalPlatformFeature) getSupportLevel(filters SupportLevelFilt
 
 func (feature *ExternalPlatformFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDTNA,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,

@@ -12,6 +12,7 @@ import (
 var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	// Generic features
 	models.FeatureSupportLevelIDSNO:                       (&SnoFeature{}).New(),
+	models.FeatureSupportLevelIDTNA:                       (&TnaFeature{}).New(),
 	models.FeatureSupportLevelIDCUSTOMMANIFEST:            (&CustomManifestFeature{}).New(),
 	models.FeatureSupportLevelIDSINGLENODEEXPANSION:       (&SingleNodeExpansionFeature{}).New(),
 	models.FeatureSupportLevelIDMINIMALISO:                (&MinimalIso{}).New(),
