@@ -351,9 +351,9 @@ spec:
       - name: image-url
         value: $(tasks.build-container.results.IMAGE_URL)
       - name: ARGS
-        value: "--project-name=assisted-service --report --org=3e6fd93b-b325-49dd-8a33-432a0160ab66"
+        value: --project-name=assisted-service --report --org=3e6fd93b-b325-49dd-8a33-432a0160ab66
       - name: IGNORE_FILE_PATHS
-        value: "tools/wait_for_assisted_service.py,tools/deploy_wiremock.py"
+        value: tools/wait_for_assisted_service.py,tools/deploy_wiremock.py
       runAfter:
       - clone-repository
       taskRef:
@@ -534,7 +534,6 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        resolver: bundles
         params:
         - name: name
           value: rpms-signature-scan
@@ -542,11 +541,13 @@ spec:
           value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:eeaee239eabec8ba9cfd0f80382ad34114c93393c35d1eae77c5d73d57aa824d
         - name: kind
           value: task
+        resolver: bundles
     workspaces:
     - name: workspace
     - name: git-auth
       optional: true
-  taskRunTemplate: {}
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-assisted-service-saas-main
   workspaces:
   - name: workspace
     volumeClaimTemplate:
