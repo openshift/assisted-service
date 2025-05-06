@@ -11,6 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	gomega_format "github.com/onsi/gomega/format"
 	configv1 "github.com/openshift/api/config/v1"
@@ -654,30 +655,41 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(result.Networking.MachineNetwork[1].Cidr).Should(Equal(network.GetMachineCidrById(&cluster, 1)))
 	})
 
-	It("Hyperthreading config", func() {
-		cluster.Hyperthreading = "none"
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+	DescribeTable("Hyperthreading config", func(clusterHyperthreading, controlPlaneHyperthreading, arbiterHyperthreading, computeHyperthreading string) {
+		cluster.Hyperthreading = clusterHyperthreading
+		if arbiterHyperthreading != "" {
+			cluster.Hosts[2].Role = models.HostRoleArbiter
+		}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		data, err := installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Disabled"))
-		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
-		cluster.Hyperthreading = "all"
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-		data, err = installConfig.getBasicInstallConfig(&cluster)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
-		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
-		cluster.Hyperthreading = "workers"
-		data, err = installConfig.getBasicInstallConfig(&cluster)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Disabled"))
-		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
-		cluster.Hyperthreading = "masters"
-		data, err = installConfig.getBasicInstallConfig(&cluster)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
-		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
-	})
+		Expect(data.ControlPlane.Hyperthreading).Should(Equal(controlPlaneHyperthreading))
+		if arbiterHyperthreading != "" {
+			Expect(data.Arbiter.Hyperthreading).Should(Equal(arbiterHyperthreading))
+		} else {
+			Expect(data.Arbiter).To(BeNil())
+		}
+		Expect(data.Compute[0].Hyperthreading).Should(Equal(computeHyperthreading))
+	},
+		Entry("all", models.ClusterHyperthreadingAll, "Enabled", "", "Enabled"),
+		Entry("all - TNA cluster", models.ClusterHyperthreadingAll, "Enabled", "Enabled", "Enabled"),
+		Entry("none", models.ClusterHyperthreadingNone, "Disabled", "", "Disabled"),
+		Entry("none - TNA cluster", models.ClusterHyperthreadingNone, "Disabled", "Disabled", "Disabled"),
+		Entry("masters", models.ClusterHyperthreadingMasters, "Enabled", "", "Disabled"),
+		Entry("masters - TNA cluster", models.ClusterHyperthreadingMasters, "Enabled", "Disabled", "Disabled"),
+		Entry("arbiters", models.ClusterHyperthreadingArbiters, "Disabled", "", "Disabled"),
+		Entry("arbiters - TNA cluster", models.ClusterHyperthreadingArbiters, "Disabled", "Enabled", "Disabled"),
+		Entry("workers", models.ClusterHyperthreadingWorkers, "Disabled", "", "Enabled"),
+		Entry("workers - TNA cluster", models.ClusterHyperthreadingWorkers, "Disabled", "Disabled", "Enabled"),
+		Entry("masters,arbiters", models.ClusterHyperthreadingMastersArbiters, "Enabled", "", "Disabled"),
+		Entry("masters,arbiters - TNA cluster", models.ClusterHyperthreadingMastersArbiters, "Enabled", "Enabled", "Disabled"),
+		Entry("masters,workers", models.ClusterHyperthreadingMastersWorkers, "Enabled", "", "Enabled"),
+		Entry("masters,workers - TNA cluster", models.ClusterHyperthreadingMastersWorkers, "Enabled", "Disabled", "Enabled"),
+		Entry("arbiters,workers", models.ClusterHyperthreadingArbitersWorkers, "Disabled", "", "Enabled"),
+		Entry("arbiters,workers - TNA cluster", models.ClusterHyperthreadingArbitersWorkers, "Disabled", "Enabled", "Enabled"),
+		Entry("masters,arbiters,workers", models.ClusterHyperthreadingMastersArbitersWorkers, "Enabled", "", "Enabled"),
+		Entry("masters,arbiters,workers - TNA cluster", models.ClusterHyperthreadingMastersArbitersWorkers, "Enabled", "Enabled", "Enabled"),
+	)
 
 	It("CPUPartitioningMode config overrides", func() {
 		var result installcfg.InstallerConfigBaremetal

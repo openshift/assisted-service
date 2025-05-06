@@ -4980,8 +4980,8 @@ definitions:
           $ref: '#/definitions/operator-create-params'
       hyperthreading:
         type: string
-        description: Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.
-        enum: ['masters', 'workers', 'none', 'all']
+        description: Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.
+        enum: ['none', 'masters', 'arbiters', 'workers', 'masters,arbiters', 'masters,workers', 'arbiters,workers', 'masters,arbiters,workers', 'all']
         default: 'all'
       network_type:
         type: string
@@ -5175,8 +5175,8 @@ definitions:
           $ref: '#/definitions/operator-create-params'
       hyperthreading:
         type: string
-        description: Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.
-        enum: ['masters', 'workers', 'all', 'none']
+        description: Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.
+        enum: ['none', 'masters', 'arbiters', 'workers', 'masters,arbiters', 'masters,workers', 'arbiters,workers', 'masters,arbiters,workers', 'all']
         x-nullable: true
       network_type:
         type: string
@@ -5537,8 +5537,8 @@ definitions:
         description: Unique identifier of the AMS subscription in OCM.
       hyperthreading:
         type: string
-        enum: ['masters', 'workers', 'all', 'none']
-        description: Enable/disable hyperthreading on master nodes, worker nodes, or all nodes
+        description: Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.
+        enum: ['none', 'masters', 'arbiters', 'workers', 'masters,arbiters', 'masters,workers', 'arbiters,workers', 'masters,arbiters,workers', 'all']
       feature_usage:
         type: string
         description: JSON-formatted string containing the usage information by feature name
@@ -5889,8 +5889,8 @@ definitions:
     properties:
       enable_on:
         type: string
-        description: Enable/disable disk encryption on master nodes, worker nodes, or all nodes.
-        enum: ['none', 'all', 'masters', 'workers']
+        description: Enable/disable disk encryption on master nodes, arbiter nodes, worker nodes, or a combination of them.
+        enum: ['none', 'masters', 'arbiters', 'workers', 'masters,arbiters', 'masters,workers', 'arbiters,workers', 'masters,arbiters,workers', 'all']
         default: none
       mode:
         type: string

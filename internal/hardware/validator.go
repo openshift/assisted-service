@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"k8s.io/utils/ptr"
 )
 
@@ -360,15 +361,31 @@ func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluste
 		return nil, err
 	}
 	if isDiskEncryptionSetWithTpm(cluster) {
-		switch swag.StringValue(cluster.DiskEncryption.EnableOn) {
-		case models.DiskEncryptionEnableOnAll:
+		valid := false
+		if swag.StringValue(cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnAll {
+			valid = true
 			ocpRequirements.Master.Quantitative.TpmEnabledInBios = true
+			//TODO: uncomment this after adding hardware requirements for arbiter
+			//ocpRequirements.Arbiter.Quantitative.TpmEnabledInBios = true
 			ocpRequirements.Worker.Quantitative.TpmEnabledInBios = true
-		case models.DiskEncryptionEnableOnMasters:
+		}
+
+		enabledGroups := strings.Split(swag.StringValue(cluster.DiskEncryption.EnableOn), ",")
+		if funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnMasters) {
+			valid = true
 			ocpRequirements.Master.Quantitative.TpmEnabledInBios = true
-		case models.DiskEncryptionEnableOnWorkers:
+		}
+		if funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnArbiters) {
+			valid = true
+			//TODO: uncomment this after adding hardware requirements for arbiter
+			//ocpRequirements.Arbiter.Quantitative.TpmEnabledInBios = true
+		}
+		if funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnWorkers) {
+			valid = true
 			ocpRequirements.Worker.Quantitative.TpmEnabledInBios = true
-		default:
+		}
+
+		if !valid {
 			return nil, fmt.Errorf("disk-encryption is enabled on non-valid role: %s", swag.StringValue(cluster.DiskEncryption.EnableOn))
 		}
 	}

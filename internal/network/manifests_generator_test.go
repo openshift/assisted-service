@@ -702,9 +702,10 @@ var _ = Describe("disk encryption manifest", func() {
 		name           string
 		diskEncryption *models.DiskEncryption
 		numOfManifests int
+		isTNA          bool
 	}{
 		{
-			name: "masters and workers, tpmv2",
+			name: "all, tpmv2",
 			diskEncryption: &models.DiskEncryption{
 				EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
@@ -712,7 +713,16 @@ var _ = Describe("disk encryption manifest", func() {
 			numOfManifests: 2,
 		},
 		{
-			name: "masters and workers, tang",
+			name: "all, tpmv2 - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 3,
+			isTNA:          true,
+		},
+		{
+			name: "all, tang",
 			diskEncryption: &models.DiskEncryption{
 				EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
 				Mode:        swag.String(models.DiskEncryptionModeTang),
@@ -721,12 +731,175 @@ var _ = Describe("disk encryption manifest", func() {
 			numOfManifests: 2,
 		},
 		{
+			name: "all, tang - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 3,
+			isTNA:          true,
+		},
+		{
+			name: "masters,arbiters,workers, tpmv2",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMastersArbitersWorkers),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 2,
+		},
+		{
+			name: "masters,arbiters,workers, tpmv2 - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMastersArbitersWorkers),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 3,
+			isTNA:          true,
+		},
+		{
+			name: "masters,arbiters,workers, tang",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMastersArbitersWorkers),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 2,
+		},
+		{
+			name: "masters,arbiters,workers, tang - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMastersArbitersWorkers),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 3,
+			isTNA:          true,
+		},
+		{
+			name: "masters,arbiters, tpmv2",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMastersArbiters),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 1,
+		},
+		{
+			name: "masters,arbiters, tpmv2 - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMastersArbiters),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 2,
+			isTNA:          true,
+		},
+		{
+			name: "masters,arbiters, tang",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMastersArbiters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 1,
+		},
+		{
+			name: "masters,arbiters, tang - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMastersArbiters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 2,
+			isTNA:          true,
+		},
+		{
+			name: "masters,workers, tpmv2",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMastersWorkers),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 2,
+		},
+		{
+			name: "masters,workers, tpmv2 - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMastersWorkers),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 2,
+			isTNA:          true,
+		},
+		{
+			name: "masters,workers, tang",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMastersWorkers),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 2,
+		},
+		{
+			name: "masters,workers, tang - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMastersWorkers),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 2,
+			isTNA:          true,
+		},
+		{
+			name: "arbiters,workers, tpmv2",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnArbitersWorkers),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 1,
+		},
+		{
+			name: "arbiters,workers, tpmv2 - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnArbitersWorkers),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 2,
+			isTNA:          true,
+		},
+		{
+			name: "arbiters,workers, tang",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnArbitersWorkers),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 1,
+		},
+		{
+			name: "arbiters,workers, tang - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnArbitersWorkers),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 2,
+			isTNA:          true,
+		},
+		{
 			name: "masters only, tpmv2",
 			diskEncryption: &models.DiskEncryption{
 				EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
 				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 			},
 			numOfManifests: 1,
+		},
+		{
+			name: "masters only, tpmv2 - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 1,
+			isTNA:          true,
 		},
 		{
 			name: "masters only, tang",
@@ -738,10 +911,74 @@ var _ = Describe("disk encryption manifest", func() {
 			numOfManifests: 1,
 		},
 		{
+			name: "masters only, tang - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 1,
+			isTNA:          true,
+		},
+		{
+			name: "arbiters only, tpmv2",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnArbiters),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 0,
+		},
+		{
+			name: "arbiters only, tpmv2 - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnArbiters),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 1,
+			isTNA:          true,
+		},
+		{
+			name: "arbiters only, tang",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnArbiters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 0,
+		},
+		{
+			name: "arbiters only, tang - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnArbiters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			},
+			numOfManifests: 1,
+			isTNA:          true,
+		},
+		{
 			name: "workers only, tpmv2",
 			diskEncryption: &models.DiskEncryption{
 				EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
 				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 1,
+		},
+		{
+			name: "workers only, tpmv2 - TNA cluster",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+			numOfManifests: 1,
+			isTNA:          true,
+		},
+		{
+			name: "workers only, tang",
+			diskEncryption: &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnWorkers),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
 			},
 			numOfManifests: 1,
 		},
@@ -753,6 +990,7 @@ var _ = Describe("disk encryption manifest", func() {
 				TangServers: `[{"url":"http://tang.invalid","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
 			},
 			numOfManifests: 1,
+			isTNA:          true,
 		},
 		{
 			name: "disks encryption not set",
@@ -768,6 +1006,16 @@ var _ = Describe("disk encryption manifest", func() {
 
 		It(t.name, func() {
 			c.DiskEncryption = t.diskEncryption
+			if t.isTNA {
+				id := strfmt.UUID(uuid.New().String())
+				c.Hosts = []*models.Host{
+					{
+						ID:        &id,
+						ClusterID: c.ID,
+						Role:      models.HostRoleArbiter,
+					},
+				}
+			}
 			Expect(db.Create(&c).Error).NotTo(HaveOccurred())
 			mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any(), false).Times(t.numOfManifests)
 			err := manifestsGeneratorApi.AddDiskEncryptionManifest(ctx, log, &c)

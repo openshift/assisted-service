@@ -114,8 +114,8 @@ type Cluster struct {
 	//
 	HTTPSProxy string `json:"https_proxy,omitempty" gorm:"column:https_proxy"`
 
-	// Enable/disable hyperthreading on master nodes, worker nodes, or all nodes
-	// Enum: [masters workers all none]
+	// Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.
+	// Enum: [none masters arbiters workers masters,arbiters masters,workers arbiters,workers masters,arbiters,workers all]
 	Hyperthreading string `json:"hyperthreading,omitempty"`
 
 	// Unique identifier of the object.
@@ -752,7 +752,7 @@ var clusterTypeHyperthreadingPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["masters","workers","all","none"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["none","masters","arbiters","workers","masters,arbiters","masters,workers","arbiters,workers","masters,arbiters,workers","all"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -762,17 +762,32 @@ func init() {
 
 const (
 
+	// ClusterHyperthreadingNone captures enum value "none"
+	ClusterHyperthreadingNone string = "none"
+
 	// ClusterHyperthreadingMasters captures enum value "masters"
 	ClusterHyperthreadingMasters string = "masters"
+
+	// ClusterHyperthreadingArbiters captures enum value "arbiters"
+	ClusterHyperthreadingArbiters string = "arbiters"
 
 	// ClusterHyperthreadingWorkers captures enum value "workers"
 	ClusterHyperthreadingWorkers string = "workers"
 
+	// ClusterHyperthreadingMastersArbiters captures enum value "masters,arbiters"
+	ClusterHyperthreadingMastersArbiters string = "masters,arbiters"
+
+	// ClusterHyperthreadingMastersWorkers captures enum value "masters,workers"
+	ClusterHyperthreadingMastersWorkers string = "masters,workers"
+
+	// ClusterHyperthreadingArbitersWorkers captures enum value "arbiters,workers"
+	ClusterHyperthreadingArbitersWorkers string = "arbiters,workers"
+
+	// ClusterHyperthreadingMastersArbitersWorkers captures enum value "masters,arbiters,workers"
+	ClusterHyperthreadingMastersArbitersWorkers string = "masters,arbiters,workers"
+
 	// ClusterHyperthreadingAll captures enum value "all"
 	ClusterHyperthreadingAll string = "all"
-
-	// ClusterHyperthreadingNone captures enum value "none"
-	ClusterHyperthreadingNone string = "none"
 )
 
 // prop value enum

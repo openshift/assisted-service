@@ -95,7 +95,7 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 			Replicas       int    `json:"replicas"`
 		}{
 			{
-				Hyperthreading: i.getHypethreadingConfiguration(cluster, "worker"),
+				Hyperthreading: i.getHypethreadingConfiguration(cluster, models.ClusterHyperthreadingWorkers),
 				Name:           string(models.HostRoleWorker),
 				Replicas:       i.countHostsByRole(cluster, models.HostRoleWorker),
 			},
@@ -105,7 +105,7 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 			Name           string `json:"name"`
 			Replicas       int    `json:"replicas"`
 		}{
-			Hyperthreading: i.getHypethreadingConfiguration(cluster, "master"),
+			Hyperthreading: i.getHypethreadingConfiguration(cluster, models.ClusterHyperthreadingMasters),
 			Name:           string(models.HostRoleMaster),
 			Replicas:       i.countHostsByRole(cluster, models.HostRoleMaster),
 		},
@@ -145,9 +145,7 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 			Name           string `json:"name"`
 			Replicas       int    `json:"replicas"`
 		}{
-			// We will update the cluster's hyperthreading to be able to include arbiter later.
-			// For now, we will set arbiter nodes' hyperthreading the same as master nodes'.
-			Hyperthreading: i.getHypethreadingConfiguration(cluster, "master"),
+			Hyperthreading: i.getHypethreadingConfiguration(cluster, models.ClusterHyperthreadingArbiters),
 			Name:           string(models.HostRoleArbiter),
 			Replicas:       i.countHostsByRole(cluster, models.HostRoleArbiter),
 		}
@@ -319,18 +317,14 @@ func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluste
 	return config.Validate()
 }
 
-func (i *installConfigBuilder) getHypethreadingConfiguration(cluster *common.Cluster, machineType string) string {
-	switch cluster.Hyperthreading {
-	case models.ClusterHyperthreadingAll:
+func (i *installConfigBuilder) getHypethreadingConfiguration(cluster *common.Cluster, machineGroup string) string {
+	if cluster.Hyperthreading == models.ClusterHyperthreadingAll {
 		return "Enabled"
-	case models.ClusterHyperthreadingMasters:
-		if machineType == "master" {
-			return "Enabled"
-		}
-	case models.ClusterHyperthreadingWorkers:
-		if machineType == "worker" {
-			return "Enabled"
-		}
+	}
+
+	enabledGroups := strings.Split(cluster.Hyperthreading, ",")
+	if funk.ContainsString(enabledGroups, machineGroup) {
+		return "Enabled"
 	}
 	return "Disabled"
 }

@@ -68,8 +68,8 @@ type ClusterCreateParams struct {
 	//
 	HTTPSProxy *string `json:"https_proxy,omitempty"`
 
-	// Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.
-	// Enum: [masters workers none all]
+	// Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.
+	// Enum: [none masters arbiters workers masters,arbiters masters,workers arbiters,workers masters,arbiters,workers all]
 	Hyperthreading *string `json:"hyperthreading,omitempty"`
 
 	// Explicit ignition endpoint overrides the default ignition endpoint.
@@ -428,7 +428,7 @@ var clusterCreateParamsTypeHyperthreadingPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["masters","workers","none","all"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["none","masters","arbiters","workers","masters,arbiters","masters,workers","arbiters,workers","masters,arbiters,workers","all"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -438,14 +438,29 @@ func init() {
 
 const (
 
+	// ClusterCreateParamsHyperthreadingNone captures enum value "none"
+	ClusterCreateParamsHyperthreadingNone string = "none"
+
 	// ClusterCreateParamsHyperthreadingMasters captures enum value "masters"
 	ClusterCreateParamsHyperthreadingMasters string = "masters"
+
+	// ClusterCreateParamsHyperthreadingArbiters captures enum value "arbiters"
+	ClusterCreateParamsHyperthreadingArbiters string = "arbiters"
 
 	// ClusterCreateParamsHyperthreadingWorkers captures enum value "workers"
 	ClusterCreateParamsHyperthreadingWorkers string = "workers"
 
-	// ClusterCreateParamsHyperthreadingNone captures enum value "none"
-	ClusterCreateParamsHyperthreadingNone string = "none"
+	// ClusterCreateParamsHyperthreadingMastersArbiters captures enum value "masters,arbiters"
+	ClusterCreateParamsHyperthreadingMastersArbiters string = "masters,arbiters"
+
+	// ClusterCreateParamsHyperthreadingMastersWorkers captures enum value "masters,workers"
+	ClusterCreateParamsHyperthreadingMastersWorkers string = "masters,workers"
+
+	// ClusterCreateParamsHyperthreadingArbitersWorkers captures enum value "arbiters,workers"
+	ClusterCreateParamsHyperthreadingArbitersWorkers string = "arbiters,workers"
+
+	// ClusterCreateParamsHyperthreadingMastersArbitersWorkers captures enum value "masters,arbiters,workers"
+	ClusterCreateParamsHyperthreadingMastersArbitersWorkers string = "masters,arbiters,workers"
 
 	// ClusterCreateParamsHyperthreadingAll captures enum value "all"
 	ClusterCreateParamsHyperthreadingAll string = "all"
