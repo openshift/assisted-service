@@ -126,7 +126,7 @@ var _ = Describe("installcmd", func() {
 			validateInstallCommand(installCommand, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, common.MinMasterHostsNeededForInstallationInHaMode, expected, version, true)
 		},
 		Entry("Enable MCO reboot is false", false, "4.15.0", models.ClusterCPUArchitectureX8664, false, false),
-		Entry("Enable MCO reboot is true. day2 host", true, "4.16.0", models.ClusterCPUArchitectureX8664, true, false),
+		Entry("Enable MCO reboot is true. day2 host", true, "4.16.0", models.ClusterCPUArchitectureX8664, true, true),
 		Entry("Enable MCO reboot is true. day1 host", true, "4.16.0", models.ClusterCPUArchitectureX8664, false, true),
 		Entry("Enable MCO reboot is true. Lower version", true, "4.14.0", models.ClusterCPUArchitectureX8664, false, false),
 		Entry("Enable MCO reboot is true. Equal version", true, "4.15.0", models.ClusterCPUArchitectureX8664, false, true),
