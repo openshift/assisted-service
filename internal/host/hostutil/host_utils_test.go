@@ -6,6 +6,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -219,6 +220,51 @@ var _ = Describe("Get Disks of Holder", func() {
 		Expect(filteredDisks).Should(ContainElement(&disksOfHolder2[0]))
 	})
 })
+
+var _ = DescribeTable("IsDiskEncryptionEnabledForRole", func(enabledOn string, role models.HostRole, expectedResult bool) {
+	diskEncryption := models.DiskEncryption{
+		EnableOn: &enabledOn,
+	}
+	isEnabled := IsDiskEncryptionEnabledForRole(diskEncryption, role)
+	Expect(isEnabled).To(Equal(expectedResult))
+},
+	Entry("enabledOn all, role master", models.DiskEncryptionEnableOnAll, models.HostRoleMaster, true),
+	Entry("enabledOn all, role bootstrap", models.DiskEncryptionEnableOnAll, models.HostRoleBootstrap, true),
+	Entry("enabledOn all, role arbiter", models.DiskEncryptionEnableOnAll, models.HostRoleArbiter, true),
+	Entry("enabledOn all, role worker", models.DiskEncryptionEnableOnAll, models.HostRoleWorker, true),
+	Entry("enabledOn masters,arbiters,workers, role master", models.DiskEncryptionEnableOnMastersArbitersWorkers, models.HostRoleMaster, true),
+	Entry("enabledOn masters,arbiters,workers, role bootstrap", models.DiskEncryptionEnableOnMastersArbitersWorkers, models.HostRoleBootstrap, true),
+	Entry("enabledOn masters,arbiters,workers, role arbiter", models.DiskEncryptionEnableOnMastersArbitersWorkers, models.HostRoleArbiter, true),
+	Entry("enabledOn masters,arbiters,workers, role worker", models.DiskEncryptionEnableOnMastersArbitersWorkers, models.HostRoleWorker, true),
+	Entry("enabledOn masters,arbiters, role master", models.DiskEncryptionEnableOnMastersArbiters, models.HostRoleMaster, true),
+	Entry("enabledOn masters,arbiters, role bootstrap", models.DiskEncryptionEnableOnMastersArbiters, models.HostRoleBootstrap, true),
+	Entry("enabledOn masters,arbiters, role arbiter", models.DiskEncryptionEnableOnMastersArbiters, models.HostRoleArbiter, true),
+	Entry("enabledOn masters,arbiters, role worker", models.DiskEncryptionEnableOnMastersArbiters, models.HostRoleWorker, false),
+	Entry("enabledOn masters,workers, role master", models.DiskEncryptionEnableOnMastersWorkers, models.HostRoleMaster, true),
+	Entry("enabledOn masters,workers, role bootstrap", models.DiskEncryptionEnableOnMastersWorkers, models.HostRoleBootstrap, true),
+	Entry("enabledOn masters,workers, role arbiter", models.DiskEncryptionEnableOnMastersWorkers, models.HostRoleArbiter, false),
+	Entry("enabledOn masters,workers, role worker", models.DiskEncryptionEnableOnMastersWorkers, models.HostRoleWorker, true),
+	Entry("enabledOn arbiters,workers, role master", models.DiskEncryptionEnableOnArbitersWorkers, models.HostRoleMaster, false),
+	Entry("enabledOn arbiters,workers, role bootstrap", models.DiskEncryptionEnableOnArbitersWorkers, models.HostRoleBootstrap, false),
+	Entry("enabledOn arbiters,workers, role arbiter", models.DiskEncryptionEnableOnArbitersWorkers, models.HostRoleArbiter, true),
+	Entry("enabledOn arbiters,workers, role worker", models.DiskEncryptionEnableOnArbitersWorkers, models.HostRoleWorker, true),
+	Entry("enabledOn masters, role master", models.DiskEncryptionEnableOnMasters, models.HostRoleMaster, true),
+	Entry("enabledOn masters, role bootstrap", models.DiskEncryptionEnableOnMasters, models.HostRoleBootstrap, true),
+	Entry("enabledOn masters, role arbiter", models.DiskEncryptionEnableOnMasters, models.HostRoleArbiter, false),
+	Entry("enabledOn masters, role worker", models.DiskEncryptionEnableOnMasters, models.HostRoleWorker, false),
+	Entry("enabledOn arbiters, role master", models.DiskEncryptionEnableOnArbiters, models.HostRoleMaster, false),
+	Entry("enabledOn arbiters, role bootstrap", models.DiskEncryptionEnableOnArbiters, models.HostRoleBootstrap, false),
+	Entry("enabledOn arbiters, role arbiter", models.DiskEncryptionEnableOnArbiters, models.HostRoleArbiter, true),
+	Entry("enabledOn arbiters, role worker", models.DiskEncryptionEnableOnArbiters, models.HostRoleWorker, false),
+	Entry("enabledOn workers, role master", models.DiskEncryptionEnableOnWorkers, models.HostRoleMaster, false),
+	Entry("enabledOn workers, role bootstrap", models.DiskEncryptionEnableOnWorkers, models.HostRoleBootstrap, false),
+	Entry("enabledOn workers, role arbiter", models.DiskEncryptionEnableOnWorkers, models.HostRoleArbiter, false),
+	Entry("enabledOn workers, role worker", models.DiskEncryptionEnableOnWorkers, models.HostRoleWorker, true),
+	Entry("enabledOn none, role master", models.DiskEncryptionEnableOnNone, models.HostRoleMaster, false),
+	Entry("enabledOn none, role bootstrap", models.DiskEncryptionEnableOnNone, models.HostRoleBootstrap, false),
+	Entry("enabledOn none, role arbiter", models.DiskEncryptionEnableOnNone, models.HostRoleArbiter, false),
+	Entry("enabledOn none, role worker", models.DiskEncryptionEnableOnNone, models.HostRoleWorker, false),
+)
 
 func TestHostUtil(t *testing.T) {
 	RegisterFailHandler(Fail)

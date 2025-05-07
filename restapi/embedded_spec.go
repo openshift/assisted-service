@@ -6447,13 +6447,18 @@ func init() {
           "x-go-custom-tag": "gorm:\"column:https_proxy\""
         },
         "hyperthreading": {
-          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes",
+          "description": "Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.",
           "type": "string",
           "enum": [
+            "none",
             "masters",
+            "arbiters",
             "workers",
-            "all",
-            "none"
+            "masters,arbiters",
+            "masters,workers",
+            "arbiters,workers",
+            "masters,arbiters,workers",
+            "all"
           ]
         },
         "id": {
@@ -6799,13 +6804,18 @@ func init() {
           "x-nullable": true
         },
         "hyperthreading": {
-          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.",
+          "description": "Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.",
           "type": "string",
           "default": "all",
           "enum": [
-            "masters",
-            "workers",
             "none",
+            "masters",
+            "arbiters",
+            "workers",
+            "masters,arbiters",
+            "masters,workers",
+            "arbiters,workers",
+            "masters,arbiters,workers",
             "all"
           ]
         },
@@ -7549,14 +7559,19 @@ func init() {
       "type": "object",
       "properties": {
         "enable_on": {
-          "description": "Enable/disable disk encryption on master nodes, worker nodes, or all nodes.",
+          "description": "Enable/disable disk encryption on master nodes, arbiter nodes, worker nodes, or a combination of them.",
           "type": "string",
           "default": "none",
           "enum": [
             "none",
-            "all",
             "masters",
-            "workers"
+            "arbiters",
+            "workers",
+            "masters,arbiters",
+            "masters,workers",
+            "arbiters,workers",
+            "masters,arbiters,workers",
+            "all"
           ]
         },
         "mode": {
@@ -10725,13 +10740,18 @@ func init() {
           "x-nullable": true
         },
         "hyperthreading": {
-          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.",
+          "description": "Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.",
           "type": "string",
           "enum": [
+            "none",
             "masters",
+            "arbiters",
             "workers",
-            "all",
-            "none"
+            "masters,arbiters",
+            "masters,workers",
+            "arbiters,workers",
+            "masters,arbiters,workers",
+            "all"
           ],
           "x-nullable": true
         },
@@ -17560,13 +17580,18 @@ func init() {
           "x-go-custom-tag": "gorm:\"column:https_proxy\""
         },
         "hyperthreading": {
-          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes",
+          "description": "Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.",
           "type": "string",
           "enum": [
+            "none",
             "masters",
+            "arbiters",
             "workers",
-            "all",
-            "none"
+            "masters,arbiters",
+            "masters,workers",
+            "arbiters,workers",
+            "masters,arbiters,workers",
+            "all"
           ]
         },
         "id": {
@@ -17912,13 +17937,18 @@ func init() {
           "x-nullable": true
         },
         "hyperthreading": {
-          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.",
+          "description": "Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.",
           "type": "string",
           "default": "all",
           "enum": [
-            "masters",
-            "workers",
             "none",
+            "masters",
+            "arbiters",
+            "workers",
+            "masters,arbiters",
+            "masters,workers",
+            "arbiters,workers",
+            "masters,arbiters,workers",
             "all"
           ]
         },
@@ -18662,14 +18692,19 @@ func init() {
       "type": "object",
       "properties": {
         "enable_on": {
-          "description": "Enable/disable disk encryption on master nodes, worker nodes, or all nodes.",
+          "description": "Enable/disable disk encryption on master nodes, arbiter nodes, worker nodes, or a combination of them.",
           "type": "string",
           "default": "none",
           "enum": [
             "none",
-            "all",
             "masters",
-            "workers"
+            "arbiters",
+            "workers",
+            "masters,arbiters",
+            "masters,workers",
+            "arbiters,workers",
+            "masters,arbiters,workers",
+            "all"
           ]
         },
         "mode": {
@@ -21770,13 +21805,18 @@ func init() {
           "x-nullable": true
         },
         "hyperthreading": {
-          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.",
+          "description": "Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.",
           "type": "string",
           "enum": [
+            "none",
             "masters",
+            "arbiters",
             "workers",
-            "all",
-            "none"
+            "masters,arbiters",
+            "masters,workers",
+            "arbiters,workers",
+            "masters,arbiters,workers",
+            "all"
           ],
           "x-nullable": true
         },

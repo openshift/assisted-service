@@ -61,8 +61,8 @@ type V2ClusterUpdateParams struct {
 	//
 	HTTPSProxy *string `json:"https_proxy,omitempty"`
 
-	// Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.
-	// Enum: [masters workers all none]
+	// Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.
+	// Enum: [none masters arbiters workers masters,arbiters masters,workers arbiters,workers masters,arbiters,workers all]
 	Hyperthreading *string `json:"hyperthreading,omitempty"`
 
 	// Explicit ignition endpoint overrides the default ignition endpoint.
@@ -308,7 +308,7 @@ var v2ClusterUpdateParamsTypeHyperthreadingPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["masters","workers","all","none"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["none","masters","arbiters","workers","masters,arbiters","masters,workers","arbiters,workers","masters,arbiters,workers","all"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -318,17 +318,32 @@ func init() {
 
 const (
 
+	// V2ClusterUpdateParamsHyperthreadingNone captures enum value "none"
+	V2ClusterUpdateParamsHyperthreadingNone string = "none"
+
 	// V2ClusterUpdateParamsHyperthreadingMasters captures enum value "masters"
 	V2ClusterUpdateParamsHyperthreadingMasters string = "masters"
+
+	// V2ClusterUpdateParamsHyperthreadingArbiters captures enum value "arbiters"
+	V2ClusterUpdateParamsHyperthreadingArbiters string = "arbiters"
 
 	// V2ClusterUpdateParamsHyperthreadingWorkers captures enum value "workers"
 	V2ClusterUpdateParamsHyperthreadingWorkers string = "workers"
 
+	// V2ClusterUpdateParamsHyperthreadingMastersArbiters captures enum value "masters,arbiters"
+	V2ClusterUpdateParamsHyperthreadingMastersArbiters string = "masters,arbiters"
+
+	// V2ClusterUpdateParamsHyperthreadingMastersWorkers captures enum value "masters,workers"
+	V2ClusterUpdateParamsHyperthreadingMastersWorkers string = "masters,workers"
+
+	// V2ClusterUpdateParamsHyperthreadingArbitersWorkers captures enum value "arbiters,workers"
+	V2ClusterUpdateParamsHyperthreadingArbitersWorkers string = "arbiters,workers"
+
+	// V2ClusterUpdateParamsHyperthreadingMastersArbitersWorkers captures enum value "masters,arbiters,workers"
+	V2ClusterUpdateParamsHyperthreadingMastersArbitersWorkers string = "masters,arbiters,workers"
+
 	// V2ClusterUpdateParamsHyperthreadingAll captures enum value "all"
 	V2ClusterUpdateParamsHyperthreadingAll string = "all"
-
-	// V2ClusterUpdateParamsHyperthreadingNone captures enum value "none"
-	V2ClusterUpdateParamsHyperthreadingNone string = "none"
 )
 
 // prop value enum

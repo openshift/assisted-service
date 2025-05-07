@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
 
@@ -346,29 +347,25 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 		manifestParams["TANG_SERVERS"] = tangServers
 	}
 
-	switch *c.DiskEncryption.EnableOn {
+	enabledGroups := strings.Split(swag.StringValue(c.DiskEncryption.EnableOn), ",")
+	isDiskEncryptionOnAll := swag.StringValue(c.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnAll
 
-	case models.DiskEncryptionEnableOnAll:
-
+	if isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnMasters) {
 		manifestParams["ROLE"] = "master"
 		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
 			return err
 		}
+	}
 
-		manifestParams["ROLE"] = "worker"
+	if (isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnArbiters)) &&
+		common.IsClusterTopologyHighlyAvailableArbiter(c) {
+		manifestParams["ROLE"] = "arbiter"
 		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
 			return err
 		}
+	}
 
-	case models.DiskEncryptionEnableOnMasters:
-
-		manifestParams["ROLE"] = "master"
-		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
-			return err
-		}
-
-	case models.DiskEncryptionEnableOnWorkers:
-
+	if isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnWorkers) {
 		manifestParams["ROLE"] = "worker"
 		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
 			return err
