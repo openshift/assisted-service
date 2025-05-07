@@ -4287,18 +4287,39 @@ var _ = Describe("update finalizing stage", func() {
 		Expect(err).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 		Expect(err.(*common.ApiErrorResponse).Code()).To(BeEquivalentTo(http.StatusBadRequest))
 	})
+	It("finalizing_stage_started_at is set only at the start of the stage", func() {
+		createCluster(models.ClusterStatusFinalizing)
+
+		stages := []models.FinalizingStage{
+			models.FinalizingStageWaitingForClusterOperators,
+			models.FinalizingStageAddingRouterCa,
+		}
+
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(2)
+
+		Expect(capi.UpdateFinalizingStage(ctx, clusterID, stages[0])).ToNot(HaveOccurred())
+		cls, err := common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+		firstStartedAt := cls.Progress.FinalizingStageStartedAt
+
+		time.Sleep(10 * time.Millisecond)
+
+		Expect(capi.UpdateFinalizingStage(ctx, clusterID, stages[1])).ToNot(HaveOccurred())
+		cls, err = common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(cls.Progress.FinalizingStageStartedAt).To(Equal(firstStartedAt))
+	})
+
 	for _, st := range finalizingStages {
 		stage := st
 		It(fmt.Sprintf("success for stage '%s'", stage), func() {
 			createCluster(models.ClusterStatusFinalizing)
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).Times(1)
-			start := time.Now()
 			Expect(capi.UpdateFinalizingStage(ctx, clusterID, stage)).ToNot(HaveOccurred())
-			duration := time.Since(start)
 			cls, err := common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cls.Progress.FinalizingStage).To(Equal(stage))
-			Expect(time.Time(cls.Progress.FinalizingStageStartedAt)).To(BeTemporally("~", start, duration+time.Second))
 			Expect(cls.Progress.FinalizingStageTimedOut).To(BeFalse())
 		})
 	}
