@@ -76,6 +76,56 @@ func (feature *SnoFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	return activeLevelNotActive
 }
 
+// TnaFeature
+type TnaFeature struct{}
+
+func (feature *TnaFeature) New() SupportLevelFeature {
+	return &TnaFeature{}
+}
+
+func (feature *TnaFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDTNA
+}
+
+func (feature *TnaFeature) GetName() string {
+	return "TNA Clusters"
+}
+
+func (feature *TnaFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	//TNA is only available with baremetal platform
+	if filters.PlatformType != nil && *filters.PlatformType != models.PlatformTypeBaremetal {
+		return models.SupportLevelUnavailable
+	}
+
+	arbiterClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForArbiterClusters, filters.OpenshiftVersion)
+	if !arbiterClustersSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelTechPreview
+}
+
+func (feature *TnaFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNONEPLATFORM,
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+		models.FeatureSupportLevelIDEXTERNALPLATFORM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+	}
+}
+
+func (feature *TnaFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (feature *TnaFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if common.IsClusterTopologyHighlyAvailableArbiter(cluster) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
 // CustomManifestFeature
 type CustomManifestFeature struct{}
 

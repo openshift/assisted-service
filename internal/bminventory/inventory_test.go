@@ -10525,6 +10525,7 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			bm.TNAClustersSupport = true
 			cluster.OpenshiftVersion = common.MinimumVersionForArbiterClusters
+			cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)}
 			db.Save(&cluster)
 			id, _ := bm.getClusterIDFromHost(db, hostID, infraEnvID)
 			fmt.Printf("cluster id is %s, and clusterId is %s\n", id, clusterID)
@@ -10608,6 +10609,27 @@ var _ = Describe("infraEnvs host", func() {
 			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", hostID, infraEnvID, common.MinimumVersionForArbiterClusters)))
+		})
+
+		It("update host role arbiter failure - cluster's platform is not baremetal", func() {
+			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			bm.TNAClustersSupport = true
+			cluster.OpenshiftVersion = common.MinimumVersionForArbiterClusters
+			cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)}
+			db.Save(&cluster)
+			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+				InfraEnvID: infraEnvID,
+				HostID:     hostID,
+				HostUpdateParams: &models.HostUpdateParams{
+					HostRole: swag.String("arbiter"),
+				},
+			})
+			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with baremetal platform", hostID, infraEnvID)))
 		})
 
 		Context("Hostname", func() {
