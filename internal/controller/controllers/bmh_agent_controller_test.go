@@ -2441,7 +2441,7 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 				host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
 				host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
 			})
-			It("should set detached annotation on the BMH", func() {
+			It("does not set detached annotation on the BMH", func() {
 				Expect(c.Update(ctx, host)).To(BeNil())
 
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
@@ -2451,11 +2451,9 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
 				err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
-				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
-
-				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
 			})
-			It("sets the detached annotation metadata with the BMH delete annotation", func() {
+			It("does not set the detached annotation metadata with the BMH delete annotation", func() {
 				host.Annotations = map[string]string{BMH_DELETE_ANNOTATION: "true"}
 				Expect(c.Update(ctx, host)).To(Succeed())
 
@@ -2465,11 +2463,7 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
 				Expect(c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)).To(Succeed())
-				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
-
-				args := &bmh_v1alpha1.DetachedAnnotationArguments{}
-				Expect(json.Unmarshal([]byte(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]), &args)).To(Succeed())
-				Expect(string(args.DeleteAction)).To(Equal(bmh_v1alpha1.DetachedDeleteActionDelay))
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
 			})
 			It("removes the metadata when the delete annotation is removed", func() {
 				args := &bmh_v1alpha1.DetachedAnnotationArguments{
