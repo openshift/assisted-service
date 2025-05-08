@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
 	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
 	"github.com/openshift/assisted-service/models"
-	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
@@ -779,32 +778,7 @@ func (f *AMDGPUFeature) getSupportLevel(filters SupportLevelFilters) models.Supp
 		return models.SupportLevelUnavailable
 	}
 
-	if f.isOpenShiftVersionSupported(filters.OpenshiftVersion) {
-		return models.SupportLevelDevPreview
-	}
-	return models.SupportLevelUnavailable
-}
-
-func (f *AMDGPUFeature) isOpenShiftVersionSupported(openShiftVersion string) bool {
-	config, err := GetConfig()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to load feature support configuration")
-		return false
-	}
-	for _, supportedOpenShiftVersion := range config.AmdGpuSupportedOpenShiftversions {
-		if supportedOpenShiftVersion == "*" {
-			return true
-		}
-		equal, err := common.BaseVersionEqual(openShiftVersion, supportedOpenShiftVersion)
-		if err != nil {
-			logrus.WithError(err).Error("Failed to compare versions")
-			continue
-		}
-		if equal {
-			return true
-		}
-	}
-	return false
+	return models.SupportLevelDevPreview
 }
 
 func (f *AMDGPUFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
