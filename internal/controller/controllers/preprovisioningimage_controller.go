@@ -181,28 +181,38 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		return ctrl.Result{Requeue: true, RequeueAfter: time.Until(imageTimePlusCooldown)}, nil
 	}
 
+	return ctrl.Result{}, r.handleImageUpdate(ctx, log, image, infraEnv)
+}
+
+func (r *PreprovisioningImageReconciler) handleImageUpdate(ctx context.Context, log logrus.FieldLogger, image *metal3_v1alpha1.PreprovisioningImage, infraEnv *aiv1beta1.InfraEnv) error {
+	bmh, err := r.getBMH(ctx, image)
+	if err != nil {
+		return err
+	}
+
 	patch := client.MergeFrom(image.DeepCopy())
 	imageUpdated := image.Status.ImageUrl != "" && image.Status.ImageUrl != infraEnv.Status.ISODownloadURL
 	err = r.setImage(image, *infraEnv)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
+
 	log.Info("updating status")
 	err = r.Status().Patch(ctx, image, patch)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 	log.Info("PreprovisioningImage updated successfully")
 
-	if imageUpdated {
-		r.Log.Infof("Updating PreprovisioningImage ImageUrl to: %s", infraEnv.Status.ISODownloadURL)
-		if err = r.setBMHRebootAnnotation(ctx, image); err != nil {
+	if imageUpdated && bmh.Status.Provisioning.State != metal3_v1alpha1.StateProvisioned {
+		log.Info("Setting reboot annotation on BMH")
+		if err = r.setBMHRebootAnnotation(ctx, bmh); err != nil {
 			log.WithError(err).Error("failed to set BMH reboot annotation")
-			return ctrl.Result{}, err
+			return err
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func initrdExtraKernelParams(infraEnv aiv1beta1.InfraEnv) string {
@@ -606,7 +616,7 @@ func (r *PreprovisioningImageReconciler) fillIronicServiceURLs(ctx context.Conte
 	return nil
 }
 
-func (r *PreprovisioningImageReconciler) setBMHRebootAnnotation(ctx context.Context, image *metal3_v1alpha1.PreprovisioningImage) error {
+func (r *PreprovisioningImageReconciler) getBMH(ctx context.Context, image *metal3_v1alpha1.PreprovisioningImage) (*metal3_v1alpha1.BareMetalHost, error) {
 	bmhKey := types.NamespacedName{Namespace: image.Namespace}
 	for _, owner := range image.GetOwnerReferences() {
 		if owner.Kind == "BareMetalHost" {
@@ -615,19 +625,22 @@ func (r *PreprovisioningImageReconciler) setBMHRebootAnnotation(ctx context.Cont
 	}
 
 	if bmhKey.Name == "" {
-		return fmt.Errorf("failed to find BMH owner for preprovisioningimage")
+		return nil, fmt.Errorf("failed to find BMH owner for preprovisioningimage")
 	}
 
 	bmh := &metal3_v1alpha1.BareMetalHost{}
 	if err := r.Get(ctx, bmhKey, bmh); err != nil {
-		return errors.Wrapf(err, "failed to get owning bmh %s", bmhKey)
+		return nil, errors.Wrapf(err, "failed to get owning bmh %s", bmhKey)
 	}
+	return bmh, nil
+}
 
+func (r *PreprovisioningImageReconciler) setBMHRebootAnnotation(ctx context.Context, bmh *metal3_v1alpha1.BareMetalHost) error {
 	patch := client.MergeFrom(bmh.DeepCopy())
 	setAnnotation(&bmh.ObjectMeta, "reboot.metal3.io", "{\"force\": true}")
 	r.Log.Infof("Setting reboot annotation on BMH %s", bmh.Name)
 	if err := r.Patch(ctx, bmh, patch); err != nil {
-		return errors.Wrapf(err, "failed to add reboot annotation to BMH %s", bmhKey)
+		return errors.Wrapf(err, "failed to add reboot annotation to BMH %s/%s", bmh.Namespace, bmh.Name)
 	}
 
 	return nil
