@@ -11,15 +11,15 @@ resources:
 - bases/extensions.hive.openshift.io_agentclusterinstalls.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
-patchesStrategicMerge:
+patches:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
 #- patches/webhook_in_images.yaml
 #- patches/webhook_in_clusters.yaml
 #- patches/webhook_in_hosts.yaml
-- patches/webhook_in_agents.yaml
-- patches/webhook_in_infraenvs.yaml
-- patches/webhook_in_agentclassifications.yaml
+- path: patches/webhook_in_agents.yaml
+- path: patches/webhook_in_infraenvs.yaml
+- path: patches/webhook_in_agentclassifications.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
