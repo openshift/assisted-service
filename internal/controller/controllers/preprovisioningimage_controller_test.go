@@ -971,7 +971,16 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(len(requests)).To(Equal(0))
 		})
 	})
+})
 
+var _ = Describe("mapBMHtoPPI", func() {
+	It("returns a request for the matching object", func() {
+		bmh := &metal3_v1alpha1.BareMetalHost{ObjectMeta: metav1.ObjectMeta{Name: "testBMH", Namespace: testNamespace}}
+		requests := mapBMHtoPPI(context.Background(), bmh)
+		Expect(len(requests)).To(Equal(1))
+		Expect(requests[0].Namespace).To(Equal(bmh.Namespace))
+		Expect(requests[0].Name).To(Equal(bmh.Name))
+	})
 })
 
 func checkImageConditionFailed(c client.Client, ppi *metal3_v1alpha1.PreprovisioningImage, reason string, messageSubstring string) {

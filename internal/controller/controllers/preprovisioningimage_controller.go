@@ -369,7 +369,17 @@ func (r *PreprovisioningImageReconciler) SetupWithManager(mgr ctrl.Manager) erro
 		For(&metal3_v1alpha1.PreprovisioningImage{}).
 		Watches(&metal3_v1alpha1.PreprovisioningImage{}, &handler.EnqueueRequestForObject{}).
 		Watches(&aiv1beta1.InfraEnv{}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvPPI)).
+		Watches(&metal3_v1alpha1.BareMetalHost{}, handler.EnqueueRequestsFromMapFunc(mapBMHtoPPI)).
 		Complete(r)
+}
+
+func mapBMHtoPPI(ctx context.Context, a client.Object) []reconcile.Request {
+	return []reconcile.Request{{
+		NamespacedName: types.NamespacedName{
+			Namespace: a.GetNamespace(),
+			Name:      a.GetName(),
+		},
+	}}
 }
 
 func (r *PreprovisioningImageReconciler) mapInfraEnvPPI() func(ctx context.Context, a client.Object) []reconcile.Request {
