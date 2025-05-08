@@ -10,7 +10,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	auth "github.com/openshift/assisted-service/pkg/auth"
-	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 	"github.com/pkg/errors"
@@ -226,8 +225,6 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 	}
 
 	openshiftVersions := models.OpenshiftVersions{}
-	hasMultiarchAuthorization := false
-	checkedForMultiarchAuthorization := false
 
 	var releaseImages models.ReleaseImages
 	err := handler.db.Find(&releaseImages).Error
@@ -245,25 +242,6 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 	releaseImages = funk.Join(releaseImagesByVersionPattern, releaseImagesByOnlyLatest, funk.InnerJoin).([]*models.ReleaseImage)
 
 	for _, releaseImage := range releaseImages {
-		// (MGMT-11859) We are filtering out multiarch release images so that they are available
-		//              only for customers allowed to use them. This is in order to be able to
-		//              expose them in OCP pre-4.13 without making them generally available.
-		if len(releaseImage.CPUArchitectures) > 1 {
-			if !checkedForMultiarchAuthorization {
-				var err error
-				hasMultiarchAuthorization, err = h.authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
-				if err == nil {
-					checkedForMultiarchAuthorization = true
-				} else {
-					h.log.WithError(err).Errorf("failed to get %s capability", ocm.MultiarchCapabilityName)
-					continue
-				}
-			}
-			if !hasMultiarchAuthorization {
-				continue
-			}
-		}
-
 		supportLevel, err := getReleaseImageSupportLevel(releaseImage)
 		if err != nil {
 			h.log.Debug("error occurred while trying to get the support level of release image version '%s'", *releaseImage.Version)

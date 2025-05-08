@@ -36,9 +36,6 @@ var _ = Describe("test authorization", func() {
 	var capabilityReviewUnallowedUserStubID string
 	var capabilityReviewAdminStubID string
 
-	var capabilityReviewMultiarchNotallowedUserStubID string
-	var capabilityReviewMultiarchAllowedUserStubID string
-
 	var capabilityReviewIgnoreValidationsNotallowedUserStubID string
 	var capabilityReviewIgnoreValidationsAllowedUserStubID string
 
@@ -59,16 +56,6 @@ var _ = Describe("test authorization", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		capabilityReviewAdminStubID, err = wiremock.CreateStubBareMetalCapabilityReview(utils_test.FakePayloadAdmin, true)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		capabilityReviewMultiarchNotallowedUserStubID, err = wiremock.CreateStubMultiarchCapabilityReview(
-			utils_test.FakePayloadUsername, utils_test.OrgId1, false,
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		capabilityReviewMultiarchAllowedUserStubID, err = wiremock.CreateStubMultiarchCapabilityReview(
-			utils_test.FakePayloadUsername2, utils_test.OrgId2, true,
-		)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		capabilityReviewIgnoreValidationsNotallowedUserStubID, err = wiremock.CreateStubIgnoreValidationsCapabilityReview(
@@ -97,12 +84,6 @@ var _ = Describe("test authorization", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		err = wiremock.DeleteStub(capabilityReviewAdminStubID)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		err = wiremock.DeleteStub(capabilityReviewMultiarchNotallowedUserStubID)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		err = wiremock.DeleteStub(capabilityReviewMultiarchAllowedUserStubID)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		err = wiremock.DeleteStub(capabilityReviewIgnoreValidationsNotallowedUserStubID)
@@ -437,18 +418,17 @@ var _ = Describe("test authorization", func() {
 			})
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(request.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
-		})
-		It("not allowed to register a multiarch cluster", func() {
-			_, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+
+			request2, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					CPUArchitecture:  common.MultiCPUArchitecture,
-					Name:             swag.String("test-multiarch-cluster"),
+					Name:             swag.String("test-multiarch-cluster-2"),
 					OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
 					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS)),
 				},
 			})
-			Expect(err).Should(HaveOccurred())
-			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(request2.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 		})
 	})
 })

@@ -32,19 +32,15 @@ var _ = Describe("[minimal-set]test versions", func() {
 				Skip("organization based functionality access is disabled")
 			}
 		})
-		It("Doesn't have multiarch capability", func() {
+
+		It("multiarch versions are visible to all users", func() {
 			reply, err := utils_test.TestContext.UserBMClient.Versions.V2ListSupportedOpenshiftVersions(context.Background(), &versions.V2ListSupportedOpenshiftVersionsParams{})
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(hasMultiarch(reply.GetPayload())).Should(BeFalse())
-		})
-		It("Has multiarch capability", func() {
-			// (MGMT-11859) This test relies on the fact that multiarch release images have
-			//              "-multi" suffix when presented via SupportedOpenshiftVersions API.
-			//              As soon as we collapse single- and multiarch releases, the contract
-			//              defined by "func hasMultiarch()" will not be valid anymore.
-			reply, err := utils_test.TestContext.User2BMClient.Versions.V2ListSupportedOpenshiftVersions(context.Background(), &versions.V2ListSupportedOpenshiftVersionsParams{})
+			Expect(hasMultiarch(reply.GetPayload())).To(BeTrue())
+
+			reply2, err := utils_test.TestContext.User2BMClient.Versions.V2ListSupportedOpenshiftVersions(context.Background(), &versions.V2ListSupportedOpenshiftVersionsParams{})
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(hasMultiarch(reply.GetPayload())).Should(BeTrue())
+			Expect(hasMultiarch(reply2.GetPayload())).To(BeTrue())
 		})
 	})
 })
