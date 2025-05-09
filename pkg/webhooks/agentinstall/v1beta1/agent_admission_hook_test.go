@@ -47,13 +47,13 @@ var _ = Describe("agent web validate", func() {
 	cases := []struct {
 		name            string
 		newSpec         v1beta1.AgentSpec
+		newStatus       v1beta1.AgentStatus
 		oldSpec         v1beta1.AgentSpec
 		newObjectRaw    []byte
 		oldObjectRaw    []byte
 		operation       admissionv1.Operation
 		expectedAllowed bool
 		gvr             *metav1.GroupVersionResource
-		newState        string
 	}{
 		{
 			name:            "Test unable to marshal old object during update",
@@ -106,7 +106,7 @@ var _ = Describe("agent web validate", func() {
 			expectedAllowed: true,
 		},
 		{
-			name: "Test Agent.Spec.ClusterDeploymentName.Namespace is immutable, state installing",
+			name: "Test Agent.Spec.ClusterDeploymentName.Namespace is immutable for day 1 host, state installing",
 			newSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "oldName",
@@ -121,7 +121,58 @@ var _ = Describe("agent web validate", func() {
 			},
 			operation:       admissionv1.Update,
 			expectedAllowed: false,
-			newState:        models.HostStatusInstalling,
+			newStatus:       v1beta1.AgentStatus{DebugInfo: v1beta1.DebugInfo{State: models.HostStatusInstalling}, Kind: models.HostKindHost},
+		},
+		{
+			name: "Test Agent.Spec.ClusterDeploymentName.Namespace is immutable for day 2 host, state installing",
+			newSpec: v1beta1.AgentSpec{
+				ClusterDeploymentName: &v1beta1.ClusterReference{
+					Name:      "oldName",
+					Namespace: "newNamespace",
+				},
+			},
+			oldSpec: v1beta1.AgentSpec{
+				ClusterDeploymentName: &v1beta1.ClusterReference{
+					Name:      "oldName",
+					Namespace: "oldNamespace",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+			newStatus:       v1beta1.AgentStatus{DebugInfo: v1beta1.DebugInfo{State: models.HostStatusInstalling}, Kind: models.HostKindAddToExistingClusterHost},
+		},
+		{
+			name: "Test Agent.Spec.ClusterDeploymentName.Name is immutable for day 2 host, state installing",
+			newSpec: v1beta1.AgentSpec{
+				ClusterDeploymentName: &v1beta1.ClusterReference{
+					Name:      "newName",
+					Namespace: "oldNamespace",
+				},
+			},
+			oldSpec: v1beta1.AgentSpec{
+				ClusterDeploymentName: &v1beta1.ClusterReference{
+					Name:      "oldName",
+					Namespace: "oldNamespace",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+			newStatus:       v1beta1.AgentStatus{DebugInfo: v1beta1.DebugInfo{State: models.HostStatusInstalling}, Kind: models.HostKindAddToExistingClusterHost},
+		},
+		{
+			name: "Test Agent.Spec.ClusterDeploymentName can be unset for day 2 host, state installing",
+			newSpec: v1beta1.AgentSpec{
+				ClusterDeploymentName: nil,
+			},
+			oldSpec: v1beta1.AgentSpec{
+				ClusterDeploymentName: &v1beta1.ClusterReference{
+					Name:      "oldName",
+					Namespace: "oldNamespace",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+			newStatus:       v1beta1.AgentStatus{DebugInfo: v1beta1.DebugInfo{State: models.HostStatusInstalling}, Kind: models.HostKindAddToExistingClusterHost},
 		},
 		{
 			name: "Test Agent.Spec.ClusterDeploymentName.Namespace is mutable, state known",
@@ -139,7 +190,7 @@ var _ = Describe("agent web validate", func() {
 			},
 			operation:       admissionv1.Update,
 			expectedAllowed: true,
-			newState:        models.HostStatusKnown,
+			newStatus:       v1beta1.AgentStatus{DebugInfo: v1beta1.DebugInfo{State: models.HostStatusKnown}},
 		},
 		{
 			name: "Test Agent update does not fail when ClusterReference is set and remains the same",
@@ -176,11 +227,10 @@ var _ = Describe("agent web validate", func() {
 		It(tc.name, func() {
 			data := NewAgentValidatingAdmissionHook(createDecoder())
 			newObject := &v1beta1.Agent{
-				Spec: tc.newSpec,
+				Spec:   tc.newSpec,
+				Status: tc.newStatus,
 			}
-			if tc.newState != "" {
-				newObject.Status = v1beta1.AgentStatus{DebugInfo: v1beta1.DebugInfo{State: tc.newState}}
-			}
+
 			oldObject := &v1beta1.Agent{
 				Spec: tc.oldSpec,
 			}
