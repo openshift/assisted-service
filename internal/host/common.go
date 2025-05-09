@@ -78,6 +78,15 @@ var SnoStages = [...]models.HostStage{
 	models.HostStageRebooting, models.HostStageJoined, models.HostStageDone,
 }
 
+var HostInstallingStatuses = []string{
+	models.HostStatusPreparingForInstallation,
+	models.HostStatusPreparingFailed,
+	models.HostStatusPreparingSuccessful,
+	models.HostStatusInstalling,
+	models.HostStatusInstallingInProgress,
+	models.HostStatusInstallingPendingUserAction,
+}
+
 var manualRebootStages = []models.HostStage{
 	models.HostStageRebooting,
 	models.HostStageWaitingForIgnition,
