@@ -165,15 +165,8 @@ func (a *AgentValidatingAdmissionHook) validateUpdate(admissionSpec *admissionv1
 	}
 
 	if !areClusterRefsEqual(oldObject.Spec.ClusterDeploymentName, newObject.Spec.ClusterDeploymentName) {
-		installingStatuses := []string{
-			models.HostStatusPreparingForInstallation,
-			models.HostStatusPreparingFailed,
-			models.HostStatusPreparingSuccessful,
-			models.HostStatusInstalling,
-			models.HostStatusInstallingInProgress,
-			models.HostStatusInstallingPendingUserAction,
-		}
-		if funk.ContainsString(installingStatuses, newObject.Status.DebugInfo.State) {
+		if !isClusterRefChangeAllowed(newObject.Spec.ClusterDeploymentName, newObject.Status.DebugInfo.State, newObject.Status.Kind) {
+			// Fail validation only if the Cluster Deployment is changed to a different cluster or if the host is not day-2
 			message := "Attempted to change Spec.ClusterDeploymentName which is immutable during Agent installation."
 			contextLogger.Infof("Failed validation: %v", message)
 			contextLogger.Error(message)
@@ -192,4 +185,23 @@ func (a *AgentValidatingAdmissionHook) validateUpdate(admissionSpec *admissionv1
 	return &admissionv1.AdmissionResponse{
 		Allowed: true,
 	}
+}
+
+// Cluster Reference change is only allowed when:
+// 1. The host is not installing
+// 2. The host is day-2 and the new cluster reference is nil (aka unset)
+func isClusterRefChangeAllowed(clusterRef *v1beta1.ClusterReference, currentState string, hostKind string) bool {
+	installingStatuses := []string{
+		models.HostStatusPreparingForInstallation,
+		models.HostStatusPreparingFailed,
+		models.HostStatusPreparingSuccessful,
+		models.HostStatusInstalling,
+		models.HostStatusInstallingInProgress,
+		models.HostStatusInstallingPendingUserAction,
+	}
+	if !funk.ContainsString(installingStatuses, currentState) {
+		return true
+	}
+
+	return hostKind == models.HostKindAddToExistingClusterHost && clusterRef == nil
 }
