@@ -55,6 +55,21 @@ func (mr *MockInstallerInternalsMockRecorder) BindHostInternal(arg0, arg1 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BindHostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).BindHostInternal), arg0, arg1)
 }
 
+// CancelDay2HostInstallationInternal mocks base method.
+func (m *MockInstallerInternals) CancelDay2HostInstallationInternal(arg0 context.Context, arg1 *common.Host) (*common.Host, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelDay2HostInstallationInternal", arg0, arg1)
+	ret0, _ := ret[0].(*common.Host)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CancelDay2HostInstallationInternal indicates an expected call of CancelDay2HostInstallationInternal.
+func (mr *MockInstallerInternalsMockRecorder) CancelDay2HostInstallationInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelDay2HostInstallationInternal", reflect.TypeOf((*MockInstallerInternals)(nil).CancelDay2HostInstallationInternal), arg0, arg1)
+}
+
 // CancelInstallationInternal mocks base method.
 func (m *MockInstallerInternals) CancelInstallationInternal(arg0 context.Context, arg1 installer.V2CancelInstallationParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()

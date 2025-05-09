@@ -188,7 +188,32 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	}
 
 	if agent.Spec.ClusterDeploymentName == nil && h.ClusterID != nil {
-		log.Debugf("ClusterDeploymentName is unset in Agent %s. unbind", agent.Name)
+		log.Debugf("ClusterDeploymentName is unset in Agent %s.", agent.Name)
+		installingStatuses := []string{
+			models.HostStatusPreparingForInstallation,
+			models.HostStatusPreparingFailed,
+			models.HostStatusPreparingSuccessful,
+			models.HostStatusInstalling,
+			models.HostStatusInstallingInProgress,
+			models.HostStatusInstallingPendingUserAction,
+		}
+		if funk.ContainsString(installingStatuses, *h.Status) {
+			if swag.StringValue(h.Kind) != models.HostKindAddToExistingClusterHost {
+				// Only day-2 hosts are allowed to be cancelled during installation
+				errMsg := fmt.Errorf("cancelling non-day-2 host [%s] in the middle of installation is not allowed", *h.ID)
+				log.Error(errMsg)
+				return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, errMsg, false)
+			}
+			// Host is in the middle of installing so cancel the installation first to allow moving to unbind
+			newHost, cancelErr := r.Installer.CancelDay2HostInstallationInternal(ctx, h)
+			if cancelErr != nil {
+				log.WithError(cancelErr).Errorf("failed cancelling installation for host %s", *h.ID)
+				return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, cancelErr, true)
+			}
+			h = newHost
+			log.Infof("Installation successfully cancelled for host %s", *h.ID)
+		}
+		log.Infof("Unbinding host %s from cluster %s", *h.ID, *h.ClusterID)
 		return r.unbindHost(ctx, log, agent, origAgent, h)
 	}
 
