@@ -1137,7 +1137,52 @@ var _ = Describe("agent reconcile", func() {
 		Expect(result).To(Equal(ctrl.Result{}))
 	})
 
-	It("Agent status update does not panic when running unbind during day2 install", func() {
+	It("Agent unbind during day2 install should succeed", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		logCollectionTime, _ := strfmt.ParseDateTime("2022-02-17T21:41:51Z")
+		hostKind := models.HostKindAddToExistingClusterHost
+		host := common.Host{
+			Host: models.Host{
+				ID:              &hostId,
+				Kind:            &hostKind,
+				ClusterID:       &sId,
+				InfraEnvID:      infraEnvId,
+				Inventory:       common.GenerateTestDefaultInventory(),
+				Status:          swag.String(models.HostStatusInstallingInProgress),
+				StatusInfo:      swag.String("Some status info"),
+				LogsCollectedAt: logCollectionTime,
+				Progress: &models.HostProgressInfo{
+					CurrentStage:           models.HostStageConfiguring,
+					InstallationPercentage: 44,
+				},
+			},
+		}
+		agent := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: nil})
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		updatedHost := host
+		updatedHost.Status = swag.String(models.HostStatusCancelled)
+
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&host, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: sId}).Return(backEndCluster, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().CancelDay2HostInstallationInternal(gomock.Any(), &host).Return(&updatedHost, nil).Times(1)
+		updatedHost.Status = swag.String(models.HostStatusUnbindingPendingUserAction)
+		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(&updatedHost, nil)
+		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		agentKey := types.NamespacedName{
+			Name:      agent.Name,
+			Namespace: agent.Namespace,
+		}
+		Expect(c.Get(ctx, agentKey, agent)).To(Succeed())
+		Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusUnbindingPendingUserAction))
+	})
+	It("Agent unbind during day2 install should not happen if cancel fails", func() {
 		hostId := strfmt.UUID(uuid.New().String())
 		infraEnvId := strfmt.UUID(uuid.New().String())
 		logCollectionTime, _ := strfmt.ParseDateTime("2022-02-17T21:41:51Z")
@@ -1163,12 +1208,50 @@ var _ = Describe("agent reconcile", func() {
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(host, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: sId}).Return(backEndCluster, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(host, fmt.Errorf("no condition found to run transition"))
+		mockInstallerInternal.EXPECT().CancelDay2HostInstallationInternal(gomock.Any(), host).Return(host, fmt.Errorf("cancel install for host failed")).Times(1)
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 
 		result, err := hr.Reconcile(ctx, newHostRequest(agent))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+
+		agentKey := types.NamespacedName{
+			Name:      agent.Name,
+			Namespace: agent.Namespace,
+		}
+		Expect(c.Get(ctx, agentKey, agent)).To(Succeed())
+		Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusInstallingInProgress))
+	})
+
+	It("Agent unbind for non day-2 host during install should fail", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		hostKind := models.HostKindHost
+		host := &common.Host{
+			Host: models.Host{
+				ID:         &hostId,
+				Kind:       &hostKind,
+				ClusterID:  &sId,
+				InfraEnvID: infraEnvId,
+				Inventory:  common.GenerateTestDefaultInventory(),
+				Status:     swag.String(models.HostStatusInstallingInProgress),
+				StatusInfo: swag.String("Some status info"),
+				Progress: &models.HostProgressInfo{
+					CurrentStage:           models.HostStageConfiguring,
+					InstallationPercentage: 44,
+				},
+			},
+		}
+		agent := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: nil})
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(host, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: sId}).Return(backEndCluster, nil).AnyTimes()
+		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
 	})
 
 	It("Agent bind", func() {
