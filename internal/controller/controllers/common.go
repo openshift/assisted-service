@@ -315,7 +315,7 @@ func checksumSecret(m map[string][]byte) (string, error) {
 
 func clusterNetworksArrayToEntries(networks []*models.ClusterNetwork) []hiveext.ClusterNetworkEntry {
 	return funk.Map(networks, func(net *models.ClusterNetwork) hiveext.ClusterNetworkEntry {
-		return hiveext.ClusterNetworkEntry{CIDR: string(net.Cidr), HostPrefix: int32(net.HostPrefix)}
+		return hiveext.ClusterNetworkEntry{CIDR: string(net.Cidr), HostPrefix: int32(net.HostPrefix)} // nolint: gosec
 	}).([]hiveext.ClusterNetworkEntry)
 }
 

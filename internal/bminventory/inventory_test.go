@@ -14078,7 +14078,9 @@ var _ = Describe("RegisterCluster", func() {
 			},
 		}
 
-		for _, t := range tests {
+		for _, test := range tests {
+			t := test
+
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, *t.OpenShiftVersion)
 			mockAMSSubscription(ctx)
 

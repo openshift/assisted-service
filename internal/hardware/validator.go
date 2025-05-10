@@ -149,6 +149,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
 				tooSmallDiskTemplate,
+				// nolint: gosec
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
