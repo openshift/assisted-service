@@ -16139,7 +16139,6 @@ var _ = Describe("RegisterCluster", func() {
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
 				mockAMSSubscription(authCtx)
 				mockUsageReports()
-				mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
 				mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), userName1, ocm.SoftTimeoutsCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 
 				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
@@ -16155,25 +16154,47 @@ var _ = Describe("RegisterCluster", func() {
 				Expect(actual.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 			})
 
-			It("Register a cluster with multi CPU architecture - fail with no capability", func() {
+			It("Register a cluster with multi CPU architecture - allowed for all organizations", func() {
+				mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
 					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
-					OpenshiftVersion: swag.String("its-just-a-mock"),
+					OpenshiftVersion: swag.String("4.12"),
 					URL:              swag.String("url-of-this-release"),
-					Version:          swag.String("doesnt-really-matter"),
-				}, nil).Times(1)
-				mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
+					Version:          swag.String("4.12.0"),
+				}, nil).AnyTimes()
+				mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).AnyTimes()
+				mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockMetric.EXPECT().ClusterRegistered().AnyTimes()
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).AnyTimes()
+				mockUsageReports()
+				mockOcmAuthz.EXPECT().
+					CapabilityReview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(false, nil).AnyTimes()
 
-				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						Name:             swag.String("some-cluster-name"),
-						OpenshiftVersion: swag.String("4.12.0-someFakeFlavour"),
-						CPUArchitecture:  common.MultiCPUArchitecture,
-						PullSecret:       swag.String(fakePullSecret),
-					},
-				})
-				verifyApiError(reply, http.StatusBadRequest)
+				orgs := []string{"org1", "org2", "org3"}
+				for _, org := range orgs {
+					orgPayload := &ocm.AuthPayload{
+						Username:     "user-" + org,
+						Organization: org,
+						Role:         ocm.UserRole,
+					}
+					orgCtx := context.WithValue(context.Background(), restapi.AuthKey, orgPayload)
+					mockAMSSubscription(orgCtx)
+
+					reply := bm.V2RegisterCluster(orgCtx, installer.V2RegisterClusterParams{
+						NewClusterParams: &models.ClusterCreateParams{
+							Name:             swag.String("some-cluster-name"),
+							OpenshiftVersion: swag.String("4.12.0-someFakeFlavour"),
+							CPUArchitecture:  common.MultiCPUArchitecture,
+							PullSecret:       swag.String(fakePullSecret),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&installer.V2RegisterClusterCreated{}))
+					actual := reply.(*installer.V2RegisterClusterCreated)
+					Expect(actual.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
+				}
 			})
 		})
 

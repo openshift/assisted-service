@@ -600,14 +600,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 	if len(releaseImage.CPUArchitectures) > 1 {
 		log.Infof("Setting cluster as multi-arch because of the release image (requested was %s)", cpuArchitecture)
 		cpuArchitecture = common.MultiCPUArchitecture
-		// (MGMT-11859) Additional check here ensures that the customer cannot just guess a version
-		//              with multiarch in order to get access to that release payload.
-		var multiarchAllowed bool
-		multiarchAllowed, err = b.authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
-		if err != nil || !multiarchAllowed {
-			err = common.NewApiError(http.StatusBadRequest, errors.New("multiarch clusters are not available"))
-			return nil, err
-		}
 	}
 
 	var orgSoftTimeoutsEnabled bool

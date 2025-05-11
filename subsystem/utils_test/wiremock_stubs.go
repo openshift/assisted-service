@@ -203,12 +203,6 @@ func (w *WireMock) CreateStubsForCapabilityReview() error {
 	if _, err := w.CreateStubBareMetalCapabilityReview(FakePayloadClusterEditor, false); err != nil {
 		return err
 	}
-	if _, err := w.CreateStubMultiarchCapabilityReview(FakePayloadUsername, OrgId1, false); err != nil {
-		return err
-	}
-	if _, err := w.CreateStubMultiarchCapabilityReview(FakePayloadUsername2, OrgId2, true); err != nil {
-		return err
-	}
 	if _, err := w.CreateStubIgnoreValidationsCapabilityReview(FakePayloadUsername, OrgId1, false); err != nil {
 		return err
 	}
@@ -488,31 +482,6 @@ func (w *WireMock) CreateStubBareMetalCapabilityReview(username string, result b
 		Result: strconv.FormatBool(result),
 	}
 
-	return w.AddCapabilityReviewStub(capabilityRequest, capabilityResponse)
-}
-
-func (w *WireMock) CreateStubMultiarchCapabilityReview(username string, orgId string, result bool) (string, error) {
-	type CapabilityRequest struct {
-		Name     string `json:"capability"`
-		Type     string `json:"type"`
-		Username string `json:"account_username"`
-		Org      string `json:"organization_id"`
-	}
-
-	type CapabilityResponse struct {
-		Result string `json:"result"`
-	}
-
-	capabilityRequest := CapabilityRequest{
-		Name:     ocm.MultiarchCapabilityName,
-		Type:     ocm.OrganizationCapabilityType,
-		Username: username,
-		Org:      orgId,
-	}
-
-	capabilityResponse := CapabilityResponse{
-		Result: strconv.FormatBool(result),
-	}
 	return w.AddCapabilityReviewStub(capabilityRequest, capabilityResponse)
 }
 

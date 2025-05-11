@@ -16,7 +16,6 @@ const (
 	AMSActionUpdate                 string = "update"
 	AMSActionDelete                 string = "delete"
 	BareMetalCapabilityName         string = "bare_metal_installer_admin"
-	MultiarchCapabilityName         string = "bare_metal_installer_multiarch"
 	SoftTimeoutsCapabilityName      string = "bare_metal_installer_soft_timeouts"
 	AccountCapabilityType           string = "Account"
 	OrganizationCapabilityType      string = "Organization"

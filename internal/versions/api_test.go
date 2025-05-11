@@ -3,10 +3,7 @@ package versions
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/go-openapi/swag"
 	gomock "github.com/golang/mock/gomock"
@@ -19,7 +16,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
-	"github.com/patrickmn/go-cache"
 	"gorm.io/gorm"
 )
 
@@ -295,6 +291,63 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 		Expect(val.Payload).To(Equal(expectedPayload))
+	})
+
+	It("Should always return multi-arch images regardless of organization", func() {
+		releaseImages := models.ReleaseImages{
+			{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.14-multi"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.0-ec.3-multi"),
+				Version:          swag.String("4.14.0-ec.3-multi"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+		}
+		err := db.Create(&releaseImages).Error
+		Expect(err).ToNot(HaveOccurred())
+
+		osImages := osImageList{
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.14/4.14.48/rhcos-4.14.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("414.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.14/4.14.48/rhcos-4.14.48-aarch64-live.aarch64.iso"),
+				Version:          swag.String("414.86.202308081056-0"),
+			},
+		}
+
+		expectedPayload := models.OpenshiftVersions{
+			"4.14.0-ec.3-multi": {
+				DisplayName:      swag.String("4.14.0-ec.3-multi"),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+				Default:          false,
+			},
+		}
+
+		handler, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+		Expect(err).ToNot(HaveOccurred())
+		h := NewAPIHandler(logger, versions, authzHandler, handler, osImages, nil)
+
+		// Test with different auth contexts to verify multi-arch is always available
+		contexts := []context.Context{
+			context.Background(), // No auth
+			context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Organization: "org1"}),
+			context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Organization: "org2"}),
+		}
+
+		for _, ctx := range contexts {
+			reply := h.V2ListSupportedOpenshiftVersions(ctx, operations.V2ListSupportedOpenshiftVersionsParams{})
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		}
 	})
 
 	Context("Test filter by version_pattern query parameter", func() {
@@ -1052,105 +1105,6 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 			Expect(val.Payload).To(Equal(expectedPayload))
-		})
-	})
-
-	Context("Test list versions with capability restrictions", func() {
-		var (
-			mockOcmAuthz  *ocm.MockOCMAuthorization
-			mockOcmClient *ocm.Client
-			authCtx       context.Context
-			orgID1        = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
-			userName1     = "test_user_1"
-		)
-
-		BeforeEach(func() {
-			mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
-			payload := &ocm.AuthPayload{
-				Username:     userName1,
-				Organization: orgID1,
-				Role:         ocm.UserRole,
-			}
-			authCtx = context.WithValue(context.Background(), restapi.AuthKey, payload)
-			mockOcmClient = &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
-		})
-
-		handlerWithAuthConfig := func(enableOrgBasedFeatureGates bool) restapi.VersionsAPI {
-			cfg := auth.GetConfigRHSSO()
-			cfg.EnableOrgBasedFeatureGates = enableOrgBasedFeatureGates
-			authzHandler := auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog(), db)
-
-			osImages, err := NewOSImages(defaultOsImages)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			dbReleaseImages := models.ReleaseImages{
-				{
-					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-					OpenshiftVersion: swag.String("4.11"),
-					URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-multi"),
-					Version:          swag.String("4.11.1"),
-					SupportLevel:     models.ReleaseImageSupportLevelProduction,
-				},
-			}
-			err = db.Create(&dbReleaseImages).Error
-			Expect(err).ToNot(HaveOccurred())
-
-			h, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
-			Expect(err).ToNot(HaveOccurred())
-
-			return NewAPIHandler(common.GetTestLog(), Versions{}, authzHandler, h, osImages, nil)
-		}
-
-		hasMultiarch := func(versions models.OpenshiftVersions) bool {
-			hasMultiarch := false
-			for _, version := range versions {
-				if strings.HasSuffix(*version.DisplayName, "-multi") {
-					hasMultiarch = true
-					break
-				}
-			}
-			return hasMultiarch
-		}
-
-		It("returns multiarch with multiarch capability", func() {
-			h := handlerWithAuthConfig(true)
-			mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
-
-			reply := h.V2ListSupportedOpenshiftVersions(authCtx, operations.V2ListSupportedOpenshiftVersionsParams{})
-			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
-
-			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
-			Expect(hasMultiarch(val.Payload)).To(BeTrue())
-		})
-		It("does not return multiarch without multiarch capability", func() {
-			h := handlerWithAuthConfig(true)
-			mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
-
-			reply := h.V2ListSupportedOpenshiftVersions(authCtx, operations.V2ListSupportedOpenshiftVersionsParams{})
-			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
-
-			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
-			Expect(hasMultiarch(val.Payload)).To(BeFalse())
-		})
-		It("does not return multiarch when capability query fails", func() {
-			h := handlerWithAuthConfig(true)
-
-			mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(false, errors.New("failed to query capability")).Times(1)
-			reply := h.V2ListSupportedOpenshiftVersions(authCtx, operations.V2ListSupportedOpenshiftVersionsParams{})
-			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
-
-			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
-			Expect(hasMultiarch(val.Payload)).To(BeFalse())
-		})
-		It("returns multiarch with org-based features disabled", func() {
-			h := handlerWithAuthConfig(false)
-
-			reply := h.V2ListSupportedOpenshiftVersions(authCtx, operations.V2ListSupportedOpenshiftVersionsParams{})
-			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
-
-			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
-			Expect(hasMultiarch(val.Payload)).To(BeTrue())
 		})
 	})
 })
