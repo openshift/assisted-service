@@ -282,10 +282,16 @@ func (f *skipMcoReboot) getSupportLevel(filters SupportLevelFilters) models.Supp
 	if !isFeatureCompatibleWithArchitecture(f, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
+
 	enableSkipMcoReboot, err := common.BaseVersionGreaterOrEqual("4.15.0", filters.OpenshiftVersion)
 	if !enableSkipMcoReboot || err != nil {
 		return models.SupportLevelUnavailable
 	}
+
+	if swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureS390x {
+		return models.SupportLevelUnavailable
+	}
+
 	return models.SupportLevelSupported
 }
 
