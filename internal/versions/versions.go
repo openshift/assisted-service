@@ -37,13 +37,14 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, releaseImages
 	mustGatherVersions MustGatherVersions, releaseImageMirror string, kubeClient client.Client) (*handler, error) {
 
 	h := &handler{
-		mustGatherVersions: mustGatherVersions,
-		releaseImages:      releaseImages,
-		releaseHandler:     releaseHandler,
-		releaseImageMirror: releaseImageMirror,
-		log:                log,
-		kubeClient:         kubeClient,
-		sem:                semaphore.NewWeighted(30),
+		mustGatherVersions:     mustGatherVersions,
+		mustGatherVersionsLock: &sync.Mutex{},
+		releaseImages:          releaseImages,
+		releaseHandler:         releaseHandler,
+		releaseImageMirror:     releaseImageMirror,
+		log:                    log,
+		kubeClient:             kubeClient,
+		sem:                    semaphore.NewWeighted(30),
 	}
 
 	if err := h.validateVersions(); err != nil {
@@ -54,17 +55,21 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, releaseImages
 }
 
 type handler struct {
-	mustGatherVersions MustGatherVersions
-	releaseImages      models.ReleaseImages
-	imagesLock         sync.Mutex
-	sem                *semaphore.Weighted
-	releaseHandler     oc.Release
-	releaseImageMirror string
-	log                logrus.FieldLogger
-	kubeClient         client.Client
+	mustGatherVersions     MustGatherVersions
+	mustGatherVersionsLock *sync.Mutex
+	releaseImages          models.ReleaseImages
+	imagesLock             sync.Mutex
+	sem                    *semaphore.Weighted
+	releaseHandler         oc.Release
+	releaseImageMirror     string
+	log                    logrus.FieldLogger
+	kubeClient             client.Client
 }
 
 func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {
+	h.mustGatherVersionsLock.Lock()
+	defer h.mustGatherVersionsLock.Unlock()
+
 	majMinorVersion, err := toMajorMinor(openshiftVersion)
 	if err != nil {
 		return nil, err
