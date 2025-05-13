@@ -6,6 +6,15 @@ import (
 	"net/url"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -23,14 +32,6 @@ import (
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func newPreprovisioningImageRequest(image *metal3_v1alpha1.PreprovisioningImage) ctrl.Request {
@@ -837,7 +838,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			Expect(c.Create(ctx, ppi)).To(BeNil())
 
-			requests := pr.mapInfraEnvPPI()(ctx, infraEnv)
+			requests := pr.mapInfraEnvPPI(ctx, infraEnv)
 
 			Expect(len(requests)).To(Equal(1))
 		})
@@ -848,7 +849,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			ppi2 := newPreprovisioningImage("testPPI2", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
 			Expect(c.Create(ctx, ppi2)).To(BeNil())
 
-			requests := pr.mapInfraEnvPPI()(ctx, infraEnv)
+			requests := pr.mapInfraEnvPPI(ctx, infraEnv)
 
 			Expect(len(requests)).To(Equal(2))
 		})
@@ -859,7 +860,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			ppi2 := newPreprovisioningImage("testPPI2", testNamespace, InfraEnvLabel, "someOtherInfraEnv", bmh.Name)
 			Expect(c.Create(ctx, ppi2)).To(BeNil())
 
-			requests := pr.mapInfraEnvPPI()(ctx, infraEnv)
+			requests := pr.mapInfraEnvPPI(ctx, infraEnv)
 
 			Expect(len(requests)).To(Equal(1))
 		})
@@ -868,7 +869,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			infraEnv.Status.ISODownloadURL = downloadURL
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 
-			requests := pr.mapInfraEnvPPI()(ctx, infraEnv)
+			requests := pr.mapInfraEnvPPI(ctx, infraEnv)
 
 			Expect(len(requests)).To(Equal(0))
 		})

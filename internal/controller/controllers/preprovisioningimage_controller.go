@@ -22,6 +22,16 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	"github.com/go-openapi/swag"
 	"github.com/iancoleman/strcase"
 	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -41,15 +51,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type imageConditionReason string
@@ -357,49 +358,44 @@ func (r *PreprovisioningImageReconciler) findInfraEnvForPreprovisioningImage(ctx
 }
 
 func (r *PreprovisioningImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	mapInfraEnvPPI := r.mapInfraEnvPPI()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&metal3_v1alpha1.PreprovisioningImage{}).
-		Watches(&metal3_v1alpha1.PreprovisioningImage{}, &handler.EnqueueRequestForObject{}).
-		Watches(&aiv1beta1.InfraEnv{}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvPPI)).
+		Watches(&aiv1beta1.InfraEnv{}, handler.EnqueueRequestsFromMapFunc(r.mapInfraEnvPPI)).
 		Complete(r)
 }
 
-func (r *PreprovisioningImageReconciler) mapInfraEnvPPI() func(ctx context.Context, a client.Object) []reconcile.Request {
-	mapInfraEnvPPI := func(ctx context.Context, a client.Object) []reconcile.Request {
-		log := logutil.FromContext(ctx, r.Log).WithFields(
-			logrus.Fields{
-				"infra_env":           a.GetName(),
-				"infra_env_namespace": a.GetNamespace(),
-			})
-		infraEnv := &aiv1beta1.InfraEnv{}
+func (r *PreprovisioningImageReconciler) mapInfraEnvPPI(ctx context.Context, a client.Object) []reconcile.Request {
+	log := logutil.FromContext(ctx, r.Log).WithFields(
+		logrus.Fields{
+			"infra_env":           a.GetName(),
+			"infra_env_namespace": a.GetNamespace(),
+		})
+	infraEnv := &aiv1beta1.InfraEnv{}
 
-		if err := r.Get(ctx, types.NamespacedName{Name: a.GetName(), Namespace: a.GetNamespace()}, infraEnv); err != nil {
-			return []reconcile.Request{}
-		}
-
-		images, err := r.findPreprovisioningImagesByInfraEnv(ctx, infraEnv)
-		if err != nil {
-			log.WithError(err).Infof("failed getting InfraEnv related preprovisioningImages %s/%s ", a.GetNamespace(), a.GetName())
-			return []reconcile.Request{}
-		}
-		if len(images) == 0 {
-			return []reconcile.Request{}
-		}
-
-		reconcileRequests := []reconcile.Request{}
-
-		for i := range images {
-			reconcileRequests = append(reconcileRequests, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Namespace: images[i].Namespace,
-					Name:      images[i].Name,
-				},
-			})
-		}
-		return reconcileRequests
+	if err := r.Get(ctx, types.NamespacedName{Name: a.GetName(), Namespace: a.GetNamespace()}, infraEnv); err != nil {
+		return []reconcile.Request{}
 	}
-	return mapInfraEnvPPI
+
+	images, err := r.findPreprovisioningImagesByInfraEnv(ctx, infraEnv)
+	if err != nil {
+		log.WithError(err).Infof("failed getting InfraEnv related preprovisioningImages %s/%s ", a.GetNamespace(), a.GetName())
+		return []reconcile.Request{}
+	}
+	if len(images) == 0 {
+		return []reconcile.Request{}
+	}
+
+	reconcileRequests := []reconcile.Request{}
+
+	for i := range images {
+		reconcileRequests = append(reconcileRequests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: images[i].Namespace,
+				Name:      images[i].Name,
+			},
+		})
+	}
+	return reconcileRequests
 }
 
 func (r *PreprovisioningImageReconciler) getIronicAgentImageFromUserOverride(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) string {
