@@ -4409,6 +4409,10 @@ definitions:
         x-go-name: MasterRequirements
         $ref: '#/definitions/cluster-host-requirements-details'
         description: Master node requirements
+      arbiter:
+        x-go-name: ArbiterRequirements
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Arbiter node requirements
       worker:
         x-go-name: WorkerRequirements
         $ref: '#/definitions/cluster-host-requirements-details'

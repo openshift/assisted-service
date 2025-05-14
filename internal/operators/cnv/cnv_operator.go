@@ -203,6 +203,8 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 	switch role {
 	case models.HostRoleMaster:
 		return preflightRequirements.Requirements.Master.Quantitative, nil
+	case models.HostRoleArbiter:
+		return &models.ClusterHostRequirementsDetails{}, nil
 	case models.HostRoleWorker, models.HostRoleAutoAssign:
 		return o.getWorkerRequirements(ctx, cluster, host, preflightRequirements)
 	}
