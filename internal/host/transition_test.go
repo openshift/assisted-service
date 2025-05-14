@@ -1100,11 +1100,11 @@ var _ = Describe("Unbind", func() {
 			reclaim:   true,
 		},
 		{
-			name:      "installing noop",
+			name:      "installing",
 			srcState:  models.HostStatusInstalling,
-			dstState:  models.HostStatusInstalling,
-			success:   false,
-			sendEvent: false,
+			dstState:  models.HostStatusUnbindingPendingUserAction,
+			success:   true,
+			sendEvent: true,
 			reclaim:   false,
 		},
 		{

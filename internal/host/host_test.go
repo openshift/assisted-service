@@ -1935,14 +1935,14 @@ var _ = Describe("Unbind host", func() {
 			{
 				name:        models.HostStatusInstalling,
 				srcState:    models.HostStatusInstalling,
-				validation:  failure,
-				expectEvent: false,
+				validation:  success,
+				expectEvent: true,
 			},
 			{
 				name:        models.HostStatusInstallingInProgress,
 				srcState:    models.HostStatusInstallingInProgress,
-				validation:  failure,
-				expectEvent: false,
+				validation:  success,
+				expectEvent: true,
 			},
 			{
 				name:        models.HostStatusResettingPendingUserAction,
