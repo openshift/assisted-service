@@ -18325,6 +18325,18 @@ var _ = Describe("UnbindHost", func() {
 		verifyApiError(response, http.StatusConflict)
 	})
 
+	It("unbind during installation should fail", func() {
+		params := installer.UnbindHostParams{
+			HostID:     hostID,
+			InfraEnvID: infraEnvID,
+		}
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("status", models.HostStatusInstalling).Error).ShouldNot(HaveOccurred())
+		response := bm.UnbindHost(ctx, params)
+		verifyApiErrorString(response, http.StatusConflict, fmt.Sprintf("Cannot unbind Host %s while it is in the middle of installing.", hostID))
+	})
+
 	It("transition failed", func() {
 		params := installer.UnbindHostParams{
 			HostID:     hostID,
