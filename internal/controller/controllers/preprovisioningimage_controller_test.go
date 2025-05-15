@@ -107,7 +107,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		Expect(metal3_v1alpha1.AddToScheme(schemes)).To(Succeed())
 		Expect(aiv1beta1.AddToScheme(schemes)).To(Succeed())
 		c = fakeclient.NewClientBuilder().WithScheme(schemes).
-			WithStatusSubresource(&metal3_v1alpha1.PreprovisioningImage{}).Build()
+			WithStatusSubresource(&metal3_v1alpha1.PreprovisioningImage{}, &aiv1beta1.InfraEnv{}).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
@@ -334,6 +334,64 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 					Status:  corev1.ConditionFalse},
 				ppi,
 			)
+		})
+
+		It("Should update the status after cool down and not reboot the host if the image didn't change", func() {
+			ppi.Status.ImageUrl = downloadURL
+			Expect(c.Status().Update(ctx, ppi)).To(BeNil())
+
+			infraEnv.Status.ISODownloadURL = downloadURL
+			infraEnv.Status.CreatedTime = &metav1.Time{Time: time.Now()}
+			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  "some reason",
+				Message: "Some message",
+			}}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			setInfraEnvIronicConfig()
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(2).Return(nil, errors.Errorf("ICC configuration is not available"))
+
+			By("initially reconciling the preprovisioningimage during cooldown")
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res.Requeue).To(Equal(true))
+
+			By("verifying the preprovisioningimage has wait for cooldown status")
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testPPI",
+			}
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+			validateStatus(downloadURL,
+				&conditionsv1.Condition{
+					Reason:  "WaitingForInfraEnvImageToCoolDown",
+					Message: "Waiting for InfraEnv image to cool down",
+					Status:  corev1.ConditionFalse},
+				ppi,
+			)
+
+			By("modifying the infraenv creation time to make it seem like it's after the cooldown period")
+			Expect(c.Get(ctx, types.NamespacedName{Name: infraEnv.Name, Namespace: infraEnv.Namespace}, infraEnv)).To(BeNil())
+			infraEnv.Status.CreatedTime = &metav1.Time{Time: metav1.Now().Add(-InfraEnvImageCooldownPeriod)}
+			Expect(c.Status().Update(ctx, infraEnv)).To(BeNil())
+			setInfraEnvIronicConfig()
+
+			By("reconciling the preprovisioningimage after the cooldown period")
+			res, err = pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			By("verifying the preprovisioningimage status has updated")
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+			validateStatus(downloadURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
+
+			By("verifying the BMH does not have the reboot annotation")
+			bmhKey := types.NamespacedName{
+				Namespace: bmh.Namespace,
+				Name:      bmh.Name,
+			}
+			Expect(c.Get(ctx, bmhKey, bmh)).To(BeNil())
+			Expect(bmh.Annotations).ToNot(HaveKey("reboot.metal3.io"))
 		})
 
 		It("sets the image on the PPI to the ISO URL and doesn't force a reboot", func() {
