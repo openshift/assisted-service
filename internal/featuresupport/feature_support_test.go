@@ -131,7 +131,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		It("IsFeatureAvailable", func() {
 			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitecturePpc64le))).To(Equal(true))
 			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureX8664))).To(Equal(true))
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureS390x))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureS390x))).To(Equal(false))
 			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureArm64))).To(Equal(true))
 		})
 		It("GetSupportLevel on architecture", func() {
@@ -139,7 +139,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
 
 			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitectureS390x)
-			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
 
 			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitecturePpc64le)
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))

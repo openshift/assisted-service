@@ -135,7 +135,7 @@ var _ = Describe("installcmd", func() {
 		Entry("Enable MCO reboot is true. Higher version - aarch64", true, "4.16.0", models.ClusterCPUArchitectureAarch64, false, true),
 		Entry("Enable MCO reboot is true. Higher version - arm64", true, "4.16.0", models.ClusterCPUArchitectureArm64, false, true),
 		Entry("Enable MCO reboot is true. Higher version - ppc64le", true, "4.16.0", models.ClusterCPUArchitecturePpc64le, false, true),
-		Entry("Enable MCO reboot is true. Higher version - s390x", true, "4.16.0", models.ClusterCPUArchitectureS390x, false, true),
+		Entry("Enable MCO reboot is true. Higher version - s390x", true, "4.16.0", models.ClusterCPUArchitectureS390x, false, false),
 	)
 
 	DescribeTable("notify num reboots",
