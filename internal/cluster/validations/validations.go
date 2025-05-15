@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-multierror"
@@ -133,6 +133,16 @@ func ParseRegistry(image string) (string, error) {
 		return "", err
 	}
 	return reference.Domain(parsed), nil
+}
+
+// ParseFullRegistry extracts the registry (base domain) + path from a full image name, or returns
+// the default (docker.io) with the path appended if the name does not start with a registry.
+func ParseFullRegistry(image string) (string, error) {
+	parsed, err := reference.ParseNormalizedNamed(strings.TrimSpace(image))
+	if err != nil {
+		return "", err
+	}
+	return reference.TrimNamed(parsed).Name(), nil
 }
 
 // ParseBaseRegistry extracts the base domain for a registry.
