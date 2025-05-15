@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 )
 
 // PullSecretValidator is used run validations on a provided pull secret
-// it verifies the format of the pull secrete and access to required image registries
+// it verifies the format of the pull secret and access to required image registries
 //
 //go:generate mockgen -source=pull_secret_validation.go -package=validations -destination=mock_pull_secret_validation.go
 type PullSecretValidator interface {
@@ -179,27 +180,7 @@ func parseAuthConfig(registry string, authConfig map[string]interface{}) (PullSe
 	return ret, nil
 }
 
-func validateRegistryWithAuth(registry string, credentials map[string]PullSecretCreds) error {
-	// Both "docker.io" and "https://index.docker.io/v1/" are acceptable for DockerHub login
-	if registry == dockerHubRegistry {
-		if _, ok := credentials[dockerHubLegacyAuth]; ok {
-			return nil
-		}
-	}
-
-	// We add auth for stage registry automatically
-	if registry == stageRegistry {
-		return nil
-	}
-
-	if _, ok := credentials[registry]; !ok {
-		return &PullSecretError{Msg: fmt.Sprintf("pull secret must contain auth for %q", registry)}
-	}
-
-	return nil
-}
-
-// ValidatePullSecret validates that a pull secret is well formed and contains all required data
+// ValidatePullSecret validates that a pull secret is well-formed and contains all of the required data
 func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string, releaseImageURL string) error {
 	creds, err := ParsePullSecret(secret)
 	if err != nil {
@@ -224,41 +205,80 @@ func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username
 		}
 	}
 
-	for registry := range v.registriesWithAuth {
-		if err = validateRegistryWithAuth(registry, creds); err != nil {
+	ignorableRegistries := maps.Clone(v.publicRegistries)
+	registries := maps.Keys(v.registriesWithAuth)
+	registries = append(registries, releaseImageURL)
+	return verifyNoMissingAuth(ignorableRegistries, creds, registries...)
+}
+
+// verifyNoMissingAuth verifies that all registries are accounted for in either the ignore list or contain
+// an authentication entry in the pull secret
+func verifyNoMissingAuth(ignorableRegistries map[string]bool, credentials map[string]PullSecretCreds, registries ...string) error {
+	// Combine ignorable registries and the registries listed in the credentials since they effectively
+	// are the same check: if the registry exists in the ignore list or in the credentials list, then the
+	// registry does not require auth
+	for key := range credentials {
+		ignorableRegistries[key] = true
+	}
+	for _, registry := range registries {
+		authStillRequired, err := getRegistryAuthStatus(ignorableRegistries, registry)
+		if err != nil {
 			return err
 		}
-	}
 
-	registryWithAuth, err := getRegistryAuthStatus(v.publicRegistries, releaseImageURL)
-	if err != nil {
-		return err
-	}
-
-	if registryWithAuth != nil {
-		if err := validateRegistryWithAuth(*registryWithAuth, creds); err != nil {
-			return err
+		if authStillRequired != nil {
+			return &PullSecretError{Msg: fmt.Sprintf("pull secret must contain auth for %q", registry)}
 		}
 	}
-
 	return nil
 }
 
-// getRegistryAuthStatus takes a release image reference and a set of ignorarble registries,
-// and returns the image's registry if it requires authentication and it is not ignorable
-func getRegistryAuthStatus(ignorableImages map[string]bool, image string) (*string, error) {
+// getRegistryAuthStatus takes a release image reference and a set of ignorable registries,
+// and returns the image's registry if it requires authentication
+func getRegistryAuthStatus(ignorableRegistries map[string]bool, image string) (*string, error) {
 	if image == "" {
 		return nil, nil
 	}
 
-	registry, err := ParseRegistry(image)
+	registry, err := ParseFullRegistry(image)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error occurred while trying to parse the registry out of '%s'", image)
 	}
 
-	if (registry == dockerHubRegistry && ignorableImages[dockerHubLegacyAuth]) || ignorableImages[registry] {
+	if findFullRegistryInSet(registry, ignorableRegistries) {
 		return nil, nil
 	}
-
 	return &registry, nil
+}
+
+// findFullRegistryInSet takes a full image registry (base domain + path) and a set of registries
+// and checks if the image registry exists in the set by first checking if the full registry name
+// is in the set. If it isn't, it truncates the path of the registry and checks the remainder
+// against the set. It continues to do this all the way to the base domain of the registry.
+// E.g. quay.io/test/image first checks for quay.io/test/image, then quay.io/test, and finally quay.io
+// If any of these exist in the set, this function will return true
+func findFullRegistryInSet(registry string, set map[string]bool) bool {
+	if isRegistryInSet(registry, set) {
+		return true
+	}
+	for slash := strings.LastIndex(registry, "/"); slash > 0; slash = strings.LastIndex(registry, "/") {
+		registry = registry[:slash]
+		if isRegistryInSet(registry, set) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isRegistryInSet(registry string, set map[string]bool) bool {
+	// Both "docker.io" and "https://index.docker.io/v1/" are acceptable for DockerHub login
+	if registry == dockerHubRegistry {
+		if _, ok := set[dockerHubLegacyAuth]; ok {
+			return true
+		}
+	}
+
+	// We add auth for stage registry automatically
+	return registry == stageRegistry || set[registry]
 }
