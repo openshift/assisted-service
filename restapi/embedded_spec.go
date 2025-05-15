@@ -7904,6 +7904,7 @@ func init() {
       "type": "string",
       "enum": [
         "SNO",
+        "TNA",
         "VIP_AUTO_ALLOC",
         "CUSTOM_MANIFEST",
         "SINGLE_NODE_EXPANSION",
@@ -19004,6 +19005,7 @@ func init() {
       "type": "string",
       "enum": [
         "SNO",
+        "TNA",
         "VIP_AUTO_ALLOC",
         "CUSTOM_MANIFEST",
         "SINGLE_NODE_EXPANSION",

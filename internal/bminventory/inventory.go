@@ -6440,6 +6440,11 @@ func (b *bareMetalInventory) updateHostRole(ctx context.Context, host *common.Ho
 			log.Error(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
+		if getPlatformType(cluster.Platform) != string(models.PlatformTypeBaremetal) {
+			err := errors.Errorf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with baremetal platform", host.ID, host.InfraEnvID)
+			log.Error(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 	err := b.hostApi.UpdateRole(ctx, &host.Host, models.HostRole(*hostRole), db)
 	if err != nil {
