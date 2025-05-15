@@ -15,7 +15,7 @@ require (
 	github.com/coreos/ignition/v2 v2.14.0
 	github.com/coreos/vcontext v0.0.0-20211021162308-f1dbbca7bef4
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
-	github.com/docker/distribution v2.8.1+incompatible
+	github.com/distribution/reference v0.6.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a
 	github.com/go-gormigrate/gormigrate/v2 v2.1.2
@@ -75,6 +75,7 @@ require (
 	github.com/thoas/go-funk v0.9.3
 	github.com/vincent-petithory/dataurl v1.0.0
 	golang.org/x/crypto v0.32.0
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/sync v0.11.0
 	golang.org/x/sys v0.30.0
 	gopkg.in/ini.v1 v1.67.0
@@ -103,7 +104,6 @@ require (
 	github.com/containerd/containerd v1.7.12 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect
-	github.com/distribution/reference v0.5.0 // indirect
 	github.com/elliotwutingfeng/asciiset v0.0.0-20230602022725-51bbb787efab // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.7.0 // indirect
@@ -148,9 +148,8 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.21.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.21.0 // indirect
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
-	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
-	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
+	golang.org/x/mod v0.19.0 // indirect
+	golang.org/x/tools v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240102182953-50ed04b92917 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240102182953-50ed04b92917 // indirect
 	k8s.io/apiserver v0.29.5 // indirect
