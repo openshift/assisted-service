@@ -25,6 +25,7 @@ const (
 	// dXNlcjpwYXNzOndvcmQK <-> user:pass:word
 	validPullSecretWithCIToken = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}, \"registry.ci\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
 	validSecretFormat          = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzOndvcmQK\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
+	validSecretWithRepo        = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io/testing\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}, \"registry.ci\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}"
 	invalidAuthFormat          = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
 	invalidSecretFormat        = "{\"auths\":{\"cloud.openshift.com\":{\"key\":\"abcdef=\",\"email\":\"r@r.com\"},\"quay.io\":{\"auth\":\"adasfsdf=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"tatastata==\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
 	invalidStrSecretFormat     = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":null,\"email\":null},\"quay.io\":{\"auth\":\"adasfsdf=\",\"email\":\"r@r.com\"},\"registry.connect.redhat.com\":{\"auth\":\"tatastata==\",\"email\":\"r@r.com\"},\"registry.redhat.io\":{\"auth\":\"afsdfasf==\",\"email\":\"r@r.com\"}}}"
@@ -152,7 +153,23 @@ var _ = Describe("Pull secret validation", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("pull secret is not accepted when release image is specified bit its registry credentials missing", func() {
+		It("pull secret accepted when release image is specified and the full path for the registry credentials exists", func() {
+			publicRegistries := map[string]bool{}
+			validator, err := NewPullSecretValidator(publicRegistries, authHandlerDisabled, "quay.io/testing/image-name:latest")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, validSecretWithRepo, "", "registry.ci/test:latest")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("pull secret is not accepted when release image specified is in a different repo than the registry credentials", func() {
+			publicRegistries := map[string]bool{}
+			validator, err := NewPullSecretValidator(publicRegistries, authHandlerDisabled, "quay.io/not-testing/image-name:latest")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = validator.ValidatePullSecret(additionalIgnoredRegistries, validSecretWithRepo, "", "registry.ci/test:latest")
+			Expect(err).Should(HaveOccurred())
+		})
+
+		It("pull secret is not accepted when release image is specified but its registry credentials missing", func() {
 			publicRegistries := map[string]bool{}
 			validator, err := NewPullSecretValidator(publicRegistries, authHandlerDisabled, "quay.io/testing:latest")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -195,6 +212,7 @@ var _ = Describe("Pull secret validation", func() {
 			Expect(err).Should(HaveOccurred())
 			Expect(err).Should(BeAssignableToTypeOf(&PullSecretError{}))
 		})
+
 	})
 })
 
@@ -406,8 +424,8 @@ var _ = Describe("Get registries", func() {
 		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(2))
-		Expect(*registries).Should(HaveKey("registry.redhat.io"))
-		Expect(*registries).Should(HaveKey("quay.io"))
+		Expect(*registries).Should(HaveKey("registry.redhat.io/fedora"))
+		Expect(*registries).Should(HaveKey("quay.io/example/assisted-service"))
 	})
 
 	It("multiple images with same registry result in one auth entry", func() {
@@ -415,7 +433,7 @@ var _ = Describe("Get registries", func() {
 		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(1))
-		Expect(*registries).Should(HaveKey("quay.io"))
+		Expect(*registries).Should(HaveKey("quay.io/example/assisted-service"))
 	})
 
 	It("port preserved in image registry", func() {
@@ -423,7 +441,7 @@ var _ = Describe("Get registries", func() {
 		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(1))
-		Expect(*registries).Should(HaveKey("localhost:5000"))
+		Expect(*registries).Should(HaveKey("localhost:5000/private/service"))
 	})
 
 	It("empty registry is replaced with official docker registry", func() {
@@ -431,7 +449,7 @@ var _ = Describe("Get registries", func() {
 		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(1))
-		Expect(*registries).Should(HaveKey(dockerHubRegistry))
+		Expect(*registries).Should(HaveKey(fmt.Sprintf("%s/private/service", dockerHubRegistry)))
 	})
 
 	It("registries omitted when in ignore list with comma (,) separator", func() {
@@ -443,7 +461,7 @@ var _ = Describe("Get registries", func() {
 		registries, err := getRegistriesWithAuth(ignorableImages, images...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*registries).Should(HaveLen(1))
-		Expect(*registries).Should(HaveKey("registry.redhat.io"))
+		Expect(*registries).Should(HaveKey("registry.redhat.io/fedora"))
 	})
 
 	It("all multiple entries from the same registries omitted when in ingore list", func() {
