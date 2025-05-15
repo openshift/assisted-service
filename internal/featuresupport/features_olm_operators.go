@@ -854,7 +854,7 @@ func (f *NodeHealthcheckFeature) GetName() string {
 }
 
 func (f *NodeHealthcheckFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	return models.SupportLevelDevPreview
+	return models.SupportLevelTechPreview
 }
 
 func (f *NodeHealthcheckFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
@@ -890,7 +890,7 @@ func (f *SelfNodeRemediationFeature) GetName() string {
 }
 
 func (f *SelfNodeRemediationFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	return models.SupportLevelDevPreview
+	return models.SupportLevelTechPreview
 }
 
 func (f *SelfNodeRemediationFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
@@ -926,7 +926,7 @@ func (f *FenceAgentsRemediationFeature) GetName() string {
 }
 
 func (f *FenceAgentsRemediationFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	return models.SupportLevelDevPreview
+	return models.SupportLevelTechPreview
 }
 
 func (f *FenceAgentsRemediationFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
@@ -962,7 +962,7 @@ func (f *NodeMaintenanceFeature) GetName() string {
 }
 
 func (f *NodeMaintenanceFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	return models.SupportLevelDevPreview
+	return models.SupportLevelTechPreview
 }
 
 func (f *NodeMaintenanceFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
@@ -998,7 +998,7 @@ func (f *KubeDeschedulerFeature) GetName() string {
 }
 
 func (f *KubeDeschedulerFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	return models.SupportLevelDevPreview
+	return models.SupportLevelTechPreview
 }
 
 func (f *KubeDeschedulerFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
