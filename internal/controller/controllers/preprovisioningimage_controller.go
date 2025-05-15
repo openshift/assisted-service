@@ -398,41 +398,37 @@ func (r *PreprovisioningImageReconciler) mapInfraEnvPPI() func(ctx context.Conte
 	return mapInfraEnvPPI
 }
 
-func (r *PreprovisioningImageReconciler) getIronicConfigFromUserOverride(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) *ICCConfig {
+func (r *PreprovisioningImageReconciler) getIronicAgentImageFromUserOverride(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) string {
 	ironicAgentImage, ok := infraEnv.GetAnnotations()[ironicAgentImageOverrideAnnotation]
 	if ok && ironicAgentImage != "" {
 		log.Infof("Using override ironic agent image (%s) from infraEnv", ironicAgentImage)
-		return &ICCConfig{
-			IronicAgentImage: ironicAgentImage,
-		}
+		return ironicAgentImage
 	}
-
-	return nil
-
+	return ""
 }
 
-func (r *PreprovisioningImageReconciler) getIronicConfigFromBMOConfig(ctx context.Context, log logrus.FieldLogger, infraEnvInternal *common.InfraEnv) *ICCConfig {
-	iccConfig, err := r.BMOUtils.getICCConfig(ctx)
+func (r *PreprovisioningImageReconciler) imageMatchesInfraenvArch(log logrus.FieldLogger, infraEnvInternal *common.InfraEnv, ironicImage string) bool {
+	if ironicImage == "" {
+		return false
+	}
+
+	architectures, err := r.OcRelease.GetImageArchitecture(log, ironicImage, infraEnvInternal.PullSecret)
 	if err != nil {
-		log.WithError(err).Info("ICC configuration is not available")
-		return nil
+		log.WithError(err).Info("Failed to get image architecture for ironic agent image")
+		return false
 	}
 
-	var architectures []string
-	architectures, err = r.OcRelease.GetImageArchitecture(log, iccConfig.IronicAgentImage, infraEnvInternal.PullSecret)
-	if err == nil && funk.Contains(architectures, infraEnvInternal.CPUArchitecture) {
-		log.Infof("Setting ironic agent image (%s) from ICC config", iccConfig.IronicAgentImage)
-		return iccConfig
+	matches := funk.Contains(architectures, infraEnvInternal.CPUArchitecture)
+	if !matches {
+		log.Infof("CPU architecture (%v) of Ironic agent image (%s) does not match infraEnv arch (%s)",
+			architectures,
+			ironicImage,
+			infraEnvInternal.CPUArchitecture)
 	}
-
-	log.Infof("CPU architecture (%v) of Ironic agent image (%s) from ICC config is not available for infraEnv with arch (%s)",
-		architectures,
-		iccConfig.IronicAgentImage,
-		infraEnvInternal.CPUArchitecture)
-	return nil
+	return matches
 }
 
-func (r *PreprovisioningImageReconciler) getIronicConfigFromHUB(ctx context.Context, log logrus.FieldLogger, infraEnvInternal *common.InfraEnv) *ICCConfig {
+func (r *PreprovisioningImageReconciler) getIronicAgentImageFromHUB(ctx context.Context, log logrus.FieldLogger, infraEnvInternal *common.InfraEnv) string {
 	image := r.hubIronicAgentImage
 	architectures := r.hubReleaseArchitectures
 	if image == "" {
@@ -440,17 +436,17 @@ func (r *PreprovisioningImageReconciler) getIronicConfigFromHUB(ctx context.Cont
 		err := r.Get(ctx, types.NamespacedName{Name: "version"}, cv)
 		if err != nil {
 			log.WithError(err).Warningf("Failed to get ClusterVersion")
-			return nil
+			return ""
 		}
 		architectures, err = r.OcRelease.GetReleaseArchitecture(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnvInternal.PullSecret)
 		if err != nil {
 			log.WithError(err).Warningf("Failed to get release architecture for (%s)", cv.Status.Desired.Image)
-			return nil
+			return ""
 		}
 		image, err = r.OcRelease.GetIronicAgentImage(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnvInternal.PullSecret)
 		if err != nil {
 			log.WithError(err).Warningf("Failed to get ironic agent image from release (%s)", cv.Status.Desired.Image)
-			return nil
+			return ""
 		}
 		r.hubIronicAgentImage = image
 		r.hubReleaseArchitectures = architectures
@@ -459,16 +455,14 @@ func (r *PreprovisioningImageReconciler) getIronicConfigFromHUB(ctx context.Cont
 
 	if !funk.Contains(architectures, infraEnvInternal.CPUArchitecture) {
 		log.Warningf("Release image architectures %v do not match infraEnv architecture %s", architectures, infraEnvInternal.CPUArchitecture)
-		return nil
+		return ""
 	}
 
 	log.Infof("Setting ironic agent image (%s) from HUB cluster", image)
-	return &ICCConfig{
-		IronicAgentImage: image,
-	}
+	return image
 }
 
-func (r *PreprovisioningImageReconciler) getIronicDefaultConfig(log logrus.FieldLogger, infraEnvInternal *common.InfraEnv) *ICCConfig {
+func (r *PreprovisioningImageReconciler) getIronicAgentDefaultImage(log logrus.FieldLogger, infraEnvInternal *common.InfraEnv) string {
 	var ironicAgentImage string
 	if infraEnvInternal.CPUArchitecture == common.ARM64CPUArchitecture {
 		ironicAgentImage = r.Config.BaremetalIronicAgentImageForArm
@@ -477,37 +471,38 @@ func (r *PreprovisioningImageReconciler) getIronicDefaultConfig(log logrus.Field
 	}
 
 	log.Infof("Setting default ironic agent image (%s)", ironicAgentImage)
-	return &ICCConfig{
-		IronicAgentImage: ironicAgentImage,
-	}
+	return ironicAgentImage
 }
 
 func (r *PreprovisioningImageReconciler) getIronicConfig(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, infraEnvInternal *common.InfraEnv) (*ICCConfig, error) {
-	var iccConfig *ICCConfig
-
-	iccConfig = r.getIronicConfigFromUserOverride(log, infraEnv)
-
-	if iccConfig == nil {
-		iccConfig = r.getIronicConfigFromBMOConfig(ctx, log, infraEnvInternal)
+	iccConfig, err := r.BMOUtils.getICCConfig(ctx)
+	if err != nil {
+		log.WithError(err).Info("ICC configuration is not available")
 	}
 
-	if iccConfig == nil {
-		iccConfig = r.getIronicConfigFromHUB(ctx, log, infraEnvInternal)
-	}
-
-	if iccConfig == nil {
-		iccConfig = r.getIronicDefaultConfig(log, infraEnvInternal)
-	}
-
-	if iccConfig == nil {
-		return nil, fmt.Errorf("Failed to determine ironic config")
-	}
-
-	if iccConfig.IronicBaseURL == "" && iccConfig.IronicInspectorBaseUrl == "" {
-		err := r.fillIronicServiceURLs(ctx, infraEnv, infraEnvInternal, iccConfig)
-		if err != nil {
+	if iccConfig != nil {
+		log.Infof("Using ironic URLs from ICC config (Base: %s, Inspector: %s)", iccConfig.IronicBaseURL, iccConfig.IronicInspectorBaseUrl)
+	} else {
+		iccConfig = &ICCConfig{}
+		if err := r.fillIronicServiceURLs(ctx, infraEnv, infraEnvInternal, iccConfig); err != nil {
 			return nil, err
 		}
+	}
+
+	if ironicAgentImageUserOverride := r.getIronicAgentImageFromUserOverride(log, infraEnv); ironicAgentImageUserOverride != "" {
+		iccConfig.IronicAgentImage = ironicAgentImageUserOverride
+	} else if iccConfig.IronicAgentImage != "" && r.imageMatchesInfraenvArch(log, infraEnvInternal, iccConfig.IronicAgentImage) {
+		log.Infof("Setting ironic agent image (%s) from ICC config", iccConfig.IronicAgentImage)
+	} else {
+		iccConfig.IronicAgentImage = r.getIronicAgentImageFromHUB(ctx, log, infraEnvInternal)
+	}
+
+	if iccConfig.IronicAgentImage == "" {
+		iccConfig.IronicAgentImage = r.getIronicAgentDefaultImage(log, infraEnvInternal)
+	}
+
+	if iccConfig.IronicAgentImage == "" {
+		return nil, fmt.Errorf("Failed to determine ironic config")
 	}
 
 	log.Infof("Ironic Agent Image is (%s) Ironic URL is (%s) Inspector URL is (%s)",
