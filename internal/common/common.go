@@ -63,6 +63,8 @@ const (
 	MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode    = 2
 
 	MinimumVersionForUserManagedLoadBalancerFeature = "4.16"
+
+	MinimalVersionForSKipMCOReboot = "4.15"
 )
 
 type AddressFamily int

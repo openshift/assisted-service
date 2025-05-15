@@ -108,7 +108,7 @@ var _ = Describe("installcmd", func() {
 		})
 	})
 	DescribeTable("enable MCO reboot values",
-		func(enableMcoReboot bool, version string, architecture string, day2 bool, expected bool) {
+		func(enableMcoReboot bool, version string, architecture string, day2 bool, deviceMapperDevice bool, expected bool) {
 			installCommand := NewInstallCmd(common.GetTestLog(), db, mockValidator, mockRelease, instructionConfig, mockEvents, mockVersions, enableMcoReboot, true)
 			mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
 			mockGetReleaseImage(1)
@@ -122,20 +122,31 @@ var _ = Describe("installcmd", func() {
 				host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
 			}
 
+			if deviceMapperDevice {
+				var inventory models.Inventory
+				Expect(json.Unmarshal([]byte(host.Inventory), &inventory)).ToNot(HaveOccurred())
+				Expect(inventory.Disks).To(HaveLen(1))
+				inventory.Disks[0].Path = "/dev/dm-0"
+				newInventoryBytes, err := json.Marshal(inventory)
+				Expect(err).ToNot(HaveOccurred())
+				host.Inventory = string(newInventoryBytes)
+			}
+
 			installCmdSteps, stepErr = installCommand.GetSteps(ctx, &host)
 			validateInstallCommand(installCommand, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, common.MinMasterHostsNeededForInstallationInHaMode, expected, version, true)
 		},
-		Entry("Enable MCO reboot is false", false, "4.15.0", models.ClusterCPUArchitectureX8664, false, false),
-		Entry("Enable MCO reboot is true. day2 host", true, "4.16.0", models.ClusterCPUArchitectureX8664, true, true),
-		Entry("Enable MCO reboot is true. day1 host", true, "4.16.0", models.ClusterCPUArchitectureX8664, false, true),
-		Entry("Enable MCO reboot is true. Lower version", true, "4.14.0", models.ClusterCPUArchitectureX8664, false, false),
-		Entry("Enable MCO reboot is true. Equal version", true, "4.15.0", models.ClusterCPUArchitectureX8664, false, true),
-		Entry("Enable MCO reboot is true. Empty version", true, "", models.ClusterCPUArchitectureX8664, false, false),
-		Entry("Enable MCO reboot is true. Higher version - x86_64", true, "4.16.0", models.ClusterCPUArchitectureX8664, false, true),
-		Entry("Enable MCO reboot is true. Higher version - aarch64", true, "4.16.0", models.ClusterCPUArchitectureAarch64, false, true),
-		Entry("Enable MCO reboot is true. Higher version - arm64", true, "4.16.0", models.ClusterCPUArchitectureArm64, false, true),
-		Entry("Enable MCO reboot is true. Higher version - ppc64le", true, "4.16.0", models.ClusterCPUArchitecturePpc64le, false, true),
-		Entry("Enable MCO reboot is true. Higher version - s390x", true, "4.16.0", models.ClusterCPUArchitectureS390x, false, false),
+		Entry("Enable MCO reboot is false", false, "4.15.0", models.ClusterCPUArchitectureX8664, false, false, false),
+		Entry("Enable MCO reboot is true. day2 host", true, "4.16.0", models.ClusterCPUArchitectureX8664, true, false, true),
+		Entry("Enable MCO reboot is true. day1 host", true, "4.16.0", models.ClusterCPUArchitectureX8664, false, false, true),
+		Entry("Enable MCO reboot is true. Lower version", true, "4.14.0", models.ClusterCPUArchitectureX8664, false, false, false),
+		Entry("Enable MCO reboot is true. Equal version", true, "4.15.0", models.ClusterCPUArchitectureX8664, false, false, true),
+		Entry("Enable MCO reboot is true. Empty version", true, "", models.ClusterCPUArchitectureX8664, false, false, false),
+		Entry("Enable MCO reboot is true. Higher version - x86_64", true, "4.16.0", models.ClusterCPUArchitectureX8664, false, false, true),
+		Entry("Enable MCO reboot is true. Higher version - aarch64", true, "4.16.0", models.ClusterCPUArchitectureAarch64, false, false, true),
+		Entry("Enable MCO reboot is true. Higher version - arm64", true, "4.16.0", models.ClusterCPUArchitectureArm64, false, false, true),
+		Entry("Enable MCO reboot is true. Higher version - ppc64le", true, "4.16.0", models.ClusterCPUArchitecturePpc64le, false, false, true),
+		Entry("Enable MCO reboot is true. Higher version - s390x", true, "4.16.0", models.ClusterCPUArchitectureS390x, false, false, false),
+		Entry("Enable MCO reboot is false. Higher version - installation disk is device mapper device", true, "4.16.0", models.ClusterCPUArchitectureX8664, false, true, false),
 	)
 
 	DescribeTable("notify num reboots",
@@ -250,6 +261,7 @@ var _ = Describe("installcmd", func() {
 					sdb, // installation disk
 				}
 				host.Inventory = getInventory(disks)
+				host.InstallationDiskID = sdb.ID
 				mockFormatEvent(disks[0], 0)
 				prepareGetStep(sdb)
 				installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
@@ -270,6 +282,7 @@ var _ = Describe("installcmd", func() {
 				sdh, //non-bootable, non-installation
 			}
 			host.Inventory = getInventory(disks)
+			host.InstallationDiskID = sdb.ID
 			mockFormatEvent(sda, 1)
 			prepareGetStep(sdb)
 			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
@@ -290,6 +303,7 @@ var _ = Describe("installcmd", func() {
 				sdh,  //non-bootable, non-installation
 			}
 			host.Inventory = getInventory(disks)
+			host.InstallationDiskID = sddd.ID
 			mockFormatEvent(sda, 1)
 			mockFormatEvent(sddd, 1)
 			prepareGetStep(sddd)
@@ -312,6 +326,7 @@ var _ = Describe("installcmd", func() {
 			}
 			host.Inventory = getInventory(disks)
 			host.InstallerArgs = `["--save-partindex","5","--copy-network"]`
+			host.InstallationDiskID = sddd.ID
 			mockFormatEvent(sda, 1)
 			mockSkipFormatEvent(sddd, 1)
 			prepareGetStep(sddd)
@@ -356,6 +371,7 @@ var _ = Describe("installcmd", func() {
 			}
 			host.Inventory = getInventory(disks)
 			host.SkipFormattingDisks = "/dev/disk/by-id/wwn-sdt,/dev/disk/by-id/wwn-sdq"
+			host.InstallationDiskID = sdb.ID
 			mockFormatEvent(sda, 1)
 			mockFormatEvent(sdc, 1)
 			mockSkipFormatEvent(sdt, 1)
@@ -497,7 +513,12 @@ var _ = Describe("installcmd arguments", func() {
 		})
 
 		It("provides the coreos image when the boot device is persistent", func() {
-			host.Inventory = `{"boot": {"device_type": "persistent"}}`
+			var inventory models.Inventory
+			Expect(json.Unmarshal([]byte(host.Inventory), &inventory)).ToNot(HaveOccurred())
+			inventory.Boot = &models.Boot{DeviceType: models.BootDeviceTypePersistent}
+			newInventoryBytes, err := json.Marshal(inventory)
+			Expect(err).ToNot(HaveOccurred())
+			host.Inventory = string(newInventoryBytes)
 			testCoreOSImage := "example.com/coreos/image:latest"
 			mockRelease = oc.NewMockRelease(ctrl)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
@@ -513,7 +534,12 @@ var _ = Describe("installcmd arguments", func() {
 		})
 
 		It("provides the coreos image when the boot device is persistent for day2 cluters", func() {
-			host.Inventory = `{"boot": {"device_type": "persistent"}}`
+			var inventory models.Inventory
+			Expect(json.Unmarshal([]byte(host.Inventory), &inventory)).ToNot(HaveOccurred())
+			inventory.Boot = &models.Boot{DeviceType: models.BootDeviceTypePersistent}
+			newInventoryBytes, err := json.Marshal(inventory)
+			Expect(err).ToNot(HaveOccurred())
+			host.Inventory = string(newInventoryBytes)
 			Expect(db.Model(cluster).UpdateColumn("kind", models.ClusterKindAddHostsCluster).Error).ToNot(HaveOccurred())
 			testCoreOSImage := "example.com/coreos/image:latest"
 			mockRelease = oc.NewMockRelease(ctrl)
@@ -1640,14 +1666,15 @@ func createInfraEnvInDb(db *gorm.DB, clusterId strfmt.UUID) common.InfraEnv {
 func createHostInDb(db *gorm.DB, infraEnvId, clusterId strfmt.UUID, role models.HostRole, bootstrap bool, hostname string) models.Host {
 	id := strfmt.UUID(uuid.New().String())
 	host := models.Host{
-		ID:                &id,
-		ClusterID:         &clusterId,
-		InfraEnvID:        infraEnvId,
-		Status:            swag.String(models.HostStatusDiscovering),
-		Role:              role,
-		Bootstrap:         bootstrap,
-		Inventory:         common.GenerateTestDefaultInventory(),
-		RequestedHostname: hostname,
+		ID:                 &id,
+		ClusterID:          &clusterId,
+		InfraEnvID:         infraEnvId,
+		Status:             swag.String(models.HostStatusDiscovering),
+		Role:               role,
+		Bootstrap:          bootstrap,
+		Inventory:          common.GenerateTestDefaultInventory(),
+		RequestedHostname:  hostname,
+		InstallationDiskID: common.TestDiskId,
 	}
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	return host
