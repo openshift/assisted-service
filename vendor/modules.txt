@@ -195,13 +195,9 @@ github.com/diskfs/go-diskfs/partition/gpt
 github.com/diskfs/go-diskfs/partition/mbr
 github.com/diskfs/go-diskfs/partition/part
 github.com/diskfs/go-diskfs/util
-# github.com/distribution/reference v0.5.0
+# github.com/distribution/reference v0.6.0
 ## explicit; go 1.20
 github.com/distribution/reference
-# github.com/docker/distribution v2.8.2-beta.1+incompatible
-## explicit
-github.com/docker/distribution/digestset
-github.com/docker/distribution/reference
 # github.com/docker/docker v25.0.6+incompatible
 ## explicit
 github.com/docker/docker/api
