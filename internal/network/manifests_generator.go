@@ -238,7 +238,11 @@ func (m *ManifestsGenerator) createChronyManifestContent(c *common.Cluster, role
 }
 
 func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
-	for _, role := range []models.HostRole{models.HostRoleMaster, models.HostRoleWorker} {
+	roles := []models.HostRole{models.HostRoleMaster, models.HostRoleWorker}
+	if common.IsClusterTopologyHighlyAvailableArbiter(cluster) {
+		roles = append(roles, models.HostRoleArbiter)
+	}
+	for _, role := range roles {
 		content, err := m.createChronyManifestContent(cluster, role, log)
 
 		if err != nil {
@@ -591,6 +595,9 @@ func (m *ManifestsGenerator) AddNicReapply(ctx context.Context, log logrus.Field
 	manifestParamsList := []map[string]interface{}{
 		{"ROLE": "master"},
 		{"ROLE": "worker"},
+	}
+	if common.IsClusterTopologyHighlyAvailableArbiter(c) {
+		manifestParamsList = append(manifestParamsList, map[string]interface{}{"ROLE": "arbiter"})
 	}
 	for _, manifestParams := range manifestParamsList {
 		content, err := fillTemplate(manifestParams, nicReapplyManifest, log)
