@@ -11,23 +11,25 @@ import (
 // getODFDeploymentMode returns the ODF deployment mode based on the cluster
 // configuration and the minimum number of hosts required for ODF installation.
 func getODFDeploymentMode(cluster *models.Cluster, odfMinimumHosts int64) odfDeploymentMode {
-	masterHosts, _, workerHosts, autoAssignHosts := common.GetHostsByEachRole(cluster, false)
+	masterHosts, arbiterHosts, workerHosts, autoAssignHosts := common.GetHostsByEachRole(cluster, false)
 
 	masterCount := len(masterHosts)
+	arbiterCount := len(arbiterHosts)
 	workerCount := len(workerHosts)
 	autoAssignCount := len(autoAssignHosts)
-	hostCount := masterCount + workerCount + autoAssignCount
 
 	// To keep compatability with the behaviour until now.
-	if hostCount == common.MinMasterHostsNeededForInstallationInHaMode && workerCount == 0 {
+	if (masterCount+autoAssignCount) == common.MinMasterHostsNeededForInstallationInHaMode && workerCount == 0 {
 		return compactMode
 	}
 
-	if masterCount == hostCount && masterCount >= int(odfMinimumHosts) {
+	if workerCount == 0 && autoAssignCount == 0 && (masterCount+arbiterCount) >= int(odfMinimumHosts) {
 		return compactMode
 	}
 
-	if masterCount >= common.MinMasterHostsNeededForInstallationInHaMode && workerCount >= int(odfMinimumHosts) {
+	if (masterCount >= common.MinMasterHostsNeededForInstallationInHaMode ||
+		(masterCount >= common.MinMasterHostsNeededForInstallationInHaArbiterMode && arbiterCount != 0)) &&
+		workerCount >= int(odfMinimumHosts) {
 		return standardMode
 	}
 
@@ -59,6 +61,6 @@ func shouldHostRunODF(cluster *models.Cluster, mode odfDeploymentMode, hostRole 
 		return nil, nil
 	}
 
-	return swag.Bool(mode == compactMode && (hostRole == models.HostRoleMaster || hostRole == models.HostRoleAutoAssign) ||
+	return swag.Bool(mode == compactMode && (hostRole == models.HostRoleMaster || hostRole == models.HostRoleArbiter || hostRole == models.HostRoleAutoAssign) ||
 		mode == standardMode && (hostRole == models.HostRoleWorker)), nil
 }

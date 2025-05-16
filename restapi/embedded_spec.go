@@ -10906,6 +10906,11 @@ func init() {
     "versioned-host-requirements": {
       "type": "object",
       "properties": {
+        "arbiter": {
+          "description": "Arbiter node requirements",
+          "x-go-name": "ArbiterRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
         "edge-worker": {
           "description": "Edge Worker OpenShift node requirements",
           "x-go-name": "EdgeWorkerRequirements",
@@ -21972,6 +21977,11 @@ func init() {
     "versioned-host-requirements": {
       "type": "object",
       "properties": {
+        "arbiter": {
+          "description": "Arbiter node requirements",
+          "x-go-name": "ArbiterRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
         "edge-worker": {
           "description": "Edge Worker OpenShift node requirements",
           "x-go-name": "EdgeWorkerRequirements",
