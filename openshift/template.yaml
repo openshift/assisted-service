@@ -228,6 +228,8 @@ parameters:
   value: "10de"
 - name: AMD_SUPPORTED_GPUS
   value: "1002"
+- name: TNA_CLUSTERS_SUPPORT
+  value: "false"
 apiVersion: v1
 kind: Template
 metadata:
@@ -508,6 +510,8 @@ objects:
                 value: ${NVIDIA_SUPPORTED_GPUS}
               - name: AMD_SUPPORTED_GPUS
                 value: ${AMD_SUPPORTED_GPUS}
+              - name: TNA_CLUSTERS_SUPPORT
+                value: ${TNA_CLUSTERS_SUPPORT}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
