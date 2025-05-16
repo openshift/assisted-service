@@ -862,6 +862,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		agent.Status.DebugInfo.State = swag.StringValue(h.Status)
 		agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
 		agent.Status.InstallationDiskID = h.InstallationDiskID
+		agent.Status.Kind = swag.StringValue(h.Kind)
 
 		if h.ValidationsInfo != "" {
 			newValidationsInfo := ValidationsStatus{}
