@@ -101,6 +101,9 @@ spec:
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+  - mirrors:
+    - ${OCP_MIRROR_REGISTRY}
+    source: registry.redhat.io
 EOM
     else
       cat << EOM > mirrors-config.yaml
@@ -116,6 +119,9 @@ spec:
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+  - mirrors:
+    - ${OCP_MIRROR_REGISTRY}
+    source: registry.redhat.io
 EOM
     fi
     oc apply --wait=true -f mirrors-config.yaml
@@ -127,6 +133,9 @@ EOM
 - mirrors:
   - ${OCP_MIRROR_REGISTRY}
   source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+- mirrors:
+  - ${OCP_MIRROR_REGISTRY}
+  source: registry.redhat.io
 EOM
     export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources /tmp/ics-hc.yaml"
     export EXTRA_HYPERSHIFT_CLI_MOUNTS="$EXTRA_HYPERSHIFT_CLI_MOUNTS -v /tmp/ics-hc.yaml:/tmp/ics-hc.yaml"
@@ -242,6 +251,9 @@ wait_for_boolean_field "hostedcontrolplane/${ASSISTED_CLUSTER_NAME}" status.read
 wait_for_condition "nodepool/$ASSISTED_CLUSTER_NAME" "condition=Ready" "10m" "$SPOKE_NAMESPACE"
 wait_for_condition "hostedcluster/$ASSISTED_CLUSTER_NAME" "condition=Available" "10m" "$SPOKE_NAMESPACE"
 
+# Patch hosted cluster to use olm catalog on guest cluster
+oc patch hostedcluster -n "$SPOKE_NAMESPACE" "$ASSISTED_CLUSTER_NAME" -p '{"spec": {"olmCatalogPlacement": "guest"}}' --type=merge
+
 # Scale up
 echo "Scaling the hosted cluster up to contain ${SPOKE_CONTROLPLANE_AGENTS} worker nodes"
 oc scale nodepool/$ASSISTED_CLUSTER_NAME -n $SPOKE_NAMESPACE --replicas=${SPOKE_CONTROLPLANE_AGENTS}
@@ -255,6 +267,9 @@ fi
 oc extract -n $SPOKE_NAMESPACE secret/$ASSISTED_CLUSTER_NAME-admin-kubeconfig --to=- > /tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
 export HUB_KUBECONFIG=${KUBECONFIG}
 export KUBECONFIG=/tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
+
+# Patch operator hub on guest cluster to disable default catalog
+oc patch OperatorHub cluster --type json -p '[{"op": "add", "path": "/spec/disableAllDefaultSources", "value": true}]' 
 
 wait_for_object_amount node ${SPOKE_CONTROLPLANE_AGENTS} 10
 echo "Worker nodes have been detected successfuly in the created cluster!"
