@@ -111,37 +111,37 @@ type VsphereInstallConfigPlatform struct {
 }
 
 type NutanixInstallConfigPlatform struct {
-	ID                   int                   `yaml:"-"`
-	APIVIPs              []string              `yaml:"apiVIPs,omitempty"`
-	DeprecatedAPIVIP     string                `yaml:"apiVIP,omitempty"`
-	IngressVIPs          []string              `yaml:"ingressVIPs,omitempty"`
-	DeprecatedIngressVIP string                `yaml:"ingressVIP,omitempty"`
-	PrismCentral         NutanixPrismCentral   `yaml:"prismCentral"`
-	PrismElements        []NutanixPrismElement `yaml:"prismElements"`
-	SubnetUUIDs          []strfmt.UUID         `yaml:"subnetUUIDs"`
+	ID                   int                   `json:"-"`
+	APIVIPs              []string              `json:"apiVIPs,omitempty"`
+	DeprecatedAPIVIP     string                `json:"apiVIP,omitempty"`
+	IngressVIPs          []string              `json:"ingressVIPs,omitempty"`
+	DeprecatedIngressVIP string                `json:"ingressVIP,omitempty"`
+	PrismCentral         NutanixPrismCentral   `json:"prismCentral"`
+	PrismElements        []NutanixPrismElement `json:"prismElements"`
+	SubnetUUIDs          []strfmt.UUID         `json:"subnetUUIDs"`
 }
 
 type NutanixPrismCentral struct {
-	ID                             int             `yaml:"-"`
-	NutanixInstallConfigPlatformID int             `yaml:"-"`
-	Endpoint                       NutanixEndpoint `yaml:"endpoint"`
-	Username                       string          `yaml:"username"`
-	Password                       strfmt.Password `yaml:"password"`
+	ID                             int             `json:"-"`
+	NutanixInstallConfigPlatformID int             `json:"-"`
+	Endpoint                       NutanixEndpoint `json:"endpoint"`
+	Username                       string          `json:"username"`
+	Password                       strfmt.Password `json:"password"`
 }
 
 type NutanixEndpoint struct {
-	ID                    int    `yaml:"-"`
-	NutanixPrismCentralID int    `yaml:"-"`
-	Address               string `yaml:"address"`
-	Port                  int32  `yaml:"port"`
+	ID                    int    `json:"-"`
+	NutanixPrismCentralID int    `json:"-"`
+	Address               string `json:"address"`
+	Port                  int32  `json:"port"`
 }
 
 type NutanixPrismElement struct {
-	ID                             int             `yaml:"-"`
-	NutanixInstallConfigPlatformID int             `yaml:"-"`
-	Endpoint                       NutanixEndpoint `yaml:"endpoint"`
-	UUID                           strfmt.UUID     `yaml:"uuid"`
-	Name                           string          `yaml:"name"`
+	ID                             int             `json:"-"`
+	NutanixInstallConfigPlatformID int             `json:"-"`
+	Endpoint                       NutanixEndpoint `json:"endpoint"`
+	UUID                           strfmt.UUID     `json:"uuid"`
+	Name                           string          `json:"name"`
 }
 
 // CloudControllerManager describes the type of cloud controller manager to be enabled.
