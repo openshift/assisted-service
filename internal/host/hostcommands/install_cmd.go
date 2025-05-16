@@ -13,7 +13,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
-	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
@@ -130,11 +129,20 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		BootDevice:        swag.String(bootdevice),
 	}
 
-	request.EnableSkipMcoReboot = i.enableSkipMcoReboot && featuresupport.IsFeatureAvailable(
-		models.FeatureSupportLevelIDSKIPMCOREBOOT,
-		cluster.OpenshiftVersion,
-		swag.String(cluster.CPUArchitecture),
-	)
+	deviceMapperDevice, err := isHostInstallationDiskDeviceMapperDevice(host)
+	if err != nil {
+		return "", errors.Wrap(err, "failed checking if the host's installation disk is a device mapper device")
+	}
+
+	skipMCORebootVersionSupported, err := common.BaseVersionGreaterOrEqual(common.MinimalVersionForSKipMCOReboot, cluster.OpenshiftVersion)
+	if err != nil {
+		skipMCORebootVersionSupported = false
+	}
+
+	request.EnableSkipMcoReboot = i.enableSkipMcoReboot &&
+		cluster.CPUArchitecture != models.ClusterCPUArchitectureS390x &&
+		skipMCORebootVersionSupported &&
+		!lo.FromPtr(deviceMapperDevice)
 	request.NotifyNumReboots = i.notifyNumReboots
 
 	cpuArch := cluster.CPUArchitecture
@@ -147,7 +155,6 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 
 	// Get release image for host only if it's either not a day-2 host or it's installing to disk
 	var releaseImage *models.ReleaseImage
-	var err error
 	if installToDisk || swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 		releaseImage, err = i.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cpuArch, cluster.PullSecret)
 		if err != nil {
@@ -596,4 +603,24 @@ func toJSONString(args []string) (string, error) {
 		return "", err
 	}
 	return string(argsBytes), nil
+}
+
+func isHostInstallationDiskDeviceMapperDevice(host *models.Host) (*bool, error) {
+	var hostInventory models.Inventory
+	if err := json.Unmarshal([]byte(host.Inventory), &hostInventory); err != nil {
+		return nil, errors.Wrapf(err, "failed unmarshaling host %s inventory", lo.FromPtr(host.ID))
+	}
+
+	installationDisk, ok := lo.Find(hostInventory.Disks, func(disk *models.Disk) bool {
+		return disk.ID == host.InstallationDiskID
+	})
+	if !ok {
+		return nil, fmt.Errorf(
+			"failed finding disk in host %s which matches installation disk %s", lo.FromPtr(host.ID), host.InstallationDiskID,
+		)
+	}
+
+	deviceName := strings.Replace(lo.FromPtr(installationDisk).Path, "/dev/", "", 1)
+
+	return lo.ToPtr(strings.HasPrefix(deviceName, "dm-")), nil
 }

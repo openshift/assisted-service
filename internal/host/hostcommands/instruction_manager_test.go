@@ -67,6 +67,7 @@ var _ = Describe("instruction_manager", func() {
 		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, "unknown invalid state")
 		host.Role = models.HostRoleMaster
 		host.Inventory = hostutil.GenerateMasterInventory()
+		host.InstallationDiskID = common.TestDiskId
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		anotherHost := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvId, clusterId, "insufficient")
 		Expect(db.Create(&anotherHost).Error).ShouldNot(HaveOccurred())

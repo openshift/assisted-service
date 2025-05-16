@@ -126,59 +126,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 	})
 
-	Context("Test skip MCO reboot", func() {
-		feature := models.FeatureSupportLevelIDSKIPMCOREBOOT
-		It("IsFeatureAvailable", func() {
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitecturePpc64le))).To(Equal(true))
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureX8664))).To(Equal(true))
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureS390x))).To(Equal(false))
-			Expect(IsFeatureAvailable(feature, "4.15", swag.String(models.ClusterCPUArchitectureArm64))).To(Equal(true))
-		})
-		It("GetSupportLevel on architecture", func() {
-			featureSupportParams := SupportLevelFilters{OpenshiftVersion: "4.15", CPUArchitecture: swag.String(models.ClusterCPUArchitectureX8664)}
-			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
-
-			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitectureS390x)
-			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
-
-			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitecturePpc64le)
-			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
-
-			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitectureArm64)
-			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
-		})
-		DescribeTable("feature compatible with architecture",
-			func(cpuArchitecture string, expected bool) {
-				feature := &skipMcoReboot{}
-				openshiftVersion := "4.15"
-				Expect(isFeatureCompatibleWithArchitecture(feature, openshiftVersion, cpuArchitecture)).To(Equal(expected))
-			},
-			Entry(models.ClusterCPUArchitectureX8664, models.ClusterCPUArchitectureX8664, true),
-			Entry(models.ClusterCPUArchitectureArm64, models.ClusterCPUArchitectureArm64, true),
-			Entry(models.ClusterCPUArchitectureAarch64, models.ClusterCPUArchitectureAarch64, true),
-			Entry(models.ClusterCPUArchitectureS390x, models.ClusterCPUArchitectureS390x, true),
-			Entry(models.ClusterCPUArchitecturePpc64le, models.ClusterCPUArchitecturePpc64le, true),
-		)
-		DescribeTable("feature active level",
-			func(openshiftVersion, cpuArchitecture string, expected featureActiveLevel) {
-				feature := &skipMcoReboot{}
-				cluster := common.Cluster{
-					Cluster: models.Cluster{
-						OpenshiftVersion: openshiftVersion,
-						CPUArchitecture:  cpuArchitecture,
-					},
-				}
-				Expect(feature.getFeatureActiveLevel(&cluster, nil, nil, nil)).To(Equal(expected))
-			},
-			Entry("4.14/x86_64", "4.14", models.ClusterCPUArchitectureX8664, activeLevelNotActive),
-			Entry("4.15/x86_64", "4.15", models.ClusterCPUArchitectureX8664, activeLevelActive),
-			Entry("4.15/ppc64le", "4.15", models.ClusterCPUArchitecturePpc64le, activeLevelActive),
-			Entry("4.15/aarch64", "4.15", models.ClusterCPUArchitectureAarch64, activeLevelActive),
-			Entry("4.15/arm64", "4.15", models.ClusterCPUArchitectureArm64, activeLevelActive),
-			Entry("4.15/s390x", "4.15", models.ClusterCPUArchitectureS390x, activeLevelActive),
-		)
-	})
-
 	Context("Test non-standard HA OCP Control Plane", func() {
 		feature := models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE
 		arch := common.X86CPUArchitecture
@@ -559,19 +506,19 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			When("GetFeatureSupportList 4.12 with Platform", func() {
 				It(string(*filters.PlatformType)+" "+swag.StringValue(filters.ExternalPlatformName), func() {
 					list := GetFeatureSupportList("dummy", nil, filters.PlatformType, filters.ExternalPlatformName)
-					Expect(len(list)).To(Equal(39))
+					Expect(len(list)).To(Equal(38))
 				})
 			})
 		}
 
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil, nil, nil)
-			Expect(len(list)).To(Equal(44))
+			Expect(len(list)).To(Equal(43))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil, nil, nil)
-			Expect(len(list)).To(Equal(44))
+			Expect(len(list)).To(Equal(43))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
