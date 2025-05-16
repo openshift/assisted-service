@@ -48,7 +48,7 @@ func (c *OSDiskStatsHelper) getUsedBytesInDirectory(directory string) (uint64, e
 			return fmt.Errorf("unable to determine stat information for path %s", path)
 		}
 		if !fileInfo.IsDir() && !seenInodes[stat.Ino] {
-			totalBytes += uint64(fileInfo.Size())
+			totalBytes += uint64(fileInfo.Size()) // nolint: gosec
 			seenInodes[stat.Ino] = true
 		}
 		return nil
@@ -69,6 +69,6 @@ func (c *OSDiskStatsHelper) GetDiskUsage(directory string) (usedBytes uint64, fr
 	if err != nil {
 		return 0, 0, err
 	}
-	freeBytes = stat.Bfree * uint64(stat.Bsize)
+	freeBytes = stat.Bfree * uint64(stat.Bsize) // nolint: gosec
 	return usedBytes, freeBytes, nil
 }

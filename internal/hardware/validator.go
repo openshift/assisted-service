@@ -3,6 +3,7 @@ package hardware
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/netip"
@@ -149,6 +150,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
 				tooSmallDiskTemplate,
+				// nolint: gosec
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
@@ -207,7 +209,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) error {
 	// get the IPv4 or the IPv6 of the interface connected to the iSCSI target
 	if disk.Iscsi == nil || disk.Iscsi.HostIPAddress == "" {
-		return fmt.Errorf(iscsiHostIPNotAvailable)
+		return errors.New(iscsiHostIPNotAvailable)
 	}
 
 	iSCSIHostIP, err := netip.ParseAddr(disk.Iscsi.HostIPAddress)
@@ -224,7 +226,7 @@ func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) erro
 		return i.Name == defaultRoute.Interface
 	})
 	if !ok {
-		return fmt.Errorf(iscsiNetworkInterfaceNotFound)
+		return errors.New(iscsiNetworkInterfaceNotFound)
 	}
 
 	// look if one of the IP assigned to the default interface interface
