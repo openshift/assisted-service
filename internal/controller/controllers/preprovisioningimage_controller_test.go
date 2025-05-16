@@ -895,7 +895,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			Expect(c.Create(ctx, ppi)).To(BeNil())
 
-			requests := pr.mapInfraEnvPPI()(ctx, infraEnv)
+			requests := pr.mapInfraEnvPPI(ctx, infraEnv)
 
 			Expect(len(requests)).To(Equal(1))
 		})
@@ -906,7 +906,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			ppi2 := newPreprovisioningImage("testPPI2", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
 			Expect(c.Create(ctx, ppi2)).To(BeNil())
 
-			requests := pr.mapInfraEnvPPI()(ctx, infraEnv)
+			requests := pr.mapInfraEnvPPI(ctx, infraEnv)
 
 			Expect(len(requests)).To(Equal(2))
 		})
@@ -917,7 +917,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			ppi2 := newPreprovisioningImage("testPPI2", testNamespace, InfraEnvLabel, "someOtherInfraEnv", bmh.Name)
 			Expect(c.Create(ctx, ppi2)).To(BeNil())
 
-			requests := pr.mapInfraEnvPPI()(ctx, infraEnv)
+			requests := pr.mapInfraEnvPPI(ctx, infraEnv)
 
 			Expect(len(requests)).To(Equal(1))
 		})
@@ -926,7 +926,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			infraEnv.Status.ISODownloadURL = downloadURL
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 
-			requests := pr.mapInfraEnvPPI()(ctx, infraEnv)
+			requests := pr.mapInfraEnvPPI(ctx, infraEnv)
 
 			Expect(len(requests)).To(Equal(0))
 		})
