@@ -319,6 +319,29 @@ var _ = Describe("chrony manifest", func() {
 
 		})
 
+		It("CreateClusterManifest success - TNA cluster", func() {
+			arbiterHost := createHost([]*models.NtpSource{
+				common.TestNTPSourceSynced,
+				common.TestNTPSourceUnsynced,
+			})
+			arbiterHost.Role = models.HostRoleArbiter
+			cluster.Hosts = append(cluster.Hosts, arbiterHost)
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&models.Manifest{
+				FileName: "50-masters-chrony-configuration.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil).Times(1)
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&models.Manifest{
+				FileName: "50-arbiters-chrony-configuration.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil).Times(1)
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&models.Manifest{
+				FileName: "50-workers-chrony-configuration.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil).Times(1)
+			Expect(ntpUtils.AddChronyManifest(ctx, log, cluster)).ShouldNot(HaveOccurred())
+
+		})
+
 		It("CreateClusterManifest failure", func() {
 			fileName := "50-masters-chrony-configuration.yaml"
 			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(nil, errors.Errorf("Failed to create manifest %s", fileName)).Times(1)
