@@ -17,9 +17,12 @@ limitations under the License.
 package controllers
 
 import (
+	"bytes"
 	"context"
+	"crypto/x509"
 	_ "embed"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net/url"
 	"os"
@@ -100,8 +103,7 @@ const (
 	injectCABundleAnnotation = "service.beta.openshift.io/inject-cabundle"
 	injectTrustedCALabel     = "config.openshift.io/inject-trusted-cabundle"
 
-	defaultNamespace                 = "default"
-	osImageDownloadTrustedCAFilename = "tls.crt"
+	defaultNamespace = "default"
 
 	osImageAdditionalParamsHeadersEnvVar     = "OS_IMAGES_REQUEST_HEADERS"
 	osImageAdditionalParamsQueryParamsEnvVar = "OS_IMAGES_REQUEST_QUERY_PARAMS"
@@ -1536,8 +1538,25 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 				return err
 			}
 			setAnnotation(&statefulSet.ObjectMeta, osImagesCAConfigHashAnnotation, osImagesCAConfigHash)
-			container.Env = append(container.Env, corev1.EnvVar{Name: "OS_IMAGE_DOWNLOAD_TRUSTED_CA_FILE", Value: filepath.Join("/etc/image-service/os-images-ca-bundle", osImageDownloadTrustedCAFilename)})
-			container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{Name: "os-images-ca-bundle", MountPath: "/etc/image-service/os-images-ca-bundle"})
+
+			// Pick first and only key as CA bundle
+			var trustedCAKey string
+			for k := range cm.Data {
+				trustedCAKey = k
+				break
+			}
+			if trustedCAKey == "" {
+				return fmt.Errorf("config map %s has no data keys", namespacedName)
+			}
+
+			container.Env = append(container.Env, corev1.EnvVar{
+				Name:  "OS_IMAGE_DOWNLOAD_TRUSTED_CA_FILE",
+				Value: filepath.Join("/etc/image-service/os-images-ca-bundle", trustedCAKey),
+			})
+			container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+				Name:      "os-images-ca-bundle",
+				MountPath: "/etc/image-service/os-images-ca-bundle",
+			})
 			volumes = ensureVolume(volumes, corev1.Volume{
 				Name: "os-images-ca-bundle",
 				VolumeSource: corev1.VolumeSource{
@@ -2786,7 +2805,7 @@ func registerOSImagesAdditionalParamsFailureCondition(ctx context.Context, log l
 	return nil
 }
 
-func validate(ctx context.Context, log logrus.FieldLogger, asc ASC, supportsCertManager bool) (bool, error) {
+func validateOSImageCACertRef(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error) {
 	if asc.spec.OSImageCACertRef != nil && asc.spec.OSImageCACertRef.Name != "" {
 		osImageCACertConfigMap := &corev1.ConfigMap{}
 		err := asc.Client.Get(ctx, types.NamespacedName{
@@ -2796,11 +2815,53 @@ func validate(ctx context.Context, log logrus.FieldLogger, asc ASC, supportsCert
 		if err != nil {
 			return false, registerCACertFailureCondition(ctx, log, err, asc)
 		}
-		_, ok := osImageCACertConfigMap.Data[osImageDownloadTrustedCAFilename]
-		if !ok || len(osImageCACertConfigMap.Data) != 1 {
-			err = fmt.Errorf("ConfigMap referenced by OSImgaeCACertRef is expected to contain a single key named \"%s\"", osImageDownloadTrustedCAFilename)
+		if len(osImageCACertConfigMap.Data) != 1 {
+			err = fmt.Errorf("ConfigMap referenced by OSImageCACertRef must contain exactly one key")
 			return false, registerCACertFailureCondition(ctx, log, err, asc)
 		}
+
+		var trustedCAKey string
+		for k := range osImageCACertConfigMap.Data {
+			trustedCAKey = k
+			break
+		}
+
+		if err = validateCABundle(osImageCACertConfigMap.Data[trustedCAKey]); err != nil {
+			err = fmt.Errorf("file %s does not contain a valid PEM certificate, %s", trustedCAKey, err.Error())
+			return false, registerCACertFailureCondition(ctx, log, err, asc)
+		}
+	}
+	return true, nil
+}
+
+func validateCABundle(bundle string) error {
+	data := []byte(bundle)
+	if len(bytes.TrimSpace(data)) == 0 {
+		return fmt.Errorf("certificate bundle is empty")
+	}
+
+	for {
+		var block *pem.Block
+		block, data = pem.Decode(data)
+		if block == nil {
+			if len(bytes.TrimSpace(data)) > 0 {
+				return fmt.Errorf("trailing content found after the last certificate block")
+			}
+			break
+		}
+		if block.Type != "CERTIFICATE" {
+			return fmt.Errorf("unexpected PEM block type found %q, expected CERTIFICATE", block.Type)
+		}
+		if _, err := x509.ParseCertificate(block.Bytes); err != nil {
+			return fmt.Errorf("failed to parse x509 certificate block with error %q", err.Error())
+		}
+	}
+	return nil
+}
+
+func validate(ctx context.Context, log logrus.FieldLogger, asc ASC, supportsCertManager bool) (bool, error) {
+	if valid, err := validateOSImageCACertRef(ctx, log, asc); !valid {
+		return false, err
 	}
 
 	if asc.spec.OSImageAdditionalParamsRef != nil && asc.spec.OSImageAdditionalParamsRef.Name != "" {
