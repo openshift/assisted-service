@@ -460,6 +460,46 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(bmh.Annotations).To(HaveKey("reboot.metal3.io"))
 		})
 
+		It("doesn't reboot and sets a condition when an image is updated for a provisioned BMH", func() {
+			bmh.Status.Provisioning.State = metal3_v1alpha1.StateProvisioned
+			Expect(c.Update(ctx, bmh)).To(Succeed())
+
+			oldURL := "https://example.com/images/4b495e3f-6a3d-4742-aedd-7db57912c819?api_key=myotherkey&arch=x86_64&type=minimal-iso&version=4.13"
+			infraEnv.Status.ISODownloadURL = oldURL
+			infraEnv.Status.CreatedTime = &metav1.Time{Time: metav1.Now().Add(-InfraEnvImageCooldownPeriod)}
+			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  "some reason",
+				Message: "Some message",
+			}}
+			SetImageUrl(ppi, *infraEnv)
+			Expect(c.Status().Update(ctx, ppi)).To(BeNil())
+
+			newURL := "https://example.com/images/4b495e3f-6a3d-4742-aedd-7db57912c819?api_key=mykey&arch=x86_64&type=minimal-iso&version=4.13"
+			infraEnv.Status.ISODownloadURL = newURL
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			setInfraEnvIronicConfig()
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testPPI",
+			}
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+
+			Expect(ppi.Status.ImageUrl).To(Equal(newURL))
+			bmhKey := types.NamespacedName{
+				Namespace: bmh.Namespace,
+				Name:      bmh.Name,
+			}
+			Expect(c.Get(ctx, bmhKey, bmh)).To(BeNil())
+			Expect(bmh.Annotations).ToNot(HaveKey("reboot.metal3.io"))
+		})
+
 		It("sets the image on the PPI to the initrd when the PPI doesn't accept ISO format", func() {
 			ppi.Spec.AcceptFormats = []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatInitRD}
 			Expect(c.Update(ctx, ppi)).To(BeNil())
@@ -931,7 +971,16 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(len(requests)).To(Equal(0))
 		})
 	})
+})
 
+var _ = Describe("mapBMHtoPPI", func() {
+	It("returns a request for the matching object", func() {
+		bmh := &metal3_v1alpha1.BareMetalHost{ObjectMeta: metav1.ObjectMeta{Name: "testBMH", Namespace: testNamespace}}
+		requests := mapBMHtoPPI(context.Background(), bmh)
+		Expect(len(requests)).To(Equal(1))
+		Expect(requests[0].Namespace).To(Equal(bmh.Namespace))
+		Expect(requests[0].Name).To(Equal(bmh.Name))
+	})
 })
 
 func checkImageConditionFailed(c client.Client, ppi *metal3_v1alpha1.PreprovisioningImage, reason string, messageSubstring string) {
