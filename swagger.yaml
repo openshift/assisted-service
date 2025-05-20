@@ -4256,7 +4256,6 @@ definitions:
       - 'EXTERNAL_PLATFORM_OCI'
       - 'DUAL_STACK'
       - 'PLATFORM_MANAGED_NETWORKING'
-      - 'SKIP_MCO_REBOOT'
       - 'EXTERNAL_PLATFORM'
       - 'OVN_NETWORK_TYPE'
       - 'SDN_NETWORK_TYPE'
