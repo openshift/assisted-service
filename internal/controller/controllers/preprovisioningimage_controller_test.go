@@ -233,6 +233,55 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, infraEnv)).To(BeNil())
 			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
 		})
+
+		It("uses ICC config URLs when ICC contains URLs and user override annotation", func() {
+			overrideAgentImage := "ironic-agent-override:latest"
+			iccConfig := &ICCConfig{
+				IronicAgentImage: "ironic-agent-image",
+				IronicBaseURL:    "ironic-base-url",
+			}
+			setAnnotation(&infraEnv.ObjectMeta, ironicAgentImageOverrideAnnotation, overrideAgentImage)
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			backendInfraEnv.CPUArchitecture = "x86_64"
+			backendInfraEnv.PullSecret = "secret"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(iccConfig, nil)
+			mockOcRelease.EXPECT().GetImageArchitecture(gomock.Any(), iccConfig.IronicAgentImage, backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+					Expect(*internalIgnitionConfig).To(ContainSubstring(iccConfig.IronicBaseURL))
+					Expect(*internalIgnitionConfig).To(ContainSubstring(overrideAgentImage))
+					Expect(url.QueryUnescape(*internalIgnitionConfig)).To(MatchRegexp(`(?m)^inspection_callback_url\s=\s$`)) // matches inspection_callback_url = <empty>
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+		})
+
+		It("sets ironic URLs from cluster when ICC config is unavailable and ironic image annotation override is set", func() {
+			overrideAgentImage := "ironic-agent-override:latest"
+			setAnnotation(&infraEnv.ObjectMeta, ironicAgentImageOverrideAnnotation, overrideAgentImage)
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			backendInfraEnv.CPUArchitecture = "x86_64"
+			backendInfraEnv.PullSecret = "secret"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+					Expect(*internalIgnitionConfig).To(ContainSubstring(url.QueryEscape(ironicServiceIPs[0])))
+					Expect(*internalIgnitionConfig).To(ContainSubstring(url.QueryEscape(ironicInspectorIPs[0])))
+					Expect(*internalIgnitionConfig).To(ContainSubstring(overrideAgentImage))
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+		})
+
 		It("Wait for InfraEnv cool down", func() {
 			infraEnv.Status.ISODownloadURL = downloadURL
 			infraEnv.Status.CreatedTime = &metav1.Time{Time: time.Now()}
@@ -600,7 +649,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			backendInfraEnv.CPUArchitecture = "x86_64"
 			backendInfraEnv.PullSecret = "mypullsecret"
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
-
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
