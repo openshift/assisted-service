@@ -202,7 +202,9 @@ var _ = Describe("RamdiskImageArchive", func() {
 			},
 		}
 
-		for _, tc := range testCases {
+		for _, testCase := range testCases {
+			tc := testCase
+
 			By("checking proxy settings " + tc.description + "are correctly included in the archive")
 
 			archive, err := RamdiskImageArchive([]staticnetworkconfig.StaticNetworkConfigData{}, &tc.clusterProxyInfo, constants.PreNetworkConfigScriptWithNmstatectl, constants.MinimalISONetworkConfigServiceNmstatectl)

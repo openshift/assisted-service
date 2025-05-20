@@ -117,7 +117,7 @@ func (q *Query) convert(input any, output any) error {
 		case *int:
 			*output = input
 		case *int32:
-			*output = int32(input)
+			*output = int32(input) // nolint: gosec
 		case *int64:
 			*output = int64(input)
 		case *any:

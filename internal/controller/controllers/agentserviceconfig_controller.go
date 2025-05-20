@@ -666,11 +666,11 @@ func newAgentService(ctx context.Context, log logrus.FieldLogger, asc ASC) (clie
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = serviceName
-		svc.Spec.Ports[0].Port = int32(servicePort.IntValue())
+		svc.Spec.Ports[0].Port = int32(servicePort.IntValue()) // nolint: gosec
 		svc.Spec.Ports[0].TargetPort = servicePort
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
 		svc.Spec.Ports[1].Name = fmt.Sprintf("%s-http", serviceName)
-		svc.Spec.Ports[1].Port = int32(serviceHTTPPort.IntValue())
+		svc.Spec.Ports[1].Port = int32(serviceHTTPPort.IntValue()) // nolint: gosec
 		svc.Spec.Ports[1].TargetPort = serviceHTTPPort
 		svc.Spec.Ports[1].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": serviceName}
@@ -702,11 +702,11 @@ func newImageServiceService(ctx context.Context, log logrus.FieldLogger, asc ASC
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = imageServiceName
-		svc.Spec.Ports[0].Port = int32(imageHandlerPort.IntValue())
+		svc.Spec.Ports[0].Port = int32(imageHandlerPort.IntValue()) // nolint: gosec
 		svc.Spec.Ports[0].TargetPort = imageHandlerPort
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
 		svc.Spec.Ports[1].Name = fmt.Sprintf("%s-http", imageServiceName)
-		svc.Spec.Ports[1].Port = int32(imageHandlerHTTPPort.IntValue())
+		svc.Spec.Ports[1].Port = int32(imageHandlerHTTPPort.IntValue()) // nolint: gosec
 		svc.Spec.Ports[1].TargetPort = imageHandlerHTTPPort
 		svc.Spec.Ports[1].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": imageServiceName}
@@ -755,7 +755,7 @@ func newAgentRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 		if asc.spec.Ingress == nil {
 			return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
 		}
-		return newIngress(asc, serviceName, asc.spec.Ingress.AssistedServiceHostname, int32(servicePort.IntValue()))
+		return newIngress(asc, serviceName, asc.spec.Ingress.AssistedServiceHostname, int32(servicePort.IntValue())) // nolint: gosec
 	}
 	weight := int32(100)
 	route := &routev1.Route{
@@ -878,7 +878,7 @@ func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 		if asc.spec.Ingress == nil {
 			return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
 		}
-		return newIngress(asc, imageServiceName, asc.spec.Ingress.ImageServiceHostname, int32(imageHandlerPort.IntValue()))
+		return newIngress(asc, imageServiceName, asc.spec.Ingress.ImageServiceHostname, int32(imageHandlerPort.IntValue())) // nolint: gosec
 	}
 	weight := int32(100)
 	route := &routev1.Route{
@@ -1426,11 +1426,11 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 		Image: ImageServiceImage(),
 		Ports: []corev1.ContainerPort{
 			{
-				ContainerPort: int32(imageHandlerPort.IntValue()),
+				ContainerPort: int32(imageHandlerPort.IntValue()), // nolint: gosec
 				Protocol:      corev1.ProtocolTCP,
 			},
 			{
-				ContainerPort: int32(imageHandlerHTTPPort.IntValue()),
+				ContainerPort: int32(imageHandlerHTTPPort.IntValue()), // nolint: gosec
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
@@ -1920,11 +1920,11 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		Image: ServiceImage(asc.Object),
 		Ports: []corev1.ContainerPort{
 			{
-				ContainerPort: int32(servicePort.IntValue()),
+				ContainerPort: int32(servicePort.IntValue()), // nolint: gosec
 				Protocol:      corev1.ProtocolTCP,
 			},
 			{
-				ContainerPort: int32(serviceHTTPPort.IntValue()),
+				ContainerPort: int32(serviceHTTPPort.IntValue()), // nolint: gosec
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
@@ -1964,7 +1964,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          databaseName,
-				ContainerPort: int32(databasePort.IntValue()),
+				ContainerPort: int32(databasePort.IntValue()), // nolint: gosec
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},

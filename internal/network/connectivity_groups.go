@@ -72,11 +72,11 @@ type connectivitySet struct {
 }
 
 func NewConnectivitySet(size int) *connectivitySet {
-	return &connectivitySet{array: bitarray.NewBitArray(uint64(size))}
+	return &connectivitySet{array: bitarray.NewBitArray(uint64(size))} // nolint: gosec
 }
 
 func (c *connectivitySet) add(item int) error {
-	return c.array.SetBit(uint64(item))
+	return c.array.SetBit(uint64(item)) // nolint: gosec
 }
 
 func (c *connectivitySet) intersect(other *connectivitySet) *connectivitySet {
@@ -92,7 +92,7 @@ func (c *connectivitySet) union(other *connectivitySet) *connectivitySet {
 }
 
 func (c *connectivitySet) containsElement(id int) bool {
-	b, err := c.array.GetBit(uint64(id))
+	b, err := c.array.GetBit(uint64(id)) // nolint: gosec
 	return err == nil && b
 }
 
