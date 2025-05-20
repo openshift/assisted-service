@@ -101,8 +101,8 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 
-	mockIsValidMasterCandidate := func() {
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+	mockIsValidCandidate := func() {
+		mockHostAPI.EXPECT().IsValidCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
@@ -904,7 +904,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			}
 
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-			mockIsValidMasterCandidate()
+			mockIsValidCandidate()
 			for i := range t.hosts {
 				t.hosts[i].ClusterID = &clusterId
 				t.hosts[i].InfraEnvID = clusterId
