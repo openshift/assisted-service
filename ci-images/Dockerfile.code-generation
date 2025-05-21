@@ -17,10 +17,10 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 #
 # https://issues.redhat.com/browse/MGMT-12697
 COPY --from=quay.io/goswagger/swagger:sha-5d0a00d /usr/bin/swagger /usr/bin/goswagger
-COPY --from=registry.k8s.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
 
 RUN cd / && /assisted-service/hack/setup_env.sh spectral && \
     /assisted-service/hack/setup_env.sh jq && \
+    /assisted-service/hack/setup_env.sh kustomize && \
     go install github.com/golang/mock/mockgen@v1.5.0 && \
     go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0 && \
     go install golang.org/x/tools/cmd/goimports@v0.1.5 && \
