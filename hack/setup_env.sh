@@ -22,6 +22,11 @@ function jq() {
   chmod +x /usr/local/bin/jq
 }
 
+function kustomize() {
+  echo "Installing kustomize..."
+  curl --retry 5 --connect-timeout 30 -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash -s 5.5.0 /usr/local/bin/
+}
+
 function awscli() {
   echo "Installing aws-cli..."
   curl --retry 5 --connect-timeout 30 -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" --output "/tmp/awscliv2.zip"
@@ -80,6 +85,8 @@ function assisted_service() {
 
   dnf install -y unzip diffutils python3-pip genisoimage skopeo
   dnf clean all && rm -rf /var/cache/yum
+
+  kustomize
 
   jq
 
