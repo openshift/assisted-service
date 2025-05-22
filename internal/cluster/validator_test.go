@@ -912,8 +912,8 @@ var _ = Describe("SufficientMastersCount", func() {
 	Context("pass validation", func() {
 		It("with matching counts, set ControlPlaneCount", func() {
 			mockHostAPI.EXPECT().
-				IsValidMasterCandidate(
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				IsValidCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 				).Return(true, nil).AnyTimes()
 
 			preprocessContext := &clusterPreprocessContext{
@@ -944,8 +944,8 @@ var _ = Describe("SufficientMastersCount", func() {
 
 		It("with SNO cluster, set controlPlaneCount", func() {
 			mockHostAPI.EXPECT().
-				IsValidMasterCandidate(
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				IsValidCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 				).Return(true, nil).AnyTimes()
 
 			preprocessContext := &clusterPreprocessContext{
@@ -970,8 +970,8 @@ var _ = Describe("SufficientMastersCount", func() {
 
 		It("with multi-node cluster, 5 masters", func() {
 			mockHostAPI.EXPECT().
-				IsValidMasterCandidate(
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				IsValidCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 				).Return(true, nil).AnyTimes()
 
 			preprocessContext := &clusterPreprocessContext{
@@ -1008,8 +1008,8 @@ var _ = Describe("SufficientMastersCount", func() {
 
 		It("with TNA Cluster, 2 masters with arbiter", func() {
 			mockHostAPI.EXPECT().
-				IsValidMasterCandidate(
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				IsValidCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 				).Return(true, nil).AnyTimes()
 
 			preprocessContext := &clusterPreprocessContext{
@@ -1042,8 +1042,8 @@ var _ = Describe("SufficientMastersCount", func() {
 	Context("fails validation", func() {
 		It("with multi node cluster, 5 masters but expected 3", func() {
 			mockHostAPI.EXPECT().
-				IsValidMasterCandidate(
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				IsValidCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 				).Return(true, nil).AnyTimes()
 
 			preprocessContext := &clusterPreprocessContext{
@@ -1080,8 +1080,8 @@ var _ = Describe("SufficientMastersCount", func() {
 
 		It("with SNO cluster, 2 masters 0 workers", func() {
 			mockHostAPI.EXPECT().
-				IsValidMasterCandidate(
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				IsValidCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 				).Return(true, nil).AnyTimes()
 
 			preprocessContext := &clusterPreprocessContext{
@@ -1109,8 +1109,8 @@ var _ = Describe("SufficientMastersCount", func() {
 
 		It("with SNO cluster, 1 masters 1 workers", func() {
 			mockHostAPI.EXPECT().
-				IsValidMasterCandidate(
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				IsValidCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 				).Return(true, nil).AnyTimes()
 
 			preprocessContext := &clusterPreprocessContext{
@@ -1138,8 +1138,8 @@ var _ = Describe("SufficientMastersCount", func() {
 
 		It("with TNA cluster, 2 masters without arbiter", func() {
 			mockHostAPI.EXPECT().
-				IsValidMasterCandidate(
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				IsValidCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 				).Return(true, nil).AnyTimes()
 
 			preprocessContext := &clusterPreprocessContext{
