@@ -329,6 +329,10 @@ func (v *validator) GetInfraEnvHostRequirements(ctx context.Context, infraEnv *c
 	if err != nil {
 		return nil, err
 	}
+	arbiterOcpRequirements, err := v.getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv, models.HostRoleArbiter)
+	if err != nil {
+		return nil, err
+	}
 	workerOcpRequirements, err := v.getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv, models.HostRoleWorker)
 	if err != nil {
 		return nil, err
@@ -337,6 +341,9 @@ func (v *validator) GetInfraEnvHostRequirements(ctx context.Context, infraEnv *c
 	requirements := &workerOcpRequirements
 	if workerOcpRequirements.DiskSizeGb > masterOcpRequirements.DiskSizeGb {
 		requirements = &masterOcpRequirements
+	}
+	if requirements.DiskSizeGb > arbiterOcpRequirements.DiskSizeGb {
+		requirements = &arbiterOcpRequirements
 	}
 
 	return &models.ClusterHostRequirements{
@@ -364,25 +371,17 @@ func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluste
 	}
 	if isDiskEncryptionSetWithTpm(cluster) {
 		valid := false
-		if swag.StringValue(cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnAll {
-			valid = true
-			ocpRequirements.Master.Quantitative.TpmEnabledInBios = true
-			//TODO: uncomment this after adding hardware requirements for arbiter
-			//ocpRequirements.Arbiter.Quantitative.TpmEnabledInBios = true
-			ocpRequirements.Worker.Quantitative.TpmEnabledInBios = true
-		}
-
+		isDiskEncryptionOnAll := swag.StringValue(cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnAll
 		enabledGroups := strings.Split(swag.StringValue(cluster.DiskEncryption.EnableOn), ",")
-		if funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnMasters) {
+
+		if isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnMasters) {
 			valid = true
 			ocpRequirements.Master.Quantitative.TpmEnabledInBios = true
 		}
-		if funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnArbiters) {
+		if isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnArbiters) {
 			valid = true
-			//TODO: uncomment this after adding hardware requirements for arbiter
-			//ocpRequirements.Arbiter.Quantitative.TpmEnabledInBios = true
 		}
-		if funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnWorkers) {
+		if isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnWorkers) {
 			valid = true
 			ocpRequirements.Worker.Quantitative.TpmEnabledInBios = true
 		}
@@ -463,6 +462,10 @@ func (v *validator) getOCPClusterHostRoleRequirementsForVersion(cluster *common.
 		return *requirements.MasterRequirements, nil
 	}
 
+	if common.GetEffectiveRole(host) == models.HostRoleArbiter {
+		return *requirements.ArbiterRequirements, nil
+	}
+
 	if v.isEdgeWorker(host) {
 		return *requirements.EdgeWorkerRequirements, nil
 	}
@@ -491,6 +494,9 @@ func (v *validator) getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv *commo
 
 	if role == models.HostRoleMaster {
 		return *requirements.MasterRequirements, nil
+	}
+	if role == models.HostRoleArbiter {
+		return *requirements.ArbiterRequirements, nil
 	}
 	if role == models.HostRoleWorker || role == models.HostRoleAutoAssign {
 		return *requirements.WorkerRequirements, nil
