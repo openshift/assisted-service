@@ -32,8 +32,8 @@ import (
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -1414,7 +1414,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 	// User has set ignition via annotation
 	if ok {
 		log.Debug("User has set ignition via annotation")
-		res, err := ignition.MergeIgnitionConfig([]byte(ignitionWithMCSCert), []byte(userIgnition))
+		res, err := common.MergeIgnitionConfig([]byte(ignitionWithMCSCert), []byte(userIgnition))
 		if err != nil {
 			log.WithError(err).Errorf("Error while merging the ignitions")
 			return reconcileError{err: err}

@@ -132,7 +132,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 
 		// TODO(deprecate-ignition-3.1.0)
 		bootstrapBytes, _ := os.ReadFile(examplePath)
-		config, err1 = ParseToLatest(bootstrapBytes)
+		config, err1 = common.ParseToLatest(bootstrapBytes)
 		Expect(err1).NotTo(HaveOccurred())
 		Expect(config.Ignition.Version).To(Equal("3.2.0"))
 		bytes, err1 := json.Marshal(config)

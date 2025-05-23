@@ -5440,7 +5440,7 @@ func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context,
 	log := logutil.FromContext(ctx, b.log)
 
 	if ignitionConfigOverride != "" {
-		_, err := ignition.ParseToLatest([]byte(ignitionConfigOverride))
+		_, err := common.ParseToLatest([]byte(ignitionConfigOverride))
 		if err != nil {
 			log.WithError(err).Errorf("Failed to parse ignition config patch %s", ignitionConfigOverride)
 			return err
@@ -5448,7 +5448,7 @@ func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context,
 	}
 
 	if internalIgnitionOverride != nil && *internalIgnitionOverride != "" {
-		_, err := ignition.ParseToLatest([]byte(*internalIgnitionOverride))
+		_, err := common.ParseToLatest([]byte(*internalIgnitionOverride))
 		if err != nil {
 			log.WithError(err).Errorf("Failed to parse internal ignition config patch %s", *internalIgnitionOverride)
 			return err
@@ -6110,7 +6110,7 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 		}
 
 		if params.HostIgnitionParams.Config != "" {
-			_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
+			_, err = common.ParseToLatest([]byte(params.HostIgnitionParams.Config))
 			if err != nil {
 				log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
 				return common.NewApiError(http.StatusBadRequest, err)

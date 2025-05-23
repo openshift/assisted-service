@@ -354,9 +354,17 @@ func GetIgnitionEndpoint(cluster *common.Cluster, host *models.Host) (string, er
 		poolName = host.MachineConfigPoolName
 	}
 
+	protocol := "http"
+	port := constants.InsecureMCSPort
+	if common.HasCACertInIgnition(host.IgnitionConfigOverrides) {
+		protocol = "https"
+		port = constants.SecureMCSPort
+	}
+
 	ignitionEndpointUrl := fmt.Sprintf(
-		"http://%s/config/%s",
-		net.JoinHostPort(common.GetAPIHostname(cluster), fmt.Sprint(constants.InsecureMCSPort)),
+		"%s://%s/config/%s",
+		protocol,
+		net.JoinHostPort(common.GetAPIHostname(cluster), fmt.Sprint(port)),
 		poolName)
 	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
 		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
