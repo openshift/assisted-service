@@ -233,7 +233,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			BeforeEach(func() {
 				c = createCluster(&id, "installing", statusInfoInstalling)
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+				mockHostAPI.EXPECT().IsValidCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 			})
 
 			It("installing -> installing", func() {
@@ -673,7 +673,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 		monitorKnownToInsufficient := func(nClusters int) {
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
 			mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
-			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			mockHostAPI.EXPECT().IsValidCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(true, nil).AnyTimes()
 
 			for i := 0; i < nClusters; i++ {
@@ -738,7 +738,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName))).Times(0)
 				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).Times(0)
-				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(0)
+				mockHostAPI.EXPECT().IsValidCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(0)
 			})
 
 			It("empty log info (no logs expected or arrived)", func() {
@@ -1450,7 +1450,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 					eventstest.WithClusterIdMatcher(c.ID.String()))).AnyTimes()
 			}
 			if len(t.hosts) > 0 {
-				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				mockHostAPI.EXPECT().IsValidCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			}
 			if t.userActionResetExpected {
 				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).AnyTimes()
@@ -2849,7 +2849,7 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 	It("timeout - assisted pod failure", func() {
 		// In the case of assisted pod failure, all of the hosts are likely to be successful
 		// This is detecting the case where assisted pod failure is the only reason that the cluster failed to prepare.
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockHostAPI.EXPECT().IsValidCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		h1ID := strfmt.UUID(uuid.New().String())
 		h1 := common.Host{
 			Host: models.Host{

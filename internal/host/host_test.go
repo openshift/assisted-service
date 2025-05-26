@@ -2819,6 +2819,7 @@ var _ = Describe("AutoAssignRole", func() {
 	var (
 		ctx             = context.Background()
 		clusterId       strfmt.UUID
+		cluster         *common.Cluster
 		infraEnvId      strfmt.UUID
 		hapi            API
 		db              *gorm.DB
@@ -2862,11 +2863,12 @@ var _ = Describe("AutoAssignRole", func() {
 			mockVersions,
 			false,
 		)
-		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{
+		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                &clusterId,
 			Kind:              swag.String(models.ClusterKindCluster),
 			ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
-		}}).Error).ShouldNot(HaveOccurred())
+		}}
+		Expect(db.Create(cluster).Error).ShouldNot(HaveOccurred())
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
@@ -3016,9 +3018,31 @@ var _ = Describe("AutoAssignRole", func() {
 		verifyAutoAssignRole(&h, true, true)
 		Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleWorker))
 	})
+
+	It("TNA cluster with 2 masters and 0 arbiters", func() {
+		cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaArbiterMode
+		db.Save(cluster)
+		for i := 0; i < common.MinMasterHostsNeededForInstallationInHaArbiterMode; i++ {
+			h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvId, clusterId, models.HostStatusKnown)
+			h.Inventory = hostutil.GenerateMasterInventory()
+			h.Role = models.HostRoleAutoAssign
+			h.SuggestedRole = ""
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			verifyAutoAssignRole(&h, true, true)
+			Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleMaster))
+		}
+
+		h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvId, clusterId, models.HostStatusKnown)
+		h.Inventory = hostutil.GenerateMasterInventory()
+		h.Role = models.HostRoleAutoAssign
+		h.SuggestedRole = ""
+		Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+		verifyAutoAssignRole(&h, true, true)
+		Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleArbiter))
+	})
 })
 
-var _ = Describe("IsValidMasterCandidate", func() {
+var _ = Describe("IsValidCandidate", func() {
 	var (
 		clusterId  strfmt.UUID
 		infraEnvId strfmt.UUID
@@ -3135,7 +3159,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 				var cluster common.Cluster
 				Expect(db.Preload("Hosts").Take(&cluster, "id = ?", clusterId.String()).Error).ToNot(HaveOccurred())
-				isValidReply, err := hapi.IsValidMasterCandidate(&h, &cluster, db, common.GetTestLog(), true)
+				isValidReply, err := hapi.IsValidCandidate(&h, &cluster, models.HostRoleMaster, db, common.GetTestLog(), true)
 				Expect(isValidReply).Should(Equal(t.isValid))
 				Expect(err).ShouldNot(HaveOccurred())
 			})

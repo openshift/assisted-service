@@ -371,8 +371,17 @@ func (v *clusterValidator) SufficientMastersCount(c *clusterPreprocessContext) (
 		//if allocated masters count is less than the desired count, find eligible hosts
 		//from the candidate pool to match the master count criteria
 		if len(masters) < int(c.cluster.ControlPlaneCount) {
-			if isValid, err := v.hostAPI.IsValidMasterCandidate(h, c.cluster, c.db, v.log, false); isValid && err == nil {
+			if isValid, err := v.hostAPI.IsValidCandidate(h, c.cluster, models.HostRoleMaster, c.db, v.log, false); isValid && err == nil {
 				masters = append(masters, h)
+				continue
+			}
+		}
+		//otherwise, if the cluster's ControlPlaneCount is 2 then we should try to have at least 1 arbiter
+		if c.cluster.ControlPlaneCount < common.MinMasterHostsNeededForInstallationInHaMode &&
+			c.cluster.ControlPlaneCount >= common.MinMasterHostsNeededForInstallationInHaArbiterMode &&
+			len(arbiters) == 0 {
+			if isValid, err := v.hostAPI.IsValidCandidate(h, c.cluster, models.HostRoleArbiter, c.db, v.log, false); isValid && err == nil {
+				arbiters = append(arbiters, h)
 				continue
 			}
 		}

@@ -694,9 +694,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 
-	checkMasterCandidates := func(times int) candidateChecker {
+	checkCandidates := func(times int) candidateChecker {
 		return func() {
-			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(times)
+			mockHostAPI.EXPECT().IsValidCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(times)
 		}
 	}
 
@@ -954,7 +954,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleAutoAssign},
 					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleAutoAssign},
 				},
-				candidateChecker:  checkMasterCandidates(3),
+				candidateChecker:  checkCandidates(3),
 				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationFailure, messagePattern: "The Machine Network CIDR is undefined"},
@@ -971,6 +971,39 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 						messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
 				}),
 				errorExpected: false,
+			},
+			{
+				name:          "pending-for-input to pending-for-input - TNA cluster with 3 hosts in auto-assign mode",
+				srcState:      models.ClusterStatusPendingForInput,
+				dstState:      models.ClusterStatusPendingForInput,
+				apiVips:       nil,
+				ingressVips:   nil,
+				dnsDomain:     "test.com",
+				pullSecretSet: true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleAutoAssign},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleAutoAssign},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleAutoAssign},
+				},
+				candidateChecker:  checkCandidates(3),
+				statusInfoChecker: makeValueChecker(statusInfoPendingForInput),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationFailure, messagePattern: "The Machine Network CIDR is undefined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationPending, messagePattern: "The Machine Network CIDR, API virtual IPs, or Ingress virtual IPs are undefined."},
+					AreApiVipsDefined:                   {status: ValidationFailure, messagePattern: "API virtual IPs are undefined and must be provided"},
+					AreApiVipsValid:                     {status: ValidationPending, messagePattern: "API virtual IPs are undefined"},
+					AreIngressVipsDefined:               {status: ValidationFailure, messagePattern: "Ingress virtual IPs are undefined and must be provided"},
+					AreIngressVipsValid:                 {status: ValidationPending, messagePattern: "Ingress virtual IPs are undefined"},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
+					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
+					SufficientMastersCount: {status: ValidationSuccess,
+						messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+				}),
+				errorExpected:     false,
+				openshiftVersion:  common.MinimumVersionForArbiterClusters,
+				controlPlaneCount: 2,
 			},
 			{
 				name:            "pending-for-input to insufficient, too much masters - non-standard HA OCP Control Plane not available",
@@ -1981,7 +2014,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
 			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil, false, nil)
 
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockHostAPI.EXPECT().IsValidCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
@@ -5227,8 +5260,8 @@ var _ = Describe("Single node", func() {
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
-	mockIsValidMasterCandidate := func() {
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+	mockIsValidCandidate := func() {
+		mockHostAPI.EXPECT().IsValidCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 
 	BeforeEach(func() {
@@ -5470,7 +5503,7 @@ var _ = Describe("Single node", func() {
 
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-				mockIsValidMasterCandidate()
+				mockIsValidCandidate()
 				for i := range t.hosts {
 					t.hosts[i].InfraEnvID = clusterId
 					t.hosts[i].ClusterID = &clusterId
