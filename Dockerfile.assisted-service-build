@@ -35,7 +35,7 @@ COPY --from=quay.io/goswagger/swagger:sha-5d0a00d /usr/bin/swagger /usr/bin/gosw
 COPY --from=quay.io/edge-infrastructure/swagger-codegen-cli:2.4.18 /opt/swagger-codegen-cli /opt/swagger-codegen-cli
 COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin
 COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bin
-COPY --from=registry.k8s.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
+COPY --from=registry.k8s.io/kustomize/kustomize:v5.6.0 /app/kustomize /usr/bin/
 COPY --from=quay.io/coreos/shellcheck-alpine:v0.5.0 /bin/shellcheck /usr/bin/shellcheck
 
 RUN dnf install -y --enablerepo=crb \
