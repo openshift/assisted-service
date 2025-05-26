@@ -439,8 +439,7 @@ func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *g
 		//suggested role is already set
 		if h.Role == models.HostRoleAutoAssign &&
 			funk.ContainsString(hostStatusesBeforeInstallation[:], *h.Status) {
-			host := *h //must have a defensive copy becuase selectRole changes the host object
-			if suggestedRole, err = m.selectRole(ctx, &host, db); err == nil {
+			if suggestedRole, err = m.selectRole(ctx, h, db); err == nil {
 				m.log.Debugf("calculated role for host %s is %s (original suggested = %s)", hostutil.GetHostnameForMsg(h), suggestedRole, h.SuggestedRole)
 				if h.SuggestedRole != suggestedRole {
 					if err = updateRole(m.log, h, h.Role, suggestedRole, db, string(h.Role)); err == nil {
@@ -1291,28 +1290,34 @@ func countNumberOfMastersNotIncludingHost(h *models.Host, cluster *common.Cluste
 	})
 }
 
-func assignMasterRoleToHost(h *models.Host, cluster *common.Cluster) error {
-	if clusterHost, ok := lo.Find(cluster.Hosts, func(host *models.Host) bool {
-		return h.ID.String() == host.ID.String()
-	}); ok {
-		clusterHost.Role = models.HostRoleMaster
-		h.Role = models.HostRoleMaster
-		return nil
-	}
-
-	return fmt.Errorf("host: %s was not found in cluster: %s", h.ID.String(), cluster.ID.String())
-}
-
 func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger, validateAgainstOperators bool) (bool, error) {
 	if h.Role == models.HostRoleWorker {
 		return false, nil
 	}
 
-	cluster := *c // Make a copy to avoid changing the original cluster (host copy was already made)
+	found := false
 
-	if err := assignMasterRoleToHost(h, &cluster); err != nil {
-		return false, errors.Wrapf(err, "failed to assign master role to host: %s in cluster: %s", h.ID.String(), cluster.ID.String())
+	// struct copy
+	cluster := *c
+	// deep-copy the Hosts slice so mutations don’t leak out
+	cluster.Hosts = make([]*models.Host, len(c.Hosts))
+	for i, src := range c.Hosts {
+		dst := *src // copy the struct value
+		if src.ID != nil && h.ID != nil &&
+			src.ID.String() == h.ID.String() {
+			// point h at the copied host so we only mutate the copy
+			h = &dst
+			found = true
+		}
+		cluster.Hosts[i] = &dst
 	}
+
+	if !found {
+		return false, errors.New("host not found in cluster")
+	}
+
+	// update the copied host's role in order to run validations on it
+	h.Role = models.HostRoleMaster
 
 	ctx := context.TODO()
 
