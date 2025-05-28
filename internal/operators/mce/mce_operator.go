@@ -168,6 +168,10 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 		}, nil
 	}
 
+	if host.Role == models.HostRoleArbiter {
+		return &models.ClusterHostRequirementsDetails{}, nil
+	}
+
 	return preflightRequirements.Requirements.Worker.Quantitative, nil
 }
 

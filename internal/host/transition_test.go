@@ -79,6 +79,7 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 			"default": {
 				Version:                "default",
 				MasterRequirements:     &defaultMasterRequirements,
+				ArbiterRequirements:    &defaultWorkerRequirements,
 				WorkerRequirements:     &defaultWorkerRequirements,
 				SNORequirements:        &defaultSnoRequirements,
 				EdgeWorkerRequirements: &defaultWorkerRequirements,
