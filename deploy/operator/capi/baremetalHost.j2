@@ -43,6 +43,7 @@ spec:
   bmc:
     address: '{{ host["driver_info"]["address"] }}'
     credentialsName: '{{ host["name"] }}-bmc-secret'
+    disableCertificateVerification: true
 {% endif %}
 {% set ns.counter = ns.counter + 1 %}
 {% endfor %}
