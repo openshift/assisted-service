@@ -35,7 +35,7 @@ var _ = Describe("ShouldUseNmstateService", func() {
     address:
       - ip: 192.0.2.1
         prefix-length: 24`
-		withAutoDnsSetToFalse = `interfaces:
+		withAutoDnsSetToFalseDhcpTrue = `interfaces:
 - ipv4:
     auto-dns: false
     dhcp: true
@@ -59,5 +59,5 @@ var _ = Describe("ShouldUseNmstateService", func() {
 		table.Entry("If the YAML contains a mac-identifier, and the version is < MinimalVersionForNmstatectl,  we shouldn't use the nmstate service flow", withMacIdentifier, "4.12", false),
 		table.Entry("If the YAML doesn't contain a mac-identifier and the version is >= MinimalVersionForNmstatectl, we should use the nmstate service flow", withoutMacIdentifier, common.MinimalVersionForNmstatectl, true),
 		table.Entry("If the YAML doesn't contain a mac-identifier, and the version < MinimalVersionForNmstatectl we shouldn't use the nmstate service flow.", withoutMacIdentifier, "4.12", false),
-		table.Entry("If the YAML contains a auto-dns: false, and the version >= MinimalVersionForNmstatectl we shouldn't use the nmstate service flow.", withAutoDnsSetToFalse, common.MinimalVersionForNmstatectl, false))
+		table.Entry("If the YAML contains a auto-dns: false, dhcp: true, and the version >= MinimalVersionForNmstatectl we shouldn't use the nmstate service flow.", withAutoDnsSetToFalseDhcpTrue, common.MinimalVersionForNmstatectl, false))
 })

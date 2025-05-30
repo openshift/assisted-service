@@ -25,9 +25,9 @@ func (s *StaticNetworkConfigGenerator) NMStatectlServiceSupported(version string
 	return versionOK, nil
 }
 
-// CheckConfigForAutoDnsSetToFalse detect whether any of the host-provided YAML configurations contain an interface with auto-dns: false.
-// TODO: This is a temporary workaround and should be removed once the auto-dns:false bug is fixed
-func (s *StaticNetworkConfigGenerator) CheckConfigForAutoDnsSetToFalse(staticNetworkConfigStr string) (bool, error) {
+// CheckConfigForGlobalDnsCase detect whether any of the host-provided YAML configurations contain an interface with auto-dns: false, dhcp: true.
+// TODO: This is a temporary workaround and should be removed once the auto-dns:false, dhcp:true bug is fixed
+func (s *StaticNetworkConfigGenerator) CheckConfigForGlobalDnsCase(staticNetworkConfigStr string) (bool, error) {
 	staticNetworkConfig, err := s.decodeStaticNetworkConfig(staticNetworkConfigStr)
 	if err != nil {
 		s.log.WithError(err).Errorf("Failed to decode static network config")
@@ -35,7 +35,7 @@ func (s *StaticNetworkConfigGenerator) CheckConfigForAutoDnsSetToFalse(staticNet
 	}
 
 	for _, hostConfig := range staticNetworkConfig {
-		isIncludeAutoDnsSetToFalse, err := s.hasAutoDnsSetToFalse(hostConfig.NetworkYaml)
+		isIncludeAutoDnsSetToFalse, err := s.hasDisabledAutoDnsWithDhcp(hostConfig.NetworkYaml)
 		if err != nil {
 			return false, err
 		}
@@ -46,7 +46,7 @@ func (s *StaticNetworkConfigGenerator) CheckConfigForAutoDnsSetToFalse(staticNet
 	return false, nil
 }
 
-func (s *StaticNetworkConfigGenerator) hasAutoDnsSetToFalse(networksYaml string) (bool, error) {
+func (s *StaticNetworkConfigGenerator) hasDisabledAutoDnsWithDhcp(networksYaml string) (bool, error) {
 	var config map[string]interface{}
 
 	// Unmarshal the YAML string into the config struct
@@ -65,19 +65,27 @@ func (s *StaticNetworkConfigGenerator) hasAutoDnsSetToFalse(networksYaml string)
 		return false, nil
 	}
 
-	for _, iface := range interfacesSlice {
-		nic := iface.(map[interface{}]interface{})
-		isAutoDNSDisabled := func(ipConfig map[interface{}]interface{}) bool {
-			if autoDns, exists := ipConfig["auto-dns"]; exists && autoDns == false {
-				return true
-			}
-			return false
+	isDHCPButNoAutoDNS := func(ipConfig map[interface{}]interface{}) bool {
+		autoDNSDisabled := false
+		dhcpEnabled := false
+
+		if autoDns, exists := ipConfig["auto-dns"]; exists && autoDns == false {
+			autoDNSDisabled = true
+		}
+		if dhcp, exists := ipConfig["dhcp"]; exists && dhcp == true {
+			dhcpEnabled = true
 		}
 
-		if ipv4, exists := nic["ipv4"].(map[interface{}]interface{}); exists && isAutoDNSDisabled(ipv4) {
+		return autoDNSDisabled && dhcpEnabled
+	}
+
+	for _, iface := range interfacesSlice {
+		nic := iface.(map[interface{}]interface{})
+
+		if ipv4, exists := nic["ipv4"].(map[interface{}]interface{}); exists && isDHCPButNoAutoDNS(ipv4) {
 			return true, nil
 		}
-		if ipv6, exists := nic["ipv6"].(map[interface{}]interface{}); exists && isAutoDNSDisabled(ipv6) {
+		if ipv6, exists := nic["ipv6"].(map[interface{}]interface{}); exists && isDHCPButNoAutoDNS(ipv6) {
 			return true, nil
 		}
 	}
@@ -140,7 +148,7 @@ func (s *StaticNetworkConfigGenerator) ShouldUseNmstateService(staticNetworkConf
 		return false, err
 	}
 
-	includeAutoDnsSetToFalse, err := s.CheckConfigForAutoDnsSetToFalse(staticNetworkConfigStr)
+	includeAutoDnsSetToFalse, err := s.CheckConfigForGlobalDnsCase(staticNetworkConfigStr)
 	if err != nil {
 		return false, err
 	}
