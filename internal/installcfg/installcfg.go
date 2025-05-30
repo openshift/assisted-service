@@ -210,6 +210,16 @@ const (
 	CPUPartitioningAllNodes CPUPartitioningMode = "AllNodes"
 )
 
+// PolicyType is for usage polices that are applied to additionalTrustBundle.
+type PolicyType string
+
+const (
+	// PolicyProxyOnly  enables use of AdditionalTrustBundle when http/https proxy is configured.
+	PolicyProxyOnly PolicyType = "Proxyonly"
+	// PolicyAlways ignores all conditions and uses AdditionalTrustBundle.
+	PolicyAlways PolicyType = "Always"
+)
+
 type InstallerConfigBaremetal struct {
 	APIVersion string `json:"apiVersion"`
 	BaseDomain string `json:"baseDomain"`
@@ -238,13 +248,14 @@ type InstallerConfigBaremetal struct {
 		Name           string `json:"name"`
 		Replicas       int    `json:"replicas"`
 	} `json:"arbiter,omitempty"`
-	Platform              Platform            `json:"platform"`
-	BootstrapInPlace      *BootstrapInPlace   `json:"bootstrapInPlace,omitempty"`
-	FIPS                  bool                `json:"fips"`
-	CPUPartitioningMode   CPUPartitioningMode `json:"cpuPartitioningMode,omitempty"`
-	PullSecret            string              `json:"pullSecret"`
-	SSHKey                string              `json:"sshKey"`
-	AdditionalTrustBundle string              `json:"additionalTrustBundle,omitempty"`
+	Platform                    Platform            `json:"platform"`
+	BootstrapInPlace            *BootstrapInPlace   `json:"bootstrapInPlace,omitempty"`
+	FIPS                        bool                `json:"fips"`
+	CPUPartitioningMode         CPUPartitioningMode `json:"cpuPartitioningMode,omitempty"`
+	PullSecret                  string              `json:"pullSecret"`
+	SSHKey                      string              `json:"sshKey"`
+	AdditionalTrustBundle       string              `json:"additionalTrustBundle,omitempty"`
+	AdditionalTrustBundlePolicy PolicyType          `json:"additionalTrustBundlePolicy,omitempty"`
 	// The ImageContentSources field is deprecated. Please use ImageDigestSources.
 	DeprecatedImageContentSources []ImageContentSource `json:"imageContentSources,omitempty"`
 	ImageDigestSources            []ImageDigestSource  `json:"imageDigestSources,omitempty"`
