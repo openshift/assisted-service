@@ -24,7 +24,6 @@ spec:
           - "12"
           deviceLabelFields:
           - "vendor"
-          - "device"
         custom:
         - name: nvidia-gpu
         - name: amd-gpu
