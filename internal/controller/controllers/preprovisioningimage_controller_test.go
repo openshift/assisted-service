@@ -271,7 +271,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			backendInfraEnv.PullSecret = "secret"
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(iccConfig, nil)
-			mockOcRelease.EXPECT().GetImageArchitecture(gomock.Any(), iccConfig.IronicAgentImage, backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
+
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, _ *common.MirrorRegistryConfiguration) {
 					Expect(*internalIgnitionConfig).To(ContainSubstring(iccConfig.IronicBaseURL))
@@ -301,6 +301,64 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 					Expect(*internalIgnitionConfig).To(ContainSubstring(overrideAgentImage))
 				}).Return(
 				&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+		})
+
+		It("preserves ironic urls from ICC config with user override regardless of architecture mismatch", func() {
+			overrideAgentImage := "ironic-agent-override:latest"
+			iccConfig := &ICCConfig{
+				IronicAgentImage:       "ironic-agent-image",
+				IronicBaseURL:          "ironic-base-url",
+				IronicInspectorBaseUrl: "",
+			}
+			setAnnotation(&infraEnv.ObjectMeta, ironicAgentImageOverrideAnnotation, overrideAgentImage)
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			backendInfraEnv.CPUArchitecture = "aarch64" // spoke is ARM64
+			backendInfraEnv.PullSecret = "secret"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(iccConfig, nil)
+
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, _ *common.MirrorRegistryConfiguration) {
+					Expect(*internalIgnitionConfig).To(ContainSubstring(url.QueryEscape(iccConfig.IronicBaseURL)))
+					Expect(*internalIgnitionConfig).To(ContainSubstring(overrideAgentImage))
+					Expect(url.QueryUnescape(*internalIgnitionConfig)).To(MatchRegexp(`(?m)^inspection_callback_url\s=\s$`)) // matches inspection_callback_url = <empty>
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+		})
+
+		It("preserves ironic urls from ICC config regardless of architecture mismatch", func() {
+			Expect(c.Create(ctx, clusterVersion)).To(Succeed())
+			iccConfig := &ICCConfig{
+				IronicAgentImage:       "ironic-agent-image",
+				IronicBaseURL:          "ironic-base-url",
+				IronicInspectorBaseUrl: "",
+			}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			backendInfraEnv.CPUArchitecture = "aarch64"
+			backendInfraEnv.PullSecret = "secret"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(iccConfig, nil)
+			mockOcRelease.EXPECT().GetImageArchitecture(gomock.Any(), iccConfig.IronicAgentImage, backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
+			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"aarch64"}, nil)
+			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("hub-ironic-aarch64-image", nil)
+
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, _ *common.MirrorRegistryConfiguration) {
+					Expect(*internalIgnitionConfig).To(ContainSubstring(url.QueryEscape(iccConfig.IronicBaseURL)))
+					Expect(*internalIgnitionConfig).To(ContainSubstring("hub-ironic-aarch64-image"))
+					Expect(url.QueryUnescape(*internalIgnitionConfig)).To(MatchRegexp(`(?m)^inspection_callback_url\s=\s$`))
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+
 			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
