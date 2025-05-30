@@ -691,6 +691,18 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(string(result.CPUPartitioningMode)).Should(Equal("AllNodes"))
 	})
 
+	It("AdditionalTrustBundlePolicy config overrides", func() {
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		cluster.InstallConfigOverrides = `{"additionalTrustBundlePolicy":"Always"}`
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		// test that overrides worked
+		Expect(string(result.AdditionalTrustBundlePolicy)).Should(Equal("Always"))
+	})
+
 	It("Baremetal host BMC configuration overrides", func() {
 		var result installcfg.InstallerConfigBaremetal
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
