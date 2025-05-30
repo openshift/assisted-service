@@ -36,6 +36,10 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 		if rq.EdgeWorkerRequirements == nil {
 			rq.EdgeWorkerRequirements = rq.WorkerRequirements
 		}
+		// This is only until we add arbiter to HW_VALIDATOR_REQUIREMENTS in all environments
+		if rq.ArbiterRequirements == nil {
+			rq.ArbiterRequirements = rq.WorkerRequirements
+		}
 		versionToRequirements[rq.Version] = rq
 	}
 	*d = versionToRequirements
@@ -45,6 +49,10 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 func (d *VersionedRequirementsDecoder) validate() error {
 	for version, requirements := range *d {
 		err := validateDetails(requirements.WorkerRequirements, version, string(models.HostRoleWorker))
+		if err != nil {
+			return err
+		}
+		err = validateDetails(requirements.ArbiterRequirements, version, string(models.HostRoleArbiter))
 		if err != nil {
 			return err
 		}
@@ -87,6 +95,7 @@ func copyVersionedHostRequirements(requirements *models.VersionedHostRequirement
 	return &models.VersionedHostRequirements{
 		Version:                requirements.Version,
 		MasterRequirements:     copyClusterHostRequirementsDetails(requirements.MasterRequirements),
+		ArbiterRequirements:    copyClusterHostRequirementsDetails(requirements.ArbiterRequirements),
 		WorkerRequirements:     copyClusterHostRequirementsDetails(requirements.WorkerRequirements),
 		SNORequirements:        copyClusterHostRequirementsDetails(requirements.SNORequirements),
 		EdgeWorkerRequirements: copyClusterHostRequirementsDetails(requirements.EdgeWorkerRequirements),

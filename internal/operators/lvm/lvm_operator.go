@@ -82,7 +82,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 
-	if cluster.ControlPlaneCount >= common.MinMasterHostsNeededForInstallationInHaMode {
+	if !common.IsSingleNodeCluster(cluster) {
 		if ok, _ := common.BaseVersionLessThan(LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); ok {
 			message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above", LvmMinMultiNodeSupportVersion)
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
@@ -118,7 +118,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 	}
 	message := fmt.Sprintf("Logical Volume Manager requires at least one non-installation HDD/SSD disk%s on the host", minSizeMessage)
 
-	if role == models.HostRoleWorker || areSchedulable {
+	if role == models.HostRoleWorker || (areSchedulable && role != models.HostRoleArbiter) {
 		if diskCount == 0 {
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
 		}
@@ -158,7 +158,7 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 	role := common.GetEffectiveRole(host)
 	areSchedulable := common.ShouldMastersBeSchedulable(&cluster.Cluster)
 
-	if role == models.HostRoleMaster && !areSchedulable {
+	if (role == models.HostRoleMaster && !areSchedulable) || role == models.HostRoleArbiter {
 		return &models.ClusterHostRequirementsDetails{
 			CPUCores: 0,
 			RAMMib:   0,

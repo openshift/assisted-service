@@ -135,7 +135,8 @@ func (o *operator) hasSupportedGPU(cluster *common.Cluster) (bool, error) {
 
 func (o *operator) gpusInCluster(cluster *common.Cluster) (result []*models.Gpu, err error) {
 	for _, host := range cluster.Hosts {
-		if !common.AreMastersSchedulable(cluster) && (host.Role == models.HostRoleMaster || host.Role == models.HostRoleBootstrap) {
+		if (!common.AreMastersSchedulable(cluster) && (host.Role == models.HostRoleMaster || host.Role == models.HostRoleBootstrap)) ||
+			host.Role == models.HostRoleArbiter {
 			continue
 		}
 
