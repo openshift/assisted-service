@@ -15,6 +15,7 @@ import (
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -354,9 +355,17 @@ func GetIgnitionEndpoint(cluster *common.Cluster, host *models.Host) (string, er
 		poolName = host.MachineConfigPoolName
 	}
 
+	protocol := "http"
+	port := constants.InsecureMCSPort
+	if ignition.HasCACertInIgnition(host.IgnitionConfigOverrides) {
+		protocol = "https"
+		port = constants.SecureMCSPort
+	}
+
 	ignitionEndpointUrl := fmt.Sprintf(
-		"http://%s/config/%s",
-		net.JoinHostPort(common.GetAPIHostname(cluster), fmt.Sprint(constants.InsecureMCSPort)),
+		"%s://%s/config/%s",
+		protocol,
+		net.JoinHostPort(common.GetAPIHostname(cluster), fmt.Sprint(port)),
 		poolName)
 	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
 		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
