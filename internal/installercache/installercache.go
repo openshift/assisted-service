@@ -2,6 +2,7 @@ package installercache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -18,8 +19,8 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 var (
@@ -110,9 +111,39 @@ func (rl *Release) Cleanup(ctx context.Context) error {
 		"cached", rl.cached,
 		"extract_duration", rl.extractDuration,
 	)
-	if err := os.Remove(rl.Path); err != nil && !os.IsNotExist(err) {
-		return err
+
+	var ret error
+
+	// Ensure page cache is removed for the file
+	if err := rl.cleanPageCache(); err != nil {
+		ret = errors.Join(ret, fmt.Errorf("failed to clean page cache: %w", err))
 	}
+
+	if err := os.Remove(rl.Path); err != nil && !os.IsNotExist(err) {
+		ret = errors.Join(ret, fmt.Errorf("failed to remove binary: %w", err))
+	}
+
+	return ret
+}
+
+func (r *Release) cleanPageCache() error {
+	f, err := os.Open(r.Path)
+	if err != nil {
+		switch {
+		case os.IsNotExist(err):
+			return nil
+		default:
+			return fmt.Errorf("failed to open binary file %s: %w", r.Path, err)
+		}
+	}
+
+	defer f.Close()
+
+	err = unix.Fadvise(int(f.Fd()), 0, 0, unix.FADV_DONTNEED)
+	if err != nil {
+		return fmt.Errorf("fadvise failed: %w", err)
+	}
+
 	return nil
 }
 
@@ -154,7 +185,7 @@ func (i *Installers) Get(ctx context.Context, releaseID, releaseIDMirror, pullSe
 			}
 			_, isCapacityError := err.(*errorInsufficientCacheCapacity)
 			if !isCapacityError {
-				return nil, errors.Wrapf(err, "failed to get installer path for release %s", releaseID)
+				return nil, fmt.Errorf("failed to get installer path for release %s: %w", releaseID, err)
 			}
 			time.Sleep(i.config.ReleaseFetchRetryInterval)
 		}
@@ -164,7 +195,7 @@ func (i *Installers) Get(ctx context.Context, releaseID, releaseIDMirror, pullSe
 func (i *Installers) getDiskUsageIncludingHardlinks() (uint64, error) {
 	usedBytes, _, err := i.diskStatsHelper.GetDiskUsage(i.config.CacheDir)
 	if err != nil && !os.IsNotExist(err) {
-		return 0, errors.Wrapf(err, "could not determine disk usage information for cache dir %s", i.config.CacheDir)
+		return 0, fmt.Errorf("could not determine disk usage information for cache dir %s: %w", i.config.CacheDir, err)
 	}
 	return usedBytes, nil
 }
@@ -179,7 +210,7 @@ func (i *Installers) extractReleaseIfNeeded(path, releaseID, releaseIDMirror, pu
 	}
 	usedBytes, err := i.getDiskUsageIncludingHardlinks()
 	if err != nil && !os.IsNotExist(err) {
-		return 0, false, errors.Wrapf(err, "could not determine disk usage information for cache dir %s", i.config.CacheDir)
+		return 0, false, fmt.Errorf("could not determine disk usage information for cache dir %s: %w", i.config.CacheDir, err)
 	}
 	if i.shouldEvict(int64(usedBytes)) && !i.evict() { // nolint: gosec
 		return 0, false, &errorInsufficientCacheCapacity{Message: fmt.Sprintf("insufficient capacity in %s to store release", i.config.CacheDir)}
@@ -215,7 +246,7 @@ func (i *Installers) get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 	// update the file mtime to signal it was recently used
 	err = os.Chtimes(path, time.Now(), time.Now())
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to update release binary %s", path))
+		return nil, fmt.Errorf("failed to update release binary %s: %w", path, err)
 	}
 
 	// return a new hard link to the binary file
@@ -225,6 +256,7 @@ func (i *Installers) get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 	if err != nil {
 		return nil, err
 	}
+
 	return release, nil
 }
 
@@ -236,7 +268,7 @@ func (i *Installers) getLinkForReleasePath(workdir string, path string, binary s
 			return link, nil
 		}
 		if !os.IsExist(err) {
-			return "", errors.Wrap(err, fmt.Sprintf("failed to create hard link to binary %s", path))
+			return "", fmt.Errorf("failed to create hard link to binary %s: %w", path, err)
 		}
 	}
 }
