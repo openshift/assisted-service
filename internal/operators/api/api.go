@@ -36,15 +36,15 @@ type Operator interface {
 	// GetDependencies provides a list of dependencies of the Operator
 	GetDependencies(cluster *common.Cluster) ([]string, error)
 	// ValidateCluster verifies whether this operator is valid for given cluster
-	ValidateCluster(ctx context.Context, cluster *common.Cluster) (ValidationResult, error)
+	ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]ValidationResult, error)
 	// ValidateHost verifies whether this operator is valid for given host
 	ValidateHost(ctx context.Context, cluster *common.Cluster, hosts *models.Host, additionalOperatorRequirements *models.ClusterHostRequirementsDetails) (ValidationResult, error)
 	// GenerateManifests generates manifests for the operator
 	GenerateManifests(*common.Cluster) (map[string][]byte, []byte, error)
 	// GetHostRequirements provides operator's requirements towards the host
 	GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error)
-	// GetClusterValidationID returns cluster validation ID for the Operator
-	GetClusterValidationID() string
+	// GetClusterValidationIDs returns cluster validation IDs for the Operator
+	GetClusterValidationIDs() []string
 	// GetHostValidationID returns host validation ID for the Operator
 	GetHostValidationID() string
 	// GetProperties provides description of operator properties

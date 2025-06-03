@@ -26,6 +26,9 @@ const (
 	// Memory value provided in MiB
 	WorkerMemory int64 = 360
 	WorkerCPU    int64 = 2
+
+	clusterValidationID = string(models.ClusterValidationIDCnvRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDCnvRequirementsSatisfied)
 )
 
 type operator struct {
@@ -86,20 +89,29 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return lsoOperator, nil
 }
 
-// GetClusterValidationID returns cluster validation ID for the Operator
-func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDCnvRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the Operator
+func (o *operator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the Operator
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDCnvRequirementsSatisfied)
+	return hostValidationID
 }
 
 // ValidateCluster verifies whether this operator is valid for given cluster
-func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
+func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
 	status, message := o.validateRequirements(&cluster.Cluster)
-	return api.ValidationResult{Status: status, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
+	result := []api.ValidationResult{{
+		Status:       status,
+		ValidationId: clusterValidationID,
+	}}
+
+	if message != "" {
+		result[0].Reasons = []string{message}
+	}
+
+	return result, nil
 }
 
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
