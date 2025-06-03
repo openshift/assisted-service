@@ -224,7 +224,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	defer func() {
 		e := release.Cleanup(ctx)
 		if e != nil {
-			err = errors.Wrapf(err, "unable to clean up release due to error: %s", e.Error())
+			log.WithError(e).Warnf("Failed to clean up installer release %s", release.Path)
 		}
 	}()
 
