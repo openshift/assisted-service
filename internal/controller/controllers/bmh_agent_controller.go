@@ -311,13 +311,15 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		return res.Result()
 	}
 
-	if !r.ConvergedFlowEnabled {
+	if r.ConvergedFlowEnabled {
+		result = r.addBMHDetachedAnnotationIfBmhIsProvisioned(log, bmh, agent)
+	} else {
 		// After the agent has started installation, Ironic should not manage the host.
 		// Adding the detached annotation to the BMH stops Ironic from managing it.
 		result = r.addBMHDetachedAnnotationIfHostIsRebooting(log, bmh, agent)
-		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
-			return res.Result()
-		}
+	}
+	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		return res.Result()
 	}
 
 	result = r.reconcileSpokeBMH(ctx, log, bmh, agent)
@@ -594,6 +596,16 @@ func (r *BMACReconciler) reconcileClusterReference(bmh *bmh_v1alpha1.BareMetalHo
 	return false, nil
 }
 
+// The detached annotation is added if the BMH provisioning state is provisioned
+func (r *BMACReconciler) addBMHDetachedAnnotationIfBmhIsProvisioned(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	if r.ConvergedFlowEnabled && bmh.Status.Provisioning.State != bmh_v1alpha1.StateProvisioned {
+		log.Debugf("Skipping adding detached annotation. BMH provisioning state is: %s should be: %s", bmh.Status.Provisioning.State, bmh_v1alpha1.StateProvisioned)
+		return reconcileComplete{}
+
+	}
+	return r.ensureBMHDetached(log, bmh, agent)
+}
+
 func (r *BMACReconciler) detachedValue(bmh *bmh_v1alpha1.BareMetalHost) (string, error) {
 	detachValue := []byte("assisted-service-controller")
 	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; has_annotation && r.ConvergedFlowEnabled {
@@ -608,14 +620,6 @@ func (r *BMACReconciler) detachedValue(bmh *bmh_v1alpha1.BareMetalHost) (string,
 }
 
 func (r *BMACReconciler) ensureBMHDetached(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-	currentValue, haveAnnotation := bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]
-
-	// Don't add the annotation if it doesn't exist, but if it does ensure it has the correct value until the user removes it
-	if r.ConvergedFlowEnabled && !haveAnnotation {
-		log.Debug("Ignoring request to detach BMH because converged flow is enabled")
-		return reconcileComplete{}
-	}
-
 	if bmh.ObjectMeta.Annotations == nil {
 		bmh.ObjectMeta.Annotations = make(map[string]string)
 	}
@@ -635,6 +639,7 @@ func (r *BMACReconciler) ensureBMHDetached(log logrus.FieldLogger, bmh *bmh_v1al
 	if err != nil {
 		return reconcileError{err: err}
 	}
+	currentValue, haveAnnotation := bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]
 	if haveAnnotation && currentValue == desiredValue {
 		return reconcileComplete{}
 	}
