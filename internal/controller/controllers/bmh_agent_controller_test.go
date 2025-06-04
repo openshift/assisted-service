@@ -1412,6 +1412,7 @@ var _ = Describe("bmac reconcile", func() {
 			It("should create spoke BMH for day 2 host with worker role when it's installing - happy flow", func() {
 
 				agent_day2.Status.DebugInfo.State = models.HostStatusInstalling
+				agent_day2.Status.Progress.CurrentStage = models.HostStageJoined
 				Expect(c.Update(ctx, agent_day2)).To(BeNil())
 
 				configMap := &corev1.ConfigMap{
@@ -1438,6 +1439,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
+
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
@@ -1493,6 +1495,7 @@ var _ = Describe("bmac reconcile", func() {
 
 				By("Updating the agent to installing")
 				agent_day2.Status.DebugInfo.State = models.HostStatusInstalling
+				agent_day2.Status.Progress.CurrentStage = models.HostStageJoined
 				Expect(c.Update(context.Background(), agent_day2)).ShouldNot(HaveOccurred())
 				for range [3]int{} {
 					result, err := bmhr.Reconcile(ctx, newBMHRequest(host_day2))
@@ -1654,6 +1657,7 @@ var _ = Describe("bmac reconcile", func() {
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
 				agent.Status.DebugInfo.State = models.HostStatusInstallingInProgress
+				agent.Status.Progress.CurrentStage = models.HostStageJoined
 				Expect(c.Update(context.Background(), agent)).ShouldNot(HaveOccurred())
 				for range [3]int{} {
 					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
