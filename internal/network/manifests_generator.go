@@ -169,7 +169,7 @@ spec:
             [Unit]
             Description=Run dnsmasq to provide local dns for Single Node OpenShift
             Before=kubelet.service crio.service
-            After=network.target
+            After=network.target ovs-configuration.service
 
             [Service]
             TimeoutStartSec=30
