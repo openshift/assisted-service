@@ -322,7 +322,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		return res.Result()
 	}
 
-	result = r.reconcileSpokeBMH(ctx, log, bmh, agent)
+	result = r.reconcileDay2SpokeBMH(ctx, log, bmh, agent)
 	if result.Dirty() {
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
@@ -1044,7 +1044,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 // - Creates a new Machine
 // - Create BMH with externallyProvisioned set to true and set the newly created machine as ConsumerRef
 // BMH_HARDWARE_DETAILS_ANNOTATION is needed for auto approval of the CSR.
-func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 	cd, installed, err := r.getClusterDeploymentAndCheckIfInstalled(ctx, log, agent)
 	if err != nil {
 		return reconcileError{err: err}
@@ -1109,7 +1109,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 	if err != nil {
 		log.WithError(err).Errorf("failed to get checksum and url value from master spoke machine")
 		if stopReconcileLoop {
-			log.Info("Stopping reconcileSpokeBMH")
+			log.Info("Stopping reconcileDay2SpokeBMH")
 			return reconcileComplete{dirty: false, stop: stopReconcileLoop}
 		}
 		return reconcileError{err: err}
