@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -132,7 +133,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 
 		// TODO(deprecate-ignition-3.1.0)
 		bootstrapBytes, _ := os.ReadFile(examplePath)
-		config, err1 = ParseToLatest(bootstrapBytes)
+		config, err1 = ignition.ParseToLatest(bootstrapBytes)
 		Expect(err1).NotTo(HaveOccurred())
 		Expect(config.Ignition.Version).To(Equal("3.2.0"))
 		bytes, err1 := json.Marshal(config)

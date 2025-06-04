@@ -16,6 +16,7 @@ import (
 
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	ignitioncommon "github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -382,7 +383,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 
 	res := buf.String()
 	if infraEnv.InternalIgnitionConfigOverride != "" {
-		res, err = MergeIgnitionConfig([]byte(res), []byte(infraEnv.InternalIgnitionConfigOverride))
+		res, err = ignitioncommon.MergeIgnitionConfig([]byte(res), []byte(infraEnv.InternalIgnitionConfigOverride))
 		if err != nil {
 			return "", err
 		}
@@ -390,7 +391,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 	}
 
 	if infraEnv.IgnitionConfigOverride != "" {
-		res, err = MergeIgnitionConfig([]byte(res), []byte(infraEnv.IgnitionConfigOverride))
+		res, err = ignitioncommon.MergeIgnitionConfig([]byte(res), []byte(infraEnv.IgnitionConfigOverride))
 		if err != nil {
 			return "", err
 		}
@@ -463,7 +464,7 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 	overrides := buf.String()
 	if host.IgnitionConfigOverrides != "" {
 		var err error
-		overrides, err = MergeIgnitionConfig(buf.Bytes(), []byte(host.IgnitionConfigOverrides))
+		overrides, err = ignitioncommon.MergeIgnitionConfig(buf.Bytes(), []byte(host.IgnitionConfigOverrides))
 		if err != nil {
 			return []byte(""), errors.Wrapf(err, "Failed to apply ignition override for host %s", host.ID)
 		}
@@ -495,7 +496,7 @@ func GetProfileProxyEntries(http_proxy string, https_proxy string, no_proxy stri
 }
 
 func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, error) {
-	config, err := ParseToLatest(ignition)
+	config, err := ignitioncommon.ParseToLatest(ignition)
 	if err != nil {
 		return nil, errors.Errorf("error parsing ignition: %v", err)
 	}
@@ -505,7 +506,7 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 		return nil, errors.Errorf("failed to get hostname for host %s", host.ID)
 	}
 
-	setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
+	ignitioncommon.SetFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
 
 	configBytes, err := json.Marshal(config)
 	if err != nil {

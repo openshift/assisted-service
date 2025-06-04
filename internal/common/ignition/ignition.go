@@ -32,7 +32,7 @@ func ParseToLatest(content []byte) (*config_latest_types.Config, error) {
 	return &config, nil
 }
 
-func parseIgnitionFile(path string) (*config_latest_types.Config, error) {
+func ParseIgnitionFile(path string) (*config_latest_types.Config, error) {
 	configBytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Errorf("error reading file %s: %v", path, err)
@@ -40,8 +40,8 @@ func parseIgnitionFile(path string) (*config_latest_types.Config, error) {
 	return ParseToLatest(configBytes)
 }
 
-// writeIgnitionFile writes an ignition config to a given path on disk
-func writeIgnitionFile(path string, config *config_latest_types.Config) error {
+// WriteIgnitionFile writes an ignition config to a given path on disk
+func WriteIgnitionFile(path string, config *config_latest_types.Config) error {
 	updatedBytes, err := json.Marshal(config)
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func writeIgnitionFile(path string, config *config_latest_types.Config) error {
 	return nil
 }
 
-func setFileInIgnition(config *config_latest_types.Config, filePath string, fileContents string, appendContent bool, mode int, overwrite bool) {
+func SetFileInIgnition(config *config_latest_types.Config, filePath string, fileContents string, appendContent bool, mode int, overwrite bool) {
 	rootUser := "root"
 	file := config_latest_types.File{
 		Node: config_latest_types.Node{
@@ -124,4 +124,12 @@ func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
 	}
 
 	return string(res), nil
+}
+
+func HasCACertInIgnition(contents string) bool {
+	config, err := ParseToLatest([]byte(contents))
+	if err != nil {
+		return false
+	}
+	return len(config.Ignition.Security.TLS.CertificateAuthorities) > 0
 }
