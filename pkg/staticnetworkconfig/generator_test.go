@@ -241,15 +241,6 @@ method=disabled
 id=101
 parent=eth1
 `
-		It("vlan only - no underlying interface", func() {
-			err := staticNetworkGenerator.validateInterfaceNamesExistence(nil, []StaticNetworkConfigData{
-				{
-					FileContents: vlanConnection,
-				},
-			})
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("no mac address mapping can be associated with the available network interfaces"))
-		})
 		It("vlan with underlying interface - no mapping", func() {
 			err := staticNetworkGenerator.validateInterfaceNamesExistence(nil, []StaticNetworkConfigData{
 				{
@@ -287,6 +278,85 @@ parent=eth1
 			}, []StaticNetworkConfigData{
 				{
 					FileContents: vlanConnection,
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("no mapping for physical interfaces", func() {
+		withPhysicalInterface := `interfaces:
+  - name: eth0
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: true
+      dhcp: false
+      address:
+        - ip: 192.0.2.1
+          prefix-length: 24
+  - name: eno12399np0
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: false
+      dhcp: false`
+		withNoMappedInterfaces := `interfaces:
+  - name: eno12345
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: false
+      dhcp: false
+  - name: eno12399np0
+    type: ethernet
+    state: up
+    ipv4:
+      enabled: false
+      dhcp: false`
+		withMacIdentifier := `interfaces:
+  - name: eth0
+    type: ethernet
+    state: up
+    identifier: mac-address
+    mac-address: f8:75:a4:a4:00:fe
+    ipv4:
+      enabled: false
+      dhcp: false`
+		It("no mapping needed for physical interface", func() {
+			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withPhysicalInterface,
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("at least one mapped interface is required", func() {
+			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{},
+					NetworkYaml:     withNoMappedInterfaces,
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("at least one interface for host"))
+		})
+		It("mac-identifier field is allowed", func() {
+			err := staticNetworkGenerator.ValidateStaticConfigParams([]*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "f8:75:a4:a4:00:fe",
+						},
+					},
+					NetworkYaml: withMacIdentifier,
 				},
 			})
 			Expect(err).ToNot(HaveOccurred())
