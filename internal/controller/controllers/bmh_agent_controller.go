@@ -311,24 +311,14 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		return res.Result()
 	}
 
-	if r.ConvergedFlowEnabled {
-		result = r.addBMHDetachedAnnotationIfBmhIsProvisioned(log, bmh, agent)
-	} else {
-		// After the agent has started installation, Ironic should not manage the host.
-		// Adding the detached annotation to the BMH stops Ironic from managing it.
-		result = r.addBMHDetachedAnnotationIfHostIsRebooting(log, bmh, agent)
-	}
+	result = r.reconcileDay2SpokeBMH(ctx, log, bmh, agent)
 	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
 		return res.Result()
 	}
 
-	result = r.reconcileDay2SpokeBMH(ctx, log, bmh, agent)
-	if result.Dirty() {
-		err := r.Client.Update(ctx, bmh)
-		if err != nil {
-			log.WithError(err).Errorf("Error adding BMH detached annotation after creating spoke BMH")
-			return reconcileError{err: err}.Result()
-		}
+	result = r.handleBMHDetachedAnnotation(log, bmh, agent)
+	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		return res.Result()
 	}
 
 	return result.Result()
@@ -596,14 +586,13 @@ func (r *BMACReconciler) reconcileClusterReference(bmh *bmh_v1alpha1.BareMetalHo
 	return false, nil
 }
 
-// The detached annotation is added if the BMH provisioning state is provisioned
-func (r *BMACReconciler) addBMHDetachedAnnotationIfBmhIsProvisioned(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-	if r.ConvergedFlowEnabled && bmh.Status.Provisioning.State != bmh_v1alpha1.StateProvisioned {
-		log.Debugf("Skipping adding detached annotation. BMH provisioning state is: %s should be: %s", bmh.Status.Provisioning.State, bmh_v1alpha1.StateProvisioned)
-		return reconcileComplete{}
-
+func (r *BMACReconciler) handleBMHDetachedAnnotation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	nonConvergedDetachStages := []models.HostStage{models.HostStageFailed, models.HostStageRebooting, models.HostStageJoined, models.HostStageDone}
+	if r.ConvergedFlowEnabled && bmh.Status.Provisioning.State == bmh_v1alpha1.StateProvisioned || funk.Contains(nonConvergedDetachStages, agent.Status.Progress.CurrentStage) {
+		return r.ensureBMHDetached(log, bmh, agent)
 	}
-	return r.ensureBMHDetached(log, bmh, agent)
+
+	return reconcileComplete{}
 }
 
 func (r *BMACReconciler) detachedValue(bmh *bmh_v1alpha1.BareMetalHost) (string, error) {
@@ -647,18 +636,6 @@ func (r *BMACReconciler) ensureBMHDetached(log logrus.FieldLogger, bmh *bmh_v1al
 	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = desiredValue
 	log.Info("Added detached annotation to BMH")
 	return reconcileComplete{dirty: true, stop: true}
-}
-
-// The detached annotation is added if the installation of the agent associated with
-// the host has reached stages Failed, Rebooting, or Joined
-func (r *BMACReconciler) addBMHDetachedAnnotationIfHostIsRebooting(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-	// Do nothing if host stage is not one of Failed, Rebooting, or Joined
-	if !funk.Contains([]models.HostStage{models.HostStageFailed, models.HostStageRebooting, models.HostStageJoined}, agent.Status.Progress.CurrentStage) {
-		log.Debugf("Skipping adding detached annotation. Host hasn't reached stage rebooted, joined, or failed. Current stage: %v", agent.Status.Progress.CurrentStage)
-		return reconcileComplete{}
-	}
-
-	return r.ensureBMHDetached(log, bmh, agent)
 }
 
 // Reconcile BMH's HardwareDetails using the agent's inventory
@@ -1132,7 +1109,7 @@ func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.F
 		return reconcileError{err: err}
 	}
 
-	return r.ensureBMHDetached(log, bmh, agent)
+	return reconcileComplete{}
 }
 
 // Finds the installation disk based on the RootDeviceHints
