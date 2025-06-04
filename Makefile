@@ -123,7 +123,7 @@ endif
 
 
 # Operator Vars - these must be kept up to date
-BUNDLE_CHANNELS ?= alpha,ocm-2.14
+BUNDLE_CHANNELS ?= alpha,ocm-2.15
 BUNDLE_OUTPUT_DIR ?= deploy/olm-catalog
 BUNDLE_METADATA_OPTS ?= --channels=$(BUNDLE_CHANNELS) --default-channel=alpha
 
