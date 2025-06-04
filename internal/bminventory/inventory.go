@@ -5999,6 +5999,16 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 }
 
 func (b *bareMetalInventory) UnbindHost(ctx context.Context, params installer.UnbindHostParams) middleware.Responder {
+	// Installing hosts should not be allowed to unbind
+	dbHost, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	if err != nil {
+		b.log.WithError(err).Errorf("failed to find host <%s> in infraEnv <%s> during unbind",
+			params.HostID, params.InfraEnvID)
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+	if dbHost.Status != nil && funk.ContainsString(host.HostInstallingStatuses, *dbHost.Status) {
+		return common.NewApiError(http.StatusConflict, errors.Errorf("Cannot unbind Host %s while it is in the middle of installing.", params.HostID))
+	}
 	h, err := b.UnbindHostInternal(ctx, params, false, Interactive)
 	if err != nil {
 		eventgen.SendHostUnbindFailedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, err.Error())
