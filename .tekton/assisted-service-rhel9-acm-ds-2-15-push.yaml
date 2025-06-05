@@ -7,13 +7,13 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "release-ocm-2.14"
+      == "release-ocm-2.15"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: assisted-installer-application-acm-ds-2-14
-    appstudio.openshift.io/component: assisted-service-rhel9-acm-ds-2-14
+    appstudio.openshift.io/application: assisted-installer-application-acm-ds-2-15
+    appstudio.openshift.io/component: assisted-service-rhel9-acm-ds-2-15
     pipelines.appstudio.openshift.io/type: build
-  name: assisted-service-rhel9-acm-ds-2-14-on-push
+  name: assisted-service-rhel9-acm-ds-2-15-on-push
   namespace: assisted-installer-tenant
 spec:
   params:
@@ -22,7 +22,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-installer-application-acm-ds-2-14/assisted-service-rhel9-acm-ds-2-14:{{revision}}
+    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-installer-application-acm-ds-2-15/assisted-service-rhel9-acm-ds-2-15:{{revision}}
   - name: build-platforms
     value:
     - linux/x86_64
