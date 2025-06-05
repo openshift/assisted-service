@@ -94,6 +94,7 @@ const (
 	BMH_FINALIZER_NAME                  = "bmac.agent-install.openshift.io/deprovision"
 	BMH_DELETE_ANNOTATION               = "bmac.agent-install.openshift.io/remove-agent-and-node-on-delete"
 	BMH_CLUSTER_REFERENCE               = "bmac.agent-install.openshift.io/cluster-reference"
+	BMH_HOST_MANAGEMENT_ANNOTATION      = "bmac.agent-install.openshift.io/allow-provisioned-host-management"
 	MACHINE_ROLE                        = "machine.openshift.io/cluster-api-machine-role"
 	MACHINE_TYPE                        = "machine.openshift.io/cluster-api-machine-type"
 	MCS_CERT_NAME                       = "ca.crt"
@@ -587,6 +588,14 @@ func (r *BMACReconciler) reconcileClusterReference(bmh *bmh_v1alpha1.BareMetalHo
 }
 
 func (r *BMACReconciler) handleBMHDetachedAnnotation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	// ensure the paused and detached annotations do not exist if the host management annotation is set and the delete annotation is unset
+	if r.ConvergedFlowEnabled && !metav1.HasAnnotation(bmh.ObjectMeta, BMH_DELETE_ANNOTATION) &&
+		metav1.HasAnnotation(bmh.ObjectMeta, BMH_HOST_MANAGEMENT_ANNOTATION) {
+		// remove detached and paused if they exist
+		return reconcileComplete{dirty: removeBMHPausedAnnotation(log, bmh) || removeBMHDetachedAnnotation(log, bmh)}
+	}
+
+	// detach when provisioned for converged or anytime after reboot for non-converged
 	nonConvergedDetachStages := []models.HostStage{models.HostStageFailed, models.HostStageRebooting, models.HostStageJoined, models.HostStageDone}
 	if r.ConvergedFlowEnabled && bmh.Status.Provisioning.State == bmh_v1alpha1.StateProvisioned || funk.Contains(nonConvergedDetachStages, agent.Status.Progress.CurrentStage) {
 		return r.ensureBMHDetached(log, bmh, agent)
@@ -911,14 +920,14 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 
 	if r.PauseProvisionedBMHs {
 		// Add 'status' and 'paused' annotations for provisioned BMHs
-		if bmh.Status.Provisioning.State == bmh_v1alpha1.StateProvisioned {
+		if bmh.Status.Provisioning.State == bmh_v1alpha1.StateProvisioned && !metav1.HasAnnotation(bmh.ObjectMeta, BMH_HOST_MANAGEMENT_ANNOTATION) {
 			result := r.addBMHStatusAndPausedAnnotations(log, bmh)
 			if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
 				return res
 			}
 		}
 		// Remove 'paused' annotation if BMH's provisioning state is missing
-		if bmh.Status.Provisioning.State == bmh_v1alpha1.StateNone {
+		if bmh.Status.Provisioning.State == bmh_v1alpha1.StateNone || metav1.HasAnnotation(bmh.ObjectMeta, BMH_HOST_MANAGEMENT_ANNOTATION) {
 			result := r.removePausedAnnotation(log, bmh)
 			if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
 				return res
