@@ -618,7 +618,8 @@ spec:
       optional: true
     - name: netrc
       optional: true
-  taskRunTemplate: {}
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-assisted-service-rhel8-acm-ds-2-14
   workspaces:
   - name: git-auth
     secret:
