@@ -8,13 +8,13 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "release-ocm-2.14"
+      == "release-ocm-2.15"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: assisted-installer-application-acm-ds-2-14
-    appstudio.openshift.io/component: assisted-service-rhel9-acm-ds-2-14
+    appstudio.openshift.io/application: assisted-installer-application-acm-ds-2-15
+    appstudio.openshift.io/component: assisted-service-rhel8-acm-ds-2-15
     pipelines.appstudio.openshift.io/type: build
-  name: assisted-service-rhel9-acm-ds-2-14-on-pull-request
+  name: assisted-service-rhel8-acm-ds-2-15-on-pull-request
   namespace: assisted-installer-tenant
 spec:
   params:
@@ -23,14 +23,14 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-installer-application-acm-ds-2-14/assisted-service-rhel9-acm-ds-2-14:on-pr-{{revision}}
+    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-installer-application-acm-ds-2-15/assisted-service-rhel8-acm-ds-2-15:on-pr-{{revision}}
   - name: image-expires-after
     value: 5d
   - name: build-platforms
     value:
     - linux/x86_64
   - name: dockerfile
-    value: Dockerfile.assisted-service-rhel9-mce
+    value: Dockerfile.assisted-service-rhel8-mce
   - name: path-context
     value: .
   - name: build-args
@@ -40,7 +40,7 @@ spec:
   - name: hermetic
     value: "true"
   - name: prefetch-input
-    value: '[{"type": "gomod", "path": "."}, {"type": "rpm", "path": "./rpm-prefetching/assisted-service-rhel9/"}]'
+    value: '[{"type": "gomod", "path": "."}, {"type": "rpm", "path": "./rpm-prefetching/assisted-service-rhel8/"}]'
   - name: build-source-image
     value: "true"
   pipelineSpec:
@@ -618,7 +618,8 @@ spec:
       optional: true
     - name: netrc
       optional: true
-  taskRunTemplate: {}
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-assisted-service-rhel8-acm-ds-2-15
   workspaces:
   - name: git-auth
     secret:
