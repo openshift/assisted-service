@@ -54,14 +54,14 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return []string{}, nil
 }
 
-// GetClusterValidationID returns cluster validation ID for the Operator
-func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the Operator
+func (o *operator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the Operator
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDNodeMaintenanceRequirementsSatisfied)
+	return hostValidationID
 }
 
 // GetProperties provides description of operator properties

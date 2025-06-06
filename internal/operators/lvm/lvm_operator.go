@@ -13,6 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	clusterValidationID = string(models.ClusterValidationIDLvmRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDLvmRequirementsSatisfied)
+)
+
 // operator is an ODF LVM OLM operator plugin; it implements api.Operator
 type operator struct {
 	log    logrus.FieldLogger
@@ -65,30 +70,44 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return make([]string, 0), nil
 }
 
-// GetClusterValidationID returns cluster validation ID for the Operator
-func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDLvmRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the Operator
+func (o *operator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the Operator
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDLvmRequirementsSatisfied)
+	return hostValidationID
 }
 
 // ValidateCluster always return "valid" result
-func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
+func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	result := []api.ValidationResult{{
+		Status:       api.Success,
+		ValidationId: clusterValidationID,
+	}}
+
 	if ok, _ := common.BaseVersionLessThan(LvmoMinOpenshiftVersion, cluster.OpenshiftVersion); ok {
-		message := fmt.Sprintf("Logical Volume Manager is only supported for openshift versions %s and above", LvmoMinOpenshiftVersion)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
+		result[0].Status = api.Failure
+		result[0].Reasons = []string{
+			fmt.Sprintf("Logical Volume Manager is only supported for openshift versions %s and above", LvmoMinOpenshiftVersion),
+		}
+
+		return result, nil
 	}
 
 	if !common.IsSingleNodeCluster(cluster) {
 		if ok, _ := common.BaseVersionLessThan(LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); ok {
-			message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above", LvmMinMultiNodeSupportVersion)
-			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
+			result[0].Status = api.Failure
+			result[0].Reasons = []string{
+				fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above", LvmMinMultiNodeSupportVersion),
+			}
+
+			return result, nil
 		}
 	}
-	return api.ValidationResult{Status: api.Success, ValidationId: o.GetClusterValidationID()}, nil
+
+	return result, nil
 }
 
 // ValidateHost always return "valid" result

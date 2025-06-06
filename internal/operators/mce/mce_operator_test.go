@@ -75,17 +75,17 @@ var _ = Describe("MCE Operator", func() {
 		)
 	})
 	Context("ValidateCluster", func() {
-		table.DescribeTable("validate cluster when ", func(cluster *common.Cluster, expectedResult api.ValidationResult) {
+		table.DescribeTable("validate cluster when ", func(cluster *common.Cluster, expectedResult []api.ValidationResult) {
 			res, _ := operator.ValidateCluster(ctx, cluster)
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("Openshift version less than minimal",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: "4.9.0"}},
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{fmt.Sprintf("multicluster engine is only supported for openshift versions %s and above", MceMinOpenshiftVersion)}},
+				[]api.ValidationResult{{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{fmt.Sprintf("multicluster engine is only supported for openshift versions %s and above", MceMinOpenshiftVersion)}}},
 			),
 			table.Entry("Openshift version more than minimal",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: MceMinOpenshiftVersion}},
-				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
+				[]api.ValidationResult{{Status: api.Success, ValidationId: operator.GetHostValidationID()}},
 			),
 		)
 	})
