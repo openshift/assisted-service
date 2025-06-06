@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 
+	"github.com/go-openapi/strfmt"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
@@ -232,6 +233,11 @@ func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, cl
 	}
 
 	return nil
+}
+
+func DeregisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, clusterID strfmt.UUID) error {
+	_, err := bmInventory.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+	return err
 }
 
 func GetCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) (cluster *models.Cluster, err error) {
