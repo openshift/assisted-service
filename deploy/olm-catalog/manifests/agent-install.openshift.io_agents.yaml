@@ -371,6 +371,12 @@ spec:
                         type: boolean
                     type: object
                 type: object
+              kind:
+                description: |-
+                  Kind corresponds to the same field in the model Host. It indicates the type of cluster the host is
+                  being installed to; either an existing cluster (day-2) or a new cluster (day-1).
+                  Value is one of: "AddToExistingClusterHost" (day-2) or "Host" (day-1)
+                type: string
               ntpSources:
                 items:
                   properties:
