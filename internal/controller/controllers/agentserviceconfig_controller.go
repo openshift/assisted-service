@@ -925,7 +925,7 @@ func newImageServiceIPXERoute(ctx context.Context, log logrus.FieldLogger, asc A
 func newAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      agentLocalAuthSecretName,
+			Name:      getSecretName(asc.Object.GetAnnotations(), agentLocalAuthSecretName),
 			Namespace: asc.namespace,
 			Labels: map[string]string{
 				BackupLabel: BackupLabelValue,
@@ -960,7 +960,7 @@ func newAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, asc AS
 func newPostgresSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      databaseName,
+			Name:      getSecretName(asc.Object.GetAnnotations(), databaseName),
 			Namespace: asc.namespace,
 			Labels: map[string]string{
 				BackupLabel: BackupLabelValue,
@@ -1582,10 +1582,10 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 			}
 			setAnnotation(&statefulSet.ObjectMeta, osImagesAdditionalParamsConfigHashAnnotation, osImagesAdditionalParamsConfigHash)
 			if secret.Data[osImageAdditionalParamsHeadersKey] != nil {
-				container.Env = append(container.Env, newSecretEnvVar(osImageAdditionalParamsHeadersEnvVar, osImageAdditionalParamsHeadersKey, asc.spec.OSImageAdditionalParamsRef.Name))
+				container.Env = append(container.Env, newStaticSecretEnvVar(osImageAdditionalParamsHeadersEnvVar, osImageAdditionalParamsHeadersKey, asc.spec.OSImageAdditionalParamsRef.Name))
 			}
 			if secret.Data[osImageAdditionalParamsQueryParamsKey] != nil {
-				container.Env = append(container.Env, newSecretEnvVar(osImageAdditionalParamsQueryParamsEnvVar, osImageAdditionalParamsQueryParamsKey, asc.spec.OSImageAdditionalParamsRef.Name))
+				container.Env = append(container.Env, newStaticSecretEnvVar(osImageAdditionalParamsQueryParamsEnvVar, osImageAdditionalParamsQueryParamsKey, asc.spec.OSImageAdditionalParamsRef.Name))
 			}
 		}
 
@@ -1776,15 +1776,15 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 
 	envSecrets := []corev1.EnvVar{
 		// database
-		newSecretEnvVar("DB_HOST", "db.host", databaseName),
-		newSecretEnvVar("DB_NAME", "db.name", databaseName),
-		newSecretEnvVar("DB_PASS", "db.password", databaseName),
-		newSecretEnvVar("DB_PORT", "db.port", databaseName),
-		newSecretEnvVar("DB_USER", "db.user", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_HOST", "db.host", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_NAME", "db.name", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_PASS", "db.password", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_PORT", "db.port", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_USER", "db.user", databaseName),
 
 		// local auth secret
-		newSecretEnvVar("EC_PUBLIC_KEY_PEM", "ec-public-key.pem", agentLocalAuthSecretName),
-		newSecretEnvVar("EC_PRIVATE_KEY_PEM", "ec-private-key.pem", agentLocalAuthSecretName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "EC_PUBLIC_KEY_PEM", "ec-public-key.pem", agentLocalAuthSecretName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "EC_PRIVATE_KEY_PEM", "ec-private-key.pem", agentLocalAuthSecretName),
 	}
 
 	if exposeIPXEHTTPRoute(asc.spec) {
@@ -1829,7 +1829,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			Name: "bucket-filesystem",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: serviceName,
+					ClaimName: getPVCName(asc.Object.GetAnnotations(), serviceName),
 				},
 			},
 		},
@@ -1837,7 +1837,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			Name: "postgresdb",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: databaseName,
+					ClaimName: getPVCName(asc.Object.GetAnnotations(), databaseName),
 				},
 			},
 		},
@@ -1969,9 +1969,9 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			},
 		},
 		Env: []corev1.EnvVar{
-			newSecretEnvVar("POSTGRESQL_DATABASE", "db.name", databaseName),
-			newSecretEnvVar("POSTGRESQL_USER", "db.user", databaseName),
-			newSecretEnvVar("POSTGRESQL_PASSWORD", "db.password", databaseName),
+			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_DATABASE", "db.name", databaseName),
+			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_USER", "db.user", databaseName),
+			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_PASSWORD", "db.password", databaseName),
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
@@ -2141,6 +2141,20 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 	return deployment, mutateFn, nil
 }
 
+func getSecretName(annotations map[string]string, secretID string) string {
+	if prefix, ok := annotations[aiv1beta1.SecretsPrefixAnnotation]; ok {
+		return prefix + secretID
+	}
+	return secretID
+}
+
+func getPVCName(annotations map[string]string, pvcID string) string {
+	if prefix, ok := annotations[aiv1beta1.PVCPrefixAnnotation]; ok {
+		return prefix + pvcID
+	}
+	return pvcID
+}
+
 func copyEnv(config map[string]string, key string) {
 	if value, ok := os.LookupEnv(key); ok {
 		config[key] = value
@@ -2266,7 +2280,7 @@ func getVersionKey(openshiftVersion string) (string, error) {
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
-func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
+func newStaticSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 	return corev1.EnvVar{
 		Name: name,
 		ValueFrom: &corev1.EnvVarSource{
@@ -2278,6 +2292,10 @@ func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 			},
 		},
 	}
+}
+
+func newSecretEnvVar(annotations map[string]string, name, key, secretName string) corev1.EnvVar {
+	return newStaticSecretEnvVar(name, key, getSecretName(annotations, secretName))
 }
 
 func newInfraEnvWebHook(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
