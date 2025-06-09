@@ -1017,6 +1017,94 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		})
 	})
 
+	Context("with secrets prefix annotation on AgentServiceConfig", func() {
+		It("should create prefixed secret and references to it", func() {
+			asc := newASCDefault()
+			asc.ObjectMeta.Annotations = map[string]string{"unsupported.agent-install.openshift.io/assisted-service-secrets-prefix": "my-prefix-"}
+
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, clusterTrustedCM)
+			_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).NotTo(HaveOccurred())
+
+			secret := &corev1.Secret{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: "my-prefix-postgres", Namespace: testNamespace}, secret)).To(Succeed())
+
+			found := &appsv1.Deployment{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+
+			Expect(found.Spec.Template.Spec.Containers[0].Env).To(
+				ContainElement(
+					corev1.EnvVar{
+						Name: "DB_HOST",
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								Key: "db.host",
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "my-prefix-postgres",
+								},
+							},
+						},
+					},
+				),
+			)
+
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: "my-prefix-assisted-servicelocal-auth", Namespace: testNamespace}, secret)).To(Succeed())
+			Expect(found.Spec.Template.Spec.Containers[0].Env).To(
+				ContainElement(
+					corev1.EnvVar{
+						Name: "EC_PUBLIC_KEY_PEM",
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								Key: "ec-public-key.pem",
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "my-prefix-assisted-servicelocal-auth",
+								},
+							},
+						},
+					},
+				),
+			)
+		})
+	})
+
+	Context("with PVC prefix annotation on AgentServiceConfig", func() {
+		It("should create prefixed PVC names", func() {
+			asc := newASCDefault()
+			asc.ObjectMeta.Annotations = map[string]string{"unsupported.agent-install.openshift.io/assisted-service-pvc-prefix": "my-prefix-"}
+
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, clusterTrustedCM)
+			_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).NotTo(HaveOccurred())
+			found := &appsv1.Deployment{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+
+			Expect(found.Spec.Template.Spec.Volumes).To(
+				ContainElement(
+					corev1.Volume{
+						Name: "bucket-filesystem",
+						VolumeSource: corev1.VolumeSource{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+								ClaimName: "my-prefix-assisted-service",
+							},
+						},
+					},
+				),
+			)
+			Expect(found.Spec.Template.Spec.Volumes).To(
+				ContainElement(
+					corev1.Volume{
+						Name: "postgresdb",
+						VolumeSource: corev1.VolumeSource{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+								ClaimName: "my-prefix-postgres",
+							},
+						},
+					},
+				),
+			)
+		})
+	})
+
 })
 
 var _ = Describe("newImageServiceService", func() {
@@ -3080,5 +3168,267 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 			}
 		}
 		Expect(found).To(BeTrue(), "Expected to find the IMAGE_SERVICE_BASE_URL env var")
+	})
+})
+
+var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
+	var (
+		ctx        context.Context
+		reconciler *AgentServiceConfigReconciler
+		ascObj     *aiv1beta1.AgentServiceConfig
+		req        ctrl.Request
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		ingressCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      defaultIngressCertCMName,
+				Namespace: defaultIngressCertCMNamespace,
+			},
+		}
+		route := &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: testHost,
+			},
+		}
+		imageRoute := &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imageServiceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: fmt.Sprintf("%s.images", testHost),
+			},
+		}
+		clusterTrustedCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterCAConfigMapName,
+				Namespace: testNamespace,
+			},
+			Data: map[string]string{caBundleKey: "example-cluster-trusted-bundle"},
+		}
+		ascObj = &aiv1beta1.AgentServiceConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "agent",
+			},
+			Spec: aiv1beta1.AgentServiceConfigSpec{
+				DatabaseStorage: corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.VolumeResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("10Gi"),
+						},
+					},
+				},
+				FileSystemStorage: corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.VolumeResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("10Gi"),
+						},
+					},
+				},
+			},
+		}
+
+		// Enable status subresource for AgentServiceConfig type
+		reconciler = newTestReconciler(&aiv1beta1.AgentServiceConfig{}, route, imageRoute, ingressCM, clusterTrustedCM)
+
+		req = ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name: ascObj.Name,
+			},
+		}
+	})
+
+	Context("when AgentServiceConfig is new", func() {
+		It("should pass validation when no immutable annotations are present", func() {
+			Expect(reconciler.Client.Create(ctx, ascObj)).To(Succeed())
+
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+			// Expected requeuing due to other objects
+			Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+
+			// Check that no immutable annotation failure condition exists
+			updatedASC := &aiv1beta1.AgentServiceConfig{}
+			Expect(reconciler.Client.Get(ctx, req.NamespacedName, updatedASC)).To(Succeed())
+
+			// Check that initial state was recorded
+			Expect(updatedASC.Status.ImmutableAnnotations).NotTo(BeNil())
+
+			condition := conditionsv1.FindStatusCondition(updatedASC.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+			// Expected condition from other objects
+			Expect(condition).ToNot(BeNil())
+			Expect(condition.Reason).ToNot(Equal(aiv1beta1.ReasonImmutableAnnotationFailure))
+		})
+
+		It("should pass validation and set initial state when immutable annotations are present", func() {
+			ascObj.Annotations = map[string]string{
+				aiv1beta1.PVCPrefixAnnotation:     "custom-pvc",
+				aiv1beta1.SecretsPrefixAnnotation: "custom-secret",
+				"other-annotation":                "other-value",
+			}
+			Expect(reconciler.Client.Create(ctx, ascObj)).To(Succeed())
+
+			// First reconcile: should try to store initial state annotation
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+			// Expected requeuing due to other objects
+			Expect(result.Requeue).To(BeTrue())
+
+			// Check that initial state was recorded
+			updatedASC := &aiv1beta1.AgentServiceConfig{}
+			Expect(reconciler.Client.Get(ctx, req.NamespacedName, updatedASC)).To(Succeed())
+			pvcPrefix, exists := updatedASC.Status.ImmutableAnnotations[aiv1beta1.PVCPrefixAnnotation]
+			Expect(exists).To(BeTrue())
+			Expect(pvcPrefix).To(Equal("custom-pvc"))
+			secretPrefix, exists := updatedASC.Status.ImmutableAnnotations[aiv1beta1.SecretsPrefixAnnotation]
+			Expect(exists).To(BeTrue())
+			Expect(secretPrefix).To(Equal("custom-secret"))
+
+			condition := conditionsv1.FindStatusCondition(updatedASC.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+			Expect(condition).ToNot(BeNil())
+			Expect(condition.Reason).ToNot(Equal(aiv1beta1.ReasonImmutableAnnotationFailure))
+		})
+	})
+
+	Context("when AgentServiceConfig is being updated", func() {
+		It("should pass validation when immutable annotations are unchanged", func() {
+			// Create initial object with immutable annotations
+			ascObj.Annotations = map[string]string{
+				aiv1beta1.PVCPrefixAnnotation:     "custom-pvc",
+				aiv1beta1.SecretsPrefixAnnotation: "custom-secret",
+			}
+			Expect(reconciler.Client.Create(ctx, ascObj)).To(Succeed())
+
+			By("reconcile and allow ASC to save initial annotation state")
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+			// Expected requeuing due to other objects
+			Expect(result.Requeue).To(BeTrue())
+
+			By("reconcile again with no changes to the ASC notations")
+			result, err = reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+			// Expected requeuing due to other objects
+			Expect(result.Requeue).To(BeTrue())
+
+			// Check that no immutable annotation failure condition exists
+			finalASC := &aiv1beta1.AgentServiceConfig{}
+			Expect(reconciler.Client.Get(ctx, req.NamespacedName, finalASC)).To(Succeed())
+
+			condition := conditionsv1.FindStatusCondition(finalASC.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+			// Expected condition by other objects
+			Expect(condition).NotTo(BeNil())
+			Expect(condition.Reason).ToNot(Equal(aiv1beta1.ReasonImmutableAnnotationFailure))
+		})
+
+		It("should fail validation when trying to add immutable annotations", func() {
+			// Create initial object without immutable annotations
+			Expect(reconciler.Client.Create(ctx, ascObj)).To(Succeed())
+
+			// First reconcile: stores initial state (empty for immutable annotations)
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+			// Expected requeuing due to other objects
+			Expect(result.Requeue).To(BeTrue())
+
+			// Try to add immutable annotation (should fail)
+			updatedASC := &aiv1beta1.AgentServiceConfig{}
+			Expect(reconciler.Client.Get(ctx, req.NamespacedName, updatedASC)).To(Succeed())
+			if updatedASC.Annotations == nil {
+				updatedASC.Annotations = make(map[string]string)
+			}
+			updatedASC.Annotations[aiv1beta1.PVCPrefixAnnotation] = "custom-pvc"
+			Expect(reconciler.Client.Update(ctx, updatedASC)).To(Succeed())
+
+			result, err = reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+			// Validation failed, not requeuing
+			Expect(result.Requeue).To(BeFalse())
+
+			// Check that immutable annotation failure condition exists
+			finalASC := &aiv1beta1.AgentServiceConfig{}
+			Expect(reconciler.Client.Get(ctx, req.NamespacedName, finalASC)).To(Succeed())
+
+			condition := conditionsv1.FindStatusCondition(finalASC.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+			Expect(condition).ToNot(BeNil())
+			Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+			Expect(condition.Reason).To(Equal(aiv1beta1.ReasonImmutableAnnotationFailure))
+			Expect(condition.Message).To(ContainSubstring("cannot be added after AgentServiceConfig creation"))
+		})
+
+		It("should fail validation when trying to change immutable annotation value", func() {
+			// Create initial object with immutable annotation
+			ascObj.Annotations = map[string]string{
+				aiv1beta1.PVCPrefixAnnotation: "original-pvc",
+			}
+			Expect(reconciler.Client.Create(ctx, ascObj)).To(Succeed())
+
+			By("reconcile allowing ASC to store annotation's initial state")
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+			// Expected requeuing due to other objects
+			Expect(result.Requeue).To(BeTrue())
+
+			updatedASC := &aiv1beta1.AgentServiceConfig{}
+			Expect(reconciler.Client.Get(ctx, req.NamespacedName, updatedASC)).To(Succeed())
+			updatedASC.Annotations[aiv1beta1.PVCPrefixAnnotation] = "changed-pvc"
+			Expect(reconciler.Client.Update(ctx, updatedASC)).To(Succeed())
+
+			By("reconcile again with annotation's value changed")
+			result, err = reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			// Check that immutable annotation failure condition exists
+			finalASC := &aiv1beta1.AgentServiceConfig{}
+			Expect(reconciler.Client.Get(ctx, req.NamespacedName, finalASC)).To(Succeed())
+
+			condition := conditionsv1.FindStatusCondition(finalASC.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+			Expect(condition).ToNot(BeNil())
+			Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+			Expect(condition.Reason).To(Equal(aiv1beta1.ReasonImmutableAnnotationFailure))
+			Expect(condition.Message).To(ContainSubstring("cannot be changed from"))
+		})
+
+		It("should fail validation when trying to remove immutable annotations", func() {
+			// Create initial object with immutable annotation
+			ascObj.Annotations = map[string]string{
+				aiv1beta1.PVCPrefixAnnotation: "custom-pvc",
+			}
+			Expect(reconciler.Client.Create(ctx, ascObj)).To(Succeed())
+
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+			// Expected requeuing due to other objects
+			Expect(result.Requeue).To(BeTrue())
+
+			By("removing immutable annotation")
+			updatedASC := &aiv1beta1.AgentServiceConfig{}
+			Expect(reconciler.Client.Get(ctx, req.NamespacedName, updatedASC)).To(Succeed())
+
+			delete(updatedASC.Annotations, aiv1beta1.PVCPrefixAnnotation)
+			Expect(reconciler.Client.Update(ctx, updatedASC)).To(Succeed())
+
+			result, err = reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+			// Validation failed, not requeuing
+			Expect(result.Requeue).To(BeFalse())
+
+			// Check that immutable annotation failure condition exists
+			finalASC := &aiv1beta1.AgentServiceConfig{}
+			Expect(reconciler.Client.Get(ctx, req.NamespacedName, finalASC)).To(Succeed())
+
+			condition := conditionsv1.FindStatusCondition(finalASC.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+			Expect(condition).ToNot(BeNil())
+			Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+			Expect(condition.Reason).To(Equal(aiv1beta1.ReasonImmutableAnnotationFailure))
+			Expect(condition.Message).To(ContainSubstring("cannot be removed once set"))
+		})
 	})
 })

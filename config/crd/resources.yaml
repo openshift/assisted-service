@@ -2065,6 +2065,10 @@ spec:
                   - type
                   type: object
                 type: array
+              immutableAnnotations:
+                additionalProperties:
+                  type: string
+                type: object
             type: object
         type: object
     served: true

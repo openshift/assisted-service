@@ -173,6 +173,7 @@ type ASC struct {
 	spec *aiv1beta1.AgentServiceConfigSpec
 
 	/* Status part of AgentServiceConfig CRD family */
+	status     *aiv1beta1.AgentServiceConfigStatus
 	conditions *[]conditionsv1.Condition
 
 	/* properties. use this field for cross cluster communication */
@@ -187,6 +188,7 @@ func initASC(r *AgentServiceConfigReconciler, instance *aiv1beta1.AgentServiceCo
 	asc.Object = instance
 	asc.spec = &instance.Spec
 	asc.conditions = &instance.Status.Conditions
+	asc.status = &instance.Status
 	return asc
 }
 
@@ -602,7 +604,7 @@ func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) (stri
 func newFilesystemPVC(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
+			Name:      getPVCName(asc.Object.GetAnnotations(), serviceName),
 			Namespace: asc.namespace,
 		},
 		Spec: asc.spec.FileSystemStorage,
@@ -625,7 +627,7 @@ func newFilesystemPVC(ctx context.Context, log logrus.FieldLogger, asc ASC) (cli
 func newDatabasePVC(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      databaseName,
+			Name:      getPVCName(asc.Object.GetAnnotations(), databaseName),
 			Namespace: asc.namespace,
 		},
 		Spec: asc.spec.DatabaseStorage,
@@ -925,7 +927,7 @@ func newImageServiceIPXERoute(ctx context.Context, log logrus.FieldLogger, asc A
 func newAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      agentLocalAuthSecretName,
+			Name:      getSecretName(asc.Object.GetAnnotations(), agentLocalAuthSecretName),
 			Namespace: asc.namespace,
 			Labels: map[string]string{
 				BackupLabel: BackupLabelValue,
@@ -960,7 +962,7 @@ func newAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, asc AS
 func newPostgresSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      databaseName,
+			Name:      getSecretName(asc.Object.GetAnnotations(), databaseName),
 			Namespace: asc.namespace,
 			Labels: map[string]string{
 				BackupLabel: BackupLabelValue,
@@ -1398,6 +1400,9 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 		"app": imageServiceName,
 	}
 
+	// Use consistent PVC name with prefix support
+	imageServiceDataPVCName := getPVCName(asc.Object.GetAnnotations(), "image-service-data")
+
 	imageServiceBaseURL := getImageService(ctx, log, asc)
 	containerEnv := []corev1.EnvVar{
 		{Name: "LISTEN_PORT", Value: imageHandlerPort.String()},
@@ -1409,7 +1414,7 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 		{Name: "DATA_TEMP_DIR", Value: "/data_temp"},
 	}
 	volumeMounts := []corev1.VolumeMount{
-		{Name: "image-service-data", MountPath: "/data"},
+		{Name: imageServiceDataPVCName, MountPath: "/data"},
 		{Name: "data-temp-volume", MountPath: "/data_temp"},
 	}
 	var healthCheckScheme corev1.URIScheme
@@ -1596,10 +1601,10 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 			}
 			setAnnotation(&statefulSet.ObjectMeta, osImagesAdditionalParamsConfigHashAnnotation, osImagesAdditionalParamsConfigHash)
 			if secret.Data[osImageAdditionalParamsHeadersKey] != nil {
-				container.Env = append(container.Env, newSecretEnvVar(osImageAdditionalParamsHeadersEnvVar, osImageAdditionalParamsHeadersKey, asc.spec.OSImageAdditionalParamsRef.Name))
+				container.Env = append(container.Env, newStaticSecretEnvVar(osImageAdditionalParamsHeadersEnvVar, osImageAdditionalParamsHeadersKey, asc.spec.OSImageAdditionalParamsRef.Name))
 			}
 			if secret.Data[osImageAdditionalParamsQueryParamsKey] != nil {
-				container.Env = append(container.Env, newSecretEnvVar(osImageAdditionalParamsQueryParamsEnvVar, osImageAdditionalParamsQueryParamsKey, asc.spec.OSImageAdditionalParamsRef.Name))
+				container.Env = append(container.Env, newStaticSecretEnvVar(osImageAdditionalParamsQueryParamsEnvVar, osImageAdditionalParamsQueryParamsKey, asc.spec.OSImageAdditionalParamsRef.Name))
 			}
 		}
 
@@ -1608,7 +1613,7 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 		if asc.spec.ImageStorage != nil {
 			var found bool
 			for i, claim := range statefulSet.Spec.VolumeClaimTemplates {
-				if claim.ObjectMeta.Name == "image-service-data" {
+				if claim.ObjectMeta.Name == imageServiceDataPVCName {
 					found = true
 					statefulSet.Spec.VolumeClaimTemplates[i].Spec.Resources.Requests = getStorageRequests(asc.spec.ImageStorage)
 				}
@@ -1617,7 +1622,7 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 				statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
 					{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "image-service-data",
+							Name: imageServiceDataPVCName,
 						},
 						Spec: *asc.spec.ImageStorage,
 					},
@@ -1625,7 +1630,7 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 			}
 			newVols := make([]corev1.Volume, 0)
 			for i := range volumes {
-				if volumes[i].Name != "image-service-data" {
+				if volumes[i].Name != imageServiceDataPVCName {
 					newVols = append(newVols, volumes[i])
 				}
 			}
@@ -1634,7 +1639,7 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 			statefulSet.Spec.VolumeClaimTemplates = nil
 
 			volumes = ensureVolume(volumes, corev1.Volume{
-				Name: "image-service-data",
+				Name: imageServiceDataPVCName,
 				VolumeSource: corev1.VolumeSource{
 					EmptyDir: &corev1.EmptyDirVolumeSource{},
 				},
@@ -1790,15 +1795,15 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 
 	envSecrets := []corev1.EnvVar{
 		// database
-		newSecretEnvVar("DB_HOST", "db.host", databaseName),
-		newSecretEnvVar("DB_NAME", "db.name", databaseName),
-		newSecretEnvVar("DB_PASS", "db.password", databaseName),
-		newSecretEnvVar("DB_PORT", "db.port", databaseName),
-		newSecretEnvVar("DB_USER", "db.user", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_HOST", "db.host", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_NAME", "db.name", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_PASS", "db.password", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_PORT", "db.port", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_USER", "db.user", databaseName),
 
 		// local auth secret
-		newSecretEnvVar("EC_PUBLIC_KEY_PEM", "ec-public-key.pem", agentLocalAuthSecretName),
-		newSecretEnvVar("EC_PRIVATE_KEY_PEM", "ec-private-key.pem", agentLocalAuthSecretName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "EC_PUBLIC_KEY_PEM", "ec-public-key.pem", agentLocalAuthSecretName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "EC_PRIVATE_KEY_PEM", "ec-private-key.pem", agentLocalAuthSecretName),
 	}
 
 	if exposeIPXEHTTPRoute(asc.spec) {
@@ -1843,7 +1848,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			Name: "bucket-filesystem",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: serviceName,
+					ClaimName: getPVCName(asc.Object.GetAnnotations(), serviceName),
 				},
 			},
 		},
@@ -1851,7 +1856,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			Name: "postgresdb",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: databaseName,
+					ClaimName: getPVCName(asc.Object.GetAnnotations(), databaseName),
 				},
 			},
 		},
@@ -1983,9 +1988,9 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			},
 		},
 		Env: []corev1.EnvVar{
-			newSecretEnvVar("POSTGRESQL_DATABASE", "db.name", databaseName),
-			newSecretEnvVar("POSTGRESQL_USER", "db.user", databaseName),
-			newSecretEnvVar("POSTGRESQL_PASSWORD", "db.password", databaseName),
+			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_DATABASE", "db.name", databaseName),
+			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_USER", "db.user", databaseName),
+			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_PASSWORD", "db.password", databaseName),
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
@@ -2155,6 +2160,20 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 	return deployment, mutateFn, nil
 }
 
+func getSecretName(annotations map[string]string, secretID string) string {
+	if prefix, ok := annotations[aiv1beta1.SecretsPrefixAnnotation]; ok {
+		return prefix + secretID
+	}
+	return secretID
+}
+
+func getPVCName(annotations map[string]string, pvcID string) string {
+	if prefix, ok := annotations[aiv1beta1.PVCPrefixAnnotation]; ok {
+		return prefix + pvcID
+	}
+	return pvcID
+}
+
 func copyEnv(config map[string]string, key string) {
 	if value, ok := os.LookupEnv(key); ok {
 		config[key] = value
@@ -2280,7 +2299,7 @@ func getVersionKey(openshiftVersion string) (string, error) {
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
-func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
+func newStaticSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 	return corev1.EnvVar{
 		Name: name,
 		ValueFrom: &corev1.EnvVarSource{
@@ -2292,6 +2311,10 @@ func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 			},
 		},
 	}
+}
+
+func newSecretEnvVar(annotations map[string]string, name, key, secretName string) corev1.EnvVar {
+	return newStaticSecretEnvVar(name, key, getSecretName(annotations, secretName))
 }
 
 func newInfraEnvWebHook(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
@@ -2873,8 +2896,88 @@ func validateCABundle(bundle string) error {
 	return nil
 }
 
+// validateImmutableAnnotations ensures that prefix annotations are immutable once set
+// Returns true if the immutable annotations are valid, false if they are invalid, and an error if there is an error
+func validateImmutableAnnotations(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error) {
+	if _, ok := asc.Object.(*aiv1beta1.AgentServiceConfig); !ok {
+		// if it's not AgentServiceConfig object, we don't need to validate immutable annotations
+		return true, nil
+	}
+	immutableAnnotations := []string{
+		aiv1beta1.PVCPrefixAnnotation,
+		aiv1beta1.SecretsPrefixAnnotation,
+	}
+
+	// Check if we have stored the initial state in a special annotation
+	currentAnnotations := asc.Object.GetAnnotations()
+	if currentAnnotations == nil {
+		currentAnnotations = make(map[string]string)
+	}
+
+	if asc.status.ImmutableAnnotations == nil {
+		asc.status.ImmutableAnnotations = make(map[string]string)
+		// if the immutable annotations are not set, we store the current annotations as the initial state
+
+		for _, annotation := range immutableAnnotations {
+			asc.status.ImmutableAnnotations[annotation] = currentAnnotations[annotation]
+		}
+		if err := asc.Client.Status().Update(ctx, asc.Object); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+
+	// Validate each immutable annotation against the initial state
+	for _, annotation := range immutableAnnotations {
+		initialValue := asc.status.ImmutableAnnotations[annotation]
+		initialExists := initialValue != ""
+		currentValue, currentExists := currentAnnotations[annotation]
+
+		// If the annotation was not set initially, it can never be added
+		if !initialExists && currentExists {
+			err := fmt.Errorf("annotation %s cannot be added after AgentServiceConfig creation", annotation)
+			return false, registerImmutableAnnotationFailureCondition(ctx, log, err, asc)
+		}
+
+		// If the annotation exists, its value cannot change
+		if initialExists && currentExists && initialValue != currentValue {
+			err := fmt.Errorf("annotation %s value cannot be changed from %q to %q", annotation, initialValue, currentValue)
+			return false, registerImmutableAnnotationFailureCondition(ctx, log, err, asc)
+		}
+
+		// If the annotation was set, it cannot be removed
+		if initialExists && !currentExists {
+			err := fmt.Errorf("annotation %s cannot be removed once set", annotation)
+			return false, registerImmutableAnnotationFailureCondition(ctx, log, err, asc)
+		}
+	}
+
+	return true, nil
+}
+
+// registerImmutableAnnotationFailureCondition registers a failure condition for immutable annotation validation
+func registerImmutableAnnotationFailureCondition(ctx context.Context, log logrus.FieldLogger, err error, asc ASC) error {
+	conditionsv1.SetStatusConditionNoHeartbeat(
+		asc.conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonImmutableAnnotationFailure,
+			Message: err.Error(),
+		},
+	)
+	updateErr := asc.Client.Status().Update(ctx, asc.Object)
+	if updateErr != nil {
+		return updateErr
+	}
+	return nil
+}
+
 func validate(ctx context.Context, log logrus.FieldLogger, asc ASC, supportsCertManager bool) (bool, error) {
 	if valid, err := validateOSImageCACertRef(ctx, log, asc); !valid {
+		return false, err
+	}
+
+	if valid, err := validateImmutableAnnotations(ctx, log, asc); !valid {
 		return false, err
 	}
 
@@ -2959,12 +3062,13 @@ func validate(ctx context.Context, log logrus.FieldLogger, asc ASC, supportsCert
 	}
 
 	// If we are here then all the validations succeeded, so we may need to
-	// remove a previous failure condition:
+	// remove previous failure conditions:
 	condition := conditionsv1.FindStatusCondition(
 		*asc.conditions,
 		aiv1beta1.ConditionReconcileCompleted,
 	)
-	if condition != nil && condition.Reason == aiv1beta1.ReasonStorageFailure {
+	if condition != nil && (condition.Reason == aiv1beta1.ReasonStorageFailure ||
+		condition.Reason == aiv1beta1.ReasonImmutableAnnotationFailure) {
 		conditionsv1.RemoveStatusCondition(
 			asc.conditions,
 			aiv1beta1.ConditionReconcileCompleted,
@@ -2999,7 +3103,7 @@ func validateStorage(ctx context.Context, log logrus.FieldLogger, asc ASC) (warn
 		warnings = append(warnings, message)
 		key := client.ObjectKey{
 			Namespace: asc.namespace,
-			Name:      databaseName,
+			Name:      getPVCName(asc.Object.GetAnnotations(), databaseName),
 		}
 		var tmp corev1.PersistentVolumeClaim
 		err = asc.Client.Get(ctx, key, &tmp)
@@ -3022,7 +3126,7 @@ func validateStorage(ctx context.Context, log logrus.FieldLogger, asc ASC) (warn
 		warnings = append(warnings, message)
 		key := client.ObjectKey{
 			Namespace: asc.namespace,
-			Name:      serviceName,
+			Name:      getPVCName(asc.Object.GetAnnotations(), serviceName),
 		}
 		var tmp corev1.PersistentVolumeClaim
 		err = asc.Client.Get(ctx, key, &tmp)
