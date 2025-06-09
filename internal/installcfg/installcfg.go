@@ -210,6 +210,16 @@ const (
 	CPUPartitioningAllNodes CPUPartitioningMode = "AllNodes"
 )
 
+// PolicyType is for usage polices that are applied to additionalTrustBundle.
+type PolicyType string
+
+const (
+	// PolicyProxyOnly  enables use of AdditionalTrustBundle when http/https proxy is configured.
+	PolicyProxyOnly PolicyType = "Proxyonly"
+	// PolicyAlways ignores all conditions and uses AdditionalTrustBundle.
+	PolicyAlways PolicyType = "Always"
+)
+
 type InstallerConfigBaremetal struct {
 	APIVersion string `json:"apiVersion"`
 	BaseDomain string `json:"baseDomain"`
@@ -245,6 +255,8 @@ type InstallerConfigBaremetal struct {
 	PullSecret            string              `json:"pullSecret"`
 	SSHKey                string              `json:"sshKey"`
 	AdditionalTrustBundle string              `json:"additionalTrustBundle,omitempty"`
+	// This field is only needed for installConfig overrides. It defaults to Proxyonly.
+	AdditionalTrustBundlePolicy PolicyType `json:"additionalTrustBundlePolicy,omitempty"`
 	// The ImageContentSources field is deprecated. Please use ImageDigestSources.
 	DeprecatedImageContentSources []ImageContentSource `json:"imageContentSources,omitempty"`
 	ImageDigestSources            []ImageDigestSource  `json:"imageDigestSources,omitempty"`
