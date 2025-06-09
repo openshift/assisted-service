@@ -1017,6 +1017,94 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		})
 	})
 
+	Context("with secrets prefix annotation on AgentServiceConfig", func() {
+		It("should create prefixed secret and references to it", func() {
+			asc := newASCDefault()
+			asc.ObjectMeta.Annotations = map[string]string{"unsupported.agent-install.openshift.io/assisted-service-secrets-prefix": "my-prefix-"}
+
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, clusterTrustedCM)
+			_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).NotTo(HaveOccurred())
+
+			secret := &corev1.Secret{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: "my-prefix-postgres", Namespace: testNamespace}, secret)).To(Succeed())
+
+			found := &appsv1.Deployment{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+
+			Expect(found.Spec.Template.Spec.Containers[0].Env).To(
+				ContainElement(
+					corev1.EnvVar{
+						Name: "DB_HOST",
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								Key: "db.host",
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "my-prefix-postgres",
+								},
+							},
+						},
+					},
+				),
+			)
+
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: "my-prefix-assisted-servicelocal-auth", Namespace: testNamespace}, secret)).To(Succeed())
+			Expect(found.Spec.Template.Spec.Containers[0].Env).To(
+				ContainElement(
+					corev1.EnvVar{
+						Name: "EC_PUBLIC_KEY_PEM",
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								Key: "ec-public-key.pem",
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "my-prefix-assisted-servicelocal-auth",
+								},
+							},
+						},
+					},
+				),
+			)
+		})
+	})
+
+	Context("with PVC prefix annotation on AgentServiceConfig", func() {
+		It("should create prefixed PVC names", func() {
+			asc := newASCDefault()
+			asc.ObjectMeta.Annotations = map[string]string{"unsupported.agent-install.openshift.io/assisted-service-pvc-prefix": "my-prefix-"}
+
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, clusterTrustedCM)
+			_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).NotTo(HaveOccurred())
+			found := &appsv1.Deployment{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+
+			Expect(found.Spec.Template.Spec.Volumes).To(
+				ContainElement(
+					corev1.Volume{
+						Name: "bucket-filesystem",
+						VolumeSource: corev1.VolumeSource{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+								ClaimName: "my-prefix-assisted-service",
+							},
+						},
+					},
+				),
+			)
+			Expect(found.Spec.Template.Spec.Volumes).To(
+				ContainElement(
+					corev1.Volume{
+						Name: "postgresdb",
+						VolumeSource: corev1.VolumeSource{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+								ClaimName: "my-prefix-postgres",
+							},
+						},
+					},
+				),
+			)
+		})
+	})
+
 })
 
 var _ = Describe("newImageServiceService", func() {
