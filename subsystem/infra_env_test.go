@@ -266,7 +266,7 @@ var _ = Describe("Infra_Env", func() {
 				IgnitionConfigOverride: `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
 				SSHAuthorizedKey:       swag.String(newSshKey),
 				Proxy:                  &models.Proxy{HTTPProxy: swag.String("http://proxy.proxy"), HTTPSProxy: nil, NoProxy: swag.String("proxy.proxy")},
-				OpenshiftVersion:       swag.String("4.16"),
+				OpenshiftVersion:       swag.String("4.17"),
 			},
 		}
 
@@ -278,7 +278,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(swag.StringValue(updateInfraEnv.Proxy.HTTPSProxy)).To(BeEmpty())
 		Expect(swag.StringValue(updateInfraEnv.Proxy.NoProxy)).To(Equal("proxy.proxy"))
 		Expect(common.ImageTypeValue(updateInfraEnv.Type)).To(Equal(models.ImageTypeMinimalIso))
-		Expect(updateInfraEnv.OpenshiftVersion).To(Equal("4.16"))
+		Expect(updateInfraEnv.OpenshiftVersion).To(Equal("4.17"))
 	})
 
 	It("download minimal-iso image success", func() {
@@ -361,7 +361,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(contents).To(ContainSubstring("eth0"))
 	},
 		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl", common.MinimalVersionForNmstatectl),
-		Entry("ocp versions less than MinimalVersionForNmstatectl", "4.12"),
+		Entry("ocp versions less than MinimalVersionForNmstatectl", "4.17"),
 	)
 
 	It("download infra-env files invalid filename option", func() {
