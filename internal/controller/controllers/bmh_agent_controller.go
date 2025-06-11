@@ -95,6 +95,7 @@ const (
 	BMH_DELETE_ANNOTATION               = "bmac.agent-install.openshift.io/remove-agent-and-node-on-delete"
 	BMH_CLUSTER_REFERENCE               = "bmac.agent-install.openshift.io/cluster-reference"
 	BMH_HOST_MANAGEMENT_ANNOTATION      = "bmac.agent-install.openshift.io/allow-provisioned-host-management"
+	BMH_SPOKE_CREATED_ANNOTATION        = "bmac.agent-install.openshift.io/spoke-bmh-machine-created"
 	MACHINE_ROLE                        = "machine.openshift.io/cluster-api-machine-role"
 	MACHINE_TYPE                        = "machine.openshift.io/cluster-api-machine-type"
 	MCS_CERT_NAME                       = "ca.crt"
@@ -813,6 +814,7 @@ func reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHo
 		delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
 		delete(bmh.ObjectMeta.Annotations, BMH_PAUSED_ANNOTATION)
 		delete(bmh.ObjectMeta.Annotations, BMH_HARDWARE_DETAILS_ANNOTATION)
+		delete(bmh.Annotations, BMH_SPOKE_CREATED_ANNOTATION)
 		bmh.Spec.Image = nil
 
 		log.Infof("Unbound agent reconciled to BMH")
@@ -842,9 +844,16 @@ func reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHo
 		delete(bmh.Annotations, BMH_PAUSED_ANNOTATION)
 		dirty = true
 	}
+	// Clear annotations that are not relevant after the host is removed from an installed cluster
 	if _, ok := bmh.GetAnnotations()[BMH_HARDWARE_DETAILS_ANNOTATION]; ok {
 		log.Info("removing BMH hardware details annotation")
 		delete(bmh.Annotations, BMH_HARDWARE_DETAILS_ANNOTATION)
+		dirty = true
+	}
+
+	if _, ok := bmh.GetAnnotations()[BMH_SPOKE_CREATED_ANNOTATION]; ok {
+		log.Info("removing BMH spoke created annotation")
+		delete(bmh.Annotations, BMH_SPOKE_CREATED_ANNOTATION)
 		dirty = true
 	}
 
@@ -1034,6 +1043,10 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 // - Create BMH with externallyProvisioned set to true and set the newly created machine as ConsumerRef
 // BMH_HARDWARE_DETAILS_ANNOTATION is needed for auto approval of the CSR.
 func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	if metav1.HasAnnotation(bmh.ObjectMeta, BMH_SPOKE_CREATED_ANNOTATION) {
+		log.Debugf("Stopped reconcileDay2SpokeBMH because it has already been created")
+		return reconcileComplete{}
+	}
 	cd, installed, err := r.getClusterDeploymentAndCheckIfInstalled(ctx, log, agent)
 	if err != nil {
 		return reconcileError{err: err}
@@ -1121,7 +1134,8 @@ func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.F
 		return reconcileError{err: err}
 	}
 
-	return reconcileComplete{}
+	setAnnotation(&bmh.ObjectMeta, BMH_SPOKE_CREATED_ANNOTATION, time.Now().String())
+	return reconcileComplete{dirty: true}
 }
 
 // Finds the installation disk based on the RootDeviceHints
