@@ -134,8 +134,11 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			CRDEventsHandler: mockCRDEventsHandler,
 			VersionsHandler:  mockVersionHandler,
 			OcRelease:        mockOcRelease,
-			Config:           PreprovisioningImageControllerConfig{BaremetalIronicAgentImage: defaultIronicImage},
-			BMOUtils:         mockBMOUtils,
+			Config: PreprovisioningImageControllerConfig{
+				BaremetalIronicAgentImage:       defaultIronicImage,
+				BaremetalIronicAgentImageForArm: "ironic-agent-arm64:latest",
+			},
+			BMOUtils: mockBMOUtils,
 		}
 		clusterVersion = &configv1.ClusterVersion{
 			ObjectMeta: metav1.ObjectMeta{Name: "version"},
@@ -702,6 +705,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			mockOcRelease.EXPECT().GetImageArchitecture(gomock.Any(), iccConfig.IronicAgentImage, backendInfraEnv.PullSecret).Times(1).Return([]string{"arm64"}, nil)
 			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Times(1).Return([]string{"arm64"}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("ironic-image:4.12.0", nil)
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), "4.12.0-rc.3", "x86_64", backendInfraEnv.PullSecret).Return(nil, errors.Errorf("no release found"))
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
@@ -763,6 +767,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 
 			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"arm64"}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("ironic-image:4.12.0", nil)
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), "4.12.0-rc.3", "x86_64", backendInfraEnv.PullSecret).Return(nil, errors.Errorf("no release found"))
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
@@ -836,6 +841,70 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(internalIgnitionConfig).Should(HaveValue(ContainSubstring(overrideAgentImage)))
 				})
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+		})
+
+		It("uses ironic agent from ClusterImageSet when found for spoke architecture", func() {
+			Expect(c.Create(ctx, clusterVersion)).To(Succeed())
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			backendInfraEnv.CPUArchitecture = "arm64"
+			backendInfraEnv.PullSecret = "mypullsecret"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
+
+			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
+			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("hub-ironic-x86-image", nil)
+
+			armReleaseURL := "quay.io/openshift-release-dev/ocp-release:4.12.0-arm64"
+			armCPUArch := "arm64"
+			armVersion := "4.12.0"
+			armReleaseImage := &models.ReleaseImage{
+				CPUArchitecture:  &armCPUArch,
+				OpenshiftVersion: &armVersion,
+				URL:              &armReleaseURL,
+				Version:          &armVersion,
+			}
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), "4.12.0-rc.3", "arm64", backendInfraEnv.PullSecret).Return(armReleaseImage, nil)
+
+			armIronicImage := "ironic-agent-arm64:4.12.0"
+			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), armReleaseURL, "", backendInfraEnv.PullSecret).Return(armIronicImage, nil)
+
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring(armIronicImage))
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterID, ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+		})
+
+		It("handles multi-arch hub release image containing spoke architecture", func() {
+			Expect(c.Create(ctx, clusterVersion)).To(Succeed())
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			backendInfraEnv.CPUArchitecture = "arm64"
+			backendInfraEnv.PullSecret = "mypullsecret"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
+
+			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"x86_64", "arm64"}, nil)
+			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("multi-arch-ironic-image:4.12.0", nil)
+
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring("multi-arch-ironic-image:4.12.0"))
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterID, ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
 			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
 
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))

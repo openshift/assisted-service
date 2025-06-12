@@ -212,7 +212,11 @@ The converged flow is enabled by default, you can disable the converged flow by 
 ### Ironic Agent Image
 
 The ironic agent image will be determined based on the hub release image set in the ClusterVersion resource.
-If the hub cluster architecture does not match that of the InfraEnv or if the release image cannot be retrieved for some reason a default ironic agent image will be used.
+For cases where the hub and spoke architectures are different (e.g., hub is x86_64 and spoke is arm64), the system can automatically detect the appropriate ironic agent image if:
+- The hub is using a multi-architecture release image that contains the spoke's architecture, OR
+- A ClusterImageSet exists for the hub's version and the spoke's architecture
+
+If none of the above conditions are met, and no ironic-agent-image-override annotation has been provided, a default ironic agent image will be used.
 The defaults are:
 - x86_64: `quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:d3f1d4d3cd5fbcf1b9249dd71d01be4b901d337fdc5f8f66569eb71df4d9d446`
 - arm64: `quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:cb0edf19fffc17f542a7efae76939b1e9757dc75782d4727fb0aa77ed5809b43`
