@@ -16,6 +16,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	clusterValidationID = string(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDOpenshiftAiRequirementsSatisfied)
+)
+
 var Operator = models.MonitoredOperator{
 	Namespace:        "redhat-ods-operator",
 	Name:             "openshift-ai",
@@ -89,39 +94,38 @@ func (o *operator) GetDependencies(c *common.Cluster) (result []string, err erro
 	return ret, nil
 }
 
-// GetClusterValidationID returns cluster validation ID for the operator.
-func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the operator.
+func (o *operator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the operator.
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDOpenshiftAiRequirementsSatisfied)
+	return hostValidationID
 }
 
 // ValidateCluster checks if the cluster satisfies the requirements to install the operator.
-func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) (result api.ValidationResult,
-	err error) {
-	result.ValidationId = o.GetClusterValidationID()
+func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	result := []api.ValidationResult{{
+		ValidationId: clusterValidationID,
+		Status:       api.Success,
+	}}
 
 	// Check the number of worker nodes:
 	workerCount := int64(common.NumberOfWorkers(cluster))
 	if workerCount < o.config.MinWorkerNodes {
-		result.Reasons = append(
-			result.Reasons,
+		result[0].Status = api.Failure
+		result[0].Reasons = []string{
 			fmt.Sprintf(
 				"OpenShift AI requires at least %d worker nodes, but the cluster has %d.",
 				o.config.MinWorkerNodes, workerCount,
 			),
-		)
+		}
+
+		return result, nil
 	}
 
-	if len(result.Reasons) > 0 {
-		result.Status = api.Failure
-	} else {
-		result.Status = api.Success
-	}
-	return
+	return result, nil
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and CPU.

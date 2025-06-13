@@ -8,6 +8,11 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+const (
+	clusterValidationID = string(models.ClusterValidationIDLsoRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDLsoRequirementsSatisfied)
+)
+
 // lsOperator is an LSO OLM operator plugin; it implements api.Operator
 type lsOperator struct {
 }
@@ -39,19 +44,22 @@ func (l *lsOperator) GetDependencies(cluster *common.Cluster) ([]string, error) 
 	return make([]string, 0), nil
 }
 
-// GetClusterValidationID returns cluster validation ID for the Operator
-func (l *lsOperator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDLsoRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the Operator
+func (l *lsOperator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the Operator
 func (l *lsOperator) GetHostValidationID() string {
-	return string(models.HostValidationIDLsoRequirementsSatisfied)
+	return hostValidationID
 }
 
 // ValidateCluster always return "valid" result
-func (l *lsOperator) ValidateCluster(_ context.Context, _ *common.Cluster) (api.ValidationResult, error) {
-	return api.ValidationResult{Status: api.Success, ValidationId: l.GetClusterValidationID(), Reasons: []string{}}, nil
+func (l *lsOperator) ValidateCluster(_ context.Context, _ *common.Cluster) ([]api.ValidationResult, error) {
+	return []api.ValidationResult{{
+		Status:       api.Success,
+		ValidationId: clusterValidationID,
+	}}, nil
 }
 
 // ValidateHost always return "valid" result

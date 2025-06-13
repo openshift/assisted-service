@@ -17,8 +17,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// amdVendorID is the PCI vendor identifier of AMD devices.
-const amdVendorID = "1002"
+const (
+	// amdVendorID is the PCI vendor identifier of AMD devices.
+	amdVendorID = "1002"
+
+	clusterValidationID = string(models.ClusterValidationIDAmdGpuRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDAmdGpuRequirementsSatisfied)
+)
 
 var Operator = models.MonitoredOperator{
 	Namespace:        "kube-amd-gpu",
@@ -70,41 +75,34 @@ func (o *operator) GetDependencies(c *common.Cluster) ([]string, error) {
 	return []string{kmm.Operator.Name}, nil
 }
 
-// GetClusterValidationID returns cluster validation ID for the operator.
-func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDAmdGpuRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the operator.
+func (o *operator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the operator.
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDAmdGpuRequirementsSatisfied)
+	return hostValidationID
 }
 
 // ValidateCluster checks if the cluster satisfies the requirements to install the operator.
-func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
-	result := api.ValidationResult{
+func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	result := []api.ValidationResult{{
 		Status:       api.Success,
-		ValidationId: o.GetClusterValidationID(),
-	}
+		ValidationId: clusterValidationID,
+	}}
 
 	// Check that there is at least one supported GPU
-	if o.config.RequireGPU {
-		hasGPU, err := o.hasSupportedGPU(cluster)
-		if err != nil {
-			return result, fmt.Errorf("failed to check if cluster has supported GPU: %w", err)
-		}
-
-		if !hasGPU {
-			result.Reasons = append(
-				result.Reasons,
-				"The AMD GPU operator requires at least one supported AMD GPU, but there is none in "+
-					"the discovered hosts.",
-			)
-		}
+	hasGPU, err := o.ClusterHasGPU(cluster)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if cluster has supported GPU: %w", err)
 	}
 
-	if len(result.Reasons) > 0 {
-		result.Status = api.Failure
+	if !hasGPU {
+		result[0].Status = api.Failure
+		result[0].Reasons = []string{"The AMD GPU operator requires at least one supported AMD GPU, but there is none in the discovered hosts."}
+
+		return result, nil
 	}
 
 	return result, nil

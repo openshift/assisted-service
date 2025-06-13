@@ -14,6 +14,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	clusterValidationID = string(models.ClusterValidationIDKmmRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDKmmRequirementsSatisfied)
+)
+
 var Operator = models.MonitoredOperator{
 	Namespace:        "openshift-kmm",
 	Name:             "kmm",
@@ -65,25 +70,22 @@ func (o *operator) GetDependencies(c *common.Cluster) ([]string, error) {
 	return result, nil
 }
 
-// GetClusterValidationID returns cluster validation ID for the operator.
-func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDKmmRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the operator.
+func (o *operator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the operator.
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDKmmRequirementsSatisfied)
+	return hostValidationID
 }
 
 // ValidateCluster checks if the cluster satisfies the requirements to install the operator.
-func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) (result api.ValidationResult,
-	err error) {
-	result.ValidationId = o.GetClusterValidationID()
-	result = api.ValidationResult{
+func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	return []api.ValidationResult{{
 		Status:       api.Success,
-		ValidationId: o.GetClusterValidationID(),
-	}
-	return
+		ValidationId: clusterValidationID,
+	}}, nil
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and CPU.
