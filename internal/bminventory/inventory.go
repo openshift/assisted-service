@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
+	ignitioncommon "github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
@@ -1026,14 +1027,18 @@ func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Starting createAndUploadDay2NodeIgnition for cluster %s, host %s", cluster.ID, host.ID)
 
-	ignitionEndpointUrl, err := hostutil.GetIgnitionEndpoint(cluster, host)
+	ignitionEndpointUrl, cert, err := hostutil.GetIgnitionEndpoint(cluster, host, b.log)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to build ignition endpoint for host %s in cluster %s", host.ID, cluster.ID)
 	}
 
 	var caCert *string = nil
 	if cluster.IgnitionEndpoint != nil {
+		log.Infof("Added cluster ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
 		caCert = cluster.IgnitionEndpoint.CaCertificate
+	} else if cert != nil {
+		log.Infof("Added host ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
+		caCert = cert
 	}
 
 	fullIgnition, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(ignitionEndpointUrl, caCert, ignitionEndpointToken, ignitionEndpointHTTPHeaders, host)
@@ -5440,7 +5445,7 @@ func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context,
 	log := logutil.FromContext(ctx, b.log)
 
 	if ignitionConfigOverride != "" {
-		_, err := ignition.ParseToLatest([]byte(ignitionConfigOverride))
+		_, err := ignitioncommon.ParseToLatest([]byte(ignitionConfigOverride))
 		if err != nil {
 			log.WithError(err).Errorf("Failed to parse ignition config patch %s", ignitionConfigOverride)
 			return err
@@ -5448,7 +5453,7 @@ func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context,
 	}
 
 	if internalIgnitionOverride != nil && *internalIgnitionOverride != "" {
-		_, err := ignition.ParseToLatest([]byte(*internalIgnitionOverride))
+		_, err := ignitioncommon.ParseToLatest([]byte(*internalIgnitionOverride))
 		if err != nil {
 			log.WithError(err).Errorf("Failed to parse internal ignition config patch %s", *internalIgnitionOverride)
 			return err
@@ -6120,7 +6125,7 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 		}
 
 		if params.HostIgnitionParams.Config != "" {
-			_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
+			_, err = ignitioncommon.ParseToLatest([]byte(params.HostIgnitionParams.Config))
 			if err != nil {
 				log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
 				return common.NewApiError(http.StatusBadRequest, err)
