@@ -21,7 +21,7 @@ var _ = Describe("NMState Operator", func() {
 		})
 
 		It("should return the right validations ids", func() {
-			Expect(operator.GetClusterValidationID()).To(Equal(string(models.ClusterValidationIDNmstateRequirementsSatisfied)))
+			Expect(operator.GetClusterValidationIDs()).To(Equal([]string{string(models.ClusterValidationIDNmstateRequirementsSatisfied)}))
 			Expect(operator.GetHostValidationID()).To(Equal(string(models.HostValidationIDNmstateRequirementsSatisfied)))
 		})
 

@@ -14,6 +14,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	clusterValidationID = string(models.ClusterValidationIDNmstateRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDNmstateRequirementsSatisfied)
+)
+
 type operator struct {
 	log logrus.FieldLogger
 }
@@ -50,29 +55,43 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return make([]string, 0), nil
 }
 
-// GetClusterValidationID returns cluster validation ID for the Operator
-func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDNmstateRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the Operator
+func (o *operator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the Operator
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDNmstateRequirementsSatisfied)
+	return hostValidationID
 }
 
 // ValidateCluster verifies whether this operator is valid for given cluster
-func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
+func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	result := []api.ValidationResult{{
+		Status:       api.Success,
+		ValidationId: clusterValidationID,
+	}}
+
 	if !featuresupport.IsFeatureCompatibleWithArchitecture(models.FeatureSupportLevelIDNMSTATE, cluster.OpenshiftVersion, cluster.CPUArchitecture) {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf(
-			"%s is not supported for %s CPU architecture.", o.GetFullName(), cluster.CPUArchitecture)}}, nil
+		result[0].Status = api.Failure
+		result[0].Reasons = []string{fmt.Sprintf("%s is not supported for %s CPU architecture.", o.GetFullName(), cluster.CPUArchitecture)}
+
+		return result, nil
 	}
 
-	if ok, _ := common.BaseVersionLessThan(NmstateMinOpenshiftVersion, cluster.OpenshiftVersion); ok {
-		message := fmt.Sprintf("%s is only supported for openshift versions %s and above", o.GetFullName(), NmstateMinOpenshiftVersion)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
+	ok, err := common.BaseVersionLessThan(NmstateMinOpenshiftVersion, cluster.OpenshiftVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compare openshift versions: %w", err)
 	}
 
-	return api.ValidationResult{Status: api.Success, ValidationId: o.GetClusterValidationID(), Reasons: []string{}}, nil
+	if ok {
+		result[0].Status = api.Failure
+		result[0].Reasons = []string{fmt.Sprintf("%s is only supported for openshift versions %s and above", o.GetFullName(), NmstateMinOpenshiftVersion)}
+
+		return result, nil
+	}
+
+	return result, nil
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and cpu

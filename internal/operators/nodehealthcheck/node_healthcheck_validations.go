@@ -9,11 +9,11 @@ import (
 )
 
 // ValidateCluster checks if the cluster satisfies the requirements to install the operator.
-func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
-	return api.ValidationResult{
+func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	return []api.ValidationResult{{
 		Status:       api.Success,
-		ValidationId: o.GetClusterValidationID(),
-	}, nil
+		ValidationId: clusterValidationID,
+	}}, nil
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and CPU.

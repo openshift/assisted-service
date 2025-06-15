@@ -15,6 +15,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	clusterValidationID = string(models.ClusterValidationIDMceRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDMceRequirementsSatisfied)
+)
+
 // operator is an MCE OLM operator plugin.
 type operator struct {
 	log    logrus.FieldLogger
@@ -63,38 +68,43 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return make([]string, 0), nil
 }
 
-// GetClusterValidationID returns cluster validation ID for the operator.
-func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDMceRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the operator.
+func (o *operator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the operator.
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDMceRequirementsSatisfied)
+	return hostValidationID
 }
 
 // ValidateCluster checks if the cluster satisfies the requirements to install the operator.
-func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
-	var ocpVersion, minOpenshiftVersionForMce *version.Version
-	var err error
+func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	result := []api.ValidationResult{{
+		Status:       api.Success,
+		ValidationId: clusterValidationID,
+	}}
 
-	ocpVersion, err = version.NewVersion(cluster.OpenshiftVersion)
+	ocpVersion, err := version.NewVersion(cluster.OpenshiftVersion)
 	if err != nil {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+		return nil, fmt.Errorf("failed to parse openshift version %s: %w", cluster.OpenshiftVersion, err)
 	}
 
-	minOpenshiftVersionForMce, err = version.NewVersion(o.config.MceMinOpenshiftVersion)
-
+	minOpenshiftVersionForMce, err := version.NewVersion(o.config.MceMinOpenshiftVersion)
 	if err != nil {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+		return nil, fmt.Errorf("failed to parse minimum openshift version for MCE %s: %w", o.config.MceMinOpenshiftVersion, err)
 	}
 
 	if ocpVersion.LessThan(minOpenshiftVersionForMce) {
-		message := fmt.Sprintf("multicluster engine is only supported for openshift versions %s and above", o.config.MceMinOpenshiftVersion)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
+		result[0].Status = api.Failure
+		result[0].Reasons = []string{
+			fmt.Sprintf("multicluster engine is only supported for openshift versions %s and above", o.config.MceMinOpenshiftVersion),
+		}
+
+		return result, nil
 	}
 
-	return api.ValidationResult{Status: api.Success, ValidationId: o.GetClusterValidationID()}, nil
+	return result, nil
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and cpu

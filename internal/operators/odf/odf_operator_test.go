@@ -965,123 +965,131 @@ var _ = Describe("Odf Operator", func() {
 	})
 
 	Context("ValidateCluster", func() {
-		table.DescribeTable("unknown mode scenario: validateCluster when", func(cluster *common.Cluster, expectedResult api.ValidationResult) {
-			result, _ := operator.ValidateCluster(ctx, cluster)
-			Expect(result).To(Equal(expectedResult))
-		},
+		table.DescribeTable(
+			"unknown mode scenario: validateCluster when",
+
+			func(cluster *common.Cluster, expectedResult []api.ValidationResult) {
+				result, _ := operator.ValidateCluster(ctx, cluster)
+				Expect(result).To(Equal(expectedResult))
+			},
+
 			table.Entry("there is a single master",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
-				},
+				}},
 			),
 
 			table.Entry("there are two masters and one worker",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, workerWithTwoDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
-				},
+				}},
 			),
 
 			table.Entry("there are 3 masters and 2 workers",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, workerWithTwoDisk, workerWithInvalidInventory,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
-				},
+				}},
 			),
 
 			table.Entry("there are 4 masters and 2 workers",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, masterWithOneDisk, workerWithTwoDisk, workerWithInvalidInventory,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
-				},
+				}},
 			),
 
 			table.Entry("missing inventory",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, masterWithOneDisk, workerWithTwoDisk, masterWithNoInventory,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
-				},
+				}},
 			),
 
 			table.Entry("invalid inventory",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize, masterWithOneDisk, workerWithTwoDisk, workerWithInvalidInventory,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"The cluster must either have no dedicated worker nodes or at least three. Add or remove hosts, or change their roles configurations to meet the requirement."},
-				},
+				}},
 			),
 		)
 
-		table.DescribeTable("compact mode scenario: validateCluster when", func(cluster *common.Cluster, expectedResult api.ValidationResult) {
-			result, _ := operator.ValidateCluster(ctx, cluster)
-			Expect(result).To(Equal(expectedResult))
-		},
+		table.DescribeTable(
+			"compact mode scenario: validateCluster when",
+
+			func(cluster *common.Cluster, expectedResult []api.ValidationResult) {
+				result, _ := operator.ValidateCluster(ctx, cluster)
+				Expect(result).To(Equal(expectedResult))
+			},
+
 			table.Entry("there are 2 masters and 1 auto-assign",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, autoAssignHost,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Compact Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are 3 masters - sufficient resources",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDisk, masterWithThreeDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Compact Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are 4 masters - sufficient resources",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Compact Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are 5 masters - sufficient resources",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Compact Deployment are satisfied."},
-				},
+				}},
 			),
 
 			// host's validation will fail
@@ -1089,95 +1097,99 @@ var _ = Describe("Odf Operator", func() {
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithOneDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Compact Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are enough masters - one of the masters doesn't have eligible disk",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithOneDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Compact Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are enough masters - one of the masters is missing inventory",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithNoInventory,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Pending,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"Missing Inventory in some of the hosts"},
-				},
+				}},
 			),
 
 			table.Entry("there are enough masters - one of the masters has invalid inventory",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithThreeDisk, masterWithThreeDiskSizeOfOneZero, masterWithInvalidInventory,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"Failed to parse the inventory of some of the hosts"},
-				},
+				}},
 			),
 
 			table.Entry("there are enough masters - not enough resources",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDiskSizeOfOneZero, masterWithThreeDiskSizeOfOneZero, masterWithNoDisk, masterWithNoDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"Insufficient resources to deploy ODF in compact mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of 25 GB minimum and an installation disk."},
-				},
+				}},
 			),
 
 			table.Entry("there is an arbiter with missing inventory",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithLessDiskSize, arbiterWithNoInventory,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Pending,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"Missing Inventory in some of the hosts"},
-				},
+				}},
 			),
 
 			table.Entry("there are 2 masters and 1 arbiter",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithLessDiskSize, arbiterWithTwoDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Compact Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there is an arbiter with only one disk",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithLessDiskSize, arbiterWithOneDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"Insufficient resources to deploy ODF in compact mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of 25 GB minimum and an installation disk."},
-				},
+				}},
 			),
 		)
 
-		table.DescribeTable("standard mode scenario: validateCluster when", func(cluster *common.Cluster, expectedResult api.ValidationResult) {
-			result, _ := operator.ValidateCluster(ctx, cluster)
-			Expect(result).To(Equal(expectedResult))
-		},
+		table.DescribeTable(
+			"standard mode scenario: validateCluster when",
+
+			func(cluster *common.Cluster, expectedResult []api.ValidationResult) {
+				result, _ := operator.ValidateCluster(ctx, cluster)
+				Expect(result).To(Equal(expectedResult))
+			},
+
 			// Will fail host validation
 			table.Entry("there are 3 masters, 3 workers and 1 auto-assign",
 				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
@@ -1189,11 +1201,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					autoAssignHost,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Standard Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are 3 masters and 3 workers - sufficient resources",
@@ -1205,11 +1217,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithThreeDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Standard Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are 4 masters and 4 workers - sufficient resources",
@@ -1223,11 +1235,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithThreeDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Standard Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are enough masters - one of the masters doesn't have eligible disk",
@@ -1240,11 +1252,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithNoDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Standard Deployment are satisfied."},
-				},
+				}},
 			),
 
 			// host's validation will fail
@@ -1258,11 +1270,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithNoDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Standard Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are enough masters - one of the masters is missing inventory",
@@ -1274,11 +1286,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithThreeDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Standard Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are enough workers - one of the workers is missing inventory",
@@ -1290,11 +1302,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithNoInventory,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Pending,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"Missing Inventory in some of the hosts"},
-				},
+				}},
 			),
 
 			table.Entry("there are enough masters - one of the masters has invalid inventory",
@@ -1306,11 +1318,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithThreeDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Standard Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are enough workers - one of the workers has invalid inventory",
@@ -1322,11 +1334,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithInvalidInventory,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"Failed to parse the inventory of some of the hosts"},
-				},
+				}},
 			),
 
 			table.Entry("there are enough masters - not enough resources",
@@ -1338,11 +1350,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithThreeDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Standard Deployment are satisfied."},
-				},
+				}},
 			),
 
 			table.Entry("there are enough workers - not enough resources",
@@ -1354,11 +1366,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithNoDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"Insufficient resources to deploy ODF in standard mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of 25 GB minimum and an installation disk."},
-				},
+				}},
 			),
 
 			table.Entry("there are 2 masters, 1 arbiter and 3 workers",
@@ -1370,11 +1382,11 @@ var _ = Describe("Odf Operator", func() {
 					workerWithThreeDisk,
 					workerWithThreeDisk,
 				}}},
-				api.ValidationResult{
+				[]api.ValidationResult{{
 					Status:       api.Success,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"ODF Requirements for Standard Deployment are satisfied."},
-				},
+				}},
 			),
 		)
 	})
