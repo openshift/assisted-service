@@ -143,7 +143,11 @@ func GetHostInstallationDisk(host *models.Host) (*models.Disk, error) {
 		return nil, err
 	}
 
-	return GetDiskByInstallationPath(inventory.Disks, GetHostInstallationPath(host)), nil
+	installationDisk := GetDiskByInstallationPath(inventory.Disks, GetHostInstallationPath(host))
+	if installationDisk == nil {
+		return nil, fmt.Errorf("installation disk not found for host %s", host.ID)
+	}
+	return installationDisk, nil
 }
 
 func GetDiskByInstallationPath(disks []*models.Disk, installationPath string) *models.Disk {
