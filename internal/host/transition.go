@@ -715,14 +715,17 @@ func IsInStages(stages ...models.HostStage) func(stateswitch.StateSwitch, states
 }
 
 func (th *transitionHandler) replaceMacros(template string, sHost *stateHost, params *TransitionArgsRefreshHost) string {
+	log := logutil.FromContext(params.ctx, th.log)
+
 	template = strings.Replace(template, "$STAGE", string(sHost.host.Progress.CurrentStage), 1)
 	maxTime := th.config.HostStageTimeout(sHost.host.Progress.CurrentStage)
 	template = strings.Replace(template, "$MAX_TIME", maxTime.String(), 1)
 	if strings.Contains(template, "$INSTALLATION_DISK") {
 		var installationDisk *models.Disk
 		installationDisk, err := hostutil.GetHostInstallationDisk(sHost.host)
-		if err != nil {
+		if err != nil || installationDisk == nil {
 			// in case we fail to parse the inventory replace $INSTALLATION_DISK with nothing
+			log.Warnf("Failed to get installation disk for host %s: %v", sHost.host.ID, err)
 			template = strings.Replace(template, "$INSTALLATION_DISK", "", 1)
 		} else {
 			template = strings.Replace(template, "$INSTALLATION_DISK", fmt.Sprintf("(%s, %s)", installationDisk.Name, common.GetDeviceIdentifier(installationDisk)), 1)
