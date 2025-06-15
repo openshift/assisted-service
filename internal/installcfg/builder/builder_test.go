@@ -290,6 +290,38 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		assertVSphereCredentials(result)
 	})
 
+	nutanixInstallConfigOverrides := `{"platform":{"nutanix":{"prismCentral":{"endpoint":{"address":"prismcentral.openshift.com","port":9440},"username":"testUser","password":"testPassword"},"prismElements":[{"uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx","endpoint":{"address":"prism.openshift.com","port":9440}}],"subnetUUIDs":["yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"],"apiVIPs":["10.0.0.1"],"ingressVIPs":["10.0.0.2"]}}}`
+
+	It("Nutanix platform in overrides is decoded correctly - installConfig.applyConfigOverrides", func() {
+		var result installcfg.InstallerConfigBaremetal
+		overrides := nutanixInstallConfigOverrides
+		err := installConfig.applyConfigOverrides(overrides, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		assertNutanixPlatform(result)
+	})
+
+	It("Nutanix platform are unmarshalled correctly - installConfig.GetInstallConfig", func() {
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		cluster.InstallConfigOverrides = nutanixInstallConfigOverrides
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		assertNutanixPlatform(result)
+	})
+
+	It("Nutanix credentials are unmarshalled correctly - installConfig.GetInstallConfig", func() {
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		cluster.InstallConfigOverrides = nutanixInstallConfigOverrides
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		assertNutanixCredentials(result)
+	})
+
 	It("correctly applies cluster overrides", func() {
 		var result installcfg.InstallerConfigBaremetal
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
@@ -1011,6 +1043,24 @@ func assertVSphereCredentials(result installcfg.InstallerConfigBaremetal) {
 	Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Datastore).Should(Equal("/testDatacenter/datastore/testDatastore"))
 	Expect(result.Platform.Vsphere.FailureDomains[0].Topology.ResourcePool).Should(Equal("/testDatacenter/host/testComputecluster//Resources"))
 	Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Folder).Should(Equal("/testDatacenter/vm/testFolder"))
+}
+
+// asserts platform values against nutanixInstallConfigOverrides
+func assertNutanixPlatform(result installcfg.InstallerConfigBaremetal) {
+	Expect(len(result.Platform.Nutanix.APIVIPs)).Should(Equal(1))
+	Expect(len(result.Platform.Nutanix.IngressVIPs)).Should(Equal(1))
+	Expect(result.Platform.Nutanix.PrismCentral.Endpoint.Address).Should(Equal("prismcentral.openshift.com"))
+	Expect(result.Platform.Nutanix.PrismCentral.Endpoint.Port).Should(Equal(int32(9440)))
+	Expect(string(result.Platform.Nutanix.PrismElements[0].UUID)).Should(Equal("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"))
+	Expect(result.Platform.Nutanix.PrismElements[0].Endpoint.Address).Should(Equal("prism.openshift.com"))
+	Expect(result.Platform.Nutanix.PrismElements[0].Endpoint.Port).Should(Equal(int32(9440)))
+	Expect(len(result.Platform.Nutanix.SubnetUUIDs)).Should(Equal(1))
+}
+
+// asserts platform values against nutanixInstallConfigOverrides
+func assertNutanixCredentials(result installcfg.InstallerConfigBaremetal) {
+	Expect(result.Platform.Nutanix.PrismCentral.Username).Should(Equal("testUser"))
+	Expect(string(result.Platform.Nutanix.PrismCentral.Password)).Should(Equal("testPassword"))
 }
 
 // asserts Baremetal Host BMC Configuration set by InstallConfigOverrides
