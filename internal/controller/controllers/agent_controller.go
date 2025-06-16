@@ -56,6 +56,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -851,54 +852,54 @@ func (r *AgentReconciler) applyDay2NodeLabels(ctx context.Context, log logrus.Fi
 // In case that an error has ocurred when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
 func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *models.Host, clusterId *strfmt.UUID, syncErr error, internal bool) (ctrl.Result, error) {
-
 	var (
-		err                   error
-		shouldAutoApproveCSRs bool
-		spokeClient           spoke_k8s_client.SpokeK8sClient
-		node                  *corev1.Node
+		err                error
+		logsURL            string
+		eventsURL          string
+		newValidationsInfo ValidationsStatus
+		currentStage       models.HostStage
+		day2InProgress     bool
 	)
-	ret := ctrl.Result{}
-	specSynced(agent, syncErr, internal)
 
-	if h != nil && h.Status != nil {
-		agent.Status.Bootstrap = h.Bootstrap
-		agent.Status.Role = h.Role
-		if h.SuggestedRole != "" && h.Role == models.HostRoleAutoAssign {
-			agent.Status.Role = h.SuggestedRole
-		}
-		agent.Status.DebugInfo.State = swag.StringValue(h.Status)
-		agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
-		agent.Status.InstallationDiskID = h.InstallationDiskID
-		agent.Status.Kind = swag.StringValue(h.Kind)
-
-		if h.ValidationsInfo != "" {
-			newValidationsInfo := ValidationsStatus{}
-			err = json.Unmarshal([]byte(h.ValidationsInfo), &newValidationsInfo)
+	if h != nil {
+		if clusterId != nil {
+			eventsURL, err = r.eventsURL(log, agent, h.InfraEnvID.String())
 			if err != nil {
-				log.WithError(err).Error("failed to umarshed ValidationsInfo")
-				return ctrl.Result{}, err
+				return ctrl.Result{Requeue: true}, nil
 			}
-			agent.Status.ValidationsInfo = newValidationsInfo
-		}
-		if h.Progress != nil && h.Progress.CurrentStage != "" {
-			// In case the node didn't reboot yet, we get the stage from the host (else)
-			if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost &&
-				funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined, models.HostStageConfiguring}, h.Progress.CurrentStage) &&
-				agent.Spec.ClusterDeploymentName != nil {
-
-				spokeClient, err = r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
+			if agent.Status.DebugInfo.LogsURL == "" && !time.Time(h.LogsCollectedAt).Equal(time.Time{}) { // logs collection time is updated means logs are available
+				logsURL, err = generateControllerLogsDownloadURL(r.ServiceBaseURL, clusterId.String(), r.AuthType, agent.Name, "host")
 				if err != nil {
-					r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
+					log.WithError(err).Error("failed to generate controller logs URL")
 					return ctrl.Result{}, err
 				}
+			}
+		}
+		if h.ValidationsInfo != "" {
+			err = json.Unmarshal([]byte(h.ValidationsInfo), &newValidationsInfo)
+			if err != nil {
+				log.WithError(err).Error("failed to unmarshal host ValidationsInfo")
+				return ctrl.Result{}, err
+			}
+		}
+
+		if h.Progress != nil && h.Progress.CurrentStage != "" {
+			day2InProgress = swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost &&
+				funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined, models.HostStageConfiguring}, h.Progress.CurrentStage) &&
+				agent.Spec.ClusterDeploymentName != nil
+			if day2InProgress {
+				shouldAutoApproveCSRs := false
 				if shouldAutoApproveCSRs, err = r.shouldApproveCSRsForAgent(ctx, agent, h); err != nil {
 					log.WithError(err).Errorf("Failed to determine if agent %s/%s is rebooting and belongs to none platform cluster or has an associated BMH", agent.Namespace, agent.Name)
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 				}
-
+				spokeClient, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
+				if err != nil {
+					r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
+					return ctrl.Result{}, err
+				}
 				// TODO: Node name might be FQDN and not just host name if cluster is IPv6
-				node, err = spokeClient.GetNode(ctx, getAgentHostname(agent))
+				node, err := spokeClient.GetNode(ctx, getAgentHostname(agent))
 				if err != nil {
 					if !k8serrors.IsNotFound(err) {
 						r.Log.WithError(err).Errorf("agent %s/%s: failed to get node", agent.Namespace, agent.Name)
@@ -913,99 +914,118 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 					log.WithError(err).Errorf("Failed to apply labels for day2 node %s/%s", agent.Namespace, agent.Name)
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 				}
-				if err = r.UpdateDay2InstallPogress(ctx, h, agent, node); err != nil {
+				currentStage, err = r.UpdateDay2InstallProgress(ctx, h, node)
+				if err != nil {
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
-				}
-				if agent.Status.Progress.CurrentStage != models.HostStageDone {
-					ret = ctrl.Result{RequeueAfter: r.ApproveCsrsRequeueDuration}
 				}
 			} else {
 				// sync day1 progress stage
-				agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
+				currentStage = h.Progress.CurrentStage
 			}
-			agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
-			agent.Status.Progress.InstallationPercentage = h.Progress.InstallationPercentage
-			stageStartTime := metav1.NewTime(time.Time(h.Progress.StageStartedAt))
-			agent.Status.Progress.StageStartTime = &stageStartTime
-			stageUpdateTime := metav1.NewTime(time.Time(h.Progress.StageUpdatedAt))
-			agent.Status.Progress.StageUpdateTime = &stageUpdateTime
-			agent.Status.Progress.ProgressStages = h.ProgressStages
-		} else {
-			agent.Status.Progress = aiv1beta1.HostProgressInfo{}
 		}
-		status := *h.Status
-		if clusterId != nil {
-			err = r.populateEventsURL(log, agent, h.InfraEnvID.String())
-			if err != nil {
-				return ctrl.Result{Requeue: true}, nil
+	}
+	rerr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		specSynced(agent, syncErr, internal)
+		if h != nil && h.Status != nil {
+			agent.Status.Bootstrap = h.Bootstrap
+			agent.Status.Role = h.Role
+			if h.SuggestedRole != "" && h.Role == models.HostRoleAutoAssign {
+				agent.Status.Role = h.SuggestedRole
 			}
-			if agent.Status.DebugInfo.LogsURL == "" && !time.Time(h.LogsCollectedAt).Equal(time.Time{}) { // logs collection time is updated means logs are available
-				var logsURL string
-				logsURL, err = generateControllerLogsDownloadURL(r.ServiceBaseURL, clusterId.String(), r.AuthType, agent.Name, "host")
-				if err != nil {
-					log.WithError(err).Error("failed to generate controller logs URL")
-					return ctrl.Result{}, err
-				}
+			agent.Status.DebugInfo.State = swag.StringValue(h.Status)
+			agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
+			agent.Status.InstallationDiskID = h.InstallationDiskID
+
+			agent.Status.ValidationsInfo = newValidationsInfo
+
+			if h.Progress != nil && h.Progress.CurrentStage != "" {
+				agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
+				agent.Status.Progress.InstallationPercentage = h.Progress.InstallationPercentage
+				stageStartTime := metav1.NewTime(time.Time(h.Progress.StageStartedAt))
+				agent.Status.Progress.StageStartTime = &stageStartTime
+				stageUpdateTime := metav1.NewTime(time.Time(h.Progress.StageUpdatedAt))
+				agent.Status.Progress.StageUpdateTime = &stageUpdateTime
+				agent.Status.Progress.ProgressStages = h.ProgressStages
+				agent.Status.Progress.CurrentStage = currentStage
+			} else {
+				agent.Status.Progress = aiv1beta1.HostProgressInfo{}
+			}
+			status := *h.Status
+
+			if eventsURL != "" {
+				agent.Status.DebugInfo.EventsURL = eventsURL
+			}
+			if logsURL != "" {
 				agent.Status.DebugInfo.LogsURL = logsURL
 			}
+			connected(agent, status)
+			requirementsMet(agent, status)
+			validated(agent, status, h)
+			installed(agent, status, swag.StringValue(h.StatusInfo))
+			bound(agent, status)
+		} else {
+			setConditionsUnknown(agent)
 		}
-		connected(agent, status)
-		requirementsMet(agent, status)
-		validated(agent, status, h)
-		installed(agent, status, swag.StringValue(h.StatusInfo))
-		bound(agent, status)
-	} else {
-		setConditionsUnknown(agent)
-	}
 
-	if !reflect.DeepEqual(agent, origAgent) {
-		if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
-			log.WithError(updateErr).Error("failed to update agent Status")
-			return ctrl.Result{Requeue: true}, nil
+		if !reflect.DeepEqual(agent, origAgent) {
+			if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
+				log.WithError(updateErr).Warn("failed to update agent Status, retrying")
+				agentRef := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Name}
+				if err := r.Get(ctx, agentRef, agent); err != nil {
+					return errors.Wrapf(err, "failed to get updated agent %s while updating agent status", agentRef)
+				}
+				return updateErr
+			}
+		} else {
+			log.Infof("Agent %s/%s: update skipped", agent.Namespace, agent.Name)
 		}
-	} else {
-		log.Debugf("Agent %s/%s: update skipped", agent.Namespace, agent.Name)
+		return nil
+	})
+	if day2InProgress && agent.Status.Progress.CurrentStage != models.HostStageDone {
+		return ctrl.Result{RequeueAfter: r.ApproveCsrsRequeueDuration}, rerr
 	}
 	if syncErr != nil && internal {
-		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
+		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, rerr
 	}
-	return ret, nil
+
+	return ctrl.Result{}, rerr
 }
 
-func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node) error {
+func (r *AgentReconciler) UpdateDay2InstallProgress(ctx context.Context, h *models.Host, node *corev1.Node) (models.HostStage, error) {
 	if node == nil {
 		// In case the node not found we get the stage from the host
-		agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
 		// requeue in order to keep reconciling until the node show up
-		return nil
+		return h.Progress.CurrentStage, nil
 	}
 	var err error
+	var currentStage models.HostStage
 	if isNodeReady(node) {
 		err = r.updateHostInstallProgress(ctx, h, models.HostStageDone)
-		agent.Status.Progress.CurrentStage = models.HostStageDone
+		currentStage = models.HostStageDone
 		// now that the node is done there is no need to requeue
 	} else {
 		err = r.updateHostInstallProgress(ctx, h, models.HostStageJoined)
-		agent.Status.Progress.CurrentStage = models.HostStageJoined
+		currentStage = models.HostStageJoined
 	}
 	if err != nil {
 		r.Log.WithError(err).Errorf("Failed updating host %s install progress", h.ID)
-		return err
+		return currentStage, err
 	}
-	return nil
+	return currentStage, nil
 }
 
-func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, infraEnvId string) error {
+func (r *AgentReconciler) eventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, infraEnvId string) (string, error) {
+	var eventURL string
+	var err error
 	if agent.Status.DebugInfo.EventsURL == "" {
 		tokenGen := gencrypto.CryptoPair{JWTKeyType: gencrypto.InfraEnvKey, JWTKeyValue: infraEnvId}
-		eventUrl, err := generateEventsURL(r.ServiceBaseURL, r.AuthType, tokenGen, "host_id", agent.Name)
+		eventURL, err = generateEventsURL(r.ServiceBaseURL, r.AuthType, tokenGen, "host_id", agent.Name)
 		if err != nil {
 			log.WithError(err).Error("failed to generate Events URL")
-			return err
+			return "", err
 		}
-		agent.Status.DebugInfo.EventsURL = eventUrl
 	}
-	return nil
+	return eventURL, nil
 }
 
 func generateControllerLogsDownloadURL(baseURL string, clusterID string, authType auth.AuthType, host string, logsType string) (string, error) {
