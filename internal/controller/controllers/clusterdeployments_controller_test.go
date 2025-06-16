@@ -906,6 +906,7 @@ var _ = Describe("cluster reconcile", func() {
 				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 				mockClusterApi.EXPECT().GetHostCountByRole(gomock.Any(), models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 				mockClusterApi.EXPECT().GetHostCountByRole(gomock.Any(), models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+				mockClusterApi.EXPECT().GetHostCountByRole(gomock.Any(), models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -1204,6 +1205,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(1), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(0), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 		})
 
 		setupTestForStatusAndReason := func(status string, reason string) {
@@ -1353,6 +1355,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil).AnyTimes()
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(gomock.Any(), models.HostRoleMaster, true).Return(swag.Int64(1), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(gomock.Any(), models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(gomock.Any(), models.HostRoleWorker, true).Return(swag.Int64(0), nil).AnyTimes()
 
 			request := newClusterDeploymentRequest(cluster)
@@ -1473,6 +1476,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil).AnyTimes()
 		mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 		mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+		mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 		mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
@@ -2049,6 +2053,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 
 			installClusterReply := &common.Cluster{
 				Cluster: models.Cluster{
@@ -2081,6 +2086,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil).Times(2)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
 
 			installClusterReply := &common.Cluster{
@@ -2133,6 +2139,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil).Times(2)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
 
 			installClusterReply := &common.Cluster{
@@ -2185,6 +2192,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			cvoStatusInfo := "Working towards 4.8.0-rc.0: 654 of 676 done (96% complete)"
@@ -2229,6 +2237,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			oper := make([]*models.MonitoredOperator, 1)
@@ -2535,6 +2544,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -2579,6 +2589,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
@@ -2603,6 +2614,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
@@ -2634,6 +2646,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).Times(2)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(1), nil).Times(2)
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).Times(2)
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -2644,12 +2657,14 @@ var _ = Describe("cluster reconcile", func() {
 			aci = getTestClusterInstall()
 
 			expectedMasterCount := defaultAgentClusterInstallSpec.ProvisionRequirements.ControlPlaneAgents
+			expectedArbiterCount := defaultAgentClusterInstallSpec.ProvisionRequirements.ArbiterAgents
 			expectedWorkerCount := defaultAgentClusterInstallSpec.ProvisionRequirements.WorkerAgents
 
 			actualMasterCount := 3
+			actualArbiterCount := 0
 			actualWorkerCount := 1
 
-			msg := fmt.Sprintf(hiveext.ClusterInsufficientAgentsMsg, expectedMasterCount, expectedWorkerCount, actualMasterCount, actualWorkerCount)
+			msg := fmt.Sprintf(hiveext.ClusterInsufficientAgentsMsg, expectedMasterCount, expectedArbiterCount, expectedWorkerCount, actualMasterCount, actualArbiterCount, actualWorkerCount)
 
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterInsufficientAgentsReason))
@@ -2670,6 +2685,9 @@ var _ = Describe("cluster reconcile", func() {
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).
 				Return(swag.Int64(2), nil).
 				Times(1)
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).
+				Return(swag.Int64(0), nil).
+				Times(1)
 
 			// fail in 'clusterRequirementsMet'
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).
@@ -2677,6 +2695,9 @@ var _ = Describe("cluster reconcile", func() {
 				Times(1)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).
 				Return(nil, fmt.Errorf("failed to count the number of hosts in cluster with ID '%s' and suggested role 'worker'", string(*backEndCluster.ID))).
+				Times(1)
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).
+				Return(nil, fmt.Errorf("failed to count the number of hosts in cluster with ID '%s' and suggested role 'arbiter'", string(*backEndCluster.ID))).
 				Times(1)
 
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
@@ -2692,12 +2713,14 @@ var _ = Describe("cluster reconcile", func() {
 			aci = getTestClusterInstall()
 
 			expectedMasterCount := defaultAgentClusterInstallSpec.ProvisionRequirements.ControlPlaneAgents
+			expectedArbiterCount := defaultAgentClusterInstallSpec.ProvisionRequirements.ArbiterAgents
 			expectedWorkerCount := defaultAgentClusterInstallSpec.ProvisionRequirements.WorkerAgents
 
 			actualMasterCount := 0
+			actualArbuterCount := 0
 			actualWorkerCount := 0
 
-			msg := fmt.Sprintf(hiveext.ClusterInsufficientAgentsMsg, expectedMasterCount, expectedWorkerCount, actualMasterCount, actualWorkerCount)
+			msg := fmt.Sprintf(hiveext.ClusterInsufficientAgentsMsg, expectedMasterCount, expectedArbiterCount, expectedWorkerCount, actualMasterCount, actualArbuterCount, actualWorkerCount)
 
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
@@ -2717,6 +2740,9 @@ var _ = Describe("cluster reconcile", func() {
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).
 				Return(nil, fmt.Errorf("failed to count the number of hosts in cluster with ID '%s' and suggested role 'worker'", string(*backEndCluster.ID))).
 				Times(1)
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).
+				Return(nil, fmt.Errorf("failed to count the number of hosts in cluster with ID '%s' and suggested role 'arbiter'", string(*backEndCluster.ID))).
+				Times(1)
 
 			// succeed in 'clusterRequirementsMet'
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).
@@ -2724,6 +2750,9 @@ var _ = Describe("cluster reconcile", func() {
 				Times(1)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).
 				Return(swag.Int64(2), nil).
+				Times(1)
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).
+				Return(swag.Int64(0), nil).
 				Times(1)
 
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
@@ -2739,7 +2768,8 @@ var _ = Describe("cluster reconcile", func() {
 			aci = getTestClusterInstall()
 
 			expectedErr := fmt.Sprintf(
-				"failed to count the number of hosts in cluster with ID '%s' and suggested role 'master', failed to count the number of hosts in cluster with ID '%s' and suggested role 'worker'",
+				"failed to count the number of hosts in cluster with ID '%s' and suggested role 'master', failed to count the number of hosts in cluster with ID '%s' and suggested role 'arbiter', failed to count the number of hosts in cluster with ID '%s' and suggested role 'worker'",
+				string(*backEndCluster.ID),
 				string(*backEndCluster.ID),
 				string(*backEndCluster.ID),
 			)
@@ -2758,6 +2788,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).Times(2)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(1), nil).Times(2)
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).Times(2)
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			aci.Spec.ProvisionRequirements.WorkerAgents = 1
@@ -2861,6 +2892,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -2902,6 +2934,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), true).Return(nil, errors.Errorf("error")).Times(1)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -2932,6 +2965,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("error")).Times(1)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -2977,6 +3011,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			installClusterReply := &common.Cluster{
@@ -3023,6 +3058,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetKnownHostApprovedCounts(gomock.Any()).Return(5, 5, nil).Times(1)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -3047,6 +3083,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			installClusterReply := &common.Cluster{
@@ -3114,6 +3151,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			installClusterReply := &common.Cluster{
@@ -3182,6 +3220,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			cluster = getTestCluster()
@@ -3244,6 +3283,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			cluster = getTestCluster()
@@ -3274,6 +3314,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleMaster, true).Return(swag.Int64(3), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleWorker, true).Return(swag.Int64(2), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(*backEndCluster.ID, models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
 			installClusterReply := &common.Cluster{
@@ -4834,6 +4875,7 @@ var _ = Describe("TestConditions", func() {
 
 			mockClusterApi.EXPECT().GetHostCountByRole(gomock.Any(), models.HostRoleMaster, true).Return(swag.Int64(0), nil).AnyTimes()
 			mockClusterApi.EXPECT().GetHostCountByRole(gomock.Any(), models.HostRoleWorker, true).Return(swag.Int64(0), nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(gomock.Any(), models.HostRoleArbiter, true).Return(swag.Int64(0), nil).AnyTimes()
 
 			_, err := cr.Reconcile(ctx, clusterRequest)
 			Expect(err).To(BeNil())

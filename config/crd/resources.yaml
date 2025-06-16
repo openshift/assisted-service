@@ -580,6 +580,12 @@ spec:
                 description: ProvisionRequirements defines configuration for when
                   the installation is ready to be launched automatically.
                 properties:
+                  arbiterAgents:
+                    description: |-
+                      ArbiterAgents is the minimum number of matching approved and ready Agents with the arbiter role
+                      required to launch the install.
+                    minimum: 0
+                    type: integer
                   controlPlaneAgents:
                     description: |-
                       ControlPlaneAgents is the number of matching approved and ready Agents with the control plane role

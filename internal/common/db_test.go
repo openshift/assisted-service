@@ -89,6 +89,9 @@ var _ = Describe("GetHostCountByRole", func() {
 				masterCount, err := GetHostCountByRole(db, clusterID, models.HostRoleMaster, true)
 				Expect(err).ToNot(HaveOccurred())
 
+				arbiterCount, err := GetHostCountByRole(db, clusterID, models.HostRoleArbiter, true)
+				Expect(err).ToNot(HaveOccurred())
+
 				workerCount, err := GetHostCountByRole(db, clusterID, models.HostRoleWorker, true)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -96,6 +99,7 @@ var _ = Describe("GetHostCountByRole", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(*masterCount).To(BeEquivalentTo(3))
+				Expect(*arbiterCount).To(BeEquivalentTo(0))
 				Expect(*workerCount).To(BeEquivalentTo(3))
 				Expect(*autoAssignCount).To(BeEquivalentTo(2))
 			})
@@ -215,6 +219,9 @@ var _ = Describe("GetHostCountByRole", func() {
 				masterCount, err := GetHostCountByRole(db, clusterID, models.HostRoleMaster, false)
 				Expect(err).ToNot(HaveOccurred())
 
+				arbiterCount, err := GetHostCountByRole(db, clusterID, models.HostRoleArbiter, false)
+				Expect(err).ToNot(HaveOccurred())
+
 				workerCount, err := GetHostCountByRole(db, clusterID, models.HostRoleWorker, false)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -222,6 +229,7 @@ var _ = Describe("GetHostCountByRole", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(*masterCount).To(BeEquivalentTo(1))
+				Expect(*arbiterCount).To(BeEquivalentTo(0))
 				Expect(*workerCount).To(BeEquivalentTo(1))
 				Expect(*autoAssignCount).To(BeEquivalentTo(6))
 			})
