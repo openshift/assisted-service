@@ -38,7 +38,7 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 		return nil, err
 	}
 
-	ignitionEndpointUrl, err := hostutil.GetIgnitionEndpoint(&cluster, host)
+	ignitionEndpointUrl, cert, err := hostutil.GetIgnitionEndpointAndCert(&cluster, host, c.log)
 	if err != nil {
 		c.log.WithError(err).Errorf("failed to build Ignition Endpoint %s", host.ID)
 		return nil, err
@@ -47,8 +47,8 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 		URL: &ignitionEndpointUrl,
 	}
 
-	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.CaCertificate != nil {
-		request.CaCertificate = cluster.IgnitionEndpoint.CaCertificate
+	if cert != nil {
+		request.CaCertificate = cert
 	}
 
 	var requestHeaders []*models.APIVipConnectivityAdditionalRequestHeader
