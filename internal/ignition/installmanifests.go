@@ -755,15 +755,14 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 			arbiterHostnames := getHostnames(arbiters)
 			workerHostnames := getHostnames(workers)
 
-			// The BMH files in the ignition are sorted according to hostname (please see the implementation in installcfg/installcfg.go).
-			// The masters, arbiters and workers are also sorted by hostname.  This enables us to correlate correctly the host and the BMH file
+			// Ensure that there are enough hosts for the role
 			role := getBmhRole(bmh, masterHostnames, arbiterHostnames, workerHostnames)
 			if role == models.HostRoleMaster {
-				host, masters = popNextHost(masters)
+				host, masters = removeHostFromSlice(bmh.Name, masters)
 			} else if role == models.HostRoleArbiter {
-				host, arbiters = popNextHost(arbiters)
+				host, arbiters = removeHostFromSlice(bmh.Name, arbiters)
 			} else {
-				host, workers = popNextHost(workers)
+				host, workers = removeHostFromSlice(bmh.Name, workers)
 			}
 			if host == nil {
 				return errors.Errorf("Not enough registered hosts in role %s to match with BareMetalHosts", role)
@@ -800,10 +799,18 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 	return nil
 }
 
-func popNextHost(hosts []*models.Host) (*models.Host, []*models.Host) {
+func removeHostFromSlice(bmhName string, hosts []*models.Host) (*models.Host, []*models.Host) {
 	if len(hosts) == 0 {
 		return nil, nil
 	}
+
+	for i, host := range hosts {
+		if bmhName == hostutil.GetHostnameForMsg(host) {
+			hosts = append(hosts[:i], hosts[i+1:]...)
+			return host, hosts
+		}
+	}
+	// If host not found, remove first entry in list for backwards compatibility
 	return hosts[0], hosts[1:]
 }
 
