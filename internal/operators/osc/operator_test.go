@@ -30,7 +30,7 @@ var _ = Describe("OSC Operator", func() {
 		})
 
 		It("should return the right validations ids", func() {
-			Expect(operator.GetClusterValidationID()).To(Equal(string(models.ClusterValidationIDOscRequirementsSatisfied)))
+			Expect(operator.GetClusterValidationIDs()).To(Equal([]string{string(models.ClusterValidationIDOscRequirementsSatisfied)}))
 			Expect(operator.GetHostValidationID()).To(Equal(string(models.HostValidationIDOscRequirementsSatisfied)))
 		})
 

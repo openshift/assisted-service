@@ -340,15 +340,16 @@ var _ = Describe("CNV operator", func() {
 		cluster.CPUArchitecture = cpuArch
 		for _, v := range ocpVersion {
 			cluster.OpenshiftVersion = v
-			validation, err := operator.ValidateCluster(context.TODO(), &cluster)
+			validations, err := operator.ValidateCluster(context.TODO(), &cluster)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(validations).To(HaveLen(1))
 
-			Expect(validation.Status).To(Equal(expectedApiStatus),
+			Expect(validations[0].Status).To(Equal(expectedApiStatus),
 				fmt.Sprintf("Validate OCP version %s, in %s validatation should be %s", cluster.OpenshiftVersion, cpuArch, expectedApiStatus))
 
 			if expectedApiStatus == api.Failure {
-				Expect(validation.Reasons).To(ContainElements(errorMessage),
-					fmt.Sprintf("Got Error message: %s", validation.Reasons))
+				Expect(validations[0].Reasons).To(ContainElements(errorMessage),
+					fmt.Sprintf("Got Error message: %s", validations[0].Reasons))
 			}
 		}
 	},

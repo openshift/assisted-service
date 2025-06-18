@@ -313,20 +313,22 @@ func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster
 				return nil, err
 			}
 			delete(pendingOperators, clusterOperator.Name)
-			results = append(results, result)
+			results = append(results, result...)
 		}
 	}
 	// Add successful validation result for disabled operators
 	for opName := range pendingOperators {
 		operator := mgr.olmOperators[opName]
-		result := api.ValidationResult{
-			Status:       api.Success,
-			ValidationId: operator.GetClusterValidationID(),
-			Reasons: []string{
-				fmt.Sprintf("%s is disabled", opName),
-			},
+		for _, validationID := range operator.GetClusterValidationIDs() {
+			result := api.ValidationResult{
+				Status:       api.Success,
+				ValidationId: validationID,
+				Reasons: []string{
+					fmt.Sprintf("%s is disabled", opName),
+				},
+			}
+			results = append(results, result)
 		}
-		results = append(results, result)
 	}
 	return results, nil
 }

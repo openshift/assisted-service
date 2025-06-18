@@ -24,6 +24,11 @@ var Operator = models.MonitoredOperator{
 	},
 }
 
+const (
+	clusterValidationID = string(models.ClusterValidationIDAuthorinoRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDAuthorinoRequirementsSatisfied)
+)
+
 // operator is an Authorino AI OLM operator plugin.
 type operator struct {
 	log       logrus.FieldLogger
@@ -56,22 +61,22 @@ func (o *operator) GetDependencies(c *common.Cluster) (result []string, err erro
 	return
 }
 
-// GetClusterValidationID returns cluster validation ID for the operator.
-func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDAuthorinoRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the operator.
+func (o *operator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the operator.
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDAuthorinoRequirementsSatisfied)
+	return hostValidationID
 }
 
 // ValidateCluster checks if the cluster satisfies the requirements to install the operator.
-func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) (result api.ValidationResult,
-	err error) {
-	result.ValidationId = o.GetClusterValidationID()
-	result.Status = api.Success
-	return
+func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	return []api.ValidationResult{{
+		ValidationId: clusterValidationID,
+		Status:       api.Success,
+	}}, nil
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and CPU.

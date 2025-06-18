@@ -17,8 +17,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// nvidiaVendorID is the PCI vendor identifier of NVIDIA devices.
-const nvidiaVendorID = "10de"
+const (
+	// nvidiaVendorID is the PCI vendor identifier of NVIDIA devices.
+	nvidiaVendorID = "10de"
+
+	clusterValidationID = string(models.ClusterValidationIDNvidiaGpuRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDNvidiaGpuRequirementsSatisfied)
+)
 
 var Operator = models.MonitoredOperator{
 	Namespace:        "nvidia-gpu-operator",
@@ -73,41 +78,36 @@ func (o *operator) GetDependencies(c *common.Cluster) ([]string, error) {
 	return result, nil
 }
 
-// GetClusterValidationID returns cluster validation ID for the operator.
-func (o *operator) GetClusterValidationID() string {
-	return string(models.ClusterValidationIDNvidiaGpuRequirementsSatisfied)
+// GetClusterValidationIDs returns cluster validation IDs for the operator.
+func (o *operator) GetClusterValidationIDs() []string {
+	return []string{clusterValidationID}
 }
 
 // GetHostValidationID returns host validation ID for the operator.
 func (o *operator) GetHostValidationID() string {
-	return string(models.HostValidationIDNvidiaGpuRequirementsSatisfied)
+	return hostValidationID
 }
 
 // ValidateCluster checks if the cluster satisfies the requirements to install the operator.
-func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
-	result := api.ValidationResult{
+func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	result := []api.ValidationResult{{
 		Status:       api.Success,
-		ValidationId: o.GetClusterValidationID(),
-	}
+		ValidationId: clusterValidationID,
+	}}
 
 	// Check that there is at least one supported GPU
-	if o.config.RequireGPU {
-		hasGPU, err := o.hasSupportedGPU(cluster)
-		if err != nil {
-			return result, fmt.Errorf("failed to check if cluster has GPU: %w", err)
-		}
-
-		if !hasGPU {
-			result.Reasons = append(
-				result.Reasons,
-				"The NVIDIA GPU operator requires at least one supported NVIDIA GPU, but there is "+
-					"none in the discovered hosts.",
-			)
-		}
+	hasGPU, err := o.ClusterHasGPU(cluster)
+	if err != nil {
+		return result, fmt.Errorf("failed to check if cluster has GPU: %w", err)
 	}
 
-	if len(result.Reasons) > 0 {
-		result.Status = api.Failure
+	if !hasGPU {
+		result[0].Status = api.Failure
+		result[0].Reasons = []string{
+			"The NVIDIA GPU operator requires at least one supported NVIDIA GPU, but there is none in the discovered hosts.",
+		}
+
+		return result, nil
 	}
 
 	return result, nil

@@ -103,33 +103,33 @@ var _ = Describe("Lvm Operator", func() {
 	)
 
 	Context("ValidateCluster", func() {
-		table.DescribeTable("validate cluster when ", func(cluster *common.Cluster, expectedResult api.ValidationResult) {
+		table.DescribeTable("validate cluster when ", func(cluster *common.Cluster, expectedResult []api.ValidationResult) {
 			res, _ := operator.ValidateCluster(ctx, cluster)
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("Control Plane Count 3",
 				&common.Cluster{Cluster: models.Cluster{ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, Hosts: []*models.Host{hostWithSufficientResources, hostWithSufficientResources}, OpenshiftVersion: LvmMinMultiNodeSupportVersion}},
-				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
+				[]api.ValidationResult{{Status: api.Success, ValidationId: operator.GetHostValidationID()}},
 			),
 			table.Entry("Control Plane Count 3 with pre-release version",
 				&common.Cluster{Cluster: models.Cluster{ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, Hosts: []*models.Host{hostWithSufficientResources, hostWithSufficientResources}, OpenshiftVersion: "4.15.0-rc0"}},
-				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
+				[]api.ValidationResult{{Status: api.Success, ValidationId: operator.GetHostValidationID()}},
 			),
 			table.Entry("Control Plane Count 3 with higher than LvmMinMultiNodeSupportVersion",
 				&common.Cluster{Cluster: models.Cluster{ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, Hosts: []*models.Host{hostWithSufficientResources, hostWithSufficientResources}, OpenshiftVersion: "4.15.7"}},
-				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
+				[]api.ValidationResult{{Status: api.Success, ValidationId: operator.GetHostValidationID()}},
 			),
 			table.Entry("Control Plane Count 3 and Openshift version less than LvmMinMultiNodeSupportVersion",
 				&common.Cluster{Cluster: models.Cluster{ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: "4.14.0"}},
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Logical Volume Manager is only supported for highly available openshift with version 4.15.0 or above"}},
+				[]api.ValidationResult{{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Logical Volume Manager is only supported for highly available openshift with version 4.15.0 or above"}}},
 			),
 			table.Entry("Control Plane Count 1 None and Openshift version less than minimal",
 				&common.Cluster{Cluster: models.Cluster{ControlPlaneCount: 1, Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: "4.10.0"}},
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Logical Volume Manager is only supported for openshift versions 4.11.0 and above"}},
+				[]api.ValidationResult{{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Logical Volume Manager is only supported for openshift versions 4.11.0 and above"}}},
 			),
 			table.Entry("Control Plane Count 1 and Openshift version more than minimal",
 				&common.Cluster{Cluster: models.Cluster{ControlPlaneCount: 1, Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: LvmoMinOpenshiftVersion}},
-				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
+				[]api.ValidationResult{{Status: api.Success, ValidationId: operator.GetHostValidationID()}},
 			),
 		)
 	})

@@ -1,5 +1,7 @@
 package mtv
 
+import "github.com/openshift/assisted-service/models"
+
 const (
 	Name                   = "mtv"
 	FullName               = "OpenShift Migration Toolkit for Virtualization"
@@ -15,6 +17,9 @@ const (
 	// Memory value provided in GIB
 	WorkerMemory int64 = 1
 	WorkerCPU    int64 = 1
+
+	clusterValidationID = string(models.ClusterValidationIDMtvRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDMtvRequirementsSatisfied)
 )
 
 type Config struct {
