@@ -149,9 +149,10 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 			Name:           string(models.HostRoleArbiter),
 			Replicas:       i.countHostsByRole(cluster, models.HostRoleArbiter),
 		}
-
-		cfg.FeatureSet = configv1.CustomNoUpgrade
-		cfg.FeatureGates = []string{"HighlyAvailableArbiter=true"}
+		// Arbiter is TechPreview in 4.19 and GA in greater versions
+		if is419, _ := common.BaseVersionEqual(common.MinimumVersionForArbiterClusters, cluster.OpenshiftVersion); is419 {
+			cfg.FeatureSet = configv1.TechPreviewNoUpgrade
+		}
 	}
 
 	return cfg, nil
