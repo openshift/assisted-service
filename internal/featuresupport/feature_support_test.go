@@ -229,6 +229,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	Context("Test TNA", func() {
 		feature := models.FeatureSupportLevelIDTNA
 		openshiftVersionWithoutTNA := "4.18"
+		openshiftVersionSupportWithTNA := "4.20"
 
 		It("test feature availability", func() {
 			Expect(IsFeatureAvailable(feature, common.MinimumVersionForArbiterClusters, nil)).To(BeTrue())
@@ -410,6 +411,23 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					OpenshiftVersion: openshiftVersionWithoutTNA,
 				},
 				models.SupportLevelUnavailable,
+			),
+
+			Entry(
+				"support openshift version with platform filter",
+				SupportLevelFilters{
+					OpenshiftVersion: openshiftVersionSupportWithTNA,
+					PlatformType:     models.PlatformTypeBaremetal.Pointer(),
+				},
+				models.SupportLevelSupported,
+			),
+
+			Entry(
+				"support openshift version without platform filter",
+				SupportLevelFilters{
+					OpenshiftVersion: openshiftVersionSupportWithTNA,
+				},
+				models.SupportLevelSupported,
 			),
 		)
 	})

@@ -97,12 +97,17 @@ func (feature *TnaFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelUnavailable
 	}
 
-	arbiterClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForArbiterClusters, filters.OpenshiftVersion)
-	if !arbiterClustersSupported || err != nil {
-		return models.SupportLevelUnavailable
+	// If we equal minimum version then we are in TechPreview support
+	if arbiterClustersSupported, _ := common.BaseVersionEqual(common.MinimumVersionForArbiterClusters, filters.OpenshiftVersion); arbiterClustersSupported {
+		return models.SupportLevelTechPreview
 	}
 
-	return models.SupportLevelTechPreview
+	// If we did not equal minimum and are greater, then we are in normal support level
+	if arbiterClustersSupported, _ := common.BaseVersionGreaterOrEqual(common.MinimumVersionForArbiterClusters, filters.OpenshiftVersion); arbiterClustersSupported {
+		return models.SupportLevelSupported
+	}
+
+	return models.SupportLevelUnavailable
 }
 
 func (feature *TnaFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
