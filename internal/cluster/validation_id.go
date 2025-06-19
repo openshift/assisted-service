@@ -42,6 +42,7 @@ const (
 	IsServiceMeshRequirementsSatisfied             = ValidationID(models.ClusterValidationIDServicemeshRequirementsSatisfied)
 	IsServerLessRequirementsSatisfied              = ValidationID(models.ClusterValidationIDServerlessRequirementsSatisfied)
 	IsOpenShiftAIRequirementsSatisfied             = ValidationID(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied)
+	IsOpenshiftAIGpuRequirementsSatisfied          = ValidationID(models.ClusterValidationIDOpenshiftAiGpuRequirementsSatisfied)
 	IsAuthorinoRequirementsSatisfied               = ValidationID(models.ClusterValidationIDAuthorinoRequirementsSatisfied)
 	IsNmstateRequirementsSatisfied                 = ValidationID(models.ClusterValidationIDNmstateRequirementsSatisfied)
 	IsAMDGPURequirementsSatisfied                  = ValidationID(models.ClusterValidationIDAmdGpuRequirementsSatisfied)
@@ -76,6 +77,7 @@ func (v ValidationID) Category() (string, error) {
 		IsServiceMeshRequirementsSatisfied,
 		IsServerLessRequirementsSatisfied,
 		IsOpenShiftAIRequirementsSatisfied,
+		IsOpenshiftAIGpuRequirementsSatisfied,
 		IsAuthorinoRequirementsSatisfied,
 		IsNmstateRequirementsSatisfied,
 		IsAMDGPURequirementsSatisfied,
