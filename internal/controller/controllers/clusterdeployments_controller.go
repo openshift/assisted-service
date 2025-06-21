@@ -405,10 +405,15 @@ func isInstalled(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hi
 
 // getHostSuggestedRoleCount returns the amount of suggested masters and workers for the given cluster.
 // It counts from DB as the hosts are not loaded to memory, and we want to avoid loading them.
-func getHostSuggestedRoleCount(clusterAPI cluster.API, clusterID strfmt.UUID) (*int64, *int64, error) {
+func getHostSuggestedRoleCount(clusterAPI cluster.API, clusterID strfmt.UUID) (*int64, *int64, *int64, error) {
 	var combinedErr error
 
 	mastersCountPtr, err := clusterAPI.GetHostCountByRole(clusterID, models.HostRoleMaster, true)
+	if err != nil {
+		combinedErr = errpkg.Join(combinedErr, err)
+	}
+
+	arbiterCountPtr, err := clusterAPI.GetHostCountByRole(clusterID, models.HostRoleArbiter, true)
 	if err != nil {
 		combinedErr = errpkg.Join(combinedErr, err)
 	}
@@ -421,10 +426,10 @@ func getHostSuggestedRoleCount(clusterAPI cluster.API, clusterID strfmt.UUID) (*
 	if combinedErr != nil {
 		// convert the err to one line
 		combinedErr = errors.New(strings.ReplaceAll(combinedErr.Error(), "\n", ", "))
-		return nil, nil, combinedErr
+		return nil, nil, nil, combinedErr
 	}
 
-	return mastersCountPtr, workersCountPtr, nil
+	return mastersCountPtr, arbiterCountPtr, workersCountPtr, nil
 }
 
 func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment,
@@ -711,10 +716,11 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(
 	log.Debugf("Calculating installation readiness, found %d unsynced agents out of total of %d agents", unsyncedHosts, len(agents))
 
 	expectedMasterCount := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents
+	expectedArbiterCount := clusterInstall.Spec.ProvisionRequirements.ArbiterAgents
 	expectedWorkerCount := clusterInstall.Spec.ProvisionRequirements.WorkerAgents
-	expectedHostCount := expectedMasterCount + expectedWorkerCount
+	expectedHostCount := expectedMasterCount + expectedWorkerCount + expectedArbiterCount
 
-	masterCountPtr, workerCountPtr, err := getHostSuggestedRoleCount(r.ClusterApi, *c.ID)
+	masterCountPtr, arbiterCountPtr, workerCountPtr, err := getHostSuggestedRoleCount(r.ClusterApi, *c.ID)
 	if err != nil {
 		// will be shown as a SpecSynced error
 		log.WithError(err).Error("failed to fetch host suggested role count")
@@ -724,6 +730,7 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(
 	return approvedHosts == expectedHostCount &&
 		registered == expectedHostCount &&
 		int(swag.Int64Value(masterCountPtr)) == expectedMasterCount &&
+		int(swag.Int64Value(arbiterCountPtr)) == expectedArbiterCount &&
 		int(swag.Int64Value(workerCountPtr)) == expectedWorkerCount &&
 		unsyncedHosts == 0, nil
 }
@@ -1867,7 +1874,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 	c *common.Cluster, syncErr error) (ctrl.Result, error) {
 
 	var (
-		mastersCountPtr, workersCountPtr *int64
+		mastersCountPtr, arbiterCountPtr, workersCountPtr *int64
 	)
 
 	clusterSpecSynced(clusterInstall, syncErr)
@@ -1913,7 +1920,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 					return ctrl.Result{Requeue: true}, nil
 				}
 
-				mastersCountPtr, workersCountPtr, err = getHostSuggestedRoleCount(r.ClusterApi, *c.ID)
+				mastersCountPtr, arbiterCountPtr, workersCountPtr, err = getHostSuggestedRoleCount(r.ClusterApi, *c.ID)
 				if err != nil {
 					log.WithError(err).Error("failed to fetch host suggested role count")
 					// proceed to update the conditions (the counts will be 0)
@@ -1929,6 +1936,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 				approvedHosts,
 				unsyncedHosts,
 				int(swag.Int64Value(mastersCountPtr)),
+				int(swag.Int64Value(arbiterCountPtr)),
 				int(swag.Int64Value(workersCountPtr)),
 			)
 			clusterValidated(clusterInstall, status, c)
@@ -2075,6 +2083,7 @@ func clusterRequirementsMet(
 	approvedHosts,
 	unsyncedHosts int,
 	masterCount int,
+	arbiterCount int,
 	workerCount int,
 ) {
 	var condStatus corev1.ConditionStatus
@@ -2084,18 +2093,22 @@ func clusterRequirementsMet(
 	switch status {
 	case models.ClusterStatusReady:
 		expectedMasterCount := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents
+		expectedArbiterCount := clusterInstall.Spec.ProvisionRequirements.ArbiterAgents
 		expectedWorkerCount := clusterInstall.Spec.ProvisionRequirements.WorkerAgents
-		expectedHostCount := expectedMasterCount + expectedWorkerCount
+		expectedHostCount := expectedMasterCount + expectedWorkerCount + expectedArbiterCount
 
 		if masterCount != expectedMasterCount ||
-			workerCount != expectedWorkerCount {
+			workerCount != expectedWorkerCount ||
+			arbiterCount != expectedArbiterCount {
 			condStatus = corev1.ConditionFalse
 			reason = hiveext.ClusterInsufficientAgentsReason
 			msg = fmt.Sprintf(
 				hiveext.ClusterInsufficientAgentsMsg,
 				expectedMasterCount,
+				expectedArbiterCount,
 				expectedWorkerCount,
 				masterCount,
+				arbiterCount,
 				workerCount,
 			)
 		} else if unsyncedHosts != 0 {

@@ -22,7 +22,7 @@ const (
 	ClusterInstallationStoppedReason string = "ClusterInstallationStopped"
 	ClusterInstallationStoppedMsg    string = "The cluster installation stopped"
 	ClusterInsufficientAgentsReason  string = "InsufficientAgents"
-	ClusterInsufficientAgentsMsg     string = "The cluster currently requires exactly %d master agents and %d worker agents, but currently registered %d master agents and %d worker agents"
+	ClusterInsufficientAgentsMsg     string = "The cluster currently requires exactly %d master agents, %d arbiter agents and %d worker agents, but currently registered %d master agents, %d arbiter agents and %d worker agents"
 	ClusterUnapprovedAgentsReason    string = "UnapprovedAgents"
 	ClusterUnapprovedAgentsMsg       string = "The installation is pending on the approval of %d agents"
 	ClusterUnsyncedAgentsReason      string = "UnsyncedAgents"
@@ -373,6 +373,12 @@ type ProvisionRequirements struct {
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	WorkerAgents int `json:"workerAgents,omitempty"`
+
+	// ArbiterAgents is the minimum number of matching approved and ready Agents with the arbiter role
+	// required to launch the install.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	ArbiterAgents int `json:"arbiterAgents,omitempty"`
 }
 
 // HyperthreadingMode is the mode of hyperthreading for a machine.
