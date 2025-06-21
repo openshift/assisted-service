@@ -7,6 +7,7 @@ import (
 	config_32 "github.com/coreos/ignition/v2/config/v3_2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common/ignition"
 )
 
 var _ = Context("with test ignitions", func() {
@@ -21,7 +22,7 @@ var _ = Context("with test ignitions", func() {
 
 	Describe("ParseToLatest", func() {
 		It("parses a v32 config as 3.2.0", func() {
-			config, err := ParseToLatest([]byte(v32ignition))
+			config, err := ignition.ParseToLatest([]byte(v32ignition))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(config.Ignition.Version).To(Equal("3.2.0"))
 
@@ -33,7 +34,7 @@ var _ = Context("with test ignitions", func() {
 		})
 
 		It("parses a v31 config as 3.1.0", func() {
-			config, err := ParseToLatest([]byte(v31ignition))
+			config, err := ignition.ParseToLatest([]byte(v31ignition))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(config.Ignition.Version).To(Equal("3.1.0"))
 
@@ -45,27 +46,27 @@ var _ = Context("with test ignitions", func() {
 		})
 
 		It("does not parse v99 config", func() {
-			_, err := ParseToLatest([]byte(v99ignition))
+			_, err := ignition.ParseToLatest([]byte(v99ignition))
 			Expect(err.Error()).To(ContainSubstring("unsupported config version"))
 		})
 
 		It("does not parse v30 config", func() {
-			_, err := ParseToLatest([]byte(v30ignition))
+			_, err := ignition.ParseToLatest([]byte(v30ignition))
 			Expect(err.Error()).To(ContainSubstring("unsupported config version"))
 		})
 
 		It("does not parse v33 config", func() {
-			_, err := ParseToLatest([]byte(v33ignition))
+			_, err := ignition.ParseToLatest([]byte(v33ignition))
 			Expect(err.Error()).To(ContainSubstring("unsupported config version"))
 		})
 	})
 
 	Describe("MergeIgnitionConfig", func() {
 		It("parses a v31 config with v31 override as 3.1.0", func() {
-			merge, err := MergeIgnitionConfig([]byte(v31ignition), []byte(v31override))
+			merge, err := ignition.MergeIgnitionConfig([]byte(v31ignition), []byte(v31override))
 			Expect(err).ToNot(HaveOccurred())
 
-			config, err := ParseToLatest([]byte(merge))
+			config, err := ignition.ParseToLatest([]byte(merge))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(config.Ignition.Version).To(Equal("3.1.0"))
 
@@ -77,10 +78,10 @@ var _ = Context("with test ignitions", func() {
 		})
 
 		It("parses a v31 config with v32 override as 3.2.0", func() {
-			merge, err := MergeIgnitionConfig([]byte(v31ignition), []byte(v32override))
+			merge, err := ignition.MergeIgnitionConfig([]byte(v31ignition), []byte(v32override))
 			Expect(err).ToNot(HaveOccurred())
 
-			config, err := ParseToLatest([]byte(merge))
+			config, err := ignition.ParseToLatest([]byte(merge))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(config.Ignition.Version).To(Equal("3.2.0"))
 
@@ -94,10 +95,10 @@ var _ = Context("with test ignitions", func() {
 		// Be aware, this combination is counterintuitive and comes from the fact that MergeStructTranscribe()
 		// is not order-agnostic and prefers the field coming from the override rather from the base.
 		It("parses a v32 config with v31 override as 3.1.0", func() {
-			merge, err := MergeIgnitionConfig([]byte(v32ignition), []byte(v31override))
+			merge, err := ignition.MergeIgnitionConfig([]byte(v32ignition), []byte(v31override))
 			Expect(err).ToNot(HaveOccurred())
 
-			config, err := ParseToLatest([]byte(merge))
+			config, err := ignition.ParseToLatest([]byte(merge))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(config.Ignition.Version).To(Equal("3.1.0"))
 

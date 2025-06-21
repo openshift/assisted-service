@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -136,57 +137,65 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	Context("using GetIgnitionEndpoint function", func() {
+	Context("using GetIgnitionEndpointAndCert function", func() {
 		It("for host with custom MachineConfigPoolName", func() {
 			Expect(db.Model(&host).Update("MachineConfigPoolName", "chocobomb").Error).ShouldNot(HaveOccurred())
 
-			url, err := GetIgnitionEndpoint(&cluster, &host)
+			url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 			Expect(url).Should(Equal("http://test.com:22624/config/chocobomb"))
+			Expect(cert).Should(BeNil())
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("for cluster with custom IgnitionEndpoint", func() {
 			customEndpoint := "https://foo.bar:33735/acme"
 			Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
 
-			url, err := GetIgnitionEndpoint(&cluster, &host)
+			url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 			Expect(url).Should(Equal(customEndpoint + "/worker"))
+			Expect(cert).Should(BeNil())
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("failing for cluster with wrong IgnitionEndpoint", func() {
 			customEndpoint := "https\\://foo.bar:33735/acme"
 			Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
 
-			url, err := GetIgnitionEndpoint(&cluster, &host)
+			url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 			Expect(url).Should(Equal(""))
+			Expect(cert).Should(BeNil())
 			Expect(err).Should(HaveOccurred())
 		})
 		It("for host with master role", func() {
 			Expect(db.Model(&host).Update("Role", "master").Error).ShouldNot(HaveOccurred())
-			url, err := GetIgnitionEndpoint(&cluster, &host)
+			url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 			Expect(url).Should(Equal("http://test.com:22624/config/master"))
+			Expect(cert).Should(BeNil())
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("for host with auto-assing role defaults to worker", func() {
 			Expect(db.Model(&host).Update("Role", "auto-assign").Error).ShouldNot(HaveOccurred())
-			url, err := GetIgnitionEndpoint(&cluster, &host)
+			url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 			Expect(url).Should(Equal("http://test.com:22624/config/worker"))
+			Expect(cert).Should(BeNil())
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("for host with no customizations", func() {
-			url, err := GetIgnitionEndpoint(&cluster, &host)
+			url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 			Expect(url).Should(Equal("http://test.com:22624/config/worker"))
+			Expect(cert).Should(BeNil())
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("for host with IPv4 API endpoint", func() {
 			Expect(db.Model(&cluster).Update("api_vip_dns_name", "10.0.0.1").Error).ShouldNot(HaveOccurred())
-			url, err := GetIgnitionEndpoint(&cluster, &host)
+			url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 			Expect(url).Should(Equal("http://10.0.0.1:22624/config/worker"))
+			Expect(cert).Should(BeNil())
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("for host with IPv6 API endpoint", func() {
 			Expect(db.Model(&cluster).Update("api_vip_dns_name", "fe80::1").Error).ShouldNot(HaveOccurred())
-			url, err := GetIgnitionEndpoint(&cluster, &host)
+			url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 			Expect(url).Should(Equal("http://[fe80::1]:22624/config/worker"))
+			Expect(cert).Should(BeNil())
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
