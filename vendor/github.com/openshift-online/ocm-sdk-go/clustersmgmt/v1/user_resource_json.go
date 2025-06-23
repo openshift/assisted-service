@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readUserDeleteRequest(request *UserDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeUserDeleteRequest(request *UserDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readUserDeleteResponse(response *UserDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeUserDeleteResponse(response *UserDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readUserGetRequest(request *UserGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeUserGetRequest(request *UserGetRequest, writer io.Writer) error {
@@ -46,7 +34,4 @@ func readUserGetResponse(response *UserGetResponse, reader io.Reader) error {
 	var err error
 	response.body, err = UnmarshalUser(reader)
 	return err
-}
-func writeUserGetResponse(response *UserGetServerResponse, w http.ResponseWriter) error {
-	return MarshalUser(response.body, w)
 }

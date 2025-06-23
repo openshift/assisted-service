@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalAWSInfrastructureAccessRole writes a value of the 'AWS_infrastructure_access_role' type to the given writer.
 func MarshalAWSInfrastructureAccessRole(object *AWSInfrastructureAccessRole, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeAWSInfrastructureAccessRole(object, stream)
-	stream.Flush()
+	WriteAWSInfrastructureAccessRole(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeAWSInfrastructureAccessRole writes a value of the 'AWS_infrastructure_access_role' type to the given stream.
-func writeAWSInfrastructureAccessRole(object *AWSInfrastructureAccessRole, stream *jsoniter.Stream) {
+// WriteAWSInfrastructureAccessRole writes a value of the 'AWS_infrastructure_access_role' type to the given stream.
+func WriteAWSInfrastructureAccessRole(object *AWSInfrastructureAccessRole, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -88,7 +90,6 @@ func writeAWSInfrastructureAccessRole(object *AWSInfrastructureAccessRole, strea
 		}
 		stream.WriteObjectField("state")
 		stream.WriteString(string(object.state))
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -96,20 +97,17 @@ func writeAWSInfrastructureAccessRole(object *AWSInfrastructureAccessRole, strea
 // UnmarshalAWSInfrastructureAccessRole reads a value of the 'AWS_infrastructure_access_role' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalAWSInfrastructureAccessRole(source interface{}) (object *AWSInfrastructureAccessRole, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readAWSInfrastructureAccessRole(iterator)
+	object = ReadAWSInfrastructureAccessRole(iterator)
 	err = iterator.Error
 	return
 }
 
-// readAWSInfrastructureAccessRole reads a value of the 'AWS_infrastructure_access_role' type from the given iterator.
-func readAWSInfrastructureAccessRole(iterator *jsoniter.Iterator) *AWSInfrastructureAccessRole {
+// ReadAWSInfrastructureAccessRole reads a value of the 'AWS_infrastructure_access_role' type from the given iterator.
+func ReadAWSInfrastructureAccessRole(iterator *jsoniter.Iterator) *AWSInfrastructureAccessRole {
 	object := &AWSInfrastructureAccessRole{}
 	for {
 		field := iterator.ReadObject()

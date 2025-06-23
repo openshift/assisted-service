@@ -110,8 +110,6 @@ func (o *CPUTotalNodeRoleOSMetricNode) GetOperatingSystem() (value string, ok bo
 
 // Time returns the value of the 'time' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *CPUTotalNodeRoleOSMetricNode) Time() time.Time {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.time
@@ -121,8 +119,6 @@ func (o *CPUTotalNodeRoleOSMetricNode) Time() time.Time {
 
 // GetTime returns the value of the 'time' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *CPUTotalNodeRoleOSMetricNode) GetTime() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -156,6 +152,29 @@ func (l *CPUTotalNodeRoleOSMetricNodeList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *CPUTotalNodeRoleOSMetricNodeList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *CPUTotalNodeRoleOSMetricNodeList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *CPUTotalNodeRoleOSMetricNodeList) SetItems(items []*CPUTotalNodeRoleOSMetricNode) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *CPUTotalNodeRoleOSMetricNodeList) Items() []*CPUTotalNodeRoleOSMetricNode {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

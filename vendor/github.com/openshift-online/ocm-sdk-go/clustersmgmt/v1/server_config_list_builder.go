@@ -37,6 +37,11 @@ func (b *ServerConfigListBuilder) Items(values ...*ServerConfigBuilder) *ServerC
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *ServerConfigListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *ServerConfigListBuilder) Copy(list *ServerConfigList) *ServerConfigListBuilder {
 	if list == nil || list.items == nil {

@@ -21,16 +21,10 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
 
-func readUpgradePoliciesAddRequest(request *UpgradePoliciesAddServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalUpgradePolicy(r.Body)
-	return err
-}
 func writeUpgradePoliciesAddRequest(request *UpgradePoliciesAddRequest, writer io.Writer) error {
 	return MarshalUpgradePolicy(request.body, writer)
 }
@@ -38,28 +32,6 @@ func readUpgradePoliciesAddResponse(response *UpgradePoliciesAddResponse, reader
 	var err error
 	response.body, err = UnmarshalUpgradePolicy(reader)
 	return err
-}
-func writeUpgradePoliciesAddResponse(response *UpgradePoliciesAddServerResponse, w http.ResponseWriter) error {
-	return MarshalUpgradePolicy(response.body, w)
-}
-func readUpgradePoliciesListRequest(request *UpgradePoliciesListServerRequest, r *http.Request) error {
-	var err error
-	query := r.URL.Query()
-	request.page, err = helpers.ParseInteger(query, "page")
-	if err != nil {
-		return err
-	}
-	if request.page == nil {
-		request.page = helpers.NewInteger(1)
-	}
-	request.size, err = helpers.ParseInteger(query, "size")
-	if err != nil {
-		return err
-	}
-	if request.size == nil {
-		request.size = helpers.NewInteger(100)
-	}
-	return nil
 }
 func writeUpgradePoliciesListRequest(request *UpgradePoliciesListRequest, writer io.Writer) error {
 	return nil
@@ -85,7 +57,7 @@ func readUpgradePoliciesListResponse(response *UpgradePoliciesListResponse, read
 			value := iterator.ReadInt()
 			response.total = &value
 		case "items":
-			items := readUpgradePolicyList(iterator)
+			items := ReadUpgradePolicyList(iterator)
 			response.items = &UpgradePolicyList{
 				items: items,
 			}
@@ -94,56 +66,4 @@ func readUpgradePoliciesListResponse(response *UpgradePoliciesListResponse, read
 		}
 	}
 	return iterator.Error
-}
-func writeUpgradePoliciesListResponse(response *UpgradePoliciesListServerResponse, w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.status)
-	stream := helpers.NewStream(w)
-	stream.WriteObjectStart()
-	stream.WriteObjectField("kind")
-	count := 1
-	stream.WriteString(UpgradePolicyListKind)
-	if response.items != nil && response.items.href != "" {
-		stream.WriteMore()
-		stream.WriteObjectField("href")
-		stream.WriteString(response.items.href)
-		count++
-	}
-	if response.page != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("page")
-		stream.WriteInt(*response.page)
-		count++
-	}
-	if response.size != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("size")
-		stream.WriteInt(*response.size)
-		count++
-	}
-	if response.total != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("total")
-		stream.WriteInt(*response.total)
-		count++
-	}
-	if response.items != nil {
-		if response.items.items != nil {
-			if count > 0 {
-				stream.WriteMore()
-			}
-			stream.WriteObjectField("items")
-			writeUpgradePolicyList(response.items.items, stream)
-			count++
-		}
-	}
-	stream.WriteObjectEnd()
-	stream.Flush()
-	return stream.Error
 }

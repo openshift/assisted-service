@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // AccessTokenBuilder contains the data and logic needed to build 'access_token' objects.
-//
-//
 type AccessTokenBuilder struct {
 	bitmap_ uint32
 	auths   map[string]*AccessTokenAuthBuilder
@@ -32,9 +30,12 @@ func NewAccessToken() *AccessTokenBuilder {
 	return &AccessTokenBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *AccessTokenBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // Auths sets the value of the 'auths' attribute to the given value.
-//
-//
 func (b *AccessTokenBuilder) Auths(value map[string]*AccessTokenAuthBuilder) *AccessTokenBuilder {
 	b.auths = value
 	if value != nil {

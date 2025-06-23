@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -176,16 +175,12 @@ func (r *FlavourPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *FlavourPollResponse) Body() *Flavour {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *FlavourPollResponse) GetBody() (value *Flavour, ok bool) {
 	return r.response.GetBody()
 }
@@ -215,6 +210,13 @@ func (r *FlavourGetRequest) Parameter(name string, value interface{}) *FlavourGe
 // Header adds a request header.
 func (r *FlavourGetRequest) Header(name string, value interface{}) *FlavourGetRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *FlavourGetRequest) Impersonate(user string) *FlavourGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -250,15 +252,21 @@ func (r *FlavourGetRequest) SendContext(ctx context.Context) (result *FlavourGet
 	result = &FlavourGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readFlavourGetResponse(result, response.Body)
+	err = readFlavourGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -298,8 +306,6 @@ func (r *FlavourGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *FlavourGetResponse) Body() *Flavour {
 	if r == nil {
 		return nil
@@ -309,8 +315,6 @@ func (r *FlavourGetResponse) Body() *Flavour {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *FlavourGetResponse) GetBody() (value *Flavour, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -340,9 +344,14 @@ func (r *FlavourUpdateRequest) Header(name string, value interface{}) *FlavourUp
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *FlavourUpdateRequest) Impersonate(user string) *FlavourUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *FlavourUpdateRequest) Body(value *Flavour) *FlavourUpdateRequest {
 	r.body = value
 	return r
@@ -373,7 +382,7 @@ func (r *FlavourUpdateRequest) SendContext(ctx context.Context) (result *Flavour
 		Method: "PATCH",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -386,29 +395,25 @@ func (r *FlavourUpdateRequest) SendContext(ctx context.Context) (result *Flavour
 	result = &FlavourUpdateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readFlavourUpdateResponse(result, response.Body)
+	err = readFlavourUpdateResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'update' method.
-func (r *FlavourUpdateRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *FlavourUpdateRequest) stream(stream *jsoniter.Stream) {
 }
 
 // FlavourUpdateResponse is the response for the 'update' method.
@@ -444,8 +449,6 @@ func (r *FlavourUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *FlavourUpdateResponse) Body() *Flavour {
 	if r == nil {
 		return nil
@@ -455,8 +458,6 @@ func (r *FlavourUpdateResponse) Body() *Flavour {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *FlavourUpdateResponse) GetBody() (value *Flavour, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

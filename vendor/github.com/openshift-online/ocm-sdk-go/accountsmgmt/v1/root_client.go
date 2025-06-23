@@ -50,17 +50,6 @@ func (c *Client) Get() *MetadataRequest {
 	}
 }
 
-// SKUS returns the target 'SKUS' resource.
-//
-// Reference to the resource that manages the collection of
-// SKUS
-func (c *Client) SKUS() *SKUSClient {
-	return NewSKUSClient(
-		c.transport,
-		path.Join(c.path, "skus"),
-	)
-}
-
 // AccessToken returns the target 'access_token' resource.
 //
 // Reference to the resource that manages generates access tokens.
@@ -78,6 +67,36 @@ func (c *Client) Accounts() *AccountsClient {
 	return NewAccountsClient(
 		c.transport,
 		path.Join(c.path, "accounts"),
+	)
+}
+
+// BillingModels returns the target 'billing_models' resource.
+//
+// Reference to the resource that manages billing models.
+func (c *Client) BillingModels() *BillingModelsClient {
+	return NewBillingModelsClient(
+		c.transport,
+		path.Join(c.path, "billing_models"),
+	)
+}
+
+// Capabilities returns the target 'capabilities' resource.
+//
+// Reference to the resource that manages the collection of capabilities.
+func (c *Client) Capabilities() *CapabilitiesClient {
+	return NewCapabilitiesClient(
+		c.transport,
+		path.Join(c.path, "capabilities"),
+	)
+}
+
+// CloudResources returns the target 'cloud_resources' resource.
+//
+// Reference to the resource that manages the collection of cloud resources.
+func (c *Client) CloudResources() *CloudResourcesClient {
+	return NewCloudResourcesClient(
+		c.transport,
+		path.Join(c.path, "cloud_resources"),
 	)
 }
 
@@ -123,6 +142,26 @@ func (c *Client) CurrentAccount() *CurrentAccountClient {
 	)
 }
 
+// DefaultCapabilities returns the target 'default_capabilities' resource.
+//
+// Reference to the resource that manages the collection of default capabilities.
+func (c *Client) DefaultCapabilities() *DefaultCapabilitiesClient {
+	return NewDefaultCapabilitiesClient(
+		c.transport,
+		path.Join(c.path, "default_capabilities"),
+	)
+}
+
+// DeletedSubscriptions returns the target 'deleted_subscriptions' resource.
+//
+// Reference to the resource that manages the collection of deleted subscriptions.
+func (c *Client) DeletedSubscriptions() *DeletedSubscriptionsClient {
+	return NewDeletedSubscriptionsClient(
+		c.transport,
+		path.Join(c.path, "deleted_subscriptions"),
+	)
+}
+
 // FeatureToggles returns the target 'feature_toggles' resource.
 //
 // Reference to the resource that manages feature toggles.
@@ -143,13 +182,13 @@ func (c *Client) Labels() *LabelsClient {
 	)
 }
 
-// Notify returns the target 'notify' resource.
+// NotifyDetails returns the target 'notify_details' resource.
 //
-// Reference to the resource that manages the notifications.
-func (c *Client) Notify() *NotifyClient {
-	return NewNotifyClient(
+// Reference to the resource that manages the notifications details.
+func (c *Client) NotifyDetails() *NotifyDetailsClient {
+	return NewNotifyDetailsClient(
 		c.transport,
-		path.Join(c.path, "notify"),
+		path.Join(c.path, "notify_details"),
 	)
 }
 
@@ -181,6 +220,16 @@ func (c *Client) PullSecrets() *PullSecretsClient {
 	return NewPullSecretsClient(
 		c.transport,
 		path.Join(c.path, "pull_secrets"),
+	)
+}
+
+// QuotaAuthorizations returns the target 'quota_authorizations' resource.
+//
+// Reference to the resource that manages quota authorizations.
+func (c *Client) QuotaAuthorizations() *QuotaAuthorizationsClient {
+	return NewQuotaAuthorizationsClient(
+		c.transport,
+		path.Join(c.path, "quota_authorizations"),
 	)
 }
 

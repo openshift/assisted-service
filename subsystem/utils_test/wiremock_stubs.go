@@ -270,16 +270,21 @@ func (w *WireMock) CreateStubsForCreatingAMSSubscription(resStatus int) error {
 }
 
 func (w *WireMock) CreateStubsForGettingAMSSubscription(resStatus int, status string) error {
-
-	subResponse := subscription{
-		ID:     FakeSubscriptionID,
-		Status: status,
-	}
-
 	var resBody []byte
-	resBody, err := json.Marshal(subResponse)
-	if err != nil {
-		return err
+	var err error
+
+	if resStatus >= 400 {
+		// OCM SDK expects a proper error response for 4xx/5xx status codes
+		resBody = []byte(`{"kind":"Error","id":"401","href":"/api/clusters_mgmt/v1/errors/401","code":"CLUSTERS-MGMT-401","reason":"Unauthorized"}`)
+	} else {
+		subResponse := subscription{
+			ID:     FakeSubscriptionID,
+			Status: status,
+		}
+		resBody, err = json.Marshal(subResponse)
+		if err != nil {
+			return err
+		}
 	}
 
 	amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "GET", "", string(resBody), resStatus)
@@ -312,9 +317,14 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		}
 
 		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
-		if err != nil {
-			return err
+		if resStatus >= 400 {
+			// OCM SDK expects a proper error response for 4xx/5xx status codes
+			resBody = []byte(`{"kind":"Error","id":"401","href":"/api/clusters_mgmt/v1/errors/401","code":"CLUSTERS-MGMT-401","reason":"Unauthorized"}`)
+		} else {
+			resBody, err = json.Marshal(subResponse)
+			if err != nil {
+				return err
+			}
 		}
 
 		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
@@ -342,9 +352,14 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		}
 
 		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
-		if err != nil {
-			return err
+		if resStatus >= 400 {
+			// OCM SDK expects a proper error response for 4xx/5xx status codes
+			resBody = []byte(`{"kind":"Error","id":"401","href":"/api/clusters_mgmt/v1/errors/401","code":"CLUSTERS-MGMT-401","reason":"Unauthorized"}`)
+		} else {
+			resBody, err = json.Marshal(subResponse)
+			if err != nil {
+				return err
+			}
 		}
 
 		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
@@ -372,9 +387,14 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		}
 
 		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
-		if err != nil {
-			return err
+		if resStatus >= 400 {
+			// OCM SDK expects a proper error response for 4xx/5xx status codes
+			resBody = []byte(`{"kind":"Error","id":"401","href":"/api/clusters_mgmt/v1/errors/401","code":"CLUSTERS-MGMT-401","reason":"Unauthorized"}`)
+		} else {
+			resBody, err = json.Marshal(subResponse)
+			if err != nil {
+				return err
+			}
 		}
 
 		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
@@ -402,9 +422,14 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		}
 
 		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
-		if err != nil {
-			return err
+		if resStatus >= 400 {
+			// OCM SDK expects a proper error response for 4xx/5xx status codes
+			resBody = []byte(`{"kind":"Error","id":"401","href":"/api/clusters_mgmt/v1/errors/401","code":"CLUSTERS-MGMT-401","reason":"Unauthorized"}`)
+		} else {
+			resBody, err = json.Marshal(subResponse)
+			if err != nil {
+				return err
+			}
 		}
 
 		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
@@ -418,8 +443,12 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 }
 
 func (w *WireMock) CreateStubsForDeletingAMSSubscription(resStatus int) error {
-
-	amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "DELETE", "", "", resStatus)
+	var resBody string
+	if resStatus >= 400 {
+		// OCM SDK expects a proper error response for 4xx/5xx status codes
+		resBody = `{"kind":"Error","id":"401","href":"/api/clusters_mgmt/v1/errors/401","code":"CLUSTERS-MGMT-401","reason":"Unauthorized"}`
+	}
+	amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "DELETE", "", resBody, resStatus)
 	_, err := w.AddStub(amsSubscriptionStub)
 	return err
 }

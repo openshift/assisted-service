@@ -23,9 +23,10 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 //
 // Representation of cluster external configuration.
 type ExternalConfigurationBuilder struct {
-	bitmap_  uint32
-	labels   *LabelListBuilder
-	syncsets *SyncsetListBuilder
+	bitmap_   uint32
+	labels    *LabelListBuilder
+	manifests *ManifestListBuilder
+	syncsets  *SyncsetListBuilder
 }
 
 // NewExternalConfiguration creates a new builder of 'external_configuration' objects.
@@ -33,21 +34,29 @@ func NewExternalConfiguration() *ExternalConfigurationBuilder {
 	return &ExternalConfigurationBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *ExternalConfigurationBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // Labels sets the value of the 'labels' attribute to the given values.
-//
-//
 func (b *ExternalConfigurationBuilder) Labels(value *LabelListBuilder) *ExternalConfigurationBuilder {
 	b.labels = value
 	b.bitmap_ |= 1
 	return b
 }
 
+// Manifests sets the value of the 'manifests' attribute to the given values.
+func (b *ExternalConfigurationBuilder) Manifests(value *ManifestListBuilder) *ExternalConfigurationBuilder {
+	b.manifests = value
+	b.bitmap_ |= 2
+	return b
+}
+
 // Syncsets sets the value of the 'syncsets' attribute to the given values.
-//
-//
 func (b *ExternalConfigurationBuilder) Syncsets(value *SyncsetListBuilder) *ExternalConfigurationBuilder {
 	b.syncsets = value
-	b.bitmap_ |= 2
+	b.bitmap_ |= 4
 	return b
 }
 
@@ -61,6 +70,11 @@ func (b *ExternalConfigurationBuilder) Copy(object *ExternalConfiguration) *Exte
 		b.labels = NewLabelList().Copy(object.labels)
 	} else {
 		b.labels = nil
+	}
+	if object.manifests != nil {
+		b.manifests = NewManifestList().Copy(object.manifests)
+	} else {
+		b.manifests = nil
 	}
 	if object.syncsets != nil {
 		b.syncsets = NewSyncsetList().Copy(object.syncsets)
@@ -76,6 +90,12 @@ func (b *ExternalConfigurationBuilder) Build() (object *ExternalConfiguration, e
 	object.bitmap_ = b.bitmap_
 	if b.labels != nil {
 		object.labels, err = b.labels.Build()
+		if err != nil {
+			return
+		}
+	}
+	if b.manifests != nil {
+		object.manifests, err = b.manifests.Build()
 		if err != nil {
 			return
 		}

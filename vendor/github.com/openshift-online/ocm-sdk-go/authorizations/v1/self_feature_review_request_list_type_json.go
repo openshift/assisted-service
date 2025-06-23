@@ -30,20 +30,23 @@ import (
 // the given writer.
 func MarshalSelfFeatureReviewRequestList(list []*SelfFeatureReviewRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSelfFeatureReviewRequestList(list, stream)
-	stream.Flush()
+	WriteSelfFeatureReviewRequestList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSelfFeatureReviewRequestList writes a list of value of the 'self_feature_review_request' type to
+// WriteSelfFeatureReviewRequestList writes a list of value of the 'self_feature_review_request' type to
 // the given stream.
-func writeSelfFeatureReviewRequestList(list []*SelfFeatureReviewRequest, stream *jsoniter.Stream) {
+func WriteSelfFeatureReviewRequestList(list []*SelfFeatureReviewRequest, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
 			stream.WriteMore()
 		}
-		writeSelfFeatureReviewRequest(value, stream)
+		WriteSelfFeatureReviewRequest(value, stream)
 	}
 	stream.WriteArrayEnd()
 }
@@ -55,17 +58,17 @@ func UnmarshalSelfFeatureReviewRequestList(source interface{}) (items []*SelfFea
 	if err != nil {
 		return
 	}
-	items = readSelfFeatureReviewRequestList(iterator)
+	items = ReadSelfFeatureReviewRequestList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSelfFeatureReviewRequestList reads list of values of the ''self_feature_review_request' type from
+// ReadSelfFeatureReviewRequestList reads list of values of the ”self_feature_review_request' type from
 // the given iterator.
-func readSelfFeatureReviewRequestList(iterator *jsoniter.Iterator) []*SelfFeatureReviewRequest {
+func ReadSelfFeatureReviewRequestList(iterator *jsoniter.Iterator) []*SelfFeatureReviewRequest {
 	list := []*SelfFeatureReviewRequest{}
 	for iterator.ReadArray() {
-		item := readSelfFeatureReviewRequest(iterator)
+		item := ReadSelfFeatureReviewRequest(iterator)
 		list = append(list, item)
 	}
 	return list

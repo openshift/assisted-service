@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalRelatedResource writes a value of the 'related_resource' type to the given writer.
 func MarshalRelatedResource(object *RelatedResource, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeRelatedResource(object, stream)
-	stream.Flush()
+	WriteRelatedResource(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeRelatedResource writes a value of the 'related_resource' type to the given stream.
-func writeRelatedResource(object *RelatedResource, stream *jsoniter.Stream) {
+// WriteRelatedResource writes a value of the 'related_resource' type to the given stream.
+func WriteRelatedResource(object *RelatedResource, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -110,7 +112,6 @@ func writeRelatedResource(object *RelatedResource, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("resource_type")
 		stream.WriteString(object.resourceType)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -118,20 +119,17 @@ func writeRelatedResource(object *RelatedResource, stream *jsoniter.Stream) {
 // UnmarshalRelatedResource reads a value of the 'related_resource' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalRelatedResource(source interface{}) (object *RelatedResource, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readRelatedResource(iterator)
+	object = ReadRelatedResource(iterator)
 	err = iterator.Error
 	return
 }
 
-// readRelatedResource reads a value of the 'related_resource' type from the given iterator.
-func readRelatedResource(iterator *jsoniter.Iterator) *RelatedResource {
+// ReadRelatedResource reads a value of the 'related_resource' type from the given iterator.
+func ReadRelatedResource(iterator *jsoniter.Iterator) *RelatedResource {
 	object := &RelatedResource{}
 	for {
 		field := iterator.ReadObject()

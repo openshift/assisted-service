@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalExportControlReviewResponse writes a value of the 'export_control_review_response' type to the given writer.
 func MarshalExportControlReviewResponse(object *ExportControlReviewResponse, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeExportControlReviewResponse(object, stream)
-	stream.Flush()
+	WriteExportControlReviewResponse(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeExportControlReviewResponse writes a value of the 'export_control_review_response' type to the given stream.
-func writeExportControlReviewResponse(object *ExportControlReviewResponse, stream *jsoniter.Stream) {
+// WriteExportControlReviewResponse writes a value of the 'export_control_review_response' type to the given stream.
+func WriteExportControlReviewResponse(object *ExportControlReviewResponse, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -47,7 +49,6 @@ func writeExportControlReviewResponse(object *ExportControlReviewResponse, strea
 		}
 		stream.WriteObjectField("restricted")
 		stream.WriteBool(object.restricted)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeExportControlReviewResponse(object *ExportControlReviewResponse, strea
 // UnmarshalExportControlReviewResponse reads a value of the 'export_control_review_response' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalExportControlReviewResponse(source interface{}) (object *ExportControlReviewResponse, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readExportControlReviewResponse(iterator)
+	object = ReadExportControlReviewResponse(iterator)
 	err = iterator.Error
 	return
 }
 
-// readExportControlReviewResponse reads a value of the 'export_control_review_response' type from the given iterator.
-func readExportControlReviewResponse(iterator *jsoniter.Iterator) *ExportControlReviewResponse {
+// ReadExportControlReviewResponse reads a value of the 'export_control_review_response' type from the given iterator.
+func ReadExportControlReviewResponse(iterator *jsoniter.Iterator) *ExportControlReviewResponse {
 	object := &ExportControlReviewResponse{}
 	for {
 		field := iterator.ReadObject()

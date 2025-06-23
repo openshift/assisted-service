@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalTermsReviewResponse writes a value of the 'terms_review_response' type to the given writer.
 func MarshalTermsReviewResponse(object *TermsReviewResponse, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeTermsReviewResponse(object, stream)
-	stream.Flush()
+	WriteTermsReviewResponse(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeTermsReviewResponse writes a value of the 'terms_review_response' type to the given stream.
-func writeTermsReviewResponse(object *TermsReviewResponse, stream *jsoniter.Stream) {
+// WriteTermsReviewResponse writes a value of the 'terms_review_response' type to the given stream.
+func WriteTermsReviewResponse(object *TermsReviewResponse, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -83,7 +85,6 @@ func writeTermsReviewResponse(object *TermsReviewResponse, stream *jsoniter.Stre
 		}
 		stream.WriteObjectField("terms_required")
 		stream.WriteBool(object.termsRequired)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -91,20 +92,17 @@ func writeTermsReviewResponse(object *TermsReviewResponse, stream *jsoniter.Stre
 // UnmarshalTermsReviewResponse reads a value of the 'terms_review_response' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalTermsReviewResponse(source interface{}) (object *TermsReviewResponse, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readTermsReviewResponse(iterator)
+	object = ReadTermsReviewResponse(iterator)
 	err = iterator.Error
 	return
 }
 
-// readTermsReviewResponse reads a value of the 'terms_review_response' type from the given iterator.
-func readTermsReviewResponse(iterator *jsoniter.Iterator) *TermsReviewResponse {
+// ReadTermsReviewResponse reads a value of the 'terms_review_response' type from the given iterator.
+func ReadTermsReviewResponse(iterator *jsoniter.Iterator) *TermsReviewResponse {
 	object := &TermsReviewResponse{}
 	for {
 		field := iterator.ReadObject()

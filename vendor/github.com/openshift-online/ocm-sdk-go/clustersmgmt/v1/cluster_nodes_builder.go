@@ -23,20 +23,29 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 //
 // Counts of different classes of nodes inside a cluster.
 type ClusterNodesBuilder struct {
-	bitmap_            uint32
-	autoscaleCompute   *MachinePoolAutoscalingBuilder
-	availabilityZones  []string
-	compute            int
-	computeLabels      map[string]string
-	computeMachineType *MachineTypeBuilder
-	infra              int
-	master             int
-	total              int
+	bitmap_              uint32
+	autoscaleCompute     *MachinePoolAutoscalingBuilder
+	availabilityZones    []string
+	compute              int
+	computeLabels        map[string]string
+	computeMachineType   *MachineTypeBuilder
+	computeRootVolume    *RootVolumeBuilder
+	infra                int
+	infraMachineType     *MachineTypeBuilder
+	master               int
+	masterMachineType    *MachineTypeBuilder
+	securityGroupFilters []*MachinePoolSecurityGroupFilterBuilder
+	total                int
 }
 
 // NewClusterNodes creates a new builder of 'cluster_nodes' objects.
 func NewClusterNodes() *ClusterNodesBuilder {
 	return &ClusterNodesBuilder{}
+}
+
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *ClusterNodesBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
 }
 
 // AutoscaleCompute sets the value of the 'autoscale_compute' attribute to the given value.
@@ -53,8 +62,6 @@ func (b *ClusterNodesBuilder) AutoscaleCompute(value *MachinePoolAutoscalingBuil
 }
 
 // AvailabilityZones sets the value of the 'availability_zones' attribute to the given values.
-//
-//
 func (b *ClusterNodesBuilder) AvailabilityZones(values ...string) *ClusterNodesBuilder {
 	b.availabilityZones = make([]string, len(values))
 	copy(b.availabilityZones, values)
@@ -63,8 +70,6 @@ func (b *ClusterNodesBuilder) AvailabilityZones(values ...string) *ClusterNodesB
 }
 
 // Compute sets the value of the 'compute' attribute to the given value.
-//
-//
 func (b *ClusterNodesBuilder) Compute(value int) *ClusterNodesBuilder {
 	b.compute = value
 	b.bitmap_ |= 4
@@ -72,8 +77,6 @@ func (b *ClusterNodesBuilder) Compute(value int) *ClusterNodesBuilder {
 }
 
 // ComputeLabels sets the value of the 'compute_labels' attribute to the given value.
-//
-//
 func (b *ClusterNodesBuilder) ComputeLabels(value map[string]string) *ClusterNodesBuilder {
 	b.computeLabels = value
 	if value != nil {
@@ -97,30 +100,71 @@ func (b *ClusterNodesBuilder) ComputeMachineType(value *MachineTypeBuilder) *Clu
 	return b
 }
 
-// Infra sets the value of the 'infra' attribute to the given value.
+// ComputeRootVolume sets the value of the 'compute_root_volume' attribute to the given value.
 //
-//
-func (b *ClusterNodesBuilder) Infra(value int) *ClusterNodesBuilder {
-	b.infra = value
-	b.bitmap_ |= 32
+// Root volume capabilities.
+func (b *ClusterNodesBuilder) ComputeRootVolume(value *RootVolumeBuilder) *ClusterNodesBuilder {
+	b.computeRootVolume = value
+	if value != nil {
+		b.bitmap_ |= 32
+	} else {
+		b.bitmap_ &^= 32
+	}
 	return b
 }
 
-// Master sets the value of the 'master' attribute to the given value.
-//
-//
-func (b *ClusterNodesBuilder) Master(value int) *ClusterNodesBuilder {
-	b.master = value
+// Infra sets the value of the 'infra' attribute to the given value.
+func (b *ClusterNodesBuilder) Infra(value int) *ClusterNodesBuilder {
+	b.infra = value
 	b.bitmap_ |= 64
 	return b
 }
 
+// InfraMachineType sets the value of the 'infra_machine_type' attribute to the given value.
+//
+// Machine type.
+func (b *ClusterNodesBuilder) InfraMachineType(value *MachineTypeBuilder) *ClusterNodesBuilder {
+	b.infraMachineType = value
+	if value != nil {
+		b.bitmap_ |= 128
+	} else {
+		b.bitmap_ &^= 128
+	}
+	return b
+}
+
+// Master sets the value of the 'master' attribute to the given value.
+func (b *ClusterNodesBuilder) Master(value int) *ClusterNodesBuilder {
+	b.master = value
+	b.bitmap_ |= 256
+	return b
+}
+
+// MasterMachineType sets the value of the 'master_machine_type' attribute to the given value.
+//
+// Machine type.
+func (b *ClusterNodesBuilder) MasterMachineType(value *MachineTypeBuilder) *ClusterNodesBuilder {
+	b.masterMachineType = value
+	if value != nil {
+		b.bitmap_ |= 512
+	} else {
+		b.bitmap_ &^= 512
+	}
+	return b
+}
+
+// SecurityGroupFilters sets the value of the 'security_group_filters' attribute to the given values.
+func (b *ClusterNodesBuilder) SecurityGroupFilters(values ...*MachinePoolSecurityGroupFilterBuilder) *ClusterNodesBuilder {
+	b.securityGroupFilters = make([]*MachinePoolSecurityGroupFilterBuilder, len(values))
+	copy(b.securityGroupFilters, values)
+	b.bitmap_ |= 1024
+	return b
+}
+
 // Total sets the value of the 'total' attribute to the given value.
-//
-//
 func (b *ClusterNodesBuilder) Total(value int) *ClusterNodesBuilder {
 	b.total = value
-	b.bitmap_ |= 128
+	b.bitmap_ |= 2048
 	return b
 }
 
@@ -155,8 +199,31 @@ func (b *ClusterNodesBuilder) Copy(object *ClusterNodes) *ClusterNodesBuilder {
 	} else {
 		b.computeMachineType = nil
 	}
+	if object.computeRootVolume != nil {
+		b.computeRootVolume = NewRootVolume().Copy(object.computeRootVolume)
+	} else {
+		b.computeRootVolume = nil
+	}
 	b.infra = object.infra
+	if object.infraMachineType != nil {
+		b.infraMachineType = NewMachineType().Copy(object.infraMachineType)
+	} else {
+		b.infraMachineType = nil
+	}
 	b.master = object.master
+	if object.masterMachineType != nil {
+		b.masterMachineType = NewMachineType().Copy(object.masterMachineType)
+	} else {
+		b.masterMachineType = nil
+	}
+	if object.securityGroupFilters != nil {
+		b.securityGroupFilters = make([]*MachinePoolSecurityGroupFilterBuilder, len(object.securityGroupFilters))
+		for i, v := range object.securityGroupFilters {
+			b.securityGroupFilters[i] = NewMachinePoolSecurityGroupFilter().Copy(v)
+		}
+	} else {
+		b.securityGroupFilters = nil
+	}
 	b.total = object.total
 	return b
 }
@@ -188,8 +255,35 @@ func (b *ClusterNodesBuilder) Build() (object *ClusterNodes, err error) {
 			return
 		}
 	}
+	if b.computeRootVolume != nil {
+		object.computeRootVolume, err = b.computeRootVolume.Build()
+		if err != nil {
+			return
+		}
+	}
 	object.infra = b.infra
+	if b.infraMachineType != nil {
+		object.infraMachineType, err = b.infraMachineType.Build()
+		if err != nil {
+			return
+		}
+	}
 	object.master = b.master
+	if b.masterMachineType != nil {
+		object.masterMachineType, err = b.masterMachineType.Build()
+		if err != nil {
+			return
+		}
+	}
+	if b.securityGroupFilters != nil {
+		object.securityGroupFilters = make([]*MachinePoolSecurityGroupFilter, len(b.securityGroupFilters))
+		for i, v := range b.securityGroupFilters {
+			object.securityGroupFilters[i], err = v.Build()
+			if err != nil {
+				return
+			}
+		}
+	}
 	object.total = b.total
 	return
 }

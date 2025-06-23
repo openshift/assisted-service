@@ -61,7 +61,7 @@ func (o *Job) Kind() string {
 	return JobKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *Job) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -178,8 +178,6 @@ func (o *Job) GetAttempts() (value int, ok bool) {
 
 // CreatedAt returns the value of the 'created_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Job) CreatedAt() time.Time {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.createdAt
@@ -189,8 +187,6 @@ func (o *Job) CreatedAt() time.Time {
 
 // GetCreatedAt returns the value of the 'created_at' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Job) GetCreatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -224,8 +220,6 @@ func (o *Job) GetReceiptId() (value string, ok bool) {
 
 // UpdatedAt returns the value of the 'updated_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Job) UpdatedAt() time.Time {
 	if o != nil && o.bitmap_&256 != 0 {
 		return o.updatedAt
@@ -235,8 +229,6 @@ func (o *Job) UpdatedAt() time.Time {
 
 // GetUpdatedAt returns the value of the 'updated_at' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Job) GetUpdatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
@@ -304,6 +296,29 @@ func (l *JobList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *JobList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *JobList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *JobList) SetItems(items []*Job) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *JobList) Items() []*Job {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

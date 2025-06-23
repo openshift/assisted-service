@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalFlavourNodes writes a value of the 'flavour_nodes' type to the given writer.
 func MarshalFlavourNodes(object *FlavourNodes, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeFlavourNodes(object, stream)
-	stream.Flush()
+	WriteFlavourNodes(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeFlavourNodes writes a value of the 'flavour_nodes' type to the given stream.
-func writeFlavourNodes(object *FlavourNodes, stream *jsoniter.Stream) {
+// WriteFlavourNodes writes a value of the 'flavour_nodes' type to the given stream.
+func WriteFlavourNodes(object *FlavourNodes, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -47,7 +49,6 @@ func writeFlavourNodes(object *FlavourNodes, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("master")
 		stream.WriteInt(object.master)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeFlavourNodes(object *FlavourNodes, stream *jsoniter.Stream) {
 // UnmarshalFlavourNodes reads a value of the 'flavour_nodes' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalFlavourNodes(source interface{}) (object *FlavourNodes, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readFlavourNodes(iterator)
+	object = ReadFlavourNodes(iterator)
 	err = iterator.Error
 	return
 }
 
-// readFlavourNodes reads a value of the 'flavour_nodes' type from the given iterator.
-func readFlavourNodes(iterator *jsoniter.Iterator) *FlavourNodes {
+// ReadFlavourNodes reads a value of the 'flavour_nodes' type from the given iterator.
+func ReadFlavourNodes(iterator *jsoniter.Iterator) *FlavourNodes {
 	object := &FlavourNodes{}
 	for {
 		field := iterator.ReadObject()

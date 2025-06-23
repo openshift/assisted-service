@@ -26,6 +26,7 @@ type FeatureReviewRequest struct {
 	bitmap_         uint32
 	accountUsername string
 	feature         string
+	organizationId  string
 }
 
 // Empty returns true if the object is empty, i.e. no attribute has a value.
@@ -79,6 +80,29 @@ func (o *FeatureReviewRequest) GetFeature() (value string, ok bool) {
 	return
 }
 
+// OrganizationId returns the value of the 'organization_id' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Defines the organisation id of the account of which access is being reviewed
+func (o *FeatureReviewRequest) OrganizationId() string {
+	if o != nil && o.bitmap_&4 != 0 {
+		return o.organizationId
+	}
+	return ""
+}
+
+// GetOrganizationId returns the value of the 'organization_id' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Defines the organisation id of the account of which access is being reviewed
+func (o *FeatureReviewRequest) GetOrganizationId() (value string, ok bool) {
+	ok = o != nil && o.bitmap_&4 != 0
+	if ok {
+		value = o.organizationId
+	}
+	return
+}
+
 // FeatureReviewRequestListKind is the name of the type used to represent list of objects of
 // type 'feature_review_request'.
 const FeatureReviewRequestListKind = "FeatureReviewRequestList"
@@ -104,6 +128,29 @@ func (l *FeatureReviewRequestList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *FeatureReviewRequestList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *FeatureReviewRequestList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *FeatureReviewRequestList) SetItems(items []*FeatureReviewRequest) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *FeatureReviewRequestList) Items() []*FeatureReviewRequest {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

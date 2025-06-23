@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/jobqueue/v1
 
 import (
 	"io"
-	"net/http"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -31,13 +30,16 @@ import (
 // MarshalJob writes a value of the 'job' type to the given writer.
 func MarshalJob(object *Job, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeJob(object, stream)
-	stream.Flush()
+	WriteJob(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeJob writes a value of the 'job' type to the given stream.
-func writeJob(object *Job, stream *jsoniter.Stream) {
+// WriteJob writes a value of the 'job' type to the given stream.
+func WriteJob(object *Job, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -116,7 +118,6 @@ func writeJob(object *Job, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("updated_at")
 		stream.WriteString((object.updatedAt).Format(time.RFC3339))
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -124,20 +125,17 @@ func writeJob(object *Job, stream *jsoniter.Stream) {
 // UnmarshalJob reads a value of the 'job' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalJob(source interface{}) (object *Job, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readJob(iterator)
+	object = ReadJob(iterator)
 	err = iterator.Error
 	return
 }
 
-// readJob reads a value of the 'job' type from the given iterator.
-func readJob(iterator *jsoniter.Iterator) *Job {
+// ReadJob reads a value of the 'job' type from the given iterator.
+func ReadJob(iterator *jsoniter.Iterator) *Job {
 	object := &Job{}
 	for {
 		field := iterator.ReadObject()

@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalHTPasswdIdentityProvider writes a value of the 'HT_passwd_identity_provider' type to the given writer.
 func MarshalHTPasswdIdentityProvider(object *HTPasswdIdentityProvider, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeHTPasswdIdentityProvider(object, stream)
-	stream.Flush()
+	WriteHTPasswdIdentityProvider(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeHTPasswdIdentityProvider writes a value of the 'HT_passwd_identity_provider' type to the given stream.
-func writeHTPasswdIdentityProvider(object *HTPasswdIdentityProvider, stream *jsoniter.Stream) {
+// WriteHTPasswdIdentityProvider writes a value of the 'HT_passwd_identity_provider' type to the given stream.
+func WriteHTPasswdIdentityProvider(object *HTPasswdIdentityProvider, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -58,26 +60,34 @@ func writeHTPasswdIdentityProvider(object *HTPasswdIdentityProvider, stream *jso
 		stream.WriteString(object.username)
 		count++
 	}
+	present_ = object.bitmap_&4 != 0 && object.users != nil
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("users")
+		stream.WriteObjectStart()
+		stream.WriteObjectField("items")
+		WriteHTPasswdUserList(object.users.Items(), stream)
+		stream.WriteObjectEnd()
+	}
 	stream.WriteObjectEnd()
 }
 
 // UnmarshalHTPasswdIdentityProvider reads a value of the 'HT_passwd_identity_provider' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalHTPasswdIdentityProvider(source interface{}) (object *HTPasswdIdentityProvider, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readHTPasswdIdentityProvider(iterator)
+	object = ReadHTPasswdIdentityProvider(iterator)
 	err = iterator.Error
 	return
 }
 
-// readHTPasswdIdentityProvider reads a value of the 'HT_passwd_identity_provider' type from the given iterator.
-func readHTPasswdIdentityProvider(iterator *jsoniter.Iterator) *HTPasswdIdentityProvider {
+// ReadHTPasswdIdentityProvider reads a value of the 'HT_passwd_identity_provider' type from the given iterator.
+func ReadHTPasswdIdentityProvider(iterator *jsoniter.Iterator) *HTPasswdIdentityProvider {
 	object := &HTPasswdIdentityProvider{}
 	for {
 		field := iterator.ReadObject()
@@ -93,6 +103,27 @@ func readHTPasswdIdentityProvider(iterator *jsoniter.Iterator) *HTPasswdIdentity
 			value := iterator.ReadString()
 			object.username = value
 			object.bitmap_ |= 2
+		case "users":
+			value := &HTPasswdUserList{}
+			for {
+				field := iterator.ReadObject()
+				if field == "" {
+					break
+				}
+				switch field {
+				case "kind":
+					text := iterator.ReadString()
+					value.SetLink(text == HTPasswdUserListLinkKind)
+				case "href":
+					value.SetHREF(iterator.ReadString())
+				case "items":
+					value.SetItems(ReadHTPasswdUserList(iterator))
+				default:
+					iterator.ReadAny()
+				}
+			}
+			object.users = value
+			object.bitmap_ |= 4
 		default:
 			iterator.ReadAny()
 		}

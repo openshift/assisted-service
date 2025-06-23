@@ -28,5 +28,5 @@ const (
 	AddOnInstallModeAllNamespaces AddOnInstallMode = "all_namespaces"
 	// This mode means that the the addon CRD exists in a single specific namespace.
 	// This namespace is reflected by the TargetNamespace addon field
-	AddOnInstallModeSingleNamespace AddOnInstallMode = "single_namespace"
+	AddOnInstallModeOwnNamespace AddOnInstallMode = "own_namespace"
 )

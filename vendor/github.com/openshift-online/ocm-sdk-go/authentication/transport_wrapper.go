@@ -22,23 +22,24 @@ package authentication
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
-	"sync"
-
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	//
 	"github.com/cenkalti/backoff/v4"
-	jwt "github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/openshift-online/ocm-sdk-go/internal"
 	"github.com/openshift-online/ocm-sdk-go/logging"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Default values:
@@ -47,6 +48,9 @@ const (
 	DefaultTokenURL     = "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
 	DefaultClientID     = "cloud-services"
 	DefaultClientSecret = ""
+
+	FedRAMPTokenURL = "https://sso.openshiftusgov.com/realms/redhat-external/protocol/openid-connect/token"
+	FedRAMPClientID = "console-dot"
 )
 
 // DefaultScopes is the ser of scopes used by default:
@@ -80,20 +84,21 @@ type TransportWrapperBuilder struct {
 // one that adds authorization tokens to requests.
 type TransportWrapper struct {
 	// Fields used for basic functionality:
-	logger         logging.Logger
-	clientID       string
-	clientSecret   string
-	user           string
-	password       string
-	scopes         []string
-	agent          string
-	clientSelector *internal.ClientSelector
-	tokenURL       string
-	tokenServer    *internal.ServerAddress
-	tokenMutex     *sync.Mutex
-	tokenParser    *jwt.Parser
-	accessToken    *tokenInfo
-	refreshToken   *tokenInfo
+	logger                logging.Logger
+	clientID              string
+	clientSecret          string
+	user                  string
+	password              string
+	scopes                []string
+	agent                 string
+	clientSelector        *internal.ClientSelector
+	tokenURL              string
+	tokenServer           *internal.ServerAddress
+	tokenMutex            *sync.Mutex
+	tokenParser           *jwt.Parser
+	accessToken           *tokenInfo
+	refreshToken          *tokenInfo
+	pullSecretAccessToken *tokenInfo
 
 	// Fields used for metrics:
 	metricsSubsystem    string
@@ -291,7 +296,7 @@ func (b *TransportWrapperBuilder) TransportWrappers(
 // the `le` label is `1` then the value will be the number of requests that were processed in less
 // than one second.
 //
-//      code - HTTP response code, for example 200 or 500.
+//	code - HTTP response code, for example 200 or 500.
 //
 // The value of the `code` label will be zero when sending the request failed without a response
 // code, for example if it wasn't possible to open the connection, or if there was a timeout waiting
@@ -343,58 +348,83 @@ func (b *TransportWrapperBuilder) Build(ctx context.Context) (result *TransportW
 	// Parse the tokens:
 	var accessToken *tokenInfo
 	var refreshToken *tokenInfo
+	var pullSecretAccessToken *tokenInfo
 	for i, text := range b.tokens {
 		var object *jwt.Token
+
 		object, _, err = tokenParser.ParseUnverified(text, jwt.MapClaims{})
 		if err != nil {
 			b.logger.Debug(
 				ctx,
-				"Can't parse token %d, will assume that it is an opaque "+
-					"refresh token: %v",
+				"Can't parse token %d, will assume that it is either an "+
+					"opaque refresh token or pull secret access token: %v",
 				i, err,
 			)
-			refreshToken = &tokenInfo{
+
+			// Attempt to detect/parse the token as a pull-secret access token
+			err := parsePullSecretAccessToken(text)
+			if err != nil {
+				b.logger.Debug(
+					ctx,
+					"Can't parse pull secret access token %d, will assume "+
+						"that it is an opaque refresh token: %v",
+					i, err,
+				)
+
+				// Not a pull-secret access token, so assume a opaque refresh token
+				refreshToken = &tokenInfo{
+					text: text,
+				}
+				continue
+			}
+
+			// Parsing as a pull-secret access token was successful, treat it as such
+			pullSecretAccessToken = &tokenInfo{
 				text: text,
 			}
 			continue
 		}
+
 		claims, ok := object.Claims.(jwt.MapClaims)
 		if !ok {
 			err = fmt.Errorf("claims of token %d are of type '%T'", i, claims)
 			return
 		}
-		claim, ok := claims["typ"]
+		claim, ok := claims["token_use"]
 		if !ok {
-			// When the token doesn't have the `typ` claim we will use the position to
-			// decide: first token should be the access token and second should be the
-			// refresh token. That is consistent with the signature of the method that
-			// returns the tokens.
-			switch i {
-			case 0:
-				b.logger.Debug(
-					ctx,
-					"First token doesn't have a 'typ' claim, will assume "+
-						"that it is an access token",
-				)
-				accessToken = &tokenInfo{
-					text:   text,
-					object: object,
+			claim, ok = claims["typ"]
+			if !ok {
+				// When the token doesn't have the `typ` claim we will use the position to
+				// decide: first token should be the access token and second should be the
+				// refresh token. That is consistent with the signature of the method that
+				// returns the tokens.
+				switch i {
+				case 0:
+					b.logger.Debug(
+						ctx,
+						"First token doesn't have a 'typ' claim, will assume "+
+							"that it is an access token",
+					)
+					accessToken = &tokenInfo{
+						text:   text,
+						object: object,
+					}
+					continue
+				case 1:
+					b.logger.Debug(
+						ctx,
+						"Second token doesn't have a 'typ' claim, will assume "+
+							"that it is a refresh token",
+					)
+					refreshToken = &tokenInfo{
+						text:   text,
+						object: object,
+					}
+					continue
+				default:
+					err = fmt.Errorf("token %d doesn't contain the 'typ' claim", i)
+					return
 				}
-				continue
-			case 1:
-				b.logger.Debug(
-					ctx,
-					"Second token doesn't have a 'typ' claim, will assume "+
-						"that it is a refresh token",
-				)
-				refreshToken = &tokenInfo{
-					text:   text,
-					object: object,
-				}
-				continue
-			default:
-				err = fmt.Errorf("token %d doesn't contain the 'typ' claim", i)
-				return
 			}
 		}
 		typ, ok := claim.(string)
@@ -403,7 +433,7 @@ func (b *TransportWrapperBuilder) Build(ctx context.Context) (result *TransportW
 			return
 		}
 		switch strings.ToLower(typ) {
-		case "bearer":
+		case "access", "bearer":
 			accessToken = &tokenInfo{
 				text:   text,
 				object: object,
@@ -458,9 +488,7 @@ func (b *TransportWrapperBuilder) Build(ctx context.Context) (result *TransportW
 		scopes = DefaultScopes
 	} else {
 		scopes = make([]string, len(b.scopes))
-		for i := range b.scopes {
-			scopes[i] = b.scopes[i]
-		}
+		copy(scopes, b.scopes)
 	}
 
 	// Create the client selector:
@@ -491,7 +519,7 @@ func (b *TransportWrapperBuilder) Build(ctx context.Context) (result *TransportW
 			registered, ok := err.(prometheus.AlreadyRegisteredError)
 			if ok {
 				tokenCountMetric = registered.ExistingCollector.(*prometheus.CounterVec)
-				err = nil
+				err = nil //nolint:all
 			} else {
 				return
 			}
@@ -525,24 +553,25 @@ func (b *TransportWrapperBuilder) Build(ctx context.Context) (result *TransportW
 
 	// Create and populate the object:
 	result = &TransportWrapper{
-		logger:              b.logger,
-		clientID:            clientID,
-		clientSecret:        clientSecret,
-		user:                b.user,
-		password:            b.password,
-		scopes:              scopes,
-		agent:               b.agent,
-		clientSelector:      clientSelector,
-		tokenURL:            tokenURL,
-		tokenServer:         tokenServer,
-		tokenMutex:          &sync.Mutex{},
-		tokenParser:         tokenParser,
-		accessToken:         accessToken,
-		refreshToken:        refreshToken,
-		metricsSubsystem:    b.metricsSubsystem,
-		metricsRegisterer:   b.metricsRegisterer,
-		tokenCountMetric:    tokenCountMetric,
-		tokenDurationMetric: tokenDurationMetric,
+		logger:                b.logger,
+		clientID:              clientID,
+		clientSecret:          clientSecret,
+		user:                  b.user,
+		password:              b.password,
+		scopes:                scopes,
+		agent:                 b.agent,
+		clientSelector:        clientSelector,
+		tokenURL:              tokenURL,
+		tokenServer:           tokenServer,
+		tokenMutex:            &sync.Mutex{},
+		tokenParser:           tokenParser,
+		accessToken:           accessToken,
+		refreshToken:          refreshToken,
+		pullSecretAccessToken: pullSecretAccessToken,
+		metricsSubsystem:      b.metricsSubsystem,
+		metricsRegisterer:     b.metricsRegisterer,
+		tokenCountMetric:      tokenCountMetric,
+		tokenDurationMetric:   tokenDurationMetric,
 	}
 
 	return
@@ -615,8 +644,16 @@ func (t *roundTripper) RoundTrip(request *http.Request) (response *http.Response
 	if request.Header == nil {
 		request.Header = make(http.Header)
 	}
+
+	// If the access token is a pull-secret-access-token type, a
+	// different Authorization header must be used
 	if token != "" {
-		request.Header.Set("Authorization", "Bearer "+token)
+		if err := parsePullSecretAccessToken(token); err == nil {
+			// It is a pull-secret access token
+			request.Header.Set("Authorization", "AccessToken "+token)
+		} else {
+			request.Header.Set("Authorization", "Bearer "+token)
+		}
 	}
 
 	// Call the wrapped transport:
@@ -689,6 +726,12 @@ func (w *TransportWrapper) tokens(ctx context.Context, attempt int,
 	// multiple attributes of the connection:
 	w.tokenMutex.Lock()
 	defer w.tokenMutex.Unlock()
+
+	// A pull-secret access token can just be used as-is
+	if w.pullSecretAccessToken != nil {
+		access = w.pullSecretAccessToken.text
+		return
+	}
 
 	// Check the expiration times of the tokens:
 	now := time.Now()
@@ -818,12 +861,17 @@ func (w *TransportWrapper) currentTokens() (access, refresh string) {
 func (w *TransportWrapper) sendClientCredentialsForm(ctx context.Context, attempt int) (code int,
 	result *internal.TokenResponse, err error) {
 	form := url.Values{}
+	headers := map[string]string{}
 	w.logger.Debug(ctx, "Requesting new token using the client credentials grant")
 	form.Set(grantTypeField, clientCredentialsGrant)
 	form.Set(clientIDField, w.clientID)
-	form.Set(clientSecretField, w.clientSecret)
 	form.Set(scopeField, strings.Join(w.scopes, " "))
-	return w.sendForm(ctx, form, attempt)
+	// Encode client_id and client_secret to use as basic auth
+	// https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1
+	auth := fmt.Sprintf("%s:%s", w.clientID, w.clientSecret)
+	hash := base64.StdEncoding.EncodeToString([]byte(auth))
+	headers["Authorization"] = fmt.Sprintf("Basic %s", hash)
+	return w.sendForm(ctx, form, headers, attempt)
 }
 
 func (w *TransportWrapper) sendPasswordForm(ctx context.Context, attempt int) (code int,
@@ -835,7 +883,7 @@ func (w *TransportWrapper) sendPasswordForm(ctx context.Context, attempt int) (c
 	form.Set(usernameField, w.user)
 	form.Set(passwordField, w.password)
 	form.Set(scopeField, strings.Join(w.scopes, " "))
-	return w.sendForm(ctx, form, attempt)
+	return w.sendForm(ctx, form, nil, attempt)
 }
 
 func (w *TransportWrapper) sendRefreshForm(ctx context.Context, attempt int) (code int,
@@ -845,15 +893,15 @@ func (w *TransportWrapper) sendRefreshForm(ctx context.Context, attempt int) (co
 	form.Set(grantTypeField, refreshTokenGrant)
 	form.Set(clientIDField, w.clientID)
 	form.Set(refreshTokenField, w.refreshToken.text)
-	code, result, err = w.sendForm(ctx, form, attempt)
+	code, result, err = w.sendForm(ctx, form, nil, attempt)
 	return
 }
 
-func (w *TransportWrapper) sendForm(ctx context.Context, form url.Values,
+func (w *TransportWrapper) sendForm(ctx context.Context, form url.Values, headers map[string]string,
 	attempt int) (code int, result *internal.TokenResponse, err error) {
 	// Measure the time that it takes to send the request and receive the response:
 	start := time.Now()
-	code, result, err = w.sendFormTimed(ctx, form)
+	code, result, err = w.sendFormTimed(ctx, form, headers)
 	elapsed := time.Since(start)
 
 	// Update the metrics:
@@ -874,7 +922,7 @@ func (w *TransportWrapper) sendForm(ctx context.Context, form url.Values,
 	return
 }
 
-func (w *TransportWrapper) sendFormTimed(ctx context.Context, form url.Values) (code int,
+func (w *TransportWrapper) sendFormTimed(ctx context.Context, form url.Values, headers map[string]string) (code int,
 	result *internal.TokenResponse, err error) {
 	// Create the HTTP request:
 	body := []byte(form.Encode())
@@ -886,6 +934,10 @@ func (w *TransportWrapper) sendFormTimed(ctx context.Context, form url.Values) (
 	}
 	header.Set("Content-Type", "application/x-www-form-urlencoded")
 	header.Set("Accept", "application/json")
+	// Add any additional headers:
+	for k, v := range headers {
+		header.Set(k, v)
+	}
 	if err != nil {
 		err = fmt.Errorf("can't create request: %w", err)
 		return
@@ -919,7 +971,7 @@ func (w *TransportWrapper) sendFormTimed(ctx context.Context, form url.Values) (
 	}
 
 	// Read the response body:
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		err = fmt.Errorf("can't read response: %w", err)
 		return
@@ -973,15 +1025,15 @@ func (w *TransportWrapper) sendFormTimed(ctx context.Context, form url.Values) (
 		}
 	}
 
-	// The refresh token isn't mandatory for the password and client credentials grants:
+	// If a refresh token is not included in the response, we can safely assume that the old
+	// one is still valid and does not need to be discarded
+	// https://datatracker.ietf.org/doc/html/rfc6749#section-6
 	var refreshTokenText string
 	var refreshTokenObject *jwt.Token
 	var refreshToken *tokenInfo
 	if result.RefreshToken == nil {
-		grantType := form.Get(grantTypeField)
-		if grantType != passwordGrant && grantType != clientCredentialsGrant {
-			err = fmt.Errorf("no refresh token was received")
-			return
+		if w.refreshToken != nil && w.refreshToken.text != "" {
+			result.RefreshToken = &w.refreshToken.text
 		}
 	} else {
 		refreshTokenText = *result.RefreshToken
@@ -1042,11 +1094,29 @@ func (w *TransportWrapper) debugExpiry(ctx context.Context, typ string, token *t
 	}
 }
 
+// parsePullSecretAccessToken will parse the supplied token to verify conformity
+// with that of a pull secret access token. A pull secret access token is of the
+// form <cluster id>:<Base64d pull secret token>.
+func parsePullSecretAccessToken(text string) error {
+	elems := strings.Split(text, ":")
+	if len(elems) != 2 {
+		return fmt.Errorf("Unparseable pull secret token")
+	}
+	_, err := uuid.Parse(elems[0])
+	if err != nil {
+		return fmt.Errorf("Unparseable pull secret token cluster ID")
+	}
+	_, err = base64.StdEncoding.DecodeString(elems[1])
+	if err != nil {
+		return fmt.Errorf("Unparseable pull secret token value")
+	}
+	return nil
+}
+
 // Names of fields in the token form:
 const (
 	grantTypeField    = "grant_type"
 	clientIDField     = "client_id"
-	clientSecretField = "client_secret"
 	usernameField     = "username"
 	passwordField     = "password"
 	refreshTokenField = "refresh_token"

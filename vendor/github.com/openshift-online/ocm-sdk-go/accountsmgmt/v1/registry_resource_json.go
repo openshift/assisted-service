@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readRegistryGetRequest(request *RegistryGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeRegistryGetRequest(request *RegistryGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readRegistryGetResponse(response *RegistryGetResponse, reader io.Reader) er
 	var err error
 	response.body, err = UnmarshalRegistry(reader)
 	return err
-}
-func writeRegistryGetResponse(response *RegistryGetServerResponse, w http.ResponseWriter) error {
-	return MarshalRegistry(response.body, w)
 }
