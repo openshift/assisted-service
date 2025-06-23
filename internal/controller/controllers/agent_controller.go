@@ -913,7 +913,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 					log.WithError(err).Errorf("Failed to apply labels for day2 node %s/%s", agent.Namespace, agent.Name)
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 				}
-				if err = r.UpdateDay2InstallPogress(ctx, h, agent, node); err != nil {
+				if err = r.UpdateDay2InstallProgress(ctx, h, agent, node); err != nil {
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 				}
 				if agent.Status.Progress.CurrentStage != models.HostStageDone {
@@ -972,7 +972,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	return ret, nil
 }
 
-func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node) error {
+func (r *AgentReconciler) UpdateDay2InstallProgress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node) error {
 	if node == nil {
 		// In case the node not found we get the stage from the host
 		agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
