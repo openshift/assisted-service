@@ -30,14 +30,17 @@ import (
 // the given writer.
 func MarshalIdentityProviderTypeList(list []IdentityProviderType, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeIdentityProviderTypeList(list, stream)
-	stream.Flush()
+	WriteIdentityProviderTypeList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeIdentityProviderTypeList writes a list of value of the 'identity_provider_type' type to
+// WriteIdentityProviderTypeList writes a list of value of the 'identity_provider_type' type to
 // the given stream.
-func writeIdentityProviderTypeList(list []IdentityProviderType, stream *jsoniter.Stream) {
+func WriteIdentityProviderTypeList(list []IdentityProviderType, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
@@ -55,14 +58,14 @@ func UnmarshalIdentityProviderTypeList(source interface{}) (items []IdentityProv
 	if err != nil {
 		return
 	}
-	items = readIdentityProviderTypeList(iterator)
+	items = ReadIdentityProviderTypeList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readIdentityProviderTypeList reads list of values of the ''identity_provider_type' type from
+// ReadIdentityProviderTypeList reads list of values of the ”identity_provider_type' type from
 // the given iterator.
-func readIdentityProviderTypeList(iterator *jsoniter.Iterator) []IdentityProviderType {
+func ReadIdentityProviderTypeList(iterator *jsoniter.Iterator) []IdentityProviderType {
 	list := []IdentityProviderType{}
 	for iterator.ReadArray() {
 		text := iterator.ReadString()

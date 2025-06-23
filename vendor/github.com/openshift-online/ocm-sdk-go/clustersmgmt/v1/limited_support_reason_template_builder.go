@@ -55,9 +55,12 @@ func (b *LimitedSupportReasonTemplateBuilder) HREF(value string) *LimitedSupport
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *LimitedSupportReasonTemplateBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Details sets the value of the 'details' attribute to the given value.
-//
-//
 func (b *LimitedSupportReasonTemplateBuilder) Details(value string) *LimitedSupportReasonTemplateBuilder {
 	b.details = value
 	b.bitmap_ |= 8
@@ -65,8 +68,6 @@ func (b *LimitedSupportReasonTemplateBuilder) Details(value string) *LimitedSupp
 }
 
 // Summary sets the value of the 'summary' attribute to the given value.
-//
-//
 func (b *LimitedSupportReasonTemplateBuilder) Summary(value string) *LimitedSupportReasonTemplateBuilder {
 	b.summary = value
 	b.bitmap_ |= 16

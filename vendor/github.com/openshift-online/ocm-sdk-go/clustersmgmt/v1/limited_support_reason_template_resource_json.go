@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readLimitedSupportReasonTemplateGetRequest(request *LimitedSupportReasonTemplateGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeLimitedSupportReasonTemplateGetRequest(request *LimitedSupportReasonTemplateGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readLimitedSupportReasonTemplateGetResponse(response *LimitedSupportReasonT
 	var err error
 	response.body, err = UnmarshalLimitedSupportReasonTemplate(reader)
 	return err
-}
-func writeLimitedSupportReasonTemplateGetResponse(response *LimitedSupportReasonTemplateGetServerResponse, w http.ResponseWriter) error {
-	return MarshalLimitedSupportReasonTemplate(response.body, w)
 }

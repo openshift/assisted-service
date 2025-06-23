@@ -54,9 +54,12 @@ func (b *GroupBuilder) HREF(value string) *GroupBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *GroupBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Users sets the value of the 'users' attribute to the given values.
-//
-//
 func (b *GroupBuilder) Users(value *UserListBuilder) *GroupBuilder {
 	b.users = value
 	b.bitmap_ |= 8

@@ -27,15 +27,16 @@ import (
 //
 // Representation of an upgrade policy that can be set for a cluster.
 type UpgradePolicyBuilder struct {
-	bitmap_      uint32
-	id           string
-	href         string
-	clusterID    string
-	nextRun      time.Time
-	schedule     string
-	scheduleType string
-	upgradeType  string
-	version      string
+	bitmap_                    uint32
+	id                         string
+	href                       string
+	clusterID                  string
+	nextRun                    time.Time
+	schedule                   string
+	scheduleType               ScheduleType
+	upgradeType                UpgradeType
+	version                    string
+	enableMinorVersionUpgrades bool
 }
 
 // NewUpgradePolicy creates a new builder of 'upgrade_policy' objects.
@@ -63,57 +64,61 @@ func (b *UpgradePolicyBuilder) HREF(value string) *UpgradePolicyBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *UpgradePolicyBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // ClusterID sets the value of the 'cluster_ID' attribute to the given value.
-//
-//
 func (b *UpgradePolicyBuilder) ClusterID(value string) *UpgradePolicyBuilder {
 	b.clusterID = value
 	b.bitmap_ |= 8
 	return b
 }
 
-// NextRun sets the value of the 'next_run' attribute to the given value.
-//
-//
-func (b *UpgradePolicyBuilder) NextRun(value time.Time) *UpgradePolicyBuilder {
-	b.nextRun = value
+// EnableMinorVersionUpgrades sets the value of the 'enable_minor_version_upgrades' attribute to the given value.
+func (b *UpgradePolicyBuilder) EnableMinorVersionUpgrades(value bool) *UpgradePolicyBuilder {
+	b.enableMinorVersionUpgrades = value
 	b.bitmap_ |= 16
 	return b
 }
 
+// NextRun sets the value of the 'next_run' attribute to the given value.
+func (b *UpgradePolicyBuilder) NextRun(value time.Time) *UpgradePolicyBuilder {
+	b.nextRun = value
+	b.bitmap_ |= 32
+	return b
+}
+
 // Schedule sets the value of the 'schedule' attribute to the given value.
-//
-//
 func (b *UpgradePolicyBuilder) Schedule(value string) *UpgradePolicyBuilder {
 	b.schedule = value
-	b.bitmap_ |= 32
+	b.bitmap_ |= 64
 	return b
 }
 
 // ScheduleType sets the value of the 'schedule_type' attribute to the given value.
 //
-//
-func (b *UpgradePolicyBuilder) ScheduleType(value string) *UpgradePolicyBuilder {
+// ScheduleType defines which type of scheduling should be used for the upgrade policy.
+func (b *UpgradePolicyBuilder) ScheduleType(value ScheduleType) *UpgradePolicyBuilder {
 	b.scheduleType = value
-	b.bitmap_ |= 64
+	b.bitmap_ |= 128
 	return b
 }
 
 // UpgradeType sets the value of the 'upgrade_type' attribute to the given value.
 //
-//
-func (b *UpgradePolicyBuilder) UpgradeType(value string) *UpgradePolicyBuilder {
+// UpgradeType defines which type of upgrade should be used.
+func (b *UpgradePolicyBuilder) UpgradeType(value UpgradeType) *UpgradePolicyBuilder {
 	b.upgradeType = value
-	b.bitmap_ |= 128
+	b.bitmap_ |= 256
 	return b
 }
 
 // Version sets the value of the 'version' attribute to the given value.
-//
-//
 func (b *UpgradePolicyBuilder) Version(value string) *UpgradePolicyBuilder {
 	b.version = value
-	b.bitmap_ |= 256
+	b.bitmap_ |= 512
 	return b
 }
 
@@ -126,6 +131,7 @@ func (b *UpgradePolicyBuilder) Copy(object *UpgradePolicy) *UpgradePolicyBuilder
 	b.id = object.id
 	b.href = object.href
 	b.clusterID = object.clusterID
+	b.enableMinorVersionUpgrades = object.enableMinorVersionUpgrades
 	b.nextRun = object.nextRun
 	b.schedule = object.schedule
 	b.scheduleType = object.scheduleType
@@ -141,6 +147,7 @@ func (b *UpgradePolicyBuilder) Build() (object *UpgradePolicy, err error) {
 	object.href = b.href
 	object.bitmap_ = b.bitmap_
 	object.clusterID = b.clusterID
+	object.enableMinorVersionUpgrades = b.enableMinorVersionUpgrades
 	object.nextRun = b.nextRun
 	object.schedule = b.schedule
 	object.scheduleType = b.scheduleType

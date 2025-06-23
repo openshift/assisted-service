@@ -16,14 +16,21 @@
 
 run:
   skip-dirs:
+  - accesstransparency
   - accountsmgmt
+  - addonsmgmt
   - authorizations
   - clustersmgmt
-  - servicelogs
-  - jobqueue
+  - arohcp
   - errors
   - helpers
+  - jobqueue
   - metamodel
+  - osdfleetmgmt
+  - servicelogs
+  - servicemgmt
+  - statusboard
+  - webrca
   skip-files:
   - server.go
   deadline: 15m

@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -69,14 +71,15 @@ func (c *CloudProvidersClient) CloudProvider(id string) *CloudProviderClient {
 
 // CloudProvidersListRequest is the request for the 'list' method.
 type CloudProvidersListRequest struct {
-	transport http.RoundTripper
-	path      string
-	query     url.Values
-	header    http.Header
-	order     *string
-	page      *int
-	search    *string
-	size      *int
+	transport    http.RoundTripper
+	path         string
+	query        url.Values
+	header       http.Header
+	fetchRegions *bool
+	order        *string
+	page         *int
+	search       *string
+	size         *int
 }
 
 // Parameter adds a query parameter.
@@ -91,6 +94,21 @@ func (r *CloudProvidersListRequest) Header(name string, value interface{}) *Clou
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *CloudProvidersListRequest) Impersonate(user string) *CloudProvidersListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
+// FetchRegions sets the value of the 'fetch_regions' parameter.
+//
+// If true, includes the regions on each provider in the output. Could slow request response time.
+func (r *CloudProvidersListRequest) FetchRegions(value bool) *CloudProvidersListRequest {
+	r.fetchRegions = &value
+	return r
+}
+
 // Order sets the value of the 'order' parameter.
 //
 // Order criteria.
@@ -100,10 +118,9 @@ func (r *CloudProvidersListRequest) Header(name string, value interface{}) *Clou
 // instead of the names of the columns of a table. For example, in order to sort the
 // clusters descending by name identifier the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // name desc
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then the order of the
 // results is undefined.
@@ -129,10 +146,9 @@ func (r *CloudProvidersListRequest) Page(value int) *CloudProvidersListRequest {
 // instead of the names of the columns of a table. For example, in order to retrieve
 // all the cloud providers with a name starting with `A` the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // name like 'A%'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the clusters
 // that the user has permission to see will be returned.
@@ -160,6 +176,9 @@ func (r *CloudProvidersListRequest) Send() (result *CloudProvidersListResponse, 
 // SendContext sends this request, waits for the response, and returns it.
 func (r *CloudProvidersListRequest) SendContext(ctx context.Context) (result *CloudProvidersListResponse, err error) {
 	query := helpers.CopyQuery(r.query)
+	if r.fetchRegions != nil {
+		helpers.AddValue(&query, "fetchRegions", *r.fetchRegions)
+	}
 	if r.order != nil {
 		helpers.AddValue(&query, "order", *r.order)
 	}
@@ -193,15 +212,21 @@ func (r *CloudProvidersListRequest) SendContext(ctx context.Context) (result *Cl
 	result = &CloudProvidersListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readCloudProvidersListResponse(result, response.Body)
+	err = readCloudProvidersListResponse(result, reader)
 	if err != nil {
 		return
 	}

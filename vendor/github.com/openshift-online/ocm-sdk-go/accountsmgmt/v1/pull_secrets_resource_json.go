@@ -19,16 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readPullSecretsPostRequest(request *PullSecretsPostServerRequest, r *http.Request) error {
-	var err error
-	request.request, err = UnmarshalPullSecretsRequest(r)
-	return err
-}
 func writePullSecretsPostRequest(request *PullSecretsPostRequest, writer io.Writer) error {
 	return MarshalPullSecretsRequest(request.request, writer)
 }
@@ -36,7 +28,4 @@ func readPullSecretsPostResponse(response *PullSecretsPostResponse, reader io.Re
 	var err error
 	response.body, err = UnmarshalAccessToken(reader)
 	return err
-}
-func writePullSecretsPostResponse(response *PullSecretsPostServerResponse, w http.ResponseWriter) error {
-	return MarshalAccessToken(response.body, w)
 }
