@@ -862,6 +862,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		eventsURL             string
 		logsURL               string
 		newValidationsInfo    ValidationsStatus
+		isDay2InProgress      bool
 	)
 	if h != nil && h.Status != nil {
 		if clusterId != nil {
@@ -886,9 +887,10 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		}
 		if h.Progress != nil && h.Progress.CurrentStage != "" {
 			// In case the node didn't reboot yet, we get the stage from the host (else)
-			if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost &&
+			isDay2InProgress = swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost &&
 				funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined, models.HostStageConfiguring}, h.Progress.CurrentStage) &&
-				agent.Spec.ClusterDeploymentName != nil {
+				agent.Spec.ClusterDeploymentName != nil
+			if isDay2InProgress {
 				spokeClient, err = r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
 				if err != nil {
 					r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
@@ -917,9 +919,6 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				}
 				if currentStage, err = r.UpdateDay2InstallProgress(ctx, h, agent, node); err != nil {
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
-				}
-				if agent.Status.Progress.CurrentStage != models.HostStageDone {
-					return ctrl.Result{RequeueAfter: r.ApproveCsrsRequeueDuration}, nil
 				}
 			} else {
 				currentStage = h.Progress.CurrentStage
@@ -985,6 +984,9 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		}
 		return nil
 	})
+	if isDay2InProgress && agent.Status.Progress.CurrentStage != models.HostStageDone {
+		return ctrl.Result{RequeueAfter: r.ApproveCsrsRequeueDuration}, nil
+	}
 	if syncErr != nil && internal {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 	}
