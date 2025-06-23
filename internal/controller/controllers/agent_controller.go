@@ -972,9 +972,14 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 
 		if !reflect.DeepEqual(agent, origAgent) {
 			if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
-				log.WithError(updateErr).Error("failed to update agent Status")
+				log.WithError(updateErr).Warn("failed to update agent Status, retrying")
+				agentRef := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Name}
+				if err := r.Get(ctx, agentRef, agent); err != nil {
+					return errors.Wrapf(err, "failed to get updated agent %s while updating agent status", agentRef)
+				}
 				return updateErr
 			}
+			log.Infof("Agent %s/%s: successfully updated", agent.Namespace, agent.Name)
 		} else {
 			log.Debugf("Agent %s/%s: update skipped", agent.Namespace, agent.Name)
 		}
