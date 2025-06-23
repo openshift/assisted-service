@@ -857,36 +857,14 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		shouldAutoApproveCSRs bool
 		spokeClient           spoke_k8s_client.SpokeK8sClient
 		node                  *corev1.Node
+		currentStage          models.HostStage
 	)
-	ret := ctrl.Result{}
-	specSynced(agent, syncErr, internal)
-
-	if h != nil && h.Status != nil {
-		agent.Status.Bootstrap = h.Bootstrap
-		agent.Status.Role = h.Role
-		if h.SuggestedRole != "" && h.Role == models.HostRoleAutoAssign {
-			agent.Status.Role = h.SuggestedRole
-		}
-		agent.Status.DebugInfo.State = swag.StringValue(h.Status)
-		agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
-		agent.Status.InstallationDiskID = h.InstallationDiskID
-		agent.Status.Kind = swag.StringValue(h.Kind)
-
-		if h.ValidationsInfo != "" {
-			newValidationsInfo := ValidationsStatus{}
-			err = json.Unmarshal([]byte(h.ValidationsInfo), &newValidationsInfo)
-			if err != nil {
-				log.WithError(err).Error("failed to umarshed ValidationsInfo")
-				return ctrl.Result{}, err
-			}
-			agent.Status.ValidationsInfo = newValidationsInfo
-		}
+	if h != nil {
 		if h.Progress != nil && h.Progress.CurrentStage != "" {
 			// In case the node didn't reboot yet, we get the stage from the host (else)
 			if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost &&
 				funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined, models.HostStageConfiguring}, h.Progress.CurrentStage) &&
 				agent.Spec.ClusterDeploymentName != nil {
-
 				spokeClient, err = r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
 				if err != nil {
 					r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
@@ -913,16 +891,43 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 					log.WithError(err).Errorf("Failed to apply labels for day2 node %s/%s", agent.Namespace, agent.Name)
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 				}
-				if err = r.UpdateDay2InstallProgress(ctx, h, agent, node); err != nil {
+				if currentStage, err = r.UpdateDay2InstallProgress(ctx, h, agent, node); err != nil {
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 				}
 				if agent.Status.Progress.CurrentStage != models.HostStageDone {
-					ret = ctrl.Result{RequeueAfter: r.ApproveCsrsRequeueDuration}
+					return ctrl.Result{RequeueAfter: r.ApproveCsrsRequeueDuration}, nil
 				}
 			} else {
-				// sync day1 progress stage
-				agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
+				currentStage = h.Progress.CurrentStage
 			}
+		}
+	}
+
+	ret := ctrl.Result{}
+	specSynced(agent, syncErr, internal)
+
+	if h != nil && h.Status != nil {
+		agent.Status.Bootstrap = h.Bootstrap
+		agent.Status.Role = h.Role
+		if h.SuggestedRole != "" && h.Role == models.HostRoleAutoAssign {
+			agent.Status.Role = h.SuggestedRole
+		}
+		agent.Status.DebugInfo.State = swag.StringValue(h.Status)
+		agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
+		agent.Status.InstallationDiskID = h.InstallationDiskID
+		agent.Status.Kind = swag.StringValue(h.Kind)
+
+		if h.ValidationsInfo != "" {
+			newValidationsInfo := ValidationsStatus{}
+			err = json.Unmarshal([]byte(h.ValidationsInfo), &newValidationsInfo)
+			if err != nil {
+				log.WithError(err).Error("failed to umarshed ValidationsInfo")
+				return ctrl.Result{}, err
+			}
+			agent.Status.ValidationsInfo = newValidationsInfo
+		}
+		if h.Progress != nil && h.Progress.CurrentStage != "" {
+			agent.Status.Progress.CurrentStage = currentStage
 			agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
 			agent.Status.Progress.InstallationPercentage = h.Progress.InstallationPercentage
 			stageStartTime := metav1.NewTime(time.Time(h.Progress.StageStartedAt))
@@ -972,27 +977,27 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	return ret, nil
 }
 
-func (r *AgentReconciler) UpdateDay2InstallProgress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node) error {
+func (r *AgentReconciler) UpdateDay2InstallProgress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node) (models.HostStage, error) {
 	if node == nil {
 		// In case the node not found we get the stage from the host
-		agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
 		// requeue in order to keep reconciling until the node show up
-		return nil
+		return h.Progress.CurrentStage, nil
 	}
 	var err error
+	var currentStage models.HostStage
 	if isNodeReady(node) {
 		err = r.updateHostInstallProgress(ctx, h, models.HostStageDone)
-		agent.Status.Progress.CurrentStage = models.HostStageDone
+		currentStage = models.HostStageDone
 		// now that the node is done there is no need to requeue
 	} else {
 		err = r.updateHostInstallProgress(ctx, h, models.HostStageJoined)
-		agent.Status.Progress.CurrentStage = models.HostStageJoined
+		currentStage = models.HostStageJoined
 	}
 	if err != nil {
 		r.Log.WithError(err).Errorf("Failed updating host %s install progress", h.ID)
-		return err
+		return currentStage, err
 	}
-	return nil
+	return currentStage, nil
 }
 
 func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, infraEnvId string) error {
