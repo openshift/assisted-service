@@ -858,8 +858,31 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		spokeClient           spoke_k8s_client.SpokeK8sClient
 		node                  *corev1.Node
 		currentStage          models.HostStage
+		eventsURL             string
+		logsURL               string
+		newValidationsInfo    ValidationsStatus
 	)
-	if h != nil {
+	if h != nil && h.Status != nil {
+		if clusterId != nil {
+			eventsURL, err = r.getEventsURL(log, agent, h.InfraEnvID.String())
+			if err != nil {
+				return ctrl.Result{Requeue: true}, nil
+			}
+			if agent.Status.DebugInfo.LogsURL == "" && !time.Time(h.LogsCollectedAt).Equal(time.Time{}) { // logs collection time is updated means logs are available
+				logsURL, err = generateControllerLogsDownloadURL(r.ServiceBaseURL, clusterId.String(), r.AuthType, agent.Name, "host")
+				if err != nil {
+					log.WithError(err).Error("failed to generate controller logs URL")
+					return ctrl.Result{}, err
+				}
+			}
+		}
+		if h.ValidationsInfo != "" {
+			err = json.Unmarshal([]byte(h.ValidationsInfo), &newValidationsInfo)
+			if err != nil {
+				log.WithError(err).Error("failed to unmarshal ValidationsInfo")
+				return ctrl.Result{}, err
+			}
+		}
 		if h.Progress != nil && h.Progress.CurrentStage != "" {
 			// In case the node didn't reboot yet, we get the stage from the host (else)
 			if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost &&
@@ -917,15 +940,6 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		agent.Status.InstallationDiskID = h.InstallationDiskID
 		agent.Status.Kind = swag.StringValue(h.Kind)
 
-		if h.ValidationsInfo != "" {
-			newValidationsInfo := ValidationsStatus{}
-			err = json.Unmarshal([]byte(h.ValidationsInfo), &newValidationsInfo)
-			if err != nil {
-				log.WithError(err).Error("failed to umarshed ValidationsInfo")
-				return ctrl.Result{}, err
-			}
-			agent.Status.ValidationsInfo = newValidationsInfo
-		}
 		if h.Progress != nil && h.Progress.CurrentStage != "" {
 			agent.Status.Progress.CurrentStage = currentStage
 			agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
@@ -939,21 +953,14 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 			agent.Status.Progress = aiv1beta1.HostProgressInfo{}
 		}
 		status := *h.Status
-		if clusterId != nil {
-			err = r.populateEventsURL(log, agent, h.InfraEnvID.String())
-			if err != nil {
-				return ctrl.Result{Requeue: true}, nil
-			}
-			if agent.Status.DebugInfo.LogsURL == "" && !time.Time(h.LogsCollectedAt).Equal(time.Time{}) { // logs collection time is updated means logs are available
-				var logsURL string
-				logsURL, err = generateControllerLogsDownloadURL(r.ServiceBaseURL, clusterId.String(), r.AuthType, agent.Name, "host")
-				if err != nil {
-					log.WithError(err).Error("failed to generate controller logs URL")
-					return ctrl.Result{}, err
-				}
-				agent.Status.DebugInfo.LogsURL = logsURL
-			}
+		if eventsURL != "" {
+			agent.Status.DebugInfo.EventsURL = eventsURL
 		}
+		if logsURL != "" {
+			agent.Status.DebugInfo.LogsURL = logsURL
+		}
+		agent.Status.ValidationsInfo = newValidationsInfo
+
 		connected(agent, status)
 		requirementsMet(agent, status)
 		validated(agent, status, h)
@@ -1000,17 +1007,17 @@ func (r *AgentReconciler) UpdateDay2InstallProgress(ctx context.Context, h *mode
 	return currentStage, nil
 }
 
-func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, infraEnvId string) error {
+func (r *AgentReconciler) getEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, infraEnvId string) (string, error) {
 	if agent.Status.DebugInfo.EventsURL == "" {
 		tokenGen := gencrypto.CryptoPair{JWTKeyType: gencrypto.InfraEnvKey, JWTKeyValue: infraEnvId}
 		eventUrl, err := generateEventsURL(r.ServiceBaseURL, r.AuthType, tokenGen, "host_id", agent.Name)
 		if err != nil {
 			log.WithError(err).Error("failed to generate Events URL")
-			return err
+			return "", err
 		}
-		agent.Status.DebugInfo.EventsURL = eventUrl
+		return eventUrl, nil
 	}
-	return nil
+	return "", nil
 }
 
 func generateControllerLogsDownloadURL(baseURL string, clusterID string, authType auth.AuthType, host string, logsType string) (string, error) {
