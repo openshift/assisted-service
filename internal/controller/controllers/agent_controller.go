@@ -56,6 +56,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -926,62 +927,63 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		}
 	}
 
-	ret := ctrl.Result{}
-	specSynced(agent, syncErr, internal)
+	rerr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		specSynced(agent, syncErr, internal)
+		if h != nil && h.Status != nil {
+			agent.Status.Bootstrap = h.Bootstrap
+			agent.Status.Role = h.Role
+			if h.SuggestedRole != "" && h.Role == models.HostRoleAutoAssign {
+				agent.Status.Role = h.SuggestedRole
+			}
+			agent.Status.DebugInfo.State = swag.StringValue(h.Status)
+			agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
+			agent.Status.InstallationDiskID = h.InstallationDiskID
+			agent.Status.Kind = swag.StringValue(h.Kind)
 
-	if h != nil && h.Status != nil {
-		agent.Status.Bootstrap = h.Bootstrap
-		agent.Status.Role = h.Role
-		if h.SuggestedRole != "" && h.Role == models.HostRoleAutoAssign {
-			agent.Status.Role = h.SuggestedRole
-		}
-		agent.Status.DebugInfo.State = swag.StringValue(h.Status)
-		agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
-		agent.Status.InstallationDiskID = h.InstallationDiskID
-		agent.Status.Kind = swag.StringValue(h.Kind)
+			if h.Progress != nil && h.Progress.CurrentStage != "" {
+				agent.Status.Progress.CurrentStage = currentStage
+				agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
+				agent.Status.Progress.InstallationPercentage = h.Progress.InstallationPercentage
+				stageStartTime := metav1.NewTime(time.Time(h.Progress.StageStartedAt))
+				agent.Status.Progress.StageStartTime = &stageStartTime
+				stageUpdateTime := metav1.NewTime(time.Time(h.Progress.StageUpdatedAt))
+				agent.Status.Progress.StageUpdateTime = &stageUpdateTime
+				agent.Status.Progress.ProgressStages = h.ProgressStages
+			} else {
+				agent.Status.Progress = aiv1beta1.HostProgressInfo{}
+			}
+			status := *h.Status
+			if eventsURL != "" {
+				agent.Status.DebugInfo.EventsURL = eventsURL
+			}
+			if logsURL != "" {
+				agent.Status.DebugInfo.LogsURL = logsURL
+			}
+			agent.Status.ValidationsInfo = newValidationsInfo
 
-		if h.Progress != nil && h.Progress.CurrentStage != "" {
-			agent.Status.Progress.CurrentStage = currentStage
-			agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
-			agent.Status.Progress.InstallationPercentage = h.Progress.InstallationPercentage
-			stageStartTime := metav1.NewTime(time.Time(h.Progress.StageStartedAt))
-			agent.Status.Progress.StageStartTime = &stageStartTime
-			stageUpdateTime := metav1.NewTime(time.Time(h.Progress.StageUpdatedAt))
-			agent.Status.Progress.StageUpdateTime = &stageUpdateTime
-			agent.Status.Progress.ProgressStages = h.ProgressStages
+			connected(agent, status)
+			requirementsMet(agent, status)
+			validated(agent, status, h)
+			installed(agent, status, swag.StringValue(h.StatusInfo))
+			bound(agent, status)
 		} else {
-			agent.Status.Progress = aiv1beta1.HostProgressInfo{}
+			setConditionsUnknown(agent)
 		}
-		status := *h.Status
-		if eventsURL != "" {
-			agent.Status.DebugInfo.EventsURL = eventsURL
-		}
-		if logsURL != "" {
-			agent.Status.DebugInfo.LogsURL = logsURL
-		}
-		agent.Status.ValidationsInfo = newValidationsInfo
 
-		connected(agent, status)
-		requirementsMet(agent, status)
-		validated(agent, status, h)
-		installed(agent, status, swag.StringValue(h.StatusInfo))
-		bound(agent, status)
-	} else {
-		setConditionsUnknown(agent)
-	}
-
-	if !reflect.DeepEqual(agent, origAgent) {
-		if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
-			log.WithError(updateErr).Error("failed to update agent Status")
-			return ctrl.Result{Requeue: true}, nil
+		if !reflect.DeepEqual(agent, origAgent) {
+			if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
+				log.WithError(updateErr).Error("failed to update agent Status")
+				return updateErr
+			}
+		} else {
+			log.Debugf("Agent %s/%s: update skipped", agent.Namespace, agent.Name)
 		}
-	} else {
-		log.Debugf("Agent %s/%s: update skipped", agent.Namespace, agent.Name)
-	}
+		return nil
+	})
 	if syncErr != nil && internal {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 	}
-	return ret, nil
+	return ctrl.Result{}, rerr
 }
 
 func (r *AgentReconciler) UpdateDay2InstallProgress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node) (models.HostStage, error) {
