@@ -1216,6 +1216,19 @@ func unauthenticatedRegistries(ctx context.Context, asc ASC) string {
 //go:embed default_controller_hw_requirements.json
 var defaultControllerHardwareRequirements string
 
+var defaultWaitingForControlPlaneHostStageTimeout = "90m"
+
+func getWaitingForControlPlaneHostStageTimeout() string {
+	if timeout := os.Getenv("HOST_STAGE_WAITING_FOR_CONTROL_PLANE_TIMEOUT"); timeout != "" {
+		return timeout
+	}
+
+	// The defualt timeout for all deployment modes is 60m, we want to increase it to 90m for operator deployment
+	// because lately we see more failures due to timeout in this host installation stage. There is an open Jira issue
+	// for investigating this timeout issue: https://issues.redhat.com/browse/MGMT-20662
+	return defaultWaitingForControlPlaneHostStageTimeout
+}
+
 func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	serviceURL, err := urlForRoute(ctx, asc, serviceName)
 	if err != nil {
@@ -1282,6 +1295,7 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"NAMESPACE":              asc.namespace,
 			"INSTALL_INVOKER":        "assisted-installer-operator",
 			"SKIP_CERT_VERIFICATION": "False",
+			"HOST_STAGE_WAITING_FOR_CONTROL_PLANE_TIMEOUT": getWaitingForControlPlaneHostStageTimeout(),
 		}
 		// serve https only on OCP
 		if asc.rec.IsOpenShift {
