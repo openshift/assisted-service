@@ -854,17 +854,16 @@ func (r *AgentReconciler) applyDay2NodeLabels(ctx context.Context, log logrus.Fi
 func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *models.Host, clusterId *strfmt.UUID, syncErr error, internal bool) (ctrl.Result, error) {
 
 	var (
-		err                   error
-		shouldAutoApproveCSRs bool
-		spokeClient           spoke_k8s_client.SpokeK8sClient
-		node                  *corev1.Node
-		currentStage          models.HostStage
-		eventsURL             string
-		logsURL               string
-		newValidationsInfo    ValidationsStatus
-		isDay2InProgress      bool
+		err                 error
+		currentStage        models.HostStage
+		eventsURL           string
+		logsURL             string
+		newValidationsInfo  ValidationsStatus
+		isDay2InProgress    bool
+		hostStatusAvailable bool
 	)
-	if h != nil && h.Status != nil {
+	hostStatusAvailable = h != nil && h.Status != nil
+	if hostStatusAvailable {
 		if clusterId != nil {
 			eventsURL, err = r.getEventsURL(log, agent, h.InfraEnvID.String())
 			if err != nil {
@@ -891,33 +890,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined, models.HostStageConfiguring}, h.Progress.CurrentStage) &&
 				agent.Spec.ClusterDeploymentName != nil
 			if isDay2InProgress {
-				spokeClient, err = r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
+				currentStage, err = r.handleDay2InProgress(ctx, log, agent, h)
 				if err != nil {
-					r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
-					return ctrl.Result{}, err
-				}
-				if shouldAutoApproveCSRs, err = r.shouldApproveCSRsForAgent(ctx, agent, h); err != nil {
-					log.WithError(err).Errorf("Failed to determine if agent %s/%s is rebooting and belongs to none platform cluster or has an associated BMH", agent.Namespace, agent.Name)
-					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
-				}
-
-				// TODO: Node name might be FQDN and not just host name if cluster is IPv6
-				node, err = spokeClient.GetNode(ctx, getAgentHostname(agent))
-				if err != nil {
-					if !k8serrors.IsNotFound(err) {
-						r.Log.WithError(err).Errorf("agent %s/%s: failed to get node", agent.Namespace, agent.Name)
-						return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
-					}
-					node = nil
-				}
-				if shouldAutoApproveCSRs {
-					r.tryApproveDay2CSRs(ctx, agent, node, spokeClient)
-				}
-				if err = r.applyDay2NodeLabels(ctx, log, agent, node, spokeClient); err != nil {
-					log.WithError(err).Errorf("Failed to apply labels for day2 node %s/%s", agent.Namespace, agent.Name)
-					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
-				}
-				if currentStage, err = r.UpdateDay2InstallProgress(ctx, h, agent, node); err != nil {
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 				}
 			} else {
@@ -928,47 +902,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 
 	rerr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		specSynced(agent, syncErr, internal)
-		if h != nil && h.Status != nil {
-			agent.Status.Bootstrap = h.Bootstrap
-			agent.Status.Role = h.Role
-			if h.SuggestedRole != "" && h.Role == models.HostRoleAutoAssign {
-				agent.Status.Role = h.SuggestedRole
-			}
-			agent.Status.DebugInfo.State = swag.StringValue(h.Status)
-			agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
-			agent.Status.InstallationDiskID = h.InstallationDiskID
-			agent.Status.Kind = swag.StringValue(h.Kind)
-
-			if h.Progress != nil && h.Progress.CurrentStage != "" {
-				agent.Status.Progress.CurrentStage = currentStage
-				agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
-				agent.Status.Progress.InstallationPercentage = h.Progress.InstallationPercentage
-				stageStartTime := metav1.NewTime(time.Time(h.Progress.StageStartedAt))
-				agent.Status.Progress.StageStartTime = &stageStartTime
-				stageUpdateTime := metav1.NewTime(time.Time(h.Progress.StageUpdatedAt))
-				agent.Status.Progress.StageUpdateTime = &stageUpdateTime
-				agent.Status.Progress.ProgressStages = h.ProgressStages
-			} else {
-				agent.Status.Progress = aiv1beta1.HostProgressInfo{}
-			}
-			status := *h.Status
-			if eventsURL != "" {
-				agent.Status.DebugInfo.EventsURL = eventsURL
-			}
-			if logsURL != "" {
-				agent.Status.DebugInfo.LogsURL = logsURL
-			}
-			agent.Status.ValidationsInfo = newValidationsInfo
-
-			connected(agent, status)
-			requirementsMet(agent, status)
-			validated(agent, status, h)
-			installed(agent, status, swag.StringValue(h.StatusInfo))
-			bound(agent, status)
-		} else {
-			setConditionsUnknown(agent)
-		}
-
+		setAgentStatus(agent, h, hostStatusAvailable, currentStage, eventsURL, logsURL, newValidationsInfo)
 		if !reflect.DeepEqual(agent, origAgent) {
 			if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
 				log.WithError(updateErr).Warn("failed to update agent Status, retrying")
@@ -991,6 +925,84 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 	}
 	return ctrl.Result{}, rerr
+}
+
+func setAgentStatus(agent *aiv1beta1.Agent, h *models.Host, hostStatusAvailable bool, currentStage models.HostStage, eventsURL string, logsURL string, newValidationsInfo ValidationsStatus) {
+	if !hostStatusAvailable {
+		setConditionsUnknown(agent)
+		return
+	}
+	agent.Status.Bootstrap = h.Bootstrap
+	agent.Status.Role = h.Role
+	if h.SuggestedRole != "" && h.Role == models.HostRoleAutoAssign {
+		agent.Status.Role = h.SuggestedRole
+	}
+	agent.Status.DebugInfo.State = swag.StringValue(h.Status)
+	agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
+	agent.Status.InstallationDiskID = h.InstallationDiskID
+	agent.Status.Kind = swag.StringValue(h.Kind)
+
+	if h.Progress != nil && h.Progress.CurrentStage != "" {
+		agent.Status.Progress.CurrentStage = currentStage
+		agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
+		agent.Status.Progress.InstallationPercentage = h.Progress.InstallationPercentage
+		stageStartTime := metav1.NewTime(time.Time(h.Progress.StageStartedAt))
+		agent.Status.Progress.StageStartTime = &stageStartTime
+		stageUpdateTime := metav1.NewTime(time.Time(h.Progress.StageUpdatedAt))
+		agent.Status.Progress.StageUpdateTime = &stageUpdateTime
+		agent.Status.Progress.ProgressStages = h.ProgressStages
+	} else {
+		agent.Status.Progress = aiv1beta1.HostProgressInfo{}
+	}
+	status := *h.Status
+	if eventsURL != "" {
+		agent.Status.DebugInfo.EventsURL = eventsURL
+	}
+	if logsURL != "" {
+		agent.Status.DebugInfo.LogsURL = logsURL
+	}
+	agent.Status.ValidationsInfo = newValidationsInfo
+	connected(agent, status)
+	requirementsMet(agent, status)
+	validated(agent, status, h)
+	installed(agent, status, swag.StringValue(h.StatusInfo))
+	bound(agent, status)
+}
+
+func (r *AgentReconciler) handleDay2InProgress(ctx context.Context, log logrus.FieldLogger, agent *v1beta1.Agent, h *models.Host) (models.HostStage, error) {
+	var (
+		shouldAutoApproveCSRs bool
+		spokeClient           spoke_k8s_client.SpokeK8sClient
+		node                  *corev1.Node
+	)
+
+	spokeClient, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
+	if err != nil {
+		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
+		return "", err
+	}
+	if shouldAutoApproveCSRs, err = r.shouldApproveCSRsForAgent(ctx, agent, h); err != nil {
+		log.WithError(err).Errorf("Failed to determine if agent %s/%s is rebooting and belongs to none platform cluster or has an associated BMH", agent.Namespace, agent.Name)
+		return "", err
+	}
+
+	// TODO: Node name might be FQDN and not just host name if cluster is IPv6
+	node, err = spokeClient.GetNode(ctx, getAgentHostname(agent))
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			r.Log.WithError(err).Errorf("agent %s/%s: failed to get node", agent.Namespace, agent.Name)
+			return "", err
+		}
+		node = nil
+	}
+	if shouldAutoApproveCSRs {
+		r.tryApproveDay2CSRs(ctx, agent, node, spokeClient)
+	}
+	if err = r.applyDay2NodeLabels(ctx, log, agent, node, spokeClient); err != nil {
+		log.WithError(err).Errorf("Failed to apply labels for day2 node %s/%s", agent.Namespace, agent.Name)
+		return "", err
+	}
+	return r.UpdateDay2InstallProgress(ctx, h, agent, node)
 }
 
 func (r *AgentReconciler) UpdateDay2InstallProgress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node) (models.HostStage, error) {
