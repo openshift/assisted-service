@@ -21,6 +21,7 @@ import (
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
+	ignitioncommon "github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -582,7 +583,7 @@ func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(ctx context.Context
 		return errors.Wrapf(err, "Failed to rename bootstrap-in-place-for-live-iso.ign")
 	}
 
-	bootstrapConfig, err := parseIgnitionFile(bootstrapPath)
+	bootstrapConfig, err := ignitioncommon.ParseIgnitionFile(bootstrapPath)
 	if err != nil {
 		return err
 	}
@@ -590,7 +591,7 @@ func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(ctx context.Context
 	// To that end we set the dummy master ignition version to the same version as the bootstrap ignition
 	config := config_latest_types.Config{Ignition: config_latest_types.Ignition{Version: bootstrapConfig.Ignition.Version}}
 	for _, file := range []string{masterIgn, workerIgn} {
-		err = writeIgnitionFile(filepath.Join(g.workDir, file), &config)
+		err = ignitioncommon.WriteIgnitionFile(filepath.Join(g.workDir, file), &config)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to create %s", file)
 		}
@@ -722,7 +723,7 @@ func (g *installerGenerator) expandMultiDocYaml(ctx context.Context, manifestPat
 func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath string) error {
 	log := logutil.FromContext(ctx, g.log)
 
-	config, err := parseIgnitionFile(bootstrapPath)
+	config, err := ignitioncommon.ParseIgnitionFile(bootstrapPath)
 	if err != nil {
 		g.log.Error(err)
 		return err
@@ -780,7 +781,7 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 
 	config.Storage.Files = newFiles
 	if g.cluster.ControlPlaneCount != 1 {
-		setFileInIgnition(config, "/opt/openshift/assisted-install-bootstrap", "data:,", false, 420, false)
+		ignitioncommon.SetFileInIgnition(config, "/opt/openshift/assisted-install-bootstrap", "data:,", false, 420, false)
 	}
 
 	// add new Network Manager config file that disables handling of /etc/resolv.conf
@@ -789,7 +790,7 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 		setNMConfigration(config)
 	}
 
-	err = writeIgnitionFile(bootstrapPath, config)
+	err = ignitioncommon.WriteIgnitionFile(bootstrapPath, config)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -933,20 +934,20 @@ func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *
 
 func (g *installerGenerator) updateDhcpFiles() error {
 	path := filepath.Join(g.workDir, masterIgn)
-	config, err := parseIgnitionFile(path)
+	config, err := ignitioncommon.ParseIgnitionFile(path)
 	if err != nil {
 		return err
 	}
-	setFileInIgnition(config, "/etc/keepalived/unsupported-monitor.conf", g.encodedDhcpFileContents, false, 0o644, false)
+	ignitioncommon.SetFileInIgnition(config, "/etc/keepalived/unsupported-monitor.conf", g.encodedDhcpFileContents, false, 0o644, false)
 	encodedApiVip := network.GetEncodedApiVipLease(g.cluster)
 	if encodedApiVip != "" {
-		setFileInIgnition(config, "/etc/keepalived/lease-api", encodedApiVip, false, 0o644, false)
+		ignitioncommon.SetFileInIgnition(config, "/etc/keepalived/lease-api", encodedApiVip, false, 0o644, false)
 	}
 	encodedIngressVip := network.GetEncodedIngressVipLease(g.cluster)
 	if encodedIngressVip != "" {
-		setFileInIgnition(config, "/etc/keepalived/lease-ingress", encodedIngressVip, false, 0o644, false)
+		ignitioncommon.SetFileInIgnition(config, "/etc/keepalived/lease-ingress", encodedIngressVip, false, 0o644, false)
 	}
-	err = writeIgnitionFile(path, config)
+	err = ignitioncommon.WriteIgnitionFile(path, config)
 	if err != nil {
 		return err
 	}
@@ -957,7 +958,7 @@ func (g *installerGenerator) updateDhcpFiles() error {
 // consistent client identification.
 func (g *installerGenerator) addIpv6FileInIgnition(ignition string) error {
 	path := filepath.Join(g.workDir, ignition)
-	config, err := parseIgnitionFile(path)
+	config, err := ignitioncommon.ParseIgnitionFile(path)
 	if err != nil {
 		return err
 	}
@@ -969,8 +970,8 @@ func (g *installerGenerator) addIpv6FileInIgnition(ignition string) error {
 	if is410Version {
 		v6config = common.Ipv6DuidRuntimeConf
 	}
-	setFileInIgnition(config, "/etc/NetworkManager/conf.d/01-ipv6.conf", encodeIpv6Contents(v6config), false, 0o644, false)
-	err = writeIgnitionFile(path, config)
+	ignitioncommon.SetFileInIgnition(config, "/etc/NetworkManager/conf.d/01-ipv6.conf", encodeIpv6Contents(v6config), false, 0o644, false)
+	err = ignitioncommon.WriteIgnitionFile(path, config)
 	if err != nil {
 		return err
 	}
@@ -1119,7 +1120,7 @@ func (g *installerGenerator) clusterHasMCP(poolName string, clusterId *strfmt.UU
 }
 
 func (g *installerGenerator) updatePointerIgnitionMCP(poolName string, ignitionStr string) (string, error) {
-	config, err := ParseToLatest([]byte(ignitionStr))
+	config, err := ignitioncommon.ParseToLatest([]byte(ignitionStr))
 	if err != nil {
 		return "", err
 	}
@@ -1159,7 +1160,7 @@ func (g *installerGenerator) modifyPointerIgnitionMCP(poolName string, ignitionS
 }
 
 func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile string, workDir string) error {
-	config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
+	config, err := ignitioncommon.ParseIgnitionFile(filepath.Join(workDir, baseFile))
 	if err != nil {
 		return err
 	}
@@ -1169,18 +1170,18 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 		return errors.Wrapf(err, "failed to get hostname for host %s", host.ID)
 	}
 
-	setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
+	ignitioncommon.SetFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
 	if common.IsSingleNodeCluster(g.cluster) {
 		machineCidr := g.cluster.MachineNetworks[0]
 		ip, _, errP := net.ParseCIDR(string(machineCidr.Cidr))
 		if errP != nil {
 			return errors.Wrapf(errP, "Failed to parse machine cidr for node ip hint content")
 		}
-		setFileInIgnition(config, nodeIpHintFile, fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", ip), false, 420, true)
+		ignitioncommon.SetFileInIgnition(config, nodeIpHintFile, fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", ip), false, 420, true)
 	} else if g.nodeIpAllocations != nil && (common.IsMultiNodeNonePlatformCluster(g.cluster) || network.IsLoadBalancerUserManaged(g.cluster)) {
 		allocation, ok := g.nodeIpAllocations[lo.FromPtr(host.ID)]
 		if ok {
-			setFileInIgnition(config, nodeIpHintFile, fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", allocation.HintIp), false, 420, true)
+			ignitioncommon.SetFileInIgnition(config, nodeIpHintFile, fmt.Sprintf("data:,KUBELET_NODEIP_HINT=%s", allocation.HintIp), false, 420, true)
 			g.log.Infof("Set KUBELET_NODEIP_HINT=%s for host %s", allocation.HintIp, lo.FromPtr(host.ID))
 		}
 	}
@@ -1191,7 +1192,7 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 	}
 
 	if host.IgnitionConfigOverrides != "" {
-		merged, mergeErr := MergeIgnitionConfig(configBytes, []byte(host.IgnitionConfigOverrides))
+		merged, mergeErr := ignitioncommon.MergeIgnitionConfig(configBytes, []byte(host.IgnitionConfigOverrides))
 		if mergeErr != nil {
 			return errors.Wrapf(mergeErr, "failed to apply ignition config overrides for host %s", host.ID)
 		}
@@ -1216,7 +1217,7 @@ func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile str
 	}
 	if inventory.Boot != nil && inventory.Boot.DeviceType == models.BootDeviceTypePersistent {
 		g.log.Infof("Adding stateroot cleanup ignition override for host %s", host.ID)
-		merged, mergeErr := MergeIgnitionConfig(configBytes, []byte(cleanupDiscoveryStaterootIgnitionOverride))
+		merged, mergeErr := ignitioncommon.MergeIgnitionConfig(configBytes, []byte(cleanupDiscoveryStaterootIgnitionOverride))
 		if mergeErr != nil {
 			return errors.Wrapf(mergeErr, "failed to apply stateroot cleanup ignition override for host %s", host.ID)
 		}
@@ -1371,7 +1372,7 @@ func ExtractClusterID(reader io.ReadCloser) (string, error) {
 		return "", err
 	}
 
-	config, err := ParseToLatest(bs)
+	config, err := ignitioncommon.ParseToLatest(bs)
 	if err != nil {
 		return "", err
 	}
@@ -1470,11 +1471,11 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host, []*models.
 
 func setNMConfigration(config *config_latest_types.Config) {
 	fileContents := "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString([]byte(common.UnmanagedResolvConf))
-	setFileInIgnition(config, "/etc/NetworkManager/conf.d/99-kni.conf", fileContents, false, 420, false)
+	ignitioncommon.SetFileInIgnition(config, "/etc/NetworkManager/conf.d/99-kni.conf", fileContents, false, 420, false)
 }
 
 func setCACertInIgnition(role models.HostRole, path string, workDir string, caCertFile string) error {
-	config, err := parseIgnitionFile(path)
+	config, err := ignitioncommon.ParseIgnitionFile(path)
 	if err != nil {
 		return err
 	}
@@ -1485,10 +1486,10 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 		return err
 	}
 
-	setFileInIgnition(config, common.HostCACertPath, fmt.Sprintf("data:,%s", url.PathEscape(string(caCertData))), false, 420, false)
+	ignitioncommon.SetFileInIgnition(config, common.HostCACertPath, fmt.Sprintf("data:,%s", url.PathEscape(string(caCertData))), false, 420, false)
 
 	fileName := fmt.Sprintf("%s.ign", role)
-	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
+	err = ignitioncommon.WriteIgnitionFile(filepath.Join(workDir, fileName), config)
 	if err != nil {
 		return err
 	}

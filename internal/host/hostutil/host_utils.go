@@ -15,6 +15,7 @@ import (
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -344,7 +345,7 @@ func GetDiskEncryptionForDay2(log logrus.FieldLogger, host *models.Host) (*ignit
 	return &config.Storage.Luks[0], nil
 }
 
-func GetIgnitionEndpoint(cluster *common.Cluster, host *models.Host) (string, error) {
+func GetIgnitionEndpointAndCert(cluster *common.Cluster, host *models.Host, logger logrus.FieldLogger) (string, *string, error) {
 	poolName := string(common.GetEffectiveRole(host))
 
 	// At this moment the effective role should already be either master or worker. However, given that
@@ -358,19 +359,44 @@ func GetIgnitionEndpoint(cluster *common.Cluster, host *models.Host) (string, er
 		poolName = host.MachineConfigPoolName
 	}
 
+	protocol := "http"
+	port := constants.InsecureMCSPort
+	var cert *string
+
+	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.CaCertificate != nil {
+		logger.Infof("Using cluster ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
+		cert = cluster.IgnitionEndpoint.CaCertificate
+	} else {
+		var err error
+		cert, err = ignition.GetCACertInIgnition(host.IgnitionConfigOverrides)
+		if err != nil {
+			logger.Errorf("Failed to get Ignition certificate for host %s: %s", host.ID, err)
+			return "", nil, err
+		}
+		if cert != nil {
+			logger.Infof("Using host ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
+			protocol = "https"
+			port = constants.SecureMCSPort
+		} else {
+			logger.Infof("No ignition certificate found for cluster %s, host %s; using HTTP", cluster.ID, host.ID)
+		}
+	}
+
 	ignitionEndpointUrl := fmt.Sprintf(
-		"http://%s/config/%s",
-		net.JoinHostPort(common.GetAPIHostname(cluster), fmt.Sprint(constants.InsecureMCSPort)),
+		"%s://%s/config/%s",
+		protocol,
+		net.JoinHostPort(common.GetAPIHostname(cluster), fmt.Sprint(port)),
 		poolName)
 	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
 		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
+
 		url.Path = path.Join(url.Path, poolName)
 		ignitionEndpointUrl = url.String()
 	}
-	return ignitionEndpointUrl, nil
+	return ignitionEndpointUrl, cert, nil
 }
 
 func GetDisksOfHolderByType(allDisks []*models.Disk, holderDisk *models.Disk, driveTypeFilter models.DriveType) []*models.Disk {
