@@ -32,8 +32,6 @@ const RoleLinkKind = "RoleLink"
 const RoleNilKind = "RoleNil"
 
 // Role represents the values of the 'role' type.
-//
-//
 type Role struct {
 	bitmap_     uint32
 	id          string
@@ -53,7 +51,7 @@ func (o *Role) Kind() string {
 	return RoleKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *Role) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -101,8 +99,6 @@ func (o *Role) Empty() bool {
 
 // Name returns the value of the 'name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Role) Name() string {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.name
@@ -112,8 +108,6 @@ func (o *Role) Name() string {
 
 // GetName returns the value of the 'name' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Role) GetName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -124,8 +118,6 @@ func (o *Role) GetName() (value string, ok bool) {
 
 // Permissions returns the value of the 'permissions' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Role) Permissions() []*Permission {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.permissions
@@ -135,8 +127,6 @@ func (o *Role) Permissions() []*Permission {
 
 // GetPermissions returns the value of the 'permissions' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Role) GetPermissions() (value []*Permission, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -204,6 +194,29 @@ func (l *RoleList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *RoleList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *RoleList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *RoleList) SetItems(items []*Role) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *RoleList) Items() []*Role {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

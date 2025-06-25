@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalAlertInfo writes a value of the 'alert_info' type to the given writer.
 func MarshalAlertInfo(object *AlertInfo, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeAlertInfo(object, stream)
-	stream.Flush()
+	WriteAlertInfo(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeAlertInfo writes a value of the 'alert_info' type to the given stream.
-func writeAlertInfo(object *AlertInfo, stream *jsoniter.Stream) {
+// WriteAlertInfo writes a value of the 'alert_info' type to the given stream.
+func WriteAlertInfo(object *AlertInfo, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,7 +58,6 @@ func writeAlertInfo(object *AlertInfo, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("severity")
 		stream.WriteString(string(object.severity))
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -64,20 +65,17 @@ func writeAlertInfo(object *AlertInfo, stream *jsoniter.Stream) {
 // UnmarshalAlertInfo reads a value of the 'alert_info' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalAlertInfo(source interface{}) (object *AlertInfo, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readAlertInfo(iterator)
+	object = ReadAlertInfo(iterator)
 	err = iterator.Error
 	return
 }
 
-// readAlertInfo reads a value of the 'alert_info' type from the given iterator.
-func readAlertInfo(iterator *jsoniter.Iterator) *AlertInfo {
+// ReadAlertInfo reads a value of the 'alert_info' type from the given iterator.
+func ReadAlertInfo(iterator *jsoniter.Iterator) *AlertInfo {
 	object := &AlertInfo{}
 	for {
 		field := iterator.ReadObject()

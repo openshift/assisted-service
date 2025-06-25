@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/servicelogs/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -166,16 +168,12 @@ func (r *LogEntryPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *LogEntryPollResponse) Body() *LogEntry {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *LogEntryPollResponse) GetBody() (value *LogEntry, ok bool) {
 	return r.response.GetBody()
 }
@@ -205,6 +203,13 @@ func (r *LogEntryDeleteRequest) Parameter(name string, value interface{}) *LogEn
 // Header adds a request header.
 func (r *LogEntryDeleteRequest) Header(name string, value interface{}) *LogEntryDeleteRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *LogEntryDeleteRequest) Impersonate(user string) *LogEntryDeleteRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -240,8 +245,14 @@ func (r *LogEntryDeleteRequest) SendContext(ctx context.Context) (result *LogEnt
 	result = &LogEntryDeleteResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -302,6 +313,13 @@ func (r *LogEntryGetRequest) Header(name string, value interface{}) *LogEntryGet
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *LogEntryGetRequest) Impersonate(user string) *LogEntryGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -334,15 +352,21 @@ func (r *LogEntryGetRequest) SendContext(ctx context.Context) (result *LogEntryG
 	result = &LogEntryGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readLogEntryGetResponse(result, response.Body)
+	err = readLogEntryGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -382,8 +406,6 @@ func (r *LogEntryGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *LogEntryGetResponse) Body() *LogEntry {
 	if r == nil {
 		return nil
@@ -393,8 +415,6 @@ func (r *LogEntryGetResponse) Body() *LogEntry {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *LogEntryGetResponse) GetBody() (value *LogEntry, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

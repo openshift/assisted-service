@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalFeatureToggleQueryRequest writes a value of the 'feature_toggle_query_request' type to the given writer.
 func MarshalFeatureToggleQueryRequest(object *FeatureToggleQueryRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeFeatureToggleQueryRequest(object, stream)
-	stream.Flush()
+	WriteFeatureToggleQueryRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeFeatureToggleQueryRequest writes a value of the 'feature_toggle_query_request' type to the given stream.
-func writeFeatureToggleQueryRequest(object *FeatureToggleQueryRequest, stream *jsoniter.Stream) {
+// WriteFeatureToggleQueryRequest writes a value of the 'feature_toggle_query_request' type to the given stream.
+func WriteFeatureToggleQueryRequest(object *FeatureToggleQueryRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -47,7 +49,6 @@ func writeFeatureToggleQueryRequest(object *FeatureToggleQueryRequest, stream *j
 		}
 		stream.WriteObjectField("organization_id")
 		stream.WriteString(object.organizationID)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeFeatureToggleQueryRequest(object *FeatureToggleQueryRequest, stream *j
 // UnmarshalFeatureToggleQueryRequest reads a value of the 'feature_toggle_query_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalFeatureToggleQueryRequest(source interface{}) (object *FeatureToggleQueryRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readFeatureToggleQueryRequest(iterator)
+	object = ReadFeatureToggleQueryRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readFeatureToggleQueryRequest reads a value of the 'feature_toggle_query_request' type from the given iterator.
-func readFeatureToggleQueryRequest(iterator *jsoniter.Iterator) *FeatureToggleQueryRequest {
+// ReadFeatureToggleQueryRequest reads a value of the 'feature_toggle_query_request' type from the given iterator.
+func ReadFeatureToggleQueryRequest(iterator *jsoniter.Iterator) *FeatureToggleQueryRequest {
 	object := &FeatureToggleQueryRequest{}
 	for {
 		field := iterator.ReadObject()

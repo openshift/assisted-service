@@ -30,20 +30,23 @@ import (
 // the given writer.
 func MarshalExportControlReviewRequestList(list []*ExportControlReviewRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeExportControlReviewRequestList(list, stream)
-	stream.Flush()
+	WriteExportControlReviewRequestList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeExportControlReviewRequestList writes a list of value of the 'export_control_review_request' type to
+// WriteExportControlReviewRequestList writes a list of value of the 'export_control_review_request' type to
 // the given stream.
-func writeExportControlReviewRequestList(list []*ExportControlReviewRequest, stream *jsoniter.Stream) {
+func WriteExportControlReviewRequestList(list []*ExportControlReviewRequest, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
 			stream.WriteMore()
 		}
-		writeExportControlReviewRequest(value, stream)
+		WriteExportControlReviewRequest(value, stream)
 	}
 	stream.WriteArrayEnd()
 }
@@ -55,17 +58,17 @@ func UnmarshalExportControlReviewRequestList(source interface{}) (items []*Expor
 	if err != nil {
 		return
 	}
-	items = readExportControlReviewRequestList(iterator)
+	items = ReadExportControlReviewRequestList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readExportControlReviewRequestList reads list of values of the ''export_control_review_request' type from
+// ReadExportControlReviewRequestList reads list of values of the ”export_control_review_request' type from
 // the given iterator.
-func readExportControlReviewRequestList(iterator *jsoniter.Iterator) []*ExportControlReviewRequest {
+func ReadExportControlReviewRequestList(iterator *jsoniter.Iterator) []*ExportControlReviewRequest {
 	list := []*ExportControlReviewRequest{}
 	for iterator.ReadArray() {
-		item := readExportControlReviewRequest(iterator)
+		item := ReadExportControlReviewRequest(iterator)
 		list = append(list, item)
 	}
 	return list

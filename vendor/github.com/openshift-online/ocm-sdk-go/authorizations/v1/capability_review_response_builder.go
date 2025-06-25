@@ -32,9 +32,12 @@ func NewCapabilityReviewResponse() *CapabilityReviewResponseBuilder {
 	return &CapabilityReviewResponseBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *CapabilityReviewResponseBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // Result sets the value of the 'result' attribute to the given value.
-//
-//
 func (b *CapabilityReviewResponseBuilder) Result(value string) *CapabilityReviewResponseBuilder {
 	b.result = value
 	b.bitmap_ |= 1

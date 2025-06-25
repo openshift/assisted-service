@@ -37,6 +37,11 @@ func (b *CapabilityReviewRequestListBuilder) Items(values ...*CapabilityReviewRe
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *CapabilityReviewRequestListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *CapabilityReviewRequestListBuilder) Copy(list *CapabilityReviewRequestList) *CapabilityReviewRequestListBuilder {
 	if list == nil || list.items == nil {
