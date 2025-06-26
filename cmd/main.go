@@ -165,6 +165,7 @@ var Options struct {
 	HTTPListenPort                       string        `envconfig:"HTTP_LISTEN_PORT" default:""`
 	AllowConvergedFlow                   bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"true"`
 	PauseProvisionedBMHs                 bool          `envconfig:"PAUSE_PROVISIONED_BMHS" default:"true"`
+	ForceInsecurePolicyJson              bool          `envconfig:"FORCE_INSECURE_POLICY_JSON" default:"false"`
 	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
 	BMACConfig                           controllers.BMACConfig
 	InstallerCacheConfig                 installercache.Config
@@ -340,7 +341,7 @@ func main() {
 	var k8sClient *kubernetes.Clientset
 	var startupLeader leader.ElectorInterface
 
-	mirrorRegistriesBuilder := mirrorregistries.New()
+	mirrorRegistriesBuilder := mirrorregistries.New(Options.ForceInsecurePolicyJson)
 	releaseHandler := oc.NewRelease(
 		&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay},
@@ -659,7 +660,7 @@ func main() {
 				AuthType:                      Options.Auth.AuthType,
 				VersionsHandler:               versionHandler,
 				SpokeK8sClientFactory:         spokeClientFactory,
-				MirrorRegistriesConfigBuilder: mirrorregistries.New(),
+				MirrorRegistriesConfigBuilder: mirrorregistries.New(Options.ForceInsecurePolicyJson),
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{
