@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // SummarySampleBuilder contains the data and logic needed to build 'summary_sample' objects.
-//
-//
 type SummarySampleBuilder struct {
 	bitmap_ uint32
 	time    string
@@ -33,9 +31,12 @@ func NewSummarySample() *SummarySampleBuilder {
 	return &SummarySampleBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *SummarySampleBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // Time sets the value of the 'time' attribute to the given value.
-//
-//
 func (b *SummarySampleBuilder) Time(value string) *SummarySampleBuilder {
 	b.time = value
 	b.bitmap_ |= 1
@@ -43,8 +44,6 @@ func (b *SummarySampleBuilder) Time(value string) *SummarySampleBuilder {
 }
 
 // Value sets the value of the 'value' attribute to the given value.
-//
-//
 func (b *SummarySampleBuilder) Value(value float64) *SummarySampleBuilder {
 	b.value = value
 	b.bitmap_ |= 2

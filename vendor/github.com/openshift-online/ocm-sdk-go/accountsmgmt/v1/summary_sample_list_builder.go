@@ -37,6 +37,11 @@ func (b *SummarySampleListBuilder) Items(values ...*SummarySampleBuilder) *Summa
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *SummarySampleListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *SummarySampleListBuilder) Copy(list *SummarySampleList) *SummarySampleListBuilder {
 	if list == nil || list.items == nil {

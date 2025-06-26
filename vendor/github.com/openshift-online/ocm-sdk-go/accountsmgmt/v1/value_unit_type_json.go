@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalValueUnit writes a value of the 'value_unit' type to the given writer.
 func MarshalValueUnit(object *ValueUnit, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeValueUnit(object, stream)
-	stream.Flush()
+	WriteValueUnit(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeValueUnit writes a value of the 'value_unit' type to the given stream.
-func writeValueUnit(object *ValueUnit, stream *jsoniter.Stream) {
+// WriteValueUnit writes a value of the 'value_unit' type to the given stream.
+func WriteValueUnit(object *ValueUnit, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,7 +58,6 @@ func writeValueUnit(object *ValueUnit, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("value")
 		stream.WriteFloat64(object.value)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -64,20 +65,17 @@ func writeValueUnit(object *ValueUnit, stream *jsoniter.Stream) {
 // UnmarshalValueUnit reads a value of the 'value_unit' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalValueUnit(source interface{}) (object *ValueUnit, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readValueUnit(iterator)
+	object = ReadValueUnit(iterator)
 	err = iterator.Error
 	return
 }
 
-// readValueUnit reads a value of the 'value_unit' type from the given iterator.
-func readValueUnit(iterator *jsoniter.Iterator) *ValueUnit {
+// ReadValueUnit reads a value of the 'value_unit' type from the given iterator.
+func ReadValueUnit(iterator *jsoniter.Iterator) *ValueUnit {
 	object := &ValueUnit{}
 	for {
 		field := iterator.ReadObject()

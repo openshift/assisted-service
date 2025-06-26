@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalSupportCaseRequest writes a value of the 'support_case_request' type to the given writer.
 func MarshalSupportCaseRequest(object *SupportCaseRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSupportCaseRequest(object, stream)
-	stream.Flush()
+	WriteSupportCaseRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSupportCaseRequest writes a value of the 'support_case_request' type to the given stream.
-func writeSupportCaseRequest(object *SupportCaseRequest, stream *jsoniter.Stream) {
+// WriteSupportCaseRequest writes a value of the 'support_case_request' type to the given stream.
+func WriteSupportCaseRequest(object *SupportCaseRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -124,7 +126,6 @@ func writeSupportCaseRequest(object *SupportCaseRequest, stream *jsoniter.Stream
 		}
 		stream.WriteObjectField("summary")
 		stream.WriteString(object.summary)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -132,20 +133,17 @@ func writeSupportCaseRequest(object *SupportCaseRequest, stream *jsoniter.Stream
 // UnmarshalSupportCaseRequest reads a value of the 'support_case_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSupportCaseRequest(source interface{}) (object *SupportCaseRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSupportCaseRequest(iterator)
+	object = ReadSupportCaseRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSupportCaseRequest reads a value of the 'support_case_request' type from the given iterator.
-func readSupportCaseRequest(iterator *jsoniter.Iterator) *SupportCaseRequest {
+// ReadSupportCaseRequest reads a value of the 'support_case_request' type from the given iterator.
+func ReadSupportCaseRequest(iterator *jsoniter.Iterator) *SupportCaseRequest {
 	object := &SupportCaseRequest{}
 	for {
 		field := iterator.ReadObject()

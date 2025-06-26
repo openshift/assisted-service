@@ -30,7 +30,10 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/openshift-online/ocm-sdk-go/accesstransparency"
 	"github.com/openshift-online/ocm-sdk-go/accountsmgmt"
+	"github.com/openshift-online/ocm-sdk-go/addonsmgmt"
+	"github.com/openshift-online/ocm-sdk-go/arohcp"
 	"github.com/openshift-online/ocm-sdk-go/authentication"
 	"github.com/openshift-online/ocm-sdk-go/authorizations"
 	"github.com/openshift-online/ocm-sdk-go/clustersmgmt"
@@ -39,8 +42,12 @@ import (
 	"github.com/openshift-online/ocm-sdk-go/jobqueue"
 	"github.com/openshift-online/ocm-sdk-go/logging"
 	"github.com/openshift-online/ocm-sdk-go/metrics"
+	"github.com/openshift-online/ocm-sdk-go/osdfleetmgmt"
 	"github.com/openshift-online/ocm-sdk-go/retry"
 	"github.com/openshift-online/ocm-sdk-go/servicelogs"
+	"github.com/openshift-online/ocm-sdk-go/servicemgmt"
+	"github.com/openshift-online/ocm-sdk-go/statusboard"
+	"github.com/openshift-online/ocm-sdk-go/webrca"
 )
 
 // Default values:
@@ -51,6 +58,7 @@ const (
 	DefaultClientSecret = authentication.DefaultClientSecret
 	DefaultURL          = "https://api.openshift.com"
 	DefaultAgent        = "OCM-SDK/" + Version
+	FedRAMPURL          = "https://api.openshiftusgov.com"
 )
 
 // DefaultScopes is the ser of scopes used by default:
@@ -80,6 +88,8 @@ type ConnectionBuilder struct {
 	retryInterval     time.Duration
 	retryJitter       float64
 	transportWrappers []func(http.RoundTripper) http.RoundTripper
+
+	includeDefaultAuthnTransportWrapper bool
 
 	// Metrics:
 	metricsSubsystem  string
@@ -127,11 +137,20 @@ func NewConnectionBuilder() *ConnectionBuilder {
 		urlTable: map[string]string{
 			"": DefaultURL,
 		},
-		retryLimit:        retry.DefaultLimit,
-		retryInterval:     retry.DefaultInterval,
-		retryJitter:       retry.DefaultJitter,
-		metricsRegisterer: prometheus.DefaultRegisterer,
+		retryLimit:                          retry.DefaultLimit,
+		retryInterval:                       retry.DefaultInterval,
+		retryJitter:                         retry.DefaultJitter,
+		metricsRegisterer:                   prometheus.DefaultRegisterer,
+		includeDefaultAuthnTransportWrapper: true,
 	}
+}
+
+// NewConnectionBuilder creates a Builder that knows how to create connections
+// without authentication
+func NewUnauthenticatedConnectionBuilder() *ConnectionBuilder {
+	connectionBuilder := NewConnectionBuilder()
+	connectionBuilder.includeDefaultAuthnTransportWrapper = false
+	return connectionBuilder
 }
 
 // Logger sets the logger that will be used by the connection. By default it uses the Go `log`
@@ -462,21 +481,21 @@ func (b *ConnectionBuilder) TransportWrapper(value TransportWrapper) *Connection
 // To calculate the average request duration during the last 10 minutes, for example, use a
 // Prometheus expression like this:
 //
-//      rate(api_outbound_request_duration_sum[10m]) / rate(api_outbound_request_duration_count[10m])
+//	rate(api_outbound_request_duration_sum[10m]) / rate(api_outbound_request_duration_count[10m])
 //
 // In order to reduce the cardinality of the metrics the path label is modified to remove the
 // identifiers of the objects. For example, if the original path is .../clusters/123 then it will
 // be replaced by .../clusters/-, and the values will be accumulated. The line returned by the
 // metrics server will be like this:
 //
-//      api_outbound_request_count{code="200",method="GET",path="/api/clusters_mgmt/v1/clusters/-"} 56
+//	api_outbound_request_count{code="200",method="GET",path="/api/clusters_mgmt/v1/clusters/-"} 56
 //
 // The meaning of that is that there were a total of 56 requests to get specific clusters,
 // independently of the specific identifier of the cluster.
 //
 // The token request metrics will contain the following labels:
 //
-//      code - HTTP response code, for example 200 or 500.
+//	code - HTTP response code, for example 200 or 500.
 //
 // The value of the `code` label will be zero when sending the request failed without a response
 // code, for example if it wasn't possible to open the connection, or if there was a timeout waiting
@@ -734,24 +753,34 @@ func (b *ConnectionBuilder) BuildContext(ctx context.Context) (connection *Conne
 		loggingWrapper = wrapper.Wrap
 	}
 
-	// Create the authentication wrapper:
-	authnWrapper, err := authentication.NewTransportWrapper().
+	// Initialize the client selector builder:
+	clientSelectorBuilder := internal.NewClientSelector().
 		Logger(b.logger).
-		TokenURL(b.tokenURL).
-		User(b.user, b.password).
-		Client(b.clientID, b.clientSecret).
-		Tokens(b.tokens...).
-		Scopes(b.scopes...).
 		TrustedCAs(b.trustedCAs...).
-		Insecure(b.insecure).
-		TransportWrapper(metricsWrapper).
-		TransportWrapper(loggingWrapper).
-		TransportWrappers(b.transportWrappers...).
-		MetricsSubsystem(b.metricsSubsystem).
-		MetricsRegisterer(b.metricsRegisterer).
-		Build(ctx)
-	if err != nil {
-		return
+		Insecure(b.insecure)
+
+	var authnWrapper *authentication.TransportWrapper
+	if b.includeDefaultAuthnTransportWrapper {
+		// Create the authentication wrapper:
+		authnWrapper, err = authentication.NewTransportWrapper().
+			Logger(b.logger).
+			TokenURL(b.tokenURL).
+			User(b.user, b.password).
+			Client(b.clientID, b.clientSecret).
+			Tokens(b.tokens...).
+			Scopes(b.scopes...).
+			TrustedCAs(b.trustedCAs...).
+			Insecure(b.insecure).
+			TransportWrapper(metricsWrapper).
+			TransportWrapper(loggingWrapper).
+			TransportWrappers(b.transportWrappers...).
+			MetricsSubsystem(b.metricsSubsystem).
+			MetricsRegisterer(b.metricsRegisterer).
+			Build(ctx)
+		if err != nil {
+			return
+		}
+		clientSelectorBuilder.TransportWrapper(authnWrapper.Wrap)
 	}
 
 	// Create the retry wrapper:
@@ -766,11 +795,7 @@ func (b *ConnectionBuilder) BuildContext(ctx context.Context) (connection *Conne
 	}
 
 	// Create the client selector:
-	clientSelector, err := internal.NewClientSelector().
-		Logger(b.logger).
-		TrustedCAs(b.trustedCAs...).
-		Insecure(b.insecure).
-		TransportWrapper(authnWrapper.Wrap).
+	clientSelector, err := clientSelectorBuilder.
 		TransportWrapper(metricsWrapper).
 		TransportWrapper(retryWrapper.Wrap).
 		TransportWrapper(loggingWrapper).
@@ -868,25 +893,39 @@ func (c *Connection) Logger() logging.Logger {
 }
 
 // TokenURL returns the URL that the connection is using request OpenID access tokens.
+// An empty string is returned if the connection does not use authentication.
 func (c *Connection) TokenURL() string {
+	if c.authnWrapper == nil {
+		return ""
+	}
 	return c.authnWrapper.TokenURL()
 }
 
 // Client returns OpenID client identifier and secret that the connection is using to request OpenID
 // access tokens.
+// Empty strings are returned if the connection does not use authentication.
 func (c *Connection) Client() (id, secret string) {
-	id, secret = c.authnWrapper.Client()
+	if c.authnWrapper != nil {
+		id, secret = c.authnWrapper.Client()
+	}
 	return
 }
 
 // User returns the user name and password that the is using to request OpenID access tokens.
+// Empty strings are returned if the connection does not use authentication.
 func (c *Connection) User() (user, password string) {
-	user, password = c.authnWrapper.User()
+	if c.authnWrapper != nil {
+		user, password = c.authnWrapper.User()
+	}
 	return
 }
 
 // Scopes returns the OpenID scopes that the connection is using to request OpenID access tokens.
+// An empty slice is returned if the connection does not use authentication.
 func (c *Connection) Scopes() []string {
+	if c.authnWrapper == nil {
+		return []string{}
+	}
 	return c.authnWrapper.Scopes()
 }
 
@@ -960,14 +999,35 @@ func (c *Connection) AlternativeURLs() map[string]string {
 	return result
 }
 
+// AccessTransparency returns the client for the access transparency service.
+func (c *Connection) AccessTransparency() *accesstransparency.Client {
+	return accesstransparency.NewClient(c, "/api/access_transparency")
+}
+
 // AccountsMgmt returns the client for the accounts management service.
 func (c *Connection) AccountsMgmt() *accountsmgmt.Client {
 	return accountsmgmt.NewClient(c, "/api/accounts_mgmt")
 }
 
+// AccountsMgmt returns the client for the accounts management service.
+func (c *Connection) AddonsMgmt() *addonsmgmt.Client {
+	return addonsmgmt.NewClient(c, "/api/addons_mgmt")
+}
+
 // ClustersMgmt returns the client for the clusters management service.
 func (c *Connection) ClustersMgmt() *clustersmgmt.Client {
 	return clustersmgmt.NewClient(c, "/api/clusters_mgmt")
+}
+
+// AroHCP returns the client for the ARO-HCP clusters management service.
+func (c *Connection) AroHCP() *arohcp.Client {
+	return arohcp.NewClient(c, "/api/aro_hcp")
+}
+
+// OSDFleetMgmt returns the client for the OSD management service.
+func (c *Connection) OSDFleetMgmt() *osdfleetmgmt.Client {
+
+	return osdfleetmgmt.NewClient(c, "/api/osd_fleet_mgmt")
 }
 
 // Authorizations returns the client for the authorizations service.
@@ -985,11 +1045,31 @@ func (c *Connection) JobQueue() *jobqueue.Client {
 	return jobqueue.NewClient(c, "/api/job_queue")
 }
 
+// Status board returns the client for the status board service.
+func (c *Connection) StatusBoard() *statusboard.Client {
+	return statusboard.NewClient(c, "/api/status-board")
+}
+
+// ServiceMgmt returns the client for the service management service.
+func (c *Connection) ServiceMgmt() *servicemgmt.Client {
+	return servicemgmt.NewClient(c, "/api/service_mgmt")
+}
+
+// WebRCA returns the client for the web RCA service.
+func (c *Connection) WebRCA() *webrca.Client {
+	return webrca.NewClient(c, "/api/web-rca")
+}
+
 // Close releases all the resources used by the connection. It is very important to always close it
 // once it is no longer needed, as otherwise those resources may be leaked. Trying to use a
 // connection that has been closed will result in a error.
 func (c *Connection) Close() error {
 	var err error
+
+	// in case the connection is already closed, return instead of printing an error message
+	if c.closed {
+		return nil
+	}
 
 	// Close the HTTP clients:
 	err = c.clientSelector.Close()
@@ -997,13 +1077,16 @@ func (c *Connection) Close() error {
 		return err
 	}
 
-	// Close the authentication wrapper:
-	err = c.authnWrapper.Close()
-	if err != nil {
-		return err
+	// If the default authentication wrapper is set close it
+	if c.authnWrapper != nil {
+		// Close the authentication wrapper:
+		err = c.authnWrapper.Close()
+		if err != nil {
+			return err
+		}
 	}
 
-	// Makr the connection as closed, so that further attempts to use it will fail:
+	// Mark the connection as closed, so that further attempts to use it will fail:
 	c.closed = true
 	return nil
 }

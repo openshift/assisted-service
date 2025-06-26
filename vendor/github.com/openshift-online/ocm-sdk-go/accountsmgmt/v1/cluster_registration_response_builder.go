@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // ClusterRegistrationResponseBuilder contains the data and logic needed to build 'cluster_registration_response' objects.
-//
-//
 type ClusterRegistrationResponseBuilder struct {
 	bitmap_            uint32
 	accountID          string
@@ -35,9 +33,12 @@ func NewClusterRegistrationResponse() *ClusterRegistrationResponseBuilder {
 	return &ClusterRegistrationResponseBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *ClusterRegistrationResponseBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // AccountID sets the value of the 'account_ID' attribute to the given value.
-//
-//
 func (b *ClusterRegistrationResponseBuilder) AccountID(value string) *ClusterRegistrationResponseBuilder {
 	b.accountID = value
 	b.bitmap_ |= 1
@@ -45,8 +46,6 @@ func (b *ClusterRegistrationResponseBuilder) AccountID(value string) *ClusterReg
 }
 
 // AuthorizationToken sets the value of the 'authorization_token' attribute to the given value.
-//
-//
 func (b *ClusterRegistrationResponseBuilder) AuthorizationToken(value string) *ClusterRegistrationResponseBuilder {
 	b.authorizationToken = value
 	b.bitmap_ |= 2
@@ -54,8 +53,6 @@ func (b *ClusterRegistrationResponseBuilder) AuthorizationToken(value string) *C
 }
 
 // ClusterID sets the value of the 'cluster_ID' attribute to the given value.
-//
-//
 func (b *ClusterRegistrationResponseBuilder) ClusterID(value string) *ClusterRegistrationResponseBuilder {
 	b.clusterID = value
 	b.bitmap_ |= 4
@@ -63,8 +60,6 @@ func (b *ClusterRegistrationResponseBuilder) ClusterID(value string) *ClusterReg
 }
 
 // ExpiresAt sets the value of the 'expires_at' attribute to the given value.
-//
-//
 func (b *ClusterRegistrationResponseBuilder) ExpiresAt(value string) *ClusterRegistrationResponseBuilder {
 	b.expiresAt = value
 	b.bitmap_ |= 8
