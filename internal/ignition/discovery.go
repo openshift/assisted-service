@@ -154,6 +154,7 @@ ConditionPathExists=/enoent
 
 const tempNMConnectionsDir = "/etc/assisted/network"
 const mirrorRegistriesConfigKey = "MirrorRegistriesConfig"
+const mirrorRegistriesPolicyConfigKey = "MirrorRegistriesPolicyConfig"
 const mirrorRegistriesCAConfigKey = "MirrorRegistriesCAConfig"
 
 // IgnitionBuilder defines the ignition formatting methods for the various images
@@ -230,11 +231,11 @@ func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *c
 	return okdRpmsImage, true
 }
 
-func (ib *ignitionBuilder) setIgnitionMirrorRegistry(ignitionParams map[string]interface{}, configuration *common.MirrorRegistryConfiguration) error {
-
+func (ib *ignitionBuilder) setIgnitionMirrorRegistry(infraEnv *common.InfraEnv, ignitionParams map[string]interface{}, configuration *common.MirrorRegistryConfiguration) error {
 	// check if mirror registry is configured in the infra env
 	if common.IsMirrorConfigurationSet(configuration) {
 		ib.log.Debugf("Setting ignition cluster mirror registry to %s", configuration.RegistriesConf)
+		ib.log.Infof("Using mirror registry configuration from InfraEnv %s", infraEnv.ID.String())
 		ignitionParams[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.RegistriesConf))
 		ignitionParams[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.CaBundleCrt))
 		return nil
@@ -252,6 +253,12 @@ func (ib *ignitionBuilder) setIgnitionMirrorRegistry(ignitionParams map[string]i
 			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries config contents")
 			return mirrorsErr
 		}
+
+		if encodedPolicy, err := ib.mirrorRegistriesBuilder.GenerateInsecurePolicyJSON(); err == nil && encodedPolicy != "" {
+			ib.log.Infof("Applying insecure image policy override (ForceInsecurePolicy=true) to infraEnv %s", infraEnv.ID.String())
+			ignitionParams[mirrorRegistriesPolicyConfigKey] = encodedPolicy
+		}
+
 		ignitionParams[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString(registriesContents)
 		ignitionParams[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString(caContents)
 		return nil
@@ -365,7 +372,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		return "", err
 	}
 
-	if err = ib.setIgnitionMirrorRegistry(ignitionParams, mirrorRegistryConfiguration); err != nil {
+	if err = ib.setIgnitionMirrorRegistry(infraEnv, ignitionParams, mirrorRegistryConfiguration); err != nil {
 		return "", err
 	}
 
