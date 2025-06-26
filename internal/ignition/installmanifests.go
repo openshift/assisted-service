@@ -118,7 +118,7 @@ type clusterVersion struct {
 
 // Generator can generate ignition files and upload them to an S3-like service
 type Generator interface {
-	Generate(ctx context.Context, installConfig []byte) error
+	Generate(ctx context.Context, installConfig []byte, forceInsecurePolicyJson bool) error
 	UploadToS3(ctx context.Context) error
 }
 
@@ -191,7 +191,7 @@ func (g *installerGenerator) allocateNodeIpsIfNeeded(log logrus.FieldLogger) {
 }
 
 // Generate generates ignition files and applies modifications.
-func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
+func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, forceInsecurePolicyJson bool) error {
 	var err error
 	log := logutil.FromContext(ctx, g.log)
 
@@ -207,7 +207,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		g.installerReleaseImageOverride = g.releaseImage
 	}
 
-	mirrorRegistriesBuilder := mirrorregistries.New()
+	mirrorRegistriesBuilder := mirrorregistries.New(forceInsecurePolicyJson)
 	ocRelease := oc.NewRelease(
 		&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay},

@@ -826,9 +826,40 @@ location = "%s"
 			Expect(count).Should(Equal(2))
 		})
 
+		It("adds default insecureAcceptAnything policy when ForceInsecurePolicy is true", func() {
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("some ca config"), nil).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorRegistries().Return([]byte("some mirror registries config"), nil).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().GenerateInsecurePolicyJSON().Return(`{
+		"default": [{"type": "insecureAcceptAnything"}],
+		"transports": {
+			"docker-daemon": {
+				"": [{"type":"insecureAcceptAnything"}]
+			}
+		}
+	}`, nil).Times(1)
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(nil, errors.New("some error")).Times(1)
+
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(text).To(ContainSubstring("policy.json"))
+		})
+
+		It("does not add policy file when ForceInsecurePolicy is false", func() {
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(nil, errors.New("some error")).Times(1)
+
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(text).ToNot(ContainSubstring("policy.json"))
+		})
+
 		It("produce ignition with mirror registries config", func() {
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("some ca config"), nil).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().GenerateInsecurePolicyJSON().Return("", nil).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorRegistries().Return([]byte("some mirror registries config"), nil).Times(1)
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
