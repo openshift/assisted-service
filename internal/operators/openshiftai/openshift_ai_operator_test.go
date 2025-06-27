@@ -182,3 +182,88 @@ var _ = Describe("GetDependencies", func() {
 		Expect(dependencies).To(BeEmpty())
 	})
 })
+var _ = Describe("ValidateCluster", func() {
+	var (
+		ctx      context.Context
+		operator *operator
+		mockCtrl *gomock.Controller
+		vendor1  *MockGPUVendor
+		cluster  *common.Cluster
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		mockCtrl = gomock.NewController(GinkgoT())
+		vendor1 = NewMockGPUVendor(mockCtrl)
+		cluster = &common.Cluster{}
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	It("returns both validations as success when workers and GPU are valid", func() {
+		// Setup config for enough workers
+		operator = NewOpenShiftAIOperator(common.GetTestLog(), vendor1)
+		operator.config.MinWorkerNodes = 1
+		cluster.Hosts = []*models.Host{
+			{Role: models.HostRoleWorker},
+		}
+		vendor1.EXPECT().ClusterHasGPU(cluster).Return(true, nil).Times(1)
+		vendor1.EXPECT().GetName().AnyTimes()
+
+		results, err := operator.ValidateCluster(ctx, cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(2))
+		Expect(results[0].Status).To(Equal(api.Success))
+		Expect(results[1].Status).To(Equal(api.Success))
+	})
+
+	It("returns failure for workers if not enough worker nodes", func() {
+		operator = NewOpenShiftAIOperator(common.GetTestLog(), vendor1)
+		operator.config.MinWorkerNodes = 2
+		cluster.Hosts = []*models.Host{
+			{Role: models.HostRoleWorker},
+		}
+		vendor1.EXPECT().ClusterHasGPU(cluster).Return(true, nil).Times(1)
+		vendor1.EXPECT().GetName().AnyTimes()
+
+		results, err := operator.ValidateCluster(ctx, cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(2))
+		Expect(results[0].Status).To(Equal(api.Failure))
+		Expect(results[0].ValidationId).To(Equal(clusterValidationID))
+		Expect(results[1].Status).To(Equal(api.Success))
+	})
+
+	It("returns failure for GPU if no vendor has GPU", func() {
+		operator = NewOpenShiftAIOperator(common.GetTestLog(), vendor1)
+		operator.config.MinWorkerNodes = 1
+		cluster.Hosts = []*models.Host{
+			{Role: models.HostRoleWorker},
+		}
+		vendor1.EXPECT().ClusterHasGPU(cluster).Return(false, nil).Times(1)
+		vendor1.EXPECT().GetName().AnyTimes()
+
+		results, err := operator.ValidateCluster(ctx, cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(2))
+		Expect(results[0].Status).To(Equal(api.Success))
+		Expect(results[1].Status).To(Equal(api.Failure))
+		Expect(results[1].ValidationId).To(Equal(clusterGPUValidationID))
+	})
+
+	It("returns error if vendor returns error", func() {
+		operator = NewOpenShiftAIOperator(common.GetTestLog(), vendor1)
+		operator.config.MinWorkerNodes = 1
+		cluster.Hosts = []*models.Host{
+			{Role: models.HostRoleWorker},
+		}
+		vendor1.EXPECT().ClusterHasGPU(cluster).Return(false, fmt.Errorf("gpu error")).Times(1)
+		vendor1.EXPECT().GetName().Return("vendor1").Times(1)
+
+		_, err := operator.ValidateCluster(ctx, cluster)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to validate GPU"))
+	})
+})
