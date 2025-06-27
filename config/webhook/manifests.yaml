@@ -50,6 +50,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-agent-install-openshift-io-v1beta1-agentserviceconfig
+  failurePolicy: Fail
+  name: vagentserviceconfig.kb.io
+  rules:
+  - apiGroups:
+    - agent-install.openshift.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - agentserviceconfigs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-agent-install-openshift-io-v1beta1-infraenv
   failurePolicy: Fail
   name: vinfraenv.kb.io
