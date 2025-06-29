@@ -17,7 +17,7 @@ var _ = Describe("CNV manifest generation", func() {
 		table.DescribeTable("Should create manifestes", func(cluster common.Cluster, isSno bool, cfg Config) {
 			cnvOperator := NewCNVOperator(common.GetTestLog(), cfg)
 			openshiftManifests, manifest, err := cnvOperator.GenerateManifests(&cluster)
-			numManifests := 3
+			numManifests := 5
 			if isSno && cfg.SNOInstallHPP {
 				var versionerr error
 				var ocpVersion, minimalVersionForHppSno *version.Version
@@ -38,6 +38,8 @@ var _ = Describe("CNV manifest generation", func() {
 			Expect(openshiftManifests["50_openshift-cnv_ns.yaml"]).NotTo(HaveLen(0))
 			Expect(openshiftManifests["50_openshift-cnv_operator_group.yaml"]).NotTo(HaveLen(0))
 			Expect(openshiftManifests["50_openshift-cnv_subscription.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["50_openshift-cnv_workers_schedstats.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["50_openshift-cnv_masters_schedstats.yaml"]).NotTo(HaveLen(0))
 
 			_, err = yaml.YAMLToJSON(manifest)
 			Expect(err).ShouldNot(HaveOccurred())
