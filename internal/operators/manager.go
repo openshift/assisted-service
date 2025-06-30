@@ -28,9 +28,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8syaml "sigs.k8s.io/yaml"
 )
 
-const controllerManifestFile = "custom_manifests.json"
+const (
+	controllerManifestFile          = "custom_manifests.json"
+	controllerManifestConfigMapFile = "olm_operator_manifests.yaml"
+)
 
 var storageOperatorsPriority = []string{odf.Operator.Name, lvm.Operator.Name}
 
@@ -55,6 +61,13 @@ type OperatorFeatureSupportID struct {
 	OperatorName     string
 	FeatureSupportID models.FeatureSupportLevelID
 	Dependencies     []models.FeatureSupportLevelID
+}
+
+// operatorMetadata is a struct to marshal the metadata content into YAML for the OLM Operator ConfigMap.
+type operatorMetadata struct {
+	Namespace        string   `yaml:"namespace"`
+	SubscriptionName string   `yaml:"subscriptionName"`
+	Manifests        []string `yaml:"manifests"`
 }
 
 // API defines Operator management operation
@@ -208,7 +221,13 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 		if err != nil {
 			return err
 		}
-		if err := mgr.createControllerManifest(ctx, cluster, string(content)); err != nil {
+		if err = mgr.createControllerManifest(ctx, cluster, string(content)); err != nil {
+			return err
+		}
+		// Create ConfigMap with custom manifests to allow retrieval from assisted-installer
+		// if API cannot be reached
+		err = mgr.createOLMOperatorsConfigMap(ctx, cluster, &controllerManifests)
+		if err != nil {
 			return err
 		}
 	}
@@ -225,6 +244,103 @@ func (mgr *Manager) createControllerManifest(ctx context.Context, cluster *commo
 		return errors.Errorf("Failed to upload custom manifests for cluster %s", cluster.ID)
 	}
 	return nil
+}
+
+// Create a ConfigMap containing the operator custom manifests and add it to install manifests.
+// This is needed when the assisted-installer cannot access the API to retrieve the manifest file, e.g.
+// for the Agent-Based Installer.
+// The data section of the ConfigMap will contain the manifests and additional metadata from
+// MonitoredOperators
+//   <operator-name>.metadata.yaml: |
+//     namespace: <operator-namespace>
+//     subscriptionName: <operator-subscriptionName>
+//     manifests:
+//       - <operator-name>-01.yaml
+//   <operator-name>-01.yaml: |
+//     <content of manifest>
+func (mgr *Manager) createOLMOperatorsConfigMap(ctx context.Context, cluster *common.Cluster, manifests *[]Manifest) error {
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "olm-operator-manifests",
+			Namespace: "assisted-installer",
+		},
+		Data: make(map[string]string),
+	}
+	// Track per-operator file counts and filenames across all batches
+	counts := make(map[string]int)
+	filesByOp := make(map[string][]string)
+	opDetailsCache := make(map[string]*models.MonitoredOperator)
+
+	for _, manifest := range *manifests {
+		op, err := mgr.GetOperatorByName(manifest.Name)
+		if err != nil {
+			mgr.log.Infof("Could not find operator %s in monitored operators", manifest.Name)
+			continue
+		}
+
+		// Cache operator info
+		opDetailsCache[op.Name] = op
+
+		// Decode the base64 controller manifest back to YAML bytes.
+		decoded, err := base64.StdEncoding.DecodeString(manifest.Content)
+		if err != nil {
+			return fmt.Errorf("could not base64-decode manifest for %s: %w", manifest.Name, err)
+		}
+		// Split the manifest content into individual YAML documents.
+		rawManifests, err := common.GetMultipleYamls[map[string]interface{}](decoded)
+		if err != nil {
+			return fmt.Errorf("could not decode YAML for %s: %w", manifest.Name, err)
+		}
+
+		// Re-marshal each document to YAML and add to the ConfigMap data.
+		for _, doc := range rawManifests {
+			if len(doc) == 0 {
+				continue
+			}
+			b, err := k8syaml.Marshal(doc)
+			if err != nil {
+				return fmt.Errorf("failed to marshal YAML doc for %s: %w", manifest.Name, err)
+			}
+			trimmedManifest := strings.TrimSpace(string(b))
+			if trimmedManifest == "" {
+				continue
+			}
+			// Store base64-encoded content for assisted-installer
+			encodedManifest := base64.StdEncoding.EncodeToString([]byte(trimmedManifest))
+
+			counts[op.Name]++
+			fileName := fmt.Sprintf("%s-%02d.yaml", op.Name, counts[op.Name])
+			configMap.Data[fileName] = encodedManifest
+			filesByOp[op.Name] = append(filesByOp[op.Name], fileName)
+		}
+	}
+
+	// Emit one metadata entry per operator with the full list of files
+	for name, fileNames := range filesByOp {
+		info := opDetailsCache[name]
+		metadata := operatorMetadata{
+			Namespace:        info.Namespace,
+			SubscriptionName: info.SubscriptionName,
+			Manifests:        fileNames,
+		}
+		metadataYAML, err := k8syaml.Marshal(metadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata for operator %s: %w", name, err)
+		}
+		metadataKey := fmt.Sprintf("%s.metadata.yaml", name)
+		configMap.Data[metadataKey] = string(metadataYAML)
+	}
+
+	contents, err := k8syaml.Marshal(configMap)
+	if err != nil {
+		return fmt.Errorf("failed to marshal configMap to yaml: %w", err)
+	}
+
+	return mgr.createInstallManifests(ctx, cluster, controllerManifestConfigMapFile, contents, models.ManifestFolderOpenshift)
 }
 
 func (mgr *Manager) createInstallManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte, folder string) error {
