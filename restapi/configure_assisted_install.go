@@ -55,6 +55,9 @@ type InstallerAPI interface {
 	/* GetClusterSupportedPlatforms A list of platforms that this cluster can support in its current configuration. */
 	GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder
 
+	/* GetDetailedSupportedFeatures Retrieves detailed features information including support level, incompatibilities, and operator dependencies. */
+	GetDetailedSupportedFeatures(ctx context.Context, params installer.GetDetailedSupportedFeaturesParams) middleware.Responder
+
 	/* GetInfraEnv Retrieves the details of the infra-env. */
 	GetInfraEnv(ctx context.Context, params installer.GetInfraEnvParams) middleware.Responder
 
@@ -446,6 +449,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetClusterSupportedPlatforms(ctx, params)
+	})
+	api.InstallerGetDetailedSupportedFeaturesHandler = installer.GetDetailedSupportedFeaturesHandlerFunc(func(params installer.GetDetailedSupportedFeaturesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetDetailedSupportedFeatures(ctx, params)
 	})
 	api.InstallerGetInfraEnvHandler = installer.GetInfraEnvHandlerFunc(func(params installer.GetInfraEnvParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

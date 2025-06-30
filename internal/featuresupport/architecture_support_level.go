@@ -1,6 +1,8 @@
 package featuresupport
 
 import (
+	"fmt"
+
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -32,20 +34,35 @@ func getArchitectureSupportList(features map[models.ArchitectureSupportLevelID]S
 
 // Handle cases where a CPU architecture is not supported at for a given openshift version, in that case
 // return a list of unsupported features
-func overrideInvalidRequest(features map[models.FeatureSupportLevelID]SupportLevelFeature, cpuArchitecture, openshiftVersion string) models.SupportLevels {
-	supportLevels := models.SupportLevels{}
+func overrideInvalidRequest(features map[models.FeatureSupportLevelID]SupportLevelFeature, cpuArchitecture, openshiftVersion string) []models.Feature {
+	ret := make([]models.Feature, 0)
+
 	cpuArchID := cpuArchitectureFeatureIdMap[cpuArchitecture]
 	if !isArchitectureSupported(cpuArchID, openshiftVersion) {
 		for _, feature := range features {
-			supportLevels[string(feature.getId())] = models.SupportLevelUnavailable
+			ret = append(ret, models.Feature{
+				FeatureSupportLevelID: feature.getId(),
+				SupportLevel:          models.SupportLevelUnavailable,
+			})
 		}
-		return supportLevels
+
+		return ret
 	}
+
 	return nil
 }
 
 func GetCpuArchitectureSupportList(openshiftVersion string) models.SupportLevels {
 	return getArchitectureSupportList(cpuFeaturesList, openshiftVersion)
+}
+
+func IsArchitectureSupported(cpuArchitecture string, openshiftVersion string) (bool, error) {
+	cpuArchID, ok := cpuArchitectureFeatureIdMap[cpuArchitecture]
+	if !ok {
+		return false, fmt.Errorf("invalid cpu architecture: %s", cpuArchitecture)
+	}
+
+	return isArchitectureSupported(cpuArchID, openshiftVersion), nil
 }
 
 func isArchitectureSupported(featureId models.ArchitectureSupportLevelID, openshiftVersion string) bool {

@@ -60,6 +60,10 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return []string{operatorscommon.SelfNodeRemediationOperatorName}, nil
 }
 
+func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{models.FeatureSupportLevelIDSELFNODEREMEDIATION}
+}
+
 // GetClusterValidationIDs returns cluster validation IDs for the Operator
 func (o *operator) GetClusterValidationIDs() []string {
 	return []string{clusterValidationID}
