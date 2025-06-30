@@ -181,6 +181,31 @@ spec:
                   type: string
                 maxItems: 2
                 type: array
+              arbiter:
+                description: |-
+                  Arbiter is the configuration for the machines that have the
+                  arbiter role.
+                properties:
+                  hyperthreading:
+                    default: Enabled
+                    description: |-
+                      Hyperthreading determines the mode of hyperthreading that machines in the
+                      pool will utilize.
+                      Default is for hyperthreading to be enabled.
+                    enum:
+                    - ""
+                    - Enabled
+                    - Disabled
+                    type: string
+                  name:
+                    description: |-
+                      Name is the name of the machine pool.
+                      For the control plane machine pool, the name will always be "master".
+                      For the compute machine pools, the only valid name is "worker".
+                    type: string
+                required:
+                - name
+                type: object
               clusterDeploymentRef:
                 description: ClusterDeploymentRef is a reference to the ClusterDeployment
                   associated with this AgentClusterInstall.
@@ -335,7 +360,12 @@ spec:
                     - none
                     - all
                     - masters
+                    - arbiters
                     - workers
+                    - masters,arbiters
+                    - masters,workers
+                    - arbiters,workers
+                    - masters,arbiters,workers
                     type: string
                   mode:
                     description: The disk encryption mode to use.

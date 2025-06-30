@@ -3285,6 +3285,16 @@ location = "%s"
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
 		verifyHyperthreadingSetup(models.ClusterHyperthreadingMasters)
 
+		By("update deployment with hyperthreading enabled on arbiters only")
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.Arbiter = &hiveext.AgentMachinePool{
+			Name:           hiveext.ArbiterAgentMachinePool,
+			Hyperthreading: hiveext.HyperthreadingEnabled,
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifyHyperthreadingSetup(models.ClusterHyperthreadingArbiters)
+
 		By("update deployment with hyperthreading enabled on workers only")
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.Compute = []hiveext.AgentMachinePool{
@@ -3293,6 +3303,37 @@ location = "%s"
 		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
 		verifyHyperthreadingSetup(models.ClusterHyperthreadingWorkers)
+
+		By("update deployment with hyperthreading enabled on masters and arbiters only")
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.ControlPlane = &hiveext.AgentMachinePool{
+			Name:           hiveext.MasterAgentMachinePool,
+			Hyperthreading: hiveext.HyperthreadingEnabled,
+		}
+		aciSpec.Arbiter = &hiveext.AgentMachinePool{
+			Name:           hiveext.ArbiterAgentMachinePool,
+			Hyperthreading: hiveext.HyperthreadingEnabled,
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifyHyperthreadingSetup(models.ClusterHyperthreadingMastersArbiters)
+
+		By("update deployment with hyperthreading enabled on masters, arbiters and workers")
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.ControlPlane = &hiveext.AgentMachinePool{
+			Name:           hiveext.MasterAgentMachinePool,
+			Hyperthreading: hiveext.HyperthreadingEnabled,
+		}
+		aciSpec.Arbiter = &hiveext.AgentMachinePool{
+			Name:           hiveext.ArbiterAgentMachinePool,
+			Hyperthreading: hiveext.HyperthreadingEnabled,
+		}
+		aciSpec.Compute = []hiveext.AgentMachinePool{
+			{Name: hiveext.WorkerAgentMachinePool, Hyperthreading: hiveext.HyperthreadingEnabled},
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifyHyperthreadingSetup(models.ClusterHyperthreadingMastersArbitersWorkers)
 	})
 
 	It("deploy clusterDeployment with disk encryption configuration", func() {
@@ -3331,6 +3372,16 @@ location = "%s"
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
 		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnMasters), swag.String(models.DiskEncryptionModeTpmv2), "")
 
+		By("update deployment with disk encryption enabled with tpmv2 on arbiters only")
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.DiskEncryption = &hiveext.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnArbiters),
+			Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnArbiters), swag.String(models.DiskEncryptionModeTpmv2), "")
+
 		By("update deployment with disk encryption enabled with tang on workers only")
 		tangServersConfig := `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
@@ -3342,6 +3393,39 @@ location = "%s"
 		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
 		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnWorkers), swag.String(models.DiskEncryptionModeTang), tangServersConfig)
+
+		By("update deployment with disk encryption enabled with tang on masters and arbiters only")
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.DiskEncryption = &hiveext.DiskEncryption{
+			EnableOn:    swag.String(models.DiskEncryptionEnableOnMastersArbiters),
+			Mode:        swag.String(models.DiskEncryptionModeTang),
+			TangServers: tangServersConfig,
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnMastersArbiters), swag.String(models.DiskEncryptionModeTang), tangServersConfig)
+
+		By("update deployment with disk encryption enabled with tang on masters, arbiters and workers")
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.DiskEncryption = &hiveext.DiskEncryption{
+			EnableOn:    swag.String(models.DiskEncryptionEnableOnMastersArbitersWorkers),
+			Mode:        swag.String(models.DiskEncryptionModeTang),
+			TangServers: tangServersConfig,
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnMastersArbitersWorkers), swag.String(models.DiskEncryptionModeTang), tangServersConfig)
+
+		By("update deployment with disk encryption enabled with tang on all")
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.DiskEncryption = &hiveext.DiskEncryption{
+			EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
+			Mode:        swag.String(models.DiskEncryptionModeTang),
+			TangServers: tangServersConfig,
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnAll), swag.String(models.DiskEncryptionModeTang), tangServersConfig)
 	})
 
 	It("deploy clusterDeployment with Proxy", func() {
