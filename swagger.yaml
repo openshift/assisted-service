@@ -3830,6 +3830,67 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/support-levels/features/detailed:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      operationId: GetDetailedSupportedFeatures
+      description: Retrieves detailed features information including support level, incompatibilities, and operator dependencies.
+      parameters:
+        - in: query
+          name: openshift_version
+          type: string
+          description: Version of the OpenShift cluster.
+          required: true
+        - in: query
+          name: cpu_architecture
+          description: The CPU architecture of the image (x86_64/arm64/etc).
+          type: string
+          enum: [ 'x86_64', 'arm64', 'ppc64le', 's390x', 'multi' ]
+          default: x86_64
+        - in: query
+          name: platform_type
+          description: The provider platform type.
+          type: string
+          enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'external' ]
+        - in: query
+          name: external_platform_name
+          description: External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.
+          type: string
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: object
+            properties:
+              features:
+                type: array
+                items:
+                  $ref: '#/definitions/feature'
+              operators:
+                type: array
+                items:
+                  $ref: '#/definitions/operator'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "500":
+          description: Internal Server Error.
+          schema:
+            $ref: '#/definitions/error'
+
+
   /v2/support-levels/architectures:
     get:
       tags:
@@ -4230,10 +4291,12 @@ definitions:
 
   support-level:
     type: string
+    x-nullable: false
     enum: [ supported, unsupported, tech-preview, dev-preview, unavailable ]
 
   feature-support-level-id:
     type: string
+    x-nullable: false
     enum:
       - 'SNO'
       - 'TNA'
@@ -4292,6 +4355,58 @@ definitions:
       - 'S390X_ARCHITECTURE'
       - 'MULTIARCH_RELEASE_IMAGE'
 
+  feature:
+    type: object
+    properties:
+      feature-support-level-id:
+        $ref: '#/definitions/feature-support-level-id'
+      support_level:
+        $ref: '#/definitions/support-level'
+      reason:
+        $ref: '#/definitions/incompatibility-reason'
+      incompatibilities:
+        type: array
+        items:
+          $ref: '#/definitions/feature-support-level-id'
+    required:
+      - feature-support-level-id
+      - support_level
+      - incompatibilities
+
+  operator:
+    type: object
+    properties:
+      feature-support-level-id:
+        $ref: '#/definitions/feature-support-level-id'
+      support_level:
+        $ref: '#/definitions/support-level'
+      reason:
+        $ref: '#/definitions/incompatibility-reason'
+      incompatibilities:
+        type: array
+        items:
+          $ref: '#/definitions/feature-support-level-id'
+      name:
+        type: string
+        description: Name of the operator
+      dependencies:
+        type: array
+        items:
+          $ref: '#/definitions/feature-support-level-id'
+    required:
+      - feature-support-level-id
+      - support_level
+      - incompatibilities
+      - name
+      - dependencies
+
+  incompatibility-reason:
+    type: string
+    enum:
+      - cpuArchitecture
+      - platform
+      - openshiftVersion
+      - ociExternalIntegrationDisabled
 
   preflight-hardware-requirements:
     type: object

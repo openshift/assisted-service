@@ -35,6 +35,8 @@ type Operator interface {
 	GetFullName() string
 	// GetDependencies provides a list of dependencies of the Operator
 	GetDependencies(cluster *common.Cluster) ([]string, error)
+	// GetDependenciesFeatureSupportID provides a list of all feature ids that are potential dependencies
+	GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID
 	// ValidateCluster verifies whether this operator is valid for given cluster
 	ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]ValidationResult, error)
 	// ValidateHost verifies whether this operator is valid for given host

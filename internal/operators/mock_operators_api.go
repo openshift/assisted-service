@@ -123,6 +123,20 @@ func (mr *MockAPIMockRecorder) GetOperatorByName(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorByName", reflect.TypeOf((*MockAPI)(nil).GetOperatorByName), arg0)
 }
 
+// GetOperatorDependenciesFeatureID mocks base method.
+func (m *MockAPI) GetOperatorDependenciesFeatureID() []OperatorFeatureSupportID {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOperatorDependenciesFeatureID")
+	ret0, _ := ret[0].([]OperatorFeatureSupportID)
+	return ret0
+}
+
+// GetOperatorDependenciesFeatureID indicates an expected call of GetOperatorDependenciesFeatureID.
+func (mr *MockAPIMockRecorder) GetOperatorDependenciesFeatureID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorDependenciesFeatureID", reflect.TypeOf((*MockAPI)(nil).GetOperatorDependenciesFeatureID))
+}
+
 // GetOperatorProperties mocks base method.
 func (m *MockAPI) GetOperatorProperties(arg0 string) (models.OperatorProperties, error) {
 	m.ctrl.T.Helper()

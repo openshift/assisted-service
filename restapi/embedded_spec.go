@@ -5987,6 +5987,112 @@ func init() {
         }
       }
     },
+    "/v2/support-levels/features/detailed": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves detailed features information including support level, incompatibilities, and operator dependencies.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetDetailedSupportedFeatures",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Version of the OpenShift cluster.",
+            "name": "openshift_version",
+            "in": "query",
+            "required": true
+          },
+          {
+            "enum": [
+              "x86_64",
+              "arm64",
+              "ppc64le",
+              "s390x",
+              "multi"
+            ],
+            "type": "string",
+            "default": "x86_64",
+            "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+            "name": "cpu_architecture",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "baremetal",
+              "none",
+              "nutanix",
+              "vsphere",
+              "external"
+            ],
+            "type": "string",
+            "description": "The provider platform type.",
+            "name": "platform_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.",
+            "name": "external_platform_name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "features": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/feature"
+                  }
+                },
+                "operators": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/operator"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/supported-operators": {
       "get": {
         "description": "Retrieves the list of supported operators.",
@@ -7907,6 +8013,31 @@ func init() {
         "$ref": "#/definitions/event"
       }
     },
+    "feature": {
+      "type": "object",
+      "required": [
+        "feature-support-level-id",
+        "support_level",
+        "incompatibilities"
+      ],
+      "properties": {
+        "feature-support-level-id": {
+          "$ref": "#/definitions/feature-support-level-id"
+        },
+        "incompatibilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/feature-support-level-id"
+          }
+        },
+        "reason": {
+          "$ref": "#/definitions/incompatibility-reason"
+        },
+        "support_level": {
+          "$ref": "#/definitions/support-level"
+        }
+      }
+    },
     "feature-support-level-id": {
       "type": "string",
       "enum": [
@@ -7957,7 +8088,8 @@ func init() {
         "CLUSTER_OBSERVABILITY",
         "NUMA_RESOURCES",
         "OADP"
-      ]
+      ],
+      "x-nullable": false
     },
     "finalizing-stage": {
       "description": "Cluster finalizing stage managed by controller",
@@ -8804,6 +8936,15 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "incompatibility-reason": {
+      "type": "string",
+      "enum": [
+        "cpuArchitecture",
+        "platform",
+        "openshiftVersion",
+        "ociExternalIntegrationDisabled"
+      ]
     },
     "infra-env": {
       "type": "object",
@@ -9905,6 +10046,43 @@ func init() {
         "$ref": "#/definitions/openshift-version"
       }
     },
+    "operator": {
+      "type": "object",
+      "required": [
+        "feature-support-level-id",
+        "support_level",
+        "incompatibilities",
+        "name",
+        "dependencies"
+      ],
+      "properties": {
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/feature-support-level-id"
+          }
+        },
+        "feature-support-level-id": {
+          "$ref": "#/definitions/feature-support-level-id"
+        },
+        "incompatibilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/feature-support-level-id"
+          }
+        },
+        "name": {
+          "description": "Name of the operator",
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/definitions/incompatibility-reason"
+        },
+        "support_level": {
+          "$ref": "#/definitions/support-level"
+        }
+      }
+    },
     "operator-create-params": {
       "type": "object",
       "properties": {
@@ -10484,7 +10662,8 @@ func init() {
         "tech-preview",
         "dev-preview",
         "unavailable"
-      ]
+      ],
+      "x-nullable": false
     },
     "support-levels": {
       "description": "Map of feature ID or CPU architecture alongside their support level",
@@ -17020,6 +17199,112 @@ func init() {
         }
       }
     },
+    "/v2/support-levels/features/detailed": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves detailed features information including support level, incompatibilities, and operator dependencies.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetDetailedSupportedFeatures",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Version of the OpenShift cluster.",
+            "name": "openshift_version",
+            "in": "query",
+            "required": true
+          },
+          {
+            "enum": [
+              "x86_64",
+              "arm64",
+              "ppc64le",
+              "s390x",
+              "multi"
+            ],
+            "type": "string",
+            "default": "x86_64",
+            "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+            "name": "cpu_architecture",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "baremetal",
+              "none",
+              "nutanix",
+              "vsphere",
+              "external"
+            ],
+            "type": "string",
+            "description": "The provider platform type.",
+            "name": "platform_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.",
+            "name": "external_platform_name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "features": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/feature"
+                  }
+                },
+                "operators": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/operator"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/supported-operators": {
       "get": {
         "description": "Retrieves the list of supported operators.",
@@ -19025,6 +19310,31 @@ func init() {
         "$ref": "#/definitions/event"
       }
     },
+    "feature": {
+      "type": "object",
+      "required": [
+        "feature-support-level-id",
+        "support_level",
+        "incompatibilities"
+      ],
+      "properties": {
+        "feature-support-level-id": {
+          "$ref": "#/definitions/feature-support-level-id"
+        },
+        "incompatibilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/feature-support-level-id"
+          }
+        },
+        "reason": {
+          "$ref": "#/definitions/incompatibility-reason"
+        },
+        "support_level": {
+          "$ref": "#/definitions/support-level"
+        }
+      }
+    },
     "feature-support-level-id": {
       "type": "string",
       "enum": [
@@ -19075,7 +19385,8 @@ func init() {
         "CLUSTER_OBSERVABILITY",
         "NUMA_RESOURCES",
         "OADP"
-      ]
+      ],
+      "x-nullable": false
     },
     "finalizing-stage": {
       "description": "Cluster finalizing stage managed by controller",
@@ -19923,6 +20234,15 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "incompatibility-reason": {
+      "type": "string",
+      "enum": [
+        "cpuArchitecture",
+        "platform",
+        "openshiftVersion",
+        "ociExternalIntegrationDisabled"
+      ]
     },
     "infra-env": {
       "type": "object",
@@ -21014,6 +21334,43 @@ func init() {
         "$ref": "#/definitions/openshift-version"
       }
     },
+    "operator": {
+      "type": "object",
+      "required": [
+        "feature-support-level-id",
+        "support_level",
+        "incompatibilities",
+        "name",
+        "dependencies"
+      ],
+      "properties": {
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/feature-support-level-id"
+          }
+        },
+        "feature-support-level-id": {
+          "$ref": "#/definitions/feature-support-level-id"
+        },
+        "incompatibilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/feature-support-level-id"
+          }
+        },
+        "name": {
+          "description": "Name of the operator",
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/definitions/incompatibility-reason"
+        },
+        "support_level": {
+          "$ref": "#/definitions/support-level"
+        }
+      }
+    },
     "operator-create-params": {
       "type": "object",
       "properties": {
@@ -21593,7 +21950,8 @@ func init() {
         "tech-preview",
         "dev-preview",
         "unavailable"
-      ]
+      ],
+      "x-nullable": false
     },
     "support-levels": {
       "description": "Map of feature ID or CPU architecture alongside their support level",

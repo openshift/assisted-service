@@ -95,6 +95,20 @@ func (mr *MockOperatorMockRecorder) GetDependencies(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDependencies", reflect.TypeOf((*MockOperator)(nil).GetDependencies), arg0)
 }
 
+// GetDependenciesFeatureSupportID mocks base method.
+func (m *MockOperator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDependenciesFeatureSupportID")
+	ret0, _ := ret[0].([]models.FeatureSupportLevelID)
+	return ret0
+}
+
+// GetDependenciesFeatureSupportID indicates an expected call of GetDependenciesFeatureSupportID.
+func (mr *MockOperatorMockRecorder) GetDependenciesFeatureSupportID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDependenciesFeatureSupportID", reflect.TypeOf((*MockOperator)(nil).GetDependenciesFeatureSupportID))
+}
+
 // GetFeatureSupportID mocks base method.
 func (m *MockOperator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	m.ctrl.T.Helper()

@@ -32,6 +32,9 @@ type API interface {
 	   GetClusterSupportedPlatforms A list of platforms that this cluster can support in its current configuration.*/
 	GetClusterSupportedPlatforms(ctx context.Context, params *GetClusterSupportedPlatformsParams) (*GetClusterSupportedPlatformsOK, error)
 	/*
+	   GetDetailedSupportedFeatures Retrieves detailed features information including support level, incompatibilities, and operator dependencies.*/
+	GetDetailedSupportedFeatures(ctx context.Context, params *GetDetailedSupportedFeaturesParams) (*GetDetailedSupportedFeaturesOK, error)
+	/*
 	   GetInfraEnv Retrieves the details of the infra-env.*/
 	GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*GetInfraEnvOK, error)
 	/*
@@ -330,6 +333,31 @@ func (a *Client) GetClusterSupportedPlatforms(ctx context.Context, params *GetCl
 		return nil, err
 	}
 	return result.(*GetClusterSupportedPlatformsOK), nil
+
+}
+
+/*
+GetDetailedSupportedFeatures Retrieves detailed features information including support level, incompatibilities, and operator dependencies.
+*/
+func (a *Client) GetDetailedSupportedFeatures(ctx context.Context, params *GetDetailedSupportedFeaturesParams) (*GetDetailedSupportedFeaturesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetDetailedSupportedFeatures",
+		Method:             "GET",
+		PathPattern:        "/v2/support-levels/features/detailed",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetDetailedSupportedFeaturesReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetDetailedSupportedFeaturesOK), nil
 
 }
 
