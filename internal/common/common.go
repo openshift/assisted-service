@@ -1,11 +1,13 @@
 package common
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 
@@ -17,6 +19,7 @@ import (
 	"github.com/thoas/go-funk"
 	"golang.org/x/sys/unix"
 	"gorm.io/gorm"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
@@ -803,4 +806,28 @@ func IsClusterTopologyTwoNodesWithFencing(cluster *Cluster) bool {
 		}
 	}
 	return true
+}
+
+// GetMultipleYamls reads a YAML file containing multiple YAML definitions of the same format
+// Each specific format must be of type DecodeFormat
+func GetMultipleYamls[T any](contents []byte) ([]T, error) {
+
+	r := bytes.NewReader(contents)
+	dec := yaml.NewYAMLToJSONDecoder(r)
+
+	var outputList []T
+	for {
+		var decodedData T
+		err := dec.Decode(&decodedData)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("Error reading multiple YAMLs: %w", err)
+		}
+
+		outputList = append(outputList, decodedData)
+	}
+
+	return outputList, nil
 }
