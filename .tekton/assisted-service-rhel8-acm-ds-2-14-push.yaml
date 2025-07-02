@@ -63,6 +63,29 @@ spec:
         - name: kind
           value: task
         resolver: bundles
+    - name: slack-notif
+      params:
+      - name: SOURCE_ARTIFACT
+        value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+      - name: secret-name
+        value: slack-notif-webhook
+      - name: key-name
+        value: token
+      - name: message
+        value: "[ACM] [2.14] [assisted-service-rhel8] [$(params.revision)] Konflux build failed"
+      taskRef:
+        params:
+        - name: name
+          value: slack-webhook-notification-oci-ta
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-slack-webhook-notification-oci-ta:0.1@sha256:654b354cc795e14dfb20be552dd4df2e03016252db55499b400c69cb7ab3267a
+        - name: kind
+          value: task
+        resolver: bundles
+      when:
+      - input: $(tasks.status)
+        operator: in
+        values: ["Failed"]
     params:
     - description: Source Repository URL
       name: git-url
