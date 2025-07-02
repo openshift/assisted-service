@@ -147,6 +147,12 @@ type Ingress struct {
 	ClassName *string `json:"className,omitempty"`
 }
 
+// Annotations
+const (
+	PVCPrefixAnnotation     = "unsupported.agent-install.openshift.io/assisted-service-pvc-prefix"
+	SecretsPrefixAnnotation = "unsupported.agent-install.openshift.io/assisted-service-secrets-prefix"
+)
+
 // ConditionType related to our reconcile loop in addition to all the reasons
 // why ConditionStatus could be true or false.
 const (
