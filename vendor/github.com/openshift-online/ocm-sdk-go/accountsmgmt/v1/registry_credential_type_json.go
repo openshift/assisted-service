@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -31,13 +30,16 @@ import (
 // MarshalRegistryCredential writes a value of the 'registry_credential' type to the given writer.
 func MarshalRegistryCredential(object *RegistryCredential, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeRegistryCredential(object, stream)
-	stream.Flush()
+	WriteRegistryCredential(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeRegistryCredential writes a value of the 'registry_credential' type to the given stream.
-func writeRegistryCredential(object *RegistryCredential, stream *jsoniter.Stream) {
+// WriteRegistryCredential writes a value of the 'registry_credential' type to the given stream.
+func WriteRegistryCredential(object *RegistryCredential, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -70,7 +72,7 @@ func writeRegistryCredential(object *RegistryCredential, stream *jsoniter.Stream
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("account")
-		writeAccount(object.account, stream)
+		WriteAccount(object.account, stream)
 		count++
 	}
 	present_ = object.bitmap_&16 != 0
@@ -97,7 +99,7 @@ func writeRegistryCredential(object *RegistryCredential, stream *jsoniter.Stream
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("registry")
-		writeRegistry(object.registry, stream)
+		WriteRegistry(object.registry, stream)
 		count++
 	}
 	present_ = object.bitmap_&128 != 0
@@ -125,7 +127,6 @@ func writeRegistryCredential(object *RegistryCredential, stream *jsoniter.Stream
 		}
 		stream.WriteObjectField("username")
 		stream.WriteString(object.username)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -133,20 +134,17 @@ func writeRegistryCredential(object *RegistryCredential, stream *jsoniter.Stream
 // UnmarshalRegistryCredential reads a value of the 'registry_credential' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalRegistryCredential(source interface{}) (object *RegistryCredential, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readRegistryCredential(iterator)
+	object = ReadRegistryCredential(iterator)
 	err = iterator.Error
 	return
 }
 
-// readRegistryCredential reads a value of the 'registry_credential' type from the given iterator.
-func readRegistryCredential(iterator *jsoniter.Iterator) *RegistryCredential {
+// ReadRegistryCredential reads a value of the 'registry_credential' type from the given iterator.
+func ReadRegistryCredential(iterator *jsoniter.Iterator) *RegistryCredential {
 	object := &RegistryCredential{}
 	for {
 		field := iterator.ReadObject()
@@ -166,7 +164,7 @@ func readRegistryCredential(iterator *jsoniter.Iterator) *RegistryCredential {
 			object.href = iterator.ReadString()
 			object.bitmap_ |= 4
 		case "account":
-			value := readAccount(iterator)
+			value := ReadAccount(iterator)
 			object.account = value
 			object.bitmap_ |= 8
 		case "created_at":
@@ -182,7 +180,7 @@ func readRegistryCredential(iterator *jsoniter.Iterator) *RegistryCredential {
 			object.externalResourceID = value
 			object.bitmap_ |= 32
 		case "registry":
-			value := readRegistry(iterator)
+			value := ReadRegistry(iterator)
 			object.registry = value
 			object.bitmap_ |= 64
 		case "token":

@@ -32,8 +32,6 @@ const CCSLinkKind = "CCSLink"
 const CCSNilKind = "CCSNil"
 
 // CCS represents the values of the 'CCS' type.
-//
-//
 type CCS struct {
 	bitmap_          uint32
 	id               string
@@ -53,7 +51,7 @@ func (o *CCS) Kind() string {
 	return CCSKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *CCS) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -206,6 +204,29 @@ func (l *CCSList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *CCSList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *CCSList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *CCSList) SetItems(items []*CCS) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *CCSList) Items() []*CCS {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

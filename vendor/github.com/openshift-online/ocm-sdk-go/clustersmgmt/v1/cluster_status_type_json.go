@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalClusterStatus writes a value of the 'cluster_status' type to the given writer.
 func MarshalClusterStatus(object *ClusterStatus, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeClusterStatus(object, stream)
-	stream.Flush()
+	WriteClusterStatus(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeClusterStatus writes a value of the 'cluster_status' type to the given stream.
-func writeClusterStatus(object *ClusterStatus, stream *jsoniter.Stream) {
+// WriteClusterStatus writes a value of the 'cluster_status' type to the given stream.
+func WriteClusterStatus(object *ClusterStatus, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -77,11 +79,29 @@ func writeClusterStatus(object *ClusterStatus, stream *jsoniter.Stream) {
 		if count > 0 {
 			stream.WriteMore()
 		}
+		stream.WriteObjectField("oidc_ready")
+		stream.WriteBool(object.oidcReady)
+		count++
+	}
+	present_ = object.bitmap_&32 != 0
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
 		stream.WriteObjectField("configuration_mode")
 		stream.WriteString(string(object.configurationMode))
 		count++
 	}
-	present_ = object.bitmap_&32 != 0
+	present_ = object.bitmap_&64 != 0
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("current_compute")
+		stream.WriteInt(object.currentCompute)
+		count++
+	}
+	present_ = object.bitmap_&128 != 0
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
@@ -90,7 +110,16 @@ func writeClusterStatus(object *ClusterStatus, stream *jsoniter.Stream) {
 		stream.WriteString(object.description)
 		count++
 	}
-	present_ = object.bitmap_&64 != 0
+	present_ = object.bitmap_&256 != 0
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("limited_support_reason_count")
+		stream.WriteInt(object.limitedSupportReasonCount)
+		count++
+	}
+	present_ = object.bitmap_&512 != 0
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
@@ -99,7 +128,7 @@ func writeClusterStatus(object *ClusterStatus, stream *jsoniter.Stream) {
 		stream.WriteString(object.provisionErrorCode)
 		count++
 	}
-	present_ = object.bitmap_&128 != 0
+	present_ = object.bitmap_&1024 != 0
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
@@ -108,14 +137,13 @@ func writeClusterStatus(object *ClusterStatus, stream *jsoniter.Stream) {
 		stream.WriteString(object.provisionErrorMessage)
 		count++
 	}
-	present_ = object.bitmap_&256 != 0
+	present_ = object.bitmap_&2048 != 0
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("state")
 		stream.WriteString(string(object.state))
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -123,20 +151,17 @@ func writeClusterStatus(object *ClusterStatus, stream *jsoniter.Stream) {
 // UnmarshalClusterStatus reads a value of the 'cluster_status' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalClusterStatus(source interface{}) (object *ClusterStatus, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readClusterStatus(iterator)
+	object = ReadClusterStatus(iterator)
 	err = iterator.Error
 	return
 }
 
-// readClusterStatus reads a value of the 'cluster_status' type from the given iterator.
-func readClusterStatus(iterator *jsoniter.Iterator) *ClusterStatus {
+// ReadClusterStatus reads a value of the 'cluster_status' type from the given iterator.
+func ReadClusterStatus(iterator *jsoniter.Iterator) *ClusterStatus {
 	object := &ClusterStatus{}
 	for {
 		field := iterator.ReadObject()
@@ -159,28 +184,40 @@ func readClusterStatus(iterator *jsoniter.Iterator) *ClusterStatus {
 			value := iterator.ReadBool()
 			object.dnsReady = value
 			object.bitmap_ |= 8
+		case "oidc_ready":
+			value := iterator.ReadBool()
+			object.oidcReady = value
+			object.bitmap_ |= 16
 		case "configuration_mode":
 			text := iterator.ReadString()
 			value := ClusterConfigurationMode(text)
 			object.configurationMode = value
-			object.bitmap_ |= 16
+			object.bitmap_ |= 32
+		case "current_compute":
+			value := iterator.ReadInt()
+			object.currentCompute = value
+			object.bitmap_ |= 64
 		case "description":
 			value := iterator.ReadString()
 			object.description = value
-			object.bitmap_ |= 32
+			object.bitmap_ |= 128
+		case "limited_support_reason_count":
+			value := iterator.ReadInt()
+			object.limitedSupportReasonCount = value
+			object.bitmap_ |= 256
 		case "provision_error_code":
 			value := iterator.ReadString()
 			object.provisionErrorCode = value
-			object.bitmap_ |= 64
+			object.bitmap_ |= 512
 		case "provision_error_message":
 			value := iterator.ReadString()
 			object.provisionErrorMessage = value
-			object.bitmap_ |= 128
+			object.bitmap_ |= 1024
 		case "state":
 			text := iterator.ReadString()
 			value := ClusterState(text)
 			object.state = value
-			object.bitmap_ |= 256
+			object.bitmap_ |= 2048
 		default:
 			iterator.ReadAny()
 		}

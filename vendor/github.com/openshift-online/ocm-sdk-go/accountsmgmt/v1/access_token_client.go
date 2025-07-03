@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -76,6 +78,13 @@ func (r *AccessTokenPostRequest) Header(name string, value interface{}) *AccessT
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *AccessTokenPostRequest) Impersonate(user string) *AccessTokenPostRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -108,15 +117,21 @@ func (r *AccessTokenPostRequest) SendContext(ctx context.Context) (result *Acces
 	result = &AccessTokenPostResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readAccessTokenPostResponse(result, response.Body)
+	err = readAccessTokenPostResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -156,8 +171,6 @@ func (r *AccessTokenPostResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AccessTokenPostResponse) Body() *AccessToken {
 	if r == nil {
 		return nil
@@ -167,8 +180,6 @@ func (r *AccessTokenPostResponse) Body() *AccessToken {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AccessTokenPostResponse) GetBody() (value *AccessToken, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

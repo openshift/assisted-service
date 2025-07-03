@@ -24,13 +24,13 @@ type Severity string
 
 const (
 	//
-	SeverityDebug Severity = "debug"
+	SeverityDebug Severity = "Debug"
 	//
-	SeverityError Severity = "error"
+	SeverityError Severity = "Error"
 	//
-	SeverityFatal Severity = "fatal"
+	SeverityFatal Severity = "Fatal"
 	//
-	SeverityInfo Severity = "info"
+	SeverityInfo Severity = "Info"
 	//
-	SeverityWarning Severity = "warning"
+	SeverityWarning Severity = "Warning"
 )

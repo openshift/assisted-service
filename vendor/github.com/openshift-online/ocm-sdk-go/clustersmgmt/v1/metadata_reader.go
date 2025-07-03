@@ -31,7 +31,10 @@ import (
 func MarshalMetadata(object *Metadata, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
 	writeMetadata(object, stream)
-	stream.Flush()
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 func writeMetadata(object *Metadata, stream *jsoniter.Stream) {

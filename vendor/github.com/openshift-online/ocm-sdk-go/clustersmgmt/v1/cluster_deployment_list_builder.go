@@ -37,6 +37,11 @@ func (b *ClusterDeploymentListBuilder) Items(values ...*ClusterDeploymentBuilder
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *ClusterDeploymentListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *ClusterDeploymentListBuilder) Copy(list *ClusterDeploymentList) *ClusterDeploymentListBuilder {
 	if list == nil || list.items == nil {

@@ -59,9 +59,12 @@ func (b *ResourceBuilder) HREF(value string) *ResourceBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *ResourceBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // BYOC sets the value of the 'BYOC' attribute to the given value.
-//
-//
 func (b *ResourceBuilder) BYOC(value bool) *ResourceBuilder {
 	b.byoc = value
 	b.bitmap_ |= 8
@@ -69,8 +72,6 @@ func (b *ResourceBuilder) BYOC(value bool) *ResourceBuilder {
 }
 
 // SKU sets the value of the 'SKU' attribute to the given value.
-//
-//
 func (b *ResourceBuilder) SKU(value string) *ResourceBuilder {
 	b.sku = value
 	b.bitmap_ |= 16
@@ -78,8 +79,6 @@ func (b *ResourceBuilder) SKU(value string) *ResourceBuilder {
 }
 
 // Allowed sets the value of the 'allowed' attribute to the given value.
-//
-//
 func (b *ResourceBuilder) Allowed(value int) *ResourceBuilder {
 	b.allowed = value
 	b.bitmap_ |= 32
@@ -87,8 +86,6 @@ func (b *ResourceBuilder) Allowed(value int) *ResourceBuilder {
 }
 
 // AvailabilityZoneType sets the value of the 'availability_zone_type' attribute to the given value.
-//
-//
 func (b *ResourceBuilder) AvailabilityZoneType(value string) *ResourceBuilder {
 	b.availabilityZoneType = value
 	b.bitmap_ |= 64
@@ -96,8 +93,6 @@ func (b *ResourceBuilder) AvailabilityZoneType(value string) *ResourceBuilder {
 }
 
 // ResourceName sets the value of the 'resource_name' attribute to the given value.
-//
-//
 func (b *ResourceBuilder) ResourceName(value string) *ResourceBuilder {
 	b.resourceName = value
 	b.bitmap_ |= 128
@@ -105,8 +100,6 @@ func (b *ResourceBuilder) ResourceName(value string) *ResourceBuilder {
 }
 
 // ResourceType sets the value of the 'resource_type' attribute to the given value.
-//
-//
 func (b *ResourceBuilder) ResourceType(value string) *ResourceBuilder {
 	b.resourceType = value
 	b.bitmap_ |= 256
