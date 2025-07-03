@@ -28,9 +28,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	yaml "gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8syaml "sigs.k8s.io/yaml"
 )
 
-const controllerManifestFile = "custom_manifests.json"
+const (
+	controllerManifestFile          = "custom_manifests.json"
+	controllerManifestConfigMapFile = "olm_operator_manifests.yaml"
+)
 
 var storageOperatorsPriority = []string{odf.Operator.Name, lvm.Operator.Name}
 
@@ -200,7 +207,13 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 		if err != nil {
 			return err
 		}
-		if err := mgr.createControllerManifest(ctx, cluster, string(content)); err != nil {
+		if err = mgr.createControllerManifest(ctx, cluster, string(content)); err != nil {
+			return err
+		}
+		// Create ConfigMap with custom manifests to allow retrieval from assisted-installer
+		// if API cannot be reached
+		err = mgr.createManifestConfigMap(ctx, cluster, &controllerManifests)
+		if err != nil {
 			return err
 		}
 	}
@@ -217,6 +230,41 @@ func (mgr *Manager) createControllerManifest(ctx context.Context, cluster *commo
 		return errors.Errorf("Failed to upload custom manifests for cluster %s", cluster.ID)
 	}
 	return nil
+}
+
+// Create a ConfigMap containing the operator custom manifests and add it to install manifests.
+// This is needed when the assisted-installer cannot access the API to retrieve the manifest file, e.g.
+// for the Agent-Based Installer
+func (mgr *Manager) createManifestConfigMap(ctx context.Context, cluster *common.Cluster, manifests *[]Manifest) error {
+	manifestOutput, err := yaml.Marshal(manifests)
+	if err != nil {
+		return err
+	}
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "olm-operator-manifests",
+			Namespace: "assisted-installer",
+		},
+		Data: map[string]string{
+			"custom-manifests": string(manifestOutput),
+		},
+	}
+
+	// Convert to json first so json tags are handled
+	jsonData, err := json.Marshal(configMap)
+	if err != nil {
+		return err
+	}
+	contents, err := k8syaml.JSONToYAML(jsonData)
+	if err != nil {
+		return err
+	}
+
+	return mgr.createInstallManifests(ctx, cluster, controllerManifestConfigMapFile, contents, models.ManifestFolderOpenshift)
 }
 
 func (mgr *Manager) createInstallManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte, folder string) error {
