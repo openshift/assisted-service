@@ -24,6 +24,7 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 // Representation of a trackable event.
 type EventBuilder struct {
 	bitmap_ uint32
+	body    map[string]string
 	key     string
 }
 
@@ -32,12 +33,26 @@ func NewEvent() *EventBuilder {
 	return &EventBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *EventBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
+// Body sets the value of the 'body' attribute to the given value.
+func (b *EventBuilder) Body(value map[string]string) *EventBuilder {
+	b.body = value
+	if value != nil {
+		b.bitmap_ |= 1
+	} else {
+		b.bitmap_ &^= 1
+	}
+	return b
+}
+
 // Key sets the value of the 'key' attribute to the given value.
-//
-//
 func (b *EventBuilder) Key(value string) *EventBuilder {
 	b.key = value
-	b.bitmap_ |= 1
+	b.bitmap_ |= 2
 	return b
 }
 
@@ -47,6 +62,14 @@ func (b *EventBuilder) Copy(object *Event) *EventBuilder {
 		return b
 	}
 	b.bitmap_ = object.bitmap_
+	if len(object.body) > 0 {
+		b.body = map[string]string{}
+		for k, v := range object.body {
+			b.body[k] = v
+		}
+	} else {
+		b.body = nil
+	}
 	b.key = object.key
 	return b
 }
@@ -55,6 +78,12 @@ func (b *EventBuilder) Copy(object *Event) *EventBuilder {
 func (b *EventBuilder) Build() (object *Event, err error) {
 	object = new(Event)
 	object.bitmap_ = b.bitmap_
+	if b.body != nil {
+		object.body = make(map[string]string)
+		for k, v := range b.body {
+			object.body[k] = v
+		}
+	}
 	object.key = b.key
 	return
 }

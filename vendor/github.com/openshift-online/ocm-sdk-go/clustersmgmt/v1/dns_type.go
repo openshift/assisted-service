@@ -38,16 +38,16 @@ func (o *DNS) Empty() bool {
 // Base DNS domain of the cluster.
 //
 // During the installation of the cluster it is necessary to create multiple DNS records.
-// They will be created as sub-domains of this domain. For example, if the name of the
+// They will be created as sub-domains of this domain. For example, if the domain_prefix of the
 // cluster is `mycluster` and the base domain is `example.com` then the following DNS
 // records will be created:
 //
-// ....
+// ```
 // mycluster-api.example.com
 // mycluster-etcd-0.example.com
 // mycluster-etcd-1.example.com
 // mycluster-etcd-3.example.com
-// ....
+// ```
 //
 // The exact number, type and names of the created DNS record depends on the characteristics
 // of the cluster, and may be different for different versions of _OpenShift_. Please don't
@@ -57,25 +57,25 @@ func (o *DNS) Empty() bool {
 // attribute. For example, if the identifier of the cluster is `123` send a request like
 // this:
 //
-// [source,http]
-// ----
+// ```http
 // GET /api/clusters_mgmt/v1/clusters/123 HTTP/1.1
-// ----
+// ```
 //
 // That will return a response like this, including the `api.url` attribute:
 //
-// [source,json]
-// ----
-// {
-//     "kind": "Cluster",
-//     "id": "123",
-//     "href": "/api/clusters_mgmt/v1/clusters/123",
-//         "api": {
-//         "url": "https://mycluster-api.example.com:6443"
-//     },
-//     ...
-// }
-// ----
+// ```json
+//
+//	{
+//	    "kind": "Cluster",
+//	    "id": "123",
+//	    "href": "/api/clusters_mgmt/v1/clusters/123",
+//	        "api": {
+//	        "url": "https://mycluster-api.example.com:6443"
+//	    },
+//	    ...
+//	}
+//
+// ```
 //
 // When the cluster is created in Amazon Web Services it is necessary to create this base
 // DNS domain in advance, using AWS Route53 (https://console.aws.amazon.com/route53).
@@ -92,16 +92,16 @@ func (o *DNS) BaseDomain() string {
 // Base DNS domain of the cluster.
 //
 // During the installation of the cluster it is necessary to create multiple DNS records.
-// They will be created as sub-domains of this domain. For example, if the name of the
+// They will be created as sub-domains of this domain. For example, if the domain_prefix of the
 // cluster is `mycluster` and the base domain is `example.com` then the following DNS
 // records will be created:
 //
-// ....
+// ```
 // mycluster-api.example.com
 // mycluster-etcd-0.example.com
 // mycluster-etcd-1.example.com
 // mycluster-etcd-3.example.com
-// ....
+// ```
 //
 // The exact number, type and names of the created DNS record depends on the characteristics
 // of the cluster, and may be different for different versions of _OpenShift_. Please don't
@@ -111,25 +111,25 @@ func (o *DNS) BaseDomain() string {
 // attribute. For example, if the identifier of the cluster is `123` send a request like
 // this:
 //
-// [source,http]
-// ----
+// ```http
 // GET /api/clusters_mgmt/v1/clusters/123 HTTP/1.1
-// ----
+// ```
 //
 // That will return a response like this, including the `api.url` attribute:
 //
-// [source,json]
-// ----
-// {
-//     "kind": "Cluster",
-//     "id": "123",
-//     "href": "/api/clusters_mgmt/v1/clusters/123",
-//         "api": {
-//         "url": "https://mycluster-api.example.com:6443"
-//     },
-//     ...
-// }
-// ----
+// ```json
+//
+//	{
+//	    "kind": "Cluster",
+//	    "id": "123",
+//	    "href": "/api/clusters_mgmt/v1/clusters/123",
+//	        "api": {
+//	        "url": "https://mycluster-api.example.com:6443"
+//	    },
+//	    ...
+//	}
+//
+// ```
 //
 // When the cluster is created in Amazon Web Services it is necessary to create this base
 // DNS domain in advance, using AWS Route53 (https://console.aws.amazon.com/route53).
@@ -166,6 +166,29 @@ func (l *DNSList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *DNSList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *DNSList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *DNSList) SetItems(items []*DNS) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *DNSList) Items() []*DNS {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

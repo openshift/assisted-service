@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalGroup writes a value of the 'group' type to the given writer.
 func MarshalGroup(object *Group, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeGroup(object, stream)
-	stream.Flush()
+	WriteGroup(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeGroup writes a value of the 'group' type to the given stream.
-func writeGroup(object *Group, stream *jsoniter.Stream) {
+// WriteGroup writes a value of the 'group' type to the given stream.
+func WriteGroup(object *Group, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -71,9 +73,8 @@ func writeGroup(object *Group, stream *jsoniter.Stream) {
 		stream.WriteObjectField("users")
 		stream.WriteObjectStart()
 		stream.WriteObjectField("items")
-		writeUserList(object.users.items, stream)
+		WriteUserList(object.users.Items(), stream)
 		stream.WriteObjectEnd()
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -81,20 +82,17 @@ func writeGroup(object *Group, stream *jsoniter.Stream) {
 // UnmarshalGroup reads a value of the 'group' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalGroup(source interface{}) (object *Group, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readGroup(iterator)
+	object = ReadGroup(iterator)
 	err = iterator.Error
 	return
 }
 
-// readGroup reads a value of the 'group' type from the given iterator.
-func readGroup(iterator *jsoniter.Iterator) *Group {
+// ReadGroup reads a value of the 'group' type from the given iterator.
+func ReadGroup(iterator *jsoniter.Iterator) *Group {
 	object := &Group{}
 	for {
 		field := iterator.ReadObject()
@@ -123,11 +121,11 @@ func readGroup(iterator *jsoniter.Iterator) *Group {
 				switch field {
 				case "kind":
 					text := iterator.ReadString()
-					value.link = text == UserListLinkKind
+					value.SetLink(text == UserListLinkKind)
 				case "href":
-					value.href = iterator.ReadString()
+					value.SetHREF(iterator.ReadString())
 				case "items":
-					value.items = readUserList(iterator)
+					value.SetItems(ReadUserList(iterator))
 				default:
 					iterator.ReadAny()
 				}

@@ -24,5 +24,5 @@ type PlanID string
 
 const (
 	//
-	PlanIDOCP PlanID = "OCP"
+	PlanIDOCP PlanID = "ocp"
 )

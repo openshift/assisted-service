@@ -33,9 +33,12 @@ func NewSocketTotalsNodeRoleOSMetricNode() *SocketTotalsNodeRoleOSMetricNodeBuil
 	return &SocketTotalsNodeRoleOSMetricNodeBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *SocketTotalsNodeRoleOSMetricNodeBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // SocketTotals sets the value of the 'socket_totals' attribute to the given values.
-//
-//
 func (b *SocketTotalsNodeRoleOSMetricNodeBuilder) SocketTotals(values ...*SocketTotalNodeRoleOSMetricNodeBuilder) *SocketTotalsNodeRoleOSMetricNodeBuilder {
 	b.socketTotals = make([]*SocketTotalNodeRoleOSMetricNodeBuilder, len(values))
 	copy(b.socketTotals, values)

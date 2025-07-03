@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readIngressDeleteRequest(request *IngressDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeIngressDeleteRequest(request *IngressDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readIngressDeleteResponse(response *IngressDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeIngressDeleteResponse(response *IngressDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readIngressGetRequest(request *IngressGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeIngressGetRequest(request *IngressGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readIngressGetResponse(response *IngressGetResponse, reader io.Reader) erro
 	response.body, err = UnmarshalIngress(reader)
 	return err
 }
-func writeIngressGetResponse(response *IngressGetServerResponse, w http.ResponseWriter) error {
-	return MarshalIngress(response.body, w)
-}
-func readIngressUpdateRequest(request *IngressUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalIngress(r.Body)
-	return err
-}
 func writeIngressUpdateRequest(request *IngressUpdateRequest, writer io.Writer) error {
 	return MarshalIngress(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readIngressUpdateResponse(response *IngressUpdateResponse, reader io.Reader
 	var err error
 	response.body, err = UnmarshalIngress(reader)
 	return err
-}
-func writeIngressUpdateResponse(response *IngressUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalIngress(response.body, w)
 }
