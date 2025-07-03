@@ -754,23 +754,15 @@ func isUserManagedNetwork(clusterInstall *hiveext.AgentClusterInstall) bool {
 }
 
 func isDiskEncryptionEnabled(clusterInstall *hiveext.AgentClusterInstall) bool {
-	if clusterInstall.Spec.DiskEncryption == nil {
-		return false
-	}
-	switch swag.StringValue(clusterInstall.Spec.DiskEncryption.EnableOn) {
-	case models.DiskEncryptionEnableOnAll, models.DiskEncryptionEnableOnMasters, models.DiskEncryptionEnableOnWorkers:
-		return true
-	case models.DiskEncryptionEnableOnNone:
-		return false
-	default:
-		return false
-	}
+	return clusterInstall.Spec.DiskEncryption != nil &&
+		swag.StringValue(clusterInstall.Spec.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone
 }
 
 // see https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html#installation-bare-metal-config-yaml_installing-platform-agnostic
 func hyperthreadingInSpec(clusterInstall *hiveext.AgentClusterInstall) bool {
 	//check if either master or worker pool hyperthreading settings are explicitly specified
 	return clusterInstall.Spec.ControlPlane != nil ||
+		clusterInstall.Spec.Arbiter != nil ||
 		funk.Contains(clusterInstall.Spec.Compute, func(pool hiveext.AgentMachinePool) bool {
 			return pool.Name == hiveext.WorkerAgentMachinePool
 		})
@@ -840,45 +832,43 @@ func getPlatformType(platform *models.Platform) hiveext.PlatformType {
 }
 
 func getHyperthreading(clusterInstall *hiveext.AgentClusterInstall) *string {
-	const (
-		None    = 0
-		Workers = 1
-		Masters = 2
-		All     = 3
-	)
-	var config uint = 0
-
 	//if there is no configuration of hyperthreading in the Spec then
 	//we are opting of the default behavior which is all enabled
 	if !hyperthreadingInSpec(clusterInstall) {
-		config = All
+		return swag.String(models.ClusterHyperthreadingAll)
+	}
+
+	//will keep the enabled pools in the order defined in the enum
+	//first masters and then arbiters and then workers
+	pools := make([]string, 0)
+
+	//check if the Spec enables hyperthreading for masters
+	if clusterInstall.Spec.ControlPlane != nil {
+		if clusterInstall.Spec.ControlPlane.Hyperthreading == hiveext.HyperthreadingEnabled {
+			pools = append(pools, models.ClusterHyperthreadingMasters)
+		}
+	}
+
+	//check if the Spec enables hyperthreading for arbiters
+	if clusterInstall.Spec.Arbiter != nil {
+		if clusterInstall.Spec.Arbiter.Hyperthreading == hiveext.HyperthreadingEnabled {
+			pools = append(pools, models.ClusterHyperthreadingArbiters)
+		}
 	}
 
 	//check if the Spec enables hyperthreading for workers
 	for _, machinePool := range clusterInstall.Spec.Compute {
 		if machinePool.Name == hiveext.WorkerAgentMachinePool && machinePool.Hyperthreading == hiveext.HyperthreadingEnabled {
-			config = config | Workers
+			pools = append(pools, models.ClusterHyperthreadingWorkers)
+			break
 		}
 	}
 
-	//check if the Spec enables hyperthreading for masters
-	if clusterInstall.Spec.ControlPlane != nil {
-		if clusterInstall.Spec.ControlPlane.Hyperthreading == hiveext.HyperthreadingEnabled {
-			config = config | Masters
-		}
-	}
-
-	//map between CRD Spec and cluster API
-	switch config {
-	case None:
+	if funk.IsEmpty(pools) {
 		return swag.String(models.ClusterHyperthreadingNone)
-	case Workers:
-		return swag.String(models.ClusterHyperthreadingWorkers)
-	case Masters:
-		return swag.String(models.ClusterHyperthreadingMasters)
-	default:
-		return swag.String(models.ClusterHyperthreadingAll)
 	}
+
+	return swag.String(strings.Join(pools, ","))
 }
 
 func (r *ClusterDeploymentsReconciler) getEncodedCACert(ctx context.Context,

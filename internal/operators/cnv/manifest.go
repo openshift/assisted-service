@@ -77,6 +77,9 @@ func Manifests(config Config, cluster *common.Cluster) (map[string][]byte, []byt
 	openshiftManifests["50_openshift-cnv_subscription.yaml"] = cnvSubsManifest
 	openshiftManifests["50_openshift-cnv_ns.yaml"] = cnvNs
 	openshiftManifests["50_openshift-cnv_operator_group.yaml"] = cnvGrp
+	openshiftManifests["50_openshift-cnv_workers_schedstats.yaml"] = []byte(schedstatsMachineConfigWorkersManifest)
+	openshiftManifests["50_openshift-cnv_masters_schedstats.yaml"] = []byte(schedstatsMachineConfigMastersManifest)
+
 	return openshiftManifests, cnvHco, nil
 }
 
@@ -224,3 +227,23 @@ reclaimPolicy: Delete
 volumeBindingMode: Immediate
 parameters:
   storagePool: sno`
+
+const schedstatsMachineConfigWorkersManifest = `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 50-workers-enable-schedstats
+spec:
+  kernelArguments:
+    - "schedstats=enable"`
+
+const schedstatsMachineConfigMastersManifest = `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 50-masters-enable-schedstats
+spec:
+  kernelArguments:
+    - "schedstats=enable"`
