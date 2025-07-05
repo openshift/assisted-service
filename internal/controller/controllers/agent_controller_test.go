@@ -395,9 +395,9 @@ var _ = Describe("agent reconcile", func() {
 			},
 		).AnyTimes()
 		mockClient.EXPECT().Status().Return(mockSubResourceWriter).AnyTimes()
-		mockSubResourceWriter.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
-				return c.Status().Update(ctx, agent)
+		mockSubResourceWriter.EXPECT().Patch(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{}), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, agent *v1beta1.Agent, patch client.Patch, opts ...client.PatchOptions) error {
+				return c.Status().Patch(ctx, agent, patch)
 			},
 		).AnyTimes()
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
@@ -1934,6 +1934,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(agent.Status.Inventory.Interfaces).NotTo(BeEmpty())
 		Expect(agent.Status.Inventory.Interfaces[0].MacAddress).To(Equal(macAddress))
 		Expect(agent.GetAnnotations()[InventoryLabelPrefix+"version"]).To(Equal("0.1"))
 		Expect(agent.GetLabels()[InventoryLabelPrefix+"storage-hasnonrotationaldisk"]).To(Equal("false"))
