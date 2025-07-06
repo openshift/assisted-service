@@ -1,0 +1,6 @@
+apiVersion: metallb.io/v1beta1
+kind: MetalLB
+metadata:
+  name: {{ .Operator.Name }}
+  namespace: {{ .Operator.Namespace }}
+spec: {}

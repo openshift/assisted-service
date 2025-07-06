@@ -1,0 +1,22 @@
+
+apiVersion: monitoring.rhobs/v1alpha1
+kind: MonitoringStack
+metadata: 
+  labels: 
+    mso: example
+  name: sample-monitoring-stack
+spec: 
+  logLevel: debug
+  resourceSelector: 
+    matchLabels:
+      app: demo
+  retention: 1d
+---
+apiVersion: monitoring.rhobs/v1alpha1
+kind: ThanosQuerier
+metadata: 
+  name: example-thanos
+spec:
+  selector: 
+    matchLabels: 
+      mso: example
