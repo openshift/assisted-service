@@ -52,6 +52,10 @@ const (
 	AreFenceAgentsRemediationRequirementsSatisfied = ValidationID(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied)
 	AreNodeMaintenanceRequirementsSatisfied        = ValidationID(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied)
 	AreKubeDeschedulerRequirementsSatisfied        = ValidationID(models.ClusterValidationIDKubeDeschedulerRequirementsSatisfied)
+	AreClusterObservabilityRequirementsSatisfied   = ValidationID(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied)
+	AreMetallbRequirementsSatisfied                = ValidationID(models.ClusterValidationIDMetallbRequirementsSatisfied)
+	AreNUMAResourcesRequirementsSatisfied          = ValidationID(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)
+	AreOADPRequirementsSatisfied                   = ValidationID(models.ClusterValidationIDOadpRequirementsSatisfied)
 )
 
 func (v ValidationID) Category() (string, error) {
@@ -86,7 +90,11 @@ func (v ValidationID) Category() (string, error) {
 		AreSelfNodeRemediationRequirementsSatisfied,
 		AreFenceAgentsRemediationRequirementsSatisfied,
 		AreNodeMaintenanceRequirementsSatisfied,
-		AreKubeDeschedulerRequirementsSatisfied:
+		AreKubeDeschedulerRequirementsSatisfied,
+		AreClusterObservabilityRequirementsSatisfied,
+		AreMetallbRequirementsSatisfied,
+		AreNUMAResourcesRequirementsSatisfied,
+		AreOADPRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected cluster validation id %s", string(v)))

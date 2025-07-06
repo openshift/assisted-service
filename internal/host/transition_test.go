@@ -6664,6 +6664,12 @@ var allValidationIDs = []validationID{
 	AreNodeHealthcheckRequirementsSatisfied,
 	AreSelfNodeRemediationRequirementsSatisfied,
 	AreFenceAgentsRemediationRequirementsSatisfied,
+	AreNodeMaintenanceRequirementsSatisfied,
+	AreKubeDeschedulerRequirementsSatisfied,
+	AreClusterObservabilityRequirementsSatisfied,
+	AreMetallbRequirementsSatisfied,
+	AreNUMAResourcesRequirementsSatisfied,
+	AreOADPRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{

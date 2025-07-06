@@ -1,0 +1,9 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: {{ .Operator.SubscriptionName }}
+  namespace: {{ .Operator.Namespace }}
+spec:
+  name: {{ .Operator.SubscriptionName }}
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace 

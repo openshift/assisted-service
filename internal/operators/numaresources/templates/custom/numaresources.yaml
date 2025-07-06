@@ -1,0 +1,9 @@
+apiVersion: nodetopology.openshift.io/v1
+kind: NUMAResourcesOperator
+metadata:
+  name: {{ .Operator.Name }}
+spec:
+  nodeGroups:
+  - machineConfigPoolSelector:
+      matchLabels:
+        pools.operator.machineconfiguration.openshift.io/worker: ""

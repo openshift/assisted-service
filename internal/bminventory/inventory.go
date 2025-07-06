@@ -1389,8 +1389,8 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	}
 
 	if err = b.clusterApi.GenerateAdditionalManifests(ctx, cluster); err != nil {
-		b.log.WithError(err).Errorf("Failed to generated additional cluster manifest")
-		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to generated additional cluster manifest"))
+		b.log.WithError(err).Errorf("Failed to generate additional cluster manifest")
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to generate additional cluster manifest"))
 	}
 
 	// Delete previews installation log files from object storage (if exist).
