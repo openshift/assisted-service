@@ -42,7 +42,7 @@ func GetPullSecret(pullSecretPath string) (string, error) {
 }
 
 func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, clusterDeploymentPath string,
-	agentClusterInstallPath string, clusterImageSetPath string, releaseImageMirror string, operatorInstallPath string) (*models.Cluster, error) {
+	agentClusterInstallPath string, clusterImageSetPath string, releaseImageMirror string, operatorInstallPath string, forceInsecurePolicyJson bool) (*models.Cluster, error) {
 
 	var result *models.Cluster
 	log.Info("Registering cluster")
@@ -81,7 +81,7 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	if releaseError != nil {
 		return nil, releaseError
 	}
-	releaseImageVersion, releaseImageCPUArch, versionArchError := getReleaseVersionAndCpuArch(log, releaseImage, releaseImageMirror, pullSecret)
+	releaseImageVersion, releaseImageCPUArch, versionArchError := getReleaseVersionAndCpuArch(log, releaseImage, releaseImageMirror, pullSecret, forceInsecurePolicyJson)
 	if versionArchError != nil {
 		return nil, versionArchError
 	}
@@ -289,9 +289,9 @@ func getReleaseVersion(clusterImageSetPath string) (string, error) {
 	return clusterImageSet.Spec.ReleaseImage, nil
 }
 
-func getReleaseVersionAndCpuArch(log *log.Logger, releaseImage string, releaseMirror string, pullSecret string) (string, string, error) {
+func getReleaseVersionAndCpuArch(log *log.Logger, releaseImage string, releaseMirror string, pullSecret string, forceInsecurePolicyJson bool) (string, string, error) {
 	// releaseImage is in the form: quay.io:443/openshift-release-dev/ocp-release:4.9.17-x86_64
-	mirrorRegistriesBuilder := mirrorregistries.New()
+	mirrorRegistriesBuilder := mirrorregistries.New(forceInsecurePolicyJson)
 	releaseHandler := oc.NewRelease(
 		&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay},
