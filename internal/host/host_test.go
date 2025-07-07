@@ -2876,6 +2876,7 @@ var _ = Describe("AutoAssignRole", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDMetallbRequirementsSatisfied)},
 		}, nil)
 		masterRequirements := models.ClusterHostRequirementsDetails{
 			CPUCores:   4,
@@ -3095,6 +3096,7 @@ var _ = Describe("IsValidCandidate", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDMetallbRequirementsSatisfied)},
 		}, nil)
 	})
 
