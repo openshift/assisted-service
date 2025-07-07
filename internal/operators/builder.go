@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
@@ -83,6 +84,7 @@ func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, o
 		clusterobservability.NewClusterObservabilityOperator(log),
 		numaresources.NewNumaResourcesOperator(log),
 		oadp.NewOadpOperator(log),
+		metallb.NewMetalLBOperator(log),
 	)
 }
 
