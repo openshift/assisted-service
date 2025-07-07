@@ -102,18 +102,22 @@ var _ = Describe("Operator", func() {
 
 var _ = Describe("GetDependencies", func() {
 	var (
-		operator *operator
-		mockCtrl *gomock.Controller
-		vendor1  *MockGPUVendor
-		vendor2  *MockGPUVendor
-		cluster  *common.Cluster
+		operator                    *operator
+		mockCtrl                    *gomock.Controller
+		vendor1                     *MockGPUVendor
+		vendor2                     *MockGPUVendor
+		cluster, clusterWithoutHost *common.Cluster
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		vendor1 = NewMockGPUVendor(mockCtrl)
 		vendor2 = NewMockGPUVendor(mockCtrl)
-		cluster = &common.Cluster{}
+		cluster = &common.Cluster{
+			Cluster: models.Cluster{
+				Hosts: []*models.Host{{}},
+			}}
+		clusterWithoutHost = &common.Cluster{}
 	})
 
 	AfterEach(func() {
@@ -180,5 +184,15 @@ var _ = Describe("GetDependencies", func() {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("failed to check if cluster has GPU for vendor2"))
 		Expect(dependencies).To(BeEmpty())
+	})
+
+	It("should return all vendor if there is no hosts in the cluster", func() {
+		vendor1.EXPECT().GetName().Return("vendor1").Times(1)
+		vendor2.EXPECT().GetName().Return("vendor2").Times(1)
+
+		operator = NewOpenShiftAIOperator(common.GetTestLog(), vendor1, vendor2)
+		dependencies, err := operator.GetDependencies(clusterWithoutHost)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dependencies).To(ConsistOf("vendor1", "vendor2"))
 	})
 })

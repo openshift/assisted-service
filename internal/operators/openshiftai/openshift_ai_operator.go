@@ -78,6 +78,15 @@ func (o *operator) GetFullName() string {
 func (o *operator) GetDependencies(c *common.Cluster) (result []string, err error) {
 	ret := make([]string, 0)
 
+	// If there is no hosts in the cluster, add all vendors as dependencies
+	if len(c.Hosts) == 0 {
+		for _, vendor := range o.vendors {
+			ret = append(ret, vendor.GetName())
+		}
+
+		return ret, nil
+	}
+
 	for _, vendor := range o.vendors {
 		hasGPU, err := vendor.ClusterHasGPU(c)
 		if err != nil {
