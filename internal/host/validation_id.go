@@ -73,6 +73,7 @@ const (
 	AreClusterObservabilityRequirementsSatisfied   = validationID(models.HostValidationIDClusterObservabilityRequirementsSatisfied)
 	AreNUMAResourcesRequirementsSatisfied          = validationID(models.HostValidationIDNumaResourcesRequirementsSatisfied)
 	AreOADPRequirementsSatisfied                   = validationID(models.HostValidationIDOadpRequirementsSatisfied)
+	AreMetalLBRequirementsSatisfied                = validationID(models.HostValidationIDMetallbRequirementsSatisfied)
 )
 
 func (v validationID) category() (string, error) {
@@ -140,7 +141,8 @@ func (v validationID) category() (string, error) {
 		AreKubeDeschedulerRequirementsSatisfied,
 		AreClusterObservabilityRequirementsSatisfied,
 		AreNUMAResourcesRequirementsSatisfied,
-		AreOADPRequirementsSatisfied:
+		AreOADPRequirementsSatisfied,
+		AreMetalLBRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))

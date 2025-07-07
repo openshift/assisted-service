@@ -6669,6 +6669,7 @@ var allValidationIDs = []validationID{
 	AreClusterObservabilityRequirementsSatisfied,
 	AreNUMAResourcesRequirementsSatisfied,
 	AreOADPRequirementsSatisfied,
+	AreMetalLBRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{
