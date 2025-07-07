@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
@@ -471,7 +472,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(25))
+			Expect(results).To(HaveLen(26))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -498,6 +499,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", clusterobservability.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", numaresources.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", oadp.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 			))
 		})
 
@@ -510,7 +512,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(25))
+			Expect(results).To(HaveLen(26))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
@@ -538,6 +540,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", clusterobservability.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", numaresources.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", oadp.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 			))
 		})
 	})
@@ -549,7 +552,8 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(25))
+			Expect(results).To(HaveLen(26))
+
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -576,6 +580,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", clusterobservability.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", numaresources.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", oadp.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 			))
 		})
 
@@ -587,7 +592,7 @@ var _ = Describe("Operators manager", func() {
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(25))
+			Expect(results).To(HaveLen(26))
 
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
@@ -615,6 +620,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", clusterobservability.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", numaresources.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", oadp.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 			))
 		})
 
@@ -762,6 +768,7 @@ var _ = Describe("Operators manager", func() {
 				"nmstate",
 				"amd-gpu",
 				"kmm",
+				"metallb",
 				nodehealthcheck.Operator.Name,
 				selfnoderemediation.Operator.Name,
 				fenceagentsremediation.Operator.Name,

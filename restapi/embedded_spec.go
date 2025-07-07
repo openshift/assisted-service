@@ -6026,7 +6026,8 @@ func init() {
                   "kube-descheduler",
                   "cluster-observability",
                   "numa-resources",
-                  "oadp"
+                  "oadp",
+                  "metallb"
                 ]
               }
             }
@@ -7087,7 +7088,8 @@ func init() {
         "kube-descheduler-requirements-satisfied",
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
-        "oadp-requirements-satisfied"
+        "oadp-requirements-satisfied",
+        "metallb-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -7956,7 +7958,8 @@ func init() {
         "KUBE_DESCHEDULER",
         "CLUSTER_OBSERVABILITY",
         "NUMA_RESOURCES",
-        "OADP"
+        "OADP",
+        "METALLB"
       ]
     },
     "finalizing-stage": {
@@ -8596,7 +8599,8 @@ func init() {
         "kube-descheduler-requirements-satisfied",
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
-        "oadp-requirements-satisfied"
+        "oadp-requirements-satisfied",
+        "metallb-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -17059,7 +17063,8 @@ func init() {
                   "kube-descheduler",
                   "cluster-observability",
                   "numa-resources",
-                  "oadp"
+                  "oadp",
+                  "metallb"
                 ]
               }
             }
@@ -18238,7 +18243,8 @@ func init() {
         "kube-descheduler-requirements-satisfied",
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
-        "oadp-requirements-satisfied"
+        "oadp-requirements-satisfied",
+        "metallb-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -19074,7 +19080,8 @@ func init() {
         "KUBE_DESCHEDULER",
         "CLUSTER_OBSERVABILITY",
         "NUMA_RESOURCES",
-        "OADP"
+        "OADP",
+        "METALLB"
       ]
     },
     "finalizing-stage": {
@@ -19714,7 +19721,8 @@ func init() {
         "kube-descheduler-requirements-satisfied",
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
-        "oadp-requirements-satisfied"
+        "oadp-requirements-satisfied",
+        "metallb-requirements-satisfied"
       ]
     },
     "host_network": {

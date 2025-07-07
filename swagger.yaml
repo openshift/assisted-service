@@ -2729,6 +2729,7 @@ paths:
               - 'cluster-observability'
               - 'numa-resources'
               - 'oadp'
+              - 'metallb'
         "401":
           description: Unauthorized.
           schema:
@@ -4282,6 +4283,7 @@ definitions:
       - 'CLUSTER_OBSERVABILITY'
       - 'NUMA_RESOURCES'
       - 'OADP'
+      - 'METALLB'
 
   architecture-support-level-id:
     type: string
@@ -6706,6 +6708,7 @@ definitions:
       - 'cluster-observability-requirements-satisfied'
       - 'numa-resources-requirements-satisfied'
       - 'oadp-requirements-satisfied'
+      - 'metallb-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -7091,6 +7094,7 @@ definitions:
       - 'cluster-observability-requirements-satisfied'
       - 'numa-resources-requirements-satisfied'
       - 'oadp-requirements-satisfied'
+      - 'metallb-requirements-satisfied'
 
   logs_type:
     type: string
