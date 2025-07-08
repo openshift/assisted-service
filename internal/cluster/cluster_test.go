@@ -722,6 +722,81 @@ var _ = Describe("TestClusterMonitoring", func() {
 		})
 	})
 
+	Context("clusters with 0 hosts (OVE temporary clusters)", func() {
+		BeforeEach(func() {
+			id = strfmt.UUID(uuid.New().String())
+		})
+
+		AfterEach(func() {
+			if err = db.First(&c, "id = ?", id.String()).Error; err == nil {
+				Expect(db.Delete(&c).Error).NotTo(HaveOccurred())
+			}
+		})
+
+		It("0 hosts: insufficient -> pending-for-input", func() {
+			c = common.Cluster{
+				Cluster: models.Cluster{
+					ID:                &id,
+					Status:            swag.String(models.ClusterStatusInsufficient),
+					ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
+					ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+					BaseDNSDomain:     "test.com",
+					PullSecretSet:     true,
+					StatusInfo:        swag.String(StatusInfoInsufficient),
+					NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+					OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+					ControlPlaneCount: 3,
+				},
+				TriggerMonitorTimestamp: time.Now(),
+			}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+
+			mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
+			mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithClusterIdMatcher(c.ID.String()))).AnyTimes()
+			mockEvents.EXPECT().NotifyInternalEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+			clusterApi.ClusterMonitoring()
+
+			c2 := getClusterFromDB(id, db)
+			Expect(*c2.Status).Should(Equal(models.ClusterStatusPendingForInput))
+		})
+
+		It("0 hosts: insufficient -> insufficient", func() {
+			c = common.Cluster{
+				Cluster: models.Cluster{
+					ID:                &id,
+					Status:            swag.String(models.ClusterStatusInsufficient),
+					ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
+					ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+					MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
+					APIVips:           common.TestIPv4Networking.APIVips,
+					IngressVips:       common.TestIPv4Networking.IngressVips,
+					BaseDNSDomain:     "test.com",
+					PullSecretSet:     true,
+					StatusInfo:        swag.String(StatusInfoInsufficient),
+					NetworkType:       swag.String(models.ClusterNetworkTypeOVNKubernetes),
+					OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+					ControlPlaneCount: 3,
+				},
+				TriggerMonitorTimestamp: time.Now(),
+			}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+
+			mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
+			mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithClusterIdMatcher(c.ID.String()))).AnyTimes()
+			mockEvents.EXPECT().NotifyInternalEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+			clusterApi.ClusterMonitoring()
+
+			c2 := getClusterFromDB(id, db)
+			Expect(*c2.Status).Should(Equal(models.ClusterStatusInsufficient))
+		})
+	})
+
 	Context("monitoring log info", func() {
 		Context("error -> error", func() {
 			var (
@@ -1941,6 +2016,93 @@ func nonDefaultInventory() string {
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
 }
+
+var _ = Describe("MarkAsDisconnected", func() {
+	var (
+		ctx       = context.Background()
+		capi      API
+		db        *gorm.DB
+		clusterId strfmt.UUID
+		dbName    string
+		ctrl      *gomock.Controller
+
+		mockMetric        *metrics.MockAPI
+		mockEventsHandler *eventsapi.MockHandler
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
+		db, dbName = common.PrepareTestDB()
+		dummy := &leader.DummyElector{}
+		mockOperators := operators.NewMockAPI(ctrl)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEventsHandler, nil, nil, mockMetric, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false, nil)
+		clusterId = strfmt.UUID(uuid.New().String())
+
+		mockNoChangeInOperatorDependencies(mockOperators)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("should transition from insufficient to disconnected", func() {
+		cluster := &common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterId,
+				Status:           swag.String(models.ClusterStatusInsufficient),
+				OpenshiftVersion: "4.16",
+			},
+		}
+		Expect(db.Create(cluster).Error).NotTo(HaveOccurred())
+
+		mockEventsHandler.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+			eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
+
+		Expect(capi.MarkAsDisconnected(ctx, cluster, db)).NotTo(HaveOccurred())
+
+		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		Expect(swag.StringValue(cluster.Status)).To(Equal(models.ClusterStatusDisconnected))
+		Expect(swag.StringValue(cluster.StatusInfo)).To(ContainSubstring("disconnected ISO configuration"))
+	})
+
+	It("should fail to transition from ready to disconnected", func() {
+		cluster := &common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterId,
+				Status:           swag.String(models.ClusterStatusReady),
+				OpenshiftVersion: "4.16",
+			},
+		}
+		Expect(db.Create(cluster).Error).NotTo(HaveOccurred())
+
+		err := capi.MarkAsDisconnected(ctx, cluster, db)
+		Expect(err).To(HaveOccurred())
+
+		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		Expect(swag.StringValue(cluster.Status)).To(Equal(models.ClusterStatusReady))
+	})
+
+	It("should fail to transition from installing to disconnected", func() {
+		cluster := &common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterId,
+				Status:           swag.String(models.ClusterStatusInstalling),
+				OpenshiftVersion: "4.16",
+			},
+		}
+		Expect(db.Create(cluster).Error).NotTo(HaveOccurred())
+
+		err := capi.MarkAsDisconnected(ctx, cluster, db)
+		Expect(err).To(HaveOccurred())
+
+		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
+		Expect(swag.StringValue(cluster.Status)).To(Equal(models.ClusterStatusInstalling))
+	})
+})
 
 var _ = Describe("PrepareForInstallation", func() {
 	var (

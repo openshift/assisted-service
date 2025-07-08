@@ -6767,7 +6767,8 @@ func init() {
             "installed",
             "adding-hosts",
             "cancelled",
-            "installing-pending-user-action"
+            "installing-pending-user-action",
+            "disconnected"
           ]
         },
         "status_info": {
@@ -8911,7 +8912,8 @@ func init() {
       "type": "string",
       "enum": [
         "full-iso",
-        "minimal-iso"
+        "minimal-iso",
+        "disconnected-iso"
       ]
     },
     "import-cluster-params": {
@@ -18101,7 +18103,8 @@ func init() {
             "installed",
             "adding-hosts",
             "cancelled",
-            "installing-pending-user-action"
+            "installing-pending-user-action",
+            "disconnected"
           ]
         },
         "status_info": {
@@ -20213,7 +20216,8 @@ func init() {
       "type": "string",
       "enum": [
         "full-iso",
-        "minimal-iso"
+        "minimal-iso",
+        "disconnected-iso"
       ]
     },
     "import-cluster-params": {
