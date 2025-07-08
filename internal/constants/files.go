@@ -23,3 +23,35 @@ const InsecureMCSPort = 22624
 
 // HTTPS-backed machine config server port
 const SecureMCSPort = 22623
+
+// OVERegistriesConf contains the registry configuration for OVE images
+const OVERegistriesConf = `[[registry]]
+location = "quay.io/openshift-release-dev/ocp-release"
+
+[[registry.mirror]]
+location = "registry.appliance.com:5000/openshift/release-images"
+
+[[registry]]
+location = "quay.io/openshift-release-dev/ocp-v4.0-art-dev"
+
+[[registry.mirror]]
+location = "registry.appliance.com:5000/openshift/release"
+
+[[registry]]
+location = "registry.redhat.io"
+
+[[registry.mirror]]
+location = "registry.appliance.com:5000"
+
+[[registry]]
+location = "registry.openshift.com"
+
+[[registry.mirror]]
+location = "registry.appliance.com:5000"
+
+[[registry]]
+location = "quay.io"
+
+[[registry.mirror]]
+location = "registry.appliance.com:5000"
+`

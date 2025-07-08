@@ -40,6 +40,7 @@ import (
 	"github.com/openshift/assisted-service/internal/imageservice"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
+	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -55,6 +56,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	ctxparams "github.com/openshift/assisted-service/pkg/context"
+	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -194,36 +196,39 @@ type CRDUtils interface {
 }
 type bareMetalInventory struct {
 	Config
-	db                   *gorm.DB
-	stream               stream.Notifier
-	log                  logrus.FieldLogger
-	hostApi              host.API
-	clusterApi           clusterPkg.API
-	infraEnvApi          infraenv.API
-	dnsApi               dns.DNSApi
-	eventsHandler        eventsapi.Handler
-	objectHandler        s3wrapper.API
-	metricApi            metrics.API
-	usageApi             usage.API
-	operatorManagerApi   operators.API
-	generator            generator.InstallConfigGenerator
-	authHandler          auth.Authenticator
-	authzHandler         auth.Authorizer
-	k8sClient            k8sclient.K8SClient
-	ocmClient            *ocm.Client
-	leaderElector        leader.Leader
-	secretValidator      validations.PullSecretValidator
-	versionsHandler      versions.Handler
-	osImages             versions.OSImages
-	crdUtils             CRDUtils
-	IgnitionBuilder      ignition.IgnitionBuilder
-	hwValidator          hardware.Validator
-	installConfigBuilder installcfg.InstallConfigBuilder
-	staticNetworkConfig  staticnetworkconfig.StaticNetworkConfig
-	gcConfig             garbagecollector.Config
-	providerRegistry     registry.ProviderRegistry
-	insecureIPXEURLs     bool
-	installerInvoker     string
+	db                     *gorm.DB
+	stream                 stream.Notifier
+	log                    logrus.FieldLogger
+	hostApi                host.API
+	clusterApi             clusterPkg.API
+	infraEnvApi            infraenv.API
+	dnsApi                 dns.DNSApi
+	eventsHandler          eventsapi.Handler
+	objectHandler          s3wrapper.API
+	metricApi              metrics.API
+	usageApi               usage.API
+	operatorManagerApi     operators.API
+	generator              generator.InstallConfigGenerator
+	authHandler            auth.Authenticator
+	authzHandler           auth.Authorizer
+	k8sClient              k8sclient.K8SClient
+	ocmClient              *ocm.Client
+	leaderElector          leader.Leader
+	secretValidator        validations.PullSecretValidator
+	versionsHandler        versions.Handler
+	osImages               versions.OSImages
+	crdUtils               CRDUtils
+	IgnitionBuilder        ignition.IgnitionBuilder
+	hwValidator            hardware.Validator
+	installConfigBuilder   installcfg.InstallConfigBuilder
+	staticNetworkConfig    staticnetworkconfig.StaticNetworkConfig
+	gcConfig               garbagecollector.Config
+	providerRegistry       registry.ProviderRegistry
+	insecureIPXEURLs       bool
+	installerInvoker       string
+	executer               executer.Executer
+	installerCache         installercache.InstallerCache
+	mirrorRegistriesConfig mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 }
 
 func NewBareMetalInventory(
@@ -258,39 +263,45 @@ func NewBareMetalInventory(
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
 	installerInvoker string,
+	executer executer.Executer,
+	installerCache installercache.InstallerCache,
+	mirrorRegistriesConfig mirrorregistries.ServiceMirrorRegistriesConfigBuilder,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
-		db:                   db,
-		stream:               stream,
-		log:                  log,
-		Config:               cfg,
-		hostApi:              hostApi,
-		clusterApi:           clusterApi,
-		infraEnvApi:          infraEnvApi,
-		dnsApi:               dnsApi,
-		generator:            generator,
-		eventsHandler:        eventsHandler,
-		objectHandler:        objectHandler,
-		metricApi:            metricApi,
-		usageApi:             usageApi,
-		operatorManagerApi:   operatorManagerApi,
-		authHandler:          authHandler,
-		authzHandler:         authzHandler,
-		k8sClient:            k8sClient,
-		ocmClient:            ocmClient,
-		leaderElector:        leaderElector,
-		secretValidator:      pullSecretValidator,
-		versionsHandler:      versionsHandler,
-		osImages:             osImages,
-		crdUtils:             crdUtils,
-		IgnitionBuilder:      IgnitionBuilder,
-		hwValidator:          hwValidator,
-		installConfigBuilder: installConfigBuilder,
-		staticNetworkConfig:  staticNetworkConfig,
-		gcConfig:             gcConfig,
-		providerRegistry:     providerRegistry,
-		insecureIPXEURLs:     insecureIPXEURLs,
-		installerInvoker:     installerInvoker,
+		db:                     db,
+		stream:                 stream,
+		log:                    log,
+		Config:                 cfg,
+		hostApi:                hostApi,
+		clusterApi:             clusterApi,
+		infraEnvApi:            infraEnvApi,
+		dnsApi:                 dnsApi,
+		generator:              generator,
+		eventsHandler:          eventsHandler,
+		objectHandler:          objectHandler,
+		metricApi:              metricApi,
+		usageApi:               usageApi,
+		operatorManagerApi:     operatorManagerApi,
+		authHandler:            authHandler,
+		authzHandler:           authzHandler,
+		k8sClient:              k8sClient,
+		ocmClient:              ocmClient,
+		leaderElector:          leaderElector,
+		secretValidator:        pullSecretValidator,
+		versionsHandler:        versionsHandler,
+		osImages:               osImages,
+		crdUtils:               crdUtils,
+		IgnitionBuilder:        IgnitionBuilder,
+		hwValidator:            hwValidator,
+		installConfigBuilder:   installConfigBuilder,
+		staticNetworkConfig:    staticNetworkConfig,
+		gcConfig:               gcConfig,
+		providerRegistry:       providerRegistry,
+		insecureIPXEURLs:       insecureIPXEURLs,
+		installerInvoker:       installerInvoker,
+		executer:               executer,
+		installerCache:         installerCache,
+		mirrorRegistriesConfig: mirrorRegistriesConfig,
 	}
 }
 
@@ -6171,11 +6182,19 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	var content, filename string
 	switch params.FileName {
 	case "discovery.ign":
-		discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
-		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
-		if err != nil {
-			b.log.WithError(err).Error("Failed to format ignition config")
-			return common.GenerateErrorResponder(err)
+		if infraEnv.Type != nil && *infraEnv.Type == models.ImageTypeDisconnectedInteractiveIso {
+			content, err = ignition.GenerateOVEIgnition(ctx, infraEnv, b.executer, b.mirrorRegistriesConfig, b.installerCache, b.versionsHandler, b.log)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to generate OVE ignition")
+				return common.GenerateErrorResponder(err)
+			}
+		} else {
+			discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
+			content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to format ignition config")
+				return common.GenerateErrorResponder(err)
+			}
 		}
 		filename = params.FileName
 	case "ipxe-script":

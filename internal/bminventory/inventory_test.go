@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
@@ -56,6 +57,7 @@ import (
 	"github.com/openshift/assisted-service/internal/infraenv"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	installcfg_builder "github.com/openshift/assisted-service/internal/installcfg/builder"
+	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -67,6 +69,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -172,6 +175,8 @@ var (
 	mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 	mockProviderRegistry              *registry.MockProviderRegistry
 	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
+	mockInstallerCache                *installercache.MockInstallerCache
+	mockExecuter                      *executer.MockExecuter
 	secondDayWorkerIgnition           = []byte(`{
 		"ignition": {
 		  "version": "3.1.0",
@@ -12578,12 +12583,16 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		infraEnvID = strfmt.UUID(uuid.New().String())
+		infraEnvName := "test-infra-env"
 		infraEnv := common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:               &infraEnvID,
+				Name:             &infraEnvName,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				CPUArchitecture:  common.DefaultCPUArchitecture,
 				PullSecretSet:    true,
 				Type:             common.ImageTypePtr(models.ImageTypeFullIso),
+				SSHAuthorizedKey: "ssh-rsa sshkey",
 			},
 			ImageTokenKey: testTokenKey,
 			PullSecret:    fakePullSecret,
@@ -12665,6 +12674,80 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(report.IsFatal()).To(BeFalse())
 		Expect(config.Ignition.Version).To(Equal("3.1.0"))
+	})
+
+	It("returns OVE ignition for discovery.ign when InfraEnv has disconnected-interactive-iso type", func() {
+		var infraEnv common.InfraEnv
+		Expect(db.First(&infraEnv, "id = ?", infraEnvID).Error).To(Succeed())
+		infraEnv.Type = common.ImageTypePtr(models.ImageTypeDisconnectedInteractiveIso)
+		Expect(db.Save(&infraEnv).Error).To(Succeed())
+
+		releaseImage := &models.ReleaseImage{
+			CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+			OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+			URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"),
+			Version:          swag.String("4.16.0"),
+		}
+		mockVersions.EXPECT().
+			GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, common.DefaultCPUArchitecture, gomock.Any()).
+			Return(releaseImage, nil)
+
+		mockOSImages.EXPECT().
+			GetOsImageOrLatest(gomock.Any(), gomock.Any()).
+			Return(common.TestDefaultConfig.OsImage, nil)
+
+		tempInstallerFile, err := os.CreateTemp("", "mock-openshift-install-*")
+		Expect(err).NotTo(HaveOccurred())
+		tempInstallerFile.Close()
+
+		mockRelease := installercache.NewMockRelease(tempInstallerFile.Name(), mockEvents)
+
+		mockInstallerCache.EXPECT().
+			Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(mockRelease, nil)
+
+		mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+		mockExecuter.EXPECT().Execute(
+			gomock.Any(),
+			"agent",
+			"create",
+			"unconfigured-ignition",
+			"--interactive",
+			"--dir",
+			gomock.Any(),
+		).DoAndReturn(func(command string, args ...string) (string, string, int) {
+			tempDir := args[len(args)-1]
+
+			mockIgnition := `{
+				"ignition": {
+					"version": "3.2.0"
+				},
+				"storage": {
+					"files": [
+						{
+							"path": "/etc/assisted/manifests/infraenv.yaml",
+							"contents": {
+								"source": "data:text/plain;charset=utf-8;base64,dGVzdA=="
+							}
+						}
+					]
+				}
+			}`
+			err = os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"), []byte(mockIgnition), 0600)
+			Expect(err).NotTo(HaveOccurred())
+			return "success", "", 0
+		})
+
+		body := getResponseData("discovery.ign", false, nil, "", infraEnvID)
+
+		var ignitionConfig map[string]interface{}
+		err = json.Unmarshal(body, &ignitionConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		ignition, ok := ignitionConfig["ignition"].(map[string]interface{})
+		Expect(ok).To(BeTrue())
+		Expect(ignition["version"]).To(Equal("3.2.0"))
 	})
 
 	It("returns not found with a non-existant InfraEnv", func() {
@@ -18802,6 +18885,9 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockInstallConfigBuilder = installcfg_builder.NewMockInstallConfigBuilder(ctrl)
 	mockHwValidator = hardware.NewMockValidator(ctrl)
 	mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
+	mockExecuter = executer.NewMockExecuter(ctrl)
+	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+	mockInstallerCache = installercache.NewMockInstallerCache(ctrl)
 	dnsApi := dns.NewDNSHandler(cfg.BaseDNSDomains, common.GetTestLog())
 	gcConfig := garbagecollector.Config{DeregisterInactiveAfter: 20 * 24 * time.Hour}
 
@@ -18809,7 +18895,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockOSImages, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder,
-		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, "")
+		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, "", mockExecuter, mockInstallerCache, mockMirrorRegistriesConfigBuilder)
 
 	bm.ImageServiceBaseURL = imageServiceBaseURL
 	bm.ServiceBaseURL = serviceBaseURL
