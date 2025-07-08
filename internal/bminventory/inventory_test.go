@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
@@ -67,6 +68,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -172,6 +174,7 @@ var (
 	mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 	mockProviderRegistry              *registry.MockProviderRegistry
 	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
+	mockExecuter                      *executer.MockExecuter
 	secondDayWorkerIgnition           = []byte(`{
 		"ignition": {
 		  "version": "3.1.0",
@@ -12578,10 +12581,13 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		infraEnvID = strfmt.UUID(uuid.New().String())
+		infraEnvName := "test-infra-env"
 		infraEnv := common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:               &infraEnvID,
+				Name:             &infraEnvName,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				CPUArchitecture:  common.DefaultCPUArchitecture,
 				PullSecretSet:    true,
 				Type:             common.ImageTypePtr(models.ImageTypeFullIso),
 			},
@@ -12677,6 +12683,372 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "otherfile"}
 		response := bm.V2DownloadInfraEnvFiles(ctx, params)
 		verifyApiError(response, http.StatusBadRequest)
+	})
+
+	It("returns ove.ign successfully", func() {
+		// Mock the OS image response
+		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		
+		// Mock the successful execution of openshift-install
+		mockExecuter.EXPECT().Execute(
+			"openshift-install",
+			"agent",
+			"create",
+			"unconfigured-ignition",
+			"--interactive",
+			"--dir",
+			gomock.Any(),
+		).DoAndReturn(func(command string, args ...string) (string, string, int) {
+			// Get the temp directory from the arguments
+			tempDir := args[len(args)-1]
+			
+			// Verify the directories were created correctly
+			manifestsDir := filepath.Join(tempDir, "cluster-manifests")
+			mirrorDir := filepath.Join(tempDir, "mirror")
+			Expect(manifestsDir).To(BeADirectory())
+			Expect(mirrorDir).To(BeADirectory())
+			
+			// Verify the files were created
+			infraenvPath := filepath.Join(manifestsDir, "infraenv.yaml")
+			pullSecretPath := filepath.Join(manifestsDir, "pull-secret.yaml")
+			registriesPath := filepath.Join(mirrorDir, "registries.conf")
+			
+			Expect(infraenvPath).To(BeARegularFile())
+			Expect(pullSecretPath).To(BeARegularFile())
+			Expect(registriesPath).To(BeARegularFile())
+			
+			// Create a mock unconfigured-agent.ign file
+			mockIgnition := `{
+				"ignition": {
+					"version": "3.2.0"
+				},
+				"storage": {
+					"files": [
+						{
+							"path": "/etc/assisted/manifests/infraenv.yaml",
+							"contents": {
+								"source": "data:text/plain;charset=utf-8;base64,dGVzdA=="
+							}
+						},
+						{
+							"path": "/etc/assisted/manifests/pull-secret.yaml",
+							"contents": {
+								"source": "data:text/plain;charset=utf-8;base64,dGVzdA=="
+							}
+						}
+					]
+				},
+				"systemd": {
+					"units": [
+						{
+							"name": "pre-pivot-registries.service",
+							"enabled": true,
+							"contents": "test"
+						}
+					]
+				}
+			}`
+			err := os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"), []byte(mockIgnition), 0600)
+			Expect(err).NotTo(HaveOccurred())
+			return "success", "", 0
+		}).Times(1)
+		
+		body := getResponseData("ove.ign", false, nil, "", infraEnvID)
+		
+		// Parse the JSON to verify it's valid ignition content
+		var ignitionConfig map[string]any
+		err := json.Unmarshal(body, &ignitionConfig)
+		Expect(err).NotTo(HaveOccurred())
+		
+		// Verify ignition version
+		ignition, ok := ignitionConfig["ignition"].(map[string]any)
+		Expect(ok).To(BeTrue())
+		Expect(ignition["version"]).To(Equal("3.2.0"))
+		
+		// Verify storage files exist
+		storage, ok := ignitionConfig["storage"].(map[string]any)
+		Expect(ok).To(BeTrue())
+		files, ok := storage["files"].([]any)
+		Expect(ok).To(BeTrue())
+		Expect(len(files)).To(Equal(2))
+		
+		// Verify systemd units exist
+		systemd, ok := ignitionConfig["systemd"].(map[string]any)
+		Expect(ok).To(BeTrue())
+		units, ok := systemd["units"].([]any)
+		Expect(ok).To(BeTrue())
+		Expect(len(units)).To(Equal(1))
+	})
+
+	It("returns ove.ign successfully with cluster bound infraenv", func() {
+		// Mock the OS image response
+		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		
+		// Mock the successful execution of openshift-install
+		mockExecuter.EXPECT().Execute(
+			"openshift-install",
+			"agent",
+			"create",
+			"unconfigured-ignition",
+			"--interactive",
+			"--dir",
+			gomock.Any(),
+		).DoAndReturn(func(command string, args ...string) (string, string, int) {
+			// Get the temp directory from the arguments
+			tempDir := args[len(args)-1]
+			
+			// Create a mock unconfigured-agent.ign file
+			mockIgnition := `{
+				"ignition": {
+					"version": "3.2.0"
+				},
+				"storage": {
+					"files": [
+						{
+							"path": "/etc/assisted/manifests/infraenv.yaml",
+							"contents": {
+								"source": "data:text/plain;charset=utf-8;base64,dGVzdA=="
+							}
+						},
+						{
+							"path": "/etc/assisted/manifests/pull-secret.yaml",
+							"contents": {
+								"source": "data:text/plain;charset=utf-8;base64,dGVzdA=="
+							}
+						}
+					]
+				}
+			}`
+			err := os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"), []byte(mockIgnition), 0600)
+			Expect(err).NotTo(HaveOccurred())
+			return "success", "", 0
+		}).Times(1)
+		
+		body := getResponseData("ove.ign", false, nil, "", infraEnvID)
+		
+		// Parse the JSON to verify it's valid ignition content
+		var ignitionConfig map[string]interface{}
+		err := json.Unmarshal(body, &ignitionConfig)
+		Expect(err).NotTo(HaveOccurred())
+		
+		// Verify ignition version
+		ignition, ok := ignitionConfig["ignition"].(map[string]interface{})
+		Expect(ok).To(BeTrue())
+		Expect(ignition["version"]).To(Equal("3.2.0"))
+		
+		// Verify storage files exist
+		storage, ok := ignitionConfig["storage"].(map[string]interface{})
+		Expect(ok).To(BeTrue())
+		files, ok := storage["files"].([]interface{})
+		Expect(ok).To(BeTrue())
+		Expect(len(files)).To(Equal(2))
+	})
+
+	It("calls openshift-install with correct parameters for ove.ign", func() {
+		// Mock the OS image response
+		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		
+		// Mock the successful execution of openshift-install
+		mockExecuter.EXPECT().Execute(
+			"openshift-install",
+			"agent",
+			"create",
+			"unconfigured-ignition",
+			"--interactive",
+			"--dir",
+			gomock.Any(), // temp directory path will be dynamic
+		).DoAndReturn(func(command string, args ...string) (string, string, int) {
+			// Verify the temp directory exists and has correct structure
+			tempDir := args[len(args)-1]
+			
+			// Check that required directories exist
+			manifestsDir := filepath.Join(tempDir, "cluster-manifests")
+			mirrorDir := filepath.Join(tempDir, "mirror")
+			Expect(manifestsDir).To(BeADirectory())
+			Expect(mirrorDir).To(BeADirectory())
+			
+			// Check that required files exist with correct content
+			infraenvPath := filepath.Join(manifestsDir, "infraenv.yaml")
+			pullSecretPath := filepath.Join(manifestsDir, "pull-secret.yaml")
+			registriesPath := filepath.Join(mirrorDir, "registries.conf")
+			
+			Expect(infraenvPath).To(BeARegularFile())
+			Expect(pullSecretPath).To(BeARegularFile())
+			Expect(registriesPath).To(BeARegularFile())
+			
+			// Verify infraenv.yaml content
+			infraenvContent, err := os.ReadFile(infraenvPath)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(infraenvContent)).To(ContainSubstring("apiVersion: agent-install.openshift.io/v1beta1"))
+			Expect(string(infraenvContent)).To(ContainSubstring("kind: InfraEnv"))
+			Expect(string(infraenvContent)).To(ContainSubstring("name: test-infra-env"))
+			
+			// Verify pull-secret.yaml content
+			pullSecretContent, err := os.ReadFile(pullSecretPath)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(pullSecretContent)).To(ContainSubstring("apiVersion: v1"))
+			Expect(string(pullSecretContent)).To(ContainSubstring("kind: Secret"))
+			Expect(string(pullSecretContent)).To(ContainSubstring("stringData:"))
+			Expect(string(pullSecretContent)).To(ContainSubstring(".dockerconfigjson:"))
+			
+			// Verify registries.conf content
+			registriesContent, err := os.ReadFile(registriesPath)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(registriesContent)).To(ContainSubstring("[[registry]]"))
+			Expect(string(registriesContent)).To(ContainSubstring("location = \"registry.redhat.io\""))
+			Expect(string(registriesContent)).To(ContainSubstring("location = \"registry.appliance.com:5000\""))
+			
+			// Create a mock unconfigured-agent.ign file
+			mockIgnition := `{
+				"ignition": {
+					"version": "3.2.0"
+				},
+				"storage": {
+					"files": [
+						{
+							"path": "/etc/assisted/manifests/infraenv.yaml",
+							"contents": {
+								"source": "data:text/plain;charset=utf-8;base64,YXBpVmVyc2lvbjogYWdlbnQtaW5zdGFsbC5vcGVuc2hpZnQuaW8vdjFiZXRhMQpraW5kOiBJbmZyYUVudgptZXRhZGF0YToKICBuYW1lOiB0ZXN0LWluZnJhZW52Cg=="
+							}
+						},
+						{
+							"path": "/etc/assisted/manifests/pull-secret.yaml",
+							"contents": {
+								"source": "data:text/plain;charset=utf-8;base64,cHVsbC1zZWNyZXQtY29udGVudA=="
+							}
+						}
+					]
+				},
+				"systemd": {
+					"units": [
+						{
+							"name": "pre-pivot-registries.service",
+							"enabled": true,
+							"contents": "[Unit]\nDescription=Pre-pivot registry configuration\n[Service]\nType=oneshot\nExecStart=/usr/local/bin/pre-pivot-registries.sh\n[Install]\nWantedBy=multi-user.target"
+						}
+					]
+				}
+			}`
+			err = os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"), []byte(mockIgnition), 0600)
+			Expect(err).NotTo(HaveOccurred())
+			
+			return "success", "", 0
+		}).Times(1)
+		
+		body := getResponseData("ove.ign", false, nil, "", infraEnvID)
+		
+		// Verify we got valid ignition content back
+		var ignitionConfig map[string]interface{}
+		err := json.Unmarshal(body, &ignitionConfig)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ignitionConfig["ignition"]).NotTo(BeNil())
+	})
+
+	It("returns error when openshift-install fails for ove.ign", func() {
+		// Mock the OS image response
+		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		
+		// Mock the failed execution of openshift-install
+		mockExecuter.EXPECT().Execute(
+			"openshift-install",
+			"agent",
+			"create",
+			"unconfigured-ignition",
+			"--interactive",
+			"--dir",
+			gomock.Any(),
+		).Return("", "openshift-install: command not found", 127).Times(1)
+		
+		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "ove.ign"}
+		response := bm.V2DownloadInfraEnvFiles(ctx, params)
+		verifyApiError(response, http.StatusInternalServerError)
+	})
+
+	It("includes SSH key in ove.ign when SSHAuthorizedKey is provided", func() {
+		// Update infraEnv with SSH key
+		sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... user@example.com"
+		err := db.Model(&common.InfraEnv{}).Where("id = ?", infraEnvID).Update("ssh_authorized_key", sshKey).Error
+		Expect(err).NotTo(HaveOccurred())
+
+		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		
+		mockExecuter.EXPECT().Execute(
+			"openshift-install",
+			"agent", "create", "unconfigured-ignition", "--interactive",
+			"--dir", gomock.Any(),
+		).DoAndReturn(func(command string, args ...string) (string, string, int) {
+			tempDir := args[len(args)-1]
+			
+			// Verify SSH key file was created
+			sshKeyPath := filepath.Join(tempDir, "cluster-manifests", "ssh-public-key.yaml")
+			Expect(sshKeyPath).To(BeARegularFile())
+			
+			// Read and verify content contains SSH key
+			content, err := os.ReadFile(sshKeyPath)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(content)).To(ContainSubstring("ssh-public-key"))
+			Expect(string(content)).To(ContainSubstring(sshKey))
+			
+			// Create mock ignition
+			mockIgnition := `{"ignition": {"version": "3.2.0"}}`
+			err = os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"), []byte(mockIgnition), 0600)
+			Expect(err).NotTo(HaveOccurred())
+			return "", "", 0
+		})
+
+		body := getResponseData("ove.ign", false, nil, "", infraEnvID)
+		Expect(body).NotTo(BeEmpty())
+	})
+
+	It("does not create SSH key file when SSHAuthorizedKey is empty", func() {
+		// Ensure infraEnv has no SSH key
+		err := db.Model(&common.InfraEnv{}).Where("id = ?", infraEnvID).Update("ssh_authorized_key", "").Error
+		Expect(err).NotTo(HaveOccurred())
+
+		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		
+		mockExecuter.EXPECT().Execute(
+			"openshift-install",
+			"agent", "create", "unconfigured-ignition", "--interactive",
+			"--dir", gomock.Any(),
+		).DoAndReturn(func(command string, args ...string) (string, string, int) {
+			tempDir := args[len(args)-1]
+			
+			// Verify SSH key file was NOT created
+			sshKeyPath := filepath.Join(tempDir, "cluster-manifests", "ssh-public-key.yaml")
+			_, err := os.Stat(sshKeyPath)
+			Expect(os.IsNotExist(err)).To(BeTrue())
+			
+			// Create mock ignition
+			mockIgnition := `{"ignition": {"version": "3.2.0"}}`
+			err = os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"), []byte(mockIgnition), 0600)
+			Expect(err).NotTo(HaveOccurred())
+			return "", "", 0
+		})
+
+		body := getResponseData("ove.ign", false, nil, "", infraEnvID)
+		Expect(body).NotTo(BeEmpty())
+	})
+
+	It("uses system openshift-install when installer cache is nil", func() {
+		Expect(bm.installerCache).To(BeNil())
+
+		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		
+		mockExecuter.EXPECT().Execute(
+			"openshift-install",
+			"agent", "create", "unconfigured-ignition", "--interactive",
+			"--dir", gomock.Any(),
+		).DoAndReturn(func(command string, args ...string) (string, string, int) {
+			tempDir := args[len(args)-1]
+			mockIgnition := `{"ignition": {"version": "3.2.0"}}`
+			err := os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"), []byte(mockIgnition), 0600)
+			Expect(err).NotTo(HaveOccurred())
+			return "", "", 0
+		})
+
+		body := getResponseData("ove.ign", false, nil, "", infraEnvID)
+		Expect(body).NotTo(BeEmpty())
 	})
 
 	It("returns ipxe-script successfully", func() {
@@ -18802,6 +19174,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockInstallConfigBuilder = installcfg_builder.NewMockInstallConfigBuilder(ctrl)
 	mockHwValidator = hardware.NewMockValidator(ctrl)
 	mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
+	mockExecuter = executer.NewMockExecuter(ctrl)
 	dnsApi := dns.NewDNSHandler(cfg.BaseDNSDomains, common.GetTestLog())
 	gcConfig := garbagecollector.Config{DeregisterInactiveAfter: 20 * 24 * time.Hour}
 
@@ -18809,7 +19182,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockOSImages, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder,
-		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, "")
+		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, "", mockExecuter, nil)
 
 	bm.ImageServiceBaseURL = imageServiceBaseURL
 	bm.ServiceBaseURL = serviceBaseURL

@@ -3839,6 +3839,7 @@ func init() {
           {
             "enum": [
               "discovery.ign",
+              "ove.ign",
               "ipxe-script",
               "static-network-config"
             ],
@@ -3959,6 +3960,7 @@ func init() {
           {
             "enum": [
               "discovery.ign",
+              "ove.ign",
               "ipxe-script"
             ],
             "type": "string",
@@ -10046,6 +10048,15 @@ func init() {
           "type": "string",
           "example": "4.12"
         },
+        "type": {
+          "description": "Type of OS image (regular or ove for OpenShift Virtualization Engine).",
+          "type": "string",
+          "default": "",
+          "enum": [
+            "",
+            "ove"
+          ]
+        },
         "url": {
           "description": "The base OS image used for the discovery iso.",
           "type": "string"
@@ -14860,6 +14871,7 @@ func init() {
           {
             "enum": [
               "discovery.ign",
+              "ove.ign",
               "ipxe-script",
               "static-network-config"
             ],
@@ -14980,6 +14992,7 @@ func init() {
           {
             "enum": [
               "discovery.ign",
+              "ove.ign",
               "ipxe-script"
             ],
             "type": "string",
@@ -21142,6 +21155,15 @@ func init() {
           "description": "Version of the operating system image",
           "type": "string",
           "example": "4.12"
+        },
+        "type": {
+          "description": "Type of OS image (regular or ove for OpenShift Virtualization Engine).",
+          "type": "string",
+          "default": "",
+          "enum": [
+            "",
+            "ove"
+          ]
         },
         "url": {
           "description": "The base OS image used for the discovery iso.",

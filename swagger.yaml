@@ -1694,7 +1694,7 @@ paths:
           name: file_name
           description: The file to be downloaded.
           type: string
-          enum: [discovery.ign, ipxe-script, static-network-config]
+          enum: [discovery.ign, ove.ign, ipxe-script, static-network-config]
           required: true
         - in: query
           name: mac
@@ -1773,7 +1773,7 @@ paths:
           name: file_name
           description: The file to be downloaded.
           type: string
-          enum: [discovery.ign, ipxe-script]
+          enum: [discovery.ign, ove.ign, ipxe-script]
           required: true
         - in: query
           name: ipxe_script_type
@@ -7232,6 +7232,11 @@ definitions:
       version:
         type: string
         description: Build ID of the OS image.
+      type:
+        type: string
+        description: Type of OS image (regular or ove for OpenShift Virtualization Engine).
+        enum: ['', 'ove']
+        default: ''
 
   os-images:
     type: array
