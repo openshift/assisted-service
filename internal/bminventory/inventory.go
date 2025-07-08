@@ -224,6 +224,7 @@ type bareMetalInventory struct {
 	providerRegistry     registry.ProviderRegistry
 	insecureIPXEURLs     bool
 	installerInvoker     string
+	oveIgnitionGenerator *ignition.OVEIgnitionGenerator
 }
 
 func NewBareMetalInventory(
@@ -258,6 +259,7 @@ func NewBareMetalInventory(
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
 	installerInvoker string,
+	oveIgnitionGenerator *ignition.OVEIgnitionGenerator,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -291,6 +293,7 @@ func NewBareMetalInventory(
 		providerRegistry:     providerRegistry,
 		insecureIPXEURLs:     insecureIPXEURLs,
 		installerInvoker:     installerInvoker,
+		oveIgnitionGenerator: oveIgnitionGenerator,
 	}
 }
 
@@ -4778,6 +4781,22 @@ func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
+		// If this is a disconnected-iso type infraenv and the cluster is in insufficient status,
+		// update the cluster status to disconnected. This indicates the cluster is a temporary cluster that's being used
+		// as a configuration holder for OVE configuration and should not be monitored or transitioned.
+		if infraEnv.Type != nil && *infraEnv.Type == models.ImageTypeDisconnectedIso &&
+			cluster.Status != nil && *cluster.Status == models.ClusterStatusInsufficient {
+			log.Infof("Setting cluster %s status to disconnected due to disconnected-iso infraenv", clusterId)
+			if err := tx.Model(&common.Cluster{}).Where("id = ?", clusterId.String()).Updates(map[string]interface{}{
+				"status":            models.ClusterStatusDisconnected,
+				"status_info":       "Cluster is used for disconnected ISO configuration",
+				"status_updated_at": time.Now(),
+			}).Error; err != nil {
+				log.WithError(err).Errorf("Failed to update cluster %s status to disconnected", clusterId)
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
+		}
+
 		// Set the feature usage for ignition config overrides since cluster id exists
 		if err := b.setIgnitionConfigOverrideUsage(infraEnv.ClusterID, params.IgnitionConfigOverride, "infra-env", tx); err != nil {
 			// Failure to set the feature usage isn't a failure to create the infraenv so we only print the error instead of returning it
@@ -6171,11 +6190,24 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	var content, filename string
 	switch params.FileName {
 	case "discovery.ign":
-		discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
-		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
-		if err != nil {
-			b.log.WithError(err).Error("Failed to format ignition config")
-			return common.GenerateErrorResponder(err)
+		if infraEnv.Type != nil && *infraEnv.Type == models.ImageTypeDisconnectedIso {
+			cluster, clusterErr := common.GetClusterFromDB(b.db, infraEnv.ClusterID, common.SkipEagerLoading)
+			if clusterErr != nil {
+				b.log.WithError(clusterErr).Errorf("Failed to get cluster for OVE ignition generation, infraEnv %s", infraEnv.ID)
+				return common.GenerateErrorResponder(clusterErr)
+			}
+			content, err = b.oveIgnitionGenerator.GenerateOVEIgnition(ctx, infraEnv, cluster.OpenshiftVersion)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to generate OVE ignition")
+				return common.GenerateErrorResponder(err)
+			}
+		} else {
+			discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
+			content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to format ignition config")
+				return common.GenerateErrorResponder(err)
+			}
 		}
 		filename = params.FileName
 	case "ipxe-script":

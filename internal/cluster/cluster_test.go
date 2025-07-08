@@ -501,6 +501,14 @@ var _ = Describe("TestClusterMonitoring", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
+				It("insufficient -> insufficient with 0 hosts", func() {
+					// No hosts created - testing cluster with 0 hosts stays in insufficient
+					// This is required for OVE temporary clusters
+					mockHostAPIIsRequireUserActionResetFalse()
+
+					shouldHaveUpdated = false
+					expectedState = "insufficient"
+				})
 				It("insufficient -> insufficient", func() {
 					createHost(id, "known", db)
 					mockHostAPIIsRequireUserActionResetFalse()

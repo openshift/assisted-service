@@ -572,6 +572,7 @@ func (m *Manager) initMonitorQueryGenerator() {
 		buildInitialQuery := func(db *gorm.DB) *gorm.DB {
 			noNeedToMonitorInStates := []string{
 				models.ClusterStatusInstalled,
+				models.ClusterStatusDisconnected,
 			}
 
 			dbWithCondition := common.LoadClusterTablesFromDB(db)

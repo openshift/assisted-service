@@ -248,7 +248,7 @@ type Cluster struct {
 
 	// Status of the OpenShift cluster.
 	// Required: true
-	// Enum: [insufficient ready error preparing-for-installation pending-for-input installing finalizing installed adding-hosts cancelled installing-pending-user-action]
+	// Enum: [insufficient ready error preparing-for-installation pending-for-input installing finalizing installed adding-hosts cancelled installing-pending-user-action disconnected]
 	Status *string `json:"status"`
 
 	// Additional information pertaining to the status of the OpenShift cluster.
@@ -1207,7 +1207,7 @@ var clusterTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["insufficient","ready","error","preparing-for-installation","pending-for-input","installing","finalizing","installed","adding-hosts","cancelled","installing-pending-user-action"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["insufficient","ready","error","preparing-for-installation","pending-for-input","installing","finalizing","installed","adding-hosts","cancelled","installing-pending-user-action","disconnected"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -1249,6 +1249,9 @@ const (
 
 	// ClusterStatusInstallingPendingUserAction captures enum value "installing-pending-user-action"
 	ClusterStatusInstallingPendingUserAction string = "installing-pending-user-action"
+
+	// ClusterStatusDisconnected captures enum value "disconnected"
+	ClusterStatusDisconnected string = "disconnected"
 )
 
 // prop value enum
