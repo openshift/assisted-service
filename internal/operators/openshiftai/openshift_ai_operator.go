@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	clusterValidationID = string(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied)
-	hostValidationID    = string(models.HostValidationIDOpenshiftAiRequirementsSatisfied)
+	clusterValidationID    = string(models.ClusterValidationIDOpenshiftAiRequirementsSatisfied)
+	clusterGPUValidationID = string(models.ClusterValidationIDOpenshiftAiGpuRequirementsSatisfied)
+	hostValidationID       = string(models.HostValidationIDOpenshiftAiRequirementsSatisfied)
 )
 
 var Operator = models.MonitoredOperator{
@@ -115,24 +116,58 @@ func (o *operator) GetHostValidationID() string {
 
 // ValidateCluster checks if the cluster satisfies the requirements to install the operator.
 func (o *operator) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
-	result := []api.ValidationResult{{
+	workerValidation := o.validateWorkers(cluster)
+
+	gpuValidation, err := o.validateGPU(cluster)
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate GPU: %w", err)
+	}
+
+	return []api.ValidationResult{workerValidation, gpuValidation}, nil
+}
+
+func (o *operator) validateWorkers(cluster *common.Cluster) api.ValidationResult {
+	result := api.ValidationResult{
 		ValidationId: clusterValidationID,
 		Status:       api.Success,
-	}}
+	}
 
 	// Check the number of worker nodes:
 	workerCount := int64(common.NumberOfWorkers(cluster))
 	if workerCount < o.config.MinWorkerNodes {
-		result[0].Status = api.Failure
-		result[0].Reasons = []string{
+		result.Status = api.Failure
+		result.Reasons = []string{
 			fmt.Sprintf(
 				"OpenShift AI requires at least %d worker nodes, but the cluster has %d.",
 				o.config.MinWorkerNodes, workerCount,
 			),
 		}
 
-		return result, nil
+		return result
 	}
+
+	return result
+}
+
+func (o *operator) validateGPU(cluster *common.Cluster) (api.ValidationResult, error) {
+	result := api.ValidationResult{
+		ValidationId: clusterGPUValidationID,
+		Status:       api.Success,
+	}
+
+	for _, vendor := range o.vendors {
+		hasGPU, err := vendor.ClusterHasGPU(cluster)
+		if err != nil {
+			return result, fmt.Errorf("failed to check if cluster has GPU for %s: %w", vendor.GetName(), err)
+		}
+
+		if hasGPU {
+			return result, nil
+		}
+	}
+
+	result.Status = api.Failure
+	result.Reasons = []string{"Cluster doesn't have any supported GPU"}
 
 	return result, nil
 }
