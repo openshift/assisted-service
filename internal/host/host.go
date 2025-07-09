@@ -145,6 +145,7 @@ type Manager struct {
 	softTimeoutsEnabled           bool
 	objectHandler                 s3wrapper.API
 	versionHandler                versions.Handler
+	lastInventoryHostname	string
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.Notifier, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
@@ -175,6 +176,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.N
 		softTimeoutsEnabled: softTimeoutsEnabled,
 		objectHandler:       objectHandler,
 		versionHandler:      versionHandler,
+		lastInventoryHostname: "",
 	}
 }
 
@@ -478,6 +480,15 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 	if err != nil {
 		return err
 	}
+	inventoryHostname, err := hostutil.GetCurrentInventoryHostName(h)
+	if err != nil {
+		return err
+	}
+	if m.lastInventoryHostname != inventoryHostname {
+		m.UpdateHostname(ctx, h, inventoryHostname, db)
+		m.lastInventoryHostname = inventoryHostname
+	}
+
 	log.Debugf("Host %s: validation details: %+v", hostutil.GetHostnameForMsg(h), currentValidationRes)
 	if m.didValidationChanged(ctx, newValidationRes, currentValidationRes) {
 		// Validation status changes are detected when new validations are different from the
@@ -946,7 +957,9 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 		cdb = db
 	}
 	updates := map[string]interface{}{"requested_hostname": hostname, "trigger_monitor_timestamp": time.Now()}
-
+	if m.lastInventoryHostname == ""{
+		m.lastInventoryHostname = hostname
+	}
 	return m.updateHostAndNotify(ctx, cdb, h, updates).Error
 }
 
