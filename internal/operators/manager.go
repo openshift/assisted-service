@@ -58,6 +58,13 @@ type Manager struct {
 	objectHandler      s3wrapper.API
 }
 
+// operatorMetadata is a struct to marshal the metadata content into YAML for the OLM Operator ConfigMap.
+type operatorMetadata struct {
+	Namespace        string   `yaml:"namespace"`
+	SubscriptionName string   `yaml:"subscriptionName"`
+	Manifests        []string `yaml:"manifests"`
+}
+
 // API defines Operator management operation
 //
 //go:generate mockgen --build_flags=--mod=mod -package=operators -destination=mock_operators_api.go . API
@@ -212,7 +219,7 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 		}
 		// Create ConfigMap with custom manifests to allow retrieval from assisted-installer
 		// if API cannot be reached
-		err = mgr.createManifestConfigMap(ctx, cluster, &controllerManifests)
+		err = mgr.createOLMOperatorsConfigMap(ctx, cluster, &controllerManifests)
 		if err != nil {
 			return err
 		}
@@ -234,12 +241,18 @@ func (mgr *Manager) createControllerManifest(ctx context.Context, cluster *commo
 
 // Create a ConfigMap containing the operator custom manifests and add it to install manifests.
 // This is needed when the assisted-installer cannot access the API to retrieve the manifest file, e.g.
-// for the Agent-Based Installer
-func (mgr *Manager) createManifestConfigMap(ctx context.Context, cluster *common.Cluster, manifests *[]Manifest) error {
-	manifestOutput, err := yaml.Marshal(manifests)
-	if err != nil {
-		return err
-	}
+// for the Agent-Based Installer.
+// The data section of the ConfigMap will contain the manifests and additional metadata from
+// MonitoredOperators
+//   <operator-name>.metadata.yaml: |
+//     namespace: <operator-namespace>
+//     subscriptionName: <operator-subscriptionName>
+//     manifests:
+//       - <operator-name>-01.yaml
+//   <operator-name>-01.yaml: |
+//     <content of manifest>
+func (mgr *Manager) createOLMOperatorsConfigMap(ctx context.Context, cluster *common.Cluster, manifests *[]Manifest) error {
+	mgr.log.Debugf("Bob creating configMap for manifests")
 	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
@@ -249,9 +262,45 @@ func (mgr *Manager) createManifestConfigMap(ctx context.Context, cluster *common
 			Name:      "olm-operator-manifests",
 			Namespace: "assisted-installer",
 		},
-		Data: map[string]string{
-			"custom-manifests": string(manifestOutput),
-		},
+		Data: make(map[string]string),
+	}
+
+	for _, manifest := range *manifests {
+		op, err := mgr.GetOperatorByName(manifest.Name)
+		if err != nil {
+			mgr.log.Infof("Could not find operator %s in monitored operators", manifest.Name)
+			continue
+		}
+
+		// Split the manifest content into individual YAML documents.
+		rawManifests := strings.Split(manifest.Content, "\n---\n")
+		var manifestFileNames []string
+
+		// Add each individual manifest document to the ConfigMap data
+		for i, rawManifest := range rawManifests {
+			trimmedManifest := strings.TrimSpace(rawManifest)
+			if trimmedManifest == "" {
+				continue
+			}
+
+			fileName := fmt.Sprintf("%s-%02d.yaml", op.Name, i+1)
+			configMap.Data[fileName] = trimmedManifest
+			manifestFileNames = append(manifestFileNames, fileName)
+		}
+
+		metadata := operatorMetadata{
+			Namespace:        op.Namespace,
+			SubscriptionName: op.SubscriptionName,
+			Manifests:        manifestFileNames,
+		}
+
+		metadataYAML, err := yaml.Marshal(metadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata for operator %s: %w", op.Name, err)
+		}
+
+		metadataKey := fmt.Sprintf("%s.metadata.yaml", op.Name)
+		configMap.Data[metadataKey] = string(metadataYAML)
 	}
 
 	// Convert to json first so json tags are handled
