@@ -57,7 +57,7 @@ func GetCurrentHostName(host *models.Host) (string, error) {
 func GetHostnameForMsg(host *models.Host) string {
 	hostName, err := GetCurrentHostName(host)
 	// An error here probably indicates that the agent didn't send inventory yet, fall back to UUID
-	if err != nil || hostName == "" {
+	if err != nil {
 		return host.ID.String()
 	}
 	return hostName
