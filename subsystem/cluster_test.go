@@ -40,6 +40,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
@@ -3654,7 +3655,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-		Expect(requirements.Operators).To(HaveLen(22))
+		Expect(requirements.Operators).To(HaveLen(23))
 		for _, op := range requirements.Operators {
 			switch op.OperatorName {
 			case lso.Operator.Name:
@@ -3708,6 +3709,8 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			case nodemaintenance.Operator.Name:
 				continue
 			case kubedescheduler.Operator.Name:
+				continue
+			case metallb.Operator.Name:
 				continue
 			default:
 				Fail("Unexpected operator")
