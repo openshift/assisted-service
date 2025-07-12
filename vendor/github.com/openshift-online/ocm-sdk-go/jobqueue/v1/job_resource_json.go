@@ -21,38 +21,10 @@ package v1 // github.com/openshift-online/ocm-sdk-go/jobqueue/v1
 
 import (
 	"io"
-	"net/http"
 
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
 
-func readJobFailureRequest(request *JobFailureServerRequest, r *http.Request) error {
-	iterator, err := helpers.NewIterator(r.Body)
-	if err != nil {
-		return err
-	}
-	for {
-		field := iterator.ReadObject()
-		if field == "" {
-			break
-		}
-		switch field {
-		case "failure_reason":
-			value := iterator.ReadString()
-			request.failureReason = &value
-		case "receipt_id":
-			value := iterator.ReadString()
-			request.receiptId = &value
-		default:
-			iterator.ReadAny()
-		}
-	}
-	err = iterator.Error
-	if err != nil {
-		return err
-	}
-	return nil
-}
 func writeJobFailureRequest(request *JobFailureRequest, writer io.Writer) error {
 	count := 0
 	stream := helpers.NewStream(writer)
@@ -74,37 +46,13 @@ func writeJobFailureRequest(request *JobFailureRequest, writer io.Writer) error 
 		count++
 	}
 	stream.WriteObjectEnd()
-	stream.Flush()
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 func readJobFailureResponse(response *JobFailureResponse, reader io.Reader) error {
-	return nil
-}
-func writeJobFailureResponse(response *JobFailureServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readJobSuccessRequest(request *JobSuccessServerRequest, r *http.Request) error {
-	iterator, err := helpers.NewIterator(r.Body)
-	if err != nil {
-		return err
-	}
-	for {
-		field := iterator.ReadObject()
-		if field == "" {
-			break
-		}
-		switch field {
-		case "receipt_id":
-			value := iterator.ReadString()
-			request.receiptId = &value
-		default:
-			iterator.ReadAny()
-		}
-	}
-	err = iterator.Error
-	if err != nil {
-		return err
-	}
 	return nil
 }
 func writeJobSuccessRequest(request *JobSuccessRequest, writer io.Writer) error {
@@ -120,12 +68,12 @@ func writeJobSuccessRequest(request *JobSuccessRequest, writer io.Writer) error 
 		count++
 	}
 	stream.WriteObjectEnd()
-	stream.Flush()
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 func readJobSuccessResponse(response *JobSuccessResponse, reader io.Reader) error {
-	return nil
-}
-func writeJobSuccessResponse(response *JobSuccessServerResponse, w http.ResponseWriter) error {
 	return nil
 }

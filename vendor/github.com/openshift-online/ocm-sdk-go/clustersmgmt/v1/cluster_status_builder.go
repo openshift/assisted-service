@@ -23,15 +23,18 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 //
 // Detailed status of a cluster.
 type ClusterStatusBuilder struct {
-	bitmap_               uint32
-	id                    string
-	href                  string
-	configurationMode     ClusterConfigurationMode
-	description           string
-	provisionErrorCode    string
-	provisionErrorMessage string
-	state                 ClusterState
-	dnsReady              bool
+	bitmap_                   uint32
+	id                        string
+	href                      string
+	configurationMode         ClusterConfigurationMode
+	currentCompute            int
+	description               string
+	limitedSupportReasonCount int
+	provisionErrorCode        string
+	provisionErrorMessage     string
+	state                     ClusterState
+	dnsReady                  bool
+	oidcReady                 bool
 }
 
 // NewClusterStatus creates a new builder of 'cluster_status' objects.
@@ -59,12 +62,22 @@ func (b *ClusterStatusBuilder) HREF(value string) *ClusterStatusBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *ClusterStatusBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // DNSReady sets the value of the 'DNS_ready' attribute to the given value.
-//
-//
 func (b *ClusterStatusBuilder) DNSReady(value bool) *ClusterStatusBuilder {
 	b.dnsReady = value
 	b.bitmap_ |= 8
+	return b
+}
+
+// OIDCReady sets the value of the 'OIDC_ready' attribute to the given value.
+func (b *ClusterStatusBuilder) OIDCReady(value bool) *ClusterStatusBuilder {
+	b.oidcReady = value
+	b.bitmap_ |= 16
 	return b
 }
 
@@ -73,34 +86,42 @@ func (b *ClusterStatusBuilder) DNSReady(value bool) *ClusterStatusBuilder {
 // Configuration mode of a cluster.
 func (b *ClusterStatusBuilder) ConfigurationMode(value ClusterConfigurationMode) *ClusterStatusBuilder {
 	b.configurationMode = value
-	b.bitmap_ |= 16
-	return b
-}
-
-// Description sets the value of the 'description' attribute to the given value.
-//
-//
-func (b *ClusterStatusBuilder) Description(value string) *ClusterStatusBuilder {
-	b.description = value
 	b.bitmap_ |= 32
 	return b
 }
 
-// ProvisionErrorCode sets the value of the 'provision_error_code' attribute to the given value.
-//
-//
-func (b *ClusterStatusBuilder) ProvisionErrorCode(value string) *ClusterStatusBuilder {
-	b.provisionErrorCode = value
+// CurrentCompute sets the value of the 'current_compute' attribute to the given value.
+func (b *ClusterStatusBuilder) CurrentCompute(value int) *ClusterStatusBuilder {
+	b.currentCompute = value
 	b.bitmap_ |= 64
 	return b
 }
 
+// Description sets the value of the 'description' attribute to the given value.
+func (b *ClusterStatusBuilder) Description(value string) *ClusterStatusBuilder {
+	b.description = value
+	b.bitmap_ |= 128
+	return b
+}
+
+// LimitedSupportReasonCount sets the value of the 'limited_support_reason_count' attribute to the given value.
+func (b *ClusterStatusBuilder) LimitedSupportReasonCount(value int) *ClusterStatusBuilder {
+	b.limitedSupportReasonCount = value
+	b.bitmap_ |= 256
+	return b
+}
+
+// ProvisionErrorCode sets the value of the 'provision_error_code' attribute to the given value.
+func (b *ClusterStatusBuilder) ProvisionErrorCode(value string) *ClusterStatusBuilder {
+	b.provisionErrorCode = value
+	b.bitmap_ |= 512
+	return b
+}
+
 // ProvisionErrorMessage sets the value of the 'provision_error_message' attribute to the given value.
-//
-//
 func (b *ClusterStatusBuilder) ProvisionErrorMessage(value string) *ClusterStatusBuilder {
 	b.provisionErrorMessage = value
-	b.bitmap_ |= 128
+	b.bitmap_ |= 1024
 	return b
 }
 
@@ -109,7 +130,7 @@ func (b *ClusterStatusBuilder) ProvisionErrorMessage(value string) *ClusterStatu
 // Overall state of a cluster.
 func (b *ClusterStatusBuilder) State(value ClusterState) *ClusterStatusBuilder {
 	b.state = value
-	b.bitmap_ |= 256
+	b.bitmap_ |= 2048
 	return b
 }
 
@@ -122,8 +143,11 @@ func (b *ClusterStatusBuilder) Copy(object *ClusterStatus) *ClusterStatusBuilder
 	b.id = object.id
 	b.href = object.href
 	b.dnsReady = object.dnsReady
+	b.oidcReady = object.oidcReady
 	b.configurationMode = object.configurationMode
+	b.currentCompute = object.currentCompute
 	b.description = object.description
+	b.limitedSupportReasonCount = object.limitedSupportReasonCount
 	b.provisionErrorCode = object.provisionErrorCode
 	b.provisionErrorMessage = object.provisionErrorMessage
 	b.state = object.state
@@ -137,8 +161,11 @@ func (b *ClusterStatusBuilder) Build() (object *ClusterStatus, err error) {
 	object.href = b.href
 	object.bitmap_ = b.bitmap_
 	object.dnsReady = b.dnsReady
+	object.oidcReady = b.oidcReady
 	object.configurationMode = b.configurationMode
+	object.currentCompute = b.currentCompute
 	object.description = b.description
+	object.limitedSupportReasonCount = b.limitedSupportReasonCount
 	object.provisionErrorCode = b.provisionErrorCode
 	object.provisionErrorMessage = b.provisionErrorMessage
 	object.state = b.state

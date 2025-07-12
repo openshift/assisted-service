@@ -23,15 +23,19 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 //
 // Description of a region of a cloud provider.
 type CloudRegionBuilder struct {
-	bitmap_         uint32
-	id              string
-	href            string
-	cloudProvider   *CloudProviderBuilder
-	displayName     string
-	name            string
-	ccsOnly         bool
-	enabled         bool
-	supportsMultiAZ bool
+	bitmap_            uint32
+	id                 string
+	href               string
+	kmsLocationID      string
+	kmsLocationName    string
+	cloudProvider      *CloudProviderBuilder
+	displayName        string
+	name               string
+	ccsOnly            bool
+	enabled            bool
+	govCloud           bool
+	supportsHypershift bool
+	supportsMultiAZ    bool
 }
 
 // NewCloudRegion creates a new builder of 'cloud_region' objects.
@@ -59,12 +63,29 @@ func (b *CloudRegionBuilder) HREF(value string) *CloudRegionBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *CloudRegionBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // CCSOnly sets the value of the 'CCS_only' attribute to the given value.
-//
-//
 func (b *CloudRegionBuilder) CCSOnly(value bool) *CloudRegionBuilder {
 	b.ccsOnly = value
 	b.bitmap_ |= 8
+	return b
+}
+
+// KMSLocationID sets the value of the 'KMS_location_ID' attribute to the given value.
+func (b *CloudRegionBuilder) KMSLocationID(value string) *CloudRegionBuilder {
+	b.kmsLocationID = value
+	b.bitmap_ |= 16
+	return b
+}
+
+// KMSLocationName sets the value of the 'KMS_location_name' attribute to the given value.
+func (b *CloudRegionBuilder) KMSLocationName(value string) *CloudRegionBuilder {
+	b.kmsLocationName = value
+	b.bitmap_ |= 32
 	return b
 }
 
@@ -74,46 +95,52 @@ func (b *CloudRegionBuilder) CCSOnly(value bool) *CloudRegionBuilder {
 func (b *CloudRegionBuilder) CloudProvider(value *CloudProviderBuilder) *CloudRegionBuilder {
 	b.cloudProvider = value
 	if value != nil {
-		b.bitmap_ |= 16
+		b.bitmap_ |= 64
 	} else {
-		b.bitmap_ &^= 16
+		b.bitmap_ &^= 64
 	}
 	return b
 }
 
 // DisplayName sets the value of the 'display_name' attribute to the given value.
-//
-//
 func (b *CloudRegionBuilder) DisplayName(value string) *CloudRegionBuilder {
 	b.displayName = value
-	b.bitmap_ |= 32
-	return b
-}
-
-// Enabled sets the value of the 'enabled' attribute to the given value.
-//
-//
-func (b *CloudRegionBuilder) Enabled(value bool) *CloudRegionBuilder {
-	b.enabled = value
-	b.bitmap_ |= 64
-	return b
-}
-
-// Name sets the value of the 'name' attribute to the given value.
-//
-//
-func (b *CloudRegionBuilder) Name(value string) *CloudRegionBuilder {
-	b.name = value
 	b.bitmap_ |= 128
 	return b
 }
 
+// Enabled sets the value of the 'enabled' attribute to the given value.
+func (b *CloudRegionBuilder) Enabled(value bool) *CloudRegionBuilder {
+	b.enabled = value
+	b.bitmap_ |= 256
+	return b
+}
+
+// GovCloud sets the value of the 'gov_cloud' attribute to the given value.
+func (b *CloudRegionBuilder) GovCloud(value bool) *CloudRegionBuilder {
+	b.govCloud = value
+	b.bitmap_ |= 512
+	return b
+}
+
+// Name sets the value of the 'name' attribute to the given value.
+func (b *CloudRegionBuilder) Name(value string) *CloudRegionBuilder {
+	b.name = value
+	b.bitmap_ |= 1024
+	return b
+}
+
+// SupportsHypershift sets the value of the 'supports_hypershift' attribute to the given value.
+func (b *CloudRegionBuilder) SupportsHypershift(value bool) *CloudRegionBuilder {
+	b.supportsHypershift = value
+	b.bitmap_ |= 2048
+	return b
+}
+
 // SupportsMultiAZ sets the value of the 'supports_multi_AZ' attribute to the given value.
-//
-//
 func (b *CloudRegionBuilder) SupportsMultiAZ(value bool) *CloudRegionBuilder {
 	b.supportsMultiAZ = value
-	b.bitmap_ |= 256
+	b.bitmap_ |= 4096
 	return b
 }
 
@@ -126,6 +153,8 @@ func (b *CloudRegionBuilder) Copy(object *CloudRegion) *CloudRegionBuilder {
 	b.id = object.id
 	b.href = object.href
 	b.ccsOnly = object.ccsOnly
+	b.kmsLocationID = object.kmsLocationID
+	b.kmsLocationName = object.kmsLocationName
 	if object.cloudProvider != nil {
 		b.cloudProvider = NewCloudProvider().Copy(object.cloudProvider)
 	} else {
@@ -133,7 +162,9 @@ func (b *CloudRegionBuilder) Copy(object *CloudRegion) *CloudRegionBuilder {
 	}
 	b.displayName = object.displayName
 	b.enabled = object.enabled
+	b.govCloud = object.govCloud
 	b.name = object.name
+	b.supportsHypershift = object.supportsHypershift
 	b.supportsMultiAZ = object.supportsMultiAZ
 	return b
 }
@@ -145,6 +176,8 @@ func (b *CloudRegionBuilder) Build() (object *CloudRegion, err error) {
 	object.href = b.href
 	object.bitmap_ = b.bitmap_
 	object.ccsOnly = b.ccsOnly
+	object.kmsLocationID = b.kmsLocationID
+	object.kmsLocationName = b.kmsLocationName
 	if b.cloudProvider != nil {
 		object.cloudProvider, err = b.cloudProvider.Build()
 		if err != nil {
@@ -153,7 +186,9 @@ func (b *CloudRegionBuilder) Build() (object *CloudRegion, err error) {
 	}
 	object.displayName = b.displayName
 	object.enabled = b.enabled
+	object.govCloud = b.govCloud
 	object.name = b.name
+	object.supportsHypershift = b.supportsHypershift
 	object.supportsMultiAZ = b.supportsMultiAZ
 	return
 }

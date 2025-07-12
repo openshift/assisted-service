@@ -59,6 +59,11 @@ func (b *FlavourBuilder) HREF(value string) *FlavourBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *FlavourBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // AWS sets the value of the 'AWS' attribute to the given value.
 //
 // Specification for different classes of nodes inside a flavour.
@@ -86,8 +91,6 @@ func (b *FlavourBuilder) GCP(value *GCPFlavourBuilder) *FlavourBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *FlavourBuilder) Name(value string) *FlavourBuilder {
 	b.name = value
 	b.bitmap_ |= 32

@@ -45,6 +45,7 @@ type LimitedSupportReason struct {
 	creationTimestamp time.Time
 	details           string
 	detectionType     DetectionType
+	override          *LimitedSupportReasonOverride
 	summary           string
 	template          *LimitedSupportReasonTemplate
 }
@@ -60,7 +61,7 @@ func (o *LimitedSupportReason) Kind() string {
 	return LimitedSupportReasonKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *LimitedSupportReason) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -177,12 +178,35 @@ func (o *LimitedSupportReason) GetDetectionType() (value DetectionType, ok bool)
 	return
 }
 
+// Override returns the value of the 'override' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Indicates if the override is enabled
+func (o *LimitedSupportReason) Override() *LimitedSupportReasonOverride {
+	if o != nil && o.bitmap_&64 != 0 {
+		return o.override
+	}
+	return nil
+}
+
+// GetOverride returns the value of the 'override' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Indicates if the override is enabled
+func (o *LimitedSupportReason) GetOverride() (value *LimitedSupportReasonOverride, ok bool) {
+	ok = o != nil && o.bitmap_&64 != 0
+	if ok {
+		value = o.override
+	}
+	return
+}
+
 // Summary returns the value of the 'summary' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // Summary of the reason.
 func (o *LimitedSupportReason) Summary() string {
-	if o != nil && o.bitmap_&64 != 0 {
+	if o != nil && o.bitmap_&128 != 0 {
 		return o.summary
 	}
 	return ""
@@ -193,7 +217,7 @@ func (o *LimitedSupportReason) Summary() string {
 //
 // Summary of the reason.
 func (o *LimitedSupportReason) GetSummary() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&64 != 0
+	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
 		value = o.summary
 	}
@@ -205,7 +229,7 @@ func (o *LimitedSupportReason) GetSummary() (value string, ok bool) {
 //
 // Optional link to a template with summary and details.
 func (o *LimitedSupportReason) Template() *LimitedSupportReasonTemplate {
-	if o != nil && o.bitmap_&128 != 0 {
+	if o != nil && o.bitmap_&256 != 0 {
 		return o.template
 	}
 	return nil
@@ -216,7 +240,7 @@ func (o *LimitedSupportReason) Template() *LimitedSupportReasonTemplate {
 //
 // Optional link to a template with summary and details.
 func (o *LimitedSupportReason) GetTemplate() (value *LimitedSupportReasonTemplate, ok bool) {
-	ok = o != nil && o.bitmap_&128 != 0
+	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
 		value = o.template
 	}
@@ -282,6 +306,29 @@ func (l *LimitedSupportReasonList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *LimitedSupportReasonList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *LimitedSupportReasonList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *LimitedSupportReasonList) SetItems(items []*LimitedSupportReason) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *LimitedSupportReasonList) Items() []*LimitedSupportReason {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

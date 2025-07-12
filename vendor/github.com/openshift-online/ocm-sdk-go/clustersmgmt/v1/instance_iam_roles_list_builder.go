@@ -37,6 +37,11 @@ func (b *InstanceIAMRolesListBuilder) Items(values ...*InstanceIAMRolesBuilder) 
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *InstanceIAMRolesListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *InstanceIAMRolesListBuilder) Copy(list *InstanceIAMRolesList) *InstanceIAMRolesListBuilder {
 	if list == nil || list.items == nil {

@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readAccessTokenPostRequest(request *AccessTokenPostServerRequest, r *http.Request) error {
-	return nil
-}
 func writeAccessTokenPostRequest(request *AccessTokenPostRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readAccessTokenPostResponse(response *AccessTokenPostResponse, reader io.Re
 	var err error
 	response.body, err = UnmarshalAccessToken(reader)
 	return err
-}
-func writeAccessTokenPostResponse(response *AccessTokenPostServerResponse, w http.ResponseWriter) error {
-	return MarshalAccessToken(response.body, w)
 }

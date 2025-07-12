@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readAddOnDeleteRequest(request *AddOnDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeAddOnDeleteRequest(request *AddOnDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readAddOnDeleteResponse(response *AddOnDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeAddOnDeleteResponse(response *AddOnDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readAddOnGetRequest(request *AddOnGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeAddOnGetRequest(request *AddOnGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readAddOnGetResponse(response *AddOnGetResponse, reader io.Reader) error {
 	response.body, err = UnmarshalAddOn(reader)
 	return err
 }
-func writeAddOnGetResponse(response *AddOnGetServerResponse, w http.ResponseWriter) error {
-	return MarshalAddOn(response.body, w)
-}
-func readAddOnUpdateRequest(request *AddOnUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalAddOn(r.Body)
-	return err
-}
 func writeAddOnUpdateRequest(request *AddOnUpdateRequest, writer io.Writer) error {
 	return MarshalAddOn(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readAddOnUpdateResponse(response *AddOnUpdateResponse, reader io.Reader) er
 	var err error
 	response.body, err = UnmarshalAddOn(reader)
 	return err
-}
-func writeAddOnUpdateResponse(response *AddOnUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalAddOn(response.body, w)
 }
