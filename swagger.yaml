@@ -5712,7 +5712,7 @@ definitions:
 
   image_type:
     type: string
-    enum: [full-iso, minimal-iso]
+    enum: [full-iso, minimal-iso, disconnected-interactive-iso]
 
   free-addresses-list:
     type: array
