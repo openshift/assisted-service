@@ -580,6 +580,22 @@ var _ = Describe("Events library", func() {
 				evs := response.GetEvents()
 				Expect(len(evs)).To(Equal(2))
 			})
+
+			It("can fetch events with deleted_hosts=true without ambiguity on deleted_at", func() {
+				cfg := &auth.Config{AuthType: auth.TypeRHSSO, EnableOrgTenancy: false}
+				authz_handler := auth.NewAuthzHandler(cfg, nil, logrus.New(), db)
+				theEvents.(*Events).authz = authz_handler
+
+				params := common.GetDefaultV2GetEventsParams(&cluster1, nil, nil)
+				trueVal := true
+				params.DeletedHosts = &trueVal
+
+				response, err := theEvents.V2GetEvents(ctx, params)
+				Expect(err).ShouldNot(HaveOccurred(), "expected no error when querying with deleted_hosts=true")
+
+				evs := response.GetEvents()
+				Expect(evs).NotTo(BeNil())
+			})
 		})
 	})
 
