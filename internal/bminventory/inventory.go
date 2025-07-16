@@ -224,6 +224,7 @@ type bareMetalInventory struct {
 	providerRegistry     registry.ProviderRegistry
 	insecureIPXEURLs     bool
 	installerInvoker     string
+	oveIgnitionGenerator *ignition.OVEIgnitionGenerator
 }
 
 func NewBareMetalInventory(
@@ -258,6 +259,7 @@ func NewBareMetalInventory(
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
 	installerInvoker string,
+	oveIgnitionGenerator *ignition.OVEIgnitionGenerator,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -291,6 +293,7 @@ func NewBareMetalInventory(
 		providerRegistry:     providerRegistry,
 		insecureIPXEURLs:     insecureIPXEURLs,
 		installerInvoker:     installerInvoker,
+		oveIgnitionGenerator: oveIgnitionGenerator,
 	}
 }
 
@@ -6171,11 +6174,24 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	var content, filename string
 	switch params.FileName {
 	case "discovery.ign":
-		discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
-		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
-		if err != nil {
-			b.log.WithError(err).Error("Failed to format ignition config")
-			return common.GenerateErrorResponder(err)
+		if infraEnv.Type != nil && *infraEnv.Type == models.ImageTypeDisconnectedInteractiveIso {
+			cluster, clusterErr := common.GetClusterFromDB(b.db, infraEnv.ClusterID, common.SkipEagerLoading)
+			if clusterErr != nil {
+				b.log.WithError(clusterErr).Errorf("Failed to get cluster for OVE ignition generation, infraEnv %s", infraEnv.ID)
+				return common.GenerateErrorResponder(clusterErr)
+			}
+			content, err = b.oveIgnitionGenerator.GenerateOVEIgnition(ctx, infraEnv, cluster.OpenshiftVersion)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to generate OVE ignition")
+				return common.GenerateErrorResponder(err)
+			}
+		} else {
+			discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
+			content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to format ignition config")
+				return common.GenerateErrorResponder(err)
+			}
 		}
 		filename = params.FileName
 	case "ipxe-script":
