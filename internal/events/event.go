@@ -360,7 +360,7 @@ func (e Events) prepareEventsTable(ctx context.Context, tx *gorm.DB, clusterID *
 
 		// if deleted hosts flag is true, we need to add 'deleted_at' to know whether events are related to a deleted host
 		if swag.BoolValue(deletedHosts) {
-			tx = tx.Select("events.*, clusters.user_name, clusters.org_id, hosts.deleted_at").
+			tx = tx.Select("events.*, clusters.user_name, clusters.org_id, hosts.deleted_at as host_deleted_at").
 				Joins("LEFT JOIN hosts ON hosts.id = events.host_id")
 		}
 		return tx
