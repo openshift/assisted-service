@@ -30,6 +30,10 @@ type OsImage struct {
 	// Required: true
 	OpenshiftVersion *string `json:"openshift_version"`
 
+	// Type of OS image (regular or ove for OpenShift Virtualization Engine).
+	// Enum: [ ove]
+	Type string `json:"type,omitempty"`
+
 	// The base OS image used for the discovery iso.
 	// Required: true
 	URL *string `json:"url"`
@@ -48,6 +52,10 @@ func (m *OsImage) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateType(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -120,6 +128,48 @@ func (m *OsImage) validateCPUArchitecture(formats strfmt.Registry) error {
 func (m *OsImage) validateOpenshiftVersion(formats strfmt.Registry) error {
 
 	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var osImageTypeTypePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["","ove"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		osImageTypeTypePropEnum = append(osImageTypeTypePropEnum, v)
+	}
+}
+
+const (
+
+	// OsImageTypeEmpty captures enum value ""
+	OsImageTypeEmpty string = ""
+
+	// OsImageTypeOve captures enum value "ove"
+	OsImageTypeOve string = "ove"
+)
+
+// prop value enum
+func (m *OsImage) validateTypeEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, osImageTypeTypePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *OsImage) validateType(formats strfmt.Registry) error {
+	if swag.IsZero(m.Type) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateTypeEnum("type", "body", m.Type); err != nil {
 		return err
 	}
 

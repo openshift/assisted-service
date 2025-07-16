@@ -107,7 +107,7 @@ func (o *GetInfraEnvPresignedFileURLParams) bindFileName(rawData []string, hasKe
 // validateFileName carries on validations for parameter FileName
 func (o *GetInfraEnvPresignedFileURLParams) validateFileName(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"discovery.ign", "ipxe-script"}, true); err != nil {
+	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"discovery.ign", "ove.ign", "ipxe-script"}, true); err != nil {
 		return err
 	}
 

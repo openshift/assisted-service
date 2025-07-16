@@ -10,7 +10,10 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,10 +43,12 @@ import (
 	"github.com/openshift/assisted-service/internal/imageservice"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
+	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
@@ -55,6 +60,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	ctxparams "github.com/openshift/assisted-service/pkg/context"
+	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -81,6 +87,62 @@ import (
 const DefaultUser = "kubeadmin"
 
 const WindowBetweenRequestsInSeconds = 10 * time.Second
+
+// OVE ignition generation templates
+const oveInfraEnvTemplate = `
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: %s
+spec:
+  pullSecretRef:
+    name: pull-secret
+  sshAuthorizedKey: ssh-public-key
+`
+
+const ovePullSecretTemplate = `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pull-secret
+stringData:
+  .dockerconfigjson: %s
+type: kubernetes.io/dockerconfigjson
+`
+
+const oveSSHKeyTemplate = `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ssh-public-key
+type: Opaque
+stringData:
+  authorized_keys: |
+%s
+`
+
+const oveRegistriesConf = `
+[[registry]]
+  location = "registry.redhat.io"
+  mirror-by-digest-only = false
+
+  [[registry.mirror]]
+    location = "registry.appliance.com:5000"
+
+[[registry]]
+  location = "registry.openshift.com"
+  mirror-by-digest-only = false
+
+  [[registry.mirror]]
+    location = "registry.appliance.com:5000"
+
+[[registry]]
+  location = "quay.io"
+  mirror-by-digest-only = false
+
+  [[registry.mirror]]
+    location = "registry.appliance.com:5000"
+`
 
 const (
 	MediaDisconnected int64 = 256
@@ -224,6 +286,8 @@ type bareMetalInventory struct {
 	providerRegistry     registry.ProviderRegistry
 	insecureIPXEURLs     bool
 	installerInvoker     string
+	executer             executer.Executer
+	installerCache       *installercache.Installers
 }
 
 func NewBareMetalInventory(
@@ -258,6 +322,8 @@ func NewBareMetalInventory(
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
 	installerInvoker string,
+	executer executer.Executer,
+	installerCache *installercache.Installers,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -291,6 +357,8 @@ func NewBareMetalInventory(
 		providerRegistry:     providerRegistry,
 		insecureIPXEURLs:     insecureIPXEURLs,
 		installerInvoker:     installerInvoker,
+		executer:             executer,
+		installerCache:       installerCache,
 	}
 }
 
@@ -6158,6 +6226,87 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 	return &h.Host, nil
 }
 
+// GenerateOVEIgnition generates the unconfigured-ignition content for OVE images
+// using openshift-install agent create unconfigured-ignition --interactive command
+func (b *bareMetalInventory) GenerateOVEIgnition(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("GenerateOVEIgnition called for infraEnv %s", *infraEnv.ID)
+
+	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get OS image for OVE ignition generation")
+	}
+
+	tempDir, err := os.MkdirTemp("", "ove-ignition-*")
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create temp directory for OVE ignition generation")
+	}
+	defer os.RemoveAll(tempDir)
+
+	manifestsDir := filepath.Join(tempDir, "cluster-manifests")
+	if err := os.MkdirAll(manifestsDir, 0755); err != nil {
+		return "", errors.Wrap(err, "failed to create manifests directory")
+	}
+
+	infraEnvYAML := fmt.Sprintf(oveInfraEnvTemplate, *infraEnv.Name)
+	if err := os.WriteFile(filepath.Join(manifestsDir, "infraenv.yaml"), []byte(infraEnvYAML), 0600); err != nil {
+		return "", errors.Wrap(err, "failed to write infraenv.yaml")
+	}
+
+	pullSecretYAML := fmt.Sprintf(ovePullSecretTemplate, strconv.Quote(infraEnv.PullSecret))
+	if err := os.WriteFile(filepath.Join(manifestsDir, "pull-secret.yaml"), []byte(pullSecretYAML), 0600); err != nil {
+		return "", errors.Wrap(err, "failed to write pull-secret.yaml")
+	}
+
+	// Write SSH key if provided
+	if infraEnv.SSHAuthorizedKey != "" {
+		sshKeyYAML := fmt.Sprintf(oveSSHKeyTemplate, infraEnv.SSHAuthorizedKey)
+		if err := os.WriteFile(filepath.Join(manifestsDir, "ssh-public-key.yaml"), []byte(sshKeyYAML), 0600); err != nil {
+			return "", errors.Wrap(err, "failed to write ssh-public-key.yaml")
+		}
+	}
+
+	mirrorDir := filepath.Join(tempDir, "mirror")
+	if err := os.MkdirAll(mirrorDir, 0755); err != nil {
+		return "", errors.Wrap(err, "failed to create mirror directory")
+	}
+
+	if err := os.WriteFile(filepath.Join(mirrorDir, "registries.conf"), []byte(oveRegistriesConf), 0600); err != nil {
+		return "", errors.Wrap(err, "failed to write registries.conf")
+	}
+
+	// Get version-specific openshift-install binary
+	installerPath := "openshift-install" // default fallback
+	if b.installerCache != nil && infraEnv.OpenshiftVersion != "" {
+		ocRelease, err := b.versionsHandler.GetReleaseImage(ctx, infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+		if err == nil {
+			release, err := b.installerCache.Get(ctx, "", "", infraEnv.PullSecret, ocRelease.URL,
+				infraEnv.OpenshiftVersion, *infraEnv.ID)
+			if err == nil {
+				installerPath = release.Path
+				defer release.Cleanup(ctx)
+			}
+		}
+	}
+
+	stdout, stderr, exitCode := b.executer.Execute(installerPath, "agent", "create", "unconfigured-ignition", "--interactive", "--dir", tempDir)
+	if exitCode != 0 {
+		log.Errorf("error running openshift-install agent create unconfigured-ignition --interactive, stdout: %s, stderr: %s, exit code: %d", stdout, stderr, exitCode)
+		return "", errors.Errorf("failed to generate unconfigured-ignition: %s", stderr)
+	}
+
+	ignitionPath := filepath.Join(tempDir, "unconfigured-agent.ign")
+	ignitionContent, err := os.ReadFile(ignitionPath)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to read generated unconfigured-ignition")
+	}
+
+	log.Infof("Generated unconfigured-ignition for OVE image (infraEnv: %s, version: %s, arch: %s) using %s",
+		*infraEnv.ID, osImage.Version, infraEnv.CPUArchitecture, installerPath)
+
+	return string(ignitionContent), nil
+}
+
 func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params installer.V2DownloadInfraEnvFilesParams) middleware.Responder {
 	if params.IpxeScriptType != nil && params.FileName != "ipxe-script" {
 		return common.NewApiError(http.StatusBadRequest, errors.New(`"ipxe_script_type"" can be set only for "ipxe-script"`))
@@ -6175,6 +6324,13 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
 		if err != nil {
 			b.log.WithError(err).Error("Failed to format ignition config")
+			return common.GenerateErrorResponder(err)
+		}
+		filename = params.FileName
+	case "ove.ign":
+		content, err = b.GenerateOVEIgnition(ctx, infraEnv)
+		if err != nil {
+			b.log.WithError(err).Error("Failed to generate OVE ignition")
 			return common.GenerateErrorResponder(err)
 		}
 		filename = params.FileName
