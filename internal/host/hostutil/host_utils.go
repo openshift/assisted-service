@@ -43,13 +43,21 @@ var ForbiddenHostnames = []string{
 }
 
 func GetCurrentHostName(host *models.Host) (string, error) {
-	var inventory models.Inventory
 	if host.RequestedHostname != "" {
 		return host.RequestedHostname, nil
 	}
+	hostname, err := GetCurrentInventoryHostName(host)
+	if err != nil || hostname == "" {
+		return host.ID.String(), err
+	}
+	return hostname, nil
+}
+
+func GetCurrentInventoryHostName(host *models.Host) (string, error){
+	var inventory models.Inventory
 	err := json.Unmarshal([]byte(host.Inventory), &inventory)
 	if err != nil {
-		return "", err
+		return host.ID.String(), err
 	}
 	return inventory.Hostname, nil
 }
