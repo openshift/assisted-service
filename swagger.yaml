@@ -2726,6 +2726,7 @@ paths:
               - 'fence-agents-remediation'
               - 'node-maintenance'
               - 'kube-descheduler'
+              - 'metallb'
         "401":
           description: Unauthorized.
           schema:
@@ -4276,6 +4277,7 @@ definitions:
       - 'FENCE_AGENTS_REMEDIATION'
       - 'NODE_MAINTENANCE'
       - 'KUBE_DESCHEDULER'
+      - 'METALLB'
 
   architecture-support-level-id:
     type: string
@@ -6697,6 +6699,7 @@ definitions:
       - 'fence-agents-remediation-requirements-satisfied'
       - 'node-maintenance-requirements-satisfied'
       - 'kube-descheduler-requirements-satisfied'
+      - 'metallb-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -7079,6 +7082,7 @@ definitions:
       - 'fence-agents-remediation-requirements-satisfied'
       - 'node-maintenance-requirements-satisfied'
       - 'kube-descheduler-requirements-satisfied'
+      - 'metallb-requirements-satisfied'
 
   logs_type:
     type: string

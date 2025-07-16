@@ -140,6 +140,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		If(AreNodeHealthcheckRequirementsSatisfied),
 		If(AreSelfNodeRemediationRequirementsSatisfied),
 		If(AreFenceAgentsRemediationRequirementsSatisfied),
+		If(AreMetallbRequirementsSatisfied),
 	)
 
 	// Refresh cluster status conditions - Non DHCP

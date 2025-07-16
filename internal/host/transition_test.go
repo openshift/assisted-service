@@ -6664,6 +6664,7 @@ var allValidationIDs = []validationID{
 	AreNodeHealthcheckRequirementsSatisfied,
 	AreSelfNodeRemediationRequirementsSatisfied,
 	AreFenceAgentsRemediationRequirementsSatisfied,
+	AreMetalLBRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{
