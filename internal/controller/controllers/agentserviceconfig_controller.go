@@ -90,6 +90,7 @@ const (
 
 	configmapAnnotation                 = "unsupported.agent-install.openshift.io/assisted-service-configmap"
 	imageServiceSkipVerifyTLSAnnotation = "unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls"
+	allowUnrestrictedImagePulls         = "unsupported.agent-install.openshift.io/assisted-service-allow-unrestricted-image-pulls"
 
 	assistedConfigHashAnnotation                 = "agent-install.openshift.io/config-hash"
 	mirrorConfigHashAnnotation                   = "agent-install.openshift.io/mirror-hash"
@@ -1305,6 +1306,19 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			cm.Data["SERVICE_CA_CERT_PATH"] = "/etc/assisted-ingress-cert/ca-bundle.crt"
 		} else {
 			cm.Data["SERVICE_CA_CERT_PATH"] = "/etc/assisted-ingress-cert/ca.crt"
+		}
+
+		if forceInsecurePolicy, ok := asc.Object.GetAnnotations()[allowUnrestrictedImagePulls]; ok {
+			if forceInsecurePolicy == "true" {
+				log.Infof("ForceInsecurePolicyJson annotation found with value 'true', setting FORCE_INSECURE_POLICY_JSON=true")
+				cm.Data["FORCE_INSECURE_POLICY_JSON"] = forceInsecurePolicy
+				asc.rec.Recorder.Event(asc.Object, "Normal", "ForceInsecurePolicyEnabled", "FORCE_INSECURE_POLICY_JSON environment variable enabled via annotation")
+			} else {
+				log.Infof("ForceInsecurePolicyJson annotation found with value '%s' (not 'true'), skipping FORCE_INSECURE_POLICY_JSON", forceInsecurePolicy)
+				asc.rec.Recorder.Event(asc.Object, "Warning", "ForceInsecurePolicyInvalidValue", fmt.Sprintf("ForceInsecurePolicy annotation has invalid value '%s', expected 'true'", forceInsecurePolicy))
+			}
+		} else {
+			log.Debugf("ForceInsecurePolicyJson annotation not found, FORCE_INSECURE_POLICY_JSON will not be set")
 		}
 
 		copyEnv(cm.Data, "HTTP_PROXY")
