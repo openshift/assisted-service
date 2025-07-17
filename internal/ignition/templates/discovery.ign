@@ -172,6 +172,15 @@
         "name": "root"
       },
       "contents": { "source": "data:text/plain;base64,{{.MirrorRegistriesCAConfig}}"}
+    }{{end}}{{if .MirrorRegistriesPolicyConfig}},
+    {
+      "path": "/etc/containers/policy.json",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+      "name": "root"
+    },
+      "contents": { "source": "data:text/plain;base64,{{.MirrorRegistriesPolicyConfig}}"}
     }{{end}}{{if .StaticNetworkConfig}},
     {
         "path": "/usr/local/bin/pre-network-manager-config.sh",
