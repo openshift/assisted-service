@@ -2772,6 +2772,128 @@ func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
 	return asc, string(encoded)
 }
 
+func newASCWithForceInsecurePolicyAnnotation() *aiv1beta1.AgentServiceConfig {
+	asc := newASCDefault()
+	asc.ObjectMeta.Annotations = map[string]string{allowUnrestrictedImagePulls: "true"}
+	return asc
+}
+
+func newASCWithForceInsecurePolicyAnnotationFalse() *aiv1beta1.AgentServiceConfig {
+	asc := newASCDefault()
+	asc.ObjectMeta.Annotations = map[string]string{allowUnrestrictedImagePulls: "false"}
+	return asc
+}
+
+var _ = Describe("ForceInsecurePolicyJson annotation", func() {
+	var (
+		ctx               context.Context
+		log               logrus.FieldLogger
+		asc               *aiv1beta1.AgentServiceConfig
+		ascr              *AgentServiceConfigReconciler
+		ascc              ASC
+		route             *routev1.Route
+		imageRoute        *routev1.Route
+		assistedCM        *corev1.ConfigMap
+		assistedTrustedCM *corev1.ConfigMap
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		log = logrus.New()
+
+		route = &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: testHost,
+			},
+		}
+
+		imageRoute = &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imageServiceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: testHost + ".images",
+			},
+		}
+
+		assistedCM = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: testNamespace,
+			},
+		}
+
+		assistedTrustedCM = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      assistedCAConfigMapName,
+				Namespace: testNamespace,
+			},
+			Data: map[string]string{caBundleKey: "example-trusted-bundle"},
+		}
+	})
+
+	Context("without ForceInsecurePolicyJson annotation", func() {
+		It("should not include FORCE_INSECURE_POLICY_JSON in ConfigMap", func() {
+			asc = newASCDefault()
+			ascr = newTestReconciler(asc, route, imageRoute, assistedCM, assistedTrustedCM)
+			ascc = initASC(ascr, asc)
+
+			cm, mutateFn, err := newAssistedCM(ctx, log, ascc)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mutateFn()).To(Succeed())
+			configMap := cm.(*corev1.ConfigMap)
+
+			Expect(configMap.Data).ToNot(HaveKey("FORCE_INSECURE_POLICY_JSON"))
+		})
+	})
+
+	Context("with ForceInsecurePolicyJson annotation set to true", func() {
+		It("should include FORCE_INSECURE_POLICY_JSON=true in ConfigMap", func() {
+			asc = newASCWithForceInsecurePolicyAnnotation()
+			ascr = newTestReconciler(asc, route, imageRoute, assistedCM, assistedTrustedCM)
+			ascc = initASC(ascr, asc)
+
+			ensureNewAssistedConfigmapValue(ctx, log, ascc, "FORCE_INSECURE_POLICY_JSON", "true")
+		})
+	})
+
+	Context("with ForceInsecurePolicyJson annotation set to false", func() {
+		It("should not include FORCE_INSECURE_POLICY_JSON in ConfigMap", func() {
+			asc = newASCWithForceInsecurePolicyAnnotationFalse()
+			ascr = newTestReconciler(asc, route, imageRoute, assistedCM, assistedTrustedCM)
+			ascc = initASC(ascr, asc)
+
+			cm, mutateFn, err := newAssistedCM(ctx, log, ascc)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mutateFn()).To(Succeed())
+			configMap := cm.(*corev1.ConfigMap)
+
+			Expect(configMap.Data).ToNot(HaveKey("FORCE_INSECURE_POLICY_JSON"))
+		})
+	})
+
+	Context("with ForceInsecurePolicyJson annotation set to invalid value", func() {
+		It("should not include FORCE_INSECURE_POLICY_JSON in ConfigMap", func() {
+			asc = newASCDefault()
+			asc.ObjectMeta.Annotations = map[string]string{allowUnrestrictedImagePulls: "invalid"}
+			ascr = newTestReconciler(asc, route, imageRoute, assistedCM, assistedTrustedCM)
+			ascc = initASC(ascr, asc)
+
+			cm, mutateFn, err := newAssistedCM(ctx, log, ascc)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mutateFn()).To(Succeed())
+			configMap := cm.(*corev1.ConfigMap)
+
+			Expect(configMap.Data).ToNot(HaveKey("FORCE_INSECURE_POLICY_JSON"))
+		})
+	})
+})
+
 var _ = Describe("Reconcile on non-OCP clusters", func() {
 	var (
 		asc        *aiv1beta1.AgentServiceConfig
