@@ -54,7 +54,6 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDNODEMAINTENANCE:        (&NodeMaintenanceFeature{}).New(),
 	models.FeatureSupportLevelIDKUBEDESCHEDULER:        (&KubeDeschedulerFeature{}).New(),
 	models.FeatureSupportLevelIDCLUSTEROBSERVABILITY:   (&ClusterObservabilityFeature{}).New(),
-	models.FeatureSupportLevelIDMETALLB:                (&MetalLBFeature{}).New(),
 	models.FeatureSupportLevelIDNUMARESOURCES:          (&NumaResourcesFeature{}).New(),
 	models.FeatureSupportLevelIDOADP:                   (&OadpFeature{}).New(),
 

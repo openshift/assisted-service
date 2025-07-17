@@ -71,7 +71,6 @@ const (
 	AreNodeMaintenanceRequirementsSatisfied        = validationID(models.HostValidationIDNodeMaintenanceRequirementsSatisfied)
 	AreKubeDeschedulerRequirementsSatisfied        = validationID(models.HostValidationIDKubeDeschedulerRequirementsSatisfied)
 	AreClusterObservabilityRequirementsSatisfied   = validationID(models.HostValidationIDClusterObservabilityRequirementsSatisfied)
-	AreMetallbRequirementsSatisfied                = validationID(models.HostValidationIDMetallbRequirementsSatisfied)
 	AreNUMAResourcesRequirementsSatisfied          = validationID(models.HostValidationIDNumaResourcesRequirementsSatisfied)
 	AreOADPRequirementsSatisfied                   = validationID(models.HostValidationIDOadpRequirementsSatisfied)
 )
@@ -140,7 +139,6 @@ func (v validationID) category() (string, error) {
 		AreNodeMaintenanceRequirementsSatisfied,
 		AreKubeDeschedulerRequirementsSatisfied,
 		AreClusterObservabilityRequirementsSatisfied,
-		AreMetallbRequirementsSatisfied,
 		AreNUMAResourcesRequirementsSatisfied,
 		AreOADPRequirementsSatisfied:
 		return "operators", nil
