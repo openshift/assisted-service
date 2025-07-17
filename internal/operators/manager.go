@@ -51,6 +51,12 @@ type Manager struct {
 	objectHandler      s3wrapper.API
 }
 
+type OperatorFeatureSupportID struct {
+	OperatorName     string
+	FeatureSupportID models.FeatureSupportLevelID
+	Dependencies     []models.FeatureSupportLevelID
+}
+
 // API defines Operator management operation
 //
 //go:generate mockgen --build_flags=--mod=mod -package=operators -destination=mock_operators_api.go . API
@@ -86,6 +92,8 @@ type API interface {
 	ListBundles() []*models.Bundle
 	// GetBundle returns the Bundle object
 	GetBundle(bundleID string) (*models.Bundle, error)
+	// GetOperatorDependenciesFeatureID returns the list of dependencies
+	GetOperatorDependenciesFeatureID() []OperatorFeatureSupportID
 }
 
 // GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
@@ -601,4 +609,18 @@ func (mgr *Manager) lookupBundle(bundleID string) (result *models.Bundle, ok boo
 		}
 	}
 	return
+}
+
+func (mgr *Manager) GetOperatorDependenciesFeatureID() []OperatorFeatureSupportID {
+	ret := make([]OperatorFeatureSupportID, 0)
+
+	for _, operator := range mgr.olmOperators {
+		ret = append(ret, OperatorFeatureSupportID{
+			OperatorName:     operator.GetName(),
+			FeatureSupportID: operator.GetFeatureSupportID(),
+			Dependencies:     operator.GetDependenciesFeatureSupportID(),
+		})
+	}
+
+	return ret
 }

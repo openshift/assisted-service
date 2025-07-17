@@ -44,6 +44,10 @@ func (l *lsOperator) GetDependencies(cluster *common.Cluster) ([]string, error) 
 	return make([]string, 0), nil
 }
 
+func (o *lsOperator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
+	return nil
+}
+
 // GetClusterValidationIDs returns cluster validation IDs for the Operator
 func (l *lsOperator) GetClusterValidationIDs() []string {
 	return []string{clusterValidationID}

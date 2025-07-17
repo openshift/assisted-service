@@ -45,6 +45,7 @@ type operator struct {
 type GPUVendor interface {
 	ClusterHasGPU(c *common.Cluster) (bool, error)
 	GetName() string
+	GetFeatureSupportID() models.FeatureSupportLevelID
 }
 
 // NewOpenShiftAIOperator creates new OpenShift AI operator.
@@ -102,6 +103,16 @@ func (o *operator) GetDependencies(c *common.Cluster) (result []string, err erro
 	}
 
 	return ret, nil
+}
+
+func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
+	ret := make([]models.FeatureSupportLevelID, 0, len(o.vendors))
+
+	for _, vendor := range o.vendors {
+		ret = append(ret, vendor.GetFeatureSupportID())
+	}
+
+	return ret
 }
 
 // GetClusterValidationIDs returns cluster validation IDs for the operator.

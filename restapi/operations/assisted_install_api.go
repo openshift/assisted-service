@@ -63,6 +63,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetClusterSupportedPlatformsHandler: installer.GetClusterSupportedPlatformsHandlerFunc(func(params installer.GetClusterSupportedPlatformsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetClusterSupportedPlatforms has not yet been implemented")
 		}),
+		InstallerGetDetailedSupportedFeaturesHandler: installer.GetDetailedSupportedFeaturesHandlerFunc(func(params installer.GetDetailedSupportedFeaturesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetDetailedSupportedFeatures has not yet been implemented")
+		}),
 		InstallerGetInfraEnvHandler: installer.GetInfraEnvHandlerFunc(func(params installer.GetInfraEnvParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetInfraEnv has not yet been implemented")
 		}),
@@ -392,6 +395,8 @@ type AssistedInstallAPI struct {
 	InstallerDownloadMinimalInitrdHandler installer.DownloadMinimalInitrdHandler
 	// InstallerGetClusterSupportedPlatformsHandler sets the operation handler for the get cluster supported platforms operation
 	InstallerGetClusterSupportedPlatformsHandler installer.GetClusterSupportedPlatformsHandler
+	// InstallerGetDetailedSupportedFeaturesHandler sets the operation handler for the get detailed supported features operation
+	InstallerGetDetailedSupportedFeaturesHandler installer.GetDetailedSupportedFeaturesHandler
 	// InstallerGetInfraEnvHandler sets the operation handler for the get infra env operation
 	InstallerGetInfraEnvHandler installer.GetInfraEnvHandler
 	// InstallerGetInfraEnvDownloadURLHandler sets the operation handler for the get infra env download URL operation
@@ -655,6 +660,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetClusterSupportedPlatformsHandler == nil {
 		unregistered = append(unregistered, "installer.GetClusterSupportedPlatformsHandler")
+	}
+	if o.InstallerGetDetailedSupportedFeaturesHandler == nil {
+		unregistered = append(unregistered, "installer.GetDetailedSupportedFeaturesHandler")
 	}
 	if o.InstallerGetInfraEnvHandler == nil {
 		unregistered = append(unregistered, "installer.GetInfraEnvHandler")
@@ -1018,6 +1026,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters/{cluster_id}/supported-platforms"] = installer.NewGetClusterSupportedPlatforms(o.context, o.InstallerGetClusterSupportedPlatformsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/support-levels/features/detailed"] = installer.NewGetDetailedSupportedFeatures(o.context, o.InstallerGetDetailedSupportedFeaturesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

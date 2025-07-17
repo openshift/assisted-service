@@ -15,12 +15,15 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/imageservice"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
@@ -57,6 +60,79 @@ func (b *bareMetalInventory) GetSupportedFeatures(ctx context.Context, params in
 	}
 
 	return installer.NewGetSupportedFeaturesOK().WithPayload(&installer.GetSupportedFeaturesOKBody{Features: supportLevelList})
+}
+
+func (b *bareMetalInventory) GetDetailedSupportedFeatures(ctx context.Context, params installer.GetDetailedSupportedFeaturesParams) middleware.Responder {
+	// Check parameters
+	_, err := version.NewVersion(params.OpenshiftVersion)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("invalid openshift version: %w", err))
+	}
+
+	if params.CPUArchitecture == nil {
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("cpu architecture is required"))
+	}
+
+	archSupported, err := featuresupport.IsArchitectureSupported(*params.CPUArchitecture, params.OpenshiftVersion)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	if !archSupported {
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("cpu architecture %s is not supported for openshift version %s", *params.CPUArchitecture, params.OpenshiftVersion))
+	}
+
+	if params.PlatformType != nil {
+		platformSupported, err := featuresupport.IsPlatformSupported(models.PlatformType(*params.PlatformType), params.ExternalPlatformName, params.OpenshiftVersion, *params.CPUArchitecture)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		if !platformSupported {
+			return common.NewApiError(http.StatusBadRequest, fmt.Errorf("platform %s is not supported for openshift version %s and cpu architecture %s", *params.PlatformType, params.OpenshiftVersion, *params.CPUArchitecture))
+		}
+	}
+
+	// Get features and operators
+	featureSupportList := featuresupport.GetFeatureSupportList(params.OpenshiftVersion, params.CPUArchitecture, (*models.PlatformType)(params.PlatformType), params.ExternalPlatformName)
+	operatorList := b.operatorManagerApi.GetOperatorDependenciesFeatureID()
+
+	// Reorder operators as a map
+	operatorMap := make(map[models.FeatureSupportLevelID]operators.OperatorFeatureSupportID)
+	for _, operator := range operatorList {
+		operatorMap[operator.FeatureSupportID] = operator
+	}
+
+	// Compute response
+	features := make([]*models.Feature, 0)
+	operators := make([]*models.Operator, 0)
+
+	for _, feature := range featureSupportList {
+		operator, isOperator := operatorMap[feature.FeatureSupportLevelID]
+
+		if isOperator {
+			operators = append(operators, &models.Operator{
+				FeatureSupportLevelID: feature.FeatureSupportLevelID,
+				SupportLevel:          feature.SupportLevel,
+				Reason:                feature.Reason,
+				Incompatibilities:     feature.Incompatibilities,
+				Name:                  &operator.OperatorName,
+				Dependencies:          operator.Dependencies,
+			})
+		} else {
+			features = append(features, &models.Feature{
+				FeatureSupportLevelID: feature.FeatureSupportLevelID,
+				SupportLevel:          feature.SupportLevel,
+				Reason:                feature.Reason,
+				Incompatibilities:     feature.Incompatibilities,
+			})
+		}
+	}
+
+	return installer.NewGetDetailedSupportedFeaturesOK().WithPayload(&installer.GetDetailedSupportedFeaturesOKBody{
+		Features:  features,
+		Operators: operators,
+	})
 }
 
 func (b *bareMetalInventory) GetSupportedArchitectures(ctx context.Context, params installer.GetSupportedArchitecturesParams) middleware.Responder {
