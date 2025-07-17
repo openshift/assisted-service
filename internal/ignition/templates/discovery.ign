@@ -181,7 +181,6 @@
       "name": "root"
     },
       "contents": { "source": "data:text/plain;base64,{{.MirrorRegistriesPolicyConfig}}"}
-    }
     }{{end}}{{if .StaticNetworkConfig}},
     {
         "path": "/usr/local/bin/pre-network-manager-config.sh",
