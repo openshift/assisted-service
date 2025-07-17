@@ -6023,7 +6023,10 @@ func init() {
                   "self-node-remediation",
                   "fence-agents-remediation",
                   "node-maintenance",
-                  "kube-descheduler"
+                  "kube-descheduler",
+                  "cluster-observability",
+                  "numa-resources",
+                  "oadp"
                 ]
               }
             }
@@ -7081,7 +7084,10 @@ func init() {
         "self-node-remediation-requirements-satisfied",
         "fence-agents-remediation-requirements-satisfied",
         "node-maintenance-requirements-satisfied",
-        "kube-descheduler-requirements-satisfied"
+        "kube-descheduler-requirements-satisfied",
+        "cluster-observability-requirements-satisfied",
+        "numa-resources-requirements-satisfied",
+        "oadp-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -7947,7 +7953,10 @@ func init() {
         "SELF_NODE_REMEDIATION",
         "FENCE_AGENTS_REMEDIATION",
         "NODE_MAINTENANCE",
-        "KUBE_DESCHEDULER"
+        "KUBE_DESCHEDULER",
+        "CLUSTER_OBSERVABILITY",
+        "NUMA_RESOURCES",
+        "OADP"
       ]
     },
     "finalizing-stage": {
@@ -8584,7 +8593,10 @@ func init() {
         "self-node-remediation-requirements-satisfied",
         "fence-agents-remediation-requirements-satisfied",
         "node-maintenance-requirements-satisfied",
-        "kube-descheduler-requirements-satisfied"
+        "kube-descheduler-requirements-satisfied",
+        "cluster-observability-requirements-satisfied",
+        "numa-resources-requirements-satisfied",
+        "oadp-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -17044,7 +17056,10 @@ func init() {
                   "self-node-remediation",
                   "fence-agents-remediation",
                   "node-maintenance",
-                  "kube-descheduler"
+                  "kube-descheduler",
+                  "cluster-observability",
+                  "numa-resources",
+                  "oadp"
                 ]
               }
             }
@@ -18220,7 +18235,10 @@ func init() {
         "self-node-remediation-requirements-satisfied",
         "fence-agents-remediation-requirements-satisfied",
         "node-maintenance-requirements-satisfied",
-        "kube-descheduler-requirements-satisfied"
+        "kube-descheduler-requirements-satisfied",
+        "cluster-observability-requirements-satisfied",
+        "numa-resources-requirements-satisfied",
+        "oadp-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -19053,7 +19071,10 @@ func init() {
         "SELF_NODE_REMEDIATION",
         "FENCE_AGENTS_REMEDIATION",
         "NODE_MAINTENANCE",
-        "KUBE_DESCHEDULER"
+        "KUBE_DESCHEDULER",
+        "CLUSTER_OBSERVABILITY",
+        "NUMA_RESOURCES",
+        "OADP"
       ]
     },
     "finalizing-stage": {
@@ -19690,7 +19711,10 @@ func init() {
         "self-node-remediation-requirements-satisfied",
         "fence-agents-remediation-requirements-satisfied",
         "node-maintenance-requirements-satisfied",
-        "kube-descheduler-requirements-satisfied"
+        "kube-descheduler-requirements-satisfied",
+        "cluster-observability-requirements-satisfied",
+        "numa-resources-requirements-satisfied",
+        "oadp-requirements-satisfied"
       ]
     },
     "host_network": {

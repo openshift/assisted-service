@@ -1,0 +1,9 @@
+ apiVersion: oadp.openshift.io/v1alpha1
+ kind: DataProtectionApplication
+ metadata:
+   name: dpa-sample
+ spec:
+   configuration:
+     velero:
+       defaultPlugins:
+       - openshift

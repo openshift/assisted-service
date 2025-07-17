@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/authorino"
+	"github.com/openshift/assisted-service/internal/operators/clusterobservability"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
@@ -31,6 +32,8 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
 	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
+	"github.com/openshift/assisted-service/internal/operators/numaresources"
+	"github.com/openshift/assisted-service/internal/operators/oadp"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
 	"github.com/openshift/assisted-service/internal/operators/pipelines"
@@ -468,7 +471,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(22))
+			Expect(results).To(HaveLen(25))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -492,6 +495,9 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", fenceagentsremediation.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", nodemaintenance.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKubeDeschedulerRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", kubedescheduler.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", clusterobservability.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", numaresources.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", oadp.Operator.Name)}},
 			))
 		})
 
@@ -504,7 +510,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(22))
+			Expect(results).To(HaveLen(25))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
@@ -529,6 +535,9 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", fenceagentsremediation.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", nodemaintenance.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKubeDeschedulerRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", kubedescheduler.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", clusterobservability.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", numaresources.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", oadp.Operator.Name)}},
 			))
 		})
 	})
@@ -540,7 +549,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(22))
+			Expect(results).To(HaveLen(25))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -564,6 +573,9 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", fenceagentsremediation.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", nodemaintenance.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKubeDeschedulerRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", kubedescheduler.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", clusterobservability.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", numaresources.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", oadp.Operator.Name)}},
 			))
 		})
 
@@ -575,7 +587,7 @@ var _ = Describe("Operators manager", func() {
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(22))
+			Expect(results).To(HaveLen(25))
 
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
@@ -600,6 +612,9 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", fenceagentsremediation.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", nodemaintenance.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDKubeDeschedulerRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", kubedescheduler.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", clusterobservability.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", numaresources.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", oadp.Operator.Name)}},
 			))
 		})
 
@@ -752,6 +767,9 @@ var _ = Describe("Operators manager", func() {
 				fenceagentsremediation.Operator.Name,
 				nodemaintenance.Operator.Name,
 				kubedescheduler.Operator.Name,
+				clusterobservability.Operator.Name,
+				numaresources.Operator.Name,
+				oadp.Operator.Name,
 			))
 		})
 

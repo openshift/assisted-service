@@ -3,10 +3,13 @@ package featuresupport
 import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/operators/clusterobservability"
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
 	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
+	"github.com/openshift/assisted-service/internal/operators/numaresources"
+	"github.com/openshift/assisted-service/internal/operators/oadp"
 	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
@@ -1013,6 +1016,108 @@ func (f *KubeDeschedulerFeature) getIncompatibleFeatures(string) *[]models.Featu
 
 func (f *KubeDeschedulerFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if isOperatorActivated(kubedescheduler.Operator.Name, cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// ClusterObservabilityFeature describes the support for the Cluster Observability Operator.
+type ClusterObservabilityFeature struct{}
+
+func (f *ClusterObservabilityFeature) New() SupportLevelFeature {
+	return &ClusterObservabilityFeature{}
+}
+
+func (f *ClusterObservabilityFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDCLUSTEROBSERVABILITY
+}
+
+func (f *ClusterObservabilityFeature) GetName() string {
+	return clusterobservability.OperatorFullName
+}
+
+func (f *ClusterObservabilityFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelTechPreview
+}
+
+func (f *ClusterObservabilityFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *ClusterObservabilityFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *ClusterObservabilityFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(clusterobservability.Operator.Name, cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// NumaResourcesFeature describes the support for the NUMA Resources operator.
+type NumaResourcesFeature struct{}
+
+func (f *NumaResourcesFeature) New() SupportLevelFeature {
+	return &NumaResourcesFeature{}
+}
+
+func (f *NumaResourcesFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDNUMARESOURCES
+}
+
+func (f *NumaResourcesFeature) GetName() string {
+	return numaresources.OperatorFullName
+}
+
+func (f *NumaResourcesFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelTechPreview
+}
+
+func (f *NumaResourcesFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *NumaResourcesFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *NumaResourcesFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(numaresources.Operator.Name, cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// OadpFeature describes the support for the OADP operator.
+type OadpFeature struct{}
+
+func (f *OadpFeature) New() SupportLevelFeature {
+	return &OadpFeature{}
+}
+
+func (f *OadpFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDOADP
+}
+
+func (f *OadpFeature) GetName() string {
+	return oadp.OperatorFullName
+}
+
+func (f *OadpFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelTechPreview
+}
+
+func (f *OadpFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{}
+}
+
+func (f *OadpFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{}
+}
+
+func (f *OadpFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(oadp.Operator.Name, cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
