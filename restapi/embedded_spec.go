@@ -6025,7 +6025,6 @@ func init() {
                   "node-maintenance",
                   "kube-descheduler",
                   "cluster-observability",
-                  "metallb",
                   "numa-resources",
                   "oadp"
                 ]
@@ -7087,7 +7086,6 @@ func init() {
         "node-maintenance-requirements-satisfied",
         "kube-descheduler-requirements-satisfied",
         "cluster-observability-requirements-satisfied",
-        "metallb-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied"
       ]
@@ -7957,7 +7955,6 @@ func init() {
         "NODE_MAINTENANCE",
         "KUBE_DESCHEDULER",
         "CLUSTER_OBSERVABILITY",
-        "METALLB",
         "NUMA_RESOURCES",
         "OADP"
       ]
@@ -8598,7 +8595,6 @@ func init() {
         "node-maintenance-requirements-satisfied",
         "kube-descheduler-requirements-satisfied",
         "cluster-observability-requirements-satisfied",
-        "metallb-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied"
       ]
@@ -17062,7 +17058,6 @@ func init() {
                   "node-maintenance",
                   "kube-descheduler",
                   "cluster-observability",
-                  "metallb",
                   "numa-resources",
                   "oadp"
                 ]
@@ -18242,7 +18237,6 @@ func init() {
         "node-maintenance-requirements-satisfied",
         "kube-descheduler-requirements-satisfied",
         "cluster-observability-requirements-satisfied",
-        "metallb-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied"
       ]
@@ -19079,7 +19073,6 @@ func init() {
         "NODE_MAINTENANCE",
         "KUBE_DESCHEDULER",
         "CLUSTER_OBSERVABILITY",
-        "METALLB",
         "NUMA_RESOURCES",
         "OADP"
       ]
@@ -19720,7 +19713,6 @@ func init() {
         "node-maintenance-requirements-satisfied",
         "kube-descheduler-requirements-satisfied",
         "cluster-observability-requirements-satisfied",
-        "metallb-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied"
       ]

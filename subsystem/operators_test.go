@@ -27,7 +27,6 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
-	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
@@ -82,7 +81,6 @@ var _ = Describe("Operators endpoint tests", func() {
 				nodemaintenance.Operator.Name,
 				kubedescheduler.Operator.Name,
 				clusterobservability.Operator.Name,
-				metallb.Operator.Name,
 				numaresources.Operator.Name,
 				oadp.Operator.Name,
 			))

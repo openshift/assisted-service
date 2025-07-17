@@ -143,7 +143,6 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		If(AreNodeMaintenanceRequirementsSatisfied),
 		If(AreKubeDeschedulerRequirementsSatisfied),
 		If(AreClusterObservabilityRequirementsSatisfied),
-		If(AreMetallbRequirementsSatisfied),
 		If(AreNUMAResourcesRequirementsSatisfied),
 		If(AreOADPRequirementsSatisfied),
 	)

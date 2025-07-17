@@ -6667,7 +6667,6 @@ var allValidationIDs = []validationID{
 	AreNodeMaintenanceRequirementsSatisfied,
 	AreKubeDeschedulerRequirementsSatisfied,
 	AreClusterObservabilityRequirementsSatisfied,
-	AreMetallbRequirementsSatisfied,
 	AreNUMAResourcesRequirementsSatisfied,
 	AreOADPRequirementsSatisfied,
 }

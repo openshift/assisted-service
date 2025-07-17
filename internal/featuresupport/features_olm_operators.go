@@ -6,7 +6,6 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/clusterobservability"
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
-	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
 	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
 	"github.com/openshift/assisted-service/internal/operators/numaresources"
@@ -1051,40 +1050,6 @@ func (f *ClusterObservabilityFeature) getIncompatibleFeatures(string) *[]models.
 
 func (f *ClusterObservabilityFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if isOperatorActivated(clusterobservability.Operator.Name, cluster, clusterUpdateParams) {
-		return activeLevelActive
-	}
-	return activeLevelNotActive
-}
-
-// MetalLBFeature describes the support for the MetalLB operator.
-type MetalLBFeature struct{}
-
-func (f *MetalLBFeature) New() SupportLevelFeature {
-	return &MetalLBFeature{}
-}
-
-func (f *MetalLBFeature) getId() models.FeatureSupportLevelID {
-	return models.FeatureSupportLevelIDMETALLB
-}
-
-func (f *MetalLBFeature) GetName() string {
-	return metallb.OperatorFullName
-}
-
-func (f *MetalLBFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	return models.SupportLevelTechPreview
-}
-
-func (f *MetalLBFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
-	return &[]models.ArchitectureSupportLevelID{}
-}
-
-func (f *MetalLBFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
-	return &[]models.FeatureSupportLevelID{}
-}
-
-func (f *MetalLBFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	if isOperatorActivated(metallb.Operator.Name, cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive

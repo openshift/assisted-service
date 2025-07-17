@@ -978,7 +978,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		If(AreNodeMaintenanceRequirementsSatisfied),
 		If(AreKubeDeschedulerRequirementsSatisfied),
 		If(AreClusterObservabilityRequirementsSatisfied),
-		If(AreMetallbRequirementsSatisfied),
 		If(AreNUMAResourcesRequirementsSatisfied),
 		If(AreOADPRequirementsSatisfied),
 		/*
