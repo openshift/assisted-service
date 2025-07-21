@@ -57,7 +57,6 @@ var RegisterOptions struct {
 	ReleaseImageMirror      string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	ExtraManifests          string `envconfig:"EXTRA_MANIFESTS_PATH" default:"/extra-manifests"`
 	OperatorInstallFile     string `envconfig:"OPERATOR_INSTALL_FILE" default:"/manifests/operators.yaml"`
-	ForceInsecurePolicyJson bool   `envconfig:"FORCE_INSECURE_POLICY_JSON" default:"false"`
 }
 
 var ConfigureOptions struct {
@@ -135,7 +134,7 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 
 	modelsCluster, err := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
 		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile,
-		RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile, RegisterOptions.ForceInsecurePolicyJson)
+		RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile, false)
 	if err != nil {
 		log.Fatal("Failed to register cluster with assisted-service: ", err)
 	}
@@ -172,7 +171,7 @@ func registerCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 
 	modelsCluster, err := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
 		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile,
-		RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile, RegisterOptions.ForceInsecurePolicyJson)
+		RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile, false)
 	if err != nil {
 		log.Fatal("Failed to register cluster with assisted-service: ", err)
 	}
