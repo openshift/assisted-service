@@ -1,12 +1,15 @@
 package mirrorregistries
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMirrorRegistriesConfig(t *testing.T) {
@@ -316,3 +319,43 @@ var _ = Describe("Per cluster mirror registry tests", func() {
 
 	})
 })
+
+func TestGeneratePolicyJSON_ForceInsecure(t *testing.T) {
+	builder := mirrorRegistriesConfigBuilder{
+		MirrorRegistriesConfigPath:      "/some/path",
+		MirrorRegistriesCertificatePath: "/some/ca",
+		SystemCertificateBundlePath:     "/etc/pki/ca-bundle.crt",
+		ForceInsecurePolicy:             true,
+	}
+
+	encodedPolicyStr, err := builder.GenerateInsecurePolicyJSON()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, encodedPolicyStr)
+
+	policyStr, err := base64.StdEncoding.DecodeString(encodedPolicyStr)
+	assert.NoError(t, err)
+
+	var decoded map[string]interface{}
+	err = json.Unmarshal(policyStr, &decoded)
+	assert.NoError(t, err)
+
+	// Validate minimal insecure policy
+	defaultSection := decoded["default"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "insecureAcceptAnything", defaultSection["type"])
+
+	transports := decoded["transports"].(map[string]interface{})
+	daemon := transports["docker-daemon"].(map[string]interface{})
+	daemonEntry := daemon[""].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "insecureAcceptAnything", daemonEntry["type"])
+}
+
+func TestGeneratePolicyJSON_DefaultBehavior(t *testing.T) {
+	builder := mirrorRegistriesConfigBuilder{
+		ForceInsecurePolicy: false,
+	}
+
+	policyStr, err := builder.GenerateInsecurePolicyJSON()
+	assert.NoError(t, err)
+
+	assert.Equal(t, "", policyStr)
+}

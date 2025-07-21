@@ -48,6 +48,21 @@ func (mr *MockServiceMirrorRegistriesConfigBuilderMockRecorder) ExtractLocationM
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractLocationMirrorDataFromRegistries", reflect.TypeOf((*MockServiceMirrorRegistriesConfigBuilder)(nil).ExtractLocationMirrorDataFromRegistries))
 }
 
+// GenerateInsecurePolicyJSON mocks base method.
+func (m *MockServiceMirrorRegistriesConfigBuilder) GenerateInsecurePolicyJSON() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateInsecurePolicyJSON")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateInsecurePolicyJSON indicates an expected call of GenerateInsecurePolicyJSON.
+func (mr *MockServiceMirrorRegistriesConfigBuilderMockRecorder) GenerateInsecurePolicyJSON() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateInsecurePolicyJSON", reflect.TypeOf((*MockServiceMirrorRegistriesConfigBuilder)(nil).GenerateInsecurePolicyJSON))
+}
+
 // GetMirrorCA mocks base method.
 func (m *MockServiceMirrorRegistriesConfigBuilder) GetMirrorCA() ([]byte, error) {
 	m.ctrl.T.Helper()
