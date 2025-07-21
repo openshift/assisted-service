@@ -171,6 +171,12 @@ In case that the Bare Metal Operator is installed, the Baremetal Agent Controlle
       - `bmac.agent-install.openshift.io/installer-args`
     - IgnitionConfigOverrides (optional for user to set)
       - `bmac.agent-install.openshift.io/ignition-config-overrides`
+    - ClusterReference (optional for user to set)
+      - `bmac.agent-install.openshift.io/cluster-reference`
+      - Format: `namespace/name` (e.g., `my-namespace/my-cluster`)
+      - Associates the agent with a specific ClusterDeployment
+      - Can only be used when the InfraEnv doesn't already have a cluster reference
+      - Setting an empty string ("") will clear the cluster reference
     - AgentLabels (optional for user to set)
       -  `bmac.agent-install.openshift.io.agent-label.` (prefix)
 - Reconcile the BareMetalHost hardware details by copying the Agent's inventory data to the BMH's `hardwaredetails` annotation.
