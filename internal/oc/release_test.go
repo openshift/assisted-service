@@ -49,7 +49,7 @@ var _ = Describe("oc", func() {
 		mockExecuter = executer.NewMockExecuter(ctrl)
 		mockSystemInfo = system.NewMockSystemInfo(ctrl)
 		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
-		mirrorRegistriesBuilder := mirrorregistries.New()
+		mirrorRegistriesBuilder := mirrorregistries.New(false)
 		oc = NewRelease(mockExecuter, config, mirrorRegistriesBuilder, mockSystemInfo)
 		tempFilePath = "/tmp/pull-secret"
 		mockExecuter.EXPECT().TempFile(gomock.Any(), gomock.Any()).DoAndReturn(
