@@ -42,8 +42,8 @@ func getUserTomlConfigMapData(ctx context.Context, log logrus.FieldLogger, c cli
 	return registriesConf, caBundleCrt, userTomlConfigMap, nil
 }
 
-// processMirrorRegistryConfig retrieves the mirror registry configuration from registries.conf and ca-bundle.crt
-func processMirrorRegistryConfig(registriesConf, caBundleCrt string) (*common2.MirrorRegistryConfiguration, error) {
+// ParseMirrorRegistryConfig retrieves the mirror registry configuration from registries.conf and ca-bundle.crt
+func ParseMirrorRegistryConfig(registriesConf, caBundleCrt string) (*common2.MirrorRegistryConfiguration, error) {
 	if registriesConf == "" {
 		return nil, nil
 	}
@@ -79,7 +79,7 @@ func ProcessMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, c 
 		return nil, nil, nil
 	}
 
-	mirrorRegistryConfiguration, err := processMirrorRegistryConfig(registriesConf, caBundleCrt)
+	mirrorRegistryConfiguration, err := ParseMirrorRegistryConfig(registriesConf, caBundleCrt)
 	if err != nil {
 		log.Error("Failed to validate and parse registries.conf", err)
 		return nil, nil, err
