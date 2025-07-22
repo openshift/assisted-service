@@ -770,6 +770,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		spokeClient           spoke_k8s_client.SpokeK8sClient
 		node                  *corev1.Node
 	)
+	patch := client.MergeFrom(origAgent.DeepCopy())
+
 	ret := ctrl.Result{}
 	specSynced(agent, syncErr, internal)
 
@@ -870,8 +872,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	}
 
 	if !reflect.DeepEqual(agent, origAgent) {
-		if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
-			log.WithError(updateErr).Error("failed to update agent Status")
+		if patchErr := r.Status().Patch(ctx, agent, patch); patchErr != nil {
+			log.WithError(patchErr).Error("failed to patch agent Status")
 			return ctrl.Result{Requeue: true}, nil
 		}
 	} else {
