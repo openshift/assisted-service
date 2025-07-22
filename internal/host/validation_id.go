@@ -70,6 +70,9 @@ const (
 	AreFenceAgentsRemediationRequirementsSatisfied = validationID(models.HostValidationIDFenceAgentsRemediationRequirementsSatisfied)
 	AreNodeMaintenanceRequirementsSatisfied        = validationID(models.HostValidationIDNodeMaintenanceRequirementsSatisfied)
 	AreKubeDeschedulerRequirementsSatisfied        = validationID(models.HostValidationIDKubeDeschedulerRequirementsSatisfied)
+	AreClusterObservabilityRequirementsSatisfied   = validationID(models.HostValidationIDClusterObservabilityRequirementsSatisfied)
+	AreNUMAResourcesRequirementsSatisfied          = validationID(models.HostValidationIDNumaResourcesRequirementsSatisfied)
+	AreOADPRequirementsSatisfied                   = validationID(models.HostValidationIDOadpRequirementsSatisfied)
 )
 
 func (v validationID) category() (string, error) {
@@ -134,7 +137,10 @@ func (v validationID) category() (string, error) {
 		AreSelfNodeRemediationRequirementsSatisfied,
 		AreFenceAgentsRemediationRequirementsSatisfied,
 		AreNodeMaintenanceRequirementsSatisfied,
-		AreKubeDeschedulerRequirementsSatisfied:
+		AreKubeDeschedulerRequirementsSatisfied,
+		AreClusterObservabilityRequirementsSatisfied,
+		AreNUMAResourcesRequirementsSatisfied,
+		AreOADPRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))

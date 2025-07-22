@@ -2726,6 +2726,9 @@ paths:
               - 'fence-agents-remediation'
               - 'node-maintenance'
               - 'kube-descheduler'
+              - 'cluster-observability'
+              - 'numa-resources'
+              - 'oadp'
         "401":
           description: Unauthorized.
           schema:
@@ -4276,6 +4279,9 @@ definitions:
       - 'FENCE_AGENTS_REMEDIATION'
       - 'NODE_MAINTENANCE'
       - 'KUBE_DESCHEDULER'
+      - 'CLUSTER_OBSERVABILITY'
+      - 'NUMA_RESOURCES'
+      - 'OADP'
 
   architecture-support-level-id:
     type: string
@@ -6697,6 +6703,9 @@ definitions:
       - 'fence-agents-remediation-requirements-satisfied'
       - 'node-maintenance-requirements-satisfied'
       - 'kube-descheduler-requirements-satisfied'
+      - 'cluster-observability-requirements-satisfied'
+      - 'numa-resources-requirements-satisfied'
+      - 'oadp-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -7079,6 +7088,9 @@ definitions:
       - 'fence-agents-remediation-requirements-satisfied'
       - 'node-maintenance-requirements-satisfied'
       - 'kube-descheduler-requirements-satisfied'
+      - 'cluster-observability-requirements-satisfied'
+      - 'numa-resources-requirements-satisfied'
+      - 'oadp-requirements-satisfied'
 
   logs_type:
     type: string

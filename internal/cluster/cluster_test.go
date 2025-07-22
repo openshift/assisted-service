@@ -199,6 +199,11 @@ var _ = Describe("TestClusterMonitoring", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeHealthcheckRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDSelfNodeRemediationRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDKubeDeschedulerRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -809,6 +814,11 @@ var _ = Describe("lease timeout event", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeHealthcheckRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDSelfNodeRemediationRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDKubeDeschedulerRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -941,6 +951,11 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeHealthcheckRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDSelfNodeRemediationRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDKubeDeschedulerRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -2350,6 +2365,11 @@ var _ = Describe("Majority groups", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeHealthcheckRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDSelfNodeRemediationRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDKubeDeschedulerRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -2689,6 +2709,11 @@ var _ = Describe("ready_state", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeHealthcheckRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDSelfNodeRemediationRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDFenceAgentsRemediationRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeMaintenanceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDKubeDeschedulerRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDClusterObservabilityRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied)},
 		}, nil)
 	})
 
