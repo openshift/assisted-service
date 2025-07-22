@@ -17,7 +17,9 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: operatorSubscriptionName,
 	TimeoutSeconds:   30 * 60,
-	Bundles:          pq.StringArray{},
+	Bundles: pq.StringArray{
+		operatorsCommon.BundleVirtualization.ID,
+	},
 }
 
 type operator struct {
