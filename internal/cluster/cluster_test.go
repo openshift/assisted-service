@@ -3930,7 +3930,7 @@ var _ = Describe("Test RefreshSchedulableMastersForcedTrue", func() {
 			createWorkerHost(*cluster.ID, "", db)
 		}
 
-		err := clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID)
+		err := clusterApi.RefreshSchedulableMastersForcedTrueWithClusterID(ctx, *cluster.ID)
 		Expect(err).ToNot(HaveOccurred())
 
 		cluster = getClusterFromDB(*cluster.ID, db)
@@ -3943,7 +3943,7 @@ var _ = Describe("Test RefreshSchedulableMastersForcedTrue", func() {
 			createHost(*cluster.ID, "", db)
 		}
 
-		err := clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID)
+		err := clusterApi.RefreshSchedulableMastersForcedTrueWithClusterID(ctx, *cluster.ID)
 		Expect(err).ToNot(HaveOccurred())
 
 		cluster = getClusterFromDB(*cluster.ID, db)
@@ -3953,7 +3953,7 @@ var _ = Describe("Test RefreshSchedulableMastersForcedTrue", func() {
 	It("schedulableMastersForcedTrue should set a value when the existing value is nil", func() {
 		cluster := createCluster(nil)
 
-		err := clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID)
+		err := clusterApi.RefreshSchedulableMastersForcedTrueWithClusterID(ctx, *cluster.ID)
 		Expect(err).ToNot(HaveOccurred())
 
 		cluster = getClusterFromDB(*cluster.ID, db)
@@ -3962,7 +3962,7 @@ var _ = Describe("Test RefreshSchedulableMastersForcedTrue", func() {
 
 	It("schedulableMastersForcedTrue should return an error when the cluster does not exists", func() {
 		invalidClusterID := strfmt.UUID(uuid.New().String())
-		err := clusterApi.RefreshSchedulableMastersForcedTrue(ctx, invalidClusterID)
+		err := clusterApi.RefreshSchedulableMastersForcedTrueWithClusterID(ctx, invalidClusterID)
 		Expect(err).To(HaveOccurred())
 	})
 })
