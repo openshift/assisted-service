@@ -11,7 +11,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
-	"github.com/thoas/go-funk"
 )
 
 type node struct {
@@ -873,15 +872,6 @@ func GenerateL3ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 			})
 		})
 		Context("L3 connected addresses", func() {
-			expectEquivalentMaps := func(actual, expected map[strfmt.UUID][]string) {
-				Expect(actual).To(HaveLen(len(expected)))
-				for key, actualValue := range actual {
-					expectedValue, ok := expected[key]
-					Expect(ok).To(BeTrue())
-					Expect(actualValue).To(HaveLen(len(expectedValue)))
-					Expect(expectedValue).To(ConsistOf(funk.Map(actualValue, func(s string) interface{} { return s }).([]interface{})...))
-				}
-			}
 			It("3 hosts with empty connectivity reports - no results expected", func() {
 				hosts := []*models.Host{
 					{
@@ -973,11 +963,11 @@ func GenerateL3ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 				}
 				ret, err := GatherL3ConnectedAddresses(hosts)
 				Expect(err).ToNot(HaveOccurred())
-				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+				Expect(ret).To(Equal(map[strfmt.UUID][]string{
 					*nodes[0].id: {nodes[0].addressNet1},
 					*nodes[1].id: {nodes[1].addressNet1},
 					*nodes[2].id: {nodes[2].addressNet1},
-				})
+				}))
 			})
 			It("3 hosts with connectivity reports with 2 networks - all host with connected addresses from both networks expected", func() {
 				hosts := []*models.Host{
@@ -1005,11 +995,11 @@ func GenerateL3ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 				}
 				ret, err := GatherL3ConnectedAddresses(hosts)
 				Expect(err).ToNot(HaveOccurred())
-				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+				Expect(ret).To(Equal(map[strfmt.UUID][]string{
 					*nodes[0].id: {nodes[0].addressNet1, nodes[0].addressNet2},
 					*nodes[1].id: {nodes[1].addressNet1, nodes[1].addressNet2},
 					*nodes[2].id: {nodes[2].addressNet1, nodes[2].addressNet2},
-				})
+				}))
 			})
 			It("3 hosts with connectivity reports with 2 networks, one direction missing - all hosts with connected addresses from both networks without all addresses expected", func() {
 				hosts := []*models.Host{
@@ -1037,11 +1027,11 @@ func GenerateL3ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 				}
 				ret, err := GatherL3ConnectedAddresses(hosts)
 				Expect(err).ToNot(HaveOccurred())
-				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+				Expect(ret).To(Equal(map[strfmt.UUID][]string{
 					*nodes[0].id: {nodes[0].addressNet1, nodes[0].addressNet2},
 					*nodes[1].id: {nodes[1].addressNet1},
 					*nodes[2].id: {nodes[2].addressNet1, nodes[2].addressNet2},
-				})
+				}))
 			})
 			It("4 hosts with connectivity reports with 2 networks - all host with connected addresses from both networks expected", func() {
 				hosts := []*models.Host{
@@ -1080,12 +1070,12 @@ func GenerateL3ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 				}
 				ret, err := GatherL3ConnectedAddresses(hosts)
 				Expect(err).ToNot(HaveOccurred())
-				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+				Expect(ret).To(Equal(map[strfmt.UUID][]string{
 					*nodes[0].id: {nodes[0].addressNet1, nodes[0].addressNet2},
 					*nodes[1].id: {nodes[1].addressNet1, nodes[1].addressNet2},
 					*nodes[2].id: {nodes[2].addressNet1, nodes[2].addressNet2},
 					*nodes[3].id: {nodes[3].addressNet1, nodes[3].addressNet2},
-				})
+				}))
 			})
 			It("4 hosts with connectivity reports with 2 networks, one host with single network - hosts with connected addresses from both networks expected", func() {
 				nodes[3].addressNet2 = ""
@@ -1125,12 +1115,12 @@ func GenerateL3ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 				}
 				ret, err := GatherL3ConnectedAddresses(hosts)
 				Expect(err).ToNot(HaveOccurred())
-				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+				Expect(ret).To(Equal(map[strfmt.UUID][]string{
 					*nodes[0].id: {nodes[0].addressNet1, nodes[0].addressNet2},
 					*nodes[1].id: {nodes[1].addressNet1, nodes[1].addressNet2},
 					*nodes[2].id: {nodes[2].addressNet1, nodes[2].addressNet2},
 					*nodes[3].id: {nodes[3].addressNet1},
-				})
+				}))
 			})
 			It("4 hosts with connectivity reports with 2 networks, no connectivity to 2 hosts  - expect connected addresses only to the connected hosts", func() {
 				hosts := []*models.Host{
@@ -1167,10 +1157,10 @@ func GenerateL3ConnectivityGroupTests(ipV4 bool, net1CIDR, net2CIDR string) {
 				}
 				ret, err := GatherL3ConnectedAddresses(hosts)
 				Expect(err).ToNot(HaveOccurred())
-				expectEquivalentMaps(ret, map[strfmt.UUID][]string{
+				Expect(ret).To(Equal(map[strfmt.UUID][]string{
 					*nodes[2].id: {nodes[2].addressNet1, nodes[2].addressNet2},
 					*nodes[3].id: {nodes[3].addressNet1, nodes[3].addressNet2},
-				})
+				}))
 			})
 
 		})
