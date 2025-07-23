@@ -37,6 +37,11 @@ func (b *SkuRuleListBuilder) Items(values ...*SkuRuleBuilder) *SkuRuleListBuilde
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *SkuRuleListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *SkuRuleListBuilder) Copy(list *SkuRuleList) *SkuRuleListBuilder {
 	if list == nil || list.items == nil {

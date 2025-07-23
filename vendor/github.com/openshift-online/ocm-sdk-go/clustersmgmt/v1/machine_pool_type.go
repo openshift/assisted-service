@@ -35,17 +35,20 @@ const MachinePoolNilKind = "MachinePoolNil"
 //
 // Representation of a machine pool in a cluster.
 type MachinePool struct {
-	bitmap_           uint32
-	id                string
-	href              string
-	aws               *AWSMachinePool
-	autoscaling       *MachinePoolAutoscaling
-	availabilityZones []string
-	cluster           *Cluster
-	instanceType      string
-	labels            map[string]string
-	replicas          int
-	taints            []*Taint
+	bitmap_              uint32
+	id                   string
+	href                 string
+	aws                  *AWSMachinePool
+	gcp                  *GCPMachinePool
+	autoscaling          *MachinePoolAutoscaling
+	availabilityZones    []string
+	instanceType         string
+	labels               map[string]string
+	replicas             int
+	rootVolume           *RootVolume
+	securityGroupFilters []*MachinePoolSecurityGroupFilter
+	subnets              []string
+	taints               []*Taint
 }
 
 // Kind returns the name of the type of the object.
@@ -59,7 +62,7 @@ func (o *MachinePool) Kind() string {
 	return MachinePoolKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *MachinePool) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -128,13 +131,36 @@ func (o *MachinePool) GetAWS() (value *AWSMachinePool, ok bool) {
 	return
 }
 
+// GCP returns the value of the 'GCP' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// GCP specific parameters (Optional).
+func (o *MachinePool) GCP() *GCPMachinePool {
+	if o != nil && o.bitmap_&16 != 0 {
+		return o.gcp
+	}
+	return nil
+}
+
+// GetGCP returns the value of the 'GCP' attribute and
+// a flag indicating if the attribute has a value.
+//
+// GCP specific parameters (Optional).
+func (o *MachinePool) GetGCP() (value *GCPMachinePool, ok bool) {
+	ok = o != nil && o.bitmap_&16 != 0
+	if ok {
+		value = o.gcp
+	}
+	return
+}
+
 // Autoscaling returns the value of the 'autoscaling' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // Details for auto-scaling the machine pool.
 // Replicas and autoscaling cannot be used together.
 func (o *MachinePool) Autoscaling() *MachinePoolAutoscaling {
-	if o != nil && o.bitmap_&16 != 0 {
+	if o != nil && o.bitmap_&32 != 0 {
 		return o.autoscaling
 	}
 	return nil
@@ -146,7 +172,7 @@ func (o *MachinePool) Autoscaling() *MachinePoolAutoscaling {
 // Details for auto-scaling the machine pool.
 // Replicas and autoscaling cannot be used together.
 func (o *MachinePool) GetAutoscaling() (value *MachinePoolAutoscaling, ok bool) {
-	ok = o != nil && o.bitmap_&16 != 0
+	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
 		value = o.autoscaling
 	}
@@ -158,7 +184,7 @@ func (o *MachinePool) GetAutoscaling() (value *MachinePoolAutoscaling, ok bool) 
 //
 // The availability zones upon which the nodes are created.
 func (o *MachinePool) AvailabilityZones() []string {
-	if o != nil && o.bitmap_&32 != 0 {
+	if o != nil && o.bitmap_&64 != 0 {
 		return o.availabilityZones
 	}
 	return nil
@@ -169,32 +195,9 @@ func (o *MachinePool) AvailabilityZones() []string {
 //
 // The availability zones upon which the nodes are created.
 func (o *MachinePool) GetAvailabilityZones() (value []string, ok bool) {
-	ok = o != nil && o.bitmap_&32 != 0
-	if ok {
-		value = o.availabilityZones
-	}
-	return
-}
-
-// Cluster returns the value of the 'cluster' attribute, or
-// the zero value of the type if the attribute doesn't have a value.
-//
-// ID used to identify the cluster that this machinepool is attached to.
-func (o *MachinePool) Cluster() *Cluster {
-	if o != nil && o.bitmap_&64 != 0 {
-		return o.cluster
-	}
-	return nil
-}
-
-// GetCluster returns the value of the 'cluster' attribute and
-// a flag indicating if the attribute has a value.
-//
-// ID used to identify the cluster that this machinepool is attached to.
-func (o *MachinePool) GetCluster() (value *Cluster, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
-		value = o.cluster
+		value = o.availabilityZones
 	}
 	return
 }
@@ -270,12 +273,81 @@ func (o *MachinePool) GetReplicas() (value int, ok bool) {
 	return
 }
 
+// RootVolume returns the value of the 'root_volume' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// The machine root volume capabilities.
+func (o *MachinePool) RootVolume() *RootVolume {
+	if o != nil && o.bitmap_&1024 != 0 {
+		return o.rootVolume
+	}
+	return nil
+}
+
+// GetRootVolume returns the value of the 'root_volume' attribute and
+// a flag indicating if the attribute has a value.
+//
+// The machine root volume capabilities.
+func (o *MachinePool) GetRootVolume() (value *RootVolume, ok bool) {
+	ok = o != nil && o.bitmap_&1024 != 0
+	if ok {
+		value = o.rootVolume
+	}
+	return
+}
+
+// SecurityGroupFilters returns the value of the 'security_group_filters' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// List of security groups to be applied to MachinePool (Optional)
+func (o *MachinePool) SecurityGroupFilters() []*MachinePoolSecurityGroupFilter {
+	if o != nil && o.bitmap_&2048 != 0 {
+		return o.securityGroupFilters
+	}
+	return nil
+}
+
+// GetSecurityGroupFilters returns the value of the 'security_group_filters' attribute and
+// a flag indicating if the attribute has a value.
+//
+// List of security groups to be applied to MachinePool (Optional)
+func (o *MachinePool) GetSecurityGroupFilters() (value []*MachinePoolSecurityGroupFilter, ok bool) {
+	ok = o != nil && o.bitmap_&2048 != 0
+	if ok {
+		value = o.securityGroupFilters
+	}
+	return
+}
+
+// Subnets returns the value of the 'subnets' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// The subnets upon which the nodes are created.
+func (o *MachinePool) Subnets() []string {
+	if o != nil && o.bitmap_&4096 != 0 {
+		return o.subnets
+	}
+	return nil
+}
+
+// GetSubnets returns the value of the 'subnets' attribute and
+// a flag indicating if the attribute has a value.
+//
+// The subnets upon which the nodes are created.
+func (o *MachinePool) GetSubnets() (value []string, ok bool) {
+	ok = o != nil && o.bitmap_&4096 != 0
+	if ok {
+		value = o.subnets
+	}
+	return
+}
+
 // Taints returns the value of the 'taints' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // The taints set on the Nodes created.
 func (o *MachinePool) Taints() []*Taint {
-	if o != nil && o.bitmap_&1024 != 0 {
+	if o != nil && o.bitmap_&8192 != 0 {
 		return o.taints
 	}
 	return nil
@@ -286,7 +358,7 @@ func (o *MachinePool) Taints() []*Taint {
 //
 // The taints set on the Nodes created.
 func (o *MachinePool) GetTaints() (value []*Taint, ok bool) {
-	ok = o != nil && o.bitmap_&1024 != 0
+	ok = o != nil && o.bitmap_&8192 != 0
 	if ok {
 		value = o.taints
 	}
@@ -352,6 +424,29 @@ func (l *MachinePoolList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *MachinePoolList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *MachinePoolList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *MachinePoolList) SetItems(items []*MachinePool) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *MachinePoolList) Items() []*MachinePool {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

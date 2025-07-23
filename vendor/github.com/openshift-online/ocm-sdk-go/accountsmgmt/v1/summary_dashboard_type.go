@@ -32,8 +32,6 @@ const SummaryDashboardLinkKind = "SummaryDashboardLink"
 const SummaryDashboardNilKind = "SummaryDashboardNil"
 
 // SummaryDashboard represents the values of the 'summary_dashboard' type.
-//
-//
 type SummaryDashboard struct {
 	bitmap_ uint32
 	id      string
@@ -52,7 +50,7 @@ func (o *SummaryDashboard) Kind() string {
 	return SummaryDashboardKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *SummaryDashboard) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -100,8 +98,6 @@ func (o *SummaryDashboard) Empty() bool {
 
 // Metrics returns the value of the 'metrics' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SummaryDashboard) Metrics() []*SummaryMetrics {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.metrics
@@ -111,8 +107,6 @@ func (o *SummaryDashboard) Metrics() []*SummaryMetrics {
 
 // GetMetrics returns the value of the 'metrics' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SummaryDashboard) GetMetrics() (value []*SummaryMetrics, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -180,6 +174,29 @@ func (l *SummaryDashboardList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *SummaryDashboardList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *SummaryDashboardList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *SummaryDashboardList) SetItems(items []*SummaryDashboard) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *SummaryDashboardList) Items() []*SummaryDashboard {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

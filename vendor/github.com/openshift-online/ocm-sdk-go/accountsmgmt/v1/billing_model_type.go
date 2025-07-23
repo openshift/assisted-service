@@ -23,8 +23,16 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 type BillingModel string
 
 const (
-	// Red Hat Marketplace billing model.
+	// BillingModelMarketplace Legacy Marketplace billing model. Currently only used for tests. Use cloud-provider specific billing models instead.
 	BillingModelMarketplace BillingModel = "marketplace"
+	// AWS Marketplace billing model.
+	BillingModelMarketplaceAWS BillingModel = "marketplace-aws"
+	// GCP Marketplace billing model.
+	BillingModelMarketplaceGCP BillingModel = "marketplace-gcp"
+	// RH Marketplace billing model.
+	BillingModelMarketplaceRHM BillingModel = "marketplace-rhm"
+	// Azure Marketplace billing model.
+	BillingModelMarketplaceAzure BillingModel = "marketplace-azure"
 	// Standard. This is the default billing model
 	BillingModelStandard BillingModel = "standard"
 )

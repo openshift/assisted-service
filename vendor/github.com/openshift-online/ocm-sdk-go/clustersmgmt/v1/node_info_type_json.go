@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalNodeInfo writes a value of the 'node_info' type to the given writer.
 func MarshalNodeInfo(object *NodeInfo, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeNodeInfo(object, stream)
-	stream.Flush()
+	WriteNodeInfo(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeNodeInfo writes a value of the 'node_info' type to the given stream.
-func writeNodeInfo(object *NodeInfo, stream *jsoniter.Stream) {
+// WriteNodeInfo writes a value of the 'node_info' type to the given stream.
+func WriteNodeInfo(object *NodeInfo, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,7 +58,6 @@ func writeNodeInfo(object *NodeInfo, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("type")
 		stream.WriteString(string(object.type_))
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -64,20 +65,17 @@ func writeNodeInfo(object *NodeInfo, stream *jsoniter.Stream) {
 // UnmarshalNodeInfo reads a value of the 'node_info' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalNodeInfo(source interface{}) (object *NodeInfo, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readNodeInfo(iterator)
+	object = ReadNodeInfo(iterator)
 	err = iterator.Error
 	return
 }
 
-// readNodeInfo reads a value of the 'node_info' type from the given iterator.
-func readNodeInfo(iterator *jsoniter.Iterator) *NodeInfo {
+// ReadNodeInfo reads a value of the 'node_info' type from the given iterator.
+func ReadNodeInfo(iterator *jsoniter.Iterator) *NodeInfo {
 	object := &NodeInfo{}
 	for {
 		field := iterator.ReadObject()

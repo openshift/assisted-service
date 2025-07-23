@@ -19,16 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readSelfAccessReviewPostRequest(request *SelfAccessReviewPostServerRequest, r *http.Request) error {
-	var err error
-	request.request, err = UnmarshalSelfAccessReviewRequest(r)
-	return err
-}
 func writeSelfAccessReviewPostRequest(request *SelfAccessReviewPostRequest, writer io.Writer) error {
 	return MarshalSelfAccessReviewRequest(request.request, writer)
 }
@@ -36,7 +28,4 @@ func readSelfAccessReviewPostResponse(response *SelfAccessReviewPostResponse, re
 	var err error
 	response.response, err = UnmarshalSelfAccessReviewResponse(reader)
 	return err
-}
-func writeSelfAccessReviewPostResponse(response *SelfAccessReviewPostServerResponse, w http.ResponseWriter) error {
-	return MarshalSelfAccessReviewResponse(response.response, w)
 }

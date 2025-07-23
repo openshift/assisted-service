@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalTemplateParameter writes a value of the 'template_parameter' type to the given writer.
 func MarshalTemplateParameter(object *TemplateParameter, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeTemplateParameter(object, stream)
-	stream.Flush()
+	WriteTemplateParameter(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeTemplateParameter writes a value of the 'template_parameter' type to the given stream.
-func writeTemplateParameter(object *TemplateParameter, stream *jsoniter.Stream) {
+// WriteTemplateParameter writes a value of the 'template_parameter' type to the given stream.
+func WriteTemplateParameter(object *TemplateParameter, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,7 +58,6 @@ func writeTemplateParameter(object *TemplateParameter, stream *jsoniter.Stream) 
 		}
 		stream.WriteObjectField("name")
 		stream.WriteString(object.name)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -64,20 +65,17 @@ func writeTemplateParameter(object *TemplateParameter, stream *jsoniter.Stream) 
 // UnmarshalTemplateParameter reads a value of the 'template_parameter' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalTemplateParameter(source interface{}) (object *TemplateParameter, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readTemplateParameter(iterator)
+	object = ReadTemplateParameter(iterator)
 	err = iterator.Error
 	return
 }
 
-// readTemplateParameter reads a value of the 'template_parameter' type from the given iterator.
-func readTemplateParameter(iterator *jsoniter.Iterator) *TemplateParameter {
+// ReadTemplateParameter reads a value of the 'template_parameter' type from the given iterator.
+func ReadTemplateParameter(iterator *jsoniter.Iterator) *TemplateParameter {
 	object := &TemplateParameter{}
 	for {
 		field := iterator.ReadObject()
