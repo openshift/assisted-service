@@ -1325,7 +1325,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		}
 
 		// Refresh schedulable masters again after all roles are assigned
-		if internalErr := b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID); internalErr != nil {
+		if internalErr := b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, cluster); internalErr != nil {
 			log.WithError(internalErr).Errorf("Failed to refresh SchedulableMastersForcedTrue while installing cluster <%s>", cluster.ID)
 			return internalErr
 		}
@@ -3489,7 +3489,7 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 				log.WithError(err).Warnf("Failed to refresh cluster after de-registerating host <%s>", params.HostID)
 			}
 		}
-		if err := b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *h.ClusterID); err != nil {
+		if err := b.clusterApi.RefreshSchedulableMastersForcedTrueWithClusterID(ctx, *h.ClusterID); err != nil {
 			log.WithError(err).Errorf("Failed to refresh SchedulableMastersForcedTrue while de-registering host <%s> to cluster <%s>", h.ID, h.ClusterID)
 			return err
 		}
@@ -5679,7 +5679,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	}
 
 	if host.ClusterID != nil {
-		if err = b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *host.ClusterID); err != nil {
+		if err = b.clusterApi.RefreshSchedulableMastersForcedTrueWithClusterID(ctx, *host.ClusterID); err != nil {
 			log.WithError(err).Errorf("Failed to refresh SchedulableMastersForcedTrue while registering host <%s> to cluster <%s>", host.ID, host.ClusterID)
 			return installer.NewV2RegisterHostInternalServerError().
 				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
@@ -5937,7 +5937,7 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if err = b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID); err != nil {
+	if err = b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, cluster); err != nil {
 		log.WithError(err).Errorf("Failed to refresh SchedulableMastersForcedTrue while binding host <%s> to cluster <%s>", host.ID, host.ClusterID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -5983,7 +5983,7 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 		}
 	}
 
-	if err = b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *host.ClusterID); err != nil {
+	if err = b.clusterApi.RefreshSchedulableMastersForcedTrueWithClusterID(ctx, *host.ClusterID); err != nil {
 		log.WithError(err).Errorf("Failed to refresh SchedulableMastersForcedTrue while unbinding host <%s> to cluster <%s>", host.ID, host.ClusterID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
