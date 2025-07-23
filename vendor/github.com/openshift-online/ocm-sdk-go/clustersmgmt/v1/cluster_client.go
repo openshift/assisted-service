@@ -20,16 +20,15 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -103,6 +102,14 @@ func (c *ClusterClient) Update() *ClusterUpdateRequest {
 	}
 }
 
+// AWS returns the target 'AWS' resource.
+func (c *ClusterClient) AWS() *AWSClient {
+	return NewAWSClient(
+		c.transport,
+		path.Join(c.path, "aws"),
+	)
+}
+
 // AWSInfrastructureAccessRoleGrants returns the target 'AWS_infrastructure_access_role_grants' resource.
 //
 // Reference to the resource that manages the collection of AWS infrastructure
@@ -111,6 +118,14 @@ func (c *ClusterClient) AWSInfrastructureAccessRoleGrants() *AWSInfrastructureAc
 	return NewAWSInfrastructureAccessRoleGrantsClient(
 		c.transport,
 		path.Join(c.path, "aws_infrastructure_access_role_grants"),
+	)
+}
+
+// STSOperatorRoles returns the target 'operator_IAM_roles' resource.
+func (c *ClusterClient) STSOperatorRoles() *OperatorIAMRolesClient {
+	return NewOperatorIAMRolesClient(
+		c.transport,
+		path.Join(c.path, "sts_operator_roles"),
 	)
 }
 
@@ -124,6 +139,16 @@ func (c *ClusterClient) AddonInquiries() *AddonInquiriesClient {
 	)
 }
 
+// AddonUpgradePolicies returns the target 'addon_upgrade_policies' resource.
+//
+// Reference to the resource that manages the collection of addon upgrade policies defined for this cluster.
+func (c *ClusterClient) AddonUpgradePolicies() *AddonUpgradePoliciesClient {
+	return NewAddonUpgradePoliciesClient(
+		c.transport,
+		path.Join(c.path, "addon_upgrade_policies"),
+	)
+}
+
 // Addons returns the target 'add_on_installations' resource.
 //
 // Reference to the resource that manages the collection of add-ons installed on this cluster.
@@ -131,6 +156,26 @@ func (c *ClusterClient) Addons() *AddOnInstallationsClient {
 	return NewAddOnInstallationsClient(
 		c.transport,
 		path.Join(c.path, "addons"),
+	)
+}
+
+// Autoscaler returns the target 'autoscaler' resource.
+//
+// Reference to the resource that manages the cluster autoscaler.
+func (c *ClusterClient) Autoscaler() *AutoscalerClient {
+	return NewAutoscalerClient(
+		c.transport,
+		path.Join(c.path, "autoscaler"),
+	)
+}
+
+// BreakGlassCredentials returns the target 'break_glass_credentials' resource.
+//
+// Reference to the resource that manages the break glass credentials.
+func (c *ClusterClient) BreakGlassCredentials() *BreakGlassCredentialsClient {
+	return NewBreakGlassCredentialsClient(
+		c.transport,
+		path.Join(c.path, "break_glass_credentials"),
 	)
 }
 
@@ -144,6 +189,16 @@ func (c *ClusterClient) Clusterdeployment() *ClusterdeploymentClient {
 	)
 }
 
+// ControlPlane returns the target 'control_plane' resource.
+//
+// Reference to the resource that manages the collection of upgrade policies defined for control plane for this cluster.
+func (c *ClusterClient) ControlPlane() *ControlPlaneClient {
+	return NewControlPlaneClient(
+		c.transport,
+		path.Join(c.path, "control_plane"),
+	)
+}
+
 // Credentials returns the target 'credentials' resource.
 //
 // Reference to the resource that manages the credentials of the cluster.
@@ -151,6 +206,24 @@ func (c *ClusterClient) Credentials() *CredentialsClient {
 	return NewCredentialsClient(
 		c.transport,
 		path.Join(c.path, "credentials"),
+	)
+}
+
+// DeleteProtection returns the target 'delete_protection' resource.
+func (c *ClusterClient) DeleteProtection() *DeleteProtectionClient {
+	return NewDeleteProtectionClient(
+		c.transport,
+		path.Join(c.path, "delete_protection"),
+	)
+}
+
+// ExternalAuthConfig returns the target 'external_auth_config' resource.
+//
+// Reference to the resource that manages the external authentication configuration.
+func (c *ClusterClient) ExternalAuthConfig() *ExternalAuthConfigClient {
+	return NewExternalAuthConfigClient(
+		c.transport,
+		path.Join(c.path, "external_auth_config"),
 	)
 }
 
@@ -164,6 +237,16 @@ func (c *ClusterClient) ExternalConfiguration() *ExternalConfigurationClient {
 	)
 }
 
+// GateAgreements returns the target 'version_gate_agreements' resource.
+//
+// Reference to cluster's agreed version gate.
+func (c *ClusterClient) GateAgreements() *VersionGateAgreementsClient {
+	return NewVersionGateAgreementsClient(
+		c.transport,
+		path.Join(c.path, "gate_agreements"),
+	)
+}
+
 // Groups returns the target 'groups' resource.
 //
 // Reference to the resource that manages the collection of groups.
@@ -171,6 +254,14 @@ func (c *ClusterClient) Groups() *GroupsClient {
 	return NewGroupsClient(
 		c.transport,
 		path.Join(c.path, "groups"),
+	)
+}
+
+// Hypershift returns the target 'hypershift' resource.
+func (c *ClusterClient) Hypershift() *HypershiftClient {
+	return NewHypershiftClient(
+		c.transport,
+		path.Join(c.path, "hypershift"),
 	)
 }
 
@@ -184,6 +275,16 @@ func (c *ClusterClient) IdentityProviders() *IdentityProvidersClient {
 	)
 }
 
+// InflightChecks returns the target 'inflight_checks' resource.
+//
+// Reference to the resource that manages the collection of inflight checks.
+func (c *ClusterClient) InflightChecks() *InflightChecksClient {
+	return NewInflightChecksClient(
+		c.transport,
+		path.Join(c.path, "inflight_checks"),
+	)
+}
+
 // Ingresses returns the target 'ingresses' resource.
 //
 // Reference to the resource that manages the collection of ingress resources.
@@ -191,6 +292,22 @@ func (c *ClusterClient) Ingresses() *IngressesClient {
 	return NewIngressesClient(
 		c.transport,
 		path.Join(c.path, "ingresses"),
+	)
+}
+
+// KubeletConfig returns the target 'kubelet_config' resource.
+func (c *ClusterClient) KubeletConfig() *KubeletConfigClient {
+	return NewKubeletConfigClient(
+		c.transport,
+		path.Join(c.path, "kubelet_config"),
+	)
+}
+
+// KubeletConfigs returns the target 'kubelet_configs' resource.
+func (c *ClusterClient) KubeletConfigs() *KubeletConfigsClient {
+	return NewKubeletConfigsClient(
+		c.transport,
+		path.Join(c.path, "kubelet_configs"),
 	)
 }
 
@@ -234,13 +351,21 @@ func (c *ClusterClient) MetricQueries() *MetricQueriesClient {
 	)
 }
 
-// Product returns the target 'product' resource.
-//
-// Reference to the resource that manages the product type of the cluster
-func (c *ClusterClient) Product() *ProductClient {
-	return NewProductClient(
+// Migrations returns the target 'cluster_migrations' resource.
+func (c *ClusterClient) Migrations() *ClusterMigrationsClient {
+	return NewClusterMigrationsClient(
 		c.transport,
-		path.Join(c.path, "product"),
+		path.Join(c.path, "migrations"),
+	)
+}
+
+// NodePools returns the target 'node_pools' resource.
+//
+// Reference to the resource that manages the collection of node pool resources.
+func (c *ClusterClient) NodePools() *NodePoolsClient {
+	return NewNodePoolsClient(
+		c.transport,
+		path.Join(c.path, "node_pools"),
 	)
 }
 
@@ -274,6 +399,24 @@ func (c *ClusterClient) Status() *ClusterStatusClient {
 	)
 }
 
+// StsSupportJumpRole returns the target 'sts_support_jump_role' resource.
+func (c *ClusterClient) StsSupportJumpRole() *StsSupportJumpRoleClient {
+	return NewStsSupportJumpRoleClient(
+		c.transport,
+		path.Join(c.path, "sts_support_jump_role"),
+	)
+}
+
+// TuningConfigs returns the target 'tuning_configs' resource.
+//
+// Reference to the resource that manages the collection of tuning configs for this cluster.
+func (c *ClusterClient) TuningConfigs() *TuningConfigsClient {
+	return NewTuningConfigsClient(
+		c.transport,
+		path.Join(c.path, "tuning_configs"),
+	)
+}
+
 // UpgradePolicies returns the target 'upgrade_policies' resource.
 //
 // Reference to the resource that manages the collection of upgrade policies defined for this cluster.
@@ -281,6 +424,16 @@ func (c *ClusterClient) UpgradePolicies() *UpgradePoliciesClient {
 	return NewUpgradePoliciesClient(
 		c.transport,
 		path.Join(c.path, "upgrade_policies"),
+	)
+}
+
+// Vpc returns the target 'vpc' resource.
+//
+// Reference to the resource that manages the vpc resource.
+func (c *ClusterClient) Vpc() *VpcClient {
+	return NewVpcClient(
+		c.transport,
+		path.Join(c.path, "vpc"),
 	)
 }
 
@@ -383,16 +536,12 @@ func (r *ClusterPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *ClusterPollResponse) Body() *Cluster {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ClusterPollResponse) GetBody() (value *Cluster, ok bool) {
 	return r.response.GetBody()
 }
@@ -411,7 +560,9 @@ type ClusterDeleteRequest struct {
 	path        string
 	query       url.Values
 	header      http.Header
+	bestEffort  *bool
 	deprovision *bool
+	dryRun      *bool
 }
 
 // Parameter adds a query parameter.
@@ -426,12 +577,35 @@ func (r *ClusterDeleteRequest) Header(name string, value interface{}) *ClusterDe
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ClusterDeleteRequest) Impersonate(user string) *ClusterDeleteRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
+// BestEffort sets the value of the 'best_effort' parameter.
+//
+// BestEffort flag is used to check if the cluster deletion should be best-effort mode or not.
+func (r *ClusterDeleteRequest) BestEffort(value bool) *ClusterDeleteRequest {
+	r.bestEffort = &value
+	return r
+}
+
 // Deprovision sets the value of the 'deprovision' parameter.
 //
 // If false it will only delete from OCM but not the actual cluster resources.
 // false is only allowed for OCP clusters. true by default.
 func (r *ClusterDeleteRequest) Deprovision(value bool) *ClusterDeleteRequest {
 	r.deprovision = &value
+	return r
+}
+
+// DryRun sets the value of the 'dry_run' parameter.
+//
+// Dry run flag is used to check if the operation can be completed, but won't delete.
+func (r *ClusterDeleteRequest) DryRun(value bool) *ClusterDeleteRequest {
+	r.dryRun = &value
 	return r
 }
 
@@ -446,8 +620,14 @@ func (r *ClusterDeleteRequest) Send() (result *ClusterDeleteResponse, err error)
 // SendContext sends this request, waits for the response, and returns it.
 func (r *ClusterDeleteRequest) SendContext(ctx context.Context) (result *ClusterDeleteResponse, err error) {
 	query := helpers.CopyQuery(r.query)
+	if r.bestEffort != nil {
+		helpers.AddValue(&query, "best_effort", *r.bestEffort)
+	}
 	if r.deprovision != nil {
 		helpers.AddValue(&query, "deprovision", *r.deprovision)
+	}
+	if r.dryRun != nil {
+		helpers.AddValue(&query, "dry_run", *r.dryRun)
 	}
 	header := helpers.CopyHeader(r.header)
 	uri := &url.URL{
@@ -470,8 +650,14 @@ func (r *ClusterDeleteRequest) SendContext(ctx context.Context) (result *Cluster
 	result = &ClusterDeleteResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -532,6 +718,13 @@ func (r *ClusterGetRequest) Header(name string, value interface{}) *ClusterGetRe
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ClusterGetRequest) Impersonate(user string) *ClusterGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -564,15 +757,21 @@ func (r *ClusterGetRequest) SendContext(ctx context.Context) (result *ClusterGet
 	result = &ClusterGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readClusterGetResponse(result, response.Body)
+	err = readClusterGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -612,8 +811,6 @@ func (r *ClusterGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *ClusterGetResponse) Body() *Cluster {
 	if r == nil {
 		return nil
@@ -623,8 +820,6 @@ func (r *ClusterGetResponse) Body() *Cluster {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ClusterGetResponse) GetBody() (value *Cluster, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -650,6 +845,13 @@ func (r *ClusterHibernateRequest) Parameter(name string, value interface{}) *Clu
 // Header adds a request header.
 func (r *ClusterHibernateRequest) Header(name string, value interface{}) *ClusterHibernateRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ClusterHibernateRequest) Impersonate(user string) *ClusterHibernateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -685,8 +887,14 @@ func (r *ClusterHibernateRequest) SendContext(ctx context.Context) (result *Clus
 	result = &ClusterHibernateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -747,6 +955,13 @@ func (r *ClusterResumeRequest) Header(name string, value interface{}) *ClusterRe
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ClusterResumeRequest) Impersonate(user string) *ClusterResumeRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -779,8 +994,14 @@ func (r *ClusterResumeRequest) SendContext(ctx context.Context) (result *Cluster
 	result = &ClusterResumeResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -842,9 +1063,14 @@ func (r *ClusterUpdateRequest) Header(name string, value interface{}) *ClusterUp
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ClusterUpdateRequest) Impersonate(user string) *ClusterUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *ClusterUpdateRequest) Body(value *Cluster) *ClusterUpdateRequest {
 	r.body = value
 	return r
@@ -875,7 +1101,7 @@ func (r *ClusterUpdateRequest) SendContext(ctx context.Context) (result *Cluster
 		Method: "PATCH",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -888,29 +1114,25 @@ func (r *ClusterUpdateRequest) SendContext(ctx context.Context) (result *Cluster
 	result = &ClusterUpdateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readClusterUpdateResponse(result, response.Body)
+	err = readClusterUpdateResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'update' method.
-func (r *ClusterUpdateRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *ClusterUpdateRequest) stream(stream *jsoniter.Stream) {
 }
 
 // ClusterUpdateResponse is the response for the 'update' method.
@@ -946,8 +1168,6 @@ func (r *ClusterUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *ClusterUpdateResponse) Body() *Cluster {
 	if r == nil {
 		return nil
@@ -957,8 +1177,6 @@ func (r *ClusterUpdateResponse) Body() *Cluster {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ClusterUpdateResponse) GetBody() (value *Cluster, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

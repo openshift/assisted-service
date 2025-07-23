@@ -37,6 +37,11 @@ func (b *EncryptionKeyListBuilder) Items(values ...*EncryptionKeyBuilder) *Encry
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *EncryptionKeyListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *EncryptionKeyListBuilder) Copy(list *EncryptionKeyList) *EncryptionKeyListBuilder {
 	if list == nil || list.items == nil {

@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalExportControlReviewRequest writes a value of the 'export_control_review_request' type to the given writer.
 func MarshalExportControlReviewRequest(object *ExportControlReviewRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeExportControlReviewRequest(object, stream)
-	stream.Flush()
+	WriteExportControlReviewRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeExportControlReviewRequest writes a value of the 'export_control_review_request' type to the given stream.
-func writeExportControlReviewRequest(object *ExportControlReviewRequest, stream *jsoniter.Stream) {
+// WriteExportControlReviewRequest writes a value of the 'export_control_review_request' type to the given stream.
+func WriteExportControlReviewRequest(object *ExportControlReviewRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -47,7 +49,6 @@ func writeExportControlReviewRequest(object *ExportControlReviewRequest, stream 
 		}
 		stream.WriteObjectField("account_username")
 		stream.WriteString(object.accountUsername)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeExportControlReviewRequest(object *ExportControlReviewRequest, stream 
 // UnmarshalExportControlReviewRequest reads a value of the 'export_control_review_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalExportControlReviewRequest(source interface{}) (object *ExportControlReviewRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readExportControlReviewRequest(iterator)
+	object = ReadExportControlReviewRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readExportControlReviewRequest reads a value of the 'export_control_review_request' type from the given iterator.
-func readExportControlReviewRequest(iterator *jsoniter.Iterator) *ExportControlReviewRequest {
+// ReadExportControlReviewRequest reads a value of the 'export_control_review_request' type from the given iterator.
+func ReadExportControlReviewRequest(iterator *jsoniter.Iterator) *ExportControlReviewRequest {
 	object := &ExportControlReviewRequest{}
 	for {
 		field := iterator.ReadObject()

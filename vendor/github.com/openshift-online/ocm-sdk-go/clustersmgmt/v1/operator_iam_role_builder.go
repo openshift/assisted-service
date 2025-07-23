@@ -23,10 +23,12 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 //
 // Contains the necessary attributes to allow each operator to access the necessary AWS resources
 type OperatorIAMRoleBuilder struct {
-	bitmap_   uint32
-	name      string
-	namespace string
-	roleARN   string
+	bitmap_        uint32
+	id             string
+	name           string
+	namespace      string
+	roleARN        string
+	serviceAccount string
 }
 
 // NewOperatorIAMRole creates a new builder of 'operator_IAM_role' objects.
@@ -34,30 +36,43 @@ func NewOperatorIAMRole() *OperatorIAMRoleBuilder {
 	return &OperatorIAMRoleBuilder{}
 }
 
-// Name sets the value of the 'name' attribute to the given value.
-//
-//
-func (b *OperatorIAMRoleBuilder) Name(value string) *OperatorIAMRoleBuilder {
-	b.name = value
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *OperatorIAMRoleBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
+// ID sets the value of the 'ID' attribute to the given value.
+func (b *OperatorIAMRoleBuilder) ID(value string) *OperatorIAMRoleBuilder {
+	b.id = value
 	b.bitmap_ |= 1
 	return b
 }
 
-// Namespace sets the value of the 'namespace' attribute to the given value.
-//
-//
-func (b *OperatorIAMRoleBuilder) Namespace(value string) *OperatorIAMRoleBuilder {
-	b.namespace = value
+// Name sets the value of the 'name' attribute to the given value.
+func (b *OperatorIAMRoleBuilder) Name(value string) *OperatorIAMRoleBuilder {
+	b.name = value
 	b.bitmap_ |= 2
 	return b
 }
 
+// Namespace sets the value of the 'namespace' attribute to the given value.
+func (b *OperatorIAMRoleBuilder) Namespace(value string) *OperatorIAMRoleBuilder {
+	b.namespace = value
+	b.bitmap_ |= 4
+	return b
+}
+
 // RoleARN sets the value of the 'role_ARN' attribute to the given value.
-//
-//
 func (b *OperatorIAMRoleBuilder) RoleARN(value string) *OperatorIAMRoleBuilder {
 	b.roleARN = value
-	b.bitmap_ |= 4
+	b.bitmap_ |= 8
+	return b
+}
+
+// ServiceAccount sets the value of the 'service_account' attribute to the given value.
+func (b *OperatorIAMRoleBuilder) ServiceAccount(value string) *OperatorIAMRoleBuilder {
+	b.serviceAccount = value
+	b.bitmap_ |= 16
 	return b
 }
 
@@ -67,9 +82,11 @@ func (b *OperatorIAMRoleBuilder) Copy(object *OperatorIAMRole) *OperatorIAMRoleB
 		return b
 	}
 	b.bitmap_ = object.bitmap_
+	b.id = object.id
 	b.name = object.name
 	b.namespace = object.namespace
 	b.roleARN = object.roleARN
+	b.serviceAccount = object.serviceAccount
 	return b
 }
 
@@ -77,8 +94,10 @@ func (b *OperatorIAMRoleBuilder) Copy(object *OperatorIAMRole) *OperatorIAMRoleB
 func (b *OperatorIAMRoleBuilder) Build() (object *OperatorIAMRole, err error) {
 	object = new(OperatorIAMRole)
 	object.bitmap_ = b.bitmap_
+	object.id = b.id
 	object.name = b.name
 	object.namespace = b.namespace
 	object.roleARN = b.roleARN
+	object.serviceAccount = b.serviceAccount
 	return
 }

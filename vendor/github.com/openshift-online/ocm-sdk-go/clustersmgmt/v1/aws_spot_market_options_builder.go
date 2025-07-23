@@ -54,9 +54,12 @@ func (b *AWSSpotMarketOptionsBuilder) HREF(value string) *AWSSpotMarketOptionsBu
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *AWSSpotMarketOptionsBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // MaxPrice sets the value of the 'max_price' attribute to the given value.
-//
-//
 func (b *AWSSpotMarketOptionsBuilder) MaxPrice(value float64) *AWSSpotMarketOptionsBuilder {
 	b.maxPrice = value
 	b.bitmap_ |= 8

@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/jobqueue/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -89,15 +91,20 @@ func (r *MetadataRequest) SendContext(ctx context.Context) (result *MetadataResp
 		status: response.StatusCode,
 		header: response.Header,
 	}
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	result.body, err = UnmarshalMetadata(response.Body)
+	result.body, err = UnmarshalMetadata(reader)
 	if err != nil {
 		return
 	}

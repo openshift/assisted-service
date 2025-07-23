@@ -20,7 +20,10 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -47,6 +50,16 @@ func NewLimitedSupportReasonsClient(transport http.RoundTripper, path string) *L
 	}
 }
 
+// Add creates a request for the 'add' method.
+//
+// Adds a new reason to the cluster.
+func (c *LimitedSupportReasonsClient) Add() *LimitedSupportReasonsAddRequest {
+	return &LimitedSupportReasonsAddRequest{
+		transport: c.transport,
+		path:      c.path,
+	}
+}
+
 // List creates a request for the 'list' method.
 //
 // Retrieves the list of reasons.
@@ -65,6 +78,155 @@ func (c *LimitedSupportReasonsClient) LimitedSupportReason(id string) *LimitedSu
 		c.transport,
 		path.Join(c.path, id),
 	)
+}
+
+// LimitedSupportReasonsAddRequest is the request for the 'add' method.
+type LimitedSupportReasonsAddRequest struct {
+	transport http.RoundTripper
+	path      string
+	query     url.Values
+	header    http.Header
+	body      *LimitedSupportReason
+}
+
+// Parameter adds a query parameter.
+func (r *LimitedSupportReasonsAddRequest) Parameter(name string, value interface{}) *LimitedSupportReasonsAddRequest {
+	helpers.AddValue(&r.query, name, value)
+	return r
+}
+
+// Header adds a request header.
+func (r *LimitedSupportReasonsAddRequest) Header(name string, value interface{}) *LimitedSupportReasonsAddRequest {
+	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *LimitedSupportReasonsAddRequest) Impersonate(user string) *LimitedSupportReasonsAddRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
+// Body sets the value of the 'body' parameter.
+//
+// Description of the reason.
+func (r *LimitedSupportReasonsAddRequest) Body(value *LimitedSupportReason) *LimitedSupportReasonsAddRequest {
+	r.body = value
+	return r
+}
+
+// Send sends this request, waits for the response, and returns it.
+//
+// This is a potentially lengthy operation, as it requires network communication.
+// Consider using a context and the SendContext method.
+func (r *LimitedSupportReasonsAddRequest) Send() (result *LimitedSupportReasonsAddResponse, err error) {
+	return r.SendContext(context.Background())
+}
+
+// SendContext sends this request, waits for the response, and returns it.
+func (r *LimitedSupportReasonsAddRequest) SendContext(ctx context.Context) (result *LimitedSupportReasonsAddResponse, err error) {
+	query := helpers.CopyQuery(r.query)
+	header := helpers.CopyHeader(r.header)
+	buffer := &bytes.Buffer{}
+	err = writeLimitedSupportReasonsAddRequest(r, buffer)
+	if err != nil {
+		return
+	}
+	uri := &url.URL{
+		Path:     r.path,
+		RawQuery: query.Encode(),
+	}
+	request := &http.Request{
+		Method: "POST",
+		URL:    uri,
+		Header: header,
+		Body:   io.NopCloser(buffer),
+	}
+	if ctx != nil {
+		request = request.WithContext(ctx)
+	}
+	response, err := r.transport.RoundTrip(request)
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+	result = &LimitedSupportReasonsAddResponse{}
+	result.status = response.StatusCode
+	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
+	if result.status >= 400 {
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
+		if err != nil {
+			return
+		}
+		err = result.err
+		return
+	}
+	err = readLimitedSupportReasonsAddResponse(result, reader)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// LimitedSupportReasonsAddResponse is the response for the 'add' method.
+type LimitedSupportReasonsAddResponse struct {
+	status int
+	header http.Header
+	err    *errors.Error
+	body   *LimitedSupportReason
+}
+
+// Status returns the response status code.
+func (r *LimitedSupportReasonsAddResponse) Status() int {
+	if r == nil {
+		return 0
+	}
+	return r.status
+}
+
+// Header returns header of the response.
+func (r *LimitedSupportReasonsAddResponse) Header() http.Header {
+	if r == nil {
+		return nil
+	}
+	return r.header
+}
+
+// Error returns the response error.
+func (r *LimitedSupportReasonsAddResponse) Error() *errors.Error {
+	if r == nil {
+		return nil
+	}
+	return r.err
+}
+
+// Body returns the value of the 'body' parameter.
+//
+// Description of the reason.
+func (r *LimitedSupportReasonsAddResponse) Body() *LimitedSupportReason {
+	if r == nil {
+		return nil
+	}
+	return r.body
+}
+
+// GetBody returns the value of the 'body' parameter and
+// a flag indicating if the parameter has a value.
+//
+// Description of the reason.
+func (r *LimitedSupportReasonsAddResponse) GetBody() (value *LimitedSupportReason, ok bool) {
+	ok = r != nil && r.body != nil
+	if ok {
+		value = r.body
+	}
+	return
 }
 
 // LimitedSupportReasonsListRequest is the request for the 'list' method.
@@ -86,6 +248,13 @@ func (r *LimitedSupportReasonsListRequest) Parameter(name string, value interfac
 // Header adds a request header.
 func (r *LimitedSupportReasonsListRequest) Header(name string, value interface{}) *LimitedSupportReasonsListRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *LimitedSupportReasonsListRequest) Impersonate(user string) *LimitedSupportReasonsListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -143,15 +312,21 @@ func (r *LimitedSupportReasonsListRequest) SendContext(ctx context.Context) (res
 	result = &LimitedSupportReasonsListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readLimitedSupportReasonsListResponse(result, response.Body)
+	err = readLimitedSupportReasonsListResponse(result, reader)
 	if err != nil {
 		return
 	}

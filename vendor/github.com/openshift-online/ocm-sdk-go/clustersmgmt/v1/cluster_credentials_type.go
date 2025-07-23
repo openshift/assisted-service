@@ -38,8 +38,6 @@ type ClusterCredentials struct {
 	bitmap_    uint32
 	id         string
 	href       string
-	ssh        *SSHCredentials
-	admin      *AdminCredentials
 	kubeconfig string
 }
 
@@ -54,7 +52,7 @@ func (o *ClusterCredentials) Kind() string {
 	return ClusterCredentialsKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *ClusterCredentials) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -100,60 +98,12 @@ func (o *ClusterCredentials) Empty() bool {
 	return o == nil || o.bitmap_&^1 == 0
 }
 
-// SSH returns the value of the 'SSH' attribute, or
-// the zero value of the type if the attribute doesn't have a value.
-//
-// SSH key pair of the cluster.
-func (o *ClusterCredentials) SSH() *SSHCredentials {
-	if o != nil && o.bitmap_&8 != 0 {
-		return o.ssh
-	}
-	return nil
-}
-
-// GetSSH returns the value of the 'SSH' attribute and
-// a flag indicating if the attribute has a value.
-//
-// SSH key pair of the cluster.
-func (o *ClusterCredentials) GetSSH() (value *SSHCredentials, ok bool) {
-	ok = o != nil && o.bitmap_&8 != 0
-	if ok {
-		value = o.ssh
-	}
-	return
-}
-
-// Admin returns the value of the 'admin' attribute, or
-// the zero value of the type if the attribute doesn't have a value.
-//
-// Temporary administrator credentials generated during the installation
-// of the cluster.
-func (o *ClusterCredentials) Admin() *AdminCredentials {
-	if o != nil && o.bitmap_&16 != 0 {
-		return o.admin
-	}
-	return nil
-}
-
-// GetAdmin returns the value of the 'admin' attribute and
-// a flag indicating if the attribute has a value.
-//
-// Temporary administrator credentials generated during the installation
-// of the cluster.
-func (o *ClusterCredentials) GetAdmin() (value *AdminCredentials, ok bool) {
-	ok = o != nil && o.bitmap_&16 != 0
-	if ok {
-		value = o.admin
-	}
-	return
-}
-
 // Kubeconfig returns the value of the 'kubeconfig' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // Administrator _kubeconfig_ file for the cluster.
 func (o *ClusterCredentials) Kubeconfig() string {
-	if o != nil && o.bitmap_&32 != 0 {
+	if o != nil && o.bitmap_&8 != 0 {
 		return o.kubeconfig
 	}
 	return ""
@@ -164,7 +114,7 @@ func (o *ClusterCredentials) Kubeconfig() string {
 //
 // Administrator _kubeconfig_ file for the cluster.
 func (o *ClusterCredentials) GetKubeconfig() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&32 != 0
+	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
 		value = o.kubeconfig
 	}
@@ -230,6 +180,29 @@ func (l *ClusterCredentialsList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *ClusterCredentialsList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *ClusterCredentialsList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *ClusterCredentialsList) SetItems(items []*ClusterCredentials) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *ClusterCredentialsList) Items() []*ClusterCredentials {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

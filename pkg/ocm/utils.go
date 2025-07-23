@@ -2,6 +2,7 @@ package ocm
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -83,6 +84,17 @@ func EmailDomainFromContext(ctx context.Context) string {
 }
 
 func HandleOCMResponse(ctx context.Context, log sdkClient.Logger, response response, requestType string, err error) error {
+	// WORKAROUND: Handle bug in ocm-sdk-go where empty body responses with error status codes
+	// return nil error. This is due to a bug in ocm-api-metamodel that generates code which
+	// returns early with nil error on EOF without checking HTTP status.
+	if err == nil && response != nil && response.Status() >= 400 {
+		log.Error(ctx, "Received error status %d for %s request with empty body (SDK bug workaround)", response.Status(), requestType)
+		if response.Status() >= 400 && response.Status() < 500 {
+			return common.NewInfraError(http.StatusUnauthorized, fmt.Errorf("received error status %d from %s request", response.Status(), requestType))
+		}
+		return common.NewApiError(http.StatusServiceUnavailable, fmt.Errorf("received error status %d from %s request", response.Status(), requestType))
+	}
+
 	if err != nil {
 		log.Error(ctx, "Failed to send %s request. Error: %v", requestType, err)
 		if response != nil {

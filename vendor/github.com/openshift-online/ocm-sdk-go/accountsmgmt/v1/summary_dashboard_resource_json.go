@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readSummaryDashboardGetRequest(request *SummaryDashboardGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeSummaryDashboardGetRequest(request *SummaryDashboardGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readSummaryDashboardGetResponse(response *SummaryDashboardGetResponse, read
 	var err error
 	response.body, err = UnmarshalSummaryDashboard(reader)
 	return err
-}
-func writeSummaryDashboardGetResponse(response *SummaryDashboardGetServerResponse, w http.ResponseWriter) error {
-	return MarshalSummaryDashboard(response.body, w)
 }

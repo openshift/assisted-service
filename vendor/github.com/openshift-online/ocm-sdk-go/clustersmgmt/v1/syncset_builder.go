@@ -54,9 +54,12 @@ func (b *SyncsetBuilder) HREF(value string) *SyncsetBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *SyncsetBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Resources sets the value of the 'resources' attribute to the given values.
-//
-//
 func (b *SyncsetBuilder) Resources(values ...interface{}) *SyncsetBuilder {
 	b.resources = make([]interface{}, len(values))
 	copy(b.resources, values)

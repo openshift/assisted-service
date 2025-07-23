@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalIdentityProvider writes a value of the 'identity_provider' type to the given writer.
 func MarshalIdentityProvider(object *IdentityProvider, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeIdentityProvider(object, stream)
-	stream.Flush()
+	WriteIdentityProvider(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeIdentityProvider writes a value of the 'identity_provider' type to the given stream.
-func writeIdentityProvider(object *IdentityProvider, stream *jsoniter.Stream) {
+// WriteIdentityProvider writes a value of the 'identity_provider' type to the given stream.
+func WriteIdentityProvider(object *IdentityProvider, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -69,7 +71,7 @@ func writeIdentityProvider(object *IdentityProvider, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("ldap")
-		writeLDAPIdentityProvider(object.ldap, stream)
+		WriteLDAPIdentityProvider(object.ldap, stream)
 		count++
 	}
 	present_ = object.bitmap_&16 != 0
@@ -87,7 +89,7 @@ func writeIdentityProvider(object *IdentityProvider, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("github")
-		writeGithubIdentityProvider(object.github, stream)
+		WriteGithubIdentityProvider(object.github, stream)
 		count++
 	}
 	present_ = object.bitmap_&64 != 0 && object.gitlab != nil
@@ -96,7 +98,7 @@ func writeIdentityProvider(object *IdentityProvider, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("gitlab")
-		writeGitlabIdentityProvider(object.gitlab, stream)
+		WriteGitlabIdentityProvider(object.gitlab, stream)
 		count++
 	}
 	present_ = object.bitmap_&128 != 0 && object.google != nil
@@ -105,7 +107,7 @@ func writeIdentityProvider(object *IdentityProvider, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("google")
-		writeGoogleIdentityProvider(object.google, stream)
+		WriteGoogleIdentityProvider(object.google, stream)
 		count++
 	}
 	present_ = object.bitmap_&256 != 0 && object.htpasswd != nil
@@ -114,7 +116,7 @@ func writeIdentityProvider(object *IdentityProvider, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("htpasswd")
-		writeHTPasswdIdentityProvider(object.htpasswd, stream)
+		WriteHTPasswdIdentityProvider(object.htpasswd, stream)
 		count++
 	}
 	present_ = object.bitmap_&512 != 0
@@ -150,7 +152,7 @@ func writeIdentityProvider(object *IdentityProvider, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("open_id")
-		writeOpenIDIdentityProvider(object.openID, stream)
+		WriteOpenIDIdentityProvider(object.openID, stream)
 		count++
 	}
 	present_ = object.bitmap_&8192 != 0
@@ -160,7 +162,6 @@ func writeIdentityProvider(object *IdentityProvider, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("type")
 		stream.WriteString(string(object.type_))
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -168,20 +169,17 @@ func writeIdentityProvider(object *IdentityProvider, stream *jsoniter.Stream) {
 // UnmarshalIdentityProvider reads a value of the 'identity_provider' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalIdentityProvider(source interface{}) (object *IdentityProvider, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readIdentityProvider(iterator)
+	object = ReadIdentityProvider(iterator)
 	err = iterator.Error
 	return
 }
 
-// readIdentityProvider reads a value of the 'identity_provider' type from the given iterator.
-func readIdentityProvider(iterator *jsoniter.Iterator) *IdentityProvider {
+// ReadIdentityProvider reads a value of the 'identity_provider' type from the given iterator.
+func ReadIdentityProvider(iterator *jsoniter.Iterator) *IdentityProvider {
 	object := &IdentityProvider{}
 	for {
 		field := iterator.ReadObject()
@@ -201,7 +199,7 @@ func readIdentityProvider(iterator *jsoniter.Iterator) *IdentityProvider {
 			object.href = iterator.ReadString()
 			object.bitmap_ |= 4
 		case "ldap":
-			value := readLDAPIdentityProvider(iterator)
+			value := ReadLDAPIdentityProvider(iterator)
 			object.ldap = value
 			object.bitmap_ |= 8
 		case "challenge":
@@ -209,19 +207,19 @@ func readIdentityProvider(iterator *jsoniter.Iterator) *IdentityProvider {
 			object.challenge = value
 			object.bitmap_ |= 16
 		case "github":
-			value := readGithubIdentityProvider(iterator)
+			value := ReadGithubIdentityProvider(iterator)
 			object.github = value
 			object.bitmap_ |= 32
 		case "gitlab":
-			value := readGitlabIdentityProvider(iterator)
+			value := ReadGitlabIdentityProvider(iterator)
 			object.gitlab = value
 			object.bitmap_ |= 64
 		case "google":
-			value := readGoogleIdentityProvider(iterator)
+			value := ReadGoogleIdentityProvider(iterator)
 			object.google = value
 			object.bitmap_ |= 128
 		case "htpasswd":
-			value := readHTPasswdIdentityProvider(iterator)
+			value := ReadHTPasswdIdentityProvider(iterator)
 			object.htpasswd = value
 			object.bitmap_ |= 256
 		case "login":
@@ -238,7 +236,7 @@ func readIdentityProvider(iterator *jsoniter.Iterator) *IdentityProvider {
 			object.name = value
 			object.bitmap_ |= 2048
 		case "open_id":
-			value := readOpenIDIdentityProvider(iterator)
+			value := ReadOpenIDIdentityProvider(iterator)
 			object.openID = value
 			object.bitmap_ |= 4096
 		case "type":

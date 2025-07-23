@@ -37,6 +37,11 @@ func (b *OpenIDClaimsListBuilder) Items(values ...*OpenIDClaimsBuilder) *OpenIDC
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *OpenIDClaimsListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *OpenIDClaimsListBuilder) Copy(list *OpenIDClaimsList) *OpenIDClaimsListBuilder {
 	if list == nil || list.items == nil {

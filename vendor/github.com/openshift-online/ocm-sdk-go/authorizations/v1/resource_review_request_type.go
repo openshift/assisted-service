@@ -23,11 +23,12 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 //
 // Request to perform a resource access review.
 type ResourceReviewRequest struct {
-	bitmap_           uint32
-	accountUsername   string
-	action            string
-	resourceType      string
-	reduceClusterList bool
+	bitmap_                     uint32
+	accountUsername             string
+	action                      string
+	excludeSubscriptionStatuses []SubscriptionStatus
+	resourceType                string
+	reduceClusterList           bool
 }
 
 // Empty returns true if the object is empty, i.e. no attribute has a value.
@@ -81,13 +82,36 @@ func (o *ResourceReviewRequest) GetAction() (value string, ok bool) {
 	return
 }
 
+// ExcludeSubscriptionStatuses returns the value of the 'exclude_subscription_statuses' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Subscriptions with these statuses will be excluded from results.
+func (o *ResourceReviewRequest) ExcludeSubscriptionStatuses() []SubscriptionStatus {
+	if o != nil && o.bitmap_&4 != 0 {
+		return o.excludeSubscriptionStatuses
+	}
+	return nil
+}
+
+// GetExcludeSubscriptionStatuses returns the value of the 'exclude_subscription_statuses' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Subscriptions with these statuses will be excluded from results.
+func (o *ResourceReviewRequest) GetExcludeSubscriptionStatuses() (value []SubscriptionStatus, ok bool) {
+	ok = o != nil && o.bitmap_&4 != 0
+	if ok {
+		value = o.excludeSubscriptionStatuses
+	}
+	return
+}
+
 // ReduceClusterList returns the value of the 'reduce_cluster_list' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // If true, in the case when all subscriptions in organization are permitted, response will *not* include
 // these subscriptions' ID, but organization only.
 func (o *ResourceReviewRequest) ReduceClusterList() bool {
-	if o != nil && o.bitmap_&4 != 0 {
+	if o != nil && o.bitmap_&8 != 0 {
 		return o.reduceClusterList
 	}
 	return false
@@ -99,7 +123,7 @@ func (o *ResourceReviewRequest) ReduceClusterList() bool {
 // If true, in the case when all subscriptions in organization are permitted, response will *not* include
 // these subscriptions' ID, but organization only.
 func (o *ResourceReviewRequest) GetReduceClusterList() (value bool, ok bool) {
-	ok = o != nil && o.bitmap_&4 != 0
+	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
 		value = o.reduceClusterList
 	}
@@ -111,7 +135,7 @@ func (o *ResourceReviewRequest) GetReduceClusterList() (value bool, ok bool) {
 //
 // Type of resource.
 func (o *ResourceReviewRequest) ResourceType() string {
-	if o != nil && o.bitmap_&8 != 0 {
+	if o != nil && o.bitmap_&16 != 0 {
 		return o.resourceType
 	}
 	return ""
@@ -122,7 +146,7 @@ func (o *ResourceReviewRequest) ResourceType() string {
 //
 // Type of resource.
 func (o *ResourceReviewRequest) GetResourceType() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&8 != 0
+	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
 		value = o.resourceType
 	}
@@ -154,6 +178,29 @@ func (l *ResourceReviewRequestList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *ResourceReviewRequestList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *ResourceReviewRequestList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *ResourceReviewRequestList) SetItems(items []*ResourceReviewRequest) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *ResourceReviewRequestList) Items() []*ResourceReviewRequest {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

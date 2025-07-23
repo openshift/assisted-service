@@ -37,6 +37,11 @@ func (b *ClusterConsoleListBuilder) Items(values ...*ClusterConsoleBuilder) *Clu
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *ClusterConsoleListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *ClusterConsoleListBuilder) Copy(list *ClusterConsoleList) *ClusterConsoleListBuilder {
 	if list == nil || list.items == nil {
