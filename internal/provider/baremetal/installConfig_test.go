@@ -34,9 +34,10 @@ var _ = Describe("AddPlatformToInstallConfig", func() {
 		}}
 		cfg = &installcfg.InstallerConfigBaremetal{
 			ControlPlane: struct {
-				Hyperthreading string "json:\"hyperthreading,omitempty\""
-				Name           string "json:\"name\""
-				Replicas       int    "json:\"replicas\""
+				Hyperthreading string              "json:\"hyperthreading,omitempty\""
+				Name           string              "json:\"name\""
+				Replicas       int                 "json:\"replicas\""
+				Fencing        *installcfg.Fencing "json:\"fencing,omitempty\""
 			}{
 				Replicas: 1,
 			},

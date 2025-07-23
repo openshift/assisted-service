@@ -687,9 +687,10 @@ func getInstallerConfigBaremetal() installcfg.InstallerConfigBaremetal {
 			Replicas: 2,
 		}},
 		ControlPlane: struct {
-			Hyperthreading string `json:"hyperthreading,omitempty"`
-			Name           string `json:"name"`
-			Replicas       int    `json:"replicas"`
+			Hyperthreading string              `json:"hyperthreading,omitempty"`
+			Name           string              `json:"name"`
+			Replicas       int                 `json:"replicas"`
+			Fencing        *installcfg.Fencing `json:"fencing,omitempty"`
 		}{
 			Name:     "master-test",
 			Replicas: 3,

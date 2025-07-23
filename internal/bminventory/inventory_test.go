@@ -10425,6 +10425,7 @@ var _ = Describe("infraEnvs host", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		Expect(cfg.TNAClustersSupport).Should(BeFalse())
+		Expect(cfg.TNFClustersSupport).Should(BeFalse())
 		bm = createInventory(db, cfg)
 
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -11116,6 +11117,141 @@ var _ = Describe("infraEnvs host", func() {
 			})
 			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+		})
+
+		Context("update host fencing", func() {
+			var (
+				validFencingCredentials *models.FencingCredentialsParams
+			)
+
+			BeforeEach(func() {
+				bm.TNFClustersSupport = true
+				validFencingCredentials = &models.FencingCredentialsParams{
+					Address:  swag.String("https://bmc.example.com"),
+					Username: swag.String("admin"),
+					Password: swag.String("password123"),
+				}
+				cluster.OpenshiftVersion = common.MinimumVersionForTwoNodesWithFencing
+				db.Save(&cluster)
+			})
+
+			It("should succeed when fencingCredentialsParams is nil and TNF support is enabled", func() {
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						FencingCredentials: nil,
+					},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
+			})
+
+			It("should succeed when fencingCredentialsParams is nil and TNF support is disabled", func() {
+				bm.TNFClustersSupport = false
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						FencingCredentials: nil,
+					},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
+			})
+
+			It("should return BadRequest error when TNF clusters support is disabled", func() {
+				bm.TNFClustersSupport = false
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						FencingCredentials: validFencingCredentials,
+					},
+				})
+				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("TNF clusters support is disabled, cannot set fencing credentials to host %s in infra-env %s", hostID, infraEnvID)))
+			})
+
+			It("should return BadRequest error when OpenShift version is below minimum required for fencing", func() {
+				cluster.OpenshiftVersion = "4.19"
+				db.Save(&cluster)
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						FencingCredentials: validFencingCredentials,
+					},
+				})
+				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set fencing credentials to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", hostID, infraEnvID, common.MinimumVersionForTwoNodesWithFencing)))
+			})
+
+			It("should successfully update fencing credentials when all validations pass", func() {
+				mockHostApi.EXPECT().UpdateFencing(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, h *models.Host, fencingCredentials string, db *gorm.DB) error {
+					var unmarshaledCredentials models.FencingCredentialsParams
+					err := json.Unmarshal([]byte(fencingCredentials), &unmarshaledCredentials)
+					Expect(err).To(BeNil())
+					Expect(*unmarshaledCredentials.Address).To(Equal(*validFencingCredentials.Address))
+					Expect(*unmarshaledCredentials.Username).To(Equal(*validFencingCredentials.Username))
+					Expect(*unmarshaledCredentials.Password).To(Equal(*validFencingCredentials.Password))
+					Expect(unmarshaledCredentials.CertificateVerification).Should(BeNil())
+					return nil
+				}).Times(1)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						FencingCredentials: validFencingCredentials,
+					},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
+			})
+
+			It("should successfully update fencing credentials with certificate verification", func() {
+				fencingCredentialsCertVerificationDisabled := &models.FencingCredentialsParams{
+					Address:                 swag.String("https://bmc.example.com"),
+					Username:                swag.String("admin"),
+					Password:                swag.String("password123"),
+					CertificateVerification: swag.String("Disabled"),
+				}
+				mockHostApi.EXPECT().UpdateFencing(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, h *models.Host, fencingCredentials string, db *gorm.DB) error {
+					var unmarshaledCredentials models.FencingCredentialsParams
+					err := json.Unmarshal([]byte(fencingCredentials), &unmarshaledCredentials)
+					Expect(err).To(BeNil())
+					Expect(*unmarshaledCredentials.Address).To(Equal(*fencingCredentialsCertVerificationDisabled.Address))
+					Expect(*unmarshaledCredentials.Username).To(Equal(*fencingCredentialsCertVerificationDisabled.Username))
+					Expect(*unmarshaledCredentials.Password).To(Equal(*fencingCredentialsCertVerificationDisabled.Password))
+					Expect(*unmarshaledCredentials.CertificateVerification).To(Equal(*fencingCredentialsCertVerificationDisabled.CertificateVerification))
+					return nil
+				}).Times(1)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						FencingCredentials: fencingCredentialsCertVerificationDisabled,
+					},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
+			})
 		})
 	})
 
