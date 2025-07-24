@@ -101,7 +101,7 @@ type API interface {
 	ImagePullStatus(imageName, resultStatus string, downloadRate float64)
 	FileSystemUsage(usageInPercentage float64)
 	MonitoredHostsDurationMs(monitoredHostsMillis float64)
-	MonitoredClustersDurationMs(monitoredClustersMillis float64)
+	MonitoredClustersDurationMs(ctx context.Context, clusterID strfmt.UUID, monitoredClustersMs float64)
 	InstallerCacheGetReleaseCached(releaseId string, cacheHit bool)
 	InstallerCacheReleaseEvicted(success bool)
 }
@@ -512,8 +512,10 @@ func (m *MetricsManager) MonitoredHostsDurationMs(monitoredHostsMs float64) {
 	m.serviceLogicMonitoredHostsDurationMs.WithLabelValues().Observe(monitoredHostsMs)
 }
 
-func (m *MetricsManager) MonitoredClustersDurationMs(monitoredClustersMs float64) {
+func (m *MetricsManager) MonitoredClustersDurationMs(ctx context.Context, clusterID strfmt.UUID, monitoredClustersMs float64) {
 	m.serviceLogicMonitoredClustersDurationMs.WithLabelValues().Observe(monitoredClustersMs)
+	m.handler.V2AddMetricsEvent(ctx, &clusterID, nil, nil, "", models.EventSeverityInfo, "cluster.monitor", time.Now(),
+		"duration", monitoredClustersMs)
 }
 
 func bytesToGib(bytes int64) int64 {

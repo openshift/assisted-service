@@ -424,7 +424,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			It("finalizing -> installed (kubeconfig exist, operator status available)", func() {
 				shouldHaveUpdated = true
 				expectedState = models.ClusterStatusInstalled
-				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any()).Times(0)
+				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), expectedState, models.ClusterStatusFinalizing, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				Expect(db.Model(c.MonitoredOperators[0]).Updates(map[string]interface{}{"status": models.OperatorStatusAvailable}).Error).To(Not(HaveOccurred()))
@@ -435,7 +435,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createWorkerHost(id, models.HostStatusInstallingInProgress, db)
 				shouldHaveUpdated = false
 				expectedState = models.ClusterStatusFinalizing
-				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any()).Times(0)
+				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), expectedState, models.ClusterStatusFinalizing, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				Expect(db.Model(c.MonitoredOperators[0]).Updates(map[string]interface{}{"status": models.OperatorStatusAvailable}).Error).To(Not(HaveOccurred()))
@@ -446,7 +446,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createWorkerHost(id, models.HostStatusError, db)
 				shouldHaveUpdated = true
 				expectedState = models.ClusterStatusInstalled
-				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any()).Times(0)
+				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), expectedState, models.ClusterStatusFinalizing, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				Expect(db.Model(c.MonitoredOperators[0]).Updates(map[string]interface{}{"status": models.OperatorStatusAvailable}).Error).To(Not(HaveOccurred()))
@@ -456,7 +456,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 		Context("from installed state", func() {
 			BeforeEach(func() {
 				c = createCluster(&id, models.ClusterStatusInstalled, statusInfoInstalled)
-				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any()).AnyTimes()
+				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			})
 
@@ -640,7 +640,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithClusterIdMatcher(c.ID.String()))).AnyTimes()
 			mockHostAPIIsRequireUserActionResetFalse()
-			mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any()).AnyTimes()
+			mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			clusterApi.ClusterMonitoring()
 			after := time.Now().Truncate(10 * time.Millisecond)
 			c = getClusterFromDB(id, db)
@@ -697,7 +697,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 
 			}
 
-			mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any()).Times(nClusters)
+			mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(nClusters)
 			clusterApi.ClusterMonitoring()
 
 			var count int64
@@ -734,7 +734,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 				Expect(err).ShouldNot(HaveOccurred())
-				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any()).AnyTimes()
+				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName))).Times(0)
 				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).Times(0)
@@ -785,7 +785,7 @@ var _ = Describe("lease timeout event", func() {
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
 			mockEvents, mockEventsUploader, mockHostAPI, mockMetric, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false, nil)
 
-		mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any()).Times(1)
+		mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
@@ -917,7 +917,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
 			mockEvents, mockEventsUploader, mockHostAPI, mockMetric, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false, nil)
 
-		mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any()).Times(1)
+		mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
@@ -2328,7 +2328,7 @@ var _ = Describe("Majority groups", func() {
 			}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
-		mockMetricApi.EXPECT().MonitoredClustersDurationMs(gomock.Any()).AnyTimes()
+		mockMetricApi.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		mockMetricApi.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
