@@ -175,6 +175,9 @@ var Options struct {
 
 	// EnableXattrFallback is a boolean flag to enable en emulated fallback methoid of xattr on systems that do not support xattr.
 	EnableXattrFallback bool `envconfig:"ENABLE_XATTR_FALLBACK" default:"true"`
+
+	// SlowClusterMonitorLogThreshold defines the duration after which clusters that take too long to process will be logged
+	SlowClusterMonitorLogThreshold time.Duration `envconfig:"SLOW_CLUSTER_MONITOR_LOG_THRESHOLD" default:"1s"`
 }
 
 func InitLogs(logLevel, logFormat string) *logrus.Logger {
@@ -317,7 +320,10 @@ func main() {
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManagerConfig := &metrics.MetricsManagerConfig{
 		DirectoryUsageMonitorConfig: metrics.DirectoryUsageMonitorConfig{
-			Directories: []string{Options.WorkDir}}}
+			Directories: []string{Options.WorkDir},
+		},
+		ClusterMonitorSlowLogThreshold: Options.SlowClusterMonitorLogThreshold,
+	}
 	diskStatsHelper := metrics.NewOSDiskStatsHelper(log)
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler, diskStatsHelper, metricsManagerConfig, log)
 	if ocmClient != nil {
