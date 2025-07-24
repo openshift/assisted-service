@@ -621,7 +621,7 @@ var _ = Describe("RegisterHost", func() {
 				infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 
 				mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrueWithClusterID(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 						// validate that host is registered with auto-assign role
@@ -662,7 +662,7 @@ var _ = Describe("RegisterHost", func() {
 			infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 
 			mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-			mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrueWithClusterID(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
 				DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 					// validate that host is registered with auto-assign role
@@ -781,7 +781,7 @@ var _ = Describe("RegisterHost", func() {
 			}).Times(1)
 		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrueWithClusterID(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 		By("trying to register a host bound to day2 cluster")
 		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
@@ -18227,7 +18227,7 @@ var _ = Describe("V2DeregisterHost", func() {
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("Bad Refresh Status"))
-		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrueWithClusterID(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		response := bm.V2DeregisterHost(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2DeregisterHostNoContent{}))
 	})
@@ -18272,7 +18272,7 @@ var _ = Describe("UnbindHost", func() {
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any(), false)
-		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrueWithClusterID(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		response := bm.UnbindHost(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UnbindHostOK{}))
 	})
