@@ -130,7 +130,8 @@ type API interface {
 	PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error
 	DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error
 	TransformClusterToDay2(ctx context.Context, cluster *common.Cluster, db *gorm.DB) error
-	RefreshSchedulableMastersForcedTrue(ctx context.Context, clusterID strfmt.UUID) error
+	RefreshSchedulableMastersForcedTrue(ctx context.Context, cluster *common.Cluster) error
+	RefreshSchedulableMastersForcedTrueWithClusterID(ctx context.Context, clusterID strfmt.UUID) error
 	HandleVerifyVipsResponse(ctx context.Context, clusterID strfmt.UUID, stepReply string) error
 	UpdateFinalizingStage(ctx context.Context, clusterID strfmt.UUID, finalizingStage models.FinalizingStage) error
 }
@@ -656,7 +657,7 @@ func (m *Manager) ClusterMonitoring() {
 					m.triggerLeaseTimeoutEvent(ctx, cluster)
 				}
 
-				if err := m.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID); err != nil {
+				if err := m.RefreshSchedulableMastersForcedTrue(ctx, cluster); err != nil {
 					log.WithError(err).Errorf("failed to refresh cluster with ID '%s' masters schedulability", string(*cluster.ID))
 				}
 				duration := float64(time.Since(startTime).Milliseconds())
@@ -1734,8 +1735,19 @@ func (m *Manager) TransformClusterToDay2(ctx context.Context, cluster *common.Cl
 	return nil
 }
 
-func (m *Manager) RefreshSchedulableMastersForcedTrue(ctx context.Context, clusterID strfmt.UUID) error {
+func (m *Manager) RefreshSchedulableMastersForcedTrue(ctx context.Context, cluster *common.Cluster) error {
 	// Refresh the value of SchedulableMastersForcedTrue which depends on the number of hosts registered with the cluster
+	var err error
+
+	newSchedulableMastersForcedTrue := common.ShouldMastersBeSchedulable(&cluster.Cluster)
+	if cluster.SchedulableMastersForcedTrue == nil || newSchedulableMastersForcedTrue != *cluster.SchedulableMastersForcedTrue {
+		err = m.updateSchedulableMastersForcedTrue(ctx, *cluster.ID, newSchedulableMastersForcedTrue)
+	}
+
+	return err
+}
+
+func (m *Manager) RefreshSchedulableMastersForcedTrueWithClusterID(ctx context.Context, clusterID strfmt.UUID) error {
 	log := logutil.FromContext(ctx, m.log)
 	var cluster *common.Cluster
 	var err error
@@ -1745,12 +1757,7 @@ func (m *Manager) RefreshSchedulableMastersForcedTrue(ctx context.Context, clust
 		return err
 	}
 
-	newSchedulableMastersForcedTrue := common.ShouldMastersBeSchedulable(&cluster.Cluster)
-	if cluster.SchedulableMastersForcedTrue == nil || newSchedulableMastersForcedTrue != *cluster.SchedulableMastersForcedTrue {
-		err = m.updateSchedulableMastersForcedTrue(ctx, clusterID, newSchedulableMastersForcedTrue)
-	}
-
-	return err
+	return m.RefreshSchedulableMastersForcedTrue(ctx, cluster)
 }
 
 func (m *Manager) updateSchedulableMastersForcedTrue(ctx context.Context, clusterID strfmt.UUID, newSchedulableMastersForcedTrue bool) error {

@@ -504,17 +504,31 @@ func (mr *MockAPIMockRecorder) PrepareHostLogFile(ctx, c, host, objectHandler in
 }
 
 // RefreshSchedulableMastersForcedTrue mocks base method.
-func (m *MockAPI) RefreshSchedulableMastersForcedTrue(ctx context.Context, clusterID strfmt.UUID) error {
+func (m *MockAPI) RefreshSchedulableMastersForcedTrue(ctx context.Context, cluster *common.Cluster) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshSchedulableMastersForcedTrue", ctx, clusterID)
+	ret := m.ctrl.Call(m, "RefreshSchedulableMastersForcedTrue", ctx, cluster)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RefreshSchedulableMastersForcedTrue indicates an expected call of RefreshSchedulableMastersForcedTrue.
-func (mr *MockAPIMockRecorder) RefreshSchedulableMastersForcedTrue(ctx, clusterID interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) RefreshSchedulableMastersForcedTrue(ctx, cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshSchedulableMastersForcedTrue", reflect.TypeOf((*MockAPI)(nil).RefreshSchedulableMastersForcedTrue), ctx, clusterID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshSchedulableMastersForcedTrue", reflect.TypeOf((*MockAPI)(nil).RefreshSchedulableMastersForcedTrue), ctx, cluster)
+}
+
+// RefreshSchedulableMastersForcedTrueWithClusterID mocks base method.
+func (m *MockAPI) RefreshSchedulableMastersForcedTrueWithClusterID(ctx context.Context, clusterID strfmt.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshSchedulableMastersForcedTrueWithClusterID", ctx, clusterID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RefreshSchedulableMastersForcedTrueWithClusterID indicates an expected call of RefreshSchedulableMastersForcedTrueWithClusterID.
+func (mr *MockAPIMockRecorder) RefreshSchedulableMastersForcedTrueWithClusterID(ctx, clusterID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshSchedulableMastersForcedTrueWithClusterID", reflect.TypeOf((*MockAPI)(nil).RefreshSchedulableMastersForcedTrueWithClusterID), ctx, clusterID)
 }
 
 // RefreshStatus mocks base method.
