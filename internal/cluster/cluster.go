@@ -591,8 +591,6 @@ func (m *Manager) ClusterMonitoring() {
 	m.log.Debugf("Running ClusterMonitoring")
 	defer commonutils.MeasureOperation("ClusterMonitoring", m.log, m.metricAPI)()
 	var (
-		offset              int
-		limit               = m.MonitorBatchSize
 		clusters            []*common.Cluster
 		clusterAfterRefresh *common.Cluster
 		requestID           = requestid.NewID()
@@ -665,7 +663,6 @@ func (m *Manager) ClusterMonitoring() {
 				m.metricAPI.MonitoredClustersDurationMs(duration)
 			}
 		}
-		offset += limit
 	}
 }
 
