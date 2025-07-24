@@ -662,7 +662,7 @@ func (m *Manager) ClusterMonitoring() {
 				}
 				duration := float64(time.Since(startTime).Milliseconds())
 
-				m.metricAPI.MonitoredClustersDurationMs(duration)
+				m.metricAPI.MonitoredClustersDurationMs(ctx, *cluster.ID, duration)
 			}
 		}
 		offset += limit
