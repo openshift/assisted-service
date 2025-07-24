@@ -465,6 +465,13 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 	}
 
 	if !agent.Spec.Approved {
+		// Validate BMH state before approving agent in converged flow
+		if r.ConvergedFlowEnabled {
+			if err := r.validateBMHStateForConvergedFlow(log, bmh); err != nil {
+				log.WithError(err).Info("BMH state validation failed, not approving agent")
+				return reconcileRequeue{requeueAfter: defaultRequeueAfterOnError}
+			}
+		}
 		agent.Spec.Approved = true
 		dirty = true
 	}
@@ -515,6 +522,39 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 	log.Debugf("Agent spec reconcile finished:  %v", agent)
 
 	return reconcileComplete{dirty: dirty}
+}
+
+// validateBMHStateForConvergedFlow ensures Ironic is managing the host before approving the agent.
+// When BMH transitions to provisioning state, Ironic should register the node and assign a provisioning ID.
+// This prevents split-brain scenarios where the assisted agent proceeds while Ironic is stuck or unreachable.
+func (r *BMACReconciler) validateBMHStateForConvergedFlow(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) error {
+	validStates := []bmh_v1alpha1.ProvisioningState{
+		bmh_v1alpha1.StateReady,
+		bmh_v1alpha1.StateAvailable,
+		bmh_v1alpha1.StateProvisioning,
+		bmh_v1alpha1.StateProvisioned,
+	}
+
+	currentState := bmh.Status.Provisioning.State
+	if !funk.Contains(validStates, currentState) {
+		return errors.Errorf("BMH is in invalid state %s for converged flow", currentState)
+	}
+
+	if bmh.Status.ErrorMessage != "" {
+		return errors.Errorf("BMH has error: %s", bmh.Status.ErrorMessage)
+	}
+
+	if bmh.Status.OperationalStatus == bmh_v1alpha1.OperationalStatusError {
+		return errors.Errorf("BMH operational status is error")
+	}
+
+	if currentState == bmh_v1alpha1.StateProvisioning && bmh.Status.Provisioning.ID == "" {
+		return errors.Errorf("BMH is in provisioning state but has no provisioning ID from Ironic - Ironic may be stuck")
+	}
+
+	log.Debugf("BMH state validation passed: state=%s, operationalStatus=%s, provisioningID=%s",
+		currentState, bmh.Status.OperationalStatus, bmh.Status.Provisioning.ID)
+	return nil
 }
 
 func (r *BMACReconciler) reconcileNodeLabels(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) bool {

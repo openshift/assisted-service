@@ -3322,3 +3322,125 @@ func newAgentWithClusterReference(name string, namespace string, ipv4address str
 	agent.ObjectMeta.CreationTimestamp.Time = creationTime
 	return agent
 }
+
+var _ = Describe("reconcileAgentSpec with BMH validation", func() {
+	var (
+		c        client.Client
+		bmhr     *BMACReconciler
+		ctx      = context.Background()
+		infraEnv *v1beta1.InfraEnv
+		bmh      *bmh_v1alpha1.BareMetalHost
+		agent    *v1beta1.Agent
+	)
+
+	BeforeEach(func() {
+		schemes := GetKubeClientSchemes()
+		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
+		bmhr = &BMACReconciler{
+			Client:               c,
+			Log:                  common.GetTestLog(),
+			ConvergedFlowEnabled: true,
+		}
+
+		infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+		Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+		bmh = &bmh_v1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-bmh",
+				Namespace: testNamespace,
+			},
+			Status: bmh_v1alpha1.BareMetalHostStatus{
+				Provisioning: bmh_v1alpha1.ProvisionStatus{
+					State: bmh_v1alpha1.StateReady,
+				},
+			},
+		}
+
+		agent = newAgent("test-agent", testNamespace, v1beta1.AgentSpec{Approved: false})
+		Expect(c.Create(ctx, agent)).To(BeNil())
+	})
+
+	Context("converged flow enabled", func() {
+		It("should approve agent when BMH state is valid", func() {
+			bmh.Status.Provisioning.State = bmh_v1alpha1.StateReady
+			result := bmhr.reconcileAgentSpec(bmhr.Log, bmh, agent, infraEnv)
+
+			Expect(result.Dirty()).To(BeTrue())
+			Expect(agent.Spec.Approved).To(BeTrue())
+
+			_, err := result.Result()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should not approve agent when BMH is provisioning without ID", func() {
+			bmh.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+			bmh.Status.Provisioning.ID = ""
+
+			result := bmhr.reconcileAgentSpec(bmhr.Log, bmh, agent, infraEnv)
+
+			Expect(agent.Spec.Approved).To(BeFalse())
+
+			recResult, err := result.Result()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(recResult.RequeueAfter).To(Equal(defaultRequeueAfterOnError))
+		})
+
+		It("should not approve agent when BMH has error", func() {
+			bmh.Status.ErrorMessage = "BMC unreachable"
+
+			result := bmhr.reconcileAgentSpec(bmhr.Log, bmh, agent, infraEnv)
+
+			Expect(agent.Spec.Approved).To(BeFalse())
+
+			recResult, err := result.Result()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(recResult.RequeueAfter).To(Equal(defaultRequeueAfterOnError))
+		})
+
+		It("should not approve agent when BMH operational status is error", func() {
+			bmh.Status.OperationalStatus = bmh_v1alpha1.OperationalStatusError
+
+			result := bmhr.reconcileAgentSpec(bmhr.Log, bmh, agent, infraEnv)
+
+			Expect(agent.Spec.Approved).To(BeFalse())
+
+			recResult, err := result.Result()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(recResult.RequeueAfter).To(Equal(defaultRequeueAfterOnError))
+		})
+
+		It("should approve agent when BMH is provisioning with ID", func() {
+			bmh.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+			bmh.Status.Provisioning.ID = "ironic-node-uuid"
+
+			result := bmhr.reconcileAgentSpec(bmhr.Log, bmh, agent, infraEnv)
+
+			Expect(result.Dirty()).To(BeTrue())
+			Expect(agent.Spec.Approved).To(BeTrue())
+
+			_, err := result.Result()
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("converged flow disabled", func() {
+		BeforeEach(func() {
+			bmhr.ConvergedFlowEnabled = false
+		})
+
+		It("should approve agent regardless of BMH state", func() {
+			bmh.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+			bmh.Status.Provisioning.ID = ""
+			bmh.Status.ErrorMessage = "Some error"
+
+			result := bmhr.reconcileAgentSpec(bmhr.Log, bmh, agent, infraEnv)
+
+			Expect(result.Dirty()).To(BeTrue())
+			Expect(agent.Spec.Approved).To(BeTrue())
+
+			_, err := result.Result()
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+})
