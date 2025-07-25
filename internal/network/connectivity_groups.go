@@ -3,6 +3,7 @@ package network
 import (
 	"encoding/json"
 	"net"
+	"sort"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang-collections/go-datastructures/bitarray"
@@ -633,5 +634,11 @@ func GatherL3ConnectedAddresses(hosts []*models.Host) (map[strfmt.UUID][]string,
 			}
 		}
 	}
+
+	// Sort address lists to ensure deterministic results across multiple function calls
+	for _, addresses := range ret {
+		sort.Strings(addresses)
+	}
+
 	return ret, nil
 }
