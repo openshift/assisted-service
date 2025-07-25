@@ -562,8 +562,10 @@ func getDHCPArgPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, dual
 		if dualStack {
 			dhcp = "dhcp,dhcp6"
 		}
-		log.Debugf("Host %s: Added kernel argument ip=%s:%s", hostID, nic.Name, dhcp)
-		return append(args, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp)), nil
+		macWithDashes := strings.ReplaceAll(nic.MacAddress, ":", "-")
+		karg := fmt.Sprintf("ip=%s:%s", macWithDashes, dhcp)
+		log.Debugf("Host %s: Added kernel argument %s", hostID, karg)
+		return append(args, "--append-karg", karg), nil
 	}
 	return args, nil
 }
