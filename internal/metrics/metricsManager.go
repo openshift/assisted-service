@@ -518,7 +518,7 @@ func (m *MetricsManager) MonitoredHostsDurationMs(monitoredHostsMs float64) {
 func (m *MetricsManager) MonitoredClustersDurationMs(ctx context.Context, clusterID strfmt.UUID, duration time.Duration) {
 	m.serviceLogicMonitoredClustersDurationMs.WithLabelValues().Observe(float64(duration.Milliseconds()))
 	if duration > m.config.ClusterMonitorSlowLogThreshold {
-		m.handler.V2AddMetricsEvent(ctx, &clusterID, nil, nil, "", models.EventSeverityInfo, "cluster.monitor", time.Now(),
+		m.handler.V2AddMetricsEvent(ctx, &clusterID, nil, nil, "", models.EventSeverityInfo, "cluster_monitor.slow_cluster", time.Now(),
 			"duration", duration.Milliseconds())
 	}
 }
