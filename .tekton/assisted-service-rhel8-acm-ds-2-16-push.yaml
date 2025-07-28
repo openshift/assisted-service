@@ -7,13 +7,13 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "release-ocm-2.15"
+      == "release-ocm-2.16"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: assisted-installer-application-acm-ds-2-15
-    appstudio.openshift.io/component: assisted-service-rhel9-acm-ds-2-15
+    appstudio.openshift.io/application: assisted-installer-application-acm-ds-2-16
+    appstudio.openshift.io/component: assisted-service-rhel8-acm-ds-2-16
     pipelines.appstudio.openshift.io/type: build
-  name: assisted-service-rhel9-acm-ds-2-15-on-push
+  name: assisted-service-rhel8-acm-ds-2-16-on-push
   namespace: assisted-installer-tenant
 spec:
   params:
@@ -22,7 +22,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-installer-application-acm-ds-2-15/assisted-service-rhel9-acm-ds-2-15:{{revision}}
+    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-installer-application-acm-ds-2-16/assisted-service-rhel8-acm-ds-2-16:{{revision}}
   - name: build-platforms
     value:
     - linux/x86_64
@@ -30,7 +30,7 @@ spec:
     - linux/ppc64le
     - linux/s390x
   - name: dockerfile
-    value: Dockerfile.assisted-service-rhel9-mce
+    value: Dockerfile.assisted-service-rhel8-mce
   - name: path-context
     value: .
   - name: build-args
@@ -40,7 +40,7 @@ spec:
   - name: hermetic
     value: "true"
   - name: prefetch-input
-    value: '[{"type": "gomod", "path": "."}, {"type": "rpm", "path": "./rpm-prefetching/assisted-service-rhel9/"}]'
+    value: '[{"type": "gomod", "path": "."}, {"type": "rpm", "path": "./rpm-prefetching/assisted-service-rhel8/"}]'
   - name: build-source-image
     value: "true"
   pipelineSpec:
@@ -621,7 +621,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-assisted-service-rhel9-acm-ds-2-15
+    serviceAccountName: build-pipeline-assisted-service-rhel8-acm-ds-2-16
   workspaces:
   - name: git-auth
     secret:
