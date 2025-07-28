@@ -59,7 +59,7 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	return []string{operatorscommon.SelfNodeRemediationOperatorName}, nil
+	return []string{}, nil
 }
 
 // GetClusterValidationID returns cluster validation ID for the Operator
