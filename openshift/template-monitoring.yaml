@@ -31,6 +31,24 @@ objects:
   metadata:
     labels:
       prometheus: app-sre
+    name: servicemonitor-assisted-monitors-${NAMESPACE}
+  spec:
+    endpoints:
+    - interval: 30s
+      path: /metrics
+      port: assisted-svc
+      scheme: http
+    namespaceSelector:
+      matchNames:
+      - ${NAMESPACE}
+    selector:
+      matchLabels:
+        app: assisted-monitor
+- apiVersion: monitoring.coreos.com/v1
+  kind: ServiceMonitor
+  metadata:
+    labels:
+      prometheus: app-sre
     name: servicemonitor-assisted-installer-postgres-${NAMESPACE}
   spec:
     endpoints:
