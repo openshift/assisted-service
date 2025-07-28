@@ -184,6 +184,8 @@ var Options struct {
 
 	// SlowHostMonitorLogThreshold defines the duration after which hosts that take too long to process will be logged
 	SlowHostMonitorLogThreshold time.Duration `envconfig:"SLOW_HOST_MONITOR_LOG_THRESHOLD" default:"1s"`
+
+	StartMonitors bool `envconfig:"START_MONITORS" default:"true"`
 }
 
 func InitLogs(logLevel, logFormat string) *logrus.Logger {
@@ -581,15 +583,17 @@ func main() {
 		failOnError(cerr, "Failed to create kubernetes cluster config")
 		k8sClient = kubernetes.NewForConfigOrDie(cfg)
 
-		startupLeader = leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
-			RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
-			"assisted-service-migration-helper",
-			log.WithField("pkg", "migrationLeader"))
-
-		lead = leader.NewElector(k8sClient, Options.LeaderConfig, "assisted-service-leader-election-helper",
-			log.WithField("pkg", "monitor-runner"))
-
-		failOnError(lead.StartLeaderElection(context.Background()), "Failed to start leader")
+		if Options.StartMonitors {
+			lead = leader.NewElector(k8sClient, Options.LeaderConfig, "assisted-service-leader-election-helper",
+				log.WithField("pkg", "monitor-runner"))
+			failOnError(lead.StartLeaderElection(context.Background()), "Failed to start leader")
+		} else {
+			startupLeader = leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
+				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
+				"assisted-service-migration-helper",
+				log.WithField("pkg", "migrationLeader"))
+			failOnError(autoMigrationWithLeader(startupLeader, db, log), "Failed auto migration process")
+		}
 
 		ocpClient, err = k8sclient.NewK8SClient("", log)
 		failOnError(err, "Failed to create client for OCP")
@@ -604,11 +608,11 @@ func main() {
 			failOnError(err, "Failed to create client for OCP")
 		}
 
+		failOnError(autoMigrationWithLeader(startupLeader, db, log), "Failed auto migration process")
+
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
-
-	failOnError(autoMigrationWithLeader(startupLeader, db, log), "Failed auto migration process")
 
 	Options.UploaderConfig.AssistedServiceVersion = versions.GetRevision()
 	Options.UploaderConfig.Versions = Options.Versions
@@ -632,15 +636,21 @@ func main() {
 	clusterEventsUploader.Start()
 	defer clusterEventsUploader.Stop()
 
-	clusterStateMonitor := thread.New(
-		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
-	clusterStateMonitor.Start()
-	defer clusterStateMonitor.Stop()
+	var backgroundThreads []*thread.Thread
 
-	hostStateMonitor := thread.New(
-		log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
-	hostStateMonitor.Start()
-	defer hostStateMonitor.Stop()
+	if Options.StartMonitors {
+		clusterStateMonitor := thread.New(
+			log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
+		clusterStateMonitor.Start()
+		defer clusterStateMonitor.Stop()
+		backgroundThreads = append(backgroundThreads, clusterStateMonitor)
+
+		hostStateMonitor := thread.New(
+			log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
+		hostStateMonitor.Start()
+		defer hostStateMonitor.Stop()
+		backgroundThreads = append(backgroundThreads, hostStateMonitor)
+	}
 
 	failOnError(
 		versions.AddReleaseImagesToDBIfNeeded(db, releaseImagesArray, startupLeader, log, Options.EnableKubeAPI, Options.ReleaseSourcesConfig.ReleaseSources),
@@ -776,7 +786,7 @@ func main() {
 
 	h = gziphandler.GzipHandler(h)
 	h = app.WithMetricsResponderMiddleware(h)
-	h = app.WithHealthMiddleware(h, []*thread.Thread{hostStateMonitor, clusterStateMonitor},
+	h = app.WithHealthMiddleware(h, backgroundThreads,
 		log.WithField("pkg", "healthcheck"), Options.LivenessValidationTimeout)
 	h = requestid.Middleware(h)
 	h = spec.WithSpecMiddleware(h)
