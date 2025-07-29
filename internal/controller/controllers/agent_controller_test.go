@@ -2608,6 +2608,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		node                           *corev1.Node
 		nodeError                      error
 		csrs                           *certificatesv1.CertificateSigningRequestList
+		approvedCSRs                   []v1beta1.CSRInfo
 		approveExpected                bool
 		hostInitialStage               models.HostStage
 		hostInitialStatus              string
@@ -2745,6 +2746,13 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			updateProgressStage: true,
 			getNodeCount:        1,
 			bmhExists:           false,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+			},
 		},
 		{
 			name:         "Do not auto approve CSR for not ready matching node and UserManagedNetworking is false and BMH exists - should update stage to Done",
@@ -2848,6 +2856,13 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
 			getNodeCount:        1,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+			},
 		},
 		{
 			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is true and BMH exists",
@@ -2883,6 +2898,13 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			updateProgressStage: true,
 			getNodeCount:        1,
 			bmhExists:           true,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+			},
 		},
 		{
 			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is false for SNO cluster",
@@ -2917,6 +2939,13 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciNoUserManagedNetworkingWithSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
 			getNodeCount:        1,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+			},
 		},
 		{
 			name:         "Auto approve CSR for baremetal host without MAPI",
@@ -2953,6 +2982,13 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			getNodeCount:                   1,
 			getDBCluster:                   true,
 			baremetalWithoutMapiCapability: true,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+			},
 		},
 		{
 			name:                "Get node error",
@@ -3012,6 +3048,13 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
 			getNodeCount:        1,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+			},
 		},
 		{
 			name:         "Not done Server CSR",
@@ -3041,6 +3084,53 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
 			getNodeCount:        1,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+			},
+		},
+		{
+			name:         "Do not set Agent status to Done if server CSR has not been approved even though Node is ready",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:                approvedClientCsrs(),
+			approveExpected:     false,
+			expectedResult:      ctrl.Result{RequeueAfter: time.Minute},
+			expectedStatus:      models.HostStatusInstalling,
+			expectedStage:       models.HostStageJoined,
+			clusterInstall:      newAciNoUserManagedNetworkingWithSNO("test-cluster-aci", testNamespace),
+			updateProgressStage: true,
+			getNodeCount:        1,
+			bmhExists:           false,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+			},
 		},
 		{
 			name:         "Done Server CSR",
@@ -3073,6 +3163,13 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
 			getNodeCount:        1,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+			},
 		},
 		{
 			name:            "Not approved client CSR",
@@ -3150,6 +3247,18 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
 			getNodeCount:        1,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+				{
+					Name:       "test-cluster-aci-serving",
+					Type:       v1beta1.CSRTypeServing,
+					ApprovedAt: metav1.Now(),
+				},
+			},
 		},
 		{
 			name:                "Already done",
@@ -3161,6 +3270,18 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
 			getNodeCount:        0,
+			approvedCSRs: []v1beta1.CSRInfo{
+				{
+					Name:       "test-cluster-aci-client",
+					Type:       v1beta1.CSRTypeClient,
+					ApprovedAt: metav1.Now(),
+				},
+				{
+					Name:       "test-cluster-aci-serving",
+					Type:       v1beta1.CSRTypeServing,
+					ApprovedAt: metav1.Now(),
+				},
+			},
 		},
 		{
 			name:                "Not rebooting yet - do nothing",
@@ -3206,6 +3327,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 				host.ObjectMeta.Labels = make(map[string]string)
 				host.ObjectMeta.Labels[AGENT_BMH_LABEL] = bmh.Name
 			}
+			host.Status.CSRStatus.ApprovedCSRs = t.approvedCSRs
 			Expect(c.Create(ctx, host)).To(BeNil())
 			if t.createClient {
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
