@@ -101,7 +101,7 @@ type API interface {
 	ImagePullStatus(imageName, resultStatus string, downloadRate float64)
 	FileSystemUsage(usageInPercentage float64)
 	MonitoredHostsDurationMs(monitoredHostsMillis float64)
-	MonitoredClustersDurationMs(monitoredClustersMillis float64)
+	MonitoredClustersDurationMs(ctx context.Context, clusterID strfmt.UUID, duration time.Duration)
 	InstallerCacheGetReleaseCached(releaseId string, cacheHit bool)
 	InstallerCacheReleaseEvicted(success bool)
 }
@@ -109,6 +109,7 @@ type API interface {
 type MetricsManager struct {
 	registry prometheus.Registerer
 	handler  eventsapi.Handler
+	config   MetricsManagerConfig
 
 	serviceLogicClusterCreation                        *prometheus.CounterVec
 	serviceLogicClusterInstallationStarted             *prometheus.CounterVec
@@ -142,7 +143,8 @@ type DirectoryUsageMonitorConfig struct {
 }
 
 type MetricsManagerConfig struct {
-	DirectoryUsageMonitorConfig DirectoryUsageMonitorConfig
+	DirectoryUsageMonitorConfig    DirectoryUsageMonitorConfig
+	ClusterMonitorSlowLogThreshold time.Duration
 }
 
 func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.Handler, diskStatsHelper DiskStatsHelper, metricsManagerConfig *MetricsManagerConfig, log *logrus.Logger) *MetricsManager {
@@ -150,6 +152,7 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 	m := &MetricsManager{
 		registry: registry,
 		handler:  eventsHandler,
+		config:   *metricsManagerConfig,
 		serviceLogicClusterCreation: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: namespace,
@@ -512,8 +515,12 @@ func (m *MetricsManager) MonitoredHostsDurationMs(monitoredHostsMs float64) {
 	m.serviceLogicMonitoredHostsDurationMs.WithLabelValues().Observe(monitoredHostsMs)
 }
 
-func (m *MetricsManager) MonitoredClustersDurationMs(monitoredClustersMs float64) {
-	m.serviceLogicMonitoredClustersDurationMs.WithLabelValues().Observe(monitoredClustersMs)
+func (m *MetricsManager) MonitoredClustersDurationMs(ctx context.Context, clusterID strfmt.UUID, duration time.Duration) {
+	m.serviceLogicMonitoredClustersDurationMs.WithLabelValues().Observe(float64(duration.Milliseconds()))
+	if duration > m.config.ClusterMonitorSlowLogThreshold {
+		m.handler.V2AddMetricsEvent(ctx, &clusterID, nil, nil, "", models.EventSeverityInfo, "cluster_monitor.slow_cluster", time.Now(),
+			"duration", duration.Milliseconds())
+	}
 }
 
 func bytesToGib(bytes int64) int64 {

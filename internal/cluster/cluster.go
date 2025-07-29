@@ -660,9 +660,9 @@ func (m *Manager) ClusterMonitoring() {
 				if err := m.RefreshSchedulableMastersForcedTrue(ctx, cluster); err != nil {
 					log.WithError(err).Errorf("failed to refresh cluster with ID '%s' masters schedulability", string(*cluster.ID))
 				}
-				duration := float64(time.Since(startTime).Milliseconds())
+				duration := time.Since(startTime)
 
-				m.metricAPI.MonitoredClustersDurationMs(duration)
+				m.metricAPI.MonitoredClustersDurationMs(ctx, *cluster.ID, duration)
 			}
 		}
 		offset += limit
