@@ -85,6 +85,10 @@ spec:
           format: xfs
 ```
 
+#### Kubernetes API
+
+The document about [creating additional manifests](../hive-integration/README.md#creating-additional-manifests) details how to add MachineConfigs to your cluster when using the Kubernetes API.
+
 ## Discovery Ignition
 
 The discovery ignition is used to make changes to the CoreOS live iso image which runs before we actually write anything to the target disk.
