@@ -3,17 +3,18 @@ package featuresupport
 import (
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
 
 func GetSupportLevel[T models.FeatureSupportLevelID | models.ArchitectureSupportLevelID](featureId T, filters interface{}) models.SupportLevel {
 	if reflect.TypeOf(featureId).Name() == "FeatureSupportLevelID" {
-		return featuresList[models.FeatureSupportLevelID(featureId)].getSupportLevel(filters.(SupportLevelFilters))
+		ret, _ := featuresList[models.FeatureSupportLevelID(featureId)].getSupportLevel(filters.(SupportLevelFilters))
+		return ret
 	}
 	return cpuFeaturesList[models.ArchitectureSupportLevelID(featureId)].getSupportLevel(filters.(string))
 }
@@ -117,8 +118,46 @@ func IsFeatureCompatibleWithArchitecture(feature models.FeatureSupportLevelID, o
 func isFeatureCompatibleWithArchitecture(feature SupportLevelFeature, openshiftVersion, cpuArchitecture string) bool {
 	architectureID := cpuArchitectureFeatureIdMap[cpuArchitecture]
 	incompatibilitiesArchitectures := feature.getIncompatibleArchitectures(&openshiftVersion)
-	if incompatibilitiesArchitectures != nil && funk.Contains(*incompatibilitiesArchitectures, architectureID) {
-		return false
+
+	return !slices.Contains(incompatibilitiesArchitectures, architectureID)
+}
+
+func IsPlatformSupported(platformType models.PlatformType, externalPlatformName *string, openshiftVersion string, cpuArchitecture string) (bool, error) {
+	filters := SupportLevelFilters{
+		OpenshiftVersion: openshiftVersion,
+		CPUArchitecture:  &cpuArchitecture,
 	}
-	return true
+
+	var featureID models.FeatureSupportLevelID
+
+	switch platformType {
+	case models.PlatformTypeBaremetal:
+		featureID = models.FeatureSupportLevelIDBAREMETALPLATFORM
+	case models.PlatformTypeNutanix:
+		featureID = models.FeatureSupportLevelIDNUTANIXINTEGRATION
+	case models.PlatformTypeVsphere:
+		featureID = models.FeatureSupportLevelIDVSPHEREINTEGRATION
+	case models.PlatformTypeNone:
+		featureID = models.FeatureSupportLevelIDNONEPLATFORM
+	case models.PlatformTypeExternal:
+		featureID = models.FeatureSupportLevelIDEXTERNALPLATFORM
+
+		if externalPlatformName == nil {
+			break
+		}
+
+		switch *externalPlatformName {
+		case common.ExternalPlatformNameOci:
+			featureID = models.FeatureSupportLevelIDEXTERNALPLATFORMOCI
+		}
+	default:
+		return false, fmt.Errorf("invalid platform type: %s", platformType)
+	}
+
+	supportLevel := GetSupportLevel(featureID, filters)
+	if supportLevel == models.SupportLevelUnsupported || supportLevel == models.SupportLevelUnavailable {
+		return false, nil
+	}
+
+	return true, nil
 }

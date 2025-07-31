@@ -2,11 +2,11 @@ package featuresupport
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	"github.com/thoas/go-funk"
 )
 
 var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
@@ -70,39 +70,81 @@ func GetFeatureByID(featureID models.FeatureSupportLevelID) SupportLevelFeature 
 	return featuresList[featureID]
 }
 
-func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLevelFeature, filters SupportLevelFilters) models.SupportLevels {
-	featureSupportList := models.SupportLevels{}
+func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLevelFeature, filters SupportLevelFilters) []models.Feature {
+	ret := make([]models.Feature, 0, len(features))
 
 	for _, feature := range features {
-		featureID := feature.getId()
+		// skip features that collide with the given filters
+		if skipPlatformRelatedFeature(feature.getId(), filters.PlatformType != nil) {
+			continue
+		}
+
+		supportLevel, reason := feature.getSupportLevel(filters)
+
+		incompatibilities := feature.getIncompatibleFeatures(filters.OpenshiftVersion)
+		incompatibilities = filterIncompatibilities(incompatibilities, filters)
+
+		feat := models.Feature{
+			FeatureSupportLevelID: feature.getId(),
+			Incompatibilities:     incompatibilities,
+			SupportLevel:          supportLevel,
+			Reason:                reason,
+		}
 
 		if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
-			featureSupportList[string(featureID)] = models.SupportLevelUnavailable
-		} else {
-			featureSupportList[string(featureID)] = feature.getSupportLevel(filters)
+			feat.SupportLevel = models.SupportLevelUnavailable
+			feat.Reason = models.IncompatibilityReasonCPUArchitecture
 		}
+
+		ret = append(ret, feat)
 	}
-	return featureSupportList
+
+	return ret
 }
 
-// removeEmptySupportLevel remove features with an empty support level value
-// Currently in case of filtering features by <platform> we cannot return all other platforms in that list.
-func removeEmptySupportLevel(supportLevels models.SupportLevels) {
-	var featuresToRemove []string
-
-	for featureId, supportLevel := range supportLevels {
-		if string(supportLevel) == "" {
-			featuresToRemove = append(featuresToRemove, featureId)
-		}
+// skipPlatformRelatedFeature return true if
+//   - the feature is related to platform and platform type is not set.
+//   - the feature is PlatformManagedNetworking and platform type is set.
+func skipPlatformRelatedFeature(featureID models.FeatureSupportLevelID, platformTypeSet bool) bool {
+	if platformTypeSet && slices.Contains(platformFeatures(), featureID) {
+		return true
 	}
 
-	for _, featureId := range featuresToRemove {
-		delete(supportLevels, featureId)
+	// PlatformManagedNetworking is not relevant without platform type - in this case remove disable this feature support-level
+	if !platformTypeSet && featureID == models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING {
+		return true
+	}
+
+	return false
+}
+
+func filterIncompatibilities(incompatibilities []models.FeatureSupportLevelID, filters SupportLevelFilters) []models.FeatureSupportLevelID {
+	ret := make([]models.FeatureSupportLevelID, 0, len(incompatibilities))
+
+	for _, incompatibility := range incompatibilities {
+		if skipPlatformRelatedFeature(incompatibility, filters.PlatformType != nil) {
+			continue
+		}
+
+		ret = append(ret, incompatibility)
+	}
+
+	return ret
+}
+
+func platformFeatures() []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+		models.FeatureSupportLevelIDBAREMETALPLATFORM,
+		models.FeatureSupportLevelIDNONEPLATFORM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORM,
 	}
 }
 
 // GetFeatureSupportList Get features support level list, cpuArchitecture is optional and the default value is x86
-func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string, platformType *models.PlatformType, externalPlatformName *string) models.SupportLevels {
+func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string, platformType *models.PlatformType, externalPlatformName *string) []models.Feature {
 	filters := SupportLevelFilters{
 		OpenshiftVersion:     openshiftVersion,
 		CPUArchitecture:      cpuArchitecture,
@@ -117,9 +159,6 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string, pla
 	if featuresSupportList == nil {
 		featuresSupportList = getFeatureSupportList(featuresList, filters)
 	}
-
-	// remove features that collide with the given filters
-	removeEmptySupportLevel(featuresSupportList)
 
 	return featuresSupportList
 }
@@ -141,11 +180,14 @@ func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion
 
 func isFeatureCompatible(openshiftVersion string, feature SupportLevelFeature, features ...SupportLevelFeature) *SupportLevelFeature {
 	incompatibilities := feature.getIncompatibleFeatures(openshiftVersion)
-	if incompatibilities != nil {
-		for _, f := range features {
-			if funk.Contains(*incompatibilities, f.getId()) {
-				return &f
-			}
+
+	if len(incompatibilities) == 0 {
+		return nil
+	}
+
+	for _, f := range features {
+		if slices.Contains(incompatibilities, f.getId()) {
+			return &f
 		}
 	}
 

@@ -250,6 +250,10 @@ func (f fakeInventory) GetSupportedFeatures(ctx context.Context, params installe
 	return installer.NewGetSupportedFeaturesOK()
 }
 
+func (f fakeInventory) GetDetailedSupportedFeatures(ctx context.Context, params installer.GetDetailedSupportedFeaturesParams) middleware.Responder {
+	return installer.NewGetDetailedSupportedFeaturesOK()
+}
+
 func (f fakeInventory) GetSupportedArchitectures(ctx context.Context, params installer.GetSupportedArchitecturesParams) middleware.Responder {
 	return installer.NewGetSupportedArchitecturesOK()
 }

@@ -9,6 +9,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	models "github.com/openshift/assisted-service/models"
 )
 
 // MockGPUVendor is a mock of GPUVendor interface.
@@ -47,6 +48,20 @@ func (m *MockGPUVendor) ClusterHasGPU(arg0 *common.Cluster) (bool, error) {
 func (mr *MockGPUVendorMockRecorder) ClusterHasGPU(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterHasGPU", reflect.TypeOf((*MockGPUVendor)(nil).ClusterHasGPU), arg0)
+}
+
+// GetFeatureSupportID mocks base method.
+func (m *MockGPUVendor) GetFeatureSupportID() models.FeatureSupportLevelID {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFeatureSupportID")
+	ret0, _ := ret[0].(models.FeatureSupportLevelID)
+	return ret0
+}
+
+// GetFeatureSupportID indicates an expected call of GetFeatureSupportID.
+func (mr *MockGPUVendorMockRecorder) GetFeatureSupportID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeatureSupportID", reflect.TypeOf((*MockGPUVendor)(nil).GetFeatureSupportID))
 }
 
 // GetName mocks base method.

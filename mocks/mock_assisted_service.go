@@ -92,6 +92,20 @@ func (mr *MockInstallerAPIMockRecorder) GetClusterSupportedPlatforms(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterSupportedPlatforms", reflect.TypeOf((*MockInstallerAPI)(nil).GetClusterSupportedPlatforms), arg0, arg1)
 }
 
+// GetDetailedSupportedFeatures mocks base method.
+func (m *MockInstallerAPI) GetDetailedSupportedFeatures(arg0 context.Context, arg1 installer.GetDetailedSupportedFeaturesParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDetailedSupportedFeatures", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// GetDetailedSupportedFeatures indicates an expected call of GetDetailedSupportedFeatures.
+func (mr *MockInstallerAPIMockRecorder) GetDetailedSupportedFeatures(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDetailedSupportedFeatures", reflect.TypeOf((*MockInstallerAPI)(nil).GetDetailedSupportedFeatures), arg0, arg1)
+}
+
 // GetInfraEnv mocks base method.
 func (m *MockInstallerAPI) GetInfraEnv(arg0 context.Context, arg1 installer.GetInfraEnvParams) middleware.Responder {
 	m.ctrl.T.Helper()

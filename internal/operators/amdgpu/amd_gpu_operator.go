@@ -75,6 +75,10 @@ func (o *operator) GetDependencies(c *common.Cluster) ([]string, error) {
 	return []string{kmm.Operator.Name}, nil
 }
 
+func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{models.FeatureSupportLevelIDKMM}
+}
+
 // GetClusterValidationIDs returns cluster validation IDs for the operator.
 func (o *operator) GetClusterValidationIDs() []string {
 	return []string{clusterValidationID}
