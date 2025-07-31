@@ -27,6 +27,9 @@ type HostUpdateParams struct {
 	// Allows changing the host's skip_formatting_disks parameter
 	DisksSkipFormatting []*DiskSkipFormattingParams `json:"disks_skip_formatting"`
 
+	// The host's BMC credentials that will be used in TNF.
+	FencingCredentials *FencingCredentialsParams `json:"fencing_credentials,omitempty"`
+
 	// host name
 	HostName *string `json:"host_name,omitempty"`
 
@@ -56,6 +59,10 @@ func (m *HostUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateDisksSkipFormatting(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateFencingCredentials(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -124,6 +131,25 @@ func (m *HostUpdateParams) validateDisksSkipFormatting(formats strfmt.Registry) 
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *HostUpdateParams) validateFencingCredentials(formats strfmt.Registry) error {
+	if swag.IsZero(m.FencingCredentials) { // not required
+		return nil
+	}
+
+	if m.FencingCredentials != nil {
+		if err := m.FencingCredentials.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("fencing_credentials")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("fencing_credentials")
+			}
+			return err
+		}
 	}
 
 	return nil
@@ -241,6 +267,10 @@ func (m *HostUpdateParams) ContextValidate(ctx context.Context, formats strfmt.R
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateFencingCredentials(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateIgnitionEndpointHTTPHeaders(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -290,6 +320,22 @@ func (m *HostUpdateParams) contextValidateDisksSkipFormatting(ctx context.Contex
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *HostUpdateParams) contextValidateFencingCredentials(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.FencingCredentials != nil {
+		if err := m.FencingCredentials.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("fencing_credentials")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("fencing_credentials")
+			}
+			return err
+		}
 	}
 
 	return nil

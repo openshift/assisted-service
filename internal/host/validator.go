@@ -843,8 +843,12 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) (ValidationStat
 	} else {
 		status = v.belongsToL2MajorityGroup(c, connectivity.MajorityGroups)
 	}
-	if status == ValidationFailure && len(c.cluster.Hosts) < 3 {
-		return ValidationPending, "Not enough hosts in cluster to calculate connectivity groups"
+	if status == ValidationFailure {
+		isFencing := common.IsClusterTopologyTwoNodesWithFencing(c.cluster)
+		if (!isFencing && len(c.cluster.Hosts) < 3) ||
+			(isFencing && len(c.cluster.Hosts) < common.AllowedNumberOfMasterHostsInTwoNodesWithFencing) {
+			return ValidationPending, "Not enough hosts in cluster to calculate connectivity groups"
+		}
 	}
 
 	switch status {
