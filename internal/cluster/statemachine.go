@@ -145,6 +145,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		If(AreClusterObservabilityRequirementsSatisfied),
 		If(AreNUMAResourcesRequirementsSatisfied),
 		If(AreOADPRequirementsSatisfied),
+		If(AreMetallbRequirementsSatisfied),
 	)
 
 	// Refresh cluster status conditions - Non DHCP
