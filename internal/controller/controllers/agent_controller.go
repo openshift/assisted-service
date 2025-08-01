@@ -536,12 +536,18 @@ func (r *AgentReconciler) shouldApproveCSR(csr *certificatesv1.CertificateSignin
 	return validateNodeCsr(agent, csr, x509CSR)
 }
 
-func (r *AgentReconciler) approveAIHostsCSRs(ctx context.Context, clients spoke_k8s_client.SpokeK8sClient, agent *aiv1beta1.Agent, validateNodeCsr nodeCsrValidator) {
+func (r *AgentReconciler) approveAIHostsCSRs(ctx context.Context, clients spoke_k8s_client.SpokeK8sClient, agent *aiv1beta1.Agent, validateNodeCsr nodeCsrValidator, csrType aiv1beta1.CSRType) {
 	csrList, err := clients.ListCsrs(ctx)
 	if err != nil {
 		r.Log.WithError(err).Errorf("Failed to get CSRs for agent %s/%s", agent.Namespace, agent.Name)
 		return
 	}
+
+	// Initialize CSR status if needed
+	if agent.Status.CSRStatus.ApprovedCSRs == nil {
+		agent.Status.CSRStatus.ApprovedCSRs = []aiv1beta1.CSRInfo{}
+	}
+
 	for i := range csrList.Items {
 		csr := &csrList.Items[i]
 		if !isCsrApproved(csr) {
@@ -557,8 +563,18 @@ func (r *AgentReconciler) approveAIHostsCSRs(ctx context.Context, clients spoke_
 				r.Log.WithError(err).Errorf("Failed to approve CSR %s for agent %s/%s", csr.Name, agent.Namespace, agent.Name)
 				continue
 			}
+
+			csrInfo := aiv1beta1.CSRInfo{
+				Name:       csr.Name,
+				Type:       csrType,
+				ApprovedAt: metav1.Now(),
+			}
+			agent.Status.CSRStatus.ApprovedCSRs = append(agent.Status.CSRStatus.ApprovedCSRs, csrInfo)
 		}
+
 	}
+	// Track this approval attempt
+	agent.Status.CSRStatus.LastApprovalAttempt = metav1.Now()
 }
 
 func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1beta1.ClusterReference) (spoke_k8s_client.SpokeK8sClient, error) {
@@ -594,15 +610,16 @@ func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1b
 func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent, node *corev1.Node, client spoke_k8s_client.SpokeK8sClient) {
 	r.Log.Infof("Approving CSRs for agent %s/%s", agent.Namespace, agent.Name)
 	var validateNodeCsr nodeCsrValidator
-
+	csrType := aiv1beta1.CSRTypeClient
 	if node == nil {
 		validateNodeCsr = validateNodeClientCSR
 	} else {
 		validateNodeCsr = createNodeServerCsrValidator(node)
+		csrType = aiv1beta1.CSRTypeServing
 	}
 
 	// Even if node is already ready, we try approving last time
-	r.approveAIHostsCSRs(ctx, client, agent, validateNodeCsr)
+	r.approveAIHostsCSRs(ctx, client, agent, validateNodeCsr, csrType)
 }
 
 func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
@@ -721,6 +738,9 @@ func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger
 	if err != nil {
 		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err, !IsUserError(err))
 	}
+
+	// Reset CSR status since the agent is unbound
+	resetCSRStatus(agent)
 
 	return r.updateStatus(ctx, log, agent, origAgent, &host.Host, h.ClusterID, nil, true)
 }
@@ -906,7 +926,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 					log.WithError(err).Errorf("Failed to apply labels for day2 node %s/%s", agent.Namespace, agent.Name)
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 				}
-				if err = r.UpdateDay2InstallPogress(ctx, h, agent, node); err != nil {
+				if err = r.UpdateDay2InstallPogress(ctx, h, agent, node, shouldAutoApproveCSRs); err != nil {
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 				}
 				if agent.Status.Progress.CurrentStage != models.HostStageDone {
@@ -965,7 +985,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	return ret, nil
 }
 
-func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node) error {
+func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node, shouldAutoApproveCSRs bool) error {
 	if node == nil {
 		// In case the node not found we get the stage from the host
 		agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
@@ -973,7 +993,8 @@ func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *model
 		return nil
 	}
 	var err error
-	if isNodeReady(node) {
+	allCSRsHandled := areCSRsHandled(shouldAutoApproveCSRs, agent)
+	if isNodeReady(node) && allCSRsHandled {
 		err = r.updateHostInstallProgress(ctx, h, models.HostStageDone)
 		agent.Status.Progress.CurrentStage = models.HostStageDone
 		// now that the node is done there is no need to requeue
@@ -986,6 +1007,24 @@ func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *model
 		return err
 	}
 	return nil
+}
+
+// areCSRsHandled returns true if CSRs do not need to be auto-approved or if both client and serving CSRs are approved
+func areCSRsHandled(shouldAutoApproveCSRs bool, agent *aiv1beta1.Agent) bool {
+	if !shouldAutoApproveCSRs {
+		return true
+	}
+	clientCSRApproved := false
+	servingCSRApproved := false
+	for _, csr := range agent.Status.CSRStatus.ApprovedCSRs {
+		if csr.Type == aiv1beta1.CSRTypeClient {
+			clientCSRApproved = true
+		}
+		if csr.Type == aiv1beta1.CSRTypeServing {
+			servingCSRApproved = true
+		}
+	}
+	return clientCSRApproved && servingCSRApproved
 }
 
 func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, infraEnvId string) error {
@@ -1918,4 +1957,12 @@ func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strf
 	}
 
 	return host, nil
+}
+
+// resetCSRStatus resets all CSR tracking information in the agent status
+func resetCSRStatus(agent *aiv1beta1.Agent) {
+	agent.Status.CSRStatus = aiv1beta1.CSRStatus{
+		ApprovedCSRs:        []aiv1beta1.CSRInfo{},
+		LastApprovalAttempt: metav1.Time{},
+	}
 }
