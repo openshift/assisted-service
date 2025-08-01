@@ -29,7 +29,7 @@ func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapp
 }
 
 // Generate creates the expected ignition and related files but with nonsense content
-func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte) error {
+func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte, _ bool) error {
 	toUpload := fileNames[:]
 	for _, host := range g.cluster.Hosts {
 		toUpload = append(toUpload, hostutil.IgnitionFileName(host))
