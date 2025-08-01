@@ -915,6 +915,35 @@ spec:
                   - type
                   type: object
                 type: array
+              csrStatus:
+                description: CSRStatus tracks the status of CSR approvals for the
+                  agent
+                properties:
+                  approvedCSRs:
+                    description: CSRs that have been approved for the agent by the
+                      assisted-service
+                    items:
+                      description: CSRInfo tracks information about an approved CSR
+                      properties:
+                        approvedAt:
+                          format: date-time
+                          type: string
+                        name:
+                          type: string
+                        type:
+                          description: CSRType represents the type of CSR
+                          type: string
+                      required:
+                      - approvedAt
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  lastApprovalAttempt:
+                    description: Last time we attempted a CSR approval
+                    format: date-time
+                    type: string
+                type: object
               debugInfo:
                 description: DebugInfo includes information for debugging the installation
                   process.
