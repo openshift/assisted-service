@@ -25,6 +25,7 @@ const ByTokenPath ShortImageURLPrefix = "bytoken"
 
 const MinimalISOFilename string = "minimal.iso"
 const FullISOFilename string = "full.iso"
+const DisconnectedInteractiveISOFilename string = "disconnected-interactive.iso"
 
 func KernelURL(baseURL, version, arch string, insecure bool) (string, error) {
 	return buildURL(baseURL, fmt.Sprintf("%s/kernel", BootArtifactsPath), insecure, map[string]string{
@@ -65,6 +66,8 @@ func ShortImageURL(baseURL string, prefix ShortImageURLPrefix, token, version, a
 		isoFilename = FullISOFilename
 	case string(models.ImageTypeMinimalIso):
 		isoFilename = MinimalISOFilename
+	case string(models.ImageTypeDisconnectedInteractiveIso):
+		isoFilename = DisconnectedInteractiveISOFilename
 	default:
 		return "", fmt.Errorf("failed generating image url: %s iso type does not exist", isoType)
 	}
@@ -149,6 +152,8 @@ func ParseDownloadURL(downloadURL string) (string, string, string, error) {
 		imageType = string(models.ImageTypeFullIso)
 	case MinimalISOFilename:
 		imageType = string(models.ImageTypeMinimalIso)
+	case DisconnectedInteractiveISOFilename:
+		imageType = string(models.ImageTypeDisconnectedInteractiveIso)
 	}
 
 	return imageType, arch, version, nil
