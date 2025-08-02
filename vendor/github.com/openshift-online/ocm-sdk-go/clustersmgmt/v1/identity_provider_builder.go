@@ -64,6 +64,11 @@ func (b *IdentityProviderBuilder) HREF(value string) *IdentityProviderBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *IdentityProviderBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // LDAP sets the value of the 'LDAP' attribute to the given value.
 //
 // Details for `ldap` identity providers.
@@ -78,8 +83,6 @@ func (b *IdentityProviderBuilder) LDAP(value *LDAPIdentityProviderBuilder) *Iden
 }
 
 // Challenge sets the value of the 'challenge' attribute to the given value.
-//
-//
 func (b *IdentityProviderBuilder) Challenge(value bool) *IdentityProviderBuilder {
 	b.challenge = value
 	b.bitmap_ |= 16
@@ -139,8 +142,6 @@ func (b *IdentityProviderBuilder) Htpasswd(value *HTPasswdIdentityProviderBuilde
 }
 
 // Login sets the value of the 'login' attribute to the given value.
-//
-//
 func (b *IdentityProviderBuilder) Login(value bool) *IdentityProviderBuilder {
 	b.login = value
 	b.bitmap_ |= 512
@@ -157,8 +158,6 @@ func (b *IdentityProviderBuilder) MappingMethod(value IdentityProviderMappingMet
 }
 
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *IdentityProviderBuilder) Name(value string) *IdentityProviderBuilder {
 	b.name = value
 	b.bitmap_ |= 2048

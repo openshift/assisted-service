@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -31,13 +30,16 @@ import (
 // MarshalSocketTotalNodeRoleOSMetricNode writes a value of the 'socket_total_node_role_OS_metric_node' type to the given writer.
 func MarshalSocketTotalNodeRoleOSMetricNode(object *SocketTotalNodeRoleOSMetricNode, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSocketTotalNodeRoleOSMetricNode(object, stream)
-	stream.Flush()
+	WriteSocketTotalNodeRoleOSMetricNode(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSocketTotalNodeRoleOSMetricNode writes a value of the 'socket_total_node_role_OS_metric_node' type to the given stream.
-func writeSocketTotalNodeRoleOSMetricNode(object *SocketTotalNodeRoleOSMetricNode, stream *jsoniter.Stream) {
+// WriteSocketTotalNodeRoleOSMetricNode writes a value of the 'socket_total_node_role_OS_metric_node' type to the given stream.
+func WriteSocketTotalNodeRoleOSMetricNode(object *SocketTotalNodeRoleOSMetricNode, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -47,7 +49,7 @@ func writeSocketTotalNodeRoleOSMetricNode(object *SocketTotalNodeRoleOSMetricNod
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("node_roles")
-		writeStringList(object.nodeRoles, stream)
+		WriteStringList(object.nodeRoles, stream)
 		count++
 	}
 	present_ = object.bitmap_&2 != 0
@@ -75,7 +77,6 @@ func writeSocketTotalNodeRoleOSMetricNode(object *SocketTotalNodeRoleOSMetricNod
 		}
 		stream.WriteObjectField("time")
 		stream.WriteString((object.time).Format(time.RFC3339))
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -83,20 +84,17 @@ func writeSocketTotalNodeRoleOSMetricNode(object *SocketTotalNodeRoleOSMetricNod
 // UnmarshalSocketTotalNodeRoleOSMetricNode reads a value of the 'socket_total_node_role_OS_metric_node' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSocketTotalNodeRoleOSMetricNode(source interface{}) (object *SocketTotalNodeRoleOSMetricNode, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSocketTotalNodeRoleOSMetricNode(iterator)
+	object = ReadSocketTotalNodeRoleOSMetricNode(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSocketTotalNodeRoleOSMetricNode reads a value of the 'socket_total_node_role_OS_metric_node' type from the given iterator.
-func readSocketTotalNodeRoleOSMetricNode(iterator *jsoniter.Iterator) *SocketTotalNodeRoleOSMetricNode {
+// ReadSocketTotalNodeRoleOSMetricNode reads a value of the 'socket_total_node_role_OS_metric_node' type from the given iterator.
+func ReadSocketTotalNodeRoleOSMetricNode(iterator *jsoniter.Iterator) *SocketTotalNodeRoleOSMetricNode {
 	object := &SocketTotalNodeRoleOSMetricNode{}
 	for {
 		field := iterator.ReadObject()
@@ -105,7 +103,7 @@ func readSocketTotalNodeRoleOSMetricNode(iterator *jsoniter.Iterator) *SocketTot
 		}
 		switch field {
 		case "node_roles":
-			value := readStringList(iterator)
+			value := ReadStringList(iterator)
 			object.nodeRoles = value
 			object.bitmap_ |= 1
 		case "operating_system":

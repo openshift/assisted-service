@@ -19,16 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readSupportCasesPostRequest(request *SupportCasesPostServerRequest, r *http.Request) error {
-	var err error
-	request.request, err = UnmarshalSupportCaseRequest(r)
-	return err
-}
 func writeSupportCasesPostRequest(request *SupportCasesPostRequest, writer io.Writer) error {
 	return MarshalSupportCaseRequest(request.request, writer)
 }
@@ -36,7 +28,4 @@ func readSupportCasesPostResponse(response *SupportCasesPostResponse, reader io.
 	var err error
 	response.response, err = UnmarshalSupportCaseResponse(reader)
 	return err
-}
-func writeSupportCasesPostResponse(response *SupportCasesPostServerResponse, w http.ResponseWriter) error {
-	return MarshalSupportCaseResponse(response.response, w)
 }

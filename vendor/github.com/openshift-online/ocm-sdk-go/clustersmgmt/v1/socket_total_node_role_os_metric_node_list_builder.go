@@ -37,6 +37,11 @@ func (b *SocketTotalNodeRoleOSMetricNodeListBuilder) Items(values ...*SocketTota
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *SocketTotalNodeRoleOSMetricNodeListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *SocketTotalNodeRoleOSMetricNodeListBuilder) Copy(list *SocketTotalNodeRoleOSMetricNodeList) *SocketTotalNodeRoleOSMetricNodeListBuilder {
 	if list == nil || list.items == nil {
