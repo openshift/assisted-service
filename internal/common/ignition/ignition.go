@@ -3,6 +3,7 @@ package ignition
 import (
 	"encoding/json"
 	"os"
+	"strings"
 
 	"github.com/coreos/ignition/v2/config/merge"
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
@@ -32,7 +33,7 @@ func ParseToLatest(content []byte) (*config_latest_types.Config, error) {
 	return &config, nil
 }
 
-func parseIgnitionFile(path string) (*config_latest_types.Config, error) {
+func ParseIgnitionFile(path string) (*config_latest_types.Config, error) {
 	configBytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Errorf("error reading file %s: %v", path, err)
@@ -40,8 +41,8 @@ func parseIgnitionFile(path string) (*config_latest_types.Config, error) {
 	return ParseToLatest(configBytes)
 }
 
-// writeIgnitionFile writes an ignition config to a given path on disk
-func writeIgnitionFile(path string, config *config_latest_types.Config) error {
+// WriteIgnitionFile writes an ignition config to a given path on disk
+func WriteIgnitionFile(path string, config *config_latest_types.Config) error {
 	updatedBytes, err := json.Marshal(config)
 	if err != nil {
 		return err
@@ -55,7 +56,7 @@ func writeIgnitionFile(path string, config *config_latest_types.Config) error {
 	return nil
 }
 
-func setFileInIgnition(config *config_latest_types.Config, filePath string, fileContents string, appendContent bool, mode int, overwrite bool) {
+func SetFileInIgnition(config *config_latest_types.Config, filePath string, fileContents string, appendContent bool, mode int, overwrite bool) {
 	rootUser := "root"
 	file := config_latest_types.File{
 		Node: config_latest_types.Node{
@@ -124,4 +125,38 @@ func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
 	}
 
 	return string(res), nil
+}
+
+func GetCACertInIgnition(contents string) (*string, error) {
+	if contents == "" {
+		return nil, nil
+	}
+	config, err := ParseToLatest([]byte(contents))
+	if err != nil {
+		return nil, err
+	}
+
+	cert, err := extractCerts(config.Ignition)
+	if err != nil {
+		return nil, err
+	}
+	return cert, nil
+}
+
+func extractCerts(ignition config_latest_types.Ignition) (*string, error) {
+	if len(ignition.Security.TLS.CertificateAuthorities) == 0 {
+		return nil, nil
+	}
+
+	for _, ca := range ignition.Security.TLS.CertificateAuthorities {
+		if ca.Source == nil {
+			continue
+		}
+		source := *ca.Source
+		if strings.HasPrefix(source, "data:text/plain;charset=utf-8;base64,") {
+			encoded := strings.TrimPrefix(source, "data:text/plain;charset=utf-8;base64,")
+			return &encoded, nil
+		}
+	}
+	return nil, nil // No certificate found
 }

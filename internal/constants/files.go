@@ -20,3 +20,6 @@ const DNSWildcardFalseDomainName = "validateNoWildcardDNS"
 
 // Plain http machine config server port
 const InsecureMCSPort = 22624
+
+// HTTPS-backed machine config server port
+const SecureMCSPort = 22623
