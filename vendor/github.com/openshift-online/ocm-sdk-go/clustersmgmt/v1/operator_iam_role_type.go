@@ -23,10 +23,12 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 //
 // Contains the necessary attributes to allow each operator to access the necessary AWS resources
 type OperatorIAMRole struct {
-	bitmap_   uint32
-	name      string
-	namespace string
-	roleARN   string
+	bitmap_        uint32
+	id             string
+	name           string
+	namespace      string
+	roleARN        string
+	serviceAccount string
 }
 
 // Empty returns true if the object is empty, i.e. no attribute has a value.
@@ -34,12 +36,35 @@ func (o *OperatorIAMRole) Empty() bool {
 	return o == nil || o.bitmap_ == 0
 }
 
+// ID returns the value of the 'ID' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Randomly-generated ID to identify the operator role
+func (o *OperatorIAMRole) ID() string {
+	if o != nil && o.bitmap_&1 != 0 {
+		return o.id
+	}
+	return ""
+}
+
+// GetID returns the value of the 'ID' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Randomly-generated ID to identify the operator role
+func (o *OperatorIAMRole) GetID() (value string, ok bool) {
+	ok = o != nil && o.bitmap_&1 != 0
+	if ok {
+		value = o.id
+	}
+	return
+}
+
 // Name returns the value of the 'name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// Name of the operator
+// Name of the credentials secret used to access cloud resources
 func (o *OperatorIAMRole) Name() string {
-	if o != nil && o.bitmap_&1 != 0 {
+	if o != nil && o.bitmap_&2 != 0 {
 		return o.name
 	}
 	return ""
@@ -48,9 +73,9 @@ func (o *OperatorIAMRole) Name() string {
 // GetName returns the value of the 'name' attribute and
 // a flag indicating if the attribute has a value.
 //
-// Name of the operator
+// Name of the credentials secret used to access cloud resources
 func (o *OperatorIAMRole) GetName() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&1 != 0
+	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
 		value = o.name
 	}
@@ -60,9 +85,9 @@ func (o *OperatorIAMRole) GetName() (value string, ok bool) {
 // Namespace returns the value of the 'namespace' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// Namespace where the operator lives in the cluster
+// Namespace where the credentials secret lives in the cluster
 func (o *OperatorIAMRole) Namespace() string {
-	if o != nil && o.bitmap_&2 != 0 {
+	if o != nil && o.bitmap_&4 != 0 {
 		return o.namespace
 	}
 	return ""
@@ -71,9 +96,9 @@ func (o *OperatorIAMRole) Namespace() string {
 // GetNamespace returns the value of the 'namespace' attribute and
 // a flag indicating if the attribute has a value.
 //
-// Namespace where the operator lives in the cluster
+// Namespace where the credentials secret lives in the cluster
 func (o *OperatorIAMRole) GetNamespace() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&2 != 0
+	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
 		value = o.namespace
 	}
@@ -85,7 +110,7 @@ func (o *OperatorIAMRole) GetNamespace() (value string, ok bool) {
 //
 // Role to assume when accessing AWS resources
 func (o *OperatorIAMRole) RoleARN() string {
-	if o != nil && o.bitmap_&4 != 0 {
+	if o != nil && o.bitmap_&8 != 0 {
 		return o.roleARN
 	}
 	return ""
@@ -96,9 +121,32 @@ func (o *OperatorIAMRole) RoleARN() string {
 //
 // Role to assume when accessing AWS resources
 func (o *OperatorIAMRole) GetRoleARN() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&4 != 0
+	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
 		value = o.roleARN
+	}
+	return
+}
+
+// ServiceAccount returns the value of the 'service_account' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Service account name to use when authenticating
+func (o *OperatorIAMRole) ServiceAccount() string {
+	if o != nil && o.bitmap_&16 != 0 {
+		return o.serviceAccount
+	}
+	return ""
+}
+
+// GetServiceAccount returns the value of the 'service_account' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Service account name to use when authenticating
+func (o *OperatorIAMRole) GetServiceAccount() (value string, ok bool) {
+	ok = o != nil && o.bitmap_&16 != 0
+	if ok {
+		value = o.serviceAccount
 	}
 	return
 }
@@ -128,6 +176,29 @@ func (l *OperatorIAMRoleList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *OperatorIAMRoleList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *OperatorIAMRoleList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *OperatorIAMRoleList) SetItems(items []*OperatorIAMRole) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *OperatorIAMRoleList) Items() []*OperatorIAMRole {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

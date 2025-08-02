@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readAWSInfrastructureAccessRoleGetRequest(request *AWSInfrastructureAccessRoleGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeAWSInfrastructureAccessRoleGetRequest(request *AWSInfrastructureAccessRoleGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readAWSInfrastructureAccessRoleGetResponse(response *AWSInfrastructureAcces
 	var err error
 	response.body, err = UnmarshalAWSInfrastructureAccessRole(reader)
 	return err
-}
-func writeAWSInfrastructureAccessRoleGetResponse(response *AWSInfrastructureAccessRoleGetServerResponse, w http.ResponseWriter) error {
-	return MarshalAWSInfrastructureAccessRole(response.body, w)
 }

@@ -26,8 +26,6 @@ type ClusterCredentialsBuilder struct {
 	bitmap_    uint32
 	id         string
 	href       string
-	ssh        *SSHCredentialsBuilder
-	admin      *AdminCredentialsBuilder
 	kubeconfig string
 }
 
@@ -56,39 +54,15 @@ func (b *ClusterCredentialsBuilder) HREF(value string) *ClusterCredentialsBuilde
 	return b
 }
 
-// SSH sets the value of the 'SSH' attribute to the given value.
-//
-// SSH key pair of a cluster.
-func (b *ClusterCredentialsBuilder) SSH(value *SSHCredentialsBuilder) *ClusterCredentialsBuilder {
-	b.ssh = value
-	if value != nil {
-		b.bitmap_ |= 8
-	} else {
-		b.bitmap_ &^= 8
-	}
-	return b
-}
-
-// Admin sets the value of the 'admin' attribute to the given value.
-//
-// Temporary administrator credentials generated during the installation of the
-// cluster.
-func (b *ClusterCredentialsBuilder) Admin(value *AdminCredentialsBuilder) *ClusterCredentialsBuilder {
-	b.admin = value
-	if value != nil {
-		b.bitmap_ |= 16
-	} else {
-		b.bitmap_ &^= 16
-	}
-	return b
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *ClusterCredentialsBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
 }
 
 // Kubeconfig sets the value of the 'kubeconfig' attribute to the given value.
-//
-//
 func (b *ClusterCredentialsBuilder) Kubeconfig(value string) *ClusterCredentialsBuilder {
 	b.kubeconfig = value
-	b.bitmap_ |= 32
+	b.bitmap_ |= 8
 	return b
 }
 
@@ -100,16 +74,6 @@ func (b *ClusterCredentialsBuilder) Copy(object *ClusterCredentials) *ClusterCre
 	b.bitmap_ = object.bitmap_
 	b.id = object.id
 	b.href = object.href
-	if object.ssh != nil {
-		b.ssh = NewSSHCredentials().Copy(object.ssh)
-	} else {
-		b.ssh = nil
-	}
-	if object.admin != nil {
-		b.admin = NewAdminCredentials().Copy(object.admin)
-	} else {
-		b.admin = nil
-	}
 	b.kubeconfig = object.kubeconfig
 	return b
 }
@@ -120,18 +84,6 @@ func (b *ClusterCredentialsBuilder) Build() (object *ClusterCredentials, err err
 	object.id = b.id
 	object.href = b.href
 	object.bitmap_ = b.bitmap_
-	if b.ssh != nil {
-		object.ssh, err = b.ssh.Build()
-		if err != nil {
-			return
-		}
-	}
-	if b.admin != nil {
-		object.admin, err = b.admin.Build()
-		if err != nil {
-			return
-		}
-	}
 	object.kubeconfig = b.kubeconfig
 	return
 }

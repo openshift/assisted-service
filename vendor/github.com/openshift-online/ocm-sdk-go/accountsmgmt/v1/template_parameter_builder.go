@@ -34,9 +34,12 @@ func NewTemplateParameter() *TemplateParameterBuilder {
 	return &TemplateParameterBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *TemplateParameterBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // Content sets the value of the 'content' attribute to the given value.
-//
-//
 func (b *TemplateParameterBuilder) Content(value string) *TemplateParameterBuilder {
 	b.content = value
 	b.bitmap_ |= 1
@@ -44,8 +47,6 @@ func (b *TemplateParameterBuilder) Content(value string) *TemplateParameterBuild
 }
 
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *TemplateParameterBuilder) Name(value string) *TemplateParameterBuilder {
 	b.name = value
 	b.bitmap_ |= 2

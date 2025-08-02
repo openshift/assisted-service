@@ -32,14 +32,12 @@ const PermissionLinkKind = "PermissionLink"
 const PermissionNilKind = "PermissionNil"
 
 // Permission represents the values of the 'permission' type.
-//
-//
 type Permission struct {
-	bitmap_      uint32
-	id           string
-	href         string
-	action       Action
-	resourceType string
+	bitmap_  uint32
+	id       string
+	href     string
+	action   Action
+	resource string
 }
 
 // Kind returns the name of the type of the object.
@@ -53,7 +51,7 @@ func (o *Permission) Kind() string {
 	return PermissionKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *Permission) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -101,8 +99,6 @@ func (o *Permission) Empty() bool {
 
 // Action returns the value of the 'action' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Permission) Action() Action {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.action
@@ -112,8 +108,6 @@ func (o *Permission) Action() Action {
 
 // GetAction returns the value of the 'action' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Permission) GetAction() (value Action, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -122,25 +116,21 @@ func (o *Permission) GetAction() (value Action, ok bool) {
 	return
 }
 
-// ResourceType returns the value of the 'resource_type' attribute, or
+// Resource returns the value of the 'resource' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
-func (o *Permission) ResourceType() string {
+func (o *Permission) Resource() string {
 	if o != nil && o.bitmap_&16 != 0 {
-		return o.resourceType
+		return o.resource
 	}
 	return ""
 }
 
-// GetResourceType returns the value of the 'resource_type' attribute and
+// GetResource returns the value of the 'resource' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
-func (o *Permission) GetResourceType() (value string, ok bool) {
+func (o *Permission) GetResource() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
-		value = o.resourceType
+		value = o.resource
 	}
 	return
 }
@@ -204,6 +194,29 @@ func (l *PermissionList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *PermissionList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *PermissionList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *PermissionList) SetItems(items []*Permission) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *PermissionList) Items() []*Permission {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

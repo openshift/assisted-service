@@ -37,6 +37,11 @@ func (b *UpgradePolicyListBuilder) Items(values ...*UpgradePolicyBuilder) *Upgra
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *UpgradePolicyListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *UpgradePolicyListBuilder) Copy(list *UpgradePolicyList) *UpgradePolicyListBuilder {
 	if list == nil || list.items == nil {

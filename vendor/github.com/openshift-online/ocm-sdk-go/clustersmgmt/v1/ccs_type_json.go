@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalCCS writes a value of the 'CCS' type to the given writer.
 func MarshalCCS(object *CCS, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeCCS(object, stream)
-	stream.Flush()
+	WriteCCS(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeCCS writes a value of the 'CCS' type to the given stream.
-func writeCCS(object *CCS, stream *jsoniter.Stream) {
+// WriteCCS writes a value of the 'CCS' type to the given stream.
+func WriteCCS(object *CCS, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -79,7 +81,6 @@ func writeCCS(object *CCS, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("enabled")
 		stream.WriteBool(object.enabled)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -87,20 +88,17 @@ func writeCCS(object *CCS, stream *jsoniter.Stream) {
 // UnmarshalCCS reads a value of the 'CCS' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalCCS(source interface{}) (object *CCS, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readCCS(iterator)
+	object = ReadCCS(iterator)
 	err = iterator.Error
 	return
 }
 
-// readCCS reads a value of the 'CCS' type from the given iterator.
-func readCCS(iterator *jsoniter.Iterator) *CCS {
+// ReadCCS reads a value of the 'CCS' type from the given iterator.
+func ReadCCS(iterator *jsoniter.Iterator) *CCS {
 	object := &CCS{}
 	for {
 		field := iterator.ReadObject()

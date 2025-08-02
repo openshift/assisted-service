@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // ClusterMetricsNodes represents the values of the 'cluster_metrics_nodes' type.
-//
-//
 type ClusterMetricsNodes struct {
 	bitmap_ uint32
 	compute float64
@@ -37,8 +35,6 @@ func (o *ClusterMetricsNodes) Empty() bool {
 
 // Compute returns the value of the 'compute' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterMetricsNodes) Compute() float64 {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.compute
@@ -48,8 +44,6 @@ func (o *ClusterMetricsNodes) Compute() float64 {
 
 // GetCompute returns the value of the 'compute' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterMetricsNodes) GetCompute() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -60,8 +54,6 @@ func (o *ClusterMetricsNodes) GetCompute() (value float64, ok bool) {
 
 // Infra returns the value of the 'infra' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterMetricsNodes) Infra() float64 {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.infra
@@ -71,8 +63,6 @@ func (o *ClusterMetricsNodes) Infra() float64 {
 
 // GetInfra returns the value of the 'infra' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterMetricsNodes) GetInfra() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
@@ -83,8 +73,6 @@ func (o *ClusterMetricsNodes) GetInfra() (value float64, ok bool) {
 
 // Master returns the value of the 'master' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterMetricsNodes) Master() float64 {
 	if o != nil && o.bitmap_&4 != 0 {
 		return o.master
@@ -94,8 +82,6 @@ func (o *ClusterMetricsNodes) Master() float64 {
 
 // GetMaster returns the value of the 'master' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterMetricsNodes) GetMaster() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
@@ -106,8 +92,6 @@ func (o *ClusterMetricsNodes) GetMaster() (value float64, ok bool) {
 
 // Total returns the value of the 'total' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterMetricsNodes) Total() float64 {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.total
@@ -117,8 +101,6 @@ func (o *ClusterMetricsNodes) Total() float64 {
 
 // GetTotal returns the value of the 'total' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterMetricsNodes) GetTotal() (value float64, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -152,6 +134,29 @@ func (l *ClusterMetricsNodesList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *ClusterMetricsNodesList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *ClusterMetricsNodesList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *ClusterMetricsNodesList) SetItems(items []*ClusterMetricsNodes) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *ClusterMetricsNodesList) Items() []*ClusterMetricsNodes {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.
