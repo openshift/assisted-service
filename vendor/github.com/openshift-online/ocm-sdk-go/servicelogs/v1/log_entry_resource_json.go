@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/servicelogs/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readLogEntryDeleteRequest(request *LogEntryDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeLogEntryDeleteRequest(request *LogEntryDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readLogEntryDeleteResponse(response *LogEntryDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeLogEntryDeleteResponse(response *LogEntryDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readLogEntryGetRequest(request *LogEntryGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeLogEntryGetRequest(request *LogEntryGetRequest, writer io.Writer) error {
@@ -46,7 +34,4 @@ func readLogEntryGetResponse(response *LogEntryGetResponse, reader io.Reader) er
 	var err error
 	response.body, err = UnmarshalLogEntry(reader)
 	return err
-}
-func writeLogEntryGetResponse(response *LogEntryGetServerResponse, w http.ResponseWriter) error {
-	return MarshalLogEntry(response.body, w)
 }

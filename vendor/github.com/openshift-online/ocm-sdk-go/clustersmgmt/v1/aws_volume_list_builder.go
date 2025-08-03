@@ -37,6 +37,11 @@ func (b *AWSVolumeListBuilder) Items(values ...*AWSVolumeBuilder) *AWSVolumeList
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *AWSVolumeListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *AWSVolumeListBuilder) Copy(list *AWSVolumeList) *AWSVolumeListBuilder {
 	if list == nil || list.items == nil {

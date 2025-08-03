@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readPermissionDeleteRequest(request *PermissionDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writePermissionDeleteRequest(request *PermissionDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readPermissionDeleteResponse(response *PermissionDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writePermissionDeleteResponse(response *PermissionDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readPermissionGetRequest(request *PermissionGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writePermissionGetRequest(request *PermissionGetRequest, writer io.Writer) error {
@@ -46,7 +34,4 @@ func readPermissionGetResponse(response *PermissionGetResponse, reader io.Reader
 	var err error
 	response.body, err = UnmarshalPermission(reader)
 	return err
-}
-func writePermissionGetResponse(response *PermissionGetServerResponse, w http.ResponseWriter) error {
-	return MarshalPermission(response.body, w)
 }

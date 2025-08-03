@@ -37,6 +37,11 @@ func (b *RelatedResourceListBuilder) Items(values ...*RelatedResourceBuilder) *R
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *RelatedResourceListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *RelatedResourceListBuilder) Copy(list *RelatedResourceList) *RelatedResourceListBuilder {
 	if list == nil || list.items == nil {

@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readSubscriptionDeleteRequest(request *SubscriptionDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeSubscriptionDeleteRequest(request *SubscriptionDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readSubscriptionDeleteResponse(response *SubscriptionDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeSubscriptionDeleteResponse(response *SubscriptionDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readSubscriptionGetRequest(request *SubscriptionGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeSubscriptionGetRequest(request *SubscriptionGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readSubscriptionGetResponse(response *SubscriptionGetResponse, reader io.Re
 	response.body, err = UnmarshalSubscription(reader)
 	return err
 }
-func writeSubscriptionGetResponse(response *SubscriptionGetServerResponse, w http.ResponseWriter) error {
-	return MarshalSubscription(response.body, w)
-}
-func readSubscriptionUpdateRequest(request *SubscriptionUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalSubscription(r.Body)
-	return err
-}
 func writeSubscriptionUpdateRequest(request *SubscriptionUpdateRequest, writer io.Writer) error {
 	return MarshalSubscription(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readSubscriptionUpdateResponse(response *SubscriptionUpdateResponse, reader
 	var err error
 	response.body, err = UnmarshalSubscription(reader)
 	return err
-}
-func writeSubscriptionUpdateResponse(response *SubscriptionUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalSubscription(response.body, w)
 }

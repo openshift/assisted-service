@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readUpgradePolicyDeleteRequest(request *UpgradePolicyDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeUpgradePolicyDeleteRequest(request *UpgradePolicyDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readUpgradePolicyDeleteResponse(response *UpgradePolicyDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeUpgradePolicyDeleteResponse(response *UpgradePolicyDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readUpgradePolicyGetRequest(request *UpgradePolicyGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeUpgradePolicyGetRequest(request *UpgradePolicyGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readUpgradePolicyGetResponse(response *UpgradePolicyGetResponse, reader io.
 	response.body, err = UnmarshalUpgradePolicy(reader)
 	return err
 }
-func writeUpgradePolicyGetResponse(response *UpgradePolicyGetServerResponse, w http.ResponseWriter) error {
-	return MarshalUpgradePolicy(response.body, w)
-}
-func readUpgradePolicyUpdateRequest(request *UpgradePolicyUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalUpgradePolicy(r.Body)
-	return err
-}
 func writeUpgradePolicyUpdateRequest(request *UpgradePolicyUpdateRequest, writer io.Writer) error {
 	return MarshalUpgradePolicy(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readUpgradePolicyUpdateResponse(response *UpgradePolicyUpdateResponse, read
 	var err error
 	response.body, err = UnmarshalUpgradePolicy(reader)
 	return err
-}
-func writeUpgradePolicyUpdateResponse(response *UpgradePolicyUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalUpgradePolicy(response.body, w)
 }

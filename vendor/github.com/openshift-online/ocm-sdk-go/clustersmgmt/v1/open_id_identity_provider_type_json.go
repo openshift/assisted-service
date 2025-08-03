@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 	"sort"
 
 	jsoniter "github.com/json-iterator/go"
@@ -31,13 +30,16 @@ import (
 // MarshalOpenIDIdentityProvider writes a value of the 'open_ID_identity_provider' type to the given writer.
 func MarshalOpenIDIdentityProvider(object *OpenIDIdentityProvider, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeOpenIDIdentityProvider(object, stream)
-	stream.Flush()
+	WriteOpenIDIdentityProvider(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeOpenIDIdentityProvider writes a value of the 'open_ID_identity_provider' type to the given stream.
-func writeOpenIDIdentityProvider(object *OpenIDIdentityProvider, stream *jsoniter.Stream) {
+// WriteOpenIDIdentityProvider writes a value of the 'open_ID_identity_provider' type to the given stream.
+func WriteOpenIDIdentityProvider(object *OpenIDIdentityProvider, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,7 +58,7 @@ func writeOpenIDIdentityProvider(object *OpenIDIdentityProvider, stream *jsonite
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("claims")
-		writeOpenIDClaims(object.claims, stream)
+		WriteOpenIDClaims(object.claims, stream)
 		count++
 	}
 	present_ = object.bitmap_&4 != 0
@@ -112,7 +114,7 @@ func writeOpenIDIdentityProvider(object *OpenIDIdentityProvider, stream *jsonite
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("extra_scopes")
-		writeStringList(object.extraScopes, stream)
+		WriteStringList(object.extraScopes, stream)
 		count++
 	}
 	present_ = object.bitmap_&64 != 0
@@ -122,7 +124,6 @@ func writeOpenIDIdentityProvider(object *OpenIDIdentityProvider, stream *jsonite
 		}
 		stream.WriteObjectField("issuer")
 		stream.WriteString(object.issuer)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -130,20 +131,17 @@ func writeOpenIDIdentityProvider(object *OpenIDIdentityProvider, stream *jsonite
 // UnmarshalOpenIDIdentityProvider reads a value of the 'open_ID_identity_provider' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalOpenIDIdentityProvider(source interface{}) (object *OpenIDIdentityProvider, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readOpenIDIdentityProvider(iterator)
+	object = ReadOpenIDIdentityProvider(iterator)
 	err = iterator.Error
 	return
 }
 
-// readOpenIDIdentityProvider reads a value of the 'open_ID_identity_provider' type from the given iterator.
-func readOpenIDIdentityProvider(iterator *jsoniter.Iterator) *OpenIDIdentityProvider {
+// ReadOpenIDIdentityProvider reads a value of the 'open_ID_identity_provider' type from the given iterator.
+func ReadOpenIDIdentityProvider(iterator *jsoniter.Iterator) *OpenIDIdentityProvider {
 	object := &OpenIDIdentityProvider{}
 	for {
 		field := iterator.ReadObject()
@@ -156,7 +154,7 @@ func readOpenIDIdentityProvider(iterator *jsoniter.Iterator) *OpenIDIdentityProv
 			object.ca = value
 			object.bitmap_ |= 1
 		case "claims":
-			value := readOpenIDClaims(iterator)
+			value := ReadOpenIDClaims(iterator)
 			object.claims = value
 			object.bitmap_ |= 2
 		case "client_id":
@@ -180,7 +178,7 @@ func readOpenIDIdentityProvider(iterator *jsoniter.Iterator) *OpenIDIdentityProv
 			object.extraAuthorizeParameters = value
 			object.bitmap_ |= 16
 		case "extra_scopes":
-			value := readStringList(iterator)
+			value := ReadStringList(iterator)
 			object.extraScopes = value
 			object.bitmap_ |= 32
 		case "issuer":

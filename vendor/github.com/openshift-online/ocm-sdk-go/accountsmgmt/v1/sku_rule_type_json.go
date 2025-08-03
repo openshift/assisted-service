@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalSkuRule writes a value of the 'sku_rule' type to the given writer.
 func MarshalSkuRule(object *SkuRule, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSkuRule(object, stream)
-	stream.Flush()
+	WriteSkuRule(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSkuRule writes a value of the 'sku_rule' type to the given stream.
-func writeSkuRule(object *SkuRule, stream *jsoniter.Stream) {
+// WriteSkuRule writes a value of the 'sku_rule' type to the given stream.
+func WriteSkuRule(object *SkuRule, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -88,7 +90,6 @@ func writeSkuRule(object *SkuRule, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("sku")
 		stream.WriteString(object.sku)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -96,20 +97,17 @@ func writeSkuRule(object *SkuRule, stream *jsoniter.Stream) {
 // UnmarshalSkuRule reads a value of the 'sku_rule' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSkuRule(source interface{}) (object *SkuRule, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSkuRule(iterator)
+	object = ReadSkuRule(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSkuRule reads a value of the 'sku_rule' type from the given iterator.
-func readSkuRule(iterator *jsoniter.Iterator) *SkuRule {
+// ReadSkuRule reads a value of the 'sku_rule' type from the given iterator.
+func ReadSkuRule(iterator *jsoniter.Iterator) *SkuRule {
 	object := &SkuRule{}
 	for {
 		field := iterator.ReadObject()

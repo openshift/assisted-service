@@ -37,6 +37,11 @@ func (b *ReservedResourceListBuilder) Items(values ...*ReservedResourceBuilder) 
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *ReservedResourceListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *ReservedResourceListBuilder) Copy(list *ReservedResourceList) *ReservedResourceListBuilder {
 	if list == nil || list.items == nil {

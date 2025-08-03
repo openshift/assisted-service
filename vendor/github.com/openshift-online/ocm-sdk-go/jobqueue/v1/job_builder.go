@@ -63,9 +63,12 @@ func (b *JobBuilder) HREF(value string) *JobBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *JobBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // AbandonedAt sets the value of the 'abandoned_at' attribute to the given value.
-//
-//
 func (b *JobBuilder) AbandonedAt(value time.Time) *JobBuilder {
 	b.abandonedAt = value
 	b.bitmap_ |= 8
@@ -73,8 +76,6 @@ func (b *JobBuilder) AbandonedAt(value time.Time) *JobBuilder {
 }
 
 // Arguments sets the value of the 'arguments' attribute to the given value.
-//
-//
 func (b *JobBuilder) Arguments(value string) *JobBuilder {
 	b.arguments = value
 	b.bitmap_ |= 16
@@ -82,8 +83,6 @@ func (b *JobBuilder) Arguments(value string) *JobBuilder {
 }
 
 // Attempts sets the value of the 'attempts' attribute to the given value.
-//
-//
 func (b *JobBuilder) Attempts(value int) *JobBuilder {
 	b.attempts = value
 	b.bitmap_ |= 32
@@ -91,8 +90,6 @@ func (b *JobBuilder) Attempts(value int) *JobBuilder {
 }
 
 // CreatedAt sets the value of the 'created_at' attribute to the given value.
-//
-//
 func (b *JobBuilder) CreatedAt(value time.Time) *JobBuilder {
 	b.createdAt = value
 	b.bitmap_ |= 64
@@ -100,8 +97,6 @@ func (b *JobBuilder) CreatedAt(value time.Time) *JobBuilder {
 }
 
 // ReceiptId sets the value of the 'receipt_id' attribute to the given value.
-//
-//
 func (b *JobBuilder) ReceiptId(value string) *JobBuilder {
 	b.receiptId = value
 	b.bitmap_ |= 128
@@ -109,8 +104,6 @@ func (b *JobBuilder) ReceiptId(value string) *JobBuilder {
 }
 
 // UpdatedAt sets the value of the 'updated_at' attribute to the given value.
-//
-//
 func (b *JobBuilder) UpdatedAt(value time.Time) *JobBuilder {
 	b.updatedAt = value
 	b.bitmap_ |= 256

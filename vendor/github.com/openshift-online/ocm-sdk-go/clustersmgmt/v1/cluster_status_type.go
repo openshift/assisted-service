@@ -35,15 +35,18 @@ const ClusterStatusNilKind = "ClusterStatusNil"
 //
 // Detailed status of a cluster.
 type ClusterStatus struct {
-	bitmap_               uint32
-	id                    string
-	href                  string
-	configurationMode     ClusterConfigurationMode
-	description           string
-	provisionErrorCode    string
-	provisionErrorMessage string
-	state                 ClusterState
-	dnsReady              bool
+	bitmap_                   uint32
+	id                        string
+	href                      string
+	configurationMode         ClusterConfigurationMode
+	currentCompute            int
+	description               string
+	limitedSupportReasonCount int
+	provisionErrorCode        string
+	provisionErrorMessage     string
+	state                     ClusterState
+	dnsReady                  bool
+	oidcReady                 bool
 }
 
 // Kind returns the name of the type of the object.
@@ -57,7 +60,7 @@ func (o *ClusterStatus) Kind() string {
 	return ClusterStatusKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *ClusterStatus) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -126,12 +129,35 @@ func (o *ClusterStatus) GetDNSReady() (value bool, ok bool) {
 	return
 }
 
+// OIDCReady returns the value of the 'OIDC_ready' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// OIDCReady from user configuration.
+func (o *ClusterStatus) OIDCReady() bool {
+	if o != nil && o.bitmap_&16 != 0 {
+		return o.oidcReady
+	}
+	return false
+}
+
+// GetOIDCReady returns the value of the 'OIDC_ready' attribute and
+// a flag indicating if the attribute has a value.
+//
+// OIDCReady from user configuration.
+func (o *ClusterStatus) GetOIDCReady() (value bool, ok bool) {
+	ok = o != nil && o.bitmap_&16 != 0
+	if ok {
+		value = o.oidcReady
+	}
+	return
+}
+
 // ConfigurationMode returns the value of the 'configuration_mode' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // Configuration mode
 func (o *ClusterStatus) ConfigurationMode() ClusterConfigurationMode {
-	if o != nil && o.bitmap_&16 != 0 {
+	if o != nil && o.bitmap_&32 != 0 {
 		return o.configurationMode
 	}
 	return ClusterConfigurationMode("")
@@ -142,9 +168,32 @@ func (o *ClusterStatus) ConfigurationMode() ClusterConfigurationMode {
 //
 // Configuration mode
 func (o *ClusterStatus) GetConfigurationMode() (value ClusterConfigurationMode, ok bool) {
-	ok = o != nil && o.bitmap_&16 != 0
+	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
 		value = o.configurationMode
+	}
+	return
+}
+
+// CurrentCompute returns the value of the 'current_compute' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Current Replicas available for a Hosted Cluster
+func (o *ClusterStatus) CurrentCompute() int {
+	if o != nil && o.bitmap_&64 != 0 {
+		return o.currentCompute
+	}
+	return 0
+}
+
+// GetCurrentCompute returns the value of the 'current_compute' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Current Replicas available for a Hosted Cluster
+func (o *ClusterStatus) GetCurrentCompute() (value int, ok bool) {
+	ok = o != nil && o.bitmap_&64 != 0
+	if ok {
+		value = o.currentCompute
 	}
 	return
 }
@@ -154,7 +203,7 @@ func (o *ClusterStatus) GetConfigurationMode() (value ClusterConfigurationMode, 
 //
 // Detailed description of the cluster status.
 func (o *ClusterStatus) Description() string {
-	if o != nil && o.bitmap_&32 != 0 {
+	if o != nil && o.bitmap_&128 != 0 {
 		return o.description
 	}
 	return ""
@@ -165,9 +214,32 @@ func (o *ClusterStatus) Description() string {
 //
 // Detailed description of the cluster status.
 func (o *ClusterStatus) GetDescription() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&32 != 0
+	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
 		value = o.description
+	}
+	return
+}
+
+// LimitedSupportReasonCount returns the value of the 'limited_support_reason_count' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Limited Support Reason Count
+func (o *ClusterStatus) LimitedSupportReasonCount() int {
+	if o != nil && o.bitmap_&256 != 0 {
+		return o.limitedSupportReasonCount
+	}
+	return 0
+}
+
+// GetLimitedSupportReasonCount returns the value of the 'limited_support_reason_count' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Limited Support Reason Count
+func (o *ClusterStatus) GetLimitedSupportReasonCount() (value int, ok bool) {
+	ok = o != nil && o.bitmap_&256 != 0
+	if ok {
+		value = o.limitedSupportReasonCount
 	}
 	return
 }
@@ -177,7 +249,7 @@ func (o *ClusterStatus) GetDescription() (value string, ok bool) {
 //
 // Provisioning Error Code
 func (o *ClusterStatus) ProvisionErrorCode() string {
-	if o != nil && o.bitmap_&64 != 0 {
+	if o != nil && o.bitmap_&512 != 0 {
 		return o.provisionErrorCode
 	}
 	return ""
@@ -188,7 +260,7 @@ func (o *ClusterStatus) ProvisionErrorCode() string {
 //
 // Provisioning Error Code
 func (o *ClusterStatus) GetProvisionErrorCode() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&64 != 0
+	ok = o != nil && o.bitmap_&512 != 0
 	if ok {
 		value = o.provisionErrorCode
 	}
@@ -200,7 +272,7 @@ func (o *ClusterStatus) GetProvisionErrorCode() (value string, ok bool) {
 //
 // Provisioning Error Message
 func (o *ClusterStatus) ProvisionErrorMessage() string {
-	if o != nil && o.bitmap_&128 != 0 {
+	if o != nil && o.bitmap_&1024 != 0 {
 		return o.provisionErrorMessage
 	}
 	return ""
@@ -211,7 +283,7 @@ func (o *ClusterStatus) ProvisionErrorMessage() string {
 //
 // Provisioning Error Message
 func (o *ClusterStatus) GetProvisionErrorMessage() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&128 != 0
+	ok = o != nil && o.bitmap_&1024 != 0
 	if ok {
 		value = o.provisionErrorMessage
 	}
@@ -223,7 +295,7 @@ func (o *ClusterStatus) GetProvisionErrorMessage() (value string, ok bool) {
 //
 // The overall state of the cluster.
 func (o *ClusterStatus) State() ClusterState {
-	if o != nil && o.bitmap_&256 != 0 {
+	if o != nil && o.bitmap_&2048 != 0 {
 		return o.state
 	}
 	return ClusterState("")
@@ -234,7 +306,7 @@ func (o *ClusterStatus) State() ClusterState {
 //
 // The overall state of the cluster.
 func (o *ClusterStatus) GetState() (value ClusterState, ok bool) {
-	ok = o != nil && o.bitmap_&256 != 0
+	ok = o != nil && o.bitmap_&2048 != 0
 	if ok {
 		value = o.state
 	}
@@ -300,6 +372,29 @@ func (l *ClusterStatusList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *ClusterStatusList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *ClusterStatusList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *ClusterStatusList) SetItems(items []*ClusterStatus) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *ClusterStatusList) Items() []*ClusterStatus {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

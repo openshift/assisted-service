@@ -21,16 +21,10 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
 
-func readAddOnsAddRequest(request *AddOnsAddServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalAddOn(r.Body)
-	return err
-}
 func writeAddOnsAddRequest(request *AddOnsAddRequest, writer io.Writer) error {
 	return MarshalAddOn(request.body, writer)
 }
@@ -38,36 +32,6 @@ func readAddOnsAddResponse(response *AddOnsAddResponse, reader io.Reader) error 
 	var err error
 	response.body, err = UnmarshalAddOn(reader)
 	return err
-}
-func writeAddOnsAddResponse(response *AddOnsAddServerResponse, w http.ResponseWriter) error {
-	return MarshalAddOn(response.body, w)
-}
-func readAddOnsListRequest(request *AddOnsListServerRequest, r *http.Request) error {
-	var err error
-	query := r.URL.Query()
-	request.order, err = helpers.ParseString(query, "order")
-	if err != nil {
-		return err
-	}
-	request.page, err = helpers.ParseInteger(query, "page")
-	if err != nil {
-		return err
-	}
-	if request.page == nil {
-		request.page = helpers.NewInteger(1)
-	}
-	request.search, err = helpers.ParseString(query, "search")
-	if err != nil {
-		return err
-	}
-	request.size, err = helpers.ParseInteger(query, "size")
-	if err != nil {
-		return err
-	}
-	if request.size == nil {
-		request.size = helpers.NewInteger(100)
-	}
-	return nil
 }
 func writeAddOnsListRequest(request *AddOnsListRequest, writer io.Writer) error {
 	return nil
@@ -93,7 +57,7 @@ func readAddOnsListResponse(response *AddOnsListResponse, reader io.Reader) erro
 			value := iterator.ReadInt()
 			response.total = &value
 		case "items":
-			items := readAddOnList(iterator)
+			items := ReadAddOnList(iterator)
 			response.items = &AddOnList{
 				items: items,
 			}
@@ -102,56 +66,4 @@ func readAddOnsListResponse(response *AddOnsListResponse, reader io.Reader) erro
 		}
 	}
 	return iterator.Error
-}
-func writeAddOnsListResponse(response *AddOnsListServerResponse, w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.status)
-	stream := helpers.NewStream(w)
-	stream.WriteObjectStart()
-	stream.WriteObjectField("kind")
-	count := 1
-	stream.WriteString(AddOnListKind)
-	if response.items != nil && response.items.href != "" {
-		stream.WriteMore()
-		stream.WriteObjectField("href")
-		stream.WriteString(response.items.href)
-		count++
-	}
-	if response.page != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("page")
-		stream.WriteInt(*response.page)
-		count++
-	}
-	if response.size != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("size")
-		stream.WriteInt(*response.size)
-		count++
-	}
-	if response.total != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("total")
-		stream.WriteInt(*response.total)
-		count++
-	}
-	if response.items != nil {
-		if response.items.items != nil {
-			if count > 0 {
-				stream.WriteMore()
-			}
-			stream.WriteObjectField("items")
-			writeAddOnList(response.items.items, stream)
-			count++
-		}
-	}
-	stream.WriteObjectEnd()
-	stream.Flush()
-	return stream.Error
 }
