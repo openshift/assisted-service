@@ -1123,3 +1123,42 @@ func (f *OadpFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.I
 	}
 	return activeLevelNotActive
 }
+
+// MetalLBFeature describes the support for the MetalLB operator.
+type MetalLBFeature struct{}
+
+func (f *MetalLBFeature) New() SupportLevelFeature {
+	return &MetalLBFeature{}
+}
+
+func (f *MetalLBFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDMETALLB
+}
+
+func (f *MetalLBFeature) GetName() string {
+	return "MetalLB"
+}
+
+func (f *MetalLBFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.11", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
+	}
+
+	return models.SupportLevelSupported, ""
+}
+
+func (f *MetalLBFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (f *MetalLBFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
+	return nil
+}
+
+func (f *MetalLBFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("metallb", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
