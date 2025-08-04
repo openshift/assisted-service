@@ -53,3 +53,5 @@ data:
     -----BEGIN CERTIFICATE-----
     <your cert goes here>
     -----END CERTIFICATE-----
+  # Dummy values, doesn't do anything
+  AIUI_CHAT_API_URL: http://localhost:12121
