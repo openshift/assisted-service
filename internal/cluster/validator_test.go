@@ -1193,4 +1193,74 @@ var _ = Describe("isMachineCidrEqualsToCalculatedCidr", func() {
 		Expect(status).To(Equal(ValidationSuccess))
 		Expect(msg).To(Equal("Calculating machine network CIDR is not enabled: User Managed Load Balancer"))
 	})
+	Context("Normalized CIDR", func() {
+		var (
+			hosts []*models.Host
+		)
+		BeforeEach(func() {
+			// Create hosts with IPv6 interfaces with Uppercase and leading zero
+			newId := func() strfmt.UUID {
+				return strfmt.UUID(uuid.New().String())
+			}
+			newIdPtr := func() *strfmt.UUID {
+				ret := newId()
+				return &ret
+			}
+			hosts = []*models.Host{
+				{
+					ClusterID:  &clusterID,
+					InfraEnvID: clusterID,
+					ID:         newIdPtr(),
+					Inventory:  common.GenerateTestInventoryWithUnnormalizedIPv6(),
+				},
+			}
+		})
+		It("should pass validation when machine CIDR contains IPv6 with uppercase and leading zeros", func() {
+			// User provides:
+			// Interface IP: "2A00:8A00:4000:0d80::1/64" (uppercase, leading zeros)
+			// VIP: "2A00:8A00:4000:0d80::77"
+			// Calculated CIDR becomes: "2a00:8a00:4000:d80::/64" (normalized by net.ParseCIDR)
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId:               clusterID,
+				hasHostsWithInventories: true,
+				cluster: &common.Cluster{
+					Cluster: models.Cluster{
+						ID:              &clusterID,
+						MachineNetworks: []*models.MachineNetwork{{Cidr: "2A00:8A00:4000:0d80::/64"}},                // User provided - unnormalized with uppercase and leading zeros
+						APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "2A00:8A00:4000:0d80::77"}},     // VIP in same network
+						IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "2A00:8A00:4000:0d80::88"}}, // Ingress VIP in same network
+						Hosts:           hosts,
+					},
+				},
+			}
+
+			status, msg := validator.isMachineCidrEqualsToCalculatedCidr(preprocessContext)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(msg).To(Equal("The Cluster Machine CIDR is equivalent to the calculated CIDR."))
+		})
+
+		It("should fail validation when machine CIDR contains invalid format and cannot be normalized", func() {
+			// Test the error case when NormalizeCIDR fails with invalid input
+			// This ensures our error handling works correctly
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId:               clusterID,
+				hasHostsWithInventories: true,
+				cluster: &common.Cluster{
+					Cluster: models.Cluster{
+						ID:              &clusterID,
+						MachineNetworks: []*models.MachineNetwork{{Cidr: "invalid-ipv6-cidr"}}, // Invalid CIDR that will cause normalization to fail
+						APIVips:         []*models.APIVip{{ClusterID: clusterID, IP: "2A00:8A00:4000:0d80::77"}},
+						IngressVips:     []*models.IngressVip{{ClusterID: clusterID, IP: "2A00:8A00:4000:0d80::88"}},
+						Hosts:           hosts,
+					},
+				},
+			}
+
+			status, msg := validator.isMachineCidrEqualsToCalculatedCidr(preprocessContext)
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(msg).To(ContainSubstring("failed to normalize user machine CIDR invalid-ipv6-cidr"))
+		})
+	})
 })

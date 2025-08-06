@@ -539,3 +539,15 @@ func ComputeParsedMachineNetworks(mNetworks []*models.MachineNetwork) ([]*net.IP
 	}
 	return machineNetworks, nil
 }
+
+// NormalizeCIDR normalizes a CIDR string to its canonical form.
+func NormalizeCIDR(cidr string) (string, error) {
+	if cidr == "" {
+		return "", nil
+	}
+	_, ipnet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", err
+	}
+	return ipnet.String(), nil
+}
