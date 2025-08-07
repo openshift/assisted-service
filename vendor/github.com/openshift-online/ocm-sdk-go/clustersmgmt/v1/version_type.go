@@ -39,16 +39,23 @@ const VersionNilKind = "VersionNil"
 //
 // Representation of an _OpenShift_ version.
 type Version struct {
-	bitmap_            uint32
-	id                 string
-	href               string
-	availableUpgrades  []string
-	channelGroup       string
-	endOfLifeTimestamp time.Time
-	rawID              string
-	rosaEnabled        bool
-	default_           bool
-	enabled            bool
+	bitmap_                   uint32
+	id                        string
+	href                      string
+	availableUpgrades         []string
+	channelGroup              string
+	endOfLifeTimestamp        time.Time
+	imageOverrides            *ImageOverrides
+	rawID                     string
+	releaseImage              string
+	releaseImages             *ReleaseImages
+	gcpMarketplaceEnabled     bool
+	rosaEnabled               bool
+	default_                  bool
+	enabled                   bool
+	hostedControlPlaneDefault bool
+	hostedControlPlaneEnabled bool
+	wifEnabled                bool
 }
 
 // Kind returns the name of the type of the object.
@@ -62,7 +69,7 @@ func (o *Version) Kind() string {
 	return VersionKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *Version) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -108,12 +115,35 @@ func (o *Version) Empty() bool {
 	return o == nil || o.bitmap_&^1 == 0
 }
 
+// GCPMarketplaceEnabled returns the value of the 'GCP_marketplace_enabled' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// GCPMarketplaceEnabled indicates if this version can be used to create GCP Marketplace clusters.
+func (o *Version) GCPMarketplaceEnabled() bool {
+	if o != nil && o.bitmap_&8 != 0 {
+		return o.gcpMarketplaceEnabled
+	}
+	return false
+}
+
+// GetGCPMarketplaceEnabled returns the value of the 'GCP_marketplace_enabled' attribute and
+// a flag indicating if the attribute has a value.
+//
+// GCPMarketplaceEnabled indicates if this version can be used to create GCP Marketplace clusters.
+func (o *Version) GetGCPMarketplaceEnabled() (value bool, ok bool) {
+	ok = o != nil && o.bitmap_&8 != 0
+	if ok {
+		value = o.gcpMarketplaceEnabled
+	}
+	return
+}
+
 // ROSAEnabled returns the value of the 'ROSA_enabled' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // ROSAEnabled indicates whether this version can be used to create ROSA clusters.
 func (o *Version) ROSAEnabled() bool {
-	if o != nil && o.bitmap_&8 != 0 {
+	if o != nil && o.bitmap_&16 != 0 {
 		return o.rosaEnabled
 	}
 	return false
@@ -124,7 +154,7 @@ func (o *Version) ROSAEnabled() bool {
 //
 // ROSAEnabled indicates whether this version can be used to create ROSA clusters.
 func (o *Version) GetROSAEnabled() (value bool, ok bool) {
-	ok = o != nil && o.bitmap_&8 != 0
+	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
 		value = o.rosaEnabled
 	}
@@ -136,7 +166,7 @@ func (o *Version) GetROSAEnabled() (value bool, ok bool) {
 //
 // AvailableUpgrades is the list of versions this version can be upgraded to.
 func (o *Version) AvailableUpgrades() []string {
-	if o != nil && o.bitmap_&16 != 0 {
+	if o != nil && o.bitmap_&32 != 0 {
 		return o.availableUpgrades
 	}
 	return nil
@@ -147,7 +177,7 @@ func (o *Version) AvailableUpgrades() []string {
 //
 // AvailableUpgrades is the list of versions this version can be upgraded to.
 func (o *Version) GetAvailableUpgrades() (value []string, ok bool) {
-	ok = o != nil && o.bitmap_&16 != 0
+	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
 		value = o.availableUpgrades
 	}
@@ -161,7 +191,7 @@ func (o *Version) GetAvailableUpgrades() (value []string, ok bool) {
 // ChannelGroup is a mechanism to partition the images to different groups,
 // each image belongs to only a single group.
 func (o *Version) ChannelGroup() string {
-	if o != nil && o.bitmap_&32 != 0 {
+	if o != nil && o.bitmap_&64 != 0 {
 		return o.channelGroup
 	}
 	return ""
@@ -174,7 +204,7 @@ func (o *Version) ChannelGroup() string {
 // ChannelGroup is a mechanism to partition the images to different groups,
 // each image belongs to only a single group.
 func (o *Version) GetChannelGroup() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&32 != 0
+	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
 		value = o.channelGroup
 	}
@@ -187,7 +217,7 @@ func (o *Version) GetChannelGroup() (value string, ok bool) {
 // Indicates if this should be selected as the default version when a cluster is created
 // without specifying explicitly the version.
 func (o *Version) Default() bool {
-	if o != nil && o.bitmap_&64 != 0 {
+	if o != nil && o.bitmap_&128 != 0 {
 		return o.default_
 	}
 	return false
@@ -199,7 +229,7 @@ func (o *Version) Default() bool {
 // Indicates if this should be selected as the default version when a cluster is created
 // without specifying explicitly the version.
 func (o *Version) GetDefault() (value bool, ok bool) {
-	ok = o != nil && o.bitmap_&64 != 0
+	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
 		value = o.default_
 	}
@@ -211,7 +241,7 @@ func (o *Version) GetDefault() (value bool, ok bool) {
 //
 // Indicates if this version can be used to create clusters.
 func (o *Version) Enabled() bool {
-	if o != nil && o.bitmap_&128 != 0 {
+	if o != nil && o.bitmap_&256 != 0 {
 		return o.enabled
 	}
 	return false
@@ -222,7 +252,7 @@ func (o *Version) Enabled() bool {
 //
 // Indicates if this version can be used to create clusters.
 func (o *Version) GetEnabled() (value bool, ok bool) {
-	ok = o != nil && o.bitmap_&128 != 0
+	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
 		value = o.enabled
 	}
@@ -235,7 +265,7 @@ func (o *Version) GetEnabled() (value bool, ok bool) {
 // EndOfLifeTimestamp is the date and time when the version will get to End of Life, using the
 // format defined in https://www.ietf.org/rfc/rfc3339.txt[RC3339].
 func (o *Version) EndOfLifeTimestamp() time.Time {
-	if o != nil && o.bitmap_&256 != 0 {
+	if o != nil && o.bitmap_&512 != 0 {
 		return o.endOfLifeTimestamp
 	}
 	return time.Time{}
@@ -247,9 +277,80 @@ func (o *Version) EndOfLifeTimestamp() time.Time {
 // EndOfLifeTimestamp is the date and time when the version will get to End of Life, using the
 // format defined in https://www.ietf.org/rfc/rfc3339.txt[RC3339].
 func (o *Version) GetEndOfLifeTimestamp() (value time.Time, ok bool) {
-	ok = o != nil && o.bitmap_&256 != 0
+	ok = o != nil && o.bitmap_&512 != 0
 	if ok {
 		value = o.endOfLifeTimestamp
+	}
+	return
+}
+
+// HostedControlPlaneDefault returns the value of the 'hosted_control_plane_default' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// HostedControlPlaneDefault is a flag that indicates if this should be selected as the default version when a
+// HCP cluster is created without specifying explicitly the version.
+func (o *Version) HostedControlPlaneDefault() bool {
+	if o != nil && o.bitmap_&1024 != 0 {
+		return o.hostedControlPlaneDefault
+	}
+	return false
+}
+
+// GetHostedControlPlaneDefault returns the value of the 'hosted_control_plane_default' attribute and
+// a flag indicating if the attribute has a value.
+//
+// HostedControlPlaneDefault is a flag that indicates if this should be selected as the default version when a
+// HCP cluster is created without specifying explicitly the version.
+func (o *Version) GetHostedControlPlaneDefault() (value bool, ok bool) {
+	ok = o != nil && o.bitmap_&1024 != 0
+	if ok {
+		value = o.hostedControlPlaneDefault
+	}
+	return
+}
+
+// HostedControlPlaneEnabled returns the value of the 'hosted_control_plane_enabled' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// HostedControlPlaneEnabled indicates whether this version can be used to create HCP clusters.
+func (o *Version) HostedControlPlaneEnabled() bool {
+	if o != nil && o.bitmap_&2048 != 0 {
+		return o.hostedControlPlaneEnabled
+	}
+	return false
+}
+
+// GetHostedControlPlaneEnabled returns the value of the 'hosted_control_plane_enabled' attribute and
+// a flag indicating if the attribute has a value.
+//
+// HostedControlPlaneEnabled indicates whether this version can be used to create HCP clusters.
+func (o *Version) GetHostedControlPlaneEnabled() (value bool, ok bool) {
+	ok = o != nil && o.bitmap_&2048 != 0
+	if ok {
+		value = o.hostedControlPlaneEnabled
+	}
+	return
+}
+
+// ImageOverrides returns the value of the 'image_overrides' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// ImageOverrides contains the lists of images per cloud provider.
+func (o *Version) ImageOverrides() *ImageOverrides {
+	if o != nil && o.bitmap_&4096 != 0 {
+		return o.imageOverrides
+	}
+	return nil
+}
+
+// GetImageOverrides returns the value of the 'image_overrides' attribute and
+// a flag indicating if the attribute has a value.
+//
+// ImageOverrides contains the lists of images per cloud provider.
+func (o *Version) GetImageOverrides() (value *ImageOverrides, ok bool) {
+	ok = o != nil && o.bitmap_&4096 != 0
+	if ok {
+		value = o.imageOverrides
 	}
 	return
 }
@@ -259,7 +360,7 @@ func (o *Version) GetEndOfLifeTimestamp() (value time.Time, ok bool) {
 //
 // RawID is the id of the version - without channel group and prefix.
 func (o *Version) RawID() string {
-	if o != nil && o.bitmap_&512 != 0 {
+	if o != nil && o.bitmap_&8192 != 0 {
 		return o.rawID
 	}
 	return ""
@@ -270,9 +371,78 @@ func (o *Version) RawID() string {
 //
 // RawID is the id of the version - without channel group and prefix.
 func (o *Version) GetRawID() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&512 != 0
+	ok = o != nil && o.bitmap_&8192 != 0
 	if ok {
 		value = o.rawID
+	}
+	return
+}
+
+// ReleaseImage returns the value of the 'release_image' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// ReleaseImage contains the URI of Openshift release image for amd64 architecture.
+func (o *Version) ReleaseImage() string {
+	if o != nil && o.bitmap_&16384 != 0 {
+		return o.releaseImage
+	}
+	return ""
+}
+
+// GetReleaseImage returns the value of the 'release_image' attribute and
+// a flag indicating if the attribute has a value.
+//
+// ReleaseImage contains the URI of Openshift release image for amd64 architecture.
+func (o *Version) GetReleaseImage() (value string, ok bool) {
+	ok = o != nil && o.bitmap_&16384 != 0
+	if ok {
+		value = o.releaseImage
+	}
+	return
+}
+
+// ReleaseImages returns the value of the 'release_images' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// ReleaseImages contains the URI of OpenShift release images for arm64 and multi architectures.
+func (o *Version) ReleaseImages() *ReleaseImages {
+	if o != nil && o.bitmap_&32768 != 0 {
+		return o.releaseImages
+	}
+	return nil
+}
+
+// GetReleaseImages returns the value of the 'release_images' attribute and
+// a flag indicating if the attribute has a value.
+//
+// ReleaseImages contains the URI of OpenShift release images for arm64 and multi architectures.
+func (o *Version) GetReleaseImages() (value *ReleaseImages, ok bool) {
+	ok = o != nil && o.bitmap_&32768 != 0
+	if ok {
+		value = o.releaseImages
+	}
+	return
+}
+
+// WifEnabled returns the value of the 'wif_enabled' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// WifEnabled is a flag that indicates whether this version is enabled for Workload Identity Federation.
+func (o *Version) WifEnabled() bool {
+	if o != nil && o.bitmap_&65536 != 0 {
+		return o.wifEnabled
+	}
+	return false
+}
+
+// GetWifEnabled returns the value of the 'wif_enabled' attribute and
+// a flag indicating if the attribute has a value.
+//
+// WifEnabled is a flag that indicates whether this version is enabled for Workload Identity Federation.
+func (o *Version) GetWifEnabled() (value bool, ok bool) {
+	ok = o != nil && o.bitmap_&65536 != 0
+	if ok {
+		value = o.wifEnabled
 	}
 	return
 }
@@ -336,6 +506,29 @@ func (l *VersionList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *VersionList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *VersionList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *VersionList) SetItems(items []*Version) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *VersionList) Items() []*Version {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

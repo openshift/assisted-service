@@ -36,8 +36,6 @@ const QueueLinkKind = "QueueLink"
 const QueueNilKind = "QueueNil"
 
 // Queue represents the values of the 'queue' type.
-//
-//
 type Queue struct {
 	bitmap_     uint32
 	id          string
@@ -60,7 +58,7 @@ func (o *Queue) Kind() string {
 	return QueueKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *Queue) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -108,8 +106,6 @@ func (o *Queue) Empty() bool {
 
 // CreatedAt returns the value of the 'created_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Queue) CreatedAt() time.Time {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.createdAt
@@ -119,8 +115,6 @@ func (o *Queue) CreatedAt() time.Time {
 
 // GetCreatedAt returns the value of the 'created_at' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Queue) GetCreatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -154,8 +148,6 @@ func (o *Queue) GetMaxAttempts() (value int, ok bool) {
 
 // MaxRunTime returns the value of the 'max_run_time' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Queue) MaxRunTime() int {
 	if o != nil && o.bitmap_&32 != 0 {
 		return o.maxRunTime
@@ -165,8 +157,6 @@ func (o *Queue) MaxRunTime() int {
 
 // GetMaxRunTime returns the value of the 'max_run_time' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Queue) GetMaxRunTime() (value int, ok bool) {
 	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
@@ -177,8 +167,6 @@ func (o *Queue) GetMaxRunTime() (value int, ok bool) {
 
 // Name returns the value of the 'name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Queue) Name() string {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.name
@@ -188,8 +176,6 @@ func (o *Queue) Name() string {
 
 // GetName returns the value of the 'name' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Queue) GetName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -200,8 +186,6 @@ func (o *Queue) GetName() (value string, ok bool) {
 
 // UpdatedAt returns the value of the 'updated_at' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Queue) UpdatedAt() time.Time {
 	if o != nil && o.bitmap_&128 != 0 {
 		return o.updatedAt
@@ -211,8 +195,6 @@ func (o *Queue) UpdatedAt() time.Time {
 
 // GetUpdatedAt returns the value of the 'updated_at' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Queue) GetUpdatedAt() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
@@ -280,6 +262,29 @@ func (l *QueueList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *QueueList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *QueueList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *QueueList) SetItems(items []*Queue) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *QueueList) Items() []*Queue {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalAccessReviewRequest writes a value of the 'access_review_request' type to the given writer.
 func MarshalAccessReviewRequest(object *AccessReviewRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeAccessReviewRequest(object, stream)
-	stream.Flush()
+	WriteAccessReviewRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeAccessReviewRequest writes a value of the 'access_review_request' type to the given stream.
-func writeAccessReviewRequest(object *AccessReviewRequest, stream *jsoniter.Stream) {
+// WriteAccessReviewRequest writes a value of the 'access_review_request' type to the given stream.
+func WriteAccessReviewRequest(object *AccessReviewRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -101,7 +103,6 @@ func writeAccessReviewRequest(object *AccessReviewRequest, stream *jsoniter.Stre
 		}
 		stream.WriteObjectField("subscription_id")
 		stream.WriteString(object.subscriptionID)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -109,20 +110,17 @@ func writeAccessReviewRequest(object *AccessReviewRequest, stream *jsoniter.Stre
 // UnmarshalAccessReviewRequest reads a value of the 'access_review_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalAccessReviewRequest(source interface{}) (object *AccessReviewRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readAccessReviewRequest(iterator)
+	object = ReadAccessReviewRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readAccessReviewRequest reads a value of the 'access_review_request' type from the given iterator.
-func readAccessReviewRequest(iterator *jsoniter.Iterator) *AccessReviewRequest {
+// ReadAccessReviewRequest reads a value of the 'access_review_request' type from the given iterator.
+func ReadAccessReviewRequest(iterator *jsoniter.Iterator) *AccessReviewRequest {
 	object := &AccessReviewRequest{}
 	for {
 		field := iterator.ReadObject()

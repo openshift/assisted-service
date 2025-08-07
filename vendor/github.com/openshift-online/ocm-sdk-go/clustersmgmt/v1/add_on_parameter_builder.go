@@ -23,19 +23,22 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 //
 // Representation of an add-on parameter.
 type AddOnParameterBuilder struct {
-	bitmap_      uint32
-	id           string
-	href         string
-	addon        *AddOnBuilder
-	defaultValue string
-	description  string
-	name         string
-	options      []*AddOnParameterOptionBuilder
-	validation   string
-	valueType    string
-	editable     bool
-	enabled      bool
-	required     bool
+	bitmap_           uint32
+	id                string
+	href              string
+	addon             *AddOnBuilder
+	conditions        []*AddOnRequirementBuilder
+	defaultValue      string
+	description       string
+	editableDirection string
+	name              string
+	options           []*AddOnParameterOptionBuilder
+	validation        string
+	validationErrMsg  string
+	valueType         string
+	editable          bool
+	enabled           bool
+	required          bool
 }
 
 // NewAddOnParameter creates a new builder of 'add_on_parameter' objects.
@@ -63,6 +66,11 @@ func (b *AddOnParameterBuilder) HREF(value string) *AddOnParameterBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *AddOnParameterBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Addon sets the value of the 'addon' attribute to the given value.
 //
 // Representation of an add-on that can be installed in a cluster.
@@ -76,85 +84,89 @@ func (b *AddOnParameterBuilder) Addon(value *AddOnBuilder) *AddOnParameterBuilde
 	return b
 }
 
-// DefaultValue sets the value of the 'default_value' attribute to the given value.
-//
-//
-func (b *AddOnParameterBuilder) DefaultValue(value string) *AddOnParameterBuilder {
-	b.defaultValue = value
+// Conditions sets the value of the 'conditions' attribute to the given values.
+func (b *AddOnParameterBuilder) Conditions(values ...*AddOnRequirementBuilder) *AddOnParameterBuilder {
+	b.conditions = make([]*AddOnRequirementBuilder, len(values))
+	copy(b.conditions, values)
 	b.bitmap_ |= 16
 	return b
 }
 
-// Description sets the value of the 'description' attribute to the given value.
-//
-//
-func (b *AddOnParameterBuilder) Description(value string) *AddOnParameterBuilder {
-	b.description = value
+// DefaultValue sets the value of the 'default_value' attribute to the given value.
+func (b *AddOnParameterBuilder) DefaultValue(value string) *AddOnParameterBuilder {
+	b.defaultValue = value
 	b.bitmap_ |= 32
 	return b
 }
 
-// Editable sets the value of the 'editable' attribute to the given value.
-//
-//
-func (b *AddOnParameterBuilder) Editable(value bool) *AddOnParameterBuilder {
-	b.editable = value
+// Description sets the value of the 'description' attribute to the given value.
+func (b *AddOnParameterBuilder) Description(value string) *AddOnParameterBuilder {
+	b.description = value
 	b.bitmap_ |= 64
 	return b
 }
 
-// Enabled sets the value of the 'enabled' attribute to the given value.
-//
-//
-func (b *AddOnParameterBuilder) Enabled(value bool) *AddOnParameterBuilder {
-	b.enabled = value
+// Editable sets the value of the 'editable' attribute to the given value.
+func (b *AddOnParameterBuilder) Editable(value bool) *AddOnParameterBuilder {
+	b.editable = value
 	b.bitmap_ |= 128
 	return b
 }
 
-// Name sets the value of the 'name' attribute to the given value.
-//
-//
-func (b *AddOnParameterBuilder) Name(value string) *AddOnParameterBuilder {
-	b.name = value
+// EditableDirection sets the value of the 'editable_direction' attribute to the given value.
+func (b *AddOnParameterBuilder) EditableDirection(value string) *AddOnParameterBuilder {
+	b.editableDirection = value
 	b.bitmap_ |= 256
 	return b
 }
 
-// Options sets the value of the 'options' attribute to the given values.
-//
-//
-func (b *AddOnParameterBuilder) Options(values ...*AddOnParameterOptionBuilder) *AddOnParameterBuilder {
-	b.options = make([]*AddOnParameterOptionBuilder, len(values))
-	copy(b.options, values)
+// Enabled sets the value of the 'enabled' attribute to the given value.
+func (b *AddOnParameterBuilder) Enabled(value bool) *AddOnParameterBuilder {
+	b.enabled = value
 	b.bitmap_ |= 512
 	return b
 }
 
-// Required sets the value of the 'required' attribute to the given value.
-//
-//
-func (b *AddOnParameterBuilder) Required(value bool) *AddOnParameterBuilder {
-	b.required = value
+// Name sets the value of the 'name' attribute to the given value.
+func (b *AddOnParameterBuilder) Name(value string) *AddOnParameterBuilder {
+	b.name = value
 	b.bitmap_ |= 1024
 	return b
 }
 
-// Validation sets the value of the 'validation' attribute to the given value.
-//
-//
-func (b *AddOnParameterBuilder) Validation(value string) *AddOnParameterBuilder {
-	b.validation = value
+// Options sets the value of the 'options' attribute to the given values.
+func (b *AddOnParameterBuilder) Options(values ...*AddOnParameterOptionBuilder) *AddOnParameterBuilder {
+	b.options = make([]*AddOnParameterOptionBuilder, len(values))
+	copy(b.options, values)
 	b.bitmap_ |= 2048
 	return b
 }
 
+// Required sets the value of the 'required' attribute to the given value.
+func (b *AddOnParameterBuilder) Required(value bool) *AddOnParameterBuilder {
+	b.required = value
+	b.bitmap_ |= 4096
+	return b
+}
+
+// Validation sets the value of the 'validation' attribute to the given value.
+func (b *AddOnParameterBuilder) Validation(value string) *AddOnParameterBuilder {
+	b.validation = value
+	b.bitmap_ |= 8192
+	return b
+}
+
+// ValidationErrMsg sets the value of the 'validation_err_msg' attribute to the given value.
+func (b *AddOnParameterBuilder) ValidationErrMsg(value string) *AddOnParameterBuilder {
+	b.validationErrMsg = value
+	b.bitmap_ |= 16384
+	return b
+}
+
 // ValueType sets the value of the 'value_type' attribute to the given value.
-//
-//
 func (b *AddOnParameterBuilder) ValueType(value string) *AddOnParameterBuilder {
 	b.valueType = value
-	b.bitmap_ |= 4096
+	b.bitmap_ |= 32768
 	return b
 }
 
@@ -171,9 +183,18 @@ func (b *AddOnParameterBuilder) Copy(object *AddOnParameter) *AddOnParameterBuil
 	} else {
 		b.addon = nil
 	}
+	if object.conditions != nil {
+		b.conditions = make([]*AddOnRequirementBuilder, len(object.conditions))
+		for i, v := range object.conditions {
+			b.conditions[i] = NewAddOnRequirement().Copy(v)
+		}
+	} else {
+		b.conditions = nil
+	}
 	b.defaultValue = object.defaultValue
 	b.description = object.description
 	b.editable = object.editable
+	b.editableDirection = object.editableDirection
 	b.enabled = object.enabled
 	b.name = object.name
 	if object.options != nil {
@@ -186,6 +207,7 @@ func (b *AddOnParameterBuilder) Copy(object *AddOnParameter) *AddOnParameterBuil
 	}
 	b.required = object.required
 	b.validation = object.validation
+	b.validationErrMsg = object.validationErrMsg
 	b.valueType = object.valueType
 	return b
 }
@@ -202,9 +224,19 @@ func (b *AddOnParameterBuilder) Build() (object *AddOnParameter, err error) {
 			return
 		}
 	}
+	if b.conditions != nil {
+		object.conditions = make([]*AddOnRequirement, len(b.conditions))
+		for i, v := range b.conditions {
+			object.conditions[i], err = v.Build()
+			if err != nil {
+				return
+			}
+		}
+	}
 	object.defaultValue = b.defaultValue
 	object.description = b.description
 	object.editable = b.editable
+	object.editableDirection = b.editableDirection
 	object.enabled = b.enabled
 	object.name = b.name
 	if b.options != nil {
@@ -218,6 +250,7 @@ func (b *AddOnParameterBuilder) Build() (object *AddOnParameter, err error) {
 	}
 	object.required = b.required
 	object.validation = b.validation
+	object.validationErrMsg = b.validationErrMsg
 	object.valueType = b.valueType
 	return
 }

@@ -37,6 +37,11 @@ func (b *FeatureToggleListBuilder) Items(values ...*FeatureToggleBuilder) *Featu
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *FeatureToggleListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *FeatureToggleListBuilder) Copy(list *FeatureToggleList) *FeatureToggleListBuilder {
 	if list == nil || list.items == nil {

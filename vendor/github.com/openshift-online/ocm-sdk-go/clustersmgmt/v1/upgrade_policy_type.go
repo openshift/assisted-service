@@ -39,15 +39,16 @@ const UpgradePolicyNilKind = "UpgradePolicyNil"
 //
 // Representation of an upgrade policy that can be set for a cluster.
 type UpgradePolicy struct {
-	bitmap_      uint32
-	id           string
-	href         string
-	clusterID    string
-	nextRun      time.Time
-	schedule     string
-	scheduleType string
-	upgradeType  string
-	version      string
+	bitmap_                    uint32
+	id                         string
+	href                       string
+	clusterID                  string
+	nextRun                    time.Time
+	schedule                   string
+	scheduleType               ScheduleType
+	upgradeType                UpgradeType
+	version                    string
+	enableMinorVersionUpgrades bool
 }
 
 // Kind returns the name of the type of the object.
@@ -61,7 +62,7 @@ func (o *UpgradePolicy) Kind() string {
 	return UpgradePolicyKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *UpgradePolicy) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -130,12 +131,35 @@ func (o *UpgradePolicy) GetClusterID() (value string, ok bool) {
 	return
 }
 
+// EnableMinorVersionUpgrades returns the value of the 'enable_minor_version_upgrades' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Indicates if minor version upgrades are allowed for automatic upgrades (for manual it's always allowed).
+func (o *UpgradePolicy) EnableMinorVersionUpgrades() bool {
+	if o != nil && o.bitmap_&16 != 0 {
+		return o.enableMinorVersionUpgrades
+	}
+	return false
+}
+
+// GetEnableMinorVersionUpgrades returns the value of the 'enable_minor_version_upgrades' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Indicates if minor version upgrades are allowed for automatic upgrades (for manual it's always allowed).
+func (o *UpgradePolicy) GetEnableMinorVersionUpgrades() (value bool, ok bool) {
+	ok = o != nil && o.bitmap_&16 != 0
+	if ok {
+		value = o.enableMinorVersionUpgrades
+	}
+	return
+}
+
 // NextRun returns the value of the 'next_run' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // Next time the upgrade should run.
 func (o *UpgradePolicy) NextRun() time.Time {
-	if o != nil && o.bitmap_&16 != 0 {
+	if o != nil && o.bitmap_&32 != 0 {
 		return o.nextRun
 	}
 	return time.Time{}
@@ -146,7 +170,7 @@ func (o *UpgradePolicy) NextRun() time.Time {
 //
 // Next time the upgrade should run.
 func (o *UpgradePolicy) GetNextRun() (value time.Time, ok bool) {
-	ok = o != nil && o.bitmap_&16 != 0
+	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
 		value = o.nextRun
 	}
@@ -158,7 +182,7 @@ func (o *UpgradePolicy) GetNextRun() (value time.Time, ok bool) {
 //
 // Schedule cron expression that defines automatic upgrade scheduling.
 func (o *UpgradePolicy) Schedule() string {
-	if o != nil && o.bitmap_&32 != 0 {
+	if o != nil && o.bitmap_&64 != 0 {
 		return o.schedule
 	}
 	return ""
@@ -169,7 +193,7 @@ func (o *UpgradePolicy) Schedule() string {
 //
 // Schedule cron expression that defines automatic upgrade scheduling.
 func (o *UpgradePolicy) GetSchedule() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&32 != 0
+	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
 		value = o.schedule
 	}
@@ -179,20 +203,20 @@ func (o *UpgradePolicy) GetSchedule() (value string, ok bool) {
 // ScheduleType returns the value of the 'schedule_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// Schedule type can be either "manual" (single execution) or "automatic" (re-occurring).
-func (o *UpgradePolicy) ScheduleType() string {
-	if o != nil && o.bitmap_&64 != 0 {
+// Schedule type of the upgrade.
+func (o *UpgradePolicy) ScheduleType() ScheduleType {
+	if o != nil && o.bitmap_&128 != 0 {
 		return o.scheduleType
 	}
-	return ""
+	return ScheduleType("")
 }
 
 // GetScheduleType returns the value of the 'schedule_type' attribute and
 // a flag indicating if the attribute has a value.
 //
-// Schedule type can be either "manual" (single execution) or "automatic" (re-occurring).
-func (o *UpgradePolicy) GetScheduleType() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&64 != 0
+// Schedule type of the upgrade.
+func (o *UpgradePolicy) GetScheduleType() (value ScheduleType, ok bool) {
+	ok = o != nil && o.bitmap_&128 != 0
 	if ok {
 		value = o.scheduleType
 	}
@@ -202,20 +226,20 @@ func (o *UpgradePolicy) GetScheduleType() (value string, ok bool) {
 // UpgradeType returns the value of the 'upgrade_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// Upgrade type specify the type of the upgrade. Can be "OSD" or "CVE".
-func (o *UpgradePolicy) UpgradeType() string {
-	if o != nil && o.bitmap_&128 != 0 {
+// Upgrade type specify the type of the upgrade.
+func (o *UpgradePolicy) UpgradeType() UpgradeType {
+	if o != nil && o.bitmap_&256 != 0 {
 		return o.upgradeType
 	}
-	return ""
+	return UpgradeType("")
 }
 
 // GetUpgradeType returns the value of the 'upgrade_type' attribute and
 // a flag indicating if the attribute has a value.
 //
-// Upgrade type specify the type of the upgrade. Can be "OSD" or "CVE".
-func (o *UpgradePolicy) GetUpgradeType() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&128 != 0
+// Upgrade type specify the type of the upgrade.
+func (o *UpgradePolicy) GetUpgradeType() (value UpgradeType, ok bool) {
+	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
 		value = o.upgradeType
 	}
@@ -227,7 +251,7 @@ func (o *UpgradePolicy) GetUpgradeType() (value string, ok bool) {
 //
 // Version is the desired upgrade version.
 func (o *UpgradePolicy) Version() string {
-	if o != nil && o.bitmap_&256 != 0 {
+	if o != nil && o.bitmap_&512 != 0 {
 		return o.version
 	}
 	return ""
@@ -238,7 +262,7 @@ func (o *UpgradePolicy) Version() string {
 //
 // Version is the desired upgrade version.
 func (o *UpgradePolicy) GetVersion() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&256 != 0
+	ok = o != nil && o.bitmap_&512 != 0
 	if ok {
 		value = o.version
 	}
@@ -304,6 +328,29 @@ func (l *UpgradePolicyList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *UpgradePolicyList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *UpgradePolicyList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *UpgradePolicyList) SetItems(items []*UpgradePolicy) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *UpgradePolicyList) Items() []*UpgradePolicy {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.
