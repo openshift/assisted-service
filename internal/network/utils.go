@@ -448,3 +448,15 @@ func UpdateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, 
 
 	return nil
 }
+
+// NormalizeCIDR normalizes a CIDR string to its canonical form.
+func NormalizeCIDR(cidr string) (string, error) {
+	if cidr == "" {
+		return "", nil
+	}
+	_, ipnet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", err
+	}
+	return ipnet.String(), nil
+}
