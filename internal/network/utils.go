@@ -512,3 +512,15 @@ func FindSourceIPInMachineNetwork(outgoingNicName string, mNetwork *net.IPNet, i
 	}
 	return sourceIP, nil
 }
+
+// NormalizeCIDR normalizes a CIDR string to its canonical form.
+func NormalizeCIDR(cidr string) (string, error) {
+	if cidr == "" {
+		return "", nil
+	}
+	_, ipnet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", err
+	}
+	return ipnet.String(), nil
+}
