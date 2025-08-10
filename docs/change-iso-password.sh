@@ -14,8 +14,30 @@ fi
 
 DISCOVERY_ISO_HOST_PATH="$1"
 DISCOVERY_ISO_HOST_DIR=$(dirname "$DISCOVERY_ISO_HOST_PATH")
+STDERR_FILE=$(mktemp --tmpdir="$DISCOVERY_ISO_HOST_DIR")
+
+TRANSFORMED_IGNITION_PATH=$(mktemp --tmpdir="$DISCOVERY_ISO_HOST_DIR")
+TRANSFORMED_IGNITION_NAME=$(basename "$TRANSFORMED_IGNITION_PATH")
+
+trap 'rm -f "$STDERR_FILE $TRANSFORMED_IGNITION_PATH"' EXIT
+
 function COREOS_INSTALLER() {
-	podman run -v "$DISCOVERY_ISO_HOST_DIR":/data:Z --rm quay.io/coreos/coreos-installer:release "$@"
+    echo "Running command in coreos-installer container, this might take a while..." >&2
+    if ! podman run -v "$DISCOVERY_ISO_HOST_DIR":/data --rm quay.io/coreos/coreos-installer:release "$@" 2>"$STDERR_FILE"; then
+        echo "Failed to run podman. stderr:" >&2
+        cat "$STDERR_FILE" >&2
+        exit 1
+    fi
+}
+
+function OPENSSL_PASSWORD() {
+    echo "Running command in fedora-minimal container, this might take a while..." >&2
+    pw="$1"
+    if ! podman run --rm -i quay.io/fedora/fedora-minimal bash -c 'microdnf install -y openssl >/dev/null 2>&1 && openssl passwd -6 --stdin' <<< "$pw" 2>"$STDERR_FILE"; then
+        echo "Failed to run podman. stderr:" >&2
+        cat "$STDERR_FILE" >&2
+        exit 1
+    fi
 }
 
 ISO_NAME=$(basename "$DISCOVERY_ISO_HOST_PATH" .iso)
@@ -30,13 +52,22 @@ DISCOVERY_ISO_WITH_PASSWORD_HOST=$(dirname "$DISCOVERY_ISO_HOST_PATH")/$(basenam
 # Prompt
 read -rsp 'Please enter the password to be used by the "core" user: ' pw
 echo ''
-USER_PASSWORD=$(openssl passwd -6 --stdin <<<"$pw")
+USER_PASSWORD=$(OPENSSL_PASSWORD $pw)
 unset pw
 
 # Transform original ignition
-TRANSFORMED_IGNITION_PATH=$(mktemp --tmpdir="$DISCOVERY_ISO_HOST_DIR")
-TRANSFORMED_IGNITION_NAME=$(basename "$TRANSFORMED_IGNITION_PATH")
-COREOS_INSTALLER iso ignition show "$DISCOVERY_ISO_PATH" | jq --arg pass "$USER_PASSWORD" '.passwd.users[0].passwordHash = $pass' >"$TRANSFORMED_IGNITION_PATH"
+COREOS_INSTALLER iso ignition show "$DISCOVERY_ISO_PATH" | jq --arg pass "$USER_PASSWORD" '
+    . as $root |
+    [($root.passwd.users[] | select(.name != "core"))] as $non_core_users |
+    [($root.passwd.users[] | select(.name == "core"))] as $core_users |
+    $root.passwd.users |= $non_core_users + [
+        if ($core_users | length != 0) then
+            $core_users[] | .passwordHash = $pass
+        else
+            { name: "core", passwordHash: $pass, groups: ["sudo"] }
+        end
+    ]
+' >"$TRANSFORMED_IGNITION_PATH"
 
 if [[ -f "$DISCOVERY_ISO_WITH_PASSWORD_HOST" ]]; then
 	echo "ERROR: $DISCOVERY_ISO_WITH_PASSWORD_HOST already exists"
