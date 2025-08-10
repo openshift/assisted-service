@@ -121,6 +121,20 @@ func main() {
 	}
 }
 
+func deregisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) {
+
+	// Check if registered
+	existingCluster, err := agentbasedinstaller.GetCluster(ctx, log, bmInventory)
+	if err == nil {
+		log.Infof("Not all cluster registration steps succeeeded: deregistering %s", existingCluster.ID.String())
+
+		err := agentbasedinstaller.DeregisterCluster(ctx, log, bmInventory, *existingCluster.ID)
+		if err != nil {
+			log.Fatal("Failed to deregister cluster with assisted-service: ", err)
+		}
+	}
+}
+
 func register(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) string {
 	err := envconfig.Process("", &RegisterOptions)
 	if err != nil {
@@ -173,11 +187,13 @@ func registerCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile,
 		RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile, false)
 	if err != nil {
+		deregisterCluster(ctx, log, bmInventory)
 		log.Fatal("Failed to register cluster with assisted-service: ", err)
 	}
 
 	err = agentbasedinstaller.RegisterExtraManifests(os.DirFS(RegisterOptions.ExtraManifests), ctx, log, bmInventory.Manifests, modelsCluster)
 	if err != nil {
+		deregisterCluster(ctx, log, bmInventory)
 		log.Fatal("Failed to register extra manifests with assisted-service: ", err)
 	}
 
