@@ -8911,7 +8911,8 @@ func init() {
       "type": "string",
       "enum": [
         "full-iso",
-        "minimal-iso"
+        "minimal-iso",
+        "disconnected-interactive-iso"
       ]
     },
     "import-cluster-params": {
@@ -20213,7 +20214,8 @@ func init() {
       "type": "string",
       "enum": [
         "full-iso",
-        "minimal-iso"
+        "minimal-iso",
+        "disconnected-interactive-iso"
       ]
     },
     "import-cluster-params": {
