@@ -37,6 +37,11 @@ func (b *HTPasswdIdentityProviderListBuilder) Items(values ...*HTPasswdIdentityP
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *HTPasswdIdentityProviderListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *HTPasswdIdentityProviderListBuilder) Copy(list *HTPasswdIdentityProviderList) *HTPasswdIdentityProviderListBuilder {
 	if list == nil || list.items == nil {

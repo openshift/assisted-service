@@ -30,20 +30,23 @@ import (
 // the given writer.
 func MarshalRoleBindingList(list []*RoleBinding, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeRoleBindingList(list, stream)
-	stream.Flush()
+	WriteRoleBindingList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeRoleBindingList writes a list of value of the 'role_binding' type to
+// WriteRoleBindingList writes a list of value of the 'role_binding' type to
 // the given stream.
-func writeRoleBindingList(list []*RoleBinding, stream *jsoniter.Stream) {
+func WriteRoleBindingList(list []*RoleBinding, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
 			stream.WriteMore()
 		}
-		writeRoleBinding(value, stream)
+		WriteRoleBinding(value, stream)
 	}
 	stream.WriteArrayEnd()
 }
@@ -55,17 +58,17 @@ func UnmarshalRoleBindingList(source interface{}) (items []*RoleBinding, err err
 	if err != nil {
 		return
 	}
-	items = readRoleBindingList(iterator)
+	items = ReadRoleBindingList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readRoleBindingList reads list of values of the ''role_binding' type from
+// ReadRoleBindingList reads list of values of the ”role_binding' type from
 // the given iterator.
-func readRoleBindingList(iterator *jsoniter.Iterator) []*RoleBinding {
+func ReadRoleBindingList(iterator *jsoniter.Iterator) []*RoleBinding {
 	list := []*RoleBinding{}
 	for iterator.ReadArray() {
-		item := readRoleBinding(iterator)
+		item := ReadRoleBinding(iterator)
 		list = append(list, item)
 	}
 	return list

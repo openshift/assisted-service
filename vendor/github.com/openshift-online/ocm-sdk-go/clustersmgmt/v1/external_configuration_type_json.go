@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalExternalConfiguration writes a value of the 'external_configuration' type to the given writer.
 func MarshalExternalConfiguration(object *ExternalConfiguration, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeExternalConfiguration(object, stream)
-	stream.Flush()
+	WriteExternalConfiguration(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeExternalConfiguration writes a value of the 'external_configuration' type to the given stream.
-func writeExternalConfiguration(object *ExternalConfiguration, stream *jsoniter.Stream) {
+// WriteExternalConfiguration writes a value of the 'external_configuration' type to the given stream.
+func WriteExternalConfiguration(object *ExternalConfiguration, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -48,11 +50,23 @@ func writeExternalConfiguration(object *ExternalConfiguration, stream *jsoniter.
 		stream.WriteObjectField("labels")
 		stream.WriteObjectStart()
 		stream.WriteObjectField("items")
-		writeLabelList(object.labels.items, stream)
+		WriteLabelList(object.labels.Items(), stream)
 		stream.WriteObjectEnd()
 		count++
 	}
-	present_ = object.bitmap_&2 != 0 && object.syncsets != nil
+	present_ = object.bitmap_&2 != 0 && object.manifests != nil
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("manifests")
+		stream.WriteObjectStart()
+		stream.WriteObjectField("items")
+		WriteManifestList(object.manifests.Items(), stream)
+		stream.WriteObjectEnd()
+		count++
+	}
+	present_ = object.bitmap_&4 != 0 && object.syncsets != nil
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
@@ -60,9 +74,8 @@ func writeExternalConfiguration(object *ExternalConfiguration, stream *jsoniter.
 		stream.WriteObjectField("syncsets")
 		stream.WriteObjectStart()
 		stream.WriteObjectField("items")
-		writeSyncsetList(object.syncsets.items, stream)
+		WriteSyncsetList(object.syncsets.Items(), stream)
 		stream.WriteObjectEnd()
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -70,20 +83,17 @@ func writeExternalConfiguration(object *ExternalConfiguration, stream *jsoniter.
 // UnmarshalExternalConfiguration reads a value of the 'external_configuration' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalExternalConfiguration(source interface{}) (object *ExternalConfiguration, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readExternalConfiguration(iterator)
+	object = ReadExternalConfiguration(iterator)
 	err = iterator.Error
 	return
 }
 
-// readExternalConfiguration reads a value of the 'external_configuration' type from the given iterator.
-func readExternalConfiguration(iterator *jsoniter.Iterator) *ExternalConfiguration {
+// ReadExternalConfiguration reads a value of the 'external_configuration' type from the given iterator.
+func ReadExternalConfiguration(iterator *jsoniter.Iterator) *ExternalConfiguration {
 	object := &ExternalConfiguration{}
 	for {
 		field := iterator.ReadObject()
@@ -101,17 +111,38 @@ func readExternalConfiguration(iterator *jsoniter.Iterator) *ExternalConfigurati
 				switch field {
 				case "kind":
 					text := iterator.ReadString()
-					value.link = text == LabelListLinkKind
+					value.SetLink(text == LabelListLinkKind)
 				case "href":
-					value.href = iterator.ReadString()
+					value.SetHREF(iterator.ReadString())
 				case "items":
-					value.items = readLabelList(iterator)
+					value.SetItems(ReadLabelList(iterator))
 				default:
 					iterator.ReadAny()
 				}
 			}
 			object.labels = value
 			object.bitmap_ |= 1
+		case "manifests":
+			value := &ManifestList{}
+			for {
+				field := iterator.ReadObject()
+				if field == "" {
+					break
+				}
+				switch field {
+				case "kind":
+					text := iterator.ReadString()
+					value.SetLink(text == ManifestListLinkKind)
+				case "href":
+					value.SetHREF(iterator.ReadString())
+				case "items":
+					value.SetItems(ReadManifestList(iterator))
+				default:
+					iterator.ReadAny()
+				}
+			}
+			object.manifests = value
+			object.bitmap_ |= 2
 		case "syncsets":
 			value := &SyncsetList{}
 			for {
@@ -122,17 +153,17 @@ func readExternalConfiguration(iterator *jsoniter.Iterator) *ExternalConfigurati
 				switch field {
 				case "kind":
 					text := iterator.ReadString()
-					value.link = text == SyncsetListLinkKind
+					value.SetLink(text == SyncsetListLinkKind)
 				case "href":
-					value.href = iterator.ReadString()
+					value.SetHREF(iterator.ReadString())
 				case "items":
-					value.items = readSyncsetList(iterator)
+					value.SetItems(ReadSyncsetList(iterator))
 				default:
 					iterator.ReadAny()
 				}
 			}
 			object.syncsets = value
-			object.bitmap_ |= 2
+			object.bitmap_ |= 4
 		default:
 			iterator.ReadAny()
 		}

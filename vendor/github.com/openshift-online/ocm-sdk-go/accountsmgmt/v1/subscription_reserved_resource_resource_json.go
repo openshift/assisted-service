@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readSubscriptionReservedResourceGetRequest(request *SubscriptionReservedResourceGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeSubscriptionReservedResourceGetRequest(request *SubscriptionReservedResourceGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readSubscriptionReservedResourceGetResponse(response *SubscriptionReservedR
 	var err error
 	response.body, err = UnmarshalReservedResource(reader)
 	return err
-}
-func writeSubscriptionReservedResourceGetResponse(response *SubscriptionReservedResourceGetServerResponse, w http.ResponseWriter) error {
-	return MarshalReservedResource(response.body, w)
 }

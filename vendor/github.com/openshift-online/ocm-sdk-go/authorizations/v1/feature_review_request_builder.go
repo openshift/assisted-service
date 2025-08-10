@@ -26,6 +26,7 @@ type FeatureReviewRequestBuilder struct {
 	bitmap_         uint32
 	accountUsername string
 	feature         string
+	organizationId  string
 }
 
 // NewFeatureReviewRequest creates a new builder of 'feature_review_request' objects.
@@ -33,9 +34,12 @@ func NewFeatureReviewRequest() *FeatureReviewRequestBuilder {
 	return &FeatureReviewRequestBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *FeatureReviewRequestBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // AccountUsername sets the value of the 'account_username' attribute to the given value.
-//
-//
 func (b *FeatureReviewRequestBuilder) AccountUsername(value string) *FeatureReviewRequestBuilder {
 	b.accountUsername = value
 	b.bitmap_ |= 1
@@ -43,11 +47,16 @@ func (b *FeatureReviewRequestBuilder) AccountUsername(value string) *FeatureRevi
 }
 
 // Feature sets the value of the 'feature' attribute to the given value.
-//
-//
 func (b *FeatureReviewRequestBuilder) Feature(value string) *FeatureReviewRequestBuilder {
 	b.feature = value
 	b.bitmap_ |= 2
+	return b
+}
+
+// OrganizationId sets the value of the 'organization_id' attribute to the given value.
+func (b *FeatureReviewRequestBuilder) OrganizationId(value string) *FeatureReviewRequestBuilder {
+	b.organizationId = value
+	b.bitmap_ |= 4
 	return b
 }
 
@@ -59,6 +68,7 @@ func (b *FeatureReviewRequestBuilder) Copy(object *FeatureReviewRequest) *Featur
 	b.bitmap_ = object.bitmap_
 	b.accountUsername = object.accountUsername
 	b.feature = object.feature
+	b.organizationId = object.organizationId
 	return b
 }
 
@@ -68,5 +78,6 @@ func (b *FeatureReviewRequestBuilder) Build() (object *FeatureReviewRequest, err
 	object.bitmap_ = b.bitmap_
 	object.accountUsername = b.accountUsername
 	object.feature = b.feature
+	object.organizationId = b.organizationId
 	return
 }

@@ -24,8 +24,6 @@ import (
 )
 
 // ClusterResource represents the values of the 'cluster_resource' type.
-//
-//
 type ClusterResource struct {
 	bitmap_          uint32
 	total            *ValueUnit
@@ -40,8 +38,6 @@ func (o *ClusterResource) Empty() bool {
 
 // Total returns the value of the 'total' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterResource) Total() *ValueUnit {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.total
@@ -51,8 +47,6 @@ func (o *ClusterResource) Total() *ValueUnit {
 
 // GetTotal returns the value of the 'total' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterResource) GetTotal() (value *ValueUnit, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -63,8 +57,6 @@ func (o *ClusterResource) GetTotal() (value *ValueUnit, ok bool) {
 
 // UpdatedTimestamp returns the value of the 'updated_timestamp' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterResource) UpdatedTimestamp() time.Time {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.updatedTimestamp
@@ -74,8 +66,6 @@ func (o *ClusterResource) UpdatedTimestamp() time.Time {
 
 // GetUpdatedTimestamp returns the value of the 'updated_timestamp' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterResource) GetUpdatedTimestamp() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
@@ -86,8 +76,6 @@ func (o *ClusterResource) GetUpdatedTimestamp() (value time.Time, ok bool) {
 
 // Used returns the value of the 'used' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterResource) Used() *ValueUnit {
 	if o != nil && o.bitmap_&4 != 0 {
 		return o.used
@@ -97,8 +85,6 @@ func (o *ClusterResource) Used() *ValueUnit {
 
 // GetUsed returns the value of the 'used' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterResource) GetUsed() (value *ValueUnit, ok bool) {
 	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
@@ -132,6 +118,29 @@ func (l *ClusterResourceList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *ClusterResourceList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *ClusterResourceList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *ClusterResourceList) SetItems(items []*ClusterResource) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *ClusterResourceList) Items() []*ClusterResource {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.
