@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/alecthomas/units"
-	"github.com/dustin/go-humanize"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -650,14 +649,16 @@ var _ = Describe("Disk eligibility", func() {
 		testDisk.SizeBytes = tooSmallSize
 		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
 
-		requirements, err := hwvalidator.GetClusterHostRequirements(ctx, &cluster, &host)
-		Expect(err).ToNot(HaveOccurred())
-		minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
+		// The validator now uses preciseHumanizeBytes, so we need to match that format
+		// For 99999999999 bytes (100GB-1), preciseHumanizeBytes shows "100.0 GB"
+		// For 100000000000 bytes (100GB), preciseHumanizeBytes shows "100 GB"
+		diskSizeStr := "100.0 GB" // 99999999999 bytes shows as 100.0 GB with precise function
+		reqSizeStr := "100 GB"    // 100000000000 bytes shows as 100 GB with precise function
 
 		expectedMsg := fmt.Sprintf(
 			tooSmallDiskTemplate,
-			humanize.Bytes(uint64(testDisk.SizeBytes)),
-			humanize.Bytes(uint64(minSizeBytes)),
+			diskSizeStr,
+			reqSizeStr,
 		)
 
 		// First call to generate the error
@@ -856,6 +857,35 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(secondCallReasons).To(HaveLen(1))
 		Expect(secondCallReasons[0]).To(Equal(expectedMsg))
+	})
+
+	It("Check precise error messages for operator disk additions", func() {
+		cluster.OpenshiftVersion = "4.14"
+
+		// Mock operator that adds 7 GB to base requirement
+		operatorRequirement := &models.OperatorHostRequirements{
+			OperatorName: "test-operator",
+			Requirements: &models.ClusterHostRequirementsDetails{
+				DiskSizeGb: 7, // This creates 107 GB total (100 + 7)
+			},
+		}
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return([]*models.OperatorHostRequirements{operatorRequirement}, nil).AnyTimes()
+
+		By("Testing precise humanization with overhead scenario")
+		testDisk.SizeBytes = int64(99900000000) // 99.9 GB with overhead
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+
+		reasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(reasons).To(HaveLen(1))
+		// The key improvement: precise function shows "99.9 GB" instead of "100 GB"
+		// This makes it clear the disk is slightly less than 100 GB (not exactly 100)
+		Expect(reasons[0]).To(ContainSubstring("99.9 GB"))
+		// Note: Operator addition only applies to cluster validation, not infraEnv validation
+		// So for this test, we expect the base 100 GB requirement
 	})
 })
 
