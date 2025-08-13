@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	modelvalidations "github.com/openshift/assisted-service/models/validations"
 )
 
 var _ = Describe("URL validations", func() {
@@ -288,7 +289,7 @@ var _ = Describe("dns name", func() {
 	for _, t := range tests {
 		t := t
 		It(fmt.Sprintf("Domain name \"%s\" - testing: \"%s\"", t.domainName, t.reason), func() {
-			_, err := ValidateDomainNameFormat(t.domainName)
+			_, err := modelvalidations.ValidateDomainNameFormat(t.domainName)
 			if t.valid {
 				Expect(err).ToNot(HaveOccurred())
 			} else {

@@ -9,8 +9,8 @@ import (
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
+	modelvalidations "github.com/openshift/assisted-service/models/validations"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-	"github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -197,7 +197,7 @@ func (h *handler) GetDNSDomain(clusterName, baseDNSDomainName string) (*DNSDomai
 // up to 63 bytes. A single char may occupy more than one byte in Internationalized Domain Names (IDNs).
 func (h *handler) ValidateDNSName(clusterName, baseDNSDomainName string) error {
 	appsDomainNameSuffix := fmt.Sprintf(appsDomainNameFormat, clusterName, baseDNSDomainName)
-	apiErrorCode, err := validations.ValidateDomainNameFormat(baseDNSDomainName)
+	apiErrorCode, err := modelvalidations.ValidateDomainNameFormat(baseDNSDomainName)
 	if err != nil {
 		return common.NewApiError(apiErrorCode, err)
 	}
