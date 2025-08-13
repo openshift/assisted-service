@@ -178,6 +178,9 @@ var Options struct {
 
 	// SlowClusterMonitorLogThreshold defines the duration after which clusters that take too long to process will be logged
 	SlowClusterMonitorLogThreshold time.Duration `envconfig:"SLOW_CLUSTER_MONITOR_LOG_THRESHOLD" default:"1s"`
+
+	// SlowHostMonitorLogThreshold defines the duration after which hosts that take too long to process will be logged
+	SlowHostMonitorLogThreshold time.Duration `envconfig:"SLOW_HOST_MONITOR_LOG_THRESHOLD" default:"1s"`
 }
 
 func InitLogs(logLevel, logFormat string) *logrus.Logger {
@@ -323,6 +326,7 @@ func main() {
 			Directories: []string{Options.WorkDir},
 		},
 		ClusterMonitorSlowLogThreshold: Options.SlowClusterMonitorLogThreshold,
+		HostMonitorSlowLogThreshold:    Options.SlowHostMonitorLogThreshold,
 	}
 	diskStatsHelper := metrics.NewOSDiskStatsHelper(log)
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler, diskStatsHelper, metricsManagerConfig, log)

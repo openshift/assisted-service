@@ -181,8 +181,8 @@ func (m *Manager) clusterHostMonitoring() {
 				log.Debug("Started refreshing host status")
 				err = m.refreshStatusInternal(ctx, host, c, nil, inventoryCache, m.db)
 
-				duration := float64(time.Since(startTime).Milliseconds())
-				m.metricApi.MonitoredHostsDurationMs(duration)
+				duration := time.Since(startTime)
+				m.metricApi.MonitoredHostsDurationMs(ctx, *host.ID, c.ID, duration)
 				if err != nil {
 					log.WithError(err).Error("failed to refresh host state")
 				}
@@ -245,8 +245,8 @@ func (m *Manager) infraEnvHostMonitoring() {
 				if funk.ContainsString(monitorStates, swag.StringValue(host.Status)) {
 					startTime := time.Now()
 					err = m.refreshStatusInternal(ctx, &host.Host, nil, i, inventoryCache, m.db)
-					duration := float64(time.Since(startTime).Milliseconds())
-					m.metricApi.MonitoredHostsDurationMs(duration)
+					duration := time.Since(startTime)
+					m.metricApi.MonitoredHostsDurationMs(ctx, *host.ID, nil, duration)
 					if err != nil {
 						log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
 					}
