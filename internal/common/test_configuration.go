@@ -645,3 +645,26 @@ func FormatStaticConfigHostYAML(nicPrimary, nicSecondary, ip4Master, ip4Secondar
 	output, _ := yaml.Marshal(staticNetworkConfig)
 	return &models.HostStaticNetworkConfig{MacInterfaceMap: macInterfaceMap, NetworkYaml: string(output)}
 }
+
+func GenerateTestInventoryWithUnnormalizedIPv6() string {
+	inventory := &models.Inventory{
+		CPU: &models.CPU{
+			Architecture: models.ClusterCPUArchitectureX8664,
+		},
+		Interfaces: []*models.Interface{
+			{
+				IPV6Addresses: []string{
+					"2A00:8A00:4000:0d80::1/64",
+				},
+			},
+		},
+		Disks: []*models.Disk{
+			TestDefaultConfig.Disks,
+		},
+		Routes: TestDefaultRouteConfiguration,
+	}
+
+	b, err := json.Marshal(inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}

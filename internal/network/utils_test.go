@@ -1066,3 +1066,32 @@ var _ = Describe("FindSourceIPInMachineNetwork", func() {
 		Entry("source IP doesn't in machine network", "eth0", &models.MachineNetwork{Cidr: "192.168.10.1/24"}, []*models.Interface{{IPV4Addresses: []string{"192.168.11.2/24"}, Name: "eth0"}}, ""),
 	)
 })
+
+var _ = Describe("NormalizeCIDR", func() {
+	It("Normalizes a CIDR", func() {
+		cidr := "2A00:8A00:4000:0d80::/64"
+		expected := "2a00:8a00:4000:d80::/64"
+		actual, err := NormalizeCIDR(cidr)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actual).To(Equal(expected))
+	})
+	It("Normalizes a CIDR - no change", func() {
+		cidr := "192.168.1.0/24"
+		expected := "192.168.1.0/24"
+		actual, err := NormalizeCIDR(cidr)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actual).To(Equal(expected))
+	})
+	It("Empty CIDR", func() {
+		cidr := ""
+		expected := ""
+		actual, err := NormalizeCIDR(cidr)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actual).To(Equal(expected))
+	})
+	It("Invalid CIDR", func() {
+		cidr := "invalid"
+		_, err := NormalizeCIDR(cidr)
+		Expect(err).To(HaveOccurred())
+	})
+})
