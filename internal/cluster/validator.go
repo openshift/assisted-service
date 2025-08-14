@@ -137,8 +137,14 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 		c.calculateCidr = cidr
 		machineCidrAvailable := network.IsMachineCidrAvailable(c.cluster)
 		if machineCidrAvailable {
-			if cidr != network.GetMachineCidrById(c.cluster, i) {
-				multiErr = multierror.Append(multiErr, errors.Errorf("The Cluster Machine CIDR %s is different than the calculated CIDR %s.", network.GetMachineCidrById(c.cluster, i), c.calculateCidr))
+			userMachineCidr := network.GetMachineCidrById(c.cluster, i)
+			normalizedUserMachineCidr, err := network.NormalizeCIDR(userMachineCidr)
+			if err != nil {
+				multiErr = multierror.Append(multiErr, errors.Wrapf(err, "failed to normalize user machine CIDR %s", userMachineCidr))
+				continue
+			}
+			if cidr != normalizedUserMachineCidr {
+				multiErr = multierror.Append(multiErr, errors.Errorf("The Cluster Machine CIDR %s is different than the calculated CIDR %s.", userMachineCidr, c.calculateCidr))
 			}
 		}
 	}
