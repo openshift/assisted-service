@@ -3,6 +3,8 @@ package system
 import (
 	"os"
 	"strings"
+
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 const (
@@ -12,6 +14,7 @@ const (
 //go:generate mockgen -source=system.go -package=system -destination=mock_system.go
 type SystemInfo interface {
 	FIPSEnabled() (bool, error)
+	GetSystemCABundle() ([]byte, error)
 }
 
 type fileReader func(name string) ([]byte, error)
@@ -43,4 +46,8 @@ func (s *localSystemInfo) FIPSEnabled() (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (s *localSystemInfo) GetSystemCABundle() ([]byte, error) {
+	return s.fileReader(common.SystemCertificateBundlePath)
 }

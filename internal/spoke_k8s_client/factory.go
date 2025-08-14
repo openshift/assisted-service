@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/system"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -23,21 +25,26 @@ type SpokeK8sClientFactory interface {
 type spokeK8sClientFactory struct {
 	logger           logrus.FieldLogger
 	transportWrapper func(http.RoundTripper) http.RoundTripper
+	sys              system.SystemInfo
 }
 
 // NewFactory creates a spoke client factory. The logger and the hubClient are mandatory, the transport wrappers are
 // optional.
 func NewFactory(logger logrus.FieldLogger,
-	transportWrapper func(http.RoundTripper) http.RoundTripper) (SpokeK8sClientFactory, error) {
+	transportWrapper func(http.RoundTripper) http.RoundTripper, sys system.SystemInfo) (SpokeK8sClientFactory, error) {
 	// Check parameters:
 	if logger == nil {
 		return nil, errors.New("logger is mandatory")
+	}
+	if sys == nil {
+		return nil, errors.New("sys is mandatory")
 	}
 
 	// Create and populate the object:
 	result := &spokeK8sClientFactory{
 		logger:           logger,
 		transportWrapper: transportWrapper,
+		sys:              sys,
 	}
 	return result, nil
 }
@@ -53,6 +60,13 @@ func (f *spokeK8sClientFactory) ClientAndSetFromSecret(deployment *hivev1.Cluste
 	// Create the REST configuration from the content of the secret:
 	restConfig, err := f.restConfigFromSecret(secret)
 	if err != nil {
+		return nil, nil, err
+	}
+
+	// If the cluster's API certificates were changed, the existing kubeconfig will receive certificate errors.
+	// So we merge the system CA bundle (created by the AgentServiceConfig controller) into the rest config.
+	if err = f.mergeSystemCABundleIntoRestConfig(restConfig); err != nil {
+		f.logger.WithError(err).Error("failed to merge system CA bundle with rest config")
 		return nil, nil, err
 	}
 
@@ -92,6 +106,21 @@ func (f *spokeK8sClientFactory) ClientAndSetFromSecret(deployment *hivev1.Cluste
 		nodesClient: clientSet.CoreV1().Nodes(),
 	}
 	return result, clientSet, nil
+}
+
+func (f *spokeK8sClientFactory) mergeSystemCABundleIntoRestConfig(restConfig *rest.Config) error {
+	sysPEM, err := f.sys.GetSystemCABundle()
+	if err != nil {
+		return err
+	}
+
+	bundle := string(restConfig.CAData) + "\n" + string(sysPEM)
+	caBundle, _, err := common.RemoveDuplicatesFromCaBundle(bundle)
+	if err != nil {
+		return err
+	}
+	restConfig.CAData = []byte(caBundle)
+	return nil
 }
 
 func (f *spokeK8sClientFactory) restConfigFromSecret(secret *corev1.Secret) (*rest.Config, error) {
