@@ -466,12 +466,20 @@ func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv 
 	}
 
 	if osImageVersion != "" {
-		if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture); err != nil {
-			msg := "Specified OSImageVersion is missing from AgentServiceConfig"
-			log.WithError(err).Error(msg)
-			return "", common.NewApiError(http.StatusNotFound, errors.New(msg))
+		// Check if we have any OS images configured before trying to validate
+		availableVersions := r.OsImages.GetOpenshiftVersions()
+		if len(availableVersions) == 0 {
+			// No OS images configured - allow the specified OS version for qcow2 bootstrapping
+			log.Infof("No OS images configured, allowing specified OSImageVersion %s for qcow2 bootstrapping", osImageVersion)
+			return osImageVersion, nil
+		} else {
+			if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture); err != nil {
+				msg := "Specified OSImageVersion is missing from AgentServiceConfig"
+				log.WithError(err).Error(msg)
+				return "", common.NewApiError(http.StatusNotFound, errors.New(msg))
+			}
+			return osImageVersion, nil
 		}
-		return osImageVersion, nil
 	}
 
 	return "", nil
@@ -719,17 +727,40 @@ func generateStaticNetworkConfigDownloadURL(baseURL string, infraEnvId string, a
 func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
 
-	osImage, err := r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
+	var bootArtifactURLs *imageservice.BootArtifactURLs
+	var err error
 
-	bootArtifactURLs, err := imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+	// Check if we have any OS images configured at all
+	availableVersions := r.OsImages.GetOpenshiftVersions()
+	if len(availableVersions) == 0 {
+		// No OS images configured - likely using qcow2 bootstrapping (e.g., OACP)
+		// Skip boot artifacts URL generation as they won't be needed
+		log.Infof("No OS images configured, skipping boot artifacts URL generation for InfraEnv (suitable for qcow2 bootstrapping)")
+		// Clear any existing boot artifacts URLs
+		infraEnv.Status.BootArtifacts.KernelURL = ""
+		infraEnv.Status.BootArtifacts.RootfsURL = ""
+		infraEnv.Status.BootArtifacts.InitrdURL = ""
+		// Create empty boot artifact URLs for later use
+		bootArtifactURLs = &imageservice.BootArtifactURLs{
+			KernelURL: "",
+			RootFSURL: "",
+			InitrdURL: "",
+		}
+	} else {
+		// Normal case: generate boot artifacts URLs
+		osImage, err := r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
+		if err != nil {
+			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
+
+		bootArtifactURLs, err = imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs)
+		if err != nil {
+			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
+		infraEnv.Status.BootArtifacts.KernelURL = bootArtifactURLs.KernelURL
+		infraEnv.Status.BootArtifacts.RootfsURL = bootArtifactURLs.RootFSURL
+		infraEnv.Status.BootArtifacts.InitrdURL = bootArtifactURLs.InitrdURL
 	}
-	infraEnv.Status.BootArtifacts.KernelURL = bootArtifactURLs.KernelURL
-	infraEnv.Status.BootArtifacts.RootfsURL = bootArtifactURLs.RootFSURL
 
 	var isoUpdated bool
 	if infraEnv.Status.ISODownloadURL != internalInfraEnv.DownloadURL {

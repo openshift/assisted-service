@@ -1266,7 +1266,7 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"CONTROLLER_IMAGE":       ControllerImage(),
 			"INSTALLER_IMAGE":        InstallerImage(),
 			"SELF_VERSION":           ServiceImage(asc.Object),
-			"OS_IMAGES":              getOSImages(log, asc.spec),
+			"OS_IMAGES":              getOSImages(log, asc.spec, asc.Object.GetAnnotations()),
 			"MUST_GATHER_IMAGES":     getMustGatherImages(log, asc.spec),
 			"ISO_IMAGE_TYPE":         "minimal-iso",
 			"S3_USE_SSL":             "false",
@@ -1420,7 +1420,7 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 	imageServiceBaseURL := getImageService(ctx, log, asc)
 	containerEnv := []corev1.EnvVar{
 		{Name: "LISTEN_PORT", Value: imageHandlerPort.String()},
-		{Name: "RHCOS_VERSIONS", Value: getOSImages(log, asc.spec)},
+		{Name: "RHCOS_VERSIONS", Value: getOSImages(log, asc.spec, asc.Object.GetAnnotations())},
 		{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + asc.namespace + ".svc:" + servicePort.String()},
 		{Name: "IMAGE_SERVICE_BASE_URL", Value: imageServiceBaseURL},
 		{Name: "INSECURE_SKIP_VERIFY", Value: skipVerifyTLS},
@@ -2243,17 +2243,26 @@ func getMustGatherImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceCon
 // getOSImages returns the value of OS_IMAGES variable
 // to be stored in the service's ConfigMap
 //
-//  1. If osImages field is not present in the AgentServiceConfig's Spec
+//  1. If agent-install.openshift.io/disable-iso-downloads annotation is "true",
+//     it returns an empty JSON array to prevent ISO downloads.
+//
+//  2. If osImages field is not present in the AgentServiceConfig's Spec
 //     it returns the value of OS_IMAGES env variable.
 //     This is also the fallback behavior in case of a processing error.
 //
-//  2. If osImages field is present in the AgentServiceConfig's Spec it
+//  3. If osImages field is present in the AgentServiceConfig's Spec it
 //     converts the structure to the one that can be recognize by the service
 //     and returns it as a JSON string.
 //
-//  3. In case both sources are present, the Spec values overrides the env
+//  4. In case both sources are present, the Spec values overrides the env
 //     values.
-func getOSImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec) string {
+func getOSImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec, annotations map[string]string) string {
+	// Check annotation first to disable ISO downloads
+	if annotations["agent-install.openshift.io/disable-iso-downloads"] == "true" {
+		log.Info("ISO downloads disabled via annotation, returning empty JSON array to prevent ISO downloads")
+		return "[]"
+	}
+
 	if spec.OSImages == nil {
 		return OSImages()
 	}

@@ -2297,34 +2297,53 @@ var _ = Describe("getOSImages", func() {
 	)
 
 	tests := []struct {
-		name     string
-		spec     []aiv1beta1.OSImage
-		env      models.OsImages
-		expected string
+		name        string
+		spec        []aiv1beta1.OSImage
+		env         models.OsImages
+		annotations map[string]string
+		expected    string
 	}{
 		{
-			name:     "spec is empty - return the env configuration",
-			spec:     nil,
-			env:      defaultEnvOsImages,
-			expected: env2string(),
+			name:        "spec is empty - return the env configuration",
+			spec:        nil,
+			env:         defaultEnvOsImages,
+			annotations: nil,
+			expected:    env2string(),
 		},
 		{
-			name:     "images in spec - return the spec configuration",
-			spec:     defaultSpecOsImages,
-			env:      nil,
-			expected: spec2string(),
+			name:        "images in spec - return the spec configuration",
+			spec:        defaultSpecOsImages,
+			env:         nil,
+			annotations: nil,
+			expected:    spec2string(),
 		},
 		{
-			name:     "both sources - return the spec configuration",
-			spec:     defaultSpecOsImages,
-			env:      defaultEnvOsImages,
-			expected: spec2string(),
+			name:        "both sources - return the spec configuration",
+			spec:        defaultSpecOsImages,
+			env:         defaultEnvOsImages,
+			annotations: nil,
+			expected:    spec2string(),
 		},
 		{
-			name:     "both empty - return empty string",
-			spec:     nil,
-			env:      nil,
-			expected: "",
+			name:        "both empty - return empty string",
+			spec:        nil,
+			env:         nil,
+			annotations: nil,
+			expected:    "",
+		},
+		{
+			name:        "spec is empty slice - return default (Kubernetes nil behavior)",
+			spec:        []aiv1beta1.OSImage{},
+			env:         defaultEnvOsImages,
+			annotations: nil,
+			expected:    env2string(),
+		},
+		{
+			name:        "annotation disables ISO downloads - return empty array",
+			spec:        defaultSpecOsImages,
+			env:         defaultEnvOsImages,
+			annotations: map[string]string{"agent-install.openshift.io/disable-iso-downloads": "true"},
+			expected:    "[]",
 		},
 	}
 
@@ -2343,11 +2362,16 @@ var _ = Describe("getOSImages", func() {
 			}
 			// setup OSImages spec configuration
 			asc.Spec.OSImages = t.spec
+			// setup annotations
+			annotations := t.annotations
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
 			// verify the result
 			if t.expected != "" {
-				Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(t.expected))
+				Expect(getOSImages(log, &asc.Spec, annotations)).To(MatchJSON(t.expected))
 			} else {
-				Expect(getOSImages(log, &asc.Spec)).To(Equal(""))
+				Expect(getOSImages(log, &asc.Spec, annotations)).To(Equal(""))
 			}
 		})
 	}
@@ -2370,31 +2394,31 @@ var _ = Describe("getOSImages", func() {
 			defer os.Unsetenv(OsImagesEnvVar)
 
 			asc = newASCDefault()
-			Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(expectedEnv))
+			Expect(getOSImages(log, &asc.Spec, make(map[string]string))).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with OS images specified", func() {
 		It("should build OS images", func() {
 			asc, expectedEnv = newASCWithOSImages()
-			Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(expectedEnv))
+			Expect(getOSImages(log, &asc.Spec, make(map[string]string))).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with multiple OS images specified", func() {
 		It("should build OS images with multiple keys", func() {
 			asc, expectedEnv = newASCWithMultipleOpenshiftVersions()
-			Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(expectedEnv))
+			Expect(getOSImages(log, &asc.Spec, make(map[string]string))).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with duplicate OS images specified", func() {
 		It("should take the last specified version", func() {
 			asc, expectedEnv = newASCWithDuplicateOpenshiftVersions()
-			Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(expectedEnv))
+			Expect(getOSImages(log, &asc.Spec, make(map[string]string))).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with OS images x.y.z specified", func() {
 		It("should only specify x.y", func() {
 			asc, expectedEnv = newASCWithLongOpenshiftVersion()
-			Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(expectedEnv))
+			Expect(getOSImages(log, &asc.Spec, make(map[string]string))).To(MatchJSON(expectedEnv))
 		})
 	})
 })

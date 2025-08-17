@@ -491,9 +491,21 @@ func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, para
 
 	// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
 	// what is going to be the architecture of InfraEnv and Agent.
+	// Also skip validation when no OS images are configured (e.g., qcow2 bootstrapping with OACP)
 	if len(releaseImage.CPUArchitectures) == 1 {
 		releaseVersion := *releaseImage.OpenshiftVersion
 		releaseArch := releaseImage.CPUArchitectures[0]
+
+		// Check if we have any OS images configured at all
+		availableVersions := b.osImages.GetOpenshiftVersions()
+		if len(availableVersions) == 0 {
+			// No OS images configured - likely using qcow2 bootstrapping (e.g., OACP)
+			// Skip OS image validation as images will be provided via qcow2 instead of ISO
+			logutil.FromContext(ctx, b.log).Infof("No OS images configured, skipping OS image validation for cluster registration (suitable for qcow2 bootstrapping)")
+			return releaseImage, nil
+		}
+
+		// Normal case: validate OS images are available
 		var osImage *models.OsImage
 		osImage, err = b.osImages.GetOsImage(releaseVersion, releaseArch)
 		if err != nil || osImage.URL == nil {
@@ -502,6 +514,14 @@ func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, para
 	}
 
 	return releaseImage, nil
+}
+
+func (b *bareMetalInventory) getOpenshiftVersionForInfraEnv(osImage *models.OsImage, fallbackVersion string) string {
+	if osImage != nil && osImage.OpenshiftVersion != nil {
+		return *osImage.OpenshiftVersion
+	}
+	// When no OS image is available (e.g., qcow2 bootstrapping), use the requested version
+	return fallbackVersion
 }
 
 func MarshalNewClusterParamsNoPullSecret(params installer.V2RegisterClusterParams, log *logrus.Entry) []byte {
@@ -1128,6 +1148,15 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 
 	updates["type"] = imageType
 	infraEnv.Type = common.ImageTypePtr(imageType)
+
+	// Check if we have any OS images configured before trying to get OS image for image generation
+	availableVersions := b.osImages.GetOpenshiftVersions()
+	if len(availableVersions) == 0 {
+		// No OS images configured - skip image generation for qcow2 bootstrapping (e.g., OACP)
+		// In this case, no actual ISO needs to be generated
+		logutil.FromContext(ctx, b.log).Infof("No OS images configured, skipping image generation for InfraEnv %s (suitable for qcow2 bootstrapping)", infraEnv.ID)
+		return nil
+	}
 
 	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
@@ -4856,9 +4885,20 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 		}
 
 		var osImage *models.OsImage
-		osImage, err = b.osImages.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
-		if err != nil {
-			return common.NewApiError(http.StatusBadRequest, err)
+
+		// Check if we have any OS images configured at all
+		availableVersions := b.osImages.GetOpenshiftVersions()
+		if len(availableVersions) == 0 {
+			// No OS images configured - likely using qcow2 bootstrapping (e.g., OACP)
+			// Skip OS image validation as images will be provided via qcow2 instead of ISO
+			logutil.FromContext(ctx, b.log).Infof("No OS images configured, skipping OS image validation for InfraEnv registration (suitable for qcow2 bootstrapping)")
+			osImage = nil // Set to nil to indicate no OS image needed
+		} else {
+			// Normal case: get OS image for InfraEnv
+			osImage, err = b.osImages.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
+			if err != nil {
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
 		}
 
 		if kubeKey == nil {
@@ -4896,7 +4936,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 				UserName:               ocm.UserNameFromContext(ctx),
 				OrgID:                  ocm.OrgIDFromContext(ctx),
 				EmailDomain:            ocm.EmailDomainFromContext(ctx),
-				OpenshiftVersion:       *osImage.OpenshiftVersion,
+				OpenshiftVersion:       b.getOpenshiftVersionForInfraEnv(osImage, params.InfraenvCreateParams.OpenshiftVersion),
 				IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
 				StaticNetworkConfig:    staticNetworkConfig,
 				Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
@@ -5250,9 +5290,15 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			openshiftVersion = *params.InfraEnvUpdateParams.OpenshiftVersion
 		}
 
-		_, err = b.osImages.GetOsImageOrLatest(openshiftVersion, infraEnv.CPUArchitecture)
-		if err != nil {
-			return common.NewApiError(http.StatusBadRequest, err)
+		// Check if we have any OS images configured before trying to validate
+		availableVersions := b.osImages.GetOpenshiftVersions()
+		if len(availableVersions) == 0 {
+			logutil.FromContext(ctx, b.log).Infof("No OS images configured, skipping OS image validation for InfraEnv update (suitable for qcow2 bootstrapping)")
+		} else {
+			_, err = b.osImages.GetOsImageOrLatest(openshiftVersion, infraEnv.CPUArchitecture)
+			if err != nil {
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
 		}
 
 		if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, openshiftVersion); err != nil {

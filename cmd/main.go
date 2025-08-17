@@ -277,6 +277,13 @@ func main() {
 	}
 	failOnError(json.Unmarshal([]byte(Options.OsImages), &osImagesArray),
 		"Failed to parse OS_IMAGES json %s", Options.OsImages)
+
+	// Allow empty OS images array when using qcow2 bootstrapping (e.g., with OACP)
+	// This prevents ISO downloads when they're not needed
+	if len(osImagesArray) == 0 && Options.OsImages == "[]" {
+		log.Info("OS_IMAGES is explicitly set to empty array - no OS images will be managed (suitable for qcow2 bootstrapping)")
+	}
+
 	osImages, err := versions.NewOSImages(osImagesArray)
 	failOnError(err, "Failed to initialize OSImages")
 

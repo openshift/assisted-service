@@ -25,9 +25,12 @@ type OSImages interface {
 type osImageList models.OsImages
 
 func NewOSImages(images models.OsImages) (OSImages, error) {
+	// Allow empty OS images array when using qcow2 bootstrapping (e.g., with OACP)
+	// This prevents ISO downloads when they're not needed
 	if len(images) == 0 {
-		return nil, errors.New("No OS images provided")
+		return osImageList(images), nil // Return valid empty implementation
 	}
+
 	for _, osImage := range images {
 		if err := validateOSImage(osImage); err != nil {
 			return nil, err
