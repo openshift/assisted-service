@@ -633,11 +633,16 @@ func (r *InfraEnvReconciler) populateEventsURL(log logrus.FieldLogger, infraEnv 
 }
 
 func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.InfraEnv, initrdURL, infraEnvID string) error {
-	signedInitrdURL, err := signURL(initrdURL, r.AuthType, infraEnvID, gencrypto.InfraEnvKey)
-	if err != nil {
-		return err
+	// Skip signing if initrdURL is empty (e.g., when no OS images are configured)
+	if initrdURL == "" {
+		infraEnv.Status.BootArtifacts.InitrdURL = ""
+	} else {
+		signedInitrdURL, err := signURL(initrdURL, r.AuthType, infraEnvID, gencrypto.InfraEnvKey)
+		if err != nil {
+			return err
+		}
+		infraEnv.Status.BootArtifacts.InitrdURL = signedInitrdURL
 	}
-	infraEnv.Status.BootArtifacts.InitrdURL = signedInitrdURL
 
 	builder := &installer.V2DownloadInfraEnvFilesURL{
 		InfraEnvID: strfmt.UUID(infraEnvID),
@@ -793,6 +798,14 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		if r.populateEventsURL(log, infraEnv, internalInfraEnv) != nil {
 			return ctrl.Result{Requeue: true}, nil
 		}
+	}
+
+	// For qcow2 bootstrapping scenarios (osImages = []), set createdTime when discoveryIgnitionURL is available
+	// This allows CAPI provider to consider the infraenv ready even without ISO generation
+	if len(availableVersions) == 0 && infraEnv.Status.CreatedTime == nil && infraEnv.Status.BootArtifacts.DiscoveryIgnitionURL != "" {
+		log.Infof("No OS images configured but discoveryIgnitionURL is available - setting createdTime for qcow2 bootstrapping compatibility")
+		now := metav1.NewTime(time.Now())
+		infraEnv.Status.CreatedTime = &now
 	}
 
 	conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
