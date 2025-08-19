@@ -46,6 +46,11 @@ func (c *downloadBootArtifactsCmd) GetSteps(ctx context.Context, host *models.Ho
 	if err != nil {
 		return nil, err
 	}
+	// Only validate OS image if image service is enabled
+	if osImages := c.osImages.GetOpenshiftVersions(); len(osImages) == 0 {
+		return nil, errors.New("image service is disabled")
+	}
+
 	osImage, err := c.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return nil, err
