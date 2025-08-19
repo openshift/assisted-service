@@ -93,6 +93,25 @@ type InfraEnvReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=nmstateconfigs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs,verbs=get;list;watch
+
+// isImageServiceDisabled checks if the image service is disabled via AgentServiceConfig annotation
+func (r *InfraEnvReconciler) isImageServiceDisabled(ctx context.Context) bool {
+	asc := &aiv1beta1.AgentServiceConfig{}
+	err := r.APIReader.Get(ctx, types.NamespacedName{Name: AgentServiceConfigName}, asc)
+	if err != nil {
+		// If we can't get the AgentServiceConfig, assume image service is enabled
+		return false
+	}
+
+	annotations := asc.GetAnnotations()
+	if annotations == nil {
+		return false
+	}
+
+	value := annotations[disableImageServiceAnnotation]
+	return value == "true"
+}
 
 func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
@@ -466,10 +485,13 @@ func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv 
 	}
 
 	if osImageVersion != "" {
-		if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture); err != nil {
-			msg := "Specified OSImageVersion is missing from AgentServiceConfig"
-			log.WithError(err).Error(msg)
-			return "", common.NewApiError(http.StatusNotFound, errors.New(msg))
+		// Only validate OS image if image service is enabled
+		if osImages := r.OsImages.GetOpenshiftVersions(); len(osImages) > 0 {
+			if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture); err != nil {
+				msg := "Specified OSImageVersion is missing from AgentServiceConfig"
+				log.WithError(err).Error(msg)
+				return "", common.NewApiError(http.StatusNotFound, errors.New(msg))
+			}
 		}
 		return osImageVersion, nil
 	}
@@ -718,26 +740,39 @@ func generateStaticNetworkConfigDownloadURL(baseURL string, infraEnvId string, a
 
 func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
-
-	osImage, err := r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
-
-	bootArtifactURLs, err := imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
-	infraEnv.Status.BootArtifacts.KernelURL = bootArtifactURLs.KernelURL
-	infraEnv.Status.BootArtifacts.RootfsURL = bootArtifactURLs.RootFSURL
-
+	var err error
+	var bootArtifactURLs *imageservice.BootArtifactURLs
 	var isoUpdated bool
-	if infraEnv.Status.ISODownloadURL != internalInfraEnv.DownloadURL {
-		log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, internalInfraEnv.DownloadURL)
-		infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
+
+	// Update CreatedTime if it's nil (first time)
+	if infraEnv.Status.CreatedTime == nil {
 		imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
 		infraEnv.Status.CreatedTime = &imageCreatedAt
 		isoUpdated = true
+	}
+
+	// Only update URLs if image service is not disabled
+	if !r.isImageServiceDisabled(ctx) {
+		osImage, err := r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
+		if err != nil {
+			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
+
+		bootArtifactURLs, err = imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs)
+		if err != nil {
+			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
+		infraEnv.Status.BootArtifacts.KernelURL = bootArtifactURLs.KernelURL
+		infraEnv.Status.BootArtifacts.RootfsURL = bootArtifactURLs.RootFSURL
+
+		if infraEnv.Status.ISODownloadURL != internalInfraEnv.DownloadURL {
+			log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, internalInfraEnv.DownloadURL)
+			infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
+			// Update CreatedTime when image is created (URL changed)
+			imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
+			infraEnv.Status.CreatedTime = &imageCreatedAt
+			isoUpdated = true
+		}
 	}
 
 	if infraEnv.Status.InfraEnvDebugInfo.StaticNetworkDownloadURL == "" && internalInfraEnv.StaticNetworkConfig != "" {
@@ -747,14 +782,16 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		}
 	}
 
-	// update boot artifacts URL if IPXE insecure setting was changed or if the ISO was updated
-	schemeUpdated, err := r.initrdSchemeChanged(infraEnv.Status.BootArtifacts.InitrdURL)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
-	if schemeUpdated || isoUpdated {
-		if err = r.setSignedBootArtifactURLs(infraEnv, bootArtifactURLs.InitrdURL, internalInfraEnv.ID.String()); err != nil {
+	// update boot artifacts URL if IPXE insecure setting was changed or if the ISO was updated (only if image service is not disabled)
+	if !r.isImageServiceDisabled(ctx) && bootArtifactURLs != nil {
+		schemeUpdated, err := r.initrdSchemeChanged(infraEnv.Status.BootArtifacts.InitrdURL)
+		if err != nil {
 			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
+		if schemeUpdated || isoUpdated {
+			if err = r.setSignedBootArtifactURLs(infraEnv, bootArtifactURLs.InitrdURL, internalInfraEnv.ID.String()); err != nil {
+				return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+			}
 		}
 	}
 

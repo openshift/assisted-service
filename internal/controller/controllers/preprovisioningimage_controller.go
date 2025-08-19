@@ -83,7 +83,26 @@ type PreprovisioningImageReconciler struct {
 // +kubebuilder:rbac:groups=metal3.io,resources=preprovisioningimages/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs/status,verbs=get
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=config.openshift.io,resources=clusterversions,verbs=get;list;watch
+
+// isImageServiceDisabled checks if the image service is disabled via AgentServiceConfig annotation
+func (r *PreprovisioningImageReconciler) isImageServiceDisabled(ctx context.Context) bool {
+	asc := &aiv1beta1.AgentServiceConfig{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: AgentServiceConfigName}, asc)
+	if err != nil {
+		// If we can't get the AgentServiceConfig, assume image service is enabled
+		return false
+	}
+
+	annotations := asc.GetAnnotations()
+	if annotations == nil {
+		return false
+	}
+
+	value := annotations[disableImageServiceAnnotation]
+	return value == "true"
+}
 
 func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
@@ -185,6 +204,12 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 }
 
 func (r *PreprovisioningImageReconciler) handleImageUpdate(ctx context.Context, log logrus.FieldLogger, image *metal3_v1alpha1.PreprovisioningImage, infraEnv *aiv1beta1.InfraEnv) error {
+	// Skip image URL updates if image service is disabled
+	if r.isImageServiceDisabled(ctx) {
+		log.Info("Image service is disabled, skipping image URL updates")
+		return nil
+	}
+
 	bmh, err := r.getBMH(ctx, image)
 	if err != nil {
 		return err
