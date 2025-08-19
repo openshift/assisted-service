@@ -42,15 +42,16 @@ type ICCConfig struct {
 
 type bmoUtils struct {
 	// The methods of this receiver get called once before the cache is initialized hence we check the API directly
-	c              client.Reader
-	osClient       *osclientset.Clientset
-	kubeClient     *kubernetes.Clientset
-	log            logrus.FieldLogger
-	kubeAPIEnabled bool
+	c                   client.Reader
+	osClient            *osclientset.Clientset
+	kubeClient          *kubernetes.Clientset
+	log                 logrus.FieldLogger
+	kubeAPIEnabled      bool
+	imageServiceEnabled bool
 }
 
-func NewBMOUtils(client client.Reader, osClient *osclientset.Clientset, kubeClient *kubernetes.Clientset, log logrus.FieldLogger, kubeAPIEnabled bool) BMOUtils {
-	return &bmoUtils{client, osClient, kubeClient, log, kubeAPIEnabled}
+func NewBMOUtils(client client.Reader, osClient *osclientset.Clientset, kubeClient *kubernetes.Clientset, log logrus.FieldLogger, kubeAPIEnabled bool, imageServiceEnabled bool) BMOUtils {
+	return &bmoUtils{client, osClient, kubeClient, log, kubeAPIEnabled, imageServiceEnabled}
 }
 
 // +kubebuilder:rbac:groups=config.openshift.io,resources=clusteroperators,verbs=get;list;watch
@@ -59,6 +60,10 @@ func NewBMOUtils(client client.Reader, osClient *osclientset.Clientset, kubeClie
 
 // ConvergedFlowAvailable checks the baremetal operator version and returns true if it's equal or higher than the minimal version for converged flow
 func (r *bmoUtils) ConvergedFlowAvailable() bool {
+	if !r.imageServiceEnabled {
+		r.log.Info("Image service is disabled, converged flow not available")
+		return false
+	}
 	key := types.NamespacedName{
 		Name: "baremetal",
 	}
