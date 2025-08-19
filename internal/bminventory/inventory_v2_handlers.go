@@ -811,6 +811,10 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 		return common.GenerateErrorResponder(err)
 	}
 
+	if !b.isImageServiceEnabled() {
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, errors.New("image service is disabled")))
+	}
+
 	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
@@ -999,6 +1003,10 @@ func kernelArgsAppendStr(infraEnv *common.InfraEnv) (string, error) {
 }
 
 func (b *bareMetalInventory) bootIPXEScript(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
+	if !b.isImageServiceEnabled() {
+		return "", errors.New("image service is disabled")
+	}
+
 	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return "", common.NewApiError(http.StatusBadRequest, err)
