@@ -100,7 +100,7 @@ type API interface {
 	DiskSyncDuration(syncDuration int64)
 	ImagePullStatus(imageName, resultStatus string, downloadRate float64)
 	FileSystemUsage(usageInPercentage float64)
-	MonitoredHostsDurationMs(monitoredHostsMillis float64)
+	MonitoredHostsDurationMs(ctx context.Context, hostID strfmt.UUID, clusterID *strfmt.UUID, duration time.Duration)
 	MonitoredClustersDurationMs(ctx context.Context, clusterID strfmt.UUID, duration time.Duration)
 	InstallerCacheGetReleaseCached(releaseId string, cacheHit bool)
 	InstallerCacheReleaseEvicted(success bool)
@@ -145,6 +145,7 @@ type DirectoryUsageMonitorConfig struct {
 type MetricsManagerConfig struct {
 	DirectoryUsageMonitorConfig    DirectoryUsageMonitorConfig
 	ClusterMonitorSlowLogThreshold time.Duration
+	HostMonitorSlowLogThreshold    time.Duration
 }
 
 func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.Handler, diskStatsHelper DiskStatsHelper, metricsManagerConfig *MetricsManagerConfig, log *logrus.Logger) *MetricsManager {
@@ -511,8 +512,12 @@ func (m *MetricsManager) FileSystemUsage(usageInPercentage float64) {
 	m.serviceLogicFilesystemUsagePercentage.WithLabelValues().Set(usageInPercentage)
 }
 
-func (m *MetricsManager) MonitoredHostsDurationMs(monitoredHostsMs float64) {
-	m.serviceLogicMonitoredHostsDurationMs.WithLabelValues().Observe(monitoredHostsMs)
+func (m *MetricsManager) MonitoredHostsDurationMs(ctx context.Context, hostID strfmt.UUID, clusterID *strfmt.UUID, duration time.Duration) {
+	m.serviceLogicMonitoredHostsDurationMs.WithLabelValues().Observe(float64(duration.Milliseconds()))
+	if duration > m.config.HostMonitorSlowLogThreshold {
+		m.handler.V2AddMetricsEvent(ctx, clusterID, &hostID, nil, "", models.EventSeverityInfo, "host_monitor.slow_host", time.Now(),
+			"duration", duration.Milliseconds())
+	}
 }
 
 func (m *MetricsManager) MonitoredClustersDurationMs(ctx context.Context, clusterID strfmt.UUID, duration time.Duration) {
