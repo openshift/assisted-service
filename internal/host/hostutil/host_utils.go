@@ -359,15 +359,20 @@ func GetIgnitionEndpointAndCert(cluster *common.Cluster, host *models.Host, logg
 		poolName = host.MachineConfigPoolName
 	}
 
+	// Determine the certificate to use
+	// Priority order for certificate:
+	// 1. Cluster-level certificate (if provided)
+	// 2. Host-level certificate from ignition config overrides
 	protocol := "http"
 	port := constants.InsecureMCSPort
 	var cert *string
-
+	var err error
 	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.CaCertificate != nil {
 		logger.Infof("Using cluster ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
 		cert = cluster.IgnitionEndpoint.CaCertificate
+		protocol = "https"
+		port = constants.SecureMCSPort
 	} else {
-		var err error
 		cert, err = ignition.GetCACertInIgnition(host.IgnitionConfigOverrides)
 		if err != nil {
 			logger.Errorf("Failed to get Ignition certificate for host %s: %s", host.ID, err)
@@ -382,20 +387,38 @@ func GetIgnitionEndpointAndCert(cluster *common.Cluster, host *models.Host, logg
 		}
 	}
 
-	ignitionEndpointUrl := fmt.Sprintf(
-		"%s://%s/config/%s",
-		protocol,
-		net.JoinHostPort(common.GetAPIHostname(cluster), fmt.Sprint(port)),
-		poolName)
+	// Use custom ignition endpoint if provided
 	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
 		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
 		if err != nil {
 			return "", nil, err
 		}
-
 		url.Path = path.Join(url.Path, poolName)
-		ignitionEndpointUrl = url.String()
+		logger.Infof("Using custom ignition endpoint for cluster %s, host %s: %s",
+			cluster.ID, host.ID, url.String())
+		return url.String(), cert, nil
 	}
+
+	// Determine the hostname
+	// MCS certificates only include "api-int.<cluster>.<domain>" in their SANs,
+	// not "api.<cluster>.<domain>", so for https, we must use api-int.
+	apiVipDNSName := common.GetAPIHostname(cluster)
+	apiHostname := apiVipDNSName
+
+	// When using HTTPS with a certificate, check if we need to use api-int
+	// Check if the API hostname looks like a DNS name (api.cluster.domain)
+	// and convert it to internal endpoint (api-int.cluster.domain)
+	// Replace "api." with "api-int." for internal MCS endpoint
+	if cert != nil && strings.HasPrefix(apiVipDNSName, "api.") {
+		apiHostname = strings.Replace(apiVipDNSName, "api.", fmt.Sprintf("%s.", constants.InternalAPIClusterSubdomain), 1)
+		logger.Infof("Using internal API endpoint for HTTPS MCS connection: %s", apiHostname)
+	}
+	ignitionEndpointUrl := fmt.Sprintf(
+		"%s://%s/config/%s",
+		protocol,
+		net.JoinHostPort(apiHostname, fmt.Sprint(port)),
+		poolName)
+
 	return ignitionEndpointUrl, cert, nil
 }
 
