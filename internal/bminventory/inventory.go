@@ -187,6 +187,7 @@ type InstallerInternals interface {
 	GetInfraEnvInternal(ctx context.Context, params installer.GetInfraEnvParams) (*common.InfraEnv, error)
 	V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) error
 	CreateHostInKubeKeyNamespace(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error
+	GetHostByIdInternal(ctx context.Context, hostId string) (*common.Host, error)
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -6895,4 +6896,8 @@ func extractMirroredRegistriesFromConfig(log logrus.FieldLogger, mirrorRegistryC
 		sourceRegistries = append(sourceRegistries, registry)
 	}
 	return sourceRegistries
+}
+
+func (b *bareMetalInventory) GetHostByIdInternal(ctx context.Context, hostId string) (*common.Host, error) {
+	return common.GetHostFromDBbyHostId(b.db, strfmt.UUID(hostId))
 }
