@@ -47,3 +47,18 @@ func (mr *MockSystemInfoMockRecorder) FIPSEnabled() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FIPSEnabled", reflect.TypeOf((*MockSystemInfo)(nil).FIPSEnabled))
 }
+
+// GetSystemCABundle mocks base method.
+func (m *MockSystemInfo) GetSystemCABundle() ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSystemCABundle")
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSystemCABundle indicates an expected call of GetSystemCABundle.
+func (mr *MockSystemInfoMockRecorder) GetSystemCABundle() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSystemCABundle", reflect.TypeOf((*MockSystemInfo)(nil).GetSystemCABundle))
+}
