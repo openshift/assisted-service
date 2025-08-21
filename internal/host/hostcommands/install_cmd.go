@@ -430,9 +430,12 @@ func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inve
 		dhcp = "dhcp6"
 	}
 
-	netArg := formatNetKarg(nic, dhcp)
-	if !lo.Contains(installerArgs, netArg) {
-		installerArgs = append(installerArgs, "--append-karg", netArg)
+	ifnameArg, ipArg := formatNetKargs(nic, dhcp)
+	if !lo.Contains(installerArgs, ifnameArg) {
+		installerArgs = append(installerArgs, "--append-karg", ifnameArg)
+	}
+	if !lo.Contains(installerArgs, ipArg) {
+		installerArgs = append(installerArgs, "--append-karg", ipArg)
 	}
 
 	return installerArgs, nil
@@ -562,16 +565,17 @@ func getDHCPArgPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, dual
 		if dualStack {
 			dhcp = "dhcp,dhcp6"
 		}
-		netArg := formatNetKarg(nic, dhcp)
-		log.Debugf("Host %s: Added kernel argument %s", hostID, netArg)
-		return append(args, "--append-karg", netArg), nil
+		ifnameArg, ipArg := formatNetKargs(nic, dhcp)
+		log.Debugf("Host %s: Added kernel arguments %s %s", hostID, ifnameArg, ipArg)
+		return append(args, "--append-karg", ifnameArg, "--append-karg", ipArg), nil
 	}
 	return args, nil
 }
 
-func formatNetKarg(nic *models.Interface, arg string) string {
-	macWithDashes := strings.ReplaceAll(nic.MacAddress, ":", "-")
-	return fmt.Sprintf("ip=%s:%s", macWithDashes, arg)
+func formatNetKargs(nic *models.Interface, arg string) (string, string) {
+	ifnameArg := fmt.Sprintf("ifname=%s:%s", nic.Name, nic.MacAddress)
+	ipArg := fmt.Sprintf("ip=%s:%s", nic.Name, arg)
+	return ifnameArg, ipArg
 }
 
 func findAnyInCIDR(network *net.IPNet, addresses []string) (bool, error) {
