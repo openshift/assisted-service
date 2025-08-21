@@ -29,6 +29,8 @@ var _ = Describe("Manifest generation", func() {
 		Expect(manifests).To(HaveKey("50_amd_gpu_namespace.yaml"))
 		Expect(manifests).To(HaveKey("50_amd_gpu_subscription.yaml"))
 		Expect(manifests).To(HaveKey("50_amd_gpu_operatorgroup.yaml"))
+		Expect(manifests).To(HaveKey("50_amd_gpu_prometheus-role.yaml"))
+		Expect(manifests).To(HaveKey("50_amd_gpu_prometheus-rolebinding.yaml"))
 	})
 
 	It("Generates valid YAML", func() {
