@@ -579,6 +579,20 @@ func (mr *MockAPIMockRecorder) UpdateDomainNameResolution(arg0, arg1, arg2, arg3
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDomainNameResolution", reflect.TypeOf((*MockAPI)(nil).UpdateDomainNameResolution), arg0, arg1, arg2, arg3)
 }
 
+// UpdateFencing mocks base method.
+func (m *MockAPI) UpdateFencing(arg0 context.Context, arg1 *models.Host, arg2 string, arg3 *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateFencing", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateFencing indicates an expected call of UpdateFencing.
+func (mr *MockAPIMockRecorder) UpdateFencing(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFencing", reflect.TypeOf((*MockAPI)(nil).UpdateFencing), arg0, arg1, arg2, arg3)
+}
+
 // UpdateHostname mocks base method.
 func (m *MockAPI) UpdateHostname(arg0 context.Context, arg1 *models.Host, arg2 string, arg3 *gorm.DB) error {
 	m.ctrl.T.Helper()

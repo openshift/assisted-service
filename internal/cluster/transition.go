@@ -535,6 +535,9 @@ func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, sta
 			return false
 		}
 	}
+	if common.IsClusterTopologyTwoNodesWithFencing(sCluster.cluster) {
+		minMasterHostsNeeded = common.AllowedNumberOfMasterHostsInTwoNodesWithFencing
+	}
 
 	// validate masters
 	if numberOfExpectedMasters < minMasterHostsNeeded ||

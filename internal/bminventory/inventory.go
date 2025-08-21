@@ -124,6 +124,7 @@ type Config struct {
 	IPv6Support                         bool              `envconfig:"IPV6_SUPPORT" default:"true"`
 	DiskEncryptionSupport               bool              `envconfig:"DISK_ENCRYPTION_SUPPORT" default:"true"`
 	TNAClustersSupport                  bool              `envconfig:"TNA_CLUSTERS_SUPPORT" default:"false"`
+	TNFClustersSupport                  bool              `envconfig:"TNF_CLUSTERS_SUPPORT" default:"false"`
 	ForceInsecurePolicyJson             bool              `envconfig:"FORCE_INSECURE_POLICY_JSON" default:"false"`
 
 	// InfraEnv ID for the ephemeral installer. Should not be set explicitly.Ephemeral (agent) installer sets this env var
@@ -2028,7 +2029,7 @@ func (b *bareMetalInventory) validateHighAvailabilityWithControlPlaneCount(highA
 	if highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull {
 		var minMasterHostsNeededForInstallation int64 = common.MinMasterHostsNeededForInstallationInHaMode
 		minVersion := common.MinimumVersionForNonStandardHAOCPControlPlane
-		if arbiterClustersSupported && b.TNAClustersSupport {
+		if arbiterClustersSupported && (b.TNAClustersSupport || b.TNFClustersSupport) {
 			minMasterHostsNeededForInstallation = common.MinMasterHostsNeededForInstallationInHaArbiterMode
 			minVersion = common.MinimumVersionForArbiterClusters
 		}
@@ -6384,6 +6385,10 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 		if err != nil {
 			return err
 		}
+		err = b.updateHostFencing(ctx, host, params.HostUpdateParams.FencingCredentials, cluster, tx)
+		if err != nil {
+			return err
+		}
 
 		//get bound cluster
 		if cluster != nil {
@@ -6670,6 +6675,47 @@ func (b *bareMetalInventory) updateHostSkipFormattingDisks(ctx context.Context, 
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostFencing(ctx context.Context, host *common.Host, fencingCredentialsParams *models.FencingCredentialsParams, cluster *common.Cluster, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if fencingCredentialsParams == nil {
+		if b.TNFClustersSupport {
+			log.Infof("No request for fencing credentials update for host %s", host.ID)
+		}
+		return nil
+	}
+	if !b.TNFClustersSupport {
+		err := errors.Errorf("TNF clusters support is disabled, cannot set fencing credentials to host %s in infra-env %s", host.ID, host.InfraEnvID)
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	if cluster == nil || cluster.OpenshiftVersion == "" {
+		err := errors.Errorf("Cannot set fencing credentials to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForTwoNodesWithFencing)
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	fencingClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
+	if err != nil {
+		return err
+	}
+	if !fencingClustersSupported {
+		err = errors.Errorf("Cannot set fencing credentials to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForTwoNodesWithFencing)
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	fencingCredentials, err := json.Marshal(fencingCredentialsParams)
+	if err != nil {
+		log.WithError(err).Errorf("failed to marshal fencing credentials to host <%s> in infra env <%s>", host.ID, host.InfraEnvID)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	err = b.hostApi.UpdateFencing(ctx, &host.Host, string(fencingCredentials), db)
+	if err != nil {
+		log.WithError(err).Errorf("failed to set fencing credentials to host <%s> in infra env <%s>", host.ID, host.InfraEnvID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
 	return nil
 }
 
