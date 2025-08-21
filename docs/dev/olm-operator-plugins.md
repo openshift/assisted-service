@@ -148,3 +148,11 @@ The first return value could be used to specify a set of manifests that will be 
 manifest for creating a new namespace, a new subscription and a new operator group CR for the involved operator.
 
 The second return value it's a manifest used to configure the freshly installed operator, and it will be applied by the ```assisted-installer-controller``` job, only after the cluster have been successfully created and the OLM operators are all ready (currently the ```assisted-installer-controller``` retrieves the whole list of configurations by downloading the ```custom_manifests.json``` file fetched from the Assisted Service).
+
+## General Notes
+
+### Cluster Monitoring
+
+When adding a new operator:
+1. Check the operator's CSV for the ```openshift.io/cluster-monitoring=true``` annotation. If the annotation is present,  add the ```openshift.io/cluster-monitoring=true``` namespace label.
+2. Check if the operator already includes its own Prometheus Role and RoleBinding. If not, add the logic to the installer to create them.
