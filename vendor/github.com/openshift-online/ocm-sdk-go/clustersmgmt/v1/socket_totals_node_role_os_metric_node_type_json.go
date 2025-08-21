@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalSocketTotalsNodeRoleOSMetricNode writes a value of the 'socket_totals_node_role_OS_metric_node' type to the given writer.
 func MarshalSocketTotalsNodeRoleOSMetricNode(object *SocketTotalsNodeRoleOSMetricNode, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSocketTotalsNodeRoleOSMetricNode(object, stream)
-	stream.Flush()
+	WriteSocketTotalsNodeRoleOSMetricNode(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSocketTotalsNodeRoleOSMetricNode writes a value of the 'socket_totals_node_role_OS_metric_node' type to the given stream.
-func writeSocketTotalsNodeRoleOSMetricNode(object *SocketTotalsNodeRoleOSMetricNode, stream *jsoniter.Stream) {
+// WriteSocketTotalsNodeRoleOSMetricNode writes a value of the 'socket_totals_node_role_OS_metric_node' type to the given stream.
+func WriteSocketTotalsNodeRoleOSMetricNode(object *SocketTotalsNodeRoleOSMetricNode, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -46,8 +48,7 @@ func writeSocketTotalsNodeRoleOSMetricNode(object *SocketTotalsNodeRoleOSMetricN
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("socket_totals")
-		writeSocketTotalNodeRoleOSMetricNodeList(object.socketTotals, stream)
-		count++
+		WriteSocketTotalNodeRoleOSMetricNodeList(object.socketTotals, stream)
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeSocketTotalsNodeRoleOSMetricNode(object *SocketTotalsNodeRoleOSMetricN
 // UnmarshalSocketTotalsNodeRoleOSMetricNode reads a value of the 'socket_totals_node_role_OS_metric_node' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSocketTotalsNodeRoleOSMetricNode(source interface{}) (object *SocketTotalsNodeRoleOSMetricNode, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSocketTotalsNodeRoleOSMetricNode(iterator)
+	object = ReadSocketTotalsNodeRoleOSMetricNode(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSocketTotalsNodeRoleOSMetricNode reads a value of the 'socket_totals_node_role_OS_metric_node' type from the given iterator.
-func readSocketTotalsNodeRoleOSMetricNode(iterator *jsoniter.Iterator) *SocketTotalsNodeRoleOSMetricNode {
+// ReadSocketTotalsNodeRoleOSMetricNode reads a value of the 'socket_totals_node_role_OS_metric_node' type from the given iterator.
+func ReadSocketTotalsNodeRoleOSMetricNode(iterator *jsoniter.Iterator) *SocketTotalsNodeRoleOSMetricNode {
 	object := &SocketTotalsNodeRoleOSMetricNode{}
 	for {
 		field := iterator.ReadObject()
@@ -77,7 +75,7 @@ func readSocketTotalsNodeRoleOSMetricNode(iterator *jsoniter.Iterator) *SocketTo
 		}
 		switch field {
 		case "socket_totals":
-			value := readSocketTotalNodeRoleOSMetricNodeList(iterator)
+			value := ReadSocketTotalNodeRoleOSMetricNodeList(iterator)
 			object.socketTotals = value
 			object.bitmap_ |= 1
 		default:

@@ -37,6 +37,11 @@ func (b *QueueListBuilder) Items(values ...*QueueBuilder) *QueueListBuilder {
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *QueueListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *QueueListBuilder) Copy(list *QueueList) *QueueListBuilder {
 	if list == nil || list.items == nil {

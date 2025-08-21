@@ -36,9 +36,12 @@ func NewSubscriptionRegistration() *SubscriptionRegistrationBuilder {
 	return &SubscriptionRegistrationBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *SubscriptionRegistrationBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // ClusterUUID sets the value of the 'cluster_UUID' attribute to the given value.
-//
-//
 func (b *SubscriptionRegistrationBuilder) ClusterUUID(value string) *SubscriptionRegistrationBuilder {
 	b.clusterUUID = value
 	b.bitmap_ |= 1
@@ -46,8 +49,6 @@ func (b *SubscriptionRegistrationBuilder) ClusterUUID(value string) *Subscriptio
 }
 
 // ConsoleURL sets the value of the 'console_URL' attribute to the given value.
-//
-//
 func (b *SubscriptionRegistrationBuilder) ConsoleURL(value string) *SubscriptionRegistrationBuilder {
 	b.consoleURL = value
 	b.bitmap_ |= 2
@@ -55,8 +56,6 @@ func (b *SubscriptionRegistrationBuilder) ConsoleURL(value string) *Subscription
 }
 
 // DisplayName sets the value of the 'display_name' attribute to the given value.
-//
-//
 func (b *SubscriptionRegistrationBuilder) DisplayName(value string) *SubscriptionRegistrationBuilder {
 	b.displayName = value
 	b.bitmap_ |= 4
@@ -73,8 +72,6 @@ func (b *SubscriptionRegistrationBuilder) PlanID(value PlanID) *SubscriptionRegi
 }
 
 // Status sets the value of the 'status' attribute to the given value.
-//
-//
 func (b *SubscriptionRegistrationBuilder) Status(value string) *SubscriptionRegistrationBuilder {
 	b.status = value
 	b.bitmap_ |= 16

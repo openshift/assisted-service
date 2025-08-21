@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readAWSInfrastructureAccessRoleGrantDeleteRequest(request *AWSInfrastructureAccessRoleGrantDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeAWSInfrastructureAccessRoleGrantDeleteRequest(request *AWSInfrastructureAccessRoleGrantDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readAWSInfrastructureAccessRoleGrantDeleteResponse(response *AWSInfrastructureAccessRoleGrantDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeAWSInfrastructureAccessRoleGrantDeleteResponse(response *AWSInfrastructureAccessRoleGrantDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readAWSInfrastructureAccessRoleGrantGetRequest(request *AWSInfrastructureAccessRoleGrantGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeAWSInfrastructureAccessRoleGrantGetRequest(request *AWSInfrastructureAccessRoleGrantGetRequest, writer io.Writer) error {
@@ -46,7 +34,4 @@ func readAWSInfrastructureAccessRoleGrantGetResponse(response *AWSInfrastructure
 	var err error
 	response.body, err = UnmarshalAWSInfrastructureAccessRoleGrant(reader)
 	return err
-}
-func writeAWSInfrastructureAccessRoleGrantGetResponse(response *AWSInfrastructureAccessRoleGrantGetServerResponse, w http.ResponseWriter) error {
-	return MarshalAWSInfrastructureAccessRoleGrant(response.body, w)
 }

@@ -37,6 +37,11 @@ func (b *ClusterOperatorInfoListBuilder) Items(values ...*ClusterOperatorInfoBui
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *ClusterOperatorInfoListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *ClusterOperatorInfoListBuilder) Copy(list *ClusterOperatorInfoList) *ClusterOperatorInfoListBuilder {
 	if list == nil || list.items == nil {

@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalAlertsInfo writes a value of the 'alerts_info' type to the given writer.
 func MarshalAlertsInfo(object *AlertsInfo, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeAlertsInfo(object, stream)
-	stream.Flush()
+	WriteAlertsInfo(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeAlertsInfo writes a value of the 'alerts_info' type to the given stream.
-func writeAlertsInfo(object *AlertsInfo, stream *jsoniter.Stream) {
+// WriteAlertsInfo writes a value of the 'alerts_info' type to the given stream.
+func WriteAlertsInfo(object *AlertsInfo, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -46,8 +48,7 @@ func writeAlertsInfo(object *AlertsInfo, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("alerts")
-		writeAlertInfoList(object.alerts, stream)
-		count++
+		WriteAlertInfoList(object.alerts, stream)
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeAlertsInfo(object *AlertsInfo, stream *jsoniter.Stream) {
 // UnmarshalAlertsInfo reads a value of the 'alerts_info' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalAlertsInfo(source interface{}) (object *AlertsInfo, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readAlertsInfo(iterator)
+	object = ReadAlertsInfo(iterator)
 	err = iterator.Error
 	return
 }
 
-// readAlertsInfo reads a value of the 'alerts_info' type from the given iterator.
-func readAlertsInfo(iterator *jsoniter.Iterator) *AlertsInfo {
+// ReadAlertsInfo reads a value of the 'alerts_info' type from the given iterator.
+func ReadAlertsInfo(iterator *jsoniter.Iterator) *AlertsInfo {
 	object := &AlertsInfo{}
 	for {
 		field := iterator.ReadObject()
@@ -77,7 +75,7 @@ func readAlertsInfo(iterator *jsoniter.Iterator) *AlertsInfo {
 		}
 		switch field {
 		case "alerts":
-			value := readAlertInfoList(iterator)
+			value := ReadAlertInfoList(iterator)
 			object.alerts = value
 			object.bitmap_ |= 1
 		default:

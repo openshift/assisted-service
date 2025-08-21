@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalTokenAuthorizationRequest writes a value of the 'token_authorization_request' type to the given writer.
 func MarshalTokenAuthorizationRequest(object *TokenAuthorizationRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeTokenAuthorizationRequest(object, stream)
-	stream.Flush()
+	WriteTokenAuthorizationRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeTokenAuthorizationRequest writes a value of the 'token_authorization_request' type to the given stream.
-func writeTokenAuthorizationRequest(object *TokenAuthorizationRequest, stream *jsoniter.Stream) {
+// WriteTokenAuthorizationRequest writes a value of the 'token_authorization_request' type to the given stream.
+func WriteTokenAuthorizationRequest(object *TokenAuthorizationRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -47,7 +49,6 @@ func writeTokenAuthorizationRequest(object *TokenAuthorizationRequest, stream *j
 		}
 		stream.WriteObjectField("authorization_token")
 		stream.WriteString(object.authorizationToken)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeTokenAuthorizationRequest(object *TokenAuthorizationRequest, stream *j
 // UnmarshalTokenAuthorizationRequest reads a value of the 'token_authorization_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalTokenAuthorizationRequest(source interface{}) (object *TokenAuthorizationRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readTokenAuthorizationRequest(iterator)
+	object = ReadTokenAuthorizationRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readTokenAuthorizationRequest reads a value of the 'token_authorization_request' type from the given iterator.
-func readTokenAuthorizationRequest(iterator *jsoniter.Iterator) *TokenAuthorizationRequest {
+// ReadTokenAuthorizationRequest reads a value of the 'token_authorization_request' type from the given iterator.
+func ReadTokenAuthorizationRequest(iterator *jsoniter.Iterator) *TokenAuthorizationRequest {
 	object := &TokenAuthorizationRequest{}
 	for {
 		field := iterator.ReadObject()

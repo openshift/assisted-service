@@ -34,8 +34,6 @@ func (o *AlertsInfo) Empty() bool {
 
 // Alerts returns the value of the 'alerts' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *AlertsInfo) Alerts() []*AlertInfo {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.alerts
@@ -45,8 +43,6 @@ func (o *AlertsInfo) Alerts() []*AlertInfo {
 
 // GetAlerts returns the value of the 'alerts' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *AlertsInfo) GetAlerts() (value []*AlertInfo, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -80,6 +76,29 @@ func (l *AlertsInfoList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *AlertsInfoList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *AlertsInfoList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *AlertsInfoList) SetItems(items []*AlertsInfo) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *AlertsInfoList) Items() []*AlertsInfo {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

@@ -19,35 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
+import "io"
 
-	"github.com/openshift-online/ocm-sdk-go/helpers"
-)
-
-func readClusterDeleteRequest(request *ClusterDeleteServerRequest, r *http.Request) error {
-	var err error
-	query := r.URL.Query()
-	request.deprovision, err = helpers.ParseBoolean(query, "deprovision")
-	if err != nil {
-		return err
-	}
-	if request.deprovision == nil {
-		request.deprovision = helpers.NewBoolean(true)
-	}
-	return nil
-}
 func writeClusterDeleteRequest(request *ClusterDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readClusterDeleteResponse(response *ClusterDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeClusterDeleteResponse(response *ClusterDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readClusterGetRequest(request *ClusterGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeClusterGetRequest(request *ClusterGetRequest, writer io.Writer) error {
@@ -58,22 +35,10 @@ func readClusterGetResponse(response *ClusterGetResponse, reader io.Reader) erro
 	response.body, err = UnmarshalCluster(reader)
 	return err
 }
-func writeClusterGetResponse(response *ClusterGetServerResponse, w http.ResponseWriter) error {
-	return MarshalCluster(response.body, w)
-}
-func readClusterHibernateRequest(request *ClusterHibernateServerRequest, r *http.Request) error {
-	return nil
-}
 func writeClusterHibernateRequest(request *ClusterHibernateRequest, writer io.Writer) error {
 	return nil
 }
 func readClusterHibernateResponse(response *ClusterHibernateResponse, reader io.Reader) error {
-	return nil
-}
-func writeClusterHibernateResponse(response *ClusterHibernateServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readClusterResumeRequest(request *ClusterResumeServerRequest, r *http.Request) error {
 	return nil
 }
 func writeClusterResumeRequest(request *ClusterResumeRequest, writer io.Writer) error {
@@ -82,14 +47,6 @@ func writeClusterResumeRequest(request *ClusterResumeRequest, writer io.Writer) 
 func readClusterResumeResponse(response *ClusterResumeResponse, reader io.Reader) error {
 	return nil
 }
-func writeClusterResumeResponse(response *ClusterResumeServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readClusterUpdateRequest(request *ClusterUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalCluster(r.Body)
-	return err
-}
 func writeClusterUpdateRequest(request *ClusterUpdateRequest, writer io.Writer) error {
 	return MarshalCluster(request.body, writer)
 }
@@ -97,7 +54,4 @@ func readClusterUpdateResponse(response *ClusterUpdateResponse, reader io.Reader
 	var err error
 	response.body, err = UnmarshalCluster(reader)
 	return err
-}
-func writeClusterUpdateResponse(response *ClusterUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalCluster(response.body, w)
 }

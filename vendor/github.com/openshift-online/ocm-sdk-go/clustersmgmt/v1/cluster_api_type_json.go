@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalClusterAPI writes a value of the 'cluster_API' type to the given writer.
 func MarshalClusterAPI(object *ClusterAPI, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeClusterAPI(object, stream)
-	stream.Flush()
+	WriteClusterAPI(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeClusterAPI writes a value of the 'cluster_API' type to the given stream.
-func writeClusterAPI(object *ClusterAPI, stream *jsoniter.Stream) {
+// WriteClusterAPI writes a value of the 'cluster_API' type to the given stream.
+func WriteClusterAPI(object *ClusterAPI, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,7 +58,6 @@ func writeClusterAPI(object *ClusterAPI, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("listening")
 		stream.WriteString(string(object.listening))
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -64,20 +65,17 @@ func writeClusterAPI(object *ClusterAPI, stream *jsoniter.Stream) {
 // UnmarshalClusterAPI reads a value of the 'cluster_API' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalClusterAPI(source interface{}) (object *ClusterAPI, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readClusterAPI(iterator)
+	object = ReadClusterAPI(iterator)
 	err = iterator.Error
 	return
 }
 
-// readClusterAPI reads a value of the 'cluster_API' type from the given iterator.
-func readClusterAPI(iterator *jsoniter.Iterator) *ClusterAPI {
+// ReadClusterAPI reads a value of the 'cluster_API' type from the given iterator.
+func ReadClusterAPI(iterator *jsoniter.Iterator) *ClusterAPI {
 	object := &ClusterAPI{}
 	for {
 		field := iterator.ReadObject()

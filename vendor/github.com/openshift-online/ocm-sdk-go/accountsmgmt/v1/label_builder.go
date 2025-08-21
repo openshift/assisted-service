@@ -24,17 +24,20 @@ import (
 )
 
 // LabelBuilder contains the data and logic needed to build 'label' objects.
-//
-//
 type LabelBuilder struct {
-	bitmap_   uint32
-	id        string
-	href      string
-	createdAt time.Time
-	key       string
-	updatedAt time.Time
-	value     string
-	internal  bool
+	bitmap_        uint32
+	id             string
+	href           string
+	accountID      string
+	createdAt      time.Time
+	key            string
+	managedBy      string
+	organizationID string
+	subscriptionID string
+	type_          string
+	updatedAt      time.Time
+	value          string
+	internal       bool
 }
 
 // NewLabel creates a new builder of 'label' objects.
@@ -62,48 +65,78 @@ func (b *LabelBuilder) HREF(value string) *LabelBuilder {
 	return b
 }
 
-// CreatedAt sets the value of the 'created_at' attribute to the given value.
-//
-//
-func (b *LabelBuilder) CreatedAt(value time.Time) *LabelBuilder {
-	b.createdAt = value
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *LabelBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
+// AccountID sets the value of the 'account_ID' attribute to the given value.
+func (b *LabelBuilder) AccountID(value string) *LabelBuilder {
+	b.accountID = value
 	b.bitmap_ |= 8
 	return b
 }
 
-// Internal sets the value of the 'internal' attribute to the given value.
-//
-//
-func (b *LabelBuilder) Internal(value bool) *LabelBuilder {
-	b.internal = value
+// CreatedAt sets the value of the 'created_at' attribute to the given value.
+func (b *LabelBuilder) CreatedAt(value time.Time) *LabelBuilder {
+	b.createdAt = value
 	b.bitmap_ |= 16
 	return b
 }
 
-// Key sets the value of the 'key' attribute to the given value.
-//
-//
-func (b *LabelBuilder) Key(value string) *LabelBuilder {
-	b.key = value
+// Internal sets the value of the 'internal' attribute to the given value.
+func (b *LabelBuilder) Internal(value bool) *LabelBuilder {
+	b.internal = value
 	b.bitmap_ |= 32
 	return b
 }
 
-// UpdatedAt sets the value of the 'updated_at' attribute to the given value.
-//
-//
-func (b *LabelBuilder) UpdatedAt(value time.Time) *LabelBuilder {
-	b.updatedAt = value
+// Key sets the value of the 'key' attribute to the given value.
+func (b *LabelBuilder) Key(value string) *LabelBuilder {
+	b.key = value
 	b.bitmap_ |= 64
 	return b
 }
 
+// ManagedBy sets the value of the 'managed_by' attribute to the given value.
+func (b *LabelBuilder) ManagedBy(value string) *LabelBuilder {
+	b.managedBy = value
+	b.bitmap_ |= 128
+	return b
+}
+
+// OrganizationID sets the value of the 'organization_ID' attribute to the given value.
+func (b *LabelBuilder) OrganizationID(value string) *LabelBuilder {
+	b.organizationID = value
+	b.bitmap_ |= 256
+	return b
+}
+
+// SubscriptionID sets the value of the 'subscription_ID' attribute to the given value.
+func (b *LabelBuilder) SubscriptionID(value string) *LabelBuilder {
+	b.subscriptionID = value
+	b.bitmap_ |= 512
+	return b
+}
+
+// Type sets the value of the 'type' attribute to the given value.
+func (b *LabelBuilder) Type(value string) *LabelBuilder {
+	b.type_ = value
+	b.bitmap_ |= 1024
+	return b
+}
+
+// UpdatedAt sets the value of the 'updated_at' attribute to the given value.
+func (b *LabelBuilder) UpdatedAt(value time.Time) *LabelBuilder {
+	b.updatedAt = value
+	b.bitmap_ |= 2048
+	return b
+}
+
 // Value sets the value of the 'value' attribute to the given value.
-//
-//
 func (b *LabelBuilder) Value(value string) *LabelBuilder {
 	b.value = value
-	b.bitmap_ |= 128
+	b.bitmap_ |= 4096
 	return b
 }
 
@@ -115,9 +148,14 @@ func (b *LabelBuilder) Copy(object *Label) *LabelBuilder {
 	b.bitmap_ = object.bitmap_
 	b.id = object.id
 	b.href = object.href
+	b.accountID = object.accountID
 	b.createdAt = object.createdAt
 	b.internal = object.internal
 	b.key = object.key
+	b.managedBy = object.managedBy
+	b.organizationID = object.organizationID
+	b.subscriptionID = object.subscriptionID
+	b.type_ = object.type_
 	b.updatedAt = object.updatedAt
 	b.value = object.value
 	return b
@@ -129,9 +167,14 @@ func (b *LabelBuilder) Build() (object *Label, err error) {
 	object.id = b.id
 	object.href = b.href
 	object.bitmap_ = b.bitmap_
+	object.accountID = b.accountID
 	object.createdAt = b.createdAt
 	object.internal = b.internal
 	object.key = b.key
+	object.managedBy = b.managedBy
+	object.organizationID = b.organizationID
+	object.subscriptionID = b.subscriptionID
+	object.type_ = b.type_
 	object.updatedAt = b.updatedAt
 	object.value = b.value
 	return
