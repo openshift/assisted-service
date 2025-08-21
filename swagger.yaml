@@ -5507,6 +5507,7 @@ definitions:
           - adding-hosts
           - cancelled
           - installing-pending-user-action
+          - disconnected
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
@@ -5835,7 +5836,7 @@ definitions:
 
   image_type:
     type: string
-    enum: [full-iso, minimal-iso]
+    enum: [full-iso, minimal-iso, disconnected-iso]
 
   free-addresses-list:
     type: array
