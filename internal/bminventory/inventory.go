@@ -3299,15 +3299,27 @@ func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, clust
 		}
 	}
 	ret := make([]*models.HostNetwork, 0)
+
+	hostsWithInventory := 0
+	for _, h := range cluster.Hosts {
+		if h.Inventory != "" {
+			hostsWithInventory++
+		}
+	}
+
 	for k, v := range cidrHostsMap {
 		slice := make([]strfmt.UUID, 0)
 		for k := range v {
 			slice = append(slice, k)
 		}
-		ret = append(ret, &models.HostNetwork{
-			Cidr:    k,
-			HostIds: slice,
-		})
+
+		// Include only networks present on all hosts with inventory
+		if len(slice) == hostsWithInventory && hostsWithInventory > 0 {
+			ret = append(ret, &models.HostNetwork{
+				Cidr:    k,
+				HostIds: slice,
+			})
+		}
 	}
 	return ret
 }
