@@ -3269,10 +3269,12 @@ func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cl
 
 func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*models.HostNetwork {
 	cidrHostsMap := make(map[string]map[strfmt.UUID]bool)
+	hostsWithInventory := 0
 	for _, h := range cluster.Hosts {
 		if h.Inventory == "" {
 			continue
 		}
+		hostsWithInventory++
 		var inventory models.Inventory
 		err := json.Unmarshal([]byte(h.Inventory), &inventory)
 		if err != nil {
@@ -3303,15 +3305,23 @@ func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, clust
 		}
 	}
 	ret := make([]*models.HostNetwork, 0)
+
+	// Iterates through every network CIDR discovered across all hosts.
 	for k, v := range cidrHostsMap {
 		slice := make([]strfmt.UUID, 0)
 		for k := range v {
 			slice = append(slice, k)
 		}
-		ret = append(ret, &models.HostNetwork{
-			Cidr:    k,
-			HostIds: slice,
-		})
+
+		// For each network, check if the number of hosts on that network
+		// matches the total number of discovered hosts.
+		// Only if they match, add that network to the final list.
+		if len(slice) == hostsWithInventory && hostsWithInventory > 0 {
+			ret = append(ret, &models.HostNetwork{
+				Cidr:    k,
+				HostIds: slice,
+			})
+		}
 	}
 	return ret
 }
