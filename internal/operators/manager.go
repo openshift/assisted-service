@@ -256,6 +256,9 @@ func (mgr *Manager) AnyOLMOperatorEnabled(cluster *common.Cluster) bool {
 
 // ValidateHost validates host requirements
 func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	results := make([]api.ValidationResult, 0, len(mgr.olmOperators))
 	additionalOperatorRequirements := &models.ClusterHostRequirementsDetails{}
 
@@ -271,6 +274,9 @@ func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, h
 	}
 
 	for _, clusterOperator := range cluster.MonitoredOperators {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
 			continue
 		}

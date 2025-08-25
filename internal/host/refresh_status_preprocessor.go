@@ -118,7 +118,7 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationConte
 
 	if c.infraEnv == nil {
 		// Validate operators
-		results, err := r.operatorsApi.ValidateHost(context.TODO(), c.cluster, c.host)
+		results, err := r.operatorsApi.ValidateHost(ctx, c.cluster, c.host)
 		if err != nil {
 			return nil, nil, err
 		}

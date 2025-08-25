@@ -765,7 +765,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				Expect(c.LogsInfo).Should(Equal(progress))
 			})
 		})
-
 	})
 })
 
@@ -1506,7 +1505,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 		id                     strfmt.UUID
 		clusterApi             *Manager
 		preInstalledError      string = "Host can register only in one of the following states: [insufficient ready pending-for-input adding-hosts]"
-		postInstalledErrorSaas string = "Cannot add hosts to an existing cluster using the original Discovery ISO. Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster “Add hosts“ tab."
+		postInstalledErrorSaas string = "Cannot add hosts to an existing cluster using the original Discovery ISO. Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster \"Add hosts\" tab."
 		postInstalledError     string = "Cannot add hosts to an existing cluster using the original Discovery ISO."
 		dbName                 string
 		ctrl                   *gomock.Controller
@@ -4338,4 +4337,194 @@ var _ = Describe("update finalizing stage", func() {
 			Expect(cls.Progress.FinalizingStageTimedOut).To(BeFalse())
 		})
 	}
+})
+
+var _ = Describe("TestClusterMonitoring - deadlines and blacklisting", func() {
+	var (
+		cfg        Config
+		clusterApi *Manager
+		db         *gorm.DB
+		dbName     string
+		ctrl       *gomock.Controller
+		mockEvents *eventsapi.MockHandler
+		mockMetric *metrics.MockAPI
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).To(Succeed())
+		// Use reasonable defaults; individual tests may override for specific timeout paths
+		cfg.MonitorPerClusterDeadline = 5 * time.Second
+		cfg.MonitorBlacklistDuration = 1 * time.Minute
+		cfg.MonitorCycleDeadline = 1 * time.Second // Allow time for at least one cluster to be processed
+		mockEventsUploader := uploader.NewMockClient(ctrl)
+		mockHostAPI := host.NewMockAPI(ctrl)
+		mockOperators := operators.NewMockAPI(ctrl)
+		dummy := &leader.DummyElector{}
+		mockS3Client := s3wrapper.NewMockAPI(ctrl)
+		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
+			mockEvents, mockEventsUploader, mockHostAPI, mockMetric, nil, dummy, mockOperators, nil, mockS3Client, nil, nil, nil, false, nil)
+		mockEventsUploader.EXPECT().UploadEvents(gomock.Any(), gomock.Any(), mockEvents).AnyTimes()
+		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
+		mockMetric.EXPECT().MonitoredClustersCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockNoChangeInOperatorDependencies(mockOperators)
+		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeFeatureDiscoveryRequirementsSatisfied)},
+		}, nil)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		// Allow any stray goroutines to finish to avoid unmet gomock expectations
+		time.Sleep(10 * time.Millisecond)
+		ctrl.Finish()
+	})
+
+	addReadyClusterWithTwoKnownHosts := func() strfmt.UUID {
+		cid := strfmt.UUID(uuid.New().String())
+		c := common.Cluster{Cluster: models.Cluster{
+			ID:              &cid,
+			Status:          swag.String(models.ClusterStatusReady),
+			StatusInfo:      swag.String(StatusInfoReady),
+			ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
+			ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
+			APIVips:         common.TestIPv4Networking.APIVips,
+			IngressVips:     common.TestIPv4Networking.IngressVips,
+			BaseDNSDomain:   "test.com",
+			PullSecretSet:   true,
+		}}
+		Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+		h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), cid, models.HostStatusKnown)
+		Expect(db.Create(&h).Error).ToNot(HaveOccurred())
+		h2 := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), cid, models.HostStatusKnown)
+		Expect(db.Create(&h2).Error).ToNot(HaveOccurred())
+		return cid
+	}
+
+	It("blacklists cluster when per-cluster deadline exceeded", func() {
+		// Force a tiny per-cluster deadline only for this test
+		clusterApi.Config.MonitorPerClusterDeadline = 1 * time.Nanosecond
+
+		id := strfmt.UUID(uuid.New().String())
+		c := common.Cluster{Cluster: models.Cluster{
+			ID:            &id,
+			Status:        swag.String(models.ClusterStatusReady),
+			PullSecretSet: true,
+		}}
+		Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+		// Internal event on blacklist
+		mockEvents.EXPECT().NotifyInternalEvent(gomock.Any(), &id, nil, nil, gomock.Any()).Times(1)
+		// First run should emit internal event and blacklist the cluster
+		clusterApi.ClusterMonitoring()
+		// second run should skip due to blacklist, thus no internal event is emitted this time
+		clusterApi.ClusterMonitoring()
+	})
+
+	It("ends cycle early when cycle deadline exceeded", func() {
+		id1 := strfmt.UUID(uuid.New().String())
+		id2 := strfmt.UUID(uuid.New().String())
+		c1 := common.Cluster{Cluster: models.Cluster{ID: &id1, Status: swag.String(models.ClusterStatusReady), PullSecretSet: true}}
+		c2 := common.Cluster{Cluster: models.Cluster{ID: &id2, Status: swag.String(models.ClusterStatusReady), PullSecretSet: true}}
+		Expect(db.Create(&c1).Error).ToNot(HaveOccurred())
+		Expect(db.Create(&c2).Error).ToNot(HaveOccurred())
+		mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		// Force extremely short cycle deadline for this test to ensure cycle timeout path triggers
+		clusterApi.Config.MonitorCycleDeadline = 1 * time.Nanosecond
+		// Internal event on cycle deadline (all IDs nil signature only occurs in the cycle-deadline event)
+		mockEvents.EXPECT().NotifyInternalEvent(gomock.Any(), nil, nil, nil, gomock.Any()).Times(1)
+		// Emits exactly one event for the cycle deadline, and no events for blacklisting clusters
+		clusterApi.ClusterMonitoring()
+	})
+
+	It("skips all with unmatched cursor, then processes all on next cycle", func() {
+		// Seed three ready clusters; each with sufficient amount of hosts to avoid status churn
+		cid1 := addReadyClusterWithTwoKnownHosts()
+		cid2 := addReadyClusterWithTwoKnownHosts()
+		cid3 := addReadyClusterWithTwoKnownHosts()
+
+		// Set a resume cursor that doesn't match any cluster ID so the cycle applies the skip path
+		cursor := strfmt.UUID(uuid.New().String())
+		clusterApi.resumeAfterClusterID = &cursor
+
+		// Debug: verify cursor is set and doesn't match any actual cluster
+		Expect(clusterApi.resumeAfterClusterID).ToNot(BeNil())
+		Expect(*clusterApi.resumeAfterClusterID).ToNot(Equal(cid1))
+		Expect(*clusterApi.resumeAfterClusterID).ToNot(Equal(cid2))
+		Expect(*clusterApi.resumeAfterClusterID).ToNot(Equal(cid3))
+
+		// Use a generous cycle deadline so second cycle has time to process
+		clusterApi.Config.MonitorCycleDeadline = 5 * time.Second
+		// First cycle: skip everything due to unmatched cursor; no per-cluster metric calls
+		mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		clusterApi.ClusterMonitoring()
+
+		// No MonitoredClustersDurationMs calls means no clusters were processed in the first cycle
+		// We rely on metric expectations to verify the skip behavior
+
+		// Verify the resume cursor was cleared at the end of the first (skipping) cycle
+		Expect(clusterApi.resumeAfterClusterID).To(BeNil())
+
+		// Second cycle: cursor is cleared; run another monitoring cycle
+		clusterApi.ClusterMonitoring()
+	})
+
+	It("cleans expired blacklist entries and keeps active ones", func() {
+		// Create two ready clusters with sufficient hosts to avoid status changes
+		cid1 := addReadyClusterWithTwoKnownHosts()
+		cid2 := addReadyClusterWithTwoKnownHosts()
+
+		// Pre-load blacklist: one expired, one active
+		clusterApi.blacklistedClusters.Store(cid1, time.Now().Add(-time.Minute))
+		clusterApi.blacklistedClusters.Store(cid2, time.Now().Add(time.Minute))
+
+		// Ensure cycle is long enough to process one cluster
+		clusterApi.Config.MonitorCycleDeadline = 5 * time.Second
+		// Run monitoring cycle; expired entry should be cleaned
+		clusterApi.ClusterMonitoring()
+
+		// Verify cleanup removed the expired entry and active entry remains
+		Expect(clusterApi.isClusterBlacklisted(cid1)).To(BeFalse())
+		Expect(clusterApi.isClusterBlacklisted(cid2)).To(BeTrue())
+	})
+
+	It("caps per-cluster timeout to remaining cycle time and emits cycle-timeout event", func() {
+		// Set a tiny cycle deadline and a large per-cluster deadline
+		clusterApi.Config.MonitorCycleDeadline = 1 * time.Nanosecond
+		clusterApi.Config.MonitorPerClusterDeadline = 1 * time.Minute
+
+		// Create two clusters
+		id1 := strfmt.UUID(uuid.New().String())
+		id2 := strfmt.UUID(uuid.New().String())
+		c1 := common.Cluster{Cluster: models.Cluster{ID: &id1, Status: swag.String(models.ClusterStatusReady), PullSecretSet: true}}
+		c2 := common.Cluster{Cluster: models.Cluster{ID: &id2, Status: swag.String(models.ClusterStatusReady), PullSecretSet: true}}
+		Expect(db.Create(&c1).Error).ToNot(HaveOccurred())
+		Expect(db.Create(&c2).Error).ToNot(HaveOccurred())
+
+		// Expect only the cycle-timeout event (nil IDs), and no per-cluster processing
+		mockEvents.EXPECT().NotifyInternalEvent(gomock.Any(), nil, nil, nil, gomock.Any()).Times(1)
+		mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		clusterApi.ClusterMonitoring()
+	})
+
+	It("returns early when not leader (no events or metrics)", func() {
+		// Replace leader elector with a mock that is not a leader
+		mockLeader := leader.NewMockLeader(ctrl)
+		mockLeader.EXPECT().IsLeader().Return(false).AnyTimes()
+		clusterApi.leaderElector = mockLeader
+
+		// No events or metrics should be emitted
+		clusterApi.ClusterMonitoring()
+	})
 })

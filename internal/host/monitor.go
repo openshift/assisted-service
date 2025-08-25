@@ -2,6 +2,8 @@ package host
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sort"
 	"time"
 
@@ -213,7 +215,17 @@ func (m *Manager) clusterHostMonitoring() {
 				startTime := time.Now()
 
 				log.Debug("Started refreshing host status")
-				err = m.refreshStatusInternal(ctx, host, c, nil, inventoryCache, m.db)
+				// Deadline per host refresh to avoid long-running host monitoring
+				hCtx, cancel := context.WithTimeout(ctx, m.Config.MaxHostDisconnectionTime)
+				dbc := m.db.WithContext(hCtx)
+				err = m.refreshStatusInternal(hCtx, host, c, nil, inventoryCache, dbc)
+				if errors.Is(hCtx.Err(), context.DeadlineExceeded) {
+					log.WithField("cluster", c.ID.String()).WithField("host", host.ID.String()).Errorf("host monitoring exceeded deadline %s", m.Config.MaxHostDisconnectionTime)
+					m.eventsHandler.NotifyInternalEvent(ctx, c.ID, host.ID, nil, fmt.Sprintf("host monitor deadline exceeded for host %s in cluster %s", host.ID.String(), c.ID.String()))
+					cancel()
+					continue
+				}
+				cancel()
 
 				duration := time.Since(startTime)
 				m.metricApi.MonitoredHostsDurationMs(ctx, *host.ID, c.ID, duration)
@@ -278,7 +290,17 @@ func (m *Manager) infraEnvHostMonitoring() {
 				}
 				if funk.ContainsString(monitorStates, swag.StringValue(host.Status)) {
 					startTime := time.Now()
-					err = m.refreshStatusInternal(ctx, &host.Host, nil, i, inventoryCache, m.db)
+					// Use a per-host deadline to avoid long-running operations
+					hCtx, cancel := context.WithTimeout(ctx, m.Config.MaxHostDisconnectionTime)
+					dbc := m.db.WithContext(hCtx)
+					err = m.refreshStatusInternal(hCtx, &host.Host, nil, i, inventoryCache, dbc)
+					if errors.Is(hCtx.Err(), context.DeadlineExceeded) {
+						m.log.WithField("infraEnv", i.ID.String()).WithField("host", host.ID.String()).Errorf("infra-env host monitoring exceeded deadline %s", m.Config.MaxHostDisconnectionTime)
+						m.eventsHandler.NotifyInternalEvent(ctx, nil, host.ID, i.ID, fmt.Sprintf("infra-env host monitor deadline exceeded for host %s in infra-env %s", host.ID.String(), i.ID.String()))
+						cancel()
+						continue
+					}
+					cancel()
 					duration := time.Since(startTime)
 					m.metricApi.MonitoredHostsDurationMs(ctx, *host.ID, nil, duration)
 					if err != nil {
