@@ -199,6 +199,32 @@ allowing it to be effective most of the time.
 
 A document that can assist troubleshooting: [link](https://docs.google.com/document/d/1WDc5LQjNnqpznM9YFTGb9Bg1kqPVckgGepS4KBxGSqw)
 
+### Monitoring deadlines and blacklisting ([MGMT-21268](https://issues.redhat.com/browse/MGMT-21268))
+
+When certain monitoring deadlines are exceeded, monitoring cancels the overrun work and continues, emitting internal events, instead of causing the liveness probe to fail. If monitoring appears to “skip” certain clusters or hosts, or you see warnings about deadlines being exceeded, use the following guidance.
+
+- **Symptoms**
+  - Logs include messages such as:
+    - `cluster monitor cycle exceeded deadline <X>; ending cycle early`
+    - `cluster monitoring exceeded deadline <X>; blacklisting for <TTL>`
+    - `skipping blacklisted cluster in monitor`
+    - `host monitor deadline exceeded for host <host-id> in cluster <cluster-id>`
+    - `infra-env host monitor deadline exceeded for host <host-id> in infra-env <infraenv-id>`
+  - Health probe remains OK; service no longer restarts due to long monitoring cycles.
+
+- **Diagnosis**
+  - These messages indicate the monitoring loop canceled work that exceeded configured deadlines and, for clusters, temporarily blacklisted further processing.
+  - Internal events are emitted for each condition. Check the events stream for entries matching the above messages.
+
+- **Remediation**
+  - Reduce load on the service if possible (large number of clusters/hosts, heavy validations).
+  - Tune the following environment variables to fit your environment:
+    - `CLUSTER_MONITOR_PER_CLUSTER_DEADLINE` (default `2m`): max time to spend monitoring a single cluster in one cycle. When exceeded, the cluster is temporarily blacklisted.
+    - `CLUSTER_MONITOR_BLACKLIST_DURATION` (default `15m`): duration to temporarily skip clusters that exceeded the per-cluster deadline.
+    - `CLUSTER_MONITOR_CYCLE_DEADLINE` (default `4m`): max overall time budget for one cluster-monitoring cycle. When exceeded, the cycle ends early and resumes on the next tick.
+    - `HOST_MONITOR_PER_HOST_TIMEOUT` (default `2m`): max time to spend monitoring a single host (cluster-bound or infra-env) before canceling.
+  - The blacklist is in-memory; waiting for the TTL to expire or restarting the service clears it. Prefer adjusting the TTL instead of restarting, when possible.
+
 ## Documentation
 
 Markdown formatted documentation is available in the [docs](docs) directory.
