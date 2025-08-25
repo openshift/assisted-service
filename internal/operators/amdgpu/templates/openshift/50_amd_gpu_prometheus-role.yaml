@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Operator.Namespace }}-prometheus-k8s
+  namespace: {{ .Operator.Namespace }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - endpoints
+        - pods
+    verbs:
+      - get
+      - list
+      - watch
