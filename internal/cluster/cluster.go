@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/filanov/stateswitch"
@@ -150,6 +151,12 @@ type Config struct {
 	InstallationTimeout time.Duration `envconfig:"INSTALLATION_TIMEOUT" default:"24h"`
 	FinalizingTimeout   time.Duration `envconfig:"FINALIZING_TIMEOUT" default:"5h"`
 	MonitorBatchSize    int           `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
+	// MonitorPerClusterDeadline bounds how long we spend monitoring a single cluster in one cycle
+	MonitorPerClusterDeadline time.Duration `envconfig:"CLUSTER_MONITOR_PER_CLUSTER_DEADLINE" default:"2m"`
+	// MonitorBlacklistDuration is how long to blacklist a cluster after a deadline is exceeded
+	MonitorBlacklistDuration time.Duration `envconfig:"CLUSTER_MONITOR_BLACKLIST_DURATION" default:"15m"`
+	// MonitorCycleDeadline bounds the total time for one ClusterMonitoring cycle
+	MonitorCycleDeadline time.Duration `envconfig:"CLUSTER_MONITOR_CYCLE_DEADLINE" default:"4m"`
 }
 
 type Manager struct {
@@ -174,6 +181,9 @@ type Manager struct {
 	authHandler           auth.Authenticator
 	uploadClient          uploader.Client
 	manifestApi           manifestsapi.ManifestsAPI
+	// in-memory blacklist of clusters that exceeded monitoring deadline
+	blacklistedClusters map[strfmt.UUID]time.Time
+	blacklistMutex      sync.Mutex
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.Notifier, eventsHandler eventsapi.Handler,
@@ -202,16 +212,18 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.N
 		sm:                    NewClusterStateMachine(th),
 		metricAPI:             metricApi,
 		manifestsGeneratorAPI: manifestsGeneratorAPI,
-		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi, usageApi, eventsHandler),
 		hostAPI:               hostAPI,
+		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi, usageApi, eventsHandler),
 		leaderElector:         leaderElector,
-		prevMonitorInvokedAt:  time.Now(),
+		prevMonitorInvokedAt:  time.Time{},
 		ocmClient:             ocmClient,
 		objectHandler:         objectHandler,
 		dnsApi:                dnsApi,
+		monitorQueryGenerator: nil,
 		authHandler:           authHandler,
 		uploadClient:          uploadClient,
 		manifestApi:           manifestApi,
+		blacklistedClusters:   make(map[strfmt.UUID]time.Time),
 	}
 }
 
@@ -603,6 +615,7 @@ func (m *Manager) ClusterMonitoring() {
 	defer func() {
 		m.prevMonitorInvokedAt = curMonitorInvokedAt
 	}()
+	cycleDeadline := curMonitorInvokedAt.Add(m.Config.MonitorCycleDeadline)
 
 	//no need to refresh cluster status if the cluster is in the following statuses
 	//when cluster is in error. it should be still monitored until all the logs are collected.
@@ -621,18 +634,30 @@ func (m *Manager) ClusterMonitoring() {
 		}
 		m.log.Debugf("We are going to monitor %d, query is: %+v", len(clusters), query)
 		for _, cluster := range clusters {
+			if time.Now().After(cycleDeadline) {
+				log.Warnf("cluster monitor cycle exceeded deadline %s; ending cycle early", m.Config.MonitorCycleDeadline)
+				m.eventsHandler.NotifyInternalEvent(ctx, nil, nil, nil, fmt.Sprintf("cluster monitor cycle exceeded deadline %s; ending cycle early", m.Config.MonitorCycleDeadline))
+				return
+			}
 			if !m.leaderElector.IsLeader() {
 				m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 				return
 			}
+			if cluster.ID == nil {
+				log.WithError(err).Error("cluster ID is nil")
+				continue
+			}
+			if m.isClusterBlacklisted(*cluster.ID) {
+				log.WithField("cluster", cluster.ID.String()).Warn("skipping blacklisted cluster in monitor")
+				continue
+			}
+			// Enforce a per-cluster monitoring deadline
+			ctxCluster, cancel := context.WithTimeout(ctx, m.Config.MonitorPerClusterDeadline)
+			// ensure cancel is called to avoid context leak
+			defer cancel()
 			if !m.SkipMonitoring(cluster) {
 				startTime := time.Now()
 				_ = m.autoAssignMachineNetworkCidr(cluster)
-				if cluster.ID == nil {
-					log.WithError(err).Error("cluster ID is nil")
-					continue
-				}
-
 				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
 					log.WithError(err).Error("failed to set majority group for clusters")
 				}
@@ -640,7 +665,15 @@ func (m *Manager) ClusterMonitoring() {
 				if err != nil {
 					m.log.WithError(err).Errorf("Failed to detect and store colliding IPs for cluster %s", cluster.ID.String())
 				}
-				clusterAfterRefresh, err = m.refreshStatusInternal(ctx, cluster, m.db)
+				// Use the per-cluster deadline-aware context
+				clusterAfterRefresh, err = m.refreshStatusInternal(ctxCluster, cluster, m.db)
+				// If the per-cluster deadline is exceeded, blacklist and continue to the next cluster
+				if errors.Is(ctxCluster.Err(), context.DeadlineExceeded) {
+					log.WithField("cluster", cluster.ID.String()).Errorf("cluster monitoring exceeded deadline %s; blacklisting for %s", m.Config.MonitorPerClusterDeadline, m.Config.MonitorBlacklistDuration)
+					m.blacklistCluster(*cluster.ID)
+					m.eventsHandler.NotifyInternalEvent(ctx, cluster.ID, nil, nil, fmt.Sprintf("cluster monitor deadline exceeded; blacklisting cluster %s for %s", cluster.ID.String(), m.Config.MonitorBlacklistDuration))
+					continue
+				}
 				if err != nil {
 					log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
 					continue
@@ -749,7 +782,7 @@ func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 			msg := "Cannot add hosts to an existing cluster using the original Discovery ISO."
 			isSaaS := m.authHandler.AuthType() == auth.TypeRHSSO
 			if isSaaS {
-				msg = msg + " Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster “Add hosts“ tab."
+				msg = msg + " Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster \"Add hosts\" tab."
 			}
 			err = errors.Errorf(msg)
 		} else {
@@ -1859,4 +1892,26 @@ func (m *Manager) UpdateFinalizingStage(ctx context.Context, clusterID strfmt.UU
 
 func (m *Manager) GetHostCountByRole(clusterID strfmt.UUID, role models.HostRole, suggested bool) (*int64, error) {
 	return common.GetHostCountByRole(m.db, clusterID, role, suggested)
+}
+
+// isClusterBlacklisted returns true if the cluster is currently blacklisted and not yet expired
+func (m *Manager) isClusterBlacklisted(id strfmt.UUID) bool {
+	m.blacklistMutex.Lock()
+	defer m.blacklistMutex.Unlock()
+	exp, ok := m.blacklistedClusters[id]
+	if !ok {
+		return false
+	}
+	if time.Now().After(exp) {
+		delete(m.blacklistedClusters, id)
+		return false
+	}
+	return true
+}
+
+// blacklistCluster adds the cluster to the blacklist until now + MonitorBlacklistDuration
+func (m *Manager) blacklistCluster(id strfmt.UUID) {
+	m.blacklistMutex.Lock()
+	defer m.blacklistMutex.Unlock()
+	m.blacklistedClusters[id] = time.Now().Add(m.Config.MonitorBlacklistDuration)
 }
