@@ -764,6 +764,77 @@ var _ = Describe("TestClusterMonitoring", func() {
 		})
 
 	})
+
+	Context("monitor deadlines and blacklist", func() {
+		var (
+			cfg        Config
+			clusterApi *Manager
+			db         *gorm.DB
+			dbName     string
+			ctrl       *gomock.Controller
+			mockEvents *eventsapi.MockHandler
+			mockMetric *metrics.MockAPI
+		)
+
+		BeforeEach(func() {
+			db, dbName = common.PrepareTestDB()
+			ctrl = gomock.NewController(GinkgoT())
+			mockEvents = eventsapi.NewMockHandler(ctrl)
+			mockMetric = metrics.NewMockAPI(ctrl)
+			Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).To(Succeed())
+			// Set very short deadlines to force behavior
+			cfg.MonitorPerClusterDeadline = 1 * time.Nanosecond
+			cfg.MonitorBlacklistDuration = 1 * time.Minute
+			cfg.MonitorCycleDeadline = 1 * time.Nanosecond
+			// Reuse the same construction style as other tests
+			mockEventsUploader := uploader.NewMockClient(ctrl)
+			mockHostAPI := host.NewMockAPI(ctrl)
+			mockOperators := operators.NewMockAPI(ctrl)
+			dummy := &leader.DummyElector{}
+			mockS3Client := s3wrapper.NewMockAPI(ctrl)
+			clusterApi = NewManager(cfg, common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
+				mockEvents, mockEventsUploader, mockHostAPI, mockMetric, nil, dummy, mockOperators, nil, mockS3Client, nil, nil, nil, false, nil)
+			mockEventsUploader.EXPECT().UploadEvents(gomock.Any(), gomock.Any(), mockEvents).AnyTimes()
+			mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
+		})
+
+		AfterEach(func() {
+			common.DeleteTestDB(db, dbName)
+			ctrl.Finish()
+		})
+
+		It("blacklists cluster when per-cluster deadline exceeded", func() {
+			id := strfmt.UUID(uuid.New().String())
+			c := common.Cluster{Cluster: models.Cluster{
+				ID:            &id,
+				Status:        swag.String(models.ClusterStatusReady),
+				PullSecretSet: true,
+			}}
+			Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+			// Expect a metrics duration call for clusters monitoring
+			mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			// Internal event on blacklist
+			mockEvents.EXPECT().NotifyInternalEvent(gomock.Any(), &id, nil, nil, gomock.Any()).Times(1)
+			// First run should emit internal event and blacklist the cluster
+			clusterApi.ClusterMonitoring()
+			// second run should skip due to blacklist, thus no internal event is emitted this time
+			clusterApi.ClusterMonitoring()
+		})
+
+		It("ends cycle early when cycle deadline exceeded", func() {
+			id1 := strfmt.UUID(uuid.New().String())
+			id2 := strfmt.UUID(uuid.New().String())
+			c1 := common.Cluster{Cluster: models.Cluster{ID: &id1, Status: swag.String(models.ClusterStatusReady), PullSecretSet: true}}
+			c2 := common.Cluster{Cluster: models.Cluster{ID: &id2, Status: swag.String(models.ClusterStatusReady), PullSecretSet: true}}
+			Expect(db.Create(&c1).Error).ToNot(HaveOccurred())
+			Expect(db.Create(&c2).Error).ToNot(HaveOccurred())
+			mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			// Internal event on cycle deadline (all IDs nil signature only occurs in the cycle-deadline event)
+			mockEvents.EXPECT().NotifyInternalEvent(gomock.Any(), nil, nil, nil, gomock.Any()).Times(1)
+			// Emits exactly one event for the cycle deadline, and no events for blacklisting clusters
+			clusterApi.ClusterMonitoring()
+		})
+	})
 })
 
 var _ = Describe("lease timeout event", func() {
@@ -1501,7 +1572,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 		id                     strfmt.UUID
 		clusterApi             *Manager
 		preInstalledError      string = "Host can register only in one of the following states: [insufficient ready pending-for-input adding-hosts]"
-		postInstalledErrorSaas string = "Cannot add hosts to an existing cluster using the original Discovery ISO. Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster “Add hosts“ tab."
+		postInstalledErrorSaas string = "Cannot add hosts to an existing cluster using the original Discovery ISO. Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster \"Add hosts\" tab."
 		postInstalledError     string = "Cannot add hosts to an existing cluster using the original Discovery ISO."
 		dbName                 string
 		ctrl                   *gomock.Controller
