@@ -24,6 +24,8 @@ type Config struct {
 	BootstrapHostMAC         string                  `envconfig:"BOOTSTRAP_HOST_MAC" default:""`        // For ephemeral installer to ensure the bootstrap for the (single) cluster lands on the same host as assisted-service
 	MaxHostDisconnectionTime time.Duration           `envconfig:"HOST_MAX_DISCONNECTION_TIME" default:"3m"`
 	EnableVirtualInterfaces  bool                    `envconfig:"ENABLE_VIRTUAL_INTERFACES" default:"false"`
+	// Per-host monitor refresh timeout to bound time spent refreshing a single host during monitoring
+	MonitorPerHostTimeout time.Duration `envconfig:"HOST_MONITOR_PER_HOST_TIMEOUT" default:"2m"`
 
 	// hostStageTimeouts contains the values of the host stage timeouts. Don't use this
 	// directly, use the HostStageTimeout method instead.
