@@ -285,6 +285,7 @@ var _ = Describe("instruction_manager", func() {
 					AdditionalNtpSources: UNBOUND_SOURCE,
 				},
 			}).Error).ToNot(HaveOccurred())
+			mockOSImages.EXPECT().GetOpenshiftVersions().Return([]string{"4.8"}).AnyTimes()
 		})
 
 		It("discovering-unbound", func() {
