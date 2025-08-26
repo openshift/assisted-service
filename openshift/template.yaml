@@ -230,6 +230,8 @@ parameters:
   value: "1002"
 - name: TNA_CLUSTERS_SUPPORT
   value: "false"
+- name: HOST_WEIGHT_GPU_WEIGHT
+  value: "10"
 apiVersion: v1
 kind: Template
 metadata:
@@ -344,6 +346,8 @@ objects:
                 value: ${ENABLE_SOFT_TIMEOUTS}
               - name: MIN_VERSION_FOR_NMSTATE_SERVICE
                 value: ${MIN_VERSION_FOR_NMSTATE_SERVICE}
+              - name: HOST_WEIGHT_GPU_WEIGHT
+                value: ${HOST_WEIGHT_GPU_WEIGHT}
               - name: DB_HOST
                 valueFrom:
                   secretKeyRef:

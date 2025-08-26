@@ -232,6 +232,7 @@ var (
 		},
 	}
 	ocpVersionInvolvingGenerateKeyfiles = "4.12"
+	monitorConfig                       = host.MonitorConfig{}
 )
 
 type clusterIdMatcher struct {
@@ -18809,7 +18810,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockOSImages, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder,
-		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, "")
+		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, "", monitorConfig)
 
 	bm.ImageServiceBaseURL = imageServiceBaseURL
 	bm.ServiceBaseURL = serviceBaseURL
