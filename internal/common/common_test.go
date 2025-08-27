@@ -642,6 +642,68 @@ var _ = Describe("IsClusterTopologyHighlyAvailableArbiter", func() {
 	})
 })
 
+var _ = Describe("IsClusterTopologyTwoNodesWithFencing", func() {
+	It("TNF cluster", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts[0].FencingCredentials = "fencing_credentials"
+		hosts[1].FencingCredentials = "fencing_credentials"
+		cluster := createClusterFromHosts(hosts)
+		cluster.ControlPlaneCount = 2
+
+		Expect(IsClusterTopologyTwoNodesWithFencing(&cluster)).To(BeTrue())
+	})
+	It("2 masters without fencing credentials", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+		cluster.ControlPlaneCount = 2
+
+		Expect(IsClusterTopologyTwoNodesWithFencing(&cluster)).To(BeFalse())
+	})
+	It("2 masters, but 1 doesn't have fencing credentials", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts[0].FencingCredentials = "fencing_credentials"
+		cluster := createClusterFromHosts(hosts)
+		cluster.ControlPlaneCount = 2
+
+		Expect(IsClusterTopologyTwoNodesWithFencing(&cluster)).To(BeFalse())
+	})
+	It("1 master with fencing credentials, waiting for second master", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts[0].FencingCredentials = "fencing_credentials"
+		cluster := createClusterFromHosts(hosts)
+		cluster.ControlPlaneCount = 2
+
+		Expect(IsClusterTopologyTwoNodesWithFencing(&cluster)).To(BeFalse())
+	})
+	It("TNA cluster", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleArbiter, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+		cluster.ControlPlaneCount = 2
+
+		Expect(IsClusterTopologyTwoNodesWithFencing(&cluster)).To(BeFalse())
+	})
+	It("standard cluster", func() {
+		hosts := make([]*models.Host, 0)
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		hosts = append(hosts, createHost(models.HostRoleMaster, models.HostStatusKnown))
+		cluster := createClusterFromHosts(hosts)
+		cluster.ControlPlaneCount = 3
+
+		Expect(IsClusterTopologyTwoNodesWithFencing(&cluster)).To(BeFalse())
+	})
+})
+
 func createHost(hostRole models.HostRole, state string) *models.Host {
 	hostId := strfmt.UUID(uuid.New().String())
 	clusterId := strfmt.UUID(uuid.New().String())

@@ -58,8 +58,10 @@ const (
 	AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder = 3
 	AllowedNumberOfMasterHostsInNoneHaMode                           = 1
 	AllowedNumberOfWorkersInNoneHaMode                               = 0
+	AllowedNumberOfMasterHostsInTwoNodesWithFencing                  = 2
 	MinimumVersionForNonStandardHAOCPControlPlane                    = "4.18"
 	MinimumVersionForArbiterClusters                                 = "4.19"
+	MinimumVersionForTwoNodesWithFencing                             = "4.20"
 	MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode    = 2
 
 	MinimumVersionForUserManagedLoadBalancerFeature = "4.16"
@@ -780,4 +782,23 @@ func GetDefaultHighAvailabilityAndMasterCountParams(highAvailabilityMode *string
 
 func IsClusterTopologyHighlyAvailableArbiter(cluster *Cluster) bool {
 	return funk.NotEmpty(GetHostsByRole(cluster, models.HostRoleArbiter))
+}
+
+func IsClusterTopologyTwoNodesWithFencing(cluster *Cluster) bool {
+	if cluster.ControlPlaneCount != AllowedNumberOfMasterHostsInTwoNodesWithFencing {
+		return false
+	}
+	if IsClusterTopologyHighlyAvailableArbiter(cluster) {
+		return false
+	}
+	masters := GetHostsByRole(cluster, models.HostRoleMaster)
+	if len(masters) != AllowedNumberOfMasterHostsInTwoNodesWithFencing {
+		return false
+	}
+	for _, master := range masters {
+		if master.FencingCredentials == "" {
+			return false
+		}
+	}
+	return true
 }
