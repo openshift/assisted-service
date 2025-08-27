@@ -859,33 +859,45 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(secondCallReasons[0]).To(Equal(expectedMsg))
 	})
 
-	It("Check precise error messages for operator disk additions", func() {
+	It("shows precise size in too small error message (99.9 GB vs 100 GB)", func() {
 		cluster.OpenshiftVersion = "4.14"
-
-		// Mock operator that adds 7 GB to base requirement
-		operatorRequirement := &models.OperatorHostRequirements{
-			OperatorName: "test-operator",
-			Requirements: &models.ClusterHostRequirementsDetails{
-				DiskSizeGb: 7, // This creates 107 GB total (100 + 7)
-			},
-		}
-
 		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return([]*models.OperatorHostRequirements{operatorRequirement}, nil).AnyTimes()
+			Return([]*models.OperatorHostRequirements{}, nil).AnyTimes()
 
-		By("Testing precise humanization with overhead scenario")
-		testDisk.SizeBytes = int64(99900000000) // 99.9 GB with overhead
+		testDisk.SizeBytes = int64(99900000000)
 		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
 
 		reasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(reasons).To(HaveLen(1))
-		// The key improvement: precise function shows "99.9 GB" instead of "100 GB"
-		// This makes it clear the disk is slightly less than 100 GB (not exactly 100)
-		Expect(reasons[0]).To(ContainSubstring("99.9 GB"))
-		// Note: Operator addition only applies to cluster validation, not infraEnv validation
-		// So for this test, we expect the base 100 GB requirement
+		expected := fmt.Sprintf(tooSmallDiskTemplate, "99.9 GB", "100 GB")
+		Expect(reasons[0]).To(Equal(expected))
+	})
+	It("Check precise error messages for operator disk additions", func() {
+		cluster.OpenshiftVersion = "4.14"
+
+		_, _ = hwvalidator.GetClusterHostRequirements(context.TODO(), &cluster, &host)
+
+		// Mock operator that adds 7 GB to base requirement (100 + 7 = 107)
+		operatorRequirement := &models.OperatorHostRequirements{
+			OperatorName: "test-operator",
+			Requirements: &models.ClusterHostRequirementsDetails{
+				DiskSizeGb: 7,
+			},
+		}
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return([]*models.OperatorHostRequirements{operatorRequirement}, nil).AnyTimes()
+
+		testDisk.SizeBytes = int64(100000000000)
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+
+		reasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(reasons).To(HaveLen(1))
+		expected := fmt.Sprintf(tooSmallDiskTemplate, "100 GB", "107 GB")
+		Expect(reasons[0]).To(Equal(expected))
 	})
 })
 

@@ -576,9 +576,9 @@ func compileDiskReasonTemplate(template string, wildcards ...interface{}) *regex
 	return tmp
 }
 
-// preciseHumanizeBytes provides more precise disk size formatting for error messages
-// to avoid confusion when operator additions create requirements like 107GB vs user's 100GB
-// IMPORTANT: Rounds UP decimal values to ensure users provide sufficient disk space
+// preciseHumanizeBytes formats a byte size using SI units (KB, MB, GB, TB).
+// It displays one decimal place for non-integer values and rounds up to avoid
+// under-reporting the capacity in user-facing messages.
 func preciseHumanizeBytes(bytes uint64) string {
 	const (
 		KB = 1000
@@ -590,29 +590,26 @@ func preciseHumanizeBytes(bytes uint64) string {
 	switch {
 	case bytes >= TB:
 		tb := float64(bytes) / float64(TB)
-		if tb == float64(int64(tb)) {
-			return fmt.Sprintf("%d TB", int64(tb))
-		}
-		return fmt.Sprintf("%.1f TB", math.Ceil(tb*10)/10)
+		return formatUnitRoundedUpOneDecimal(tb, "TB")
 	case bytes >= GB:
 		gb := float64(bytes) / float64(GB)
-		if gb == float64(int64(gb)) {
-			return fmt.Sprintf("%d GB", int64(gb))
-		}
-		return fmt.Sprintf("%.1f GB", math.Ceil(gb*10)/10)
+		return formatUnitRoundedUpOneDecimal(gb, "GB")
 	case bytes >= MB:
 		mb := float64(bytes) / float64(MB)
-		if mb == float64(int64(mb)) {
-			return fmt.Sprintf("%d MB", int64(mb))
-		}
-		return fmt.Sprintf("%.1f MB", math.Ceil(mb*10)/10)
+		return formatUnitRoundedUpOneDecimal(mb, "MB")
 	case bytes >= KB:
 		kb := float64(bytes) / float64(KB)
-		if kb == float64(int64(kb)) {
-			return fmt.Sprintf("%d KB", int64(kb))
-		}
-		return fmt.Sprintf("%.1f KB", math.Ceil(kb*10)/10)
+		return formatUnitRoundedUpOneDecimal(kb, "KB")
 	default:
 		return fmt.Sprintf("%d bytes", bytes)
 	}
+}
+
+// formatUnitRoundedUpOneDecimal returns either an integer or one-decimal string
+// for the given value and unit label, rounding up non-integer values.
+func formatUnitRoundedUpOneDecimal(value float64, unit string) string {
+	if value == float64(int64(value)) {
+		return fmt.Sprintf("%d %s", int64(value), unit)
+	}
+	return fmt.Sprintf("%.1f %s", math.Ceil(value*10)/10, unit)
 }
