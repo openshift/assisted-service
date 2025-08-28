@@ -647,6 +647,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				eventstest.WithClusterIdMatcher(c.ID.String()))).AnyTimes()
 			mockHostAPIIsRequireUserActionResetFalse()
 			mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockMetric.EXPECT().MonitoredClustersCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(2)
 			clusterApi.ClusterMonitoring()
 			after := time.Now().Truncate(10 * time.Millisecond)
 			c = getClusterFromDB(id, db)
@@ -704,6 +705,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			}
 
 			mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(nClusters)
+			mockMetric.EXPECT().MonitoredClustersCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			clusterApi.ClusterMonitoring()
 
 			var count int64
@@ -741,6 +743,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 				Expect(err).ShouldNot(HaveOccurred())
 				mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				mockMetric.EXPECT().MonitoredClustersCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName))).Times(0)
 				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).Times(0)
@@ -792,6 +795,7 @@ var _ = Describe("lease timeout event", func() {
 			mockEvents, mockEventsUploader, mockHostAPI, mockMetric, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false, nil)
 
 		mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+		mockMetric.EXPECT().MonitoredClustersCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
@@ -930,6 +934,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			mockEvents, mockEventsUploader, mockHostAPI, mockMetric, nil, dummy, mockOperators, nil, nil, nil, nil, nil, false, nil)
 
 		mockMetric.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+		mockMetric.EXPECT().MonitoredClustersCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
@@ -2347,6 +2352,7 @@ var _ = Describe("Majority groups", func() {
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
 		mockMetricApi.EXPECT().MonitoredClustersDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockMetricApi.EXPECT().MonitoredClustersCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		mockMetricApi.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockNoChangeInOperatorDependencies(mockOperators)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{

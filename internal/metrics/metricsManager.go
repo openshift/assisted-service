@@ -40,6 +40,8 @@ const (
 	counterFilesystemUsagePercentage              = "assisted_installer_filesystem_usage_percentage"
 	histogramMonitoredHostsDurationMs             = "assisted_installer_monitored_hosts_duration_ms"
 	histogramMonitoredClustersDurationMs          = "assisted_installer_monitored_clusters_duration_ms"
+	histogramMonitoredClustersCycleDurationMs     = "assisted_installer_monitored_clusters_cycle_duration_ms"
+	histogramMonitoredHostsCycleDurationMs        = "assisted_installer_monitored_hosts_cycle_duration_ms"
 	counterInstallerReleaseCache                  = "assisted_installer_release_cache"
 	counterInstallerReleaseCacheEviction          = "assisted_installer_release_cache_eviction"
 )
@@ -64,6 +66,8 @@ const (
 	counterDescriptionFilesystemUsagePercentage              = "The percentage of the filesystem usage by the service"
 	histogramDescriptionMonitoredHostsDurationMs             = "Histogram/sum/count of monitored hosts duration (ms)"
 	histogramDescriptionMonitoredClustersDurationMs          = "Histogram/sum/count of monitored clusters duration (ms)"
+	histogramDescriptionMonitoredClustersCycleDurationMs     = "Histogram/sum/count of full monitoring cycle duration (ms) with fullscan label"
+	histogramDescriptionMonitoredHostsCycleDurationMs        = "Histogram/sum/count of full monitoring cycle duration (ms) with fullscan label"
 	counterDescriptionInstallerReleaseCache                  = "Counts the cache hit status for the labelled release"
 	counterDescriptionInstallerReleaseCacheEviction          = "Counts the number of times that at least one release was evicted"
 )
@@ -85,6 +89,7 @@ const (
 	labelCacheHit              = "hit"
 	labelReleaseID             = "releaseId"
 	labelSuccess               = "success"
+	labelFullScan              = "fullscan"
 )
 
 type API interface {
@@ -102,6 +107,8 @@ type API interface {
 	FileSystemUsage(usageInPercentage float64)
 	MonitoredHostsDurationMs(ctx context.Context, hostID strfmt.UUID, clusterID *strfmt.UUID, duration time.Duration)
 	MonitoredClustersDurationMs(ctx context.Context, clusterID strfmt.UUID, duration time.Duration)
+	MonitoredClustersCycleDurationMs(ctx context.Context, duration time.Duration, fullScan bool)
+	MonitoredHostsCycleDurationMs(ctx context.Context, duration time.Duration, fullScan bool)
 	InstallerCacheGetReleaseCached(releaseId string, cacheHit bool)
 	InstallerCacheReleaseEvicted(success bool)
 }
@@ -130,6 +137,8 @@ type MetricsManager struct {
 	serviceLogicFilesystemUsagePercentage              *prometheus.GaugeVec
 	serviceLogicMonitoredHostsDurationMs               *prometheus.HistogramVec
 	serviceLogicMonitoredClustersDurationMs            *prometheus.HistogramVec
+	serviceLogicMonitoredClustersCycleDurationMs       *prometheus.HistogramVec
+	serviceLogicMonitoredHostsCycleDurationMs          *prometheus.HistogramVec
 	serviceLogicInstallerReleaseCache                  *prometheus.CounterVec
 	serviceLogicInstallerReleaseEvicted                *prometheus.CounterVec
 
@@ -308,6 +317,24 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 			Buckets:   []float64{10, 100, 200, 500, 1000, 10000, 30000},
 		}, []string{}),
 
+		serviceLogicMonitoredClustersCycleDurationMs: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      histogramMonitoredClustersCycleDurationMs,
+			Help:      histogramDescriptionMonitoredClustersCycleDurationMs,
+			Buckets: []float64{1000, 10000, 30000, 60000, 120000, 180000,
+				240000, 300000, 360000, 420000, 480000, 540000, 600000},
+		}, []string{labelFullScan}),
+
+		serviceLogicMonitoredHostsCycleDurationMs: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      histogramMonitoredHostsCycleDurationMs,
+			Help:      histogramDescriptionMonitoredHostsCycleDurationMs,
+			Buckets: []float64{1000, 10000, 30000, 60000, 120000, 180000,
+				240000, 300000, 360000, 420000, 480000, 540000, 600000},
+		}, []string{labelFullScan}),
+
 		serviceLogicInstallerReleaseCache: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: namespace,
@@ -347,6 +374,8 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 		m.serviceLogicFilesystemUsagePercentage,
 		m.serviceLogicMonitoredHostsDurationMs,
 		m.serviceLogicMonitoredClustersDurationMs,
+		m.serviceLogicMonitoredClustersCycleDurationMs,
+		m.serviceLogicMonitoredHostsCycleDurationMs,
 		m.serviceLogicInstallerReleaseCache,
 		m.serviceLogicInstallerReleaseEvicted,
 	)
@@ -526,6 +555,14 @@ func (m *MetricsManager) MonitoredClustersDurationMs(ctx context.Context, cluste
 		m.handler.V2AddMetricsEvent(ctx, &clusterID, nil, nil, "", models.EventSeverityInfo, "cluster_monitor.slow_cluster", time.Now(),
 			"duration", duration.Milliseconds())
 	}
+}
+
+func (m *MetricsManager) MonitoredClustersCycleDurationMs(ctx context.Context, duration time.Duration, fullScan bool) {
+	m.serviceLogicMonitoredClustersCycleDurationMs.WithLabelValues(fmt.Sprintf("%t", fullScan)).Observe(float64(duration.Milliseconds()))
+}
+
+func (m *MetricsManager) MonitoredHostsCycleDurationMs(ctx context.Context, duration time.Duration, fullScan bool) {
+	m.serviceLogicMonitoredHostsCycleDurationMs.WithLabelValues(fmt.Sprintf("%t", fullScan)).Observe(float64(duration.Milliseconds()))
 }
 
 func bytesToGib(bytes int64) int64 {
