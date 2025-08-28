@@ -199,7 +199,7 @@ var _ = Describe("Operators manager", func() {
 			m := models.Manifest{}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(8)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -213,28 +213,28 @@ var _ = Describe("Operators manager", func() {
 			m := models.Manifest{}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(8)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 4 manifests (LSO) using the manifest API", func() {
+		It("should create 5 manifests (LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&lso.Operator,
 			}
 			m := models.Manifest{}
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(3)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(5)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 8 manifests (CNV + LSO) using the manifest API", func() {
+		It("should create 10 manifests (CNV + LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&cnv.Operator,
 				&lso.Operator,
 			}
 			m := models.Manifest{}
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(8)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(10)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 	})
