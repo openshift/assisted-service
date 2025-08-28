@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalSummaryDashboard writes a value of the 'summary_dashboard' type to the given writer.
 func MarshalSummaryDashboard(object *SummaryDashboard, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSummaryDashboard(object, stream)
-	stream.Flush()
+	WriteSummaryDashboard(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSummaryDashboard writes a value of the 'summary_dashboard' type to the given stream.
-func writeSummaryDashboard(object *SummaryDashboard, stream *jsoniter.Stream) {
+// WriteSummaryDashboard writes a value of the 'summary_dashboard' type to the given stream.
+func WriteSummaryDashboard(object *SummaryDashboard, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -69,8 +71,7 @@ func writeSummaryDashboard(object *SummaryDashboard, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("metrics")
-		writeSummaryMetricsList(object.metrics, stream)
-		count++
+		WriteSummaryMetricsList(object.metrics, stream)
 	}
 	stream.WriteObjectEnd()
 }
@@ -78,20 +79,17 @@ func writeSummaryDashboard(object *SummaryDashboard, stream *jsoniter.Stream) {
 // UnmarshalSummaryDashboard reads a value of the 'summary_dashboard' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSummaryDashboard(source interface{}) (object *SummaryDashboard, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSummaryDashboard(iterator)
+	object = ReadSummaryDashboard(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSummaryDashboard reads a value of the 'summary_dashboard' type from the given iterator.
-func readSummaryDashboard(iterator *jsoniter.Iterator) *SummaryDashboard {
+// ReadSummaryDashboard reads a value of the 'summary_dashboard' type from the given iterator.
+func ReadSummaryDashboard(iterator *jsoniter.Iterator) *SummaryDashboard {
 	object := &SummaryDashboard{}
 	for {
 		field := iterator.ReadObject()
@@ -111,7 +109,7 @@ func readSummaryDashboard(iterator *jsoniter.Iterator) *SummaryDashboard {
 			object.href = iterator.ReadString()
 			object.bitmap_ |= 4
 		case "metrics":
-			value := readSummaryMetricsList(iterator)
+			value := ReadSummaryMetricsList(iterator)
 			object.metrics = value
 			object.bitmap_ |= 8
 		default:

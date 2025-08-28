@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readCredentialsGetRequest(request *CredentialsGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeCredentialsGetRequest(request *CredentialsGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readCredentialsGetResponse(response *CredentialsGetResponse, reader io.Read
 	var err error
 	response.body, err = UnmarshalClusterCredentials(reader)
 	return err
-}
-func writeCredentialsGetResponse(response *CredentialsGetServerResponse, w http.ResponseWriter) error {
-	return MarshalClusterCredentials(response.body, w)
 }

@@ -37,6 +37,11 @@ func (b *LabelListBuilder) Items(values ...*LabelBuilder) *LabelListBuilder {
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *LabelListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *LabelListBuilder) Copy(list *LabelList) *LabelListBuilder {
 	if list == nil || list.items == nil {

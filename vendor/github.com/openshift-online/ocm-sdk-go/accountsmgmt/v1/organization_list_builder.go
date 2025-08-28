@@ -37,6 +37,11 @@ func (b *OrganizationListBuilder) Items(values ...*OrganizationBuilder) *Organiz
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *OrganizationListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *OrganizationListBuilder) Copy(list *OrganizationList) *OrganizationListBuilder {
 	if list == nil || list.items == nil {

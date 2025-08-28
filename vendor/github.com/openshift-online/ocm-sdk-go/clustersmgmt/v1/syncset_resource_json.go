@@ -19,24 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readSyncsetDeleteRequest(request *SyncsetDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writeSyncsetDeleteRequest(request *SyncsetDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readSyncsetDeleteResponse(response *SyncsetDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writeSyncsetDeleteResponse(response *SyncsetDeleteServerResponse, w http.ResponseWriter) error {
-	return nil
-}
-func readSyncsetGetRequest(request *SyncsetGetServerRequest, r *http.Request) error {
 	return nil
 }
 func writeSyncsetGetRequest(request *SyncsetGetRequest, writer io.Writer) error {
@@ -47,14 +35,6 @@ func readSyncsetGetResponse(response *SyncsetGetResponse, reader io.Reader) erro
 	response.body, err = UnmarshalSyncset(reader)
 	return err
 }
-func writeSyncsetGetResponse(response *SyncsetGetServerResponse, w http.ResponseWriter) error {
-	return MarshalSyncset(response.body, w)
-}
-func readSyncsetUpdateRequest(request *SyncsetUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalSyncset(r.Body)
-	return err
-}
 func writeSyncsetUpdateRequest(request *SyncsetUpdateRequest, writer io.Writer) error {
 	return MarshalSyncset(request.body, writer)
 }
@@ -62,7 +42,4 @@ func readSyncsetUpdateResponse(response *SyncsetUpdateResponse, reader io.Reader
 	var err error
 	response.body, err = UnmarshalSyncset(reader)
 	return err
-}
-func writeSyncsetUpdateResponse(response *SyncsetUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalSyncset(response.body, w)
 }

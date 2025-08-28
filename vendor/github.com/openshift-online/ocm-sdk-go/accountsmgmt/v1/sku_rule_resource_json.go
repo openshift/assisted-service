@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readSkuRuleGetRequest(request *SkuRuleGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeSkuRuleGetRequest(request *SkuRuleGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readSkuRuleGetResponse(response *SkuRuleGetResponse, reader io.Reader) erro
 	var err error
 	response.body, err = UnmarshalSkuRule(reader)
 	return err
-}
-func writeSkuRuleGetResponse(response *SkuRuleGetServerResponse, w http.ResponseWriter) error {
-	return MarshalSkuRule(response.body, w)
 }

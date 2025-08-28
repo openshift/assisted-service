@@ -111,8 +111,6 @@ func (o *SocketTotalNodeRoleOSMetricNode) GetSocketTotal() (value float64, ok bo
 
 // Time returns the value of the 'time' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SocketTotalNodeRoleOSMetricNode) Time() time.Time {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.time
@@ -122,8 +120,6 @@ func (o *SocketTotalNodeRoleOSMetricNode) Time() time.Time {
 
 // GetTime returns the value of the 'time' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SocketTotalNodeRoleOSMetricNode) GetTime() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -157,6 +153,29 @@ func (l *SocketTotalNodeRoleOSMetricNodeList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *SocketTotalNodeRoleOSMetricNodeList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *SocketTotalNodeRoleOSMetricNodeList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *SocketTotalNodeRoleOSMetricNodeList) SetItems(items []*SocketTotalNodeRoleOSMetricNode) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *SocketTotalNodeRoleOSMetricNodeList) Items() []*SocketTotalNodeRoleOSMetricNode {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalClusterAuthorizationRequest writes a value of the 'cluster_authorization_request' type to the given writer.
 func MarshalClusterAuthorizationRequest(object *ClusterAuthorizationRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeClusterAuthorizationRequest(object, stream)
-	stream.Flush()
+	WriteClusterAuthorizationRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeClusterAuthorizationRequest writes a value of the 'cluster_authorization_request' type to the given stream.
-func writeClusterAuthorizationRequest(object *ClusterAuthorizationRequest, stream *jsoniter.Stream) {
+// WriteClusterAuthorizationRequest writes a value of the 'cluster_authorization_request' type to the given stream.
+func WriteClusterAuthorizationRequest(object *ClusterAuthorizationRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -153,18 +155,44 @@ func writeClusterAuthorizationRequest(object *ClusterAuthorizationRequest, strea
 		if count > 0 {
 			stream.WriteMore()
 		}
+		stream.WriteObjectField("quota_version")
+		stream.WriteString(object.quotaVersion)
+		count++
+	}
+	present_ = object.bitmap_&8192 != 0
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
 		stream.WriteObjectField("reserve")
 		stream.WriteBool(object.reserve)
 		count++
 	}
-	present_ = object.bitmap_&8192 != 0 && object.resources != nil
+	present_ = object.bitmap_&16384 != 0 && object.resources != nil
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("resources")
-		writeReservedResourceList(object.resources, stream)
+		WriteReservedResourceList(object.resources, stream)
 		count++
+	}
+	present_ = object.bitmap_&32768 != 0
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("rh_region_id")
+		stream.WriteString(object.rhRegionID)
+		count++
+	}
+	present_ = object.bitmap_&65536 != 0
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("scope")
+		stream.WriteString(object.scope)
 	}
 	stream.WriteObjectEnd()
 }
@@ -172,20 +200,17 @@ func writeClusterAuthorizationRequest(object *ClusterAuthorizationRequest, strea
 // UnmarshalClusterAuthorizationRequest reads a value of the 'cluster_authorization_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalClusterAuthorizationRequest(source interface{}) (object *ClusterAuthorizationRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readClusterAuthorizationRequest(iterator)
+	object = ReadClusterAuthorizationRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readClusterAuthorizationRequest reads a value of the 'cluster_authorization_request' type from the given iterator.
-func readClusterAuthorizationRequest(iterator *jsoniter.Iterator) *ClusterAuthorizationRequest {
+// ReadClusterAuthorizationRequest reads a value of the 'cluster_authorization_request' type from the given iterator.
+func ReadClusterAuthorizationRequest(iterator *jsoniter.Iterator) *ClusterAuthorizationRequest {
 	object := &ClusterAuthorizationRequest{}
 	for {
 		field := iterator.ReadObject()
@@ -241,14 +266,26 @@ func readClusterAuthorizationRequest(iterator *jsoniter.Iterator) *ClusterAuthor
 			value := iterator.ReadString()
 			object.productCategory = value
 			object.bitmap_ |= 2048
+		case "quota_version":
+			value := iterator.ReadString()
+			object.quotaVersion = value
+			object.bitmap_ |= 4096
 		case "reserve":
 			value := iterator.ReadBool()
 			object.reserve = value
-			object.bitmap_ |= 4096
-		case "resources":
-			value := readReservedResourceList(iterator)
-			object.resources = value
 			object.bitmap_ |= 8192
+		case "resources":
+			value := ReadReservedResourceList(iterator)
+			object.resources = value
+			object.bitmap_ |= 16384
+		case "rh_region_id":
+			value := iterator.ReadString()
+			object.rhRegionID = value
+			object.bitmap_ |= 32768
+		case "scope":
+			value := iterator.ReadString()
+			object.scope = value
+			object.bitmap_ |= 65536
 		default:
 			iterator.ReadAny()
 		}

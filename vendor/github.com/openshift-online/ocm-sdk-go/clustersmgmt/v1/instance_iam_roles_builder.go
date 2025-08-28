@@ -33,9 +33,12 @@ func NewInstanceIAMRoles() *InstanceIAMRolesBuilder {
 	return &InstanceIAMRolesBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *InstanceIAMRolesBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // MasterRoleARN sets the value of the 'master_role_ARN' attribute to the given value.
-//
-//
 func (b *InstanceIAMRolesBuilder) MasterRoleARN(value string) *InstanceIAMRolesBuilder {
 	b.masterRoleARN = value
 	b.bitmap_ |= 1
@@ -43,8 +46,6 @@ func (b *InstanceIAMRolesBuilder) MasterRoleARN(value string) *InstanceIAMRolesB
 }
 
 // WorkerRoleARN sets the value of the 'worker_role_ARN' attribute to the given value.
-//
-//
 func (b *InstanceIAMRolesBuilder) WorkerRoleARN(value string) *InstanceIAMRolesBuilder {
 	b.workerRoleARN = value
 	b.bitmap_ |= 2
