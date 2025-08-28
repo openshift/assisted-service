@@ -1,0 +1,21 @@
+apiVersion: operator.openshift.io/v1
+kind: KubeDescheduler
+metadata:
+  name: cluster
+  namespace: {{ .Operator.Namespace }}
+spec:
+  logLevel: Normal
+  mode: "Automatic"
+  operatorLogLevel: Normal
+  profiles:
+  {{- range .Config.Profiles }}
+    - {{ . }}
+  {{- end }}
+  {{- if .Config.ProfileCustomizations }}
+  profileCustomizations:
+    {{- range $key, $value := .Config.ProfileCustomizations }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  deschedulingIntervalSeconds: 60
+  managementState: Managed
