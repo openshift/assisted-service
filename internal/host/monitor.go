@@ -149,9 +149,10 @@ func (m *Manager) clusterHostMonitoring() {
 		clusters  []*common.Cluster
 		err       error
 	)
-
 	m.resetRoleAssignmentIfNotAllRolesAreSet()
 	query := m.monitorClusterQueryGenerator.NewClusterQuery()
+	cycleStartTime := time.Now()
+	isFullScan := query.IsFullScan()
 	for {
 		if clusters, err = query.Next(); err != nil {
 			m.log.WithError(err).Error("Getting clusters")
@@ -204,6 +205,9 @@ func (m *Manager) clusterHostMonitoring() {
 
 		m.log.Debug("Finished cluster host monitoring cycle")
 	}
+
+	duration := time.Since(cycleStartTime)
+	m.metricApi.MonitoredHostsCycleDurationMs(ctx, duration, isFullScan)
 }
 
 func (m *Manager) infraEnvHostMonitoring() {
