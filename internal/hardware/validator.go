@@ -601,15 +601,16 @@ func preciseHumanizeBytes(bytes uint64) string {
 		kb := float64(bytes) / float64(KB)
 		return formatUnitRoundedUpOneDecimal(kb, "KB")
 	default:
-		return fmt.Sprintf("%d bytes", bytes)
+		return fmt.Sprintf("%d B", bytes)
 	}
 }
 
 // formatUnitRoundedUpOneDecimal returns either an integer or one-decimal string
 // for the given value and unit label, rounding up non-integer values.
 func formatUnitRoundedUpOneDecimal(value float64, unit string) string {
-	if value == float64(int64(value)) {
-		return fmt.Sprintf("%d %s", int64(value), unit)
+	rounded := math.Ceil(value*10) / 10
+	if rounded == float64(int64(rounded)) {
+		return fmt.Sprintf("%d %s", int64(rounded), unit)
 	}
-	return fmt.Sprintf("%.1f %s", math.Ceil(value*10)/10, unit)
+	return fmt.Sprintf("%.1f %s", rounded, unit)
 }
