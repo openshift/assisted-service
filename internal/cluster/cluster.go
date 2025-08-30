@@ -110,6 +110,7 @@ type API interface {
 	CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
 	ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
 	PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error
+	MarkAsDisconnected(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	HandlePreInstallError(ctx context.Context, c *common.Cluster, err error)
 	HandlePreInstallSuccess(ctx context.Context, c *common.Cluster)
 	SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error
@@ -573,6 +574,7 @@ func (m *Manager) initMonitorQueryGenerator() {
 		buildInitialQuery := func(db *gorm.DB) *gorm.DB {
 			noNeedToMonitorInStates := []string{
 				models.ClusterStatusInstalled,
+				models.ClusterStatusDisconnected,
 			}
 
 			dbWithCondition := common.LoadClusterTablesFromDB(db)
@@ -954,6 +956,16 @@ func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster,
 			db:                 db,
 			manifestsGenerator: m.manifestsGeneratorAPI,
 			metricApi:          m.metricAPI,
+		},
+	)
+	return err
+}
+
+func (m *Manager) MarkAsDisconnected(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+	err := m.sm.Run(TransitionTypeMarkAsDisconnected, newStateCluster(c),
+		&TransitionArgsMarkAsDisconnected{
+			ctx: ctx,
+			db:  db,
 		},
 	)
 	return err

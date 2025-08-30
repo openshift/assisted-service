@@ -239,6 +239,20 @@ func (mr *MockTransitionHandlerMockRecorder) PostHandlePreInstallationError(sw, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHandlePreInstallationError", reflect.TypeOf((*MockTransitionHandler)(nil).PostHandlePreInstallationError), sw, args)
 }
 
+// PostMarkAsDisconnected mocks base method.
+func (m *MockTransitionHandler) PostMarkAsDisconnected(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostMarkAsDisconnected", sw, args)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PostMarkAsDisconnected indicates an expected call of PostMarkAsDisconnected.
+func (mr *MockTransitionHandlerMockRecorder) PostMarkAsDisconnected(sw, args interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostMarkAsDisconnected", reflect.TypeOf((*MockTransitionHandler)(nil).PostMarkAsDisconnected), sw, args)
+}
+
 // PostPrepareForInstallation mocks base method.
 func (m *MockTransitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	m.ctrl.T.Helper()

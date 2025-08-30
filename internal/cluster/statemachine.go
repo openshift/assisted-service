@@ -13,6 +13,7 @@ const (
 	TransitionTypeResetCluster           = "ResetCluster"
 	TransitionTypePrepareForInstallation = "PrepareForInstallation"
 	TransitionTypeRefreshStatus          = "RefreshStatus"
+	TransitionTypeMarkAsDisconnected     = "MarkAsDisconnected"
 )
 
 func SequentialPostTransitions(postTransitions ...stateswitch.PostTransition) stateswitch.PostTransition {
@@ -93,6 +94,20 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Start installation",
 			Description: "Begins preparing the cluster for installation",
+		},
+	})
+
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeMarkAsDisconnected,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusInsufficient),
+			stateswitch.State(models.ClusterStatusPendingForInput),
+		},
+		DestinationState: stateswitch.State(models.ClusterStatusDisconnected),
+		PostTransition:   th.PostMarkAsDisconnected,
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "Mark cluster as disconnected for disconnected ISO",
+			Description: "Marks a temporary cluster as disconnected when it's being used for OVE ISO configuration",
 		},
 	})
 
@@ -577,6 +592,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		stateswitch.State(models.ClusterStatusError),
 		stateswitch.State(models.ClusterStatusCancelled),
 		stateswitch.State(models.ClusterStatusAddingHosts),
+		stateswitch.State(models.ClusterStatusDisconnected),
 	} {
 		sm.AddTransitionRule(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefreshStatus,
@@ -637,6 +653,10 @@ func documentStates(sm stateswitch.StateMachine) {
 		Name:        "Installing, Pending User Action",
 		Description: "Installation is in progress, but is blocked and cannot continue until the user takes action",
 	})
+	sm.DescribeState(stateswitch.State(models.ClusterStatusDisconnected), stateswitch.StateDoc{
+		Name:        "Disconnected",
+		Description: "The cluster is a temporary configuration holder for OVE ISO generation and should not be monitored or transitioned",
+	})
 }
 
 func documentTransitionTypes(sm stateswitch.StateMachine) {
@@ -655,5 +675,9 @@ func documentTransitionTypes(sm stateswitch.StateMachine) {
 	sm.DescribeTransitionType(TransitionTypeRefreshStatus, stateswitch.TransitionTypeDoc{
 		Name:        "RefreshStatus",
 		Description: "Triggered on some clusters periodically by the background cluster monitor goroutine that runs on the leader instance of the Assisted Service. Responsible for driving transitions between states that require re-evaluation of all the validation results and potential timeout conditions",
+	})
+	sm.DescribeTransitionType(TransitionTypeMarkAsDisconnected, stateswitch.TransitionTypeDoc{
+		Name:        "Mark As Disconnected",
+		Description: "Triggered when an InfraEnv with disconnected-iso type is registered for a cluster, marking it as a temporary configuration holder for OVE ISO",
 	})
 }

@@ -445,6 +445,20 @@ func (mr *MockAPIMockRecorder) IsReadyForInstallation(c interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReadyForInstallation", reflect.TypeOf((*MockAPI)(nil).IsReadyForInstallation), c)
 }
 
+// MarkAsDisconnected mocks base method.
+func (m *MockAPI) MarkAsDisconnected(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkAsDisconnected", ctx, c, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkAsDisconnected indicates an expected call of MarkAsDisconnected.
+func (mr *MockAPIMockRecorder) MarkAsDisconnected(ctx, c, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsDisconnected", reflect.TypeOf((*MockAPI)(nil).MarkAsDisconnected), ctx, c, db)
+}
+
 // PermanentClustersDeletion mocks base method.
 func (m *MockAPI) PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error {
 	m.ctrl.T.Helper()

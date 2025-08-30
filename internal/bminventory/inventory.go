@@ -225,6 +225,7 @@ type bareMetalInventory struct {
 	providerRegistry     registry.ProviderRegistry
 	insecureIPXEURLs     bool
 	installerInvoker     string
+	oveIgnitionGenerator *ignition.OVEIgnitionGenerator
 }
 
 func NewBareMetalInventory(
@@ -259,6 +260,7 @@ func NewBareMetalInventory(
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
 	installerInvoker string,
+	oveIgnitionGenerator *ignition.OVEIgnitionGenerator,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -292,6 +294,7 @@ func NewBareMetalInventory(
 		providerRegistry:     providerRegistry,
 		insecureIPXEURLs:     insecureIPXEURLs,
 		installerInvoker:     installerInvoker,
+		oveIgnitionGenerator: oveIgnitionGenerator,
 	}
 }
 
@@ -4771,6 +4774,7 @@ func (b *bareMetalInventory) setMultiCPUArchitectureUsage(db *gorm.DB, clusterId
 }
 
 func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
+	ctx context.Context,
 	log logrus.FieldLogger,
 	tx *gorm.DB,
 	clusterId *strfmt.UUID,
@@ -4784,6 +4788,13 @@ func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
 		if err := featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, nil); err != nil {
 			b.log.Error(err)
 			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		// If this is a disconnected-iso type infraenv and the cluster is in insufficient/pending-for-input status,
+		// update the cluster status to disconnected. This indicates the cluster is a temporary cluster that's being used
+		// as a configuration holder for OVE configuration and should not be monitored or transitioned.
+		if err := b.setDisconnectedStatus(ctx, log, tx, clusterId, infraEnv, cluster); err != nil {
+			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 
 		// Set the feature usage for ignition config overrides since cluster id exists
@@ -4801,6 +4812,21 @@ func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
 		}
 		if err := b.setMultiCPUArchitectureUsage(tx, infraEnv.ClusterID, infraEnv.CPUArchitecture); err != nil {
 			log.WithError(err).Warnf("failed to set cpu architecture usage for multi architecture for cluster %s", infraEnv.ClusterID)
+		}
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) setDisconnectedStatus(ctx context.Context, log logrus.FieldLogger, tx *gorm.DB, clusterId *strfmt.UUID, infraEnv *common.InfraEnv, cluster *common.Cluster) error {
+	if infraEnv.Type != nil && *infraEnv.Type == models.ImageTypeDisconnectedIso {
+		status := swag.StringValue(cluster.Status)
+		// Allow transition from both insufficient and pending-for-input states
+		if status == models.ClusterStatusInsufficient || status == models.ClusterStatusPendingForInput {
+			log.Infof("Setting cluster %s status to disconnected from %s due to disconnected-iso infraenv", clusterId, status)
+			if err := b.clusterApi.MarkAsDisconnected(ctx, cluster, tx); err != nil {
+				log.WithError(err).Errorf("Failed to transition cluster %s to disconnected status", clusterId)
+				return err
+			}
 		}
 	}
 	return nil
@@ -4921,7 +4947,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 			return err
 		}
 
-		if err = b.handlerClusterInfoOnRegisterInfraEnv(log, tx, clusterId, &infraEnv, cluster, params.InfraenvCreateParams); err != nil {
+		if err = b.handlerClusterInfoOnRegisterInfraEnv(ctx, log, tx, clusterId, &infraEnv, cluster, params.InfraenvCreateParams); err != nil {
 			return err
 		}
 
@@ -5574,6 +5600,10 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			return err
 		}
 
+		if infraEnv.Type != nil && *infraEnv.Type == models.ImageTypeDisconnectedIso {
+			return common.NewApiError(400, errors.Errorf("Cannot register a host to an InfraEnv with disconnected-iso type"))
+		}
+
 		// The query for cluster must appear before the host query to avoid potential deadlock
 		cluster, err = b.getBoundClusterForUpdate(tx, infraEnv, params.InfraEnvID, *params.NewHostParams.HostID)
 		if err != nil {
@@ -6179,11 +6209,24 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	var content, filename string
 	switch params.FileName {
 	case "discovery.ign":
-		discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
-		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
-		if err != nil {
-			b.log.WithError(err).Error("Failed to format ignition config")
-			return common.GenerateErrorResponder(err)
+		if infraEnv.Type != nil && *infraEnv.Type == models.ImageTypeDisconnectedIso {
+			cluster, clusterErr := common.GetClusterFromDB(b.db, infraEnv.ClusterID, common.SkipEagerLoading)
+			if clusterErr != nil {
+				b.log.WithError(clusterErr).Errorf("Failed to get cluster for OVE ignition generation, infraEnv %s", infraEnv.ID)
+				return common.GenerateErrorResponder(clusterErr)
+			}
+			content, err = b.oveIgnitionGenerator.GenerateOVEIgnition(ctx, infraEnv, cluster.OpenshiftVersion)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to generate OVE ignition")
+				return common.GenerateErrorResponder(err)
+			}
+		} else {
+			discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
+			content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to format ignition config")
+				return common.GenerateErrorResponder(err)
+			}
 		}
 		filename = params.FileName
 	case "ipxe-script":

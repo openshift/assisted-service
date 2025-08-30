@@ -57,6 +57,7 @@ type TransitionHandler interface {
 	PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostHandlePreInstallationError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostMarkAsDisconnected(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	IsFinalizing(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	IsInstalling(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	IsInstallingPendingUserAction(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
@@ -208,6 +209,34 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 		statusInfoPreparingForInstallation, extra...)
 	if err != nil {
 		th.log.WithError(err).Errorf("failed to reset fields in PostPrepareForInstallation on cluster %s", *sCluster.cluster.ID)
+	}
+	return err
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Mark as disconnected
+////////////////////////////////////////////////////////////////////////////
+
+type TransitionArgsMarkAsDisconnected struct {
+	ctx context.Context
+	db  *gorm.DB
+}
+
+func (th *transitionHandler) PostMarkAsDisconnected(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return errors.New("PostMarkAsDisconnected incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsMarkAsDisconnected)
+	if !ok {
+		return errors.New("PostMarkAsDisconnected invalid argument")
+	}
+
+	statusInfo := "Cluster is used for disconnected ISO configuration"
+	err := th.updateTransitionCluster(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sCluster,
+		statusInfo)
+	if err != nil {
+		th.log.WithError(err).Errorf("failed to update cluster %s to disconnected status", *sCluster.cluster.ID)
 	}
 	return err
 }
