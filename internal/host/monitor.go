@@ -15,6 +15,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type MonitorConfig struct {
+	HostWeightGPUWeight float64 `envconfig:"HOST_WEIGHT_GPU_WEIGHT" default:"10"`
+}
+
 func (m *Manager) initMonitoringQueryGenerator() {
 	if m.monitorClusterQueryGenerator == nil {
 		buildInitialQuery := func(db *gorm.DB) *gorm.DB {
@@ -66,7 +70,7 @@ func (m *Manager) initMonitoringQueryGenerator() {
 	}
 }
 
-func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
+func SortHosts(hosts []*models.Host, GPUWeight float64) ([]*models.Host, bool) {
 	diskCapacityGiB := func(disks []*models.Disk) int64 {
 		return funk.Reduce(disks, func(acc int64, d *models.Disk) int64 {
 			if d.InstallationEligibility.Eligible {
@@ -93,6 +97,14 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 		}
 	}
 
+	gpuCount := func(inventory *models.Inventory) int64 {
+		if inventory.Gpus != nil {
+			return int64(len(inventory.Gpus))
+		} else {
+			return 0
+		}
+	}
+
 	allHostsHasInventory := true
 	sort.SliceStable(hosts, func(i, j int) bool {
 		inventory_i, _ := common.UnmarshalInventory(hosts[i].Inventory)
@@ -107,14 +119,16 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 			return true
 		}
 
-		//(host_cores - 4) + ((host_ram_gb - 16) * 0.1) + ((host_disk_capacity_gb - 100) * 0.004)
+		//(host_cores - 4) + ((host_ram_gb - 16) * 0.1) + ((host_disk_capacity_gb - 100) * 0.004) + (gpu_count * 10(default))
 		wi := 1.0*(float64(cpuCount(inventory_i))-HostWeightMinimumCpuCores) +
 			HostWeightMemWeight*(float64(memInGib(inventory_i))-HostWeightMinimumMemGib) +
-			HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_i.Disks))-HostWeightMinimumDiskCapacityGib)
+			HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_i.Disks))-HostWeightMinimumDiskCapacityGib) +
+			GPUWeight*float64(gpuCount(inventory_i))
 
 		wj := 1.0*(float64(cpuCount(inventory_j))-HostWeightMinimumCpuCores) +
 			HostWeightMemWeight*(float64(memInGib(inventory_j))-HostWeightMinimumMemGib) +
-			HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_j.Disks))-HostWeightMinimumDiskCapacityGib)
+			HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_j.Disks))-HostWeightMinimumDiskCapacityGib) +
+			GPUWeight*float64(gpuCount(inventory_j))
 
 		return wi < wj
 	})
@@ -166,7 +180,7 @@ func (m *Manager) clusterHostMonitoring() {
 
 		for _, c := range clusters {
 			inventoryCache := make(InventoryCache)
-			sortedHosts, canRefreshRoles := SortHosts(c.Hosts)
+			sortedHosts, canRefreshRoles := SortHosts(c.Hosts, m.monitorConfig.HostWeightGPUWeight)
 
 			log = log.WithField("cluster", c.ID.String())
 

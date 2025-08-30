@@ -138,6 +138,7 @@ var Options struct {
 	Storage                              string `envconfig:"STORAGE" default:"s3"`
 	OCMConfig                            ocm.Config
 	HostConfig                           host.Config
+	MonitorConfig                        host.MonitorConfig
 	LogConfig                            logconfig.Config
 	LeaderConfig                         leader.Config
 	ValidationsConfig                    validations.Config
@@ -465,7 +466,7 @@ func main() {
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, notificationStream, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager, providerRegistry, Options.EnableKubeAPI, objectHandler, versionHandler,
-		Options.EnableSoftTimeouts)
+		Options.EnableSoftTimeouts, Options.MonitorConfig)
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig, db)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
@@ -563,7 +564,7 @@ func main() {
 	bm := bminventory.NewBareMetalInventory(db, notificationStream, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, authzHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, osImages, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
-		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs, Options.GeneratorConfig.InstallInvoker)
+		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs, Options.GeneratorConfig.InstallInvoker, Options.MonitorConfig)
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
 	//Set inner handler chain. Inner handlers requires access to the Route

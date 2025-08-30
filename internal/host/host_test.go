@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -46,6 +47,7 @@ var (
 	defaultDisabledHostValidations = DisabledHostValidations{}
 	defaultConfig                  *Config
 	defaultNTPSources              = []*models.NtpSource{common.TestNTPSourceSynced}
+	monitorConfig                  = MonitorConfig{HostWeightGPUWeight: float64(10)}
 )
 
 var _ = BeforeEach(func() {
@@ -75,7 +77,7 @@ var _ = Describe("update_role", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		dummy := &leader.DummyElector{}
 		db, dbName = common.PrepareTestDB()
-		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -379,7 +381,7 @@ var _ = Describe("update_progress", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		dummy := &leader.DummyElector{}
-		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		infraEnvId := strfmt.UUID(uuid.New().String())
@@ -633,7 +635,7 @@ var _ = Describe("update progress special cases", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		dummy := &leader.DummyElector{}
 		setDefaultReportHostInstallationMetrics(mockMetric)
-		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -741,7 +743,7 @@ var _ = Describe("cancel installation", func() {
 		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, nil, testing.GetDummyNotificationStream(ctrl), logrus.New())
 		dummy := &leader.DummyElector{}
-		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), eventsHandler, nil, nil, nil, nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), eventsHandler, nil, nil, nil, nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		infraEnvId := strfmt.UUID(uuid.New().String())
@@ -838,7 +840,7 @@ var _ = Describe("reset host", func() {
 		eventsHandler = events.New(db, nil, testing.GetDummyNotificationStream(ctrl), logrus.New())
 		config = *defaultConfig
 		dummy := &leader.DummyElector{}
-		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), eventsHandler, nil, nil, nil, nil, &config, dummy, nil, nil, false, nil, nil, false)
+		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), eventsHandler, nil, nil, nil, nil, &config, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
@@ -985,7 +987,7 @@ var _ = Describe("register host", func() {
 		eventsHandler = eventsapi.NewMockHandler(ctrl)
 		config = *defaultConfig
 		dummy := &leader.DummyElector{}
-		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), eventsHandler, nil, nil, nil, nil, &config, dummy, nil, nil, false, nil, nil, false)
+		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), eventsHandler, nil, nil, nil, nil, &config, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		infraEnvId := strfmt.UUID(uuid.New().String())
@@ -1122,7 +1124,7 @@ var _ = Describe("UpdateInventory", func() {
 		mockValidator = hardware.NewMockValidator(ctrl)
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockValidator,
-			nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+			nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -1491,7 +1493,7 @@ var _ = Describe("UpdateInventory", func() {
 			host.Inventory = common.GenerateTestDefaultInventory()
 			defaultConfig.EnableVirtualInterfaces = true
 			enabled_hapi := NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockValidator,
-				nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+				nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 			Expect(enabled_hapi.UpdateInventory(ctx, &host, host.Inventory)).To(Succeed())
 
 			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
@@ -1504,7 +1506,7 @@ var _ = Describe("UpdateInventory", func() {
 		It("Saves virtual interfaces when virtual interface flag is enabled", func() {
 			defaultConfig.EnableVirtualInterfaces = true
 			enabled_hapi := NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockValidator,
-				nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+				nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 			mockEvents.EXPECT().V2AddMetricsEvent(ctx, host.ClusterID, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 			mockEvents.EXPECT().V2AddMetricsEvent(ctx, host.ClusterID, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
 			Expect(enabled_hapi.UpdateInventory(ctx, &host, host.Inventory)).To(Succeed())
@@ -1568,7 +1570,7 @@ var _ = Describe("Update hostname", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -1706,7 +1708,7 @@ var _ = Describe("Bind host", func() {
 		dummy := &leader.DummyElector{}
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -1870,7 +1872,7 @@ var _ = Describe("Unbind host", func() {
 		dummy := &leader.DummyElector{}
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -2035,7 +2037,7 @@ var _ = Describe("Update disk installation path", func() {
 		leader := &leader.DummyElector{}
 		mockValidator = hardware.NewMockValidator(ctrl)
 		logger := common.GetTestLog()
-		hapi = NewManager(logger, db, testing.GetDummyNotificationStream(ctrl), nil, mockValidator, nil, createValidatorCfg(), nil, defaultConfig, leader, nil, nil, false, nil, nil, false)
+		hapi = NewManager(logger, db, testing.GetDummyNotificationStream(ctrl), nil, mockValidator, nil, createValidatorCfg(), nil, defaultConfig, leader, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -2184,7 +2186,7 @@ var _ = Describe("SetBootstrap", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -2246,7 +2248,7 @@ var _ = Describe("UpdateNTP", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -2309,7 +2311,7 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -2424,7 +2426,7 @@ var _ = Describe("UpdateIgnitionEndpointToken", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -2547,7 +2549,7 @@ var _ = Describe("update logs_info", func() {
 		dummy := &leader.DummyElector{}
 		db, dbName = common.PrepareTestDB()
 		mockOperators := operators.NewMockAPI(ctrl)
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, mockOperators, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, mockOperators, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -2620,7 +2622,7 @@ var _ = Describe("UpdateImageStatus", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		dummy := &leader.DummyElector{}
-		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -2770,7 +2772,7 @@ var _ = Describe("UpdateKubeKeyNS", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
-		hostApi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		hostApi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -2828,6 +2830,44 @@ var _ = Describe("AutoAssignRole", func() {
 		mockEvents      *eventsapi.MockHandler
 		dbName          string
 	)
+
+	generateAutoAssignHost := func(hostID strfmt.UUID, cpus, ram int64, hasGPU bool, hostname string) *models.Host {
+		h := hostutil.GenerateTestHost(hostID, infraEnvId, clusterId, models.HostStatusKnown)
+		h.Role = models.HostRoleAutoAssign
+		h.SuggestedRole = ""
+		h.RequestedHostname = hostname
+
+		var gpus []*models.Gpu
+		if hasGPU {
+			gpus = []*models.Gpu{
+				{DeviceID: "2222", VendorID: "0000"},
+			}
+		}
+
+		inventory := &models.Inventory{
+			CPU: &models.CPU{
+				Count: cpus,
+			},
+			Memory: &models.Memory{
+				UsableBytes:   conversions.GibToBytes(ram),
+				PhysicalBytes: conversions.GibToBytes(ram), // Add PhysicalBytes for validation
+			},
+			Disks: []*models.Disk{
+				{
+					SizeBytes:               100 * conversions.GB,
+					DriveType:               models.DriveTypeSSD,
+					ID:                      "/dev/disk/by-id/test-disk",
+					InstallationEligibility: models.DiskInstallationEligibility{Eligible: true},
+				},
+			},
+			Gpus: gpus,
+		}
+		b, _ := json.Marshal(inventory)
+		h.Inventory = string(b)
+
+		return &h
+	}
+
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
@@ -2862,6 +2902,7 @@ var _ = Describe("AutoAssignRole", func() {
 			nil,
 			mockVersions,
 			false,
+			monitorConfig,
 		)
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                &clusterId,
@@ -3041,6 +3082,71 @@ var _ = Describe("AutoAssignRole", func() {
 		verifyAutoAssignRole(&h, true, true)
 		Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleArbiter))
 	})
+	It("should assign roles based on hardware with GPU weight affecting priority", func() {
+		cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
+		hosts := []*models.Host{
+			// master candidates (higher CPU/RAM)
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, false, "powerful-host-1"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, false, "powerful-host-2"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, false, "powerful-host-3"),
+			// worker candidates with GPU (should be preferred for worker role due to GPU weight)
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 4, 16, true, "gpu-worker-1"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 4, 16, true, "gpu-worker-2"),
+		}
+
+		cluster.Hosts = hosts
+
+		// Sort hosts first (like the real auto-assign logic does)
+		sortedHosts, _ := SortHosts(hosts, 10) // Use default GPU weight
+
+		var masterCount, workerCount int
+
+		for _, host := range sortedHosts {
+			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
+			verifyAutoAssignRole(host, true, true)
+			if strings.Contains(host.RequestedHostname, "gpu-worker") {
+				Expect(hostutil.GetHostFromDB(*host.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleWorker))
+				workerCount++
+			} else {
+				Expect(hostutil.GetHostFromDB(*host.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleMaster))
+				masterCount++
+			}
+		}
+
+		Expect(masterCount).To(Equal(3), "Should have exactly 3 masters")
+		Expect(workerCount).To(Equal(2), "Should have exactly 2 workers")
+
+	})
+	It("should handle edge case of all hosts having GPUs", func() {
+		// All 5 hosts have GPUs - auto-assign should still work correctly
+		hosts := []*models.Host{
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, true, "gpu-host-1"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, true, "gpu-host-2"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, true, "gpu-host-3"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 4, 16, true, "gpu-host-4"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 4, 16, true, "gpu-host-5"),
+		}
+
+		cluster.Hosts = hosts
+
+		// Sort hosts first (like the real auto-assign logic does)
+		sortedHosts, _ := SortHosts(hosts, 10) // Use default GPU weight
+
+		var masterCount, workerCount int
+
+		for _, host := range sortedHosts {
+			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
+			verifyAutoAssignRole(host, true, true)
+			role := hostutil.GetHostFromDB(*host.ID, infraEnvId, db).Role
+			if role == models.HostRoleMaster {
+				masterCount++
+			} else if role == models.HostRoleWorker {
+				workerCount++
+			}
+		}
+		Expect(masterCount).To(Equal(3), "Should have exactly 3 masters")
+		Expect(workerCount).To(Equal(2), "Should have exactly 2 workers")
+	})
 })
 
 var _ = Describe("IsValidCandidate", func() {
@@ -3087,6 +3193,7 @@ var _ = Describe("IsValidCandidate", func() {
 			nil,
 			mockVersions,
 			false,
+			monitorConfig,
 		)
 		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId, Kind: swag.String(models.ClusterKindCluster)}}).Error).ShouldNot(HaveOccurred())
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
@@ -3238,7 +3345,7 @@ var _ = Describe("Validation metrics and events", func() {
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		validatorCfg = createValidatorCfg()
-		m = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		m = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 
 		infraEnvId := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
@@ -3365,7 +3472,7 @@ var _ = Describe("SetDiskSpeed", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		validatorCfg = createValidatorCfg()
-		m = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		m = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 
 		infraEnvId := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
@@ -3478,7 +3585,7 @@ var _ = Describe("ResetHostValidation", func() {
 		mockMetric := metrics.NewMockAPI(ctrl)
 		infraEnvId := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
-		m = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		m = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
 			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
@@ -3621,7 +3728,7 @@ var _ = Describe("Get host by Kube key", func() {
 		validatorCfg = createValidatorCfg()
 		mockMetric := metrics.NewMockAPI(ctrl)
 		db, dbName = common.PrepareTestDB()
-		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 		id = strfmt.UUID(uuid.New().String())
 		key = types.NamespacedName{
 			Namespace: kubeKeyNamespace,
@@ -3676,7 +3783,7 @@ var _ = Describe("Media disconnection", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventApi = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
-		api = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventApi, nil, nil, nil, nil, &config, dummy, nil, nil, false, nil, nil, false)
+		api = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventApi, nil, nil, nil, nil, &config, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		clusterId = strfmt.UUID(uuid.New().String())
 		hostId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -3781,7 +3888,7 @@ var _ = Describe("Installation stages", func() {
 		dummy := &leader.DummyElector{}
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventApi = eventsapi.NewMockHandler(ctrl)
-		api = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventApi, nil, nil, nil, nil, &config, dummy, nil, nil, false, nil, nil, false)
+		api = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventApi, nil, nil, nil, nil, &config, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 	})
 
 	AfterEach(func() {
@@ -3924,7 +4031,7 @@ var _ = Describe("Installation stages", func() {
 		})
 	})
 	It("UpdateInstallProgress test - day2 hosts with kubeapi enabled", func() {
-		api = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventApi, nil, nil, nil, nil, &config, &leader.DummyElector{}, nil, nil, true, nil, nil, false)
+		api = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventApi, nil, nil, nil, nil, &config, &leader.DummyElector{}, nil, nil, true, nil, nil, false, monitorConfig)
 		h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), models.HostStatusInstalling)
 		hostKindDay2 := models.HostKindAddToExistingClusterHost
 		h.Kind = &hostKindDay2
@@ -4060,6 +4167,7 @@ var _ = Describe("sortHost by hardware", func() {
 		Cpus        int64
 		Ram         int64
 		Disks       []*models.Disk
+		GPU         []*models.Gpu
 	}{
 		{
 			description: "minimal master with 3 disks (total of 120 GB)",
@@ -4155,6 +4263,19 @@ var _ = Describe("sortHost by hardware", func() {
 				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 			},
 		},
+		{
+			description: "host with minimal hardware to be either master/worker, with GPU",
+			Cpus:        4,
+			Ram:         16,
+			Disks: []*models.Disk{
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
+			},
+			GPU: []*models.Gpu{
+				{DeviceID: "2222", VendorID: "0000"},
+			},
+		},
 	}
 
 	generateHosts := func() []*models.Host {
@@ -4173,6 +4294,7 @@ var _ = Describe("sortHost by hardware", func() {
 					}
 					return d
 				}).([]*models.Disk),
+				Gpus: spec.GPU,
 			}
 			b, _ := json.Marshal(inventory)
 			id := strfmt.UUID(uuid.New().String())
@@ -4186,11 +4308,59 @@ var _ = Describe("sortHost by hardware", func() {
 	}
 
 	It("verify host order", func() {
-		sorted, _ := SortHosts(generateHosts())
+		sorted, _ := SortHosts(generateHosts(), common.HostWeightGPUWeight)
 		expected := []string{
 			"insufficient for both master and worker",
 			"minimal worker with 3 disks (total of 120 GB)",
 			"minimal master with no disks",
+			"minimal master with 3 disks (total of 80 GB)",
+			"minimal master with 3 disks (total of 120 GB)",
+			"sno master with 3 disks (total of 120 GB)",
+			"odf master with 3 disks (total of 120 GB)",
+			"host with minimal hardware to be either master/worker, with GPU",
+			"odf worker with 1 disk of 40 GB",
+			"odf worker with 3 disks (total of 80 GB)",
+			"odf worker with 3 disks (total of 120 GB)",
+		}
+		for i, h := range sorted {
+			Expect(h.RequestedHostname).To(Equal(expected[i]))
+		}
+	})
+
+	It("verify GPU weight affects host sorting", func() {
+		// First test with default GPU weight
+		sortedDefault, _ := SortHosts(generateHosts(), common.HostWeightGPUWeight) // Default weight = 10
+		defaultGPUIndex := -1
+		for i, h := range sortedDefault {
+			if h.RequestedHostname == "host with minimal hardware to be either master/worker, with GPU" {
+				defaultGPUIndex = i
+				break
+			}
+		}
+
+		// Now test with higher GPU weight
+		sortedHighGPU, _ := SortHosts(generateHosts(), float64(50)) // Higher GPU weight
+		highGPUIndex := -1
+		for i, h := range sortedHighGPU {
+			if h.RequestedHostname == "host with minimal hardware to be either master/worker, with GPU" {
+				highGPUIndex = i
+				break
+			}
+		}
+
+		// higher GPU weight increases score and pushes GPU host down
+		Expect(highGPUIndex).To(BeNumerically(">", defaultGPUIndex),
+			fmt.Sprintf("In current logic, GPU host ranks lower with higher GPU weight = 50 (position %d) than with default weight (position %d)",
+				highGPUIndex, defaultGPUIndex))
+	})
+
+	It("verify GPU weight does not affect sorting when zero", func() {
+		sorted, _ := SortHosts(generateHosts(), float64(0)) // Zero GPU weight
+		expected := []string{
+			"insufficient for both master and worker",
+			"minimal worker with 3 disks (total of 120 GB)",
+			"minimal master with no disks",
+			"host with minimal hardware to be either master/worker, with GPU", // GPU host has good base score
 			"minimal master with 3 disks (total of 80 GB)",
 			"minimal master with 3 disks (total of 120 GB)",
 			"sno master with 3 disks (total of 120 GB)",
@@ -4220,7 +4390,7 @@ var _ = Describe("update node labels", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		dummy := &leader.DummyElector{}
 		db, dbName = common.PrepareTestDB()
-		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		state = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false, monitorConfig)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -4349,7 +4519,7 @@ var _ = Describe("GetClusterRegisteredAndApprovedHostsSummary", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
@@ -4448,7 +4618,7 @@ var _ = Describe("HostWithCollectedLogsExists", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
@@ -4540,7 +4710,7 @@ var _ = Describe("GetKnownApprovedHosts", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
@@ -4636,7 +4806,7 @@ var _ = Describe("UpdateDomainNameResolution", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
@@ -4702,7 +4872,7 @@ var _ = Describe("HandleReclaimBootArtifactDownload", func() {
 
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsAPI = eventsapi.NewMockHandler(ctrl)
-		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsAPI, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsAPI, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -4747,7 +4917,7 @@ var _ = Describe("HandleReclaimFailure", func() {
 
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsAPI = eventsapi.NewMockHandler(ctrl)
-		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsAPI, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsAPI, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -4807,7 +4977,7 @@ var _ = Describe("Rebooting day2", func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsAPI = eventsapi.NewMockHandler(ctrl)
-		api = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsAPI, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		api = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsAPI, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), models.HostStatusInstallingInProgress)
 		hostKindDay2 := models.HostKindAddToExistingClusterHost
 		host.Kind = &hostKindDay2
@@ -4887,7 +5057,7 @@ var _ = Describe("UpdateHostProgress", func() {
 
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
-		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -5028,7 +5198,7 @@ var _ = Describe("disconnection - soft timeouts", func() {
 		mockOperatorManager.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil,
 			createValidatorCfg(), nil, defaultConfig, nil, mockOperatorManager, mockProviderRegistry, false,
-			nil, nil, true)
+			nil, nil, true, monitorConfig)
 
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
@@ -5105,7 +5275,7 @@ var _ = Describe("Garbage Collection", func() {
 		db, dbName = common.PrepareTestDB()
 
 		ctrl = gomock.NewController(GinkgoT())
-		manager = NewManager(common.GetTestLog(), db, nil, nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false)
+		manager = NewManager(common.GetTestLog(), db, nil, nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil, nil, false, monitorConfig)
 
 		hostID1 = strfmt.UUID(uuid.New().String())
 		hostID2 = strfmt.UUID(uuid.New().String())

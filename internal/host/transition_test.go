@@ -108,7 +108,7 @@ var _ = Describe("RegisterHost", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
-		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -642,7 +642,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
-		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -688,7 +688,7 @@ var _ = Describe("Cancel host installation", func() {
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
-		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false, monitorConfig)
 	})
 
 	AfterEach(func() {
@@ -787,7 +787,7 @@ var _ = Describe("Install", func() {
 		mockVersions := versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
-		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
+		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -934,7 +934,7 @@ var _ = Describe("Unbind", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
-		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false)
+		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -1330,7 +1330,7 @@ var _ = Describe("Refresh Host", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		defaultConfig.PrepareConfig.PrepareForInstallationTimeout = 8 * time.Minute
-		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
+		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false, monitorConfig)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -5460,7 +5460,7 @@ var _ = Describe("Refresh Host", func() {
 				mockVersions := versions.NewMockHandler(ctrl)
 				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
-				hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
+				hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false, monitorConfig)
 
 				err := hapi.RefreshStatus(ctx, &host, db)
 				Expect(err).ToNot(HaveOccurred())
@@ -5554,7 +5554,7 @@ var _ = Describe("Refresh Host", func() {
 			mockVersions := versions.NewMockHandler(ctrl)
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
-			hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
+			hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false, monitorConfig)
 		})
 
 		const (
@@ -5791,7 +5791,7 @@ var _ = Describe("Refresh Host", func() {
 				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 
-			hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
+			hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false, monitorConfig)
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			cluster = hostutil.GenerateTestCluster(clusterId)
 			cluster.UserManagedNetworking = swag.Bool(true)
@@ -6357,6 +6357,7 @@ var _ = Describe("Upgrade agent feature", func() {
 			nil,
 			mockVersions,
 			false,
+			monitorConfig,
 		)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
