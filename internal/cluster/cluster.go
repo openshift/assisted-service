@@ -610,6 +610,8 @@ func (m *Manager) ClusterMonitoring() {
 	m.initMonitorQueryGenerator()
 
 	query := m.monitorQueryGenerator.NewClusterQuery()
+	cycleStartTime := time.Now()
+	isFullScan := query.IsFullScan()
 	for {
 		clusters, err = query.Next()
 		if err != nil {
@@ -664,6 +666,8 @@ func (m *Manager) ClusterMonitoring() {
 			}
 		}
 	}
+	cycleDuration := time.Since(cycleStartTime)
+	m.metricAPI.MonitoredClustersCycleDurationMs(ctx, cycleDuration, isFullScan)
 }
 
 func getDownloadFilesAllowedStatuses() []string {

@@ -89,6 +89,7 @@ var _ = Describe("monitor_disconnection", func() {
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+		mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
@@ -250,6 +251,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 			var count int64
 			registerClusterWithAutoAssignHostInStatus(models.HostStatusDisconnected, models.HostKindHost)
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(2)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			state.HostMonitoring()
 			Expect(db.Model(&models.Host{}).Where("suggested_role = ?", models.HostRoleAutoAssign).Count(&count).Error).
 				ShouldNot(HaveOccurred())
@@ -265,6 +267,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 			addHost(otherClusterId, models.HostRoleAutoAssign, models.HostStatusKnown, models.HostKindHost)
 			addHost(otherClusterId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost)
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(2)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			state.HostMonitoring()
 			Expect(db.Model(&models.Host{}).Where("suggested_role = ?", models.HostRoleAutoAssign).Count(&count).Error).
 				ShouldNot(HaveOccurred())
@@ -277,6 +280,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 			var count int64
 			registerClusterWithAutoAssignHostInStatus(models.HostStatusKnown, models.HostKindAddToExistingClusterHost)
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(2)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			state.HostMonitoring()
 			Expect(db.Model(&models.Host{}).Where("suggested_role = ?", models.HostRoleAutoAssign).Count(&count).Error).
 				ShouldNot(HaveOccurred())
@@ -307,16 +311,19 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 
 		It("5 hosts all disconnected", func() {
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(5)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			registerAndValidateDisconnected(5)
 		})
 
 		It("15 hosts all disconnected", func() {
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(15)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			registerAndValidateDisconnected(15)
 		})
 
 		It("765 hosts all disconnected", func() {
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(765)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			registerAndValidateDisconnected(765)
 		})
 	})
@@ -335,6 +342,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 			Expect(db.Model(&host).Update("status", hostStatus).Error).ShouldNot(HaveOccurred())
 
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(expectedCount)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			state.HostMonitoring()
 		},
 			Entry("HostStatusAddedToExistingCluster is not monitored", models.ClusterStatusReady, models.HostStatusAddedToExistingCluster, models.LogsStateCompleted, 0),
@@ -460,16 +468,19 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 
 		It("5 hosts all disconnected", func() {
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(5)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			registerAndValidateDisconnected(5)
 		})
 
 		It("15 hosts all disconnected", func() {
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(15)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			registerAndValidateDisconnected(15)
 		})
 
 		It("765 hosts all disconnected", func() {
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(765)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			registerAndValidateDisconnected(765)
 		})
 	})
@@ -492,6 +503,7 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 
 		It("times out Reclaiming hosts", func() {
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			hostID := createTimeoutHostWithStatus(models.HostStatusReclaiming)
 			state.HostMonitoring()
 			h := hostutil.GetHostFromDB(hostID, infraEnvID, db)
@@ -500,6 +512,7 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 
 		It("times out ReclaimingRebooting hosts", func() {
 			mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			hostID := createTimeoutHostWithStatus(models.HostStatusReclaimingRebooting)
 			state.HostMonitoring()
 			h := hostutil.GetHostFromDB(hostID, infraEnvID, db)

@@ -20,6 +20,7 @@ type MonitorInitialQueryBuilder func(db *gorm.DB) *gorm.DB
 
 type MonitorQuery interface {
 	Next() ([]*Cluster, error)
+	IsFullScan() bool
 }
 
 type fullQuery struct {
@@ -48,6 +49,10 @@ func (f *fullQuery) Next() ([]*Cluster, error) {
 		f.lastId = clusters[len(clusters)-1].ID.String()
 	}
 	return clusters, nil
+}
+
+func (f *fullQuery) IsFullScan() bool {
+	return true
 }
 
 /*
@@ -125,6 +130,10 @@ func (t *timedQuery) Next() ([]*Cluster, error) {
 	return clusters, nil
 }
 
+func (t *timedQuery) IsFullScan() bool {
+	return false
+}
+
 type MonitorClusterQueryGenerator struct {
 	lastInvokeTime    time.Time
 	calls             int64
@@ -181,6 +190,7 @@ func (m *MonitorClusterQueryGenerator) NewClusterQuery() MonitorQuery {
 
 type MonitorInfraEnvQuery interface {
 	Next() ([]*InfraEnv, error)
+	IsFullScan() bool
 }
 
 type dbQuery interface {
@@ -274,6 +284,11 @@ func (f *infraEnvQuery) Next() ([]*InfraEnv, error) {
 		}
 	}
 	return infraEnvs, nil
+}
+
+func (f *infraEnvQuery) IsFullScan() bool {
+	_, isFullDb := f.dbQuery.(*fullDbQuery)
+	return isFullDb
 }
 
 type MonitorInfraEnvQueryGenerator struct {
