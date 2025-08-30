@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/feature"
@@ -151,7 +150,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 			fmt.Sprintf(
 				tooSmallDiskTemplate,
 				// nolint: gosec
-				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
+				preciseHumanizeBytes(uint64(disk.SizeBytes)), preciseHumanizeBytes(uint64(minSizeBytes))))
 	}
 
 	hostArchitecture := inventory.CPU.Architecture
@@ -575,4 +574,43 @@ func compileDiskReasonTemplate(template string, wildcards ...interface{}) *regex
 		panic(err)
 	}
 	return tmp
+}
+
+// preciseHumanizeBytes formats a byte size using SI units (KB, MB, GB, TB).
+// It displays one decimal place for non-integer values and rounds up to avoid
+// under-reporting the capacity in user-facing messages.
+func preciseHumanizeBytes(bytes uint64) string {
+	const (
+		KB = 1000
+		MB = 1000 * KB
+		GB = 1000 * MB
+		TB = 1000 * GB
+	)
+
+	switch {
+	case bytes >= TB:
+		tb := float64(bytes) / float64(TB)
+		return formatUnitRoundedUpOneDecimal(tb, "TB")
+	case bytes >= GB:
+		gb := float64(bytes) / float64(GB)
+		return formatUnitRoundedUpOneDecimal(gb, "GB")
+	case bytes >= MB:
+		mb := float64(bytes) / float64(MB)
+		return formatUnitRoundedUpOneDecimal(mb, "MB")
+	case bytes >= KB:
+		kb := float64(bytes) / float64(KB)
+		return formatUnitRoundedUpOneDecimal(kb, "KB")
+	default:
+		return fmt.Sprintf("%d B", bytes)
+	}
+}
+
+// formatUnitRoundedUpOneDecimal returns either an integer or one-decimal string
+// for the given value and unit label, rounding up non-integer values.
+func formatUnitRoundedUpOneDecimal(value float64, unit string) string {
+	rounded := math.Ceil(value*10) / 10
+	if rounded == float64(int64(rounded)) {
+		return fmt.Sprintf("%d %s", int64(rounded), unit)
+	}
+	return fmt.Sprintf("%.1f %s", rounded, unit)
 }
