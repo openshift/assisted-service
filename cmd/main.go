@@ -127,6 +127,7 @@ var Options struct {
 	S3Config                             s3wrapper.Config
 	HostStateMonitorInterval             time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                             versions.Versions
+	DisableImageService                  bool          `envconfig:"DISABLE_IMAGE_SERVICE" default:"false"`
 	OsImages                             string        `envconfig:"OS_IMAGES" default:""`
 	ReleaseImages                        string        `envconfig:"RELEASE_IMAGES" default:""`
 	MustGatherImages                     string        `envconfig:"MUST_GATHER_IMAGES" default:""`
@@ -247,6 +248,22 @@ func setUpXattrClient(
 	return xattrClient
 }
 
+func getOsImages(log *logrus.Logger) (versions.OSImages, error) {
+
+	var osImagesArray models.OsImages
+	if !Options.DisableImageService && Options.OsImages == "" {
+		return nil, errors.New("OS_IMAGES list is empty")
+	}
+	if !Options.DisableImageService {
+		err := json.Unmarshal([]byte(Options.OsImages), &osImagesArray)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse OS_IMAGES json %s: %w", Options.OsImages, err)
+		}
+	}
+	osImages, err := versions.NewOSImages(osImagesArray, Options.DisableImageService)
+	return osImages, err
+}
+
 func main() {
 	err := envconfig.Process(common.EnvConfigPrefix, &Options)
 	if err == nil {
@@ -270,17 +287,11 @@ func main() {
 
 	log.Println("Starting bm service")
 
-	if Options.BMConfig.ImageServiceBaseURL == "" {
+	if !Options.DisableImageService && Options.BMConfig.ImageServiceBaseURL == "" {
 		log.Fatal("IMAGE_SERVICE_BASE_URL is required")
 	}
 
-	var osImagesArray models.OsImages
-	if Options.OsImages == "" {
-		log.Fatal("OS_IMAGES list is empty")
-	}
-	failOnError(json.Unmarshal([]byte(Options.OsImages), &osImagesArray),
-		"Failed to parse OS_IMAGES json %s", Options.OsImages)
-	osImages, err := versions.NewOSImages(osImagesArray)
+	osImages, err := getOsImages(log)
 	failOnError(err, "Failed to initialize OSImages")
 
 	var releaseImagesArray = models.ReleaseImages{}
@@ -631,7 +642,9 @@ func main() {
 				osClient,
 				kubeClient,
 				log.WithField("pkg", "baremetal_operator_utils"),
-				Options.EnableKubeAPI)
+				Options.EnableKubeAPI,
+				!Options.DisableImageService,
+			)
 			useConvergedFlow := Options.AllowConvergedFlow && bmoUtils.ConvergedFlowAvailable()
 
 			c := ctrlMgr.GetClient()
@@ -649,6 +662,7 @@ func main() {
 				OsImages:            osImages,
 				PullSecretHandler:   controllers.NewPullSecretHandler(c, r, bm),
 				InsecureIPXEURLs:    generateInsecureIPXEURLs,
+				ImageServiceEnabled: !Options.DisableImageService,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")
 
 			spokeClientFactory, err := spoke_k8s_client.NewFactory(log, nil, sys)

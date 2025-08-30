@@ -87,7 +87,8 @@ type InfraEnvReconciler struct {
 	AuthType            auth.AuthType
 	OsImages            versions.OSImages
 	PullSecretHandler
-	InsecureIPXEURLs bool
+	InsecureIPXEURLs    bool
+	ImageServiceEnabled bool
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=nmstateconfigs,verbs=get;list;watch
@@ -465,7 +466,8 @@ func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv 
 		return cluster.OpenshiftVersion, nil
 	}
 
-	if osImageVersion != "" {
+	// Only validate OS image if image service is enabled
+	if osImageVersion != "" && r.ImageServiceEnabled {
 		if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture); err != nil {
 			msg := "Specified OSImageVersion is missing from AgentServiceConfig"
 			log.WithError(err).Error(msg)
@@ -718,26 +720,40 @@ func generateStaticNetworkConfigDownloadURL(baseURL string, infraEnvId string, a
 
 func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
-
-	osImage, err := r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
-
-	bootArtifactURLs, err := imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
-	infraEnv.Status.BootArtifacts.KernelURL = bootArtifactURLs.KernelURL
-	infraEnv.Status.BootArtifacts.RootfsURL = bootArtifactURLs.RootFSURL
-
+	var err error
+	var bootArtifactURLs *imageservice.BootArtifactURLs
 	var isoUpdated bool
-	if infraEnv.Status.ISODownloadURL != internalInfraEnv.DownloadURL {
-		log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, internalInfraEnv.DownloadURL)
-		infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
+
+	// Update CreatedTime if no images are to be generated
+	if !r.ImageServiceEnabled && infraEnv.Status.CreatedTime == nil {
 		imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
 		infraEnv.Status.CreatedTime = &imageCreatedAt
 		isoUpdated = true
+	}
+
+	// Only update URLs if image service is enabled
+	if r.ImageServiceEnabled {
+		var osImage *models.OsImage
+		osImage, err = r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
+		if err != nil {
+			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
+
+		bootArtifactURLs, err = imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs)
+		if err != nil {
+			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
+		infraEnv.Status.BootArtifacts.KernelURL = bootArtifactURLs.KernelURL
+		infraEnv.Status.BootArtifacts.RootfsURL = bootArtifactURLs.RootFSURL
+
+		if infraEnv.Status.ISODownloadURL != internalInfraEnv.DownloadURL {
+			log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, internalInfraEnv.DownloadURL)
+			infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
+			// Update CreatedTime when image is created (URL changed)
+			imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
+			infraEnv.Status.CreatedTime = &imageCreatedAt
+			isoUpdated = true
+		}
 	}
 
 	if infraEnv.Status.InfraEnvDebugInfo.StaticNetworkDownloadURL == "" && internalInfraEnv.StaticNetworkConfig != "" {
@@ -747,14 +763,16 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		}
 	}
 
-	// update boot artifacts URL if IPXE insecure setting was changed or if the ISO was updated
-	schemeUpdated, err := r.initrdSchemeChanged(infraEnv.Status.BootArtifacts.InitrdURL)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
-	if schemeUpdated || isoUpdated {
-		if err = r.setSignedBootArtifactURLs(infraEnv, bootArtifactURLs.InitrdURL, internalInfraEnv.ID.String()); err != nil {
+	// update boot artifacts URL if IPXE insecure setting was changed or if the ISO was updated (only if image service is enabled)
+	if r.ImageServiceEnabled && bootArtifactURLs != nil {
+		schemeUpdated, err := r.initrdSchemeChanged(infraEnv.Status.BootArtifacts.InitrdURL)
+		if err != nil {
 			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
+		if schemeUpdated || isoUpdated {
+			if err = r.setSignedBootArtifactURLs(infraEnv, bootArtifactURLs.InitrdURL, internalInfraEnv.ID.String()); err != nil {
+				return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+			}
 		}
 	}
 
