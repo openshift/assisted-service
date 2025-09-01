@@ -149,9 +149,13 @@ func (m *Manager) clusterHostMonitoring() {
 		clusters  []*common.Cluster
 		err       error
 	)
-
 	m.resetRoleAssignmentIfNotAllRolesAreSet()
 	query := m.monitorClusterQueryGenerator.NewClusterQuery()
+	cycleStartTime := time.Now()
+	isFullScan := query.IsFullScan()
+	defer func() {
+		m.metricApi.MonitoredHostsCycleDurationMs(ctx, time.Since(cycleStartTime), isFullScan)
+	}()
 	for {
 		if clusters, err = query.Next(); err != nil {
 			m.log.WithError(err).Error("Getting clusters")

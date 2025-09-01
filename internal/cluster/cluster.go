@@ -610,6 +610,11 @@ func (m *Manager) ClusterMonitoring() {
 	m.initMonitorQueryGenerator()
 
 	query := m.monitorQueryGenerator.NewClusterQuery()
+	cycleStartTime := time.Now()
+	isFullScan := query.IsFullScan()
+	defer func() {
+		m.metricAPI.MonitoredClustersCycleDurationMs(ctx, time.Since(cycleStartTime), isFullScan)
+	}()
 	for {
 		clusters, err = query.Next()
 		if err != nil {
