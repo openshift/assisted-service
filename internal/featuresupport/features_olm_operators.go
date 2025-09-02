@@ -858,7 +858,7 @@ func (f *NodeHealthcheckFeature) GetName() string {
 }
 
 func (f *NodeHealthcheckFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	return models.SupportLevelTechPreview, ""
+	return models.SupportLevelSupported, ""
 }
 
 func (f *NodeHealthcheckFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -930,7 +930,7 @@ func (f *FenceAgentsRemediationFeature) GetName() string {
 }
 
 func (f *FenceAgentsRemediationFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	return models.SupportLevelTechPreview, ""
+	return models.SupportLevelSupported, ""
 }
 
 func (f *FenceAgentsRemediationFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -966,7 +966,7 @@ func (f *NodeMaintenanceFeature) GetName() string {
 }
 
 func (f *NodeMaintenanceFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	return models.SupportLevelTechPreview, ""
+	return models.SupportLevelSupported, ""
 }
 
 func (f *NodeMaintenanceFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -1002,7 +1002,7 @@ func (f *KubeDeschedulerFeature) GetName() string {
 }
 
 func (f *KubeDeschedulerFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	return models.SupportLevelTechPreview, ""
+	return models.SupportLevelSupported, ""
 }
 
 func (f *KubeDeschedulerFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -1038,7 +1038,7 @@ func (f *ClusterObservabilityFeature) GetName() string {
 }
 
 func (f *ClusterObservabilityFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	return models.SupportLevelTechPreview, ""
+	return models.SupportLevelSupported, ""
 }
 
 func (f *ClusterObservabilityFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -1072,7 +1072,7 @@ func (f *NumaResourcesFeature) GetName() string {
 }
 
 func (f *NumaResourcesFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	return models.SupportLevelTechPreview, ""
+	return models.SupportLevelSupported, ""
 }
 
 func (f *NumaResourcesFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -1106,7 +1106,7 @@ func (f *OadpFeature) GetName() string {
 }
 
 func (f *OadpFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	return models.SupportLevelTechPreview, ""
+	return models.SupportLevelSupported, ""
 }
 
 func (f *OadpFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
