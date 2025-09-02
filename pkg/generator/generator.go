@@ -18,7 +18,7 @@ import (
 
 //go:generate mockgen --build_flags=--mod=mod -package generator -destination mock_install_config.go . InstallConfigGenerator
 type InstallConfigGenerator interface {
-	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string) error
+	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string, forceInsecurePolicyJson bool) error
 }
 
 type Config struct {
@@ -63,7 +63,7 @@ func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config,
 }
 
 // GenerateInstallConfig creates install config and ignition files
-func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string) error {
+func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string, forceInsecurePolicyJson bool) error {
 	log := logutil.FromContext(ctx, k.log)
 	err := os.MkdirAll(k.workDir, 0o755)
 	if err != nil {
@@ -87,7 +87,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewGenerator(clusterWorkDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
 			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.providerRegistry, installerReleaseImageOverride, k.Config.ClusterTLSCertOverrideDir, k.manifestApi, k.eventsHandler, k.installerCache)
 	}
-	err = generator.Generate(ctx, cfg)
+	err = generator.Generate(ctx, cfg, forceInsecurePolicyJson)
 	if err != nil {
 		return err
 	}
