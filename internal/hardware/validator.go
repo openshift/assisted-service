@@ -146,11 +146,17 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 
 	minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
 	if disk.SizeBytes < minSizeBytes {
+		hasStr := preciseHumanizeBytes(uint64(disk.SizeBytes))
+		reqStr := preciseHumanizeBytes(uint64(minSizeBytes))
+		if hasStr == reqStr {
+			delta := uint64(minSizeBytes - disk.SizeBytes)
+			deltaStr := preciseHumanizeBytes(delta)
+			hasStr = fmt.Sprintf("%s (short by %s)", hasStr, deltaStr)
+		}
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
 				tooSmallDiskTemplate,
-				// nolint: gosec
-				preciseHumanizeBytes(uint64(disk.SizeBytes)), preciseHumanizeBytes(uint64(minSizeBytes))))
+				hasStr, reqStr))
 	}
 
 	hostArchitecture := inventory.CPU.Architecture
@@ -590,27 +596,35 @@ func preciseHumanizeBytes(bytes uint64) string {
 	switch {
 	case bytes >= TB:
 		tb := float64(bytes) / float64(TB)
-		return formatUnitRoundedUpOneDecimal(tb, "TB")
+		return formatUnitRoundedUp(tb, "TB")
 	case bytes >= GB:
 		gb := float64(bytes) / float64(GB)
-		return formatUnitRoundedUpOneDecimal(gb, "GB")
+		return formatUnitRoundedUp(gb, "GB")
 	case bytes >= MB:
 		mb := float64(bytes) / float64(MB)
-		return formatUnitRoundedUpOneDecimal(mb, "MB")
+		return formatUnitRoundedUp(mb, "MB")
 	case bytes >= KB:
 		kb := float64(bytes) / float64(KB)
-		return formatUnitRoundedUpOneDecimal(kb, "KB")
+		return formatUnitRoundedUp(kb, "KB")
 	default:
 		return fmt.Sprintf("%d B", bytes)
 	}
 }
 
-// formatUnitRoundedUpOneDecimal returns either an integer or one-decimal string
-// for the given value and unit label, rounding up non-integer values.
-func formatUnitRoundedUpOneDecimal(value float64, unit string) string {
-	rounded := math.Ceil(value*10) / 10
+// formatUnitRoundedUp returns either an integer or up to three-decimal string
+// for the given value and unit label, rounding up to the nearest thousandth.
+func formatUnitRoundedUp(value float64, unit string) string {
+	rounded := math.Ceil(value*1000) / 1000
 	if rounded == float64(int64(rounded)) {
 		return fmt.Sprintf("%d %s", int64(rounded), unit)
 	}
-	return fmt.Sprintf("%.1f %s", rounded, unit)
+	// Format with 3 decimals then trim trailing zeros and optional dot
+	str := fmt.Sprintf("%.3f", rounded)
+	for strings.HasSuffix(str, "0") {
+		str = str[:len(str)-1]
+	}
+	if strings.HasSuffix(str, ".") {
+		str = str[:len(str)-1]
+	}
+	return fmt.Sprintf("%s %s", str, unit)
 }

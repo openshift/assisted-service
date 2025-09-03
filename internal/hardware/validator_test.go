@@ -652,7 +652,7 @@ var _ = Describe("Disk eligibility", func() {
 		// The validator now uses preciseHumanizeBytes, so we need to match that format
 		// For 99999999999 bytes (100GB-1), preciseHumanizeBytes shows "100 GB"
 		// For 100000000000 bytes (100GB), preciseHumanizeBytes shows "100 GB"
-		diskSizeStr := "100 GB" // 99999999999 bytes shows as 100 GB with precise function
+		diskSizeStr := "100 GB (short by 1 B)"
 		reqSizeStr := "100 GB"    // 100000000000 bytes shows as 100 GB with precise function
 
 		expectedMsg := fmt.Sprintf(
