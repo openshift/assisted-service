@@ -42,9 +42,10 @@ var _ = Describe("bmoUtils", func() {
 		DescribeTable("returns true with",
 			func(version string) {
 				bmoUtils := &bmoUtils{
-					c:              c,
-					log:            log,
-					kubeAPIEnabled: true,
+					c:                   c,
+					log:                 log,
+					kubeAPIEnabled:      true,
+					imageServiceEnabled: true,
 				}
 				clusterOperator := CreateCBO(version)
 				Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
@@ -57,9 +58,10 @@ var _ = Describe("bmoUtils", func() {
 		)
 		It("returns false when version is lower than minimal version", func() {
 			bmoUtils := &bmoUtils{
-				c:              c,
-				log:            log,
-				kubeAPIEnabled: true,
+				c:                   c,
+				log:                 log,
+				kubeAPIEnabled:      true,
+				imageServiceEnabled: true,
 			}
 			clusterOperator := CreateCBO("4.10.0")
 			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
@@ -67,9 +69,19 @@ var _ = Describe("bmoUtils", func() {
 		})
 		It("returns false when it fails to find cluster version", func() {
 			bmoUtils := &bmoUtils{
-				c:              c,
-				log:            log,
-				kubeAPIEnabled: true,
+				c:                   c,
+				log:                 log,
+				kubeAPIEnabled:      true,
+				imageServiceEnabled: true,
+			}
+			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(false))
+		})
+		It("returns false when image service is disabled", func() {
+			bmoUtils := &bmoUtils{
+				c:                   c,
+				log:                 log,
+				kubeAPIEnabled:      true,
+				imageServiceEnabled: false,
 			}
 			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(false))
 		})
@@ -77,9 +89,10 @@ var _ = Describe("bmoUtils", func() {
 	Context("Get GetIronicServiceURL", func() {
 		It("success", func() {
 			bmoUtils := &bmoUtils{
-				c:              c,
-				log:            log,
-				kubeAPIEnabled: true,
+				c:                   c,
+				log:                 log,
+				kubeAPIEnabled:      true,
+				imageServiceEnabled: true,
 			}
 			ironicIP := "10.10.10.10"
 			provisioningInfo := &metal3iov1alpha1.Provisioning{
@@ -100,9 +113,10 @@ var _ = Describe("bmoUtils", func() {
 		})
 		It("failed to determine inspector URL", func() {
 			bmoUtils := &bmoUtils{
-				c:              c,
-				log:            log,
-				kubeAPIEnabled: true,
+				c:                   c,
+				log:                 log,
+				kubeAPIEnabled:      true,
+				imageServiceEnabled: true,
 			}
 			provisioningInfo := &metal3iov1alpha1.Provisioning{
 				ObjectMeta: metav1.ObjectMeta{
@@ -126,9 +140,10 @@ var _ = Describe("bmoUtils", func() {
 	Context("getICCConfig", func() {
 		It("success", func() {
 			bmoUtils := &bmoUtils{
-				c:              c,
-				log:            log,
-				kubeAPIEnabled: true,
+				c:                   c,
+				log:                 log,
+				kubeAPIEnabled:      true,
+				imageServiceEnabled: true,
 			}
 			ironicURLs := getUrlFromIP("10.10.10.11")
 			inspectorURLs := getUrlFromIP("10.10.10.10")
@@ -154,9 +169,10 @@ var _ = Describe("bmoUtils", func() {
 
 		It("succeeds when only the inspector url is missing", func() {
 			bmoUtils := &bmoUtils{
-				c:              c,
-				log:            log,
-				kubeAPIEnabled: true,
+				c:                   c,
+				log:                 log,
+				kubeAPIEnabled:      true,
+				imageServiceEnabled: true,
 			}
 			ironicURLs := getUrlFromIP("10.10.10.11")
 			agentImage := "quay.io/some/agent:image"
@@ -179,9 +195,10 @@ var _ = Describe("bmoUtils", func() {
 
 		It("throws an error when secret is missing", func() {
 			bmoUtils := &bmoUtils{
-				c:              c,
-				log:            log,
-				kubeAPIEnabled: true,
+				c:                   c,
+				log:                 log,
+				kubeAPIEnabled:      true,
+				imageServiceEnabled: true,
 			}
 			_, err := bmoUtils.getICCConfig(context.Background())
 			Expect(err).Should(Not(BeNil()))
@@ -190,9 +207,10 @@ var _ = Describe("bmoUtils", func() {
 		DescribeTable("throws an error when config is incomplete",
 			func(ironicURLs []byte, inspectorURLs []byte, agentImage []byte) {
 				bmoUtils := &bmoUtils{
-					c:              c,
-					log:            log,
-					kubeAPIEnabled: true,
+					c:                   c,
+					log:                 log,
+					kubeAPIEnabled:      true,
+					imageServiceEnabled: true,
 				}
 				secret := &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{

@@ -25,10 +25,11 @@ type downloadBootArtifactsCmd struct {
 	db                  *gorm.DB
 	imageDuration       time.Duration
 	hostFSMountDir      string
+	imageServiceEnabled bool
 }
 
 func NewDownloadBootArtifactsCmd(log logrus.FieldLogger, imageServiceBaseUrl string, authType auth.AuthType,
-	osImages versions.OSImages, db *gorm.DB, imageDuration time.Duration, hostFSMountDir string) *downloadBootArtifactsCmd {
+	osImages versions.OSImages, db *gorm.DB, imageDuration time.Duration, hostFSMountDir string, imageServiceEnabled bool) *downloadBootArtifactsCmd {
 	return &downloadBootArtifactsCmd{
 		baseCmd:             baseCmd{log: log},
 		imageServiceBaseURL: imageServiceBaseUrl,
@@ -37,6 +38,7 @@ func NewDownloadBootArtifactsCmd(log logrus.FieldLogger, imageServiceBaseUrl str
 		imageDuration:       imageDuration,
 		osImages:            osImages,
 		hostFSMountDir:      hostFSMountDir,
+		imageServiceEnabled: imageServiceEnabled,
 	}
 }
 
@@ -46,6 +48,10 @@ func (c *downloadBootArtifactsCmd) GetSteps(ctx context.Context, host *models.Ho
 	if err != nil {
 		return nil, err
 	}
+	if !c.imageServiceEnabled {
+		return nil, errors.New("image service is disabled")
+	}
+
 	osImage, err := c.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return nil, err

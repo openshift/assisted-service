@@ -60,7 +60,7 @@ var _ = Describe("instruction_manager", func() {
 		hwValidator = hardware.NewMockValidator(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		cnValidator = connectivity.NewMockValidator(ctrl)
-		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages, false)
+		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages, false, true)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -285,6 +285,7 @@ var _ = Describe("instruction_manager", func() {
 					AdditionalNtpSources: UNBOUND_SOURCE,
 				},
 			}).Error).ToNot(HaveOccurred())
+			mockOSImages.EXPECT().GetOpenshiftVersions().Return([]string{"4.8"}).AnyTimes()
 		})
 
 		It("discovering-unbound", func() {
@@ -334,7 +335,7 @@ var _ = Describe("instruction_manager", func() {
 	Context("Disable Steps verification", func() {
 		createInstMngWithDisabledSteps := func(steps []models.StepType) *InstructionManager {
 			instructionConfig.DisabledSteps = steps
-			return NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages, false)
+			return NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages, false, true)
 		}
 		Context("disabledStepsMap in InstructionManager", func() {
 			It("Should except empty DISABLED_STEPS", func() {
@@ -450,7 +451,7 @@ var _ = Describe("agent_upgrade", func() {
 		cnValidator = connectivity.NewMockValidator(ctrl)
 		instructionConfig = InstructionConfig{AgentImage: "quay.io/my/image:v1.2.3"}
 		instructionConfig.EnableUpgradeAgent = true
-		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages, false)
+		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages, false, true)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
