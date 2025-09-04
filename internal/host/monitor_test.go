@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -71,7 +72,7 @@ var _ = Describe("monitor_disconnection", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, defaultConfig, dummy, mockOperators, pr, false, nil, mockVersions, false)
+			mockMetricApi, defaultConfig, dummy, mockOperators, pr, false, nil, mockVersions, false, monitorConfig)
 		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnvID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, models.HostStatusDiscovering)
@@ -209,7 +210,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, pr, false, nil, mockVersions, false)
+			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, pr, false, nil, mockVersions, false, monitorConfig)
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
@@ -427,7 +428,7 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, nil, false, nil, mockVersions, false)
+			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, nil, false, nil, mockVersions, false, monitorConfig)
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
@@ -518,5 +519,35 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 			h := hostutil.GetHostFromDB(hostID, infraEnvID, db)
 			Expect(*h.Status).To(Equal(models.HostStatusUnbindingPendingUserAction))
 		})
+	})
+})
+
+var _ = Describe("MonitorConfig GPU weight", func() {
+	It("should use default GPU weight when not configured", func() {
+		config := MonitorConfig{}
+		err := envconfig.Process("", &config)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(config.HostWeightGPUWeight).To(Equal(float64(10)))
+	})
+
+	It("should use environment variable when set", func() {
+		// Set environment variable
+		os.Setenv("HOST_WEIGHT_GPU_WEIGHT", "25.5")
+		defer os.Unsetenv("HOST_WEIGHT_GPU_WEIGHT")
+
+		config := MonitorConfig{}
+		err := envconfig.Process("", &config)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(config.HostWeightGPUWeight).To(Equal(float64(25.5)))
+	})
+
+	It("should handle invalid environment variable gracefully", func() {
+		// Set invalid environment variable
+		os.Setenv("HOST_WEIGHT_GPU_WEIGHT", "invalid")
+		defer os.Unsetenv("HOST_WEIGHT_GPU_WEIGHT")
+
+		config := MonitorConfig{}
+		err := envconfig.Process("", &config)
+		Expect(err).To(HaveOccurred())
 	})
 })

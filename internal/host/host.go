@@ -145,11 +145,12 @@ type Manager struct {
 	softTimeoutsEnabled           bool
 	objectHandler                 s3wrapper.API
 	versionHandler                versions.Handler
+	monitorConfig                 MonitorConfig
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.Notifier, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
 	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry, kubeApiEnabled bool, objectHandler s3wrapper.API,
-	versionHandler versions.Handler, softTimeoutsEnabled bool) *Manager {
+	versionHandler versions.Handler, softTimeoutsEnabled bool, monitorConfig MonitorConfig) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -175,6 +176,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.N
 		softTimeoutsEnabled: softTimeoutsEnabled,
 		objectHandler:       objectHandler,
 		versionHandler:      versionHandler,
+		monitorConfig:       monitorConfig,
 	}
 }
 

@@ -100,6 +100,7 @@ var _ = Describe("Lvm Operator", func() {
 				},
 			}),
 		}
+		monitorConfig = host.MonitorConfig{}
 	)
 
 	Context("ValidateCluster", func() {
@@ -156,7 +157,7 @@ var _ = Describe("Lvm Operator", func() {
 			}
 
 			hostManager = host.NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(mockCtrl),
-				mockEvents, nil, nil, nil, mockMetric, defaultConfig, nil, mockOperators, mockProviderRegistry, false, nil, mockVersions, false)
+				mockEvents, nil, nil, nil, mockMetric, defaultConfig, nil, mockOperators, mockProviderRegistry, false, nil, mockVersions, false, monitorConfig)
 
 		})
 		AfterEach(func() {
