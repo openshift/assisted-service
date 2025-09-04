@@ -1396,6 +1396,10 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 	}
 
 	hosts := cluster.Hosts
+	minGroupSize := 3
+	if common.IsClusterTopologyTwoNodesWithFencing(cluster) {
+		minGroupSize = 2
+	}
 	/*
 		We want the resulting hosts to be always in the same order.  Otherwise, there might be cases that we will get different
 		connectivity string (see marshalledMajorityGroups below), for the same connectivity group result.
@@ -1407,7 +1411,7 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 		MajorityGroups: make(map[string][]strfmt.UUID),
 	}
 	for _, cidr := range network.GetInventoryNetworks(hosts, m.log) {
-		majorityGroup, err := network.CreateL2MajorityGroup(cidr, hosts)
+		majorityGroup, err := network.CreateL2MajorityGroup(cidr, hosts, minGroupSize)
 		if err != nil {
 			m.log.WithError(err).Warnf("Create majority group for %s", cidr)
 			continue
@@ -1416,7 +1420,7 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 	}
 
 	for _, family := range []network.AddressFamily{network.IPv4, network.IPv6} {
-		majorityGroup, err := network.CreateL3MajorityGroup(hosts, family)
+		majorityGroup, err := network.CreateL3MajorityGroup(hosts, family, minGroupSize)
 		if err != nil {
 			m.log.WithError(err).Warnf("Create L3 majority group for cluster %s failed", cluster.ID.String())
 		} else {
