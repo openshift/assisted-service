@@ -239,6 +239,58 @@ func init() {
         }
       }
     },
+    "/v2/clusters/disconnected": {
+      "post": {
+        "description": "Create a disconnected OpenShift cluster for offline installation with embedded ignition",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2RegisterDisconnectedCluster",
+        "parameters": [
+          {
+            "description": "Parameters for creating a disconnected cluster.",
+            "name": "new-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/disconnected-cluster-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/clusters/import": {
       "post": {
         "description": "Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
@@ -6632,11 +6684,12 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n'DisconnectedCluster' for clusters with embedded ignition for offline installation,\n",
           "type": "string",
           "enum": [
             "Cluster",
-            "AddHostsCluster"
+            "AddHostsCluster",
+            "DisconnectedCluster"
           ]
         },
         "last-installation-preparation": {
@@ -6767,7 +6820,8 @@ func init() {
             "installed",
             "adding-hosts",
             "cancelled",
-            "installing-pending-user-action"
+            "installing-pending-user-action",
+            "unmonitored"
           ]
         },
         "status_info": {
@@ -7562,6 +7616,25 @@ func init() {
         },
         "ingress_vip_lease": {
           "description": "Contents of last acquired lease for Ingress virtual IP.",
+          "type": "string"
+        }
+      }
+    },
+    "disconnected-cluster-create-params": {
+      "type": "object",
+      "required": [
+        "name",
+        "openshift_version"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name of the OpenShift cluster.",
+          "type": "string",
+          "maxLength": 54,
+          "minLength": 1
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
           "type": "string"
         }
       }
@@ -8911,7 +8984,8 @@ func init() {
       "type": "string",
       "enum": [
         "full-iso",
-        "minimal-iso"
+        "minimal-iso",
+        "disconnected-iso"
       ]
     },
     "import-cluster-params": {
@@ -11427,6 +11501,58 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/cluster_default_config"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/clusters/disconnected": {
+      "post": {
+        "description": "Create a disconnected OpenShift cluster for offline installation with embedded ignition",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2RegisterDisconnectedCluster",
+        "parameters": [
+          {
+            "description": "Parameters for creating a disconnected cluster.",
+            "name": "new-cluster-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/disconnected-cluster-create-params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "401": {
@@ -17966,11 +18092,12 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n'DisconnectedCluster' for clusters with embedded ignition for offline installation,\n",
           "type": "string",
           "enum": [
             "Cluster",
-            "AddHostsCluster"
+            "AddHostsCluster",
+            "DisconnectedCluster"
           ]
         },
         "last-installation-preparation": {
@@ -18101,7 +18228,8 @@ func init() {
             "installed",
             "adding-hosts",
             "cancelled",
-            "installing-pending-user-action"
+            "installing-pending-user-action",
+            "unmonitored"
           ]
         },
         "status_info": {
@@ -18896,6 +19024,25 @@ func init() {
         },
         "ingress_vip_lease": {
           "description": "Contents of last acquired lease for Ingress virtual IP.",
+          "type": "string"
+        }
+      }
+    },
+    "disconnected-cluster-create-params": {
+      "type": "object",
+      "required": [
+        "name",
+        "openshift_version"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name of the OpenShift cluster.",
+          "type": "string",
+          "maxLength": 54,
+          "minLength": 1
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
           "type": "string"
         }
       }
@@ -20213,7 +20360,8 @@ func init() {
       "type": "string",
       "enum": [
         "full-iso",
-        "minimal-iso"
+        "minimal-iso",
+        "disconnected-iso"
       ]
     },
     "import-cluster-params": {
