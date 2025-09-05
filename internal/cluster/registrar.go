@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -25,12 +26,22 @@ type registrar struct {
 	db  *gorm.DB
 }
 
-func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster) error {
-	return r.registerCluster(cluster, models.ClusterStatusInsufficient, StatusInfoInsufficient, time.Now())
+func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster, status string) error {
+	statusInfo := r.getStatusInfo(status)
+	return r.registerCluster(cluster, status, statusInfo, time.Now())
 }
 
-func (r *registrar) RegisterAddHostsCluster(ctx context.Context, cluster *common.Cluster) error {
-	return r.registerCluster(cluster, models.ClusterStatusAddingHosts, statusInfoAddingHosts, time.Now())
+func (r *registrar) getStatusInfo(status string) string {
+	switch status {
+	case models.ClusterStatusInsufficient:
+		return StatusInfoInsufficient
+	case models.ClusterStatusAddingHosts:
+		return statusInfoAddingHosts
+	case models.ClusterStatusCreated:
+		return "Cluster created for offline installation"
+	default:
+		panic(fmt.Sprintf("unknown cluster status: %s", status))
+	}
 }
 
 func (r *registrar) registerCluster(cluster *common.Cluster, status, statusInfo string, registerTime time.Time) error {

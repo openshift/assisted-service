@@ -226,6 +226,7 @@ type bareMetalInventory struct {
 	providerRegistry     registry.ProviderRegistry
 	insecureIPXEURLs     bool
 	installerInvoker     string
+	oveIgnitionGenerator *ignition.OVEIgnitionGenerator
 }
 
 func NewBareMetalInventory(
@@ -260,6 +261,7 @@ func NewBareMetalInventory(
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
 	installerInvoker string,
+	oveIgnitionGenerator *ignition.OVEIgnitionGenerator,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -293,6 +295,7 @@ func NewBareMetalInventory(
 		providerRegistry:     providerRegistry,
 		insecureIPXEURLs:     insecureIPXEURLs,
 		installerInvoker:     installerInvoker,
+		oveIgnitionGenerator: oveIgnitionGenerator,
 	}
 }
 
@@ -539,6 +542,17 @@ func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(
 }
 
 func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, params installer.V2RegisterClusterParams) (*common.Cluster, error) {
+	return b.registerClusterInternalWithKind(ctx, kubeKey, mirrorRegistryConfiguration, params, models.ClusterKindCluster)
+}
+
+func (b *bareMetalInventory) RegisterDisconnectedClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, params installer.V2RegisterDisconnectedClusterParams) (*common.Cluster, error) {
+	regularParams := installer.V2RegisterClusterParams{
+		NewClusterParams: params.NewClusterParams,
+	}
+	return b.registerClusterInternalWithKind(ctx, kubeKey, mirrorRegistryConfiguration, regularParams, models.ClusterKindDisconnectedCluster)
+}
+
+func (b *bareMetalInventory) registerClusterInternalWithKind(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, params installer.V2RegisterClusterParams, kind string) (*common.Cluster, error) {
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.V2GetClusterURL{ClusterID: id}
 
@@ -622,7 +636,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 		Cluster: models.Cluster{
 			ID:                           &id,
 			Href:                         swag.String(url.String()),
-			Kind:                         swag.String(models.ClusterKindCluster),
+			Kind:                         swag.String(kind),
 			APIVips:                      params.NewClusterParams.APIVips,
 			BaseDNSDomain:                params.NewClusterParams.BaseDNSDomain,
 			IngressVips:                  params.NewClusterParams.IngressVips,
@@ -709,7 +723,17 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	err = b.clusterApi.RegisterCluster(ctx, cluster)
+	// Determine status based on cluster kind
+	var status string
+	if kind == models.ClusterKindDisconnectedCluster {
+		status = models.ClusterStatusCreated
+	} else if kind == models.ClusterKindAddHostsCluster {
+		status = models.ClusterStatusAddingHosts
+	} else {
+		status = models.ClusterStatusInsufficient // default for regular clusters
+	}
+
+	err = b.clusterApi.RegisterCluster(ctx, cluster, status)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -1015,7 +1039,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
-	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster)
+	err = b.clusterApi.RegisterCluster(ctx, &newCluster, models.ClusterStatusAddingHosts)
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", clusterName)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -5575,6 +5599,10 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			return err
 		}
 
+		if infraEnv.Type != nil && *infraEnv.Type == models.ImageTypeDisconnectedIso {
+			return common.NewApiError(400, errors.Errorf("Cannot register a host to an InfraEnv with disconnected-iso type"))
+		}
+
 		// The query for cluster must appear before the host query to avoid potential deadlock
 		cluster, err = b.getBoundClusterForUpdate(tx, infraEnv, params.InfraEnvID, *params.NewHostParams.HostID)
 		if err != nil {
@@ -6180,11 +6208,24 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	var content, filename string
 	switch params.FileName {
 	case "discovery.ign":
-		discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
-		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
-		if err != nil {
-			b.log.WithError(err).Error("Failed to format ignition config")
-			return common.GenerateErrorResponder(err)
+		if infraEnv.Type != nil && *infraEnv.Type == models.ImageTypeDisconnectedIso {
+			cluster, clusterErr := common.GetClusterFromDB(b.db, infraEnv.ClusterID, common.SkipEagerLoading)
+			if clusterErr != nil {
+				b.log.WithError(clusterErr).Errorf("Failed to get cluster for OVE ignition generation, infraEnv %s", infraEnv.ID)
+				return common.GenerateErrorResponder(clusterErr)
+			}
+			content, err = b.oveIgnitionGenerator.GenerateOVEIgnition(ctx, infraEnv, cluster.OpenshiftVersion)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to generate OVE ignition")
+				return common.GenerateErrorResponder(err)
+			}
+		} else {
+			discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
+			content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to format ignition config")
+				return common.GenerateErrorResponder(err)
+			}
 		}
 		filename = params.FileName
 	case "ipxe-script":

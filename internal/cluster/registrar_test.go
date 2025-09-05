@@ -38,7 +38,7 @@ var _ = Describe("registrar", func() {
 				Status: swag.String(models.ClusterStatusInsufficient),
 			}}
 
-			updateErr = registerManager.RegisterCluster(ctx, &cluster)
+			updateErr = registerManager.RegisterCluster(ctx, &cluster, models.ClusterStatusInsufficient)
 			Expect(updateErr).Should(BeNil())
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 			cluster = getClusterFromDB(*cluster.ID, db)
@@ -46,7 +46,7 @@ var _ = Describe("registrar", func() {
 		})
 
 		It("register a registered cluster", func() {
-			updateErr = registerManager.RegisterCluster(ctx, &cluster)
+			updateErr = registerManager.RegisterCluster(ctx, &cluster, models.ClusterStatusInsufficient)
 			Expect(updateErr).Should(HaveOccurred())
 
 			cluster = getClusterFromDB(*cluster.ID, db)
@@ -55,7 +55,7 @@ var _ = Describe("registrar", func() {
 
 		It("register a (soft) deleted cluster", func() {
 			Expect(db.Unscoped().Delete(&cluster).Error).ShouldNot(HaveOccurred())
-			updateErr = registerManager.RegisterCluster(ctx, &cluster)
+			updateErr = registerManager.RegisterCluster(ctx, &cluster, models.ClusterStatusInsufficient)
 			Expect(updateErr).ShouldNot(HaveOccurred())
 
 			cluster = getClusterFromDB(*cluster.ID, db)
@@ -66,11 +66,45 @@ var _ = Describe("registrar", func() {
 			Expect(db.First(&common.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(0)))
 			Expect(db.Unscoped().First(&common.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(1)))
 
-			updateErr = registerManager.RegisterCluster(ctx, &cluster)
+			updateErr = registerManager.RegisterCluster(ctx, &cluster, models.ClusterStatusInsufficient)
 			Expect(updateErr).ShouldNot(HaveOccurred())
 
 			cluster = getClusterFromDB(*cluster.ID, db)
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
+		})
+	})
+
+	Context("register disconnected cluster", func() {
+		It("should register disconnected cluster with created status", func() {
+			disconnectedCluster := common.Cluster{Cluster: models.Cluster{
+				ID:     &id,
+				Status: swag.String(models.ClusterStatusCreated),
+				Kind:   swag.String(models.ClusterKindDisconnectedCluster),
+			}}
+
+			updateErr = registerManager.RegisterCluster(ctx, &disconnectedCluster, models.ClusterStatusCreated)
+			Expect(updateErr).Should(BeNil())
+			Expect(swag.StringValue(disconnectedCluster.Status)).Should(Equal(models.ClusterStatusCreated))
+
+			cluster = getClusterFromDB(*disconnectedCluster.ID, db)
+			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusCreated))
+			Expect(swag.StringValue(cluster.Kind)).Should(Equal(models.ClusterKindDisconnectedCluster))
+		})
+
+		It("should register add-hosts cluster with adding-hosts status", func() {
+			addHostsCluster := common.Cluster{Cluster: models.Cluster{
+				ID:     &id,
+				Status: swag.String(models.ClusterStatusAddingHosts),
+				Kind:   swag.String(models.ClusterKindAddHostsCluster),
+			}}
+
+			updateErr = registerManager.RegisterCluster(ctx, &addHostsCluster, models.ClusterStatusAddingHosts)
+			Expect(updateErr).Should(BeNil())
+			Expect(swag.StringValue(addHostsCluster.Status)).Should(Equal(models.ClusterStatusAddingHosts))
+
+			cluster = getClusterFromDB(*addHostsCluster.ID, db)
+			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusAddingHosts))
+			Expect(swag.StringValue(cluster.Kind)).Should(Equal(models.ClusterKindAddHostsCluster))
 		})
 	})
 

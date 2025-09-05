@@ -77,9 +77,7 @@ var ClusterOwnerFileNames = []string{
 
 type RegistrationAPI interface {
 	// Register a new cluster
-	RegisterCluster(ctx context.Context, c *common.Cluster) error
-	// Register a new add-host cluster
-	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error
+	RegisterCluster(ctx context.Context, c *common.Cluster, status string) error
 	// Register a new add-host-ocp cluster
 	RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error
 	//deregister cluster
@@ -215,17 +213,8 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.N
 	}
 }
 
-func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error {
-	return m.registrationAPI.RegisterCluster(ctx, c)
-}
-
-func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
-	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c)
-	if err != nil {
-		return err
-	}
-	eventgen.SendClusterRegistrationSucceededEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
-	return nil
+func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster, status string) error {
+	return m.registrationAPI.RegisterCluster(ctx, c, status)
 }
 
 func (m *Manager) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
@@ -573,6 +562,7 @@ func (m *Manager) initMonitorQueryGenerator() {
 		buildInitialQuery := func(db *gorm.DB) *gorm.DB {
 			noNeedToMonitorInStates := []string{
 				models.ClusterStatusInstalled,
+				models.ClusterStatusCreated,
 			}
 
 			dbWithCondition := common.LoadClusterTablesFromDB(db)
@@ -963,6 +953,7 @@ func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster,
 	)
 	return err
 }
+
 
 func (m *Manager) UploadEvents() {
 	if !m.leaderElector.IsLeader() {

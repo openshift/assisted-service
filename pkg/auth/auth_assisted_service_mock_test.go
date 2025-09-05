@@ -81,6 +81,10 @@ func (f fakeInventory) V2RegisterCluster(ctx context.Context, params installer.V
 	return installer.NewV2RegisterClusterCreated()
 }
 
+func (f fakeInventory) V2RegisterDisconnectedCluster(ctx context.Context, params installer.V2RegisterDisconnectedClusterParams) middleware.Responder {
+	return installer.NewV2RegisterDisconnectedClusterCreated()
+}
+
 func (f fakeInventory) V2ImportCluster(ctx context.Context, params installer.V2ImportClusterParams) middleware.Responder {
 	return installer.NewV2ImportClusterCreated()
 }
