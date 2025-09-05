@@ -53,6 +53,14 @@ func (b *bareMetalInventory) V2RegisterCluster(ctx context.Context, params insta
 	return installer.NewV2RegisterClusterCreated().WithPayload(&c.Cluster)
 }
 
+func (b *bareMetalInventory) V2RegisterDisconnectedCluster(ctx context.Context, params installer.V2RegisterDisconnectedClusterParams) middleware.Responder {
+	c, err := b.RegisterDisconnectedClusterInternal(ctx, nil, nil, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2RegisterDisconnectedClusterCreated().WithPayload(&c.Cluster)
+}
+
 func (b *bareMetalInventory) GetSupportedFeatures(ctx context.Context, params installer.GetSupportedFeaturesParams) middleware.Responder {
 	supportLevelList, err := b.GetFeatureSupportLevelListInternal(ctx, params)
 	if err != nil {
