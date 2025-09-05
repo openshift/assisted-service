@@ -190,6 +190,9 @@ type InstallerAPI interface {
 	/* V2RegisterCluster Creates a new OpenShift cluster definition. */
 	V2RegisterCluster(ctx context.Context, params installer.V2RegisterClusterParams) middleware.Responder
 
+	/* V2RegisterDisconnectedCluster Create a disconnected OpenShift cluster for offline installation with embedded ignition */
+	V2RegisterDisconnectedCluster(ctx context.Context, params installer.V2RegisterDisconnectedClusterParams) middleware.Responder
+
 	/* V2RegisterHost Registers a new OpenShift agent. */
 	V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder
 
@@ -749,6 +752,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2RegisterCluster(ctx, params)
+	})
+	api.InstallerV2RegisterDisconnectedClusterHandler = installer.V2RegisterDisconnectedClusterHandlerFunc(func(params installer.V2RegisterDisconnectedClusterParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2RegisterDisconnectedCluster(ctx, params)
 	})
 	api.InstallerV2RegisterHostHandler = installer.V2RegisterHostHandlerFunc(func(params installer.V2RegisterHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

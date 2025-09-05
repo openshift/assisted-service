@@ -680,6 +680,20 @@ func (mr *MockInstallerAPIMockRecorder) V2RegisterCluster(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2RegisterCluster", reflect.TypeOf((*MockInstallerAPI)(nil).V2RegisterCluster), arg0, arg1)
 }
 
+// V2RegisterDisconnectedCluster mocks base method.
+func (m *MockInstallerAPI) V2RegisterDisconnectedCluster(arg0 context.Context, arg1 installer.V2RegisterDisconnectedClusterParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2RegisterDisconnectedCluster", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2RegisterDisconnectedCluster indicates an expected call of V2RegisterDisconnectedCluster.
+func (mr *MockInstallerAPIMockRecorder) V2RegisterDisconnectedCluster(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2RegisterDisconnectedCluster", reflect.TypeOf((*MockInstallerAPI)(nil).V2RegisterDisconnectedCluster), arg0, arg1)
+}
+
 // V2RegisterHost mocks base method.
 func (m *MockInstallerAPI) V2RegisterHost(arg0 context.Context, arg1 installer.V2RegisterHostParams) middleware.Responder {
 	m.ctrl.T.Helper()

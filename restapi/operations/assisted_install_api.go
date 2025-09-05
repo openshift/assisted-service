@@ -243,6 +243,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2RegisterClusterHandler: installer.V2RegisterClusterHandlerFunc(func(params installer.V2RegisterClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2RegisterCluster has not yet been implemented")
 		}),
+		InstallerV2RegisterDisconnectedClusterHandler: installer.V2RegisterDisconnectedClusterHandlerFunc(func(params installer.V2RegisterDisconnectedClusterParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2RegisterDisconnectedCluster has not yet been implemented")
+		}),
 		InstallerV2RegisterHostHandler: installer.V2RegisterHostHandlerFunc(func(params installer.V2RegisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2RegisterHost has not yet been implemented")
 		}),
@@ -515,6 +518,8 @@ type AssistedInstallAPI struct {
 	InstallerV2PostStepReplyHandler installer.V2PostStepReplyHandler
 	// InstallerV2RegisterClusterHandler sets the operation handler for the v2 register cluster operation
 	InstallerV2RegisterClusterHandler installer.V2RegisterClusterHandler
+	// InstallerV2RegisterDisconnectedClusterHandler sets the operation handler for the v2 register disconnected cluster operation
+	InstallerV2RegisterDisconnectedClusterHandler installer.V2RegisterDisconnectedClusterHandler
 	// InstallerV2RegisterHostHandler sets the operation handler for the v2 register host operation
 	InstallerV2RegisterHostHandler installer.V2RegisterHostHandler
 	// OperatorsV2ReportMonitoredOperatorStatusHandler sets the operation handler for the v2 report monitored operator status operation
@@ -840,6 +845,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2RegisterClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2RegisterClusterHandler")
+	}
+	if o.InstallerV2RegisterDisconnectedClusterHandler == nil {
+		unregistered = append(unregistered, "installer.V2RegisterDisconnectedClusterHandler")
 	}
 	if o.InstallerV2RegisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2RegisterHostHandler")
@@ -1266,6 +1274,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v2/clusters"] = installer.NewV2RegisterCluster(o.context, o.InstallerV2RegisterClusterHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/clusters/disconnected"] = installer.NewV2RegisterDisconnectedCluster(o.context, o.InstallerV2RegisterDisconnectedClusterHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
