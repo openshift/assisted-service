@@ -33,6 +33,10 @@ func (r *registrar) RegisterAddHostsCluster(ctx context.Context, cluster *common
 	return r.registerCluster(cluster, models.ClusterStatusAddingHosts, statusInfoAddingHosts, time.Now())
 }
 
+func (r *registrar) RegisterDisconnectedCluster(ctx context.Context, cluster *common.Cluster) error {
+	return r.registerCluster(cluster, models.ClusterStatusUnmonitored, "Cluster created for offline installation", time.Now())
+}
+
 func (r *registrar) registerCluster(cluster *common.Cluster, status, statusInfo string, registerTime time.Time) error {
 	cluster.Status = swag.String(status)
 	cluster.StatusInfo = swag.String(statusInfo)

@@ -560,10 +560,19 @@ func main() {
 	serverInfo := servers.New(Options.HTTPListenPort, swag.StringValue(port), Options.HTTPSKeyFile, Options.HTTPSCertFile)
 	generateInsecureIPXEURLs := serverInfo.HTTP != nil
 
+	disconnectedIgnitionGenerator := ignition.NewDisconnectedIgnitionGenerator(
+		&executer.CommonExecuter{},
+		mirrorRegistriesBuilder,
+		installerCache,
+		versionHandler,
+		log.WithField("pkg", "DisconnectedIgnition"),
+		Options.GeneratorConfig.GetWorkingDirectory(),
+	)
+
 	bm := bminventory.NewBareMetalInventory(db, notificationStream, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, authzHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, osImages, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
-		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs, Options.GeneratorConfig.InstallInvoker)
+		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs, Options.GeneratorConfig.InstallInvoker, disconnectedIgnitionGenerator)
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
 	//Set inner handler chain. Inner handlers requires access to the Route

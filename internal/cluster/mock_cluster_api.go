@@ -96,6 +96,20 @@ func (mr *MockRegistrationAPIMockRecorder) RegisterCluster(ctx, c interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterCluster), ctx, c)
 }
 
+// RegisterDisconnectedCluster mocks base method.
+func (m *MockRegistrationAPI) RegisterDisconnectedCluster(ctx context.Context, c *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterDisconnectedCluster", ctx, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterDisconnectedCluster indicates an expected call of RegisterDisconnectedCluster.
+func (mr *MockRegistrationAPIMockRecorder) RegisterDisconnectedCluster(ctx, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterDisconnectedCluster", reflect.TypeOf((*MockRegistrationAPI)(nil).RegisterDisconnectedCluster), ctx, c)
+}
+
 // MockInstallationAPI is a mock of InstallationAPI interface.
 type MockInstallationAPI struct {
 	ctrl     *gomock.Controller
@@ -586,6 +600,20 @@ func (m *MockAPI) RegisterCluster(ctx context.Context, c *common.Cluster) error 
 func (mr *MockAPIMockRecorder) RegisterCluster(ctx, c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockAPI)(nil).RegisterCluster), ctx, c)
+}
+
+// RegisterDisconnectedCluster mocks base method.
+func (m *MockAPI) RegisterDisconnectedCluster(ctx context.Context, c *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterDisconnectedCluster", ctx, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterDisconnectedCluster indicates an expected call of RegisterDisconnectedCluster.
+func (mr *MockAPIMockRecorder) RegisterDisconnectedCluster(ctx, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterDisconnectedCluster", reflect.TypeOf((*MockAPI)(nil).RegisterDisconnectedCluster), ctx, c)
 }
 
 // ResetCluster mocks base method.

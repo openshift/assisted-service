@@ -80,6 +80,8 @@ type RegistrationAPI interface {
 	RegisterCluster(ctx context.Context, c *common.Cluster) error
 	// Register a new add-host cluster
 	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error
+	// Register a new disconnected cluster
+	RegisterDisconnectedCluster(ctx context.Context, c *common.Cluster) error
 	// Register a new add-host-ocp cluster
 	RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error
 	//deregister cluster
@@ -226,6 +228,10 @@ func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster
 	}
 	eventgen.SendClusterRegistrationSucceededEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
 	return nil
+}
+
+func (m *Manager) RegisterDisconnectedCluster(ctx context.Context, c *common.Cluster) error {
+	return m.registrationAPI.RegisterDisconnectedCluster(ctx, c)
 }
 
 func (m *Manager) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
@@ -573,6 +579,7 @@ func (m *Manager) initMonitorQueryGenerator() {
 		buildInitialQuery := func(db *gorm.DB) *gorm.DB {
 			noNeedToMonitorInStates := []string{
 				models.ClusterStatusInstalled,
+				models.ClusterStatusUnmonitored,
 			}
 
 			dbWithCondition := common.LoadClusterTablesFromDB(db)
