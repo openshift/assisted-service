@@ -33,10 +33,7 @@ var _ = Describe("tangConnectivitycheckcmd", func() {
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
-		host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, models.HostStatusInsufficient)
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
-
 	})
 
 	const hostIgnition = `{
@@ -90,42 +87,38 @@ var _ = Describe("tangConnectivitycheckcmd", func() {
 		}
 	  }`
 
-	It("Should not panic if Luks is undefined", func() {
-		imported := true
-		cluster.Imported = &imported
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
-			IsSuccess: true,
-			Ignition:  hostIgnitionWithoutLuks,
-		})
-		Expect(err).ToNot(HaveOccurred())
-		host.APIVipConnectivity = string(apiVipConnectivity)
-		Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
-		stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
-		Expect(stepErr).ShouldNot(HaveOccurred())
-	})
-
-	It("Should not panic if Clevis is undefined", func() {
-		imported := true
-		cluster.Imported = &imported
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
-			IsSuccess: true,
-			Ignition:  hostIgnitionWithoutClevis,
-		})
-		Expect(err).ToNot(HaveOccurred())
-		host.APIVipConnectivity = string(apiVipConnectivity)
-		Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
-		stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
-		Expect(stepErr).ShouldNot(HaveOccurred())
-	})
-
-	It("get_step: Tang imported cluster should use host ignition", func() {
-
-		By("Set cluster to imported and inject host ignition for test", func() {
-			imported := true
-			cluster.Imported = &imported
+	Context("with a day2 host", func() {
+		BeforeEach(func() {
+			host = hostutil.GenerateTestHostAddedToCluster(id, infraEnvID, clusterID, models.HostStatusInsufficient)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		})
+
+		It("skips tang check when Luks is undefined in host ignition", func() {
+			apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
+				IsSuccess: true,
+				Ignition:  hostIgnitionWithoutLuks,
+			})
+			Expect(err).ToNot(HaveOccurred())
+			host.APIVipConnectivity = string(apiVipConnectivity)
+			Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+			Expect(stepErr).ShouldNot(HaveOccurred())
+		})
+
+		It("skips tang check when Clevis is undefined in host ignition", func() {
+			apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
+				IsSuccess: true,
+				Ignition:  hostIgnitionWithoutClevis,
+			})
+			Expect(err).ToNot(HaveOccurred())
+			host.APIVipConnectivity = string(apiVipConnectivity)
+			Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+			Expect(stepErr).ShouldNot(HaveOccurred())
+		})
+
+		It("runs tang connectivity check using tang servers from host ignition", func() {
 			apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
 				IsSuccess: true,
 				Ignition:  hostIgnition,
@@ -133,88 +126,132 @@ var _ = Describe("tangConnectivitycheckcmd", func() {
 			Expect(err).ToNot(HaveOccurred())
 			host.APIVipConnectivity = string(apiVipConnectivity)
 			Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
-		})
 
-		By("Ensure that tang connectivity check uses host ignition when the cluster is imported", func() {
 			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
 			Expect(stepReply[0]).ShouldNot(BeNil())
 			Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal("{\"tang_servers\":\"[{\\\"thumbprint\\\":\\\"nWW89qAs1hDPKiIcae-ey2cQmUk\\\",\\\"url\\\":\\\"http://foo.bar\\\"}]\"}"))
 			Expect(stepErr).ShouldNot(HaveOccurred())
 		})
+
+		It("skips tang check when APIVipConnectivity is empty for day 2 host", func() {
+			host.APIVipConnectivity = ""
+			Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
+
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+			Expect(len(stepReply)).Should(Equal(0))
+			Expect(stepErr).ShouldNot(HaveOccurred())
+		})
+
+		It("returns error when host ignition contains invalid JSON", func() {
+			apiVipConnectivity, err := json.Marshal(models.APIVipConnectivityResponse{
+				IsSuccess: true,
+				Ignition:  "invalid json",
+			})
+			Expect(err).ToNot(HaveOccurred())
+			host.APIVipConnectivity = string(apiVipConnectivity)
+			Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
+
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+			Expect(stepErr).Should(HaveOccurred())
+		})
 	})
 
-	It("get_step: Tang EnableOnAll", func() {
-		cluster.DiskEncryption = &models.DiskEncryption{
-			EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
-			Mode:        swag.String(models.DiskEncryptionModeTang),
-			TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
-		}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+	Context("with a day1 host", func() {
+		BeforeEach(func() {
+			host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, models.HostStatusInsufficient)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
 
-		stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
-		Expect(stepReply[0]).ShouldNot(BeNil())
-		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal("{\"tang_servers\":\"[{\\\"URL\\\":\\\"http://tang.example.com:7500\\\",\\\"Thumbprint\\\":\\\"\\\"}]\"}"))
-		Expect(stepErr).ShouldNot(HaveOccurred())
-	})
+		It("runs tang connectivity check using tang servers from cluster configuration", func() {
+			cluster.DiskEncryption = &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
+			}
+			Expect(db.Save(&cluster).Error).ShouldNot(HaveOccurred())
 
-	It("get_step: Tang EnableOnWorkers", func() {
-		cluster.DiskEncryption = &models.DiskEncryption{
-			EnableOn:    swag.String(models.DiskEncryptionEnableOnWorkers),
-			Mode:        swag.String(models.DiskEncryptionModeTang),
-			TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
-		}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+			Expect(stepReply[0]).ShouldNot(BeNil())
+			Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal("{\"tang_servers\":\"[{\\\"URL\\\":\\\"http://tang.example.com:7500\\\",\\\"Thumbprint\\\":\\\"\\\"}]\"}"))
+			Expect(stepErr).ShouldNot(HaveOccurred())
+		})
 
-		stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
-		Expect(stepReply[0]).ShouldNot(BeNil())
-		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal("{\"tang_servers\":\"[{\\\"URL\\\":\\\"http://tang.example.com:7500\\\",\\\"Thumbprint\\\":\\\"\\\"}]\"}"))
-		Expect(stepErr).ShouldNot(HaveOccurred())
-	})
+		It("runs tang connectivity check for worker node when EnableOnAll is configured", func() {
+			cluster.DiskEncryption = &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
+			}
+			Expect(db.Save(&cluster).Error).ShouldNot(HaveOccurred())
 
-	It("get_step: Tang EnableOnMasters", func() {
-		cluster.DiskEncryption = &models.DiskEncryption{
-			EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
-			Mode:        swag.String(models.DiskEncryptionModeTang),
-			TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
-		}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+			Expect(stepReply[0]).ShouldNot(BeNil())
+			Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal("{\"tang_servers\":\"[{\\\"URL\\\":\\\"http://tang.example.com:7500\\\",\\\"Thumbprint\\\":\\\"\\\"}]\"}"))
+			Expect(stepErr).ShouldNot(HaveOccurred())
+		})
 
-		stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
-		Expect(len(stepReply)).Should(Equal(0)) // Host is a worker
-		Expect(stepErr).ShouldNot(HaveOccurred())
-	})
+		It("runs tang connectivity check for worker node when EnableOnWorkers is configured", func() {
+			cluster.DiskEncryption = &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnWorkers),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
+			}
+			Expect(db.Save(&cluster).Error).ShouldNot(HaveOccurred())
 
-	It("get_step: Tang EnableOnNone", func() {
-		cluster.DiskEncryption = &models.DiskEncryption{
-			EnableOn:    swag.String(models.DiskEncryptionEnableOnNone),
-			Mode:        swag.String(models.DiskEncryptionModeTang),
-			TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
-		}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+			Expect(stepReply[0]).ShouldNot(BeNil())
+			Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal("{\"tang_servers\":\"[{\\\"URL\\\":\\\"http://tang.example.com:7500\\\",\\\"Thumbprint\\\":\\\"\\\"}]\"}"))
+			Expect(stepErr).ShouldNot(HaveOccurred())
+		})
 
-		stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
-		Expect(len(stepReply)).Should(Equal(0))
-		Expect(stepErr).ShouldNot(HaveOccurred())
-	})
+		It("skips tang connectivity check for worker node when EnableOnMasters is configured", func() {
+			cluster.DiskEncryption = &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
+			}
+			Expect(db.Save(&cluster).Error).ShouldNot(HaveOccurred())
 
-	It("get_step: TPMv2 EnableOnAll", func() {
-		cluster.DiskEncryption = &models.DiskEncryption{
-			EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
-			Mode:     swag.String(models.DiskEncryptionModeTpmv2),
-		}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+			Expect(len(stepReply)).Should(Equal(0)) // Host is a worker
+			Expect(stepErr).ShouldNot(HaveOccurred())
+		})
 
-		stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
-		Expect(len(stepReply)).Should(Equal(0))
-		Expect(stepErr).ShouldNot(HaveOccurred())
-	})
+		It("skips tang connectivity check when EnableOnNone is configured", func() {
+			cluster.DiskEncryption = &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnNone),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
+			}
+			Expect(db.Save(&cluster).Error).ShouldNot(HaveOccurred())
 
-	It("get_step: unknown cluster_id", func() {
-		clusterID := strfmt.UUID(uuid.New().String())
-		host.ClusterID = &clusterID
-		stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
-		Expect(stepReply).To(BeNil())
-		Expect(stepErr).Should(HaveOccurred())
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+			Expect(len(stepReply)).Should(Equal(0))
+			Expect(stepErr).ShouldNot(HaveOccurred())
+		})
+
+		It("skips tang connectivity check when TPMv2 mode is configured", func() {
+			cluster.DiskEncryption = &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &host)
+			Expect(len(stepReply)).Should(Equal(0))
+			Expect(stepErr).ShouldNot(HaveOccurred())
+		})
+
+		It("returns error when cluster is not found in database", func() {
+			unknownClusterID := strfmt.UUID(uuid.New().String())
+			hostID := strfmt.UUID(uuid.New().String())
+			hostWithUnknownCluster := hostutil.GenerateTestHost(hostID, infraEnvID, unknownClusterID, models.HostStatusInsufficient)
+			Expect(db.Create(&hostWithUnknownCluster).Error).ShouldNot(HaveOccurred())
+
+			stepReply, stepErr = tangConnectivityCheckCmd.GetSteps(ctx, &hostWithUnknownCluster)
+			Expect(stepReply).To(BeNil())
+			Expect(stepErr).Should(HaveOccurred())
+		})
 	})
 
 	AfterEach(func() {
