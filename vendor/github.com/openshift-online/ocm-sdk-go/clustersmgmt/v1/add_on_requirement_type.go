@@ -27,6 +27,7 @@ type AddOnRequirement struct {
 	id       string
 	data     map[string]interface{}
 	resource string
+	status   *AddOnRequirementStatus
 	enabled  bool
 }
 
@@ -127,6 +128,29 @@ func (o *AddOnRequirement) GetResource() (value string, ok bool) {
 	return
 }
 
+// Status returns the value of the 'status' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Optional cluster specific status for the add-on.
+func (o *AddOnRequirement) Status() *AddOnRequirementStatus {
+	if o != nil && o.bitmap_&16 != 0 {
+		return o.status
+	}
+	return nil
+}
+
+// GetStatus returns the value of the 'status' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Optional cluster specific status for the add-on.
+func (o *AddOnRequirement) GetStatus() (value *AddOnRequirementStatus, ok bool) {
+	ok = o != nil && o.bitmap_&16 != 0
+	if ok {
+		value = o.status
+	}
+	return
+}
+
 // AddOnRequirementListKind is the name of the type used to represent list of objects of
 // type 'add_on_requirement'.
 const AddOnRequirementListKind = "AddOnRequirementList"
@@ -152,6 +176,29 @@ func (l *AddOnRequirementList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *AddOnRequirementList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *AddOnRequirementList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *AddOnRequirementList) SetItems(items []*AddOnRequirement) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *AddOnRequirementList) Items() []*AddOnRequirement {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

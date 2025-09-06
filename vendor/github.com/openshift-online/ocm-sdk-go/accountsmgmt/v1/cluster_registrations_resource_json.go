@@ -19,16 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readClusterRegistrationsPostRequest(request *ClusterRegistrationsPostServerRequest, r *http.Request) error {
-	var err error
-	request.request, err = UnmarshalClusterRegistrationRequest(r)
-	return err
-}
 func writeClusterRegistrationsPostRequest(request *ClusterRegistrationsPostRequest, writer io.Writer) error {
 	return MarshalClusterRegistrationRequest(request.request, writer)
 }
@@ -36,7 +28,4 @@ func readClusterRegistrationsPostResponse(response *ClusterRegistrationsPostResp
 	var err error
 	response.response, err = UnmarshalClusterRegistrationResponse(reader)
 	return err
-}
-func writeClusterRegistrationsPostResponse(response *ClusterRegistrationsPostServerResponse, w http.ResponseWriter) error {
-	return MarshalClusterRegistrationResponse(response.response, w)
 }

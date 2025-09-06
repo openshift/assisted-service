@@ -37,6 +37,11 @@ func (b *GithubIdentityProviderListBuilder) Items(values ...*GithubIdentityProvi
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *GithubIdentityProviderListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *GithubIdentityProviderListBuilder) Copy(list *GithubIdentityProviderList) *GithubIdentityProviderListBuilder {
 	if list == nil || list.items == nil {

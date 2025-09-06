@@ -57,7 +57,7 @@ func (o *Resource) Kind() string {
 	return ResourceKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *Resource) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -105,8 +105,6 @@ func (o *Resource) Empty() bool {
 
 // BYOC returns the value of the 'BYOC' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Resource) BYOC() bool {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.byoc
@@ -116,8 +114,6 @@ func (o *Resource) BYOC() bool {
 
 // GetBYOC returns the value of the 'BYOC' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Resource) GetBYOC() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -128,8 +124,6 @@ func (o *Resource) GetBYOC() (value bool, ok bool) {
 
 // SKU returns the value of the 'SKU' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Resource) SKU() string {
 	if o != nil && o.bitmap_&16 != 0 {
 		return o.sku
@@ -139,8 +133,6 @@ func (o *Resource) SKU() string {
 
 // GetSKU returns the value of the 'SKU' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Resource) GetSKU() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
@@ -174,8 +166,6 @@ func (o *Resource) GetAllowed() (value int, ok bool) {
 
 // AvailabilityZoneType returns the value of the 'availability_zone_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Resource) AvailabilityZoneType() string {
 	if o != nil && o.bitmap_&64 != 0 {
 		return o.availabilityZoneType
@@ -185,8 +175,6 @@ func (o *Resource) AvailabilityZoneType() string {
 
 // GetAvailabilityZoneType returns the value of the 'availability_zone_type' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Resource) GetAvailabilityZoneType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&64 != 0
 	if ok {
@@ -220,8 +208,6 @@ func (o *Resource) GetResourceName() (value string, ok bool) {
 
 // ResourceType returns the value of the 'resource_type' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *Resource) ResourceType() string {
 	if o != nil && o.bitmap_&256 != 0 {
 		return o.resourceType
@@ -231,8 +217,6 @@ func (o *Resource) ResourceType() string {
 
 // GetResourceType returns the value of the 'resource_type' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *Resource) GetResourceType() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&256 != 0
 	if ok {
@@ -300,6 +284,29 @@ func (l *ResourceList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *ResourceList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *ResourceList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *ResourceList) SetItems(items []*Resource) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *ResourceList) Items() []*Resource {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

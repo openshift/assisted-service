@@ -28,6 +28,7 @@ type CloudProviderBuilder struct {
 	href        string
 	displayName string
 	name        string
+	regions     []*CloudRegionBuilder
 }
 
 // NewCloudProvider creates a new builder of 'cloud_provider' objects.
@@ -55,9 +56,12 @@ func (b *CloudProviderBuilder) HREF(value string) *CloudProviderBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *CloudProviderBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // DisplayName sets the value of the 'display_name' attribute to the given value.
-//
-//
 func (b *CloudProviderBuilder) DisplayName(value string) *CloudProviderBuilder {
 	b.displayName = value
 	b.bitmap_ |= 8
@@ -65,11 +69,17 @@ func (b *CloudProviderBuilder) DisplayName(value string) *CloudProviderBuilder {
 }
 
 // Name sets the value of the 'name' attribute to the given value.
-//
-//
 func (b *CloudProviderBuilder) Name(value string) *CloudProviderBuilder {
 	b.name = value
 	b.bitmap_ |= 16
+	return b
+}
+
+// Regions sets the value of the 'regions' attribute to the given values.
+func (b *CloudProviderBuilder) Regions(values ...*CloudRegionBuilder) *CloudProviderBuilder {
+	b.regions = make([]*CloudRegionBuilder, len(values))
+	copy(b.regions, values)
+	b.bitmap_ |= 32
 	return b
 }
 
@@ -83,6 +93,14 @@ func (b *CloudProviderBuilder) Copy(object *CloudProvider) *CloudProviderBuilder
 	b.href = object.href
 	b.displayName = object.displayName
 	b.name = object.name
+	if object.regions != nil {
+		b.regions = make([]*CloudRegionBuilder, len(object.regions))
+		for i, v := range object.regions {
+			b.regions[i] = NewCloudRegion().Copy(v)
+		}
+	} else {
+		b.regions = nil
+	}
 	return b
 }
 
@@ -94,5 +112,14 @@ func (b *CloudProviderBuilder) Build() (object *CloudProvider, err error) {
 	object.bitmap_ = b.bitmap_
 	object.displayName = b.displayName
 	object.name = b.name
+	if b.regions != nil {
+		object.regions = make([]*CloudRegion, len(b.regions))
+		for i, v := range b.regions {
+			object.regions[i], err = v.Build()
+			if err != nil {
+				return
+			}
+		}
+	}
 	return
 }

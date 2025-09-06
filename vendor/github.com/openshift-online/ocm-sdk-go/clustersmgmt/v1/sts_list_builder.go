@@ -37,6 +37,11 @@ func (b *STSListBuilder) Items(values ...*STSBuilder) *STSListBuilder {
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *STSListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *STSListBuilder) Copy(list *STSList) *STSListBuilder {
 	if list == nil || list.items == nil {

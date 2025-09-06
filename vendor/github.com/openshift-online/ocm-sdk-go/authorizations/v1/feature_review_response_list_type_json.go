@@ -30,20 +30,23 @@ import (
 // the given writer.
 func MarshalFeatureReviewResponseList(list []*FeatureReviewResponse, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeFeatureReviewResponseList(list, stream)
-	stream.Flush()
+	WriteFeatureReviewResponseList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeFeatureReviewResponseList writes a list of value of the 'feature_review_response' type to
+// WriteFeatureReviewResponseList writes a list of value of the 'feature_review_response' type to
 // the given stream.
-func writeFeatureReviewResponseList(list []*FeatureReviewResponse, stream *jsoniter.Stream) {
+func WriteFeatureReviewResponseList(list []*FeatureReviewResponse, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
 			stream.WriteMore()
 		}
-		writeFeatureReviewResponse(value, stream)
+		WriteFeatureReviewResponse(value, stream)
 	}
 	stream.WriteArrayEnd()
 }
@@ -55,17 +58,17 @@ func UnmarshalFeatureReviewResponseList(source interface{}) (items []*FeatureRev
 	if err != nil {
 		return
 	}
-	items = readFeatureReviewResponseList(iterator)
+	items = ReadFeatureReviewResponseList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readFeatureReviewResponseList reads list of values of the ''feature_review_response' type from
+// ReadFeatureReviewResponseList reads list of values of the ”feature_review_response' type from
 // the given iterator.
-func readFeatureReviewResponseList(iterator *jsoniter.Iterator) []*FeatureReviewResponse {
+func ReadFeatureReviewResponseList(iterator *jsoniter.Iterator) []*FeatureReviewResponse {
 	list := []*FeatureReviewResponse{}
 	for iterator.ReadArray() {
-		item := readFeatureReviewResponse(iterator)
+		item := ReadFeatureReviewResponse(iterator)
 		list = append(list, item)
 	}
 	return list

@@ -43,8 +43,6 @@ func NewFeatureTogglesClient(transport http.RoundTripper, path string) *FeatureT
 }
 
 // FeatureToggle returns the target 'feature_toggle' resource for the given identifier.
-//
-//
 func (c *FeatureTogglesClient) FeatureToggle(id string) *FeatureToggleClient {
 	return NewFeatureToggleClient(
 		c.transport,

@@ -20,16 +20,15 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -89,17 +88,6 @@ func (c *OrganizationClient) QuotaCost() *QuotaCostClient {
 	return NewQuotaCostClient(
 		c.transport,
 		path.Join(c.path, "quota_cost"),
-	)
-}
-
-// QuotaSummary returns the target 'quota_summary' resource.
-//
-// Reference to the service that returns the summary of the resource quota for this
-// organization.
-func (c *OrganizationClient) QuotaSummary() *QuotaSummaryClient {
-	return NewQuotaSummaryClient(
-		c.transport,
-		path.Join(c.path, "quota_summary"),
 	)
 }
 
@@ -224,16 +212,12 @@ func (r *OrganizationPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *OrganizationPollResponse) Body() *Organization {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *OrganizationPollResponse) GetBody() (value *Organization, ok bool) {
 	return r.response.GetBody()
 }
@@ -263,6 +247,13 @@ func (r *OrganizationGetRequest) Parameter(name string, value interface{}) *Orga
 // Header adds a request header.
 func (r *OrganizationGetRequest) Header(name string, value interface{}) *OrganizationGetRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *OrganizationGetRequest) Impersonate(user string) *OrganizationGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -298,15 +289,21 @@ func (r *OrganizationGetRequest) SendContext(ctx context.Context) (result *Organ
 	result = &OrganizationGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readOrganizationGetResponse(result, response.Body)
+	err = readOrganizationGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -346,8 +343,6 @@ func (r *OrganizationGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *OrganizationGetResponse) Body() *Organization {
 	if r == nil {
 		return nil
@@ -357,8 +352,6 @@ func (r *OrganizationGetResponse) Body() *Organization {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *OrganizationGetResponse) GetBody() (value *Organization, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -388,9 +381,14 @@ func (r *OrganizationUpdateRequest) Header(name string, value interface{}) *Orga
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *OrganizationUpdateRequest) Impersonate(user string) *OrganizationUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *OrganizationUpdateRequest) Body(value *Organization) *OrganizationUpdateRequest {
 	r.body = value
 	return r
@@ -421,7 +419,7 @@ func (r *OrganizationUpdateRequest) SendContext(ctx context.Context) (result *Or
 		Method: "PATCH",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -434,29 +432,25 @@ func (r *OrganizationUpdateRequest) SendContext(ctx context.Context) (result *Or
 	result = &OrganizationUpdateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readOrganizationUpdateResponse(result, response.Body)
+	err = readOrganizationUpdateResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'update' method.
-func (r *OrganizationUpdateRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *OrganizationUpdateRequest) stream(stream *jsoniter.Stream) {
 }
 
 // OrganizationUpdateResponse is the response for the 'update' method.
@@ -492,8 +486,6 @@ func (r *OrganizationUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *OrganizationUpdateResponse) Body() *Organization {
 	if r == nil {
 		return nil
@@ -503,8 +495,6 @@ func (r *OrganizationUpdateResponse) Body() *Organization {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *OrganizationUpdateResponse) GetBody() (value *Organization, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
