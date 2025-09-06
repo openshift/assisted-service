@@ -96,6 +96,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		},
 	})
 
+
 	var pendingConditions = stateswitch.And(
 		If(IsMachineCidrDefined),
 		If(isClusterCidrDefined),
@@ -577,6 +578,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		stateswitch.State(models.ClusterStatusError),
 		stateswitch.State(models.ClusterStatusCancelled),
 		stateswitch.State(models.ClusterStatusAddingHosts),
+		stateswitch.State(models.ClusterStatusCreated),
 	} {
 		sm.AddTransitionRule(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefreshStatus,
@@ -636,6 +638,10 @@ func documentStates(sm stateswitch.StateMachine) {
 	sm.DescribeState(stateswitch.State(models.ClusterStatusInstallingPendingUserAction), stateswitch.StateDoc{
 		Name:        "Installing, Pending User Action",
 		Description: "Installation is in progress, but is blocked and cannot continue until the user takes action",
+	})
+	sm.DescribeState(stateswitch.State(models.ClusterStatusCreated), stateswitch.StateDoc{
+		Name:        "Disconnected",
+		Description: "The cluster is a temporary configuration holder for OVE ISO generation and should not be monitored or transitioned",
 	})
 }
 
