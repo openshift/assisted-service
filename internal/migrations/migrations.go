@@ -27,6 +27,7 @@ func MigratePost(db *gorm.DB) error {
 
 func post() []*gormigrate.Migration {
 	postMigrations := []*gormigrate.Migration{
+		addPerformanceIndexes(),
 		changeOverridesToText(),
 		changeImageSSHKeyToText(),
 		changeClusterSshKeyToText(),
