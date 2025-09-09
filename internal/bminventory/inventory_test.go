@@ -13679,7 +13679,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		}
-		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered().Times(1)
 		res := bm.V2ImportCluster(ctx, params)
 		actual := res.(*installer.V2ImportClusterCreated)
@@ -13706,7 +13706,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		}
-		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered().Times(1)
 		res := bm.V2ImportCluster(ctx, params)
 		actual := res.(*installer.V2ImportClusterCreated)

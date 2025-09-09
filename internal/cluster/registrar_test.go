@@ -82,7 +82,7 @@ var _ = Describe("registrar", func() {
 				Kind:   swag.String(models.ClusterKindDisconnectedCluster),
 			}}
 
-			updateErr = registerManager.RegisterDisconnectedCluster(ctx, &disconnectedCluster)
+			updateErr = registerManager.RegisterCluster(ctx, &disconnectedCluster)
 			Expect(updateErr).Should(BeNil())
 			Expect(swag.StringValue(disconnectedCluster.Status)).Should(Equal(models.ClusterStatusUnmonitored))
 
@@ -98,7 +98,7 @@ var _ = Describe("registrar", func() {
 				Kind:   swag.String(models.ClusterKindAddHostsCluster),
 			}}
 
-			updateErr = registerManager.RegisterAddHostsCluster(ctx, &addHostsCluster)
+			updateErr = registerManager.RegisterCluster(ctx, &addHostsCluster)
 			Expect(updateErr).Should(BeNil())
 			Expect(swag.StringValue(addHostsCluster.Status)).Should(Equal(models.ClusterStatusAddingHosts))
 

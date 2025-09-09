@@ -82,7 +82,7 @@ func (b *bareMetalInventory) V2RegisterDisconnectedCluster(ctx context.Context, 
 		},
 	}
 
-	err := b.clusterApi.RegisterDisconnectedCluster(ctx, cluster)
+	err := b.clusterApi.RegisterCluster(ctx, cluster)
 	if err != nil {
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
 	}

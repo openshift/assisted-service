@@ -730,7 +730,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 	return cluster, err
 }
 
-
 // Validates support level features incompatibilities and validates all active features implementing
 // SupportLevelFeatureValidator interface. This function can be used to validate both cluster creation
 // and cluster update as it accepts parameters of type *models.V2ClusterUpdateParams
@@ -1019,7 +1018,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
-	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster)
+	err = b.clusterApi.RegisterCluster(ctx, &newCluster)
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", clusterName)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
