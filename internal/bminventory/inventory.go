@@ -3323,7 +3323,6 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
 
-	var dbClusters []*common.Cluster
 	var clusters []*models.Cluster
 
 	if swag.BoolValue(params.GetUnregisteredClusters) {
@@ -3343,23 +3342,39 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 		db = db.Where("ams_subscription_id IN (?)", params.AmsSubscriptionIds)
 	}
 
-	dbClusters, err := common.GetClustersFromDBWhere(db, common.UseEagerLoading,
-		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)))
-	if err != nil {
-		log.WithError(err).Error("Failed to list clusters in db")
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
+	// Iterate in pages to avoid large eager-load IN lists
+	cursor := ""
+	for {
+		q := db.Order("id").Limit(1000)
+		if cursor != "" {
+			q = q.Where("id > ?", cursor)
+		}
+		page, err := common.GetClustersFromDBWhere(q, common.UseEagerLoading,
+			common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)))
+		if err != nil {
+			log.WithError(err).Error("Failed to list clusters in db")
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+		if len(page) == 0 {
+			break
+		}
 
-	// we need to fetch Hosts association to allow AfterFind hook to run
-	for _, c := range dbClusters {
-		if !params.WithHosts {
-			c.Hosts = []*models.Host{}
+		// we need to fetch Hosts association to allow AfterFind hook to run
+		for _, c := range page {
+			if !params.WithHosts {
+				c.Hosts = []*models.Host{}
+			}
+			for _, h := range c.Hosts {
+				// Clear this field as it is not needed to be sent via API
+				h.FreeAddresses = ""
+			}
+			clusters = append(clusters, &c.Cluster)
 		}
-		for _, h := range c.Hosts {
-			// Clear this field as it is not needed to be sent via API
-			h.FreeAddresses = ""
+
+		cursor = page[len(page)-1].ID.String()
+		if len(page) < 1000 {
+			break
 		}
-		clusters = append(clusters, &c.Cluster)
 	}
 	return clusters, nil
 }
@@ -4720,7 +4735,6 @@ func (b *bareMetalInventory) GetInfraEnvInternal(ctx context.Context, params ins
 func (b *bareMetalInventory) ListInfraEnvsInternal(ctx context.Context, clusterId *strfmt.UUID, owner *string) ([]*models.InfraEnv, error) {
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
-	var dbInfraEnvs []*common.InfraEnv
 	var infraEnvs []*models.InfraEnv
 
 	db = b.authzHandler.OwnedByUser(ctx, db, swag.StringValue(owner))
@@ -4729,14 +4743,28 @@ func (b *bareMetalInventory) ListInfraEnvsInternal(ctx context.Context, clusterI
 		db = db.Where("cluster_id = ?", clusterId)
 	}
 
-	dbInfraEnvs, err := common.GetInfraEnvsFromDBWhere(db)
-	if err != nil {
-		log.WithError(err).Error("Failed to list infraEnvs in db")
-		return nil, err
-	}
-
-	for _, i := range dbInfraEnvs {
-		infraEnvs = append(infraEnvs, &i.InfraEnv)
+	// Iterate in pages to avoid full scans
+	cursor := ""
+	for {
+		q := db.Order("id").Limit(1000)
+		if cursor != "" {
+			q = q.Where("id > ?", cursor)
+		}
+		page, err := common.GetInfraEnvsFromDBWhere(q)
+		if err != nil {
+			log.WithError(err).Error("Failed to list infraEnvs in db")
+			return nil, err
+		}
+		if len(page) == 0 {
+			break
+		}
+		for _, i := range page {
+			infraEnvs = append(infraEnvs, &i.InfraEnv)
+		}
+		cursor = page[len(page)-1].ID.String()
+		if len(page) < 1000 {
+			break
+		}
 	}
 	return infraEnvs, nil
 }
