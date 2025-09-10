@@ -79,6 +79,9 @@ func (b *bareMetalInventory) V2RegisterDisconnectedCluster(ctx context.Context, 
 			Status:           swag.String(models.ClusterStatusUnmonitored),
 			Name:             swag.StringValue(params.NewClusterParams.Name),
 			OpenshiftVersion: swag.StringValue(params.NewClusterParams.OpenshiftVersion),
+			UserName:         ocm.UserNameFromContext(ctx),
+			OrgID:            ocm.OrgIDFromContext(ctx),
+			EmailDomain:      ocm.EmailDomainFromContext(ctx),
 		},
 	}
 
