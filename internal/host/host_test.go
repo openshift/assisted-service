@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -2828,6 +2829,44 @@ var _ = Describe("AutoAssignRole", func() {
 		mockEvents      *eventsapi.MockHandler
 		dbName          string
 	)
+
+	generateAutoAssignHost := func(hostID strfmt.UUID, cpus, ram int64, hasGPU bool, hostname string) *models.Host {
+		h := hostutil.GenerateTestHost(hostID, infraEnvId, clusterId, models.HostStatusKnown)
+		h.Role = models.HostRoleAutoAssign
+		h.SuggestedRole = ""
+		h.RequestedHostname = hostname
+
+		var gpus []*models.Gpu
+		if hasGPU {
+			gpus = []*models.Gpu{
+				{DeviceID: "2222", VendorID: "0000"},
+			}
+		}
+
+		inventory := &models.Inventory{
+			CPU: &models.CPU{
+				Count: cpus,
+			},
+			Memory: &models.Memory{
+				UsableBytes:   conversions.GibToBytes(ram),
+				PhysicalBytes: conversions.GibToBytes(ram), // Add PhysicalBytes for validation
+			},
+			Disks: []*models.Disk{
+				{
+					SizeBytes:               100 * conversions.GB,
+					DriveType:               models.DriveTypeSSD,
+					ID:                      "/dev/disk/by-id/test-disk",
+					InstallationEligibility: models.DiskInstallationEligibility{Eligible: true},
+				},
+			},
+			Gpus: gpus,
+		}
+		b, _ := json.Marshal(inventory)
+		h.Inventory = string(b)
+
+		return &h
+	}
+
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
@@ -3040,6 +3079,71 @@ var _ = Describe("AutoAssignRole", func() {
 		Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 		verifyAutoAssignRole(&h, true, true)
 		Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleArbiter))
+	})
+	It("should assign roles based on hardware with GPU weight affecting priority", func() {
+		cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
+		hosts := []*models.Host{
+			// master candidates (higher CPU/RAM)
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, false, "powerful-host-1"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, false, "powerful-host-2"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, false, "powerful-host-3"),
+			// worker candidates with GPU (should be preferred for worker role due to GPU weight)
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 4, 16, true, "gpu-worker-1"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 4, 16, true, "gpu-worker-2"),
+		}
+
+		cluster.Hosts = hosts
+
+		// Sort hosts first (like the real auto-assign logic does)
+		sortedHosts, _ := SortHosts(hosts)
+
+		var masterCount, workerCount int
+
+		for _, host := range sortedHosts {
+			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
+			verifyAutoAssignRole(host, true, true)
+			if strings.Contains(host.RequestedHostname, "gpu-worker") {
+				Expect(hostutil.GetHostFromDB(*host.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleWorker))
+				workerCount++
+			} else {
+				Expect(hostutil.GetHostFromDB(*host.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleMaster))
+				masterCount++
+			}
+		}
+
+		Expect(masterCount).To(Equal(3), "Should have exactly 3 masters")
+		Expect(workerCount).To(Equal(2), "Should have exactly 2 workers")
+
+	})
+	It("should handle edge case of all hosts having GPUs", func() {
+		// All 5 hosts have GPUs - auto-assign should still work correctly
+		hosts := []*models.Host{
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, true, "gpu-host-1"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, true, "gpu-host-2"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, true, "gpu-host-3"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 4, 16, true, "gpu-host-4"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 4, 16, true, "gpu-host-5"),
+		}
+
+		cluster.Hosts = hosts
+
+		// Sort hosts first (like the real auto-assign logic does)
+		sortedHosts, _ := SortHosts(hosts)
+
+		var masterCount, workerCount int
+
+		for _, host := range sortedHosts {
+			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
+			verifyAutoAssignRole(host, true, true)
+			role := hostutil.GetHostFromDB(*host.ID, infraEnvId, db).Role
+			if role == models.HostRoleMaster {
+				masterCount++
+			} else if role == models.HostRoleWorker {
+				workerCount++
+			}
+		}
+		Expect(masterCount).To(Equal(3), "Should have exactly 3 masters")
+		Expect(workerCount).To(Equal(2), "Should have exactly 2 workers")
 	})
 })
 
@@ -4060,6 +4164,7 @@ var _ = Describe("sortHost by hardware", func() {
 		Cpus        int64
 		Ram         int64
 		Disks       []*models.Disk
+		GPU         []*models.Gpu
 	}{
 		{
 			description: "minimal master with 3 disks (total of 120 GB)",
@@ -4155,6 +4260,19 @@ var _ = Describe("sortHost by hardware", func() {
 				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 			},
 		},
+		{
+			description: "host with minimal hardware to be either master/worker, with GPU",
+			Cpus:        4,
+			Ram:         16,
+			Disks: []*models.Disk{
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
+			},
+			GPU: []*models.Gpu{
+				{DeviceID: "2222", VendorID: "0000"},
+			},
+		},
 	}
 
 	generateHosts := func() []*models.Host {
@@ -4173,6 +4291,7 @@ var _ = Describe("sortHost by hardware", func() {
 					}
 					return d
 				}).([]*models.Disk),
+				Gpus: spec.GPU,
 			}
 			b, _ := json.Marshal(inventory)
 			id := strfmt.UUID(uuid.New().String())
@@ -4198,6 +4317,7 @@ var _ = Describe("sortHost by hardware", func() {
 			"odf worker with 1 disk of 40 GB",
 			"odf worker with 3 disks (total of 80 GB)",
 			"odf worker with 3 disks (total of 120 GB)",
+			"host with minimal hardware to be either master/worker, with GPU",
 		}
 		for i, h := range sorted {
 			Expect(h.RequestedHostname).To(Equal(expected[i]))

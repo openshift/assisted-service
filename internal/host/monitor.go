@@ -93,32 +93,62 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 		}
 	}
 
+	// Separate hosts into GPU and non-GPU lists
+	var hostsWithoutGPU []*models.Host
+	var hostsWithGPU []*models.Host
 	allHostsHasInventory := true
-	sort.SliceStable(hosts, func(i, j int) bool {
-		inventory_i, _ := common.UnmarshalInventory(hosts[i].Inventory)
-		if inventory_i == nil {
+
+	for _, host := range hosts {
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		if inventory == nil {
 			allHostsHasInventory = false
-			return false
+			// Hosts without inventory go to non-GPU list (safer default)
+			hostsWithoutGPU = append(hostsWithoutGPU, host)
+			continue
 		}
 
-		inventory_j, _ := common.UnmarshalInventory(hosts[j].Inventory)
-		if inventory_j == nil {
-			allHostsHasInventory = false
-			return true
+		if int64(len(inventory.Gpus)) > 0 {
+			hostsWithGPU = append(hostsWithGPU, host)
+		} else {
+			hostsWithoutGPU = append(hostsWithoutGPU, host)
 		}
+	}
 
-		//(host_cores - 4) + ((host_ram_gb - 16) * 0.1) + ((host_disk_capacity_gb - 100) * 0.004)
-		wi := 1.0*(float64(cpuCount(inventory_i))-HostWeightMinimumCpuCores) +
-			HostWeightMemWeight*(float64(memInGib(inventory_i))-HostWeightMinimumMemGib) +
-			HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_i.Disks))-HostWeightMinimumDiskCapacityGib)
+	sortByWeight := func(hostList []*models.Host) {
+		sort.SliceStable(hostList, func(i, j int) bool {
+			inventory_i, _ := common.UnmarshalInventory(hostList[i].Inventory)
+			inventory_j, _ := common.UnmarshalInventory(hostList[j].Inventory)
 
-		wj := 1.0*(float64(cpuCount(inventory_j))-HostWeightMinimumCpuCores) +
-			HostWeightMemWeight*(float64(memInGib(inventory_j))-HostWeightMinimumMemGib) +
-			HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_j.Disks))-HostWeightMinimumDiskCapacityGib)
+			if inventory_i == nil {
+				return false
+			}
+			if inventory_j == nil {
+				return true
+			}
 
-		return wi < wj
-	})
-	return hosts, allHostsHasInventory
+			//(host_cores - 4) + ((host_ram_gb - 16) * 0.1) + ((host_disk_capacity_gb - 100) * 0.004)
+			wi := 1.0*(float64(cpuCount(inventory_i))-HostWeightMinimumCpuCores) +
+				HostWeightMemWeight*(float64(memInGib(inventory_i))-HostWeightMinimumMemGib) +
+				HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_i.Disks))-HostWeightMinimumDiskCapacityGib)
+
+			wj := 1.0*(float64(cpuCount(inventory_j))-HostWeightMinimumCpuCores) +
+				HostWeightMemWeight*(float64(memInGib(inventory_j))-HostWeightMinimumMemGib) +
+				HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_j.Disks))-HostWeightMinimumDiskCapacityGib)
+
+			return wi < wj
+		})
+	}
+
+	// Sort each list separately
+	sortByWeight(hostsWithoutGPU)
+	sortByWeight(hostsWithGPU)
+
+	// Concatenate: non-GPU hosts first, then GPU hosts
+	result := make([]*models.Host, 0, len(hosts))
+	result = append(result, hostsWithoutGPU...)
+	result = append(result, hostsWithGPU...)
+
+	return result, allHostsHasInventory
 }
 
 func (m *Manager) resetRoleAssignmentIfNotAllRolesAreSet() {
