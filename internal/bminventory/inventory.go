@@ -3316,6 +3316,7 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
 
+	var dbClusters []*common.Cluster
 	var clusters []*models.Cluster
 
 	if swag.BoolValue(params.GetUnregisteredClusters) {
@@ -4712,6 +4713,7 @@ func (b *bareMetalInventory) GetInfraEnvInternal(ctx context.Context, params ins
 func (b *bareMetalInventory) ListInfraEnvsInternal(ctx context.Context, clusterId *strfmt.UUID, owner *string) ([]*models.InfraEnv, error) {
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
+	var dbInfraEnvs []*common.InfraEnv
 	var infraEnvs []*models.InfraEnv
 
 	db = b.authzHandler.OwnedByUser(ctx, db, swag.StringValue(owner))
