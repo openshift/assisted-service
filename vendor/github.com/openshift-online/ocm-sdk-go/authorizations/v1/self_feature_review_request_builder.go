@@ -32,9 +32,12 @@ func NewSelfFeatureReviewRequest() *SelfFeatureReviewRequestBuilder {
 	return &SelfFeatureReviewRequestBuilder{}
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *SelfFeatureReviewRequestBuilder) Empty() bool {
+	return b == nil || b.bitmap_ == 0
+}
+
 // Feature sets the value of the 'feature' attribute to the given value.
-//
-//
 func (b *SelfFeatureReviewRequestBuilder) Feature(value string) *SelfFeatureReviewRequestBuilder {
 	b.feature = value
 	b.bitmap_ |= 1

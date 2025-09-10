@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalClusterRegistrationRequest writes a value of the 'cluster_registration_request' type to the given writer.
 func MarshalClusterRegistrationRequest(object *ClusterRegistrationRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeClusterRegistrationRequest(object, stream)
-	stream.Flush()
+	WriteClusterRegistrationRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeClusterRegistrationRequest writes a value of the 'cluster_registration_request' type to the given stream.
-func writeClusterRegistrationRequest(object *ClusterRegistrationRequest, stream *jsoniter.Stream) {
+// WriteClusterRegistrationRequest writes a value of the 'cluster_registration_request' type to the given stream.
+func WriteClusterRegistrationRequest(object *ClusterRegistrationRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,7 +58,6 @@ func writeClusterRegistrationRequest(object *ClusterRegistrationRequest, stream 
 		}
 		stream.WriteObjectField("cluster_id")
 		stream.WriteString(object.clusterID)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -64,20 +65,17 @@ func writeClusterRegistrationRequest(object *ClusterRegistrationRequest, stream 
 // UnmarshalClusterRegistrationRequest reads a value of the 'cluster_registration_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalClusterRegistrationRequest(source interface{}) (object *ClusterRegistrationRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readClusterRegistrationRequest(iterator)
+	object = ReadClusterRegistrationRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readClusterRegistrationRequest reads a value of the 'cluster_registration_request' type from the given iterator.
-func readClusterRegistrationRequest(iterator *jsoniter.Iterator) *ClusterRegistrationRequest {
+// ReadClusterRegistrationRequest reads a value of the 'cluster_registration_request' type from the given iterator.
+func ReadClusterRegistrationRequest(iterator *jsoniter.Iterator) *ClusterRegistrationRequest {
 	object := &ClusterRegistrationRequest{}
 	for {
 		field := iterator.ReadObject()

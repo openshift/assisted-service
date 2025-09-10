@@ -19,20 +19,11 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readPullSecretDeleteRequest(request *PullSecretDeleteServerRequest, r *http.Request) error {
-	return nil
-}
 func writePullSecretDeleteRequest(request *PullSecretDeleteRequest, writer io.Writer) error {
 	return nil
 }
 func readPullSecretDeleteResponse(response *PullSecretDeleteResponse, reader io.Reader) error {
-	return nil
-}
-func writePullSecretDeleteResponse(response *PullSecretDeleteServerResponse, w http.ResponseWriter) error {
 	return nil
 }

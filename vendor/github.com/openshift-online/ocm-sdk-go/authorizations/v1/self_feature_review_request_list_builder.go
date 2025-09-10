@@ -37,6 +37,11 @@ func (b *SelfFeatureReviewRequestListBuilder) Items(values ...*SelfFeatureReview
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *SelfFeatureReviewRequestListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *SelfFeatureReviewRequestListBuilder) Copy(list *SelfFeatureReviewRequestList) *SelfFeatureReviewRequestListBuilder {
 	if list == nil || list.items == nil {

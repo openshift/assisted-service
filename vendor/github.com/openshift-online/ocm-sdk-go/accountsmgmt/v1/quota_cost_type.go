@@ -20,15 +20,15 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // QuotaCost represents the values of the 'quota_cost' type.
-//
-//
 type QuotaCost struct {
 	bitmap_          uint32
 	allowed          int
+	cloudAccounts    []*CloudAccount
 	consumed         int
 	organizationID   string
 	quotaID          string
 	relatedResources []*RelatedResource
+	version          string
 }
 
 // Empty returns true if the object is empty, i.e. no attribute has a value.
@@ -38,8 +38,6 @@ func (o *QuotaCost) Empty() bool {
 
 // Allowed returns the value of the 'allowed' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *QuotaCost) Allowed() int {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.allowed
@@ -49,8 +47,6 @@ func (o *QuotaCost) Allowed() int {
 
 // GetAllowed returns the value of the 'allowed' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *QuotaCost) GetAllowed() (value int, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -59,12 +55,29 @@ func (o *QuotaCost) GetAllowed() (value int, ok bool) {
 	return
 }
 
+// CloudAccounts returns the value of the 'cloud_accounts' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+func (o *QuotaCost) CloudAccounts() []*CloudAccount {
+	if o != nil && o.bitmap_&2 != 0 {
+		return o.cloudAccounts
+	}
+	return nil
+}
+
+// GetCloudAccounts returns the value of the 'cloud_accounts' attribute and
+// a flag indicating if the attribute has a value.
+func (o *QuotaCost) GetCloudAccounts() (value []*CloudAccount, ok bool) {
+	ok = o != nil && o.bitmap_&2 != 0
+	if ok {
+		value = o.cloudAccounts
+	}
+	return
+}
+
 // Consumed returns the value of the 'consumed' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *QuotaCost) Consumed() int {
-	if o != nil && o.bitmap_&2 != 0 {
+	if o != nil && o.bitmap_&4 != 0 {
 		return o.consumed
 	}
 	return 0
@@ -72,10 +85,8 @@ func (o *QuotaCost) Consumed() int {
 
 // GetConsumed returns the value of the 'consumed' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *QuotaCost) GetConsumed() (value int, ok bool) {
-	ok = o != nil && o.bitmap_&2 != 0
+	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
 		value = o.consumed
 	}
@@ -84,10 +95,8 @@ func (o *QuotaCost) GetConsumed() (value int, ok bool) {
 
 // OrganizationID returns the value of the 'organization_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *QuotaCost) OrganizationID() string {
-	if o != nil && o.bitmap_&4 != 0 {
+	if o != nil && o.bitmap_&8 != 0 {
 		return o.organizationID
 	}
 	return ""
@@ -95,10 +104,8 @@ func (o *QuotaCost) OrganizationID() string {
 
 // GetOrganizationID returns the value of the 'organization_ID' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *QuotaCost) GetOrganizationID() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&4 != 0
+	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
 		value = o.organizationID
 	}
@@ -107,10 +114,8 @@ func (o *QuotaCost) GetOrganizationID() (value string, ok bool) {
 
 // QuotaID returns the value of the 'quota_ID' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *QuotaCost) QuotaID() string {
-	if o != nil && o.bitmap_&8 != 0 {
+	if o != nil && o.bitmap_&16 != 0 {
 		return o.quotaID
 	}
 	return ""
@@ -118,10 +123,8 @@ func (o *QuotaCost) QuotaID() string {
 
 // GetQuotaID returns the value of the 'quota_ID' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *QuotaCost) GetQuotaID() (value string, ok bool) {
-	ok = o != nil && o.bitmap_&8 != 0
+	ok = o != nil && o.bitmap_&16 != 0
 	if ok {
 		value = o.quotaID
 	}
@@ -130,10 +133,8 @@ func (o *QuotaCost) GetQuotaID() (value string, ok bool) {
 
 // RelatedResources returns the value of the 'related_resources' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *QuotaCost) RelatedResources() []*RelatedResource {
-	if o != nil && o.bitmap_&16 != 0 {
+	if o != nil && o.bitmap_&32 != 0 {
 		return o.relatedResources
 	}
 	return nil
@@ -141,12 +142,29 @@ func (o *QuotaCost) RelatedResources() []*RelatedResource {
 
 // GetRelatedResources returns the value of the 'related_resources' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *QuotaCost) GetRelatedResources() (value []*RelatedResource, ok bool) {
-	ok = o != nil && o.bitmap_&16 != 0
+	ok = o != nil && o.bitmap_&32 != 0
 	if ok {
 		value = o.relatedResources
+	}
+	return
+}
+
+// Version returns the value of the 'version' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+func (o *QuotaCost) Version() string {
+	if o != nil && o.bitmap_&64 != 0 {
+		return o.version
+	}
+	return ""
+}
+
+// GetVersion returns the value of the 'version' attribute and
+// a flag indicating if the attribute has a value.
+func (o *QuotaCost) GetVersion() (value string, ok bool) {
+	ok = o != nil && o.bitmap_&64 != 0
+	if ok {
+		value = o.version
 	}
 	return
 }
@@ -176,6 +194,29 @@ func (l *QuotaCostList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *QuotaCostList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *QuotaCostList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *QuotaCostList) SetItems(items []*QuotaCost) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *QuotaCostList) Items() []*QuotaCost {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

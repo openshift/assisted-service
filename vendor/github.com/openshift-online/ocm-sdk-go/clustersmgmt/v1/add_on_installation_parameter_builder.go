@@ -54,9 +54,12 @@ func (b *AddOnInstallationParameterBuilder) HREF(value string) *AddOnInstallatio
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *AddOnInstallationParameterBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Value sets the value of the 'value' attribute to the given value.
-//
-//
 func (b *AddOnInstallationParameterBuilder) Value(value string) *AddOnInstallationParameterBuilder {
 	b.value = value
 	b.bitmap_ |= 8

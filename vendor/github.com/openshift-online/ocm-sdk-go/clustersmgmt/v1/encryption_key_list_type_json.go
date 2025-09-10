@@ -30,20 +30,23 @@ import (
 // the given writer.
 func MarshalEncryptionKeyList(list []*EncryptionKey, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeEncryptionKeyList(list, stream)
-	stream.Flush()
+	WriteEncryptionKeyList(list, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeEncryptionKeyList writes a list of value of the 'encryption_key' type to
+// WriteEncryptionKeyList writes a list of value of the 'encryption_key' type to
 // the given stream.
-func writeEncryptionKeyList(list []*EncryptionKey, stream *jsoniter.Stream) {
+func WriteEncryptionKeyList(list []*EncryptionKey, stream *jsoniter.Stream) {
 	stream.WriteArrayStart()
 	for i, value := range list {
 		if i > 0 {
 			stream.WriteMore()
 		}
-		writeEncryptionKey(value, stream)
+		WriteEncryptionKey(value, stream)
 	}
 	stream.WriteArrayEnd()
 }
@@ -55,17 +58,17 @@ func UnmarshalEncryptionKeyList(source interface{}) (items []*EncryptionKey, err
 	if err != nil {
 		return
 	}
-	items = readEncryptionKeyList(iterator)
+	items = ReadEncryptionKeyList(iterator)
 	err = iterator.Error
 	return
 }
 
-// readEncryptionKeyList reads list of values of the ''encryption_key' type from
+// ReadEncryptionKeyList reads list of values of the ”encryption_key' type from
 // the given iterator.
-func readEncryptionKeyList(iterator *jsoniter.Iterator) []*EncryptionKey {
+func ReadEncryptionKeyList(iterator *jsoniter.Iterator) []*EncryptionKey {
 	list := []*EncryptionKey{}
 	for iterator.ReadArray() {
-		item := readEncryptionKey(iterator)
+		item := ReadEncryptionKey(iterator)
 		list = append(list, item)
 	}
 	return list
