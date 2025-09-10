@@ -103,8 +103,8 @@ func (t *timedQuery) Next() ([]*Cluster, error) {
 		if t.offset == len(t.ids) {
 			t.ids = nil
 			// Retrieve cluster ids that the related cluster or hosts have been updated after the timeToCompare
-			err = t.db.Raw("select distinct id from clusters c where c.trigger_monitor_timestamp > ? and c.id > ? and (c.trigger_monitor_timestamp > ? or exists (select 1 from hosts h where h.cluster_id = c.id and h.trigger_monitor_timestamp > ?)) order by id limit ?",
-				t.timeToCompare, t.lastId, t.timeToCompare, t.timeToCompare, IdsQuerySize).Pluck("id", &t.ids).Error
+			err = t.db.Raw("select distinct(cid) as id from (select id as cid from clusters where trigger_monitor_timestamp > ? and clusters.id > ? union select cluster_id as cid from hosts where trigger_monitor_timestamp > ? and hosts.cluster_id > ?) as t order by id limit ?",
+				t.timeToCompare, t.lastId, t.timeToCompare, t.lastId, IdsQuerySize).Pluck("id", &t.ids).Error
 			if err != nil {
 				return clusters, err
 			}
