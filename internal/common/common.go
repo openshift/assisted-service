@@ -303,7 +303,7 @@ func IsSliceNonEmpty(arg interface{}) bool {
 
 func getUnifiedNTPSources(db *gorm.DB, clusterID strfmt.UUID) (string, error) {
 	var sources []string
-	err := db.Raw("select distinct ie.additional_ntp_sources as sources from infra_envs ie inner join hosts h on ie.id = h.infra_env_id where h.cluster_id = ? and ie.additional_ntp_sources is not null and ie.additional_ntp_sources != ''", clusterID.String()).Pluck("sources", &sources).Error
+	err := db.Raw("select distinct(additional_ntp_sources) as sources from infra_envs where id in (select distinct(infra_env_id) from hosts where cluster_id = ?)", clusterID.String()).Pluck("sources", &sources).Error
 	if err != nil {
 		return "", err
 	}
