@@ -146,10 +146,10 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 
 	minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
 	if disk.SizeBytes < minSizeBytes {
-		hasStr := preciseHumanizeBytes(uint64(disk.SizeBytes))
-		reqStr := preciseHumanizeBytes(uint64(minSizeBytes))
+		hasStr := preciseHumanizeBytes(disk.SizeBytes)
+		reqStr := preciseHumanizeBytes(minSizeBytes)
 		if hasStr == reqStr {
-			delta := uint64(minSizeBytes - disk.SizeBytes)
+			delta := minSizeBytes - disk.SizeBytes
 			deltaStr := preciseHumanizeBytes(delta)
 			hasStr = fmt.Sprintf("%s (short by %s)", hasStr, deltaStr)
 		}
@@ -585,7 +585,7 @@ func compileDiskReasonTemplate(template string, wildcards ...interface{}) *regex
 // preciseHumanizeBytes formats a byte size using SI units (KB, MB, GB, TB).
 // It displays one decimal place for non-integer values and rounds up to avoid
 // under-reporting the capacity in user-facing messages.
-func preciseHumanizeBytes(bytes uint64) string {
+func preciseHumanizeBytes(bytes int64) string {
 	const (
 		KB = 1000
 		MB = 1000 * KB
@@ -623,8 +623,6 @@ func formatUnitRoundedUp(value float64, unit string) string {
 	for strings.HasSuffix(str, "0") {
 		str = str[:len(str)-1]
 	}
-	if strings.HasSuffix(str, ".") {
-		str = str[:len(str)-1]
-	}
+	str = strings.TrimSuffix(str, ".")
 	return fmt.Sprintf("%s %s", str, unit)
 }
