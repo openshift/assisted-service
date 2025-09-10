@@ -3342,39 +3342,23 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 		db = db.Where("ams_subscription_id IN (?)", params.AmsSubscriptionIds)
 	}
 
-	// Iterate in pages to avoid large eager-load IN lists
-	cursor := ""
-	for {
-		q := db.Order("id").Limit(1000)
-		if cursor != "" {
-			q = q.Where("id > ?", cursor)
-		}
-		page, err := common.GetClustersFromDBWhere(q, common.UseEagerLoading,
-			common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)))
-		if err != nil {
-			log.WithError(err).Error("Failed to list clusters in db")
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
-		if len(page) == 0 {
-			break
-		}
+	dbClusters, err := common.GetClustersFromDBWhere(db, common.UseEagerLoading,
+		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)))
+	if err != nil {
+		log.WithError(err).Error("Failed to list clusters in db")
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
 
-		// we need to fetch Hosts association to allow AfterFind hook to run
-		for _, c := range page {
-			if !params.WithHosts {
-				c.Hosts = []*models.Host{}
-			}
-			for _, h := range c.Hosts {
-				// Clear this field as it is not needed to be sent via API
-				h.FreeAddresses = ""
-			}
-			clusters = append(clusters, &c.Cluster)
+	// we need to fetch Hosts association to allow AfterFind hook to run
+	for _, c := range dbClusters {
+		if !params.WithHosts {
+			c.Hosts = []*models.Host{}
 		}
-
-		cursor = page[len(page)-1].ID.String()
-		if len(page) < 1000 {
-			break
+		for _, h := range c.Hosts {
+			// Clear this field as it is not needed to be sent via API
+			h.FreeAddresses = ""
 		}
+		clusters = append(clusters, &c.Cluster)
 	}
 	return clusters, nil
 }
@@ -4743,28 +4727,14 @@ func (b *bareMetalInventory) ListInfraEnvsInternal(ctx context.Context, clusterI
 		db = db.Where("cluster_id = ?", clusterId)
 	}
 
-	// Iterate in pages to avoid full scans
-	cursor := ""
-	for {
-		q := db.Order("id").Limit(1000)
-		if cursor != "" {
-			q = q.Where("id > ?", cursor)
-		}
-		page, err := common.GetInfraEnvsFromDBWhere(q)
-		if err != nil {
-			log.WithError(err).Error("Failed to list infraEnvs in db")
-			return nil, err
-		}
-		if len(page) == 0 {
-			break
-		}
-		for _, i := range page {
-			infraEnvs = append(infraEnvs, &i.InfraEnv)
-		}
-		cursor = page[len(page)-1].ID.String()
-		if len(page) < 1000 {
-			break
-		}
+	dbInfraEnvs, err := common.GetInfraEnvsFromDBWhere(db)
+	if err != nil {
+		log.WithError(err).Error("Failed to list infraEnvs in db")
+		return nil, err
+	}
+
+	for _, i := range dbInfraEnvs {
+		infraEnvs = append(infraEnvs, &i.InfraEnv)
 	}
 	return infraEnvs, nil
 }
