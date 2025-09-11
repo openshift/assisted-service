@@ -8,6 +8,7 @@ import (
 	"github.com/go-openapi/swag"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -101,9 +102,10 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 			},
 		},
 		ControlPlane: struct {
-			Hyperthreading string `json:"hyperthreading,omitempty"`
-			Name           string `json:"name"`
-			Replicas       int    `json:"replicas"`
+			Hyperthreading string              `json:"hyperthreading,omitempty"`
+			Name           string              `json:"name"`
+			Replicas       int                 `json:"replicas"`
+			Fencing        *installcfg.Fencing `json:"fencing,omitempty"`
 		}{
 			Hyperthreading: i.getHypethreadingConfiguration(cluster, models.ClusterHyperthreadingMasters),
 			Name:           string(models.HostRoleMaster),
@@ -153,6 +155,10 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 		if is419, _ := common.BaseVersionEqual(common.MinimumVersionForArbiterClusters, cluster.OpenshiftVersion); is419 {
 			cfg.FeatureSet = configv1.TechPreviewNoUpgrade
 		}
+	}
+
+	if err := i.handleFencing(cfg, cluster); err != nil {
+		return nil, err
 	}
 
 	return cfg, nil
@@ -373,4 +379,36 @@ func (i *installConfigBuilder) mergeAllCASources(cluster *common.Cluster,
 	}
 
 	return strings.TrimSpace(strings.Join(certs, "\n"))
+}
+
+func (i *installConfigBuilder) handleFencing(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+	if !common.IsClusterTopologyTwoNodesWithFencing(cluster) {
+		return nil
+	}
+
+	fencingCredentials := make([]installcfg.FencingCredential, common.AllowedNumberOfMasterHostsInTwoNodesWithFencing)
+	for index, master := range common.GetHostsByRole(cluster, models.HostRoleMaster) {
+		hostFencingCredentials := models.FencingCredentialsParams{}
+		if err := json.Unmarshal([]byte(master.FencingCredentials), &hostFencingCredentials); err != nil {
+			i.log.WithError(err).Errorf("failed to unmarshal the fencing credentials of host %s", master.ID.String())
+			return err
+		}
+
+		fencingCredentials[index] = installcfg.FencingCredential{
+			Hostname: hostutil.GetHostnameForMsg(&master),
+			Address:  *hostFencingCredentials.Address,
+			Username: *hostFencingCredentials.Username,
+			Password: *hostFencingCredentials.Password,
+		}
+
+		if hostFencingCredentials.CertificateVerification != nil && *hostFencingCredentials.CertificateVerification != "" {
+			certificateVerification := installcfg.CertificateVerification(*hostFencingCredentials.CertificateVerification)
+			fencingCredentials[index].CertificateVerification = &certificateVerification
+		}
+	}
+
+	cfg.ControlPlane.Fencing = &installcfg.Fencing{Credentials: fencingCredentials}
+	cfg.FeatureSet = configv1.DevPreviewNoUpgrade
+
+	return nil
 }

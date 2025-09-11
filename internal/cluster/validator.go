@@ -406,9 +406,9 @@ func (v *clusterValidator) SufficientMastersCount(c *clusterPreprocessContext) (
 
 	if c.cluster.ControlPlaneCount < common.MinMasterHostsNeededForInstallationInHaMode &&
 		c.cluster.ControlPlaneCount >= common.MinMasterHostsNeededForInstallationInHaArbiterMode &&
-		numArbiters == 0 {
+		numArbiters == 0 && !common.IsClusterTopologyTwoNodesWithFencing(c.cluster) {
 		status = ValidationFailure
-		suffix = " and at least 1 arbiter node"
+		suffix = " and at least 1 arbiter node or the control plane nodes must have fencing credentials"
 	}
 
 	// validate workers (for SNO)

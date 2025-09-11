@@ -2293,6 +2293,100 @@ var _ = Describe("UpdateNTP", func() {
 	}
 })
 
+var _ = Describe("UpdateFencing", func() {
+	var (
+		ctx                           = context.Background()
+		hapi                          API
+		db                            *gorm.DB
+		ctrl                          *gomock.Controller
+		mockEvents                    *eventsapi.MockHandler
+		hostId, clusterId, infraEnvId strfmt.UUID
+		dbName                        string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		dummy := &leader.DummyElector{}
+		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil, nil, false)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+		infraEnvId = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("credentials with empty certificate verification", func() {
+		host := hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusKnown)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		fencingCredentialsParams := &models.FencingCredentialsParams{
+			Address:  swag.String("https://bmc.example.com"),
+			Username: swag.String("admin"),
+			Password: swag.String("password123"),
+		}
+		fencingCredentials, err := json.Marshal(fencingCredentialsParams)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = hapi.UpdateFencing(ctx, &host, string(fencingCredentials), db)
+		Expect(err).ShouldNot(HaveOccurred())
+		h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
+		var actualFencingCredentials models.FencingCredentialsParams
+		err = json.Unmarshal([]byte(h.FencingCredentials), &actualFencingCredentials)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(actualFencingCredentials.Address).Should(Equal(fencingCredentialsParams.Address))
+		Expect(actualFencingCredentials.Username).Should(Equal(fencingCredentialsParams.Username))
+		Expect(actualFencingCredentials.Password).Should(Equal(fencingCredentialsParams.Password))
+		Expect(actualFencingCredentials.CertificateVerification).Should(Equal(fencingCredentialsParams.CertificateVerification))
+	})
+
+	It("credentials with certificate verification disabled", func() {
+		host := hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusKnown)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		fencingCredentialsParams := &models.FencingCredentialsParams{
+			Address:                 swag.String("https://bmc.example.com"),
+			Username:                swag.String("admin"),
+			Password:                swag.String("password123"),
+			CertificateVerification: swag.String("Disabled"),
+		}
+		fencingCredentials, err := json.Marshal(fencingCredentialsParams)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = hapi.UpdateFencing(ctx, &host, string(fencingCredentials), db)
+		Expect(err).ShouldNot(HaveOccurred())
+		h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
+		var actualFencingCredentials models.FencingCredentialsParams
+		err = json.Unmarshal([]byte(h.FencingCredentials), &actualFencingCredentials)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(actualFencingCredentials.Address).Should(Equal(fencingCredentialsParams.Address))
+		Expect(actualFencingCredentials.Username).Should(Equal(fencingCredentialsParams.Username))
+		Expect(actualFencingCredentials.Password).Should(Equal(fencingCredentialsParams.Password))
+		Expect(actualFencingCredentials.CertificateVerification).Should(Equal(fencingCredentialsParams.CertificateVerification))
+	})
+
+	It("invalid host status", func() {
+		host := hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusInstalling)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		fencingCredentialsParams := &models.FencingCredentialsParams{
+			Address:  swag.String("https://bmc.example.com"),
+			Username: swag.String("admin"),
+			Password: swag.String("password123"),
+		}
+		fencingCredentials, err := json.Marshal(fencingCredentialsParams)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = hapi.UpdateFencing(ctx, &host, string(fencingCredentials), db)
+		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).To(Equal(fmt.Sprintf("Host is in %s state, fencing credentials can be set only in one of %s states",
+			models.HostStatusInstalling, hostStatusesBeforeInstallation[:])))
+		h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
+		Expect(h.FencingCredentials).To(Equal(""))
+	})
+})
+
 var _ = Describe("UpdateMachineConfigPoolName", func() {
 	var (
 		ctx                           = context.Background()

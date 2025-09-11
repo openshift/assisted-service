@@ -8167,6 +8167,37 @@ func init() {
       ],
       "x-nullable": false
     },
+    "fencing-credentials-params": {
+      "type": "object",
+      "required": [
+        "address",
+        "username",
+        "password"
+      ],
+      "properties": {
+        "address": {
+          "description": "The URL of the host's BMC, for example https://bmc1.example.com.",
+          "type": "string"
+        },
+        "certificate_verification": {
+          "description": "Whether to enable or disable certificate verification when connecting to the host's BMC.",
+          "type": "string",
+          "default": "Enabled",
+          "enum": [
+            "Enabled",
+            "Disabled"
+          ]
+        },
+        "password": {
+          "description": "The password to connect to the host's BMC.",
+          "type": "string"
+        },
+        "username": {
+          "description": "The username to connect to the host's BMC.",
+          "type": "string"
+        }
+      }
+    },
     "finalizing-stage": {
       "description": "Cluster finalizing stage managed by controller",
       "type": "string",
@@ -8323,6 +8354,11 @@ func init() {
         },
         "domain_name_resolutions": {
           "description": "The domain name resolution result.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
+        "fencing_credentials": {
+          "description": "The host's BMC credentials that will be used in TNF.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
@@ -8697,6 +8733,11 @@ func init() {
             "$ref": "#/definitions/disk-skip-formatting-params"
           },
           "x-nullable": true
+        },
+        "fencing_credentials": {
+          "description": "The host's BMC credentials that will be used in TNF.",
+          "x-nullable": true,
+          "$ref": "#/definitions/fencing-credentials-params"
         },
         "host_name": {
           "type": "string",
@@ -19542,6 +19583,37 @@ func init() {
       ],
       "x-nullable": false
     },
+    "fencing-credentials-params": {
+      "type": "object",
+      "required": [
+        "address",
+        "username",
+        "password"
+      ],
+      "properties": {
+        "address": {
+          "description": "The URL of the host's BMC, for example https://bmc1.example.com.",
+          "type": "string"
+        },
+        "certificate_verification": {
+          "description": "Whether to enable or disable certificate verification when connecting to the host's BMC.",
+          "type": "string",
+          "default": "Enabled",
+          "enum": [
+            "Enabled",
+            "Disabled"
+          ]
+        },
+        "password": {
+          "description": "The password to connect to the host's BMC.",
+          "type": "string"
+        },
+        "username": {
+          "description": "The username to connect to the host's BMC.",
+          "type": "string"
+        }
+      }
+    },
     "finalizing-stage": {
       "description": "Cluster finalizing stage managed by controller",
       "type": "string",
@@ -19698,6 +19770,11 @@ func init() {
         },
         "domain_name_resolutions": {
           "description": "The domain name resolution result.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
+        "fencing_credentials": {
+          "description": "The host's BMC credentials that will be used in TNF.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
@@ -20072,6 +20149,11 @@ func init() {
             "$ref": "#/definitions/disk-skip-formatting-params"
           },
           "x-nullable": true
+        },
+        "fencing_credentials": {
+          "description": "The host's BMC credentials that will be used in TNF.",
+          "x-nullable": true,
+          "$ref": "#/definitions/fencing-credentials-params"
         },
         "host_name": {
           "type": "string",
