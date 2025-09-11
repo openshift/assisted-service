@@ -76,10 +76,8 @@ var ClusterOwnerFileNames = []string{
 //go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go
 
 type RegistrationAPI interface {
-	// Register a new cluster
+	// Register a new cluster (handles all cluster types based on Kind field)
 	RegisterCluster(ctx context.Context, c *common.Cluster) error
-	// Register a new add-host cluster
-	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error
 	// Register a new add-host-ocp cluster
 	RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error
 	//deregister cluster
@@ -216,15 +214,14 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.N
 }
 
 func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error {
-	return m.registrationAPI.RegisterCluster(ctx, c)
-}
-
-func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
-	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c)
+	err := m.registrationAPI.RegisterCluster(ctx, c)
 	if err != nil {
 		return err
 	}
-	eventgen.SendClusterRegistrationSucceededEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
+	// Send event only for add-hosts clusters
+	if c.Kind != nil && *c.Kind == models.ClusterKindAddHostsCluster {
+		eventgen.SendClusterRegistrationSucceededEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
+	}
 	return nil
 }
 
@@ -573,6 +570,7 @@ func (m *Manager) initMonitorQueryGenerator() {
 		buildInitialQuery := func(db *gorm.DB) *gorm.DB {
 			noNeedToMonitorInStates := []string{
 				models.ClusterStatusInstalled,
+				models.ClusterStatusUnmonitored,
 			}
 
 			dbWithCondition := common.LoadClusterTablesFromDB(db)

@@ -3970,6 +3970,40 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+  /v2/clusters/disconnected:
+    post:
+      tags:
+        - installer
+      description: Create a disconnected OpenShift cluster for offline installation with embedded ignition
+      operationId: v2RegisterDisconnectedCluster
+      parameters:
+        - in: body
+          name: new-cluster-params
+          description: Parameters for creating a disconnected cluster.
+          required: true
+          schema:
+            $ref: '#/definitions/disconnected-cluster-create-params'
+      responses:
+        "201":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
 
   /v2/clusters/{cluster_id}/ignored-validations:
     get:
@@ -5205,6 +5239,21 @@ definitions:
         items:
             $ref: '#/definitions/node-label-params'
 
+  disconnected-cluster-create-params:
+    type: object
+    required:
+      - name
+      - openshift_version
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 54
+        description: Name of the OpenShift cluster.
+      openshift_version:
+        type: string
+        description: Version of the OpenShift cluster.
+
   v2-cluster-update-params:
     type: object
     properties:
@@ -5395,10 +5444,11 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Cluster', 'AddHostsCluster']
+        enum: ['Cluster', 'AddHostsCluster', 'DisconnectedCluster']
         description: |
           Indicates the type of this object. Will be 'Cluster' if this is a complete object,
           'AddHostsCluster' for cluster that add hosts to existing OCP cluster,
+          'DisconnectedCluster' for clusters with embedded ignition for offline installation,
       high_availability_mode:
         type: string
         enum: ['Full', 'None']
@@ -5507,6 +5557,7 @@ definitions:
           - adding-hosts
           - cancelled
           - installing-pending-user-action
+          - unmonitored
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
@@ -5835,7 +5886,7 @@ definitions:
 
   image_type:
     type: string
-    enum: [full-iso, minimal-iso]
+    enum: [full-iso, minimal-iso, disconnected-iso]
 
   free-addresses-list:
     type: array

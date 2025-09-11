@@ -577,6 +577,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		stateswitch.State(models.ClusterStatusError),
 		stateswitch.State(models.ClusterStatusCancelled),
 		stateswitch.State(models.ClusterStatusAddingHosts),
+		stateswitch.State(models.ClusterStatusUnmonitored),
 	} {
 		sm.AddTransitionRule(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefreshStatus,
@@ -636,6 +637,10 @@ func documentStates(sm stateswitch.StateMachine) {
 	sm.DescribeState(stateswitch.State(models.ClusterStatusInstallingPendingUserAction), stateswitch.StateDoc{
 		Name:        "Installing, Pending User Action",
 		Description: "Installation is in progress, but is blocked and cannot continue until the user takes action",
+	})
+	sm.DescribeState(stateswitch.State(models.ClusterStatusUnmonitored), stateswitch.StateDoc{
+		Name:        "Unmonitored",
+		Description: "The cluster is a temporary configuration holder for disconnected ISO generation and should not be monitored or transitioned",
 	})
 }
 

@@ -196,36 +196,37 @@ type CRDUtils interface {
 }
 type bareMetalInventory struct {
 	Config
-	db                   *gorm.DB
-	stream               stream.Notifier
-	log                  logrus.FieldLogger
-	hostApi              host.API
-	clusterApi           clusterPkg.API
-	infraEnvApi          infraenv.API
-	dnsApi               dns.DNSApi
-	eventsHandler        eventsapi.Handler
-	objectHandler        s3wrapper.API
-	metricApi            metrics.API
-	usageApi             usage.API
-	operatorManagerApi   operators.API
-	generator            generator.InstallConfigGenerator
-	authHandler          auth.Authenticator
-	authzHandler         auth.Authorizer
-	k8sClient            k8sclient.K8SClient
-	ocmClient            *ocm.Client
-	leaderElector        leader.Leader
-	secretValidator      validations.PullSecretValidator
-	versionsHandler      versions.Handler
-	osImages             versions.OSImages
-	crdUtils             CRDUtils
-	IgnitionBuilder      ignition.IgnitionBuilder
-	hwValidator          hardware.Validator
-	installConfigBuilder installcfg.InstallConfigBuilder
-	staticNetworkConfig  staticnetworkconfig.StaticNetworkConfig
-	gcConfig             garbagecollector.Config
-	providerRegistry     registry.ProviderRegistry
-	insecureIPXEURLs     bool
-	installerInvoker     string
+	db                            *gorm.DB
+	stream                        stream.Notifier
+	log                           logrus.FieldLogger
+	hostApi                       host.API
+	clusterApi                    clusterPkg.API
+	infraEnvApi                   infraenv.API
+	dnsApi                        dns.DNSApi
+	eventsHandler                 eventsapi.Handler
+	objectHandler                 s3wrapper.API
+	metricApi                     metrics.API
+	usageApi                      usage.API
+	operatorManagerApi            operators.API
+	generator                     generator.InstallConfigGenerator
+	authHandler                   auth.Authenticator
+	authzHandler                  auth.Authorizer
+	k8sClient                     k8sclient.K8SClient
+	ocmClient                     *ocm.Client
+	leaderElector                 leader.Leader
+	secretValidator               validations.PullSecretValidator
+	versionsHandler               versions.Handler
+	osImages                      versions.OSImages
+	crdUtils                      CRDUtils
+	IgnitionBuilder               ignition.IgnitionBuilder
+	hwValidator                   hardware.Validator
+	installConfigBuilder          installcfg.InstallConfigBuilder
+	staticNetworkConfig           staticnetworkconfig.StaticNetworkConfig
+	gcConfig                      garbagecollector.Config
+	providerRegistry              registry.ProviderRegistry
+	insecureIPXEURLs              bool
+	installerInvoker              string
+	disconnectedIgnitionGenerator *ignition.DisconnectedIgnitionGenerator
 }
 
 func NewBareMetalInventory(
@@ -260,39 +261,41 @@ func NewBareMetalInventory(
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
 	installerInvoker string,
+	oveIgnitionGenerator *ignition.DisconnectedIgnitionGenerator,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
-		db:                   db,
-		stream:               stream,
-		log:                  log,
-		Config:               cfg,
-		hostApi:              hostApi,
-		clusterApi:           clusterApi,
-		infraEnvApi:          infraEnvApi,
-		dnsApi:               dnsApi,
-		generator:            generator,
-		eventsHandler:        eventsHandler,
-		objectHandler:        objectHandler,
-		metricApi:            metricApi,
-		usageApi:             usageApi,
-		operatorManagerApi:   operatorManagerApi,
-		authHandler:          authHandler,
-		authzHandler:         authzHandler,
-		k8sClient:            k8sClient,
-		ocmClient:            ocmClient,
-		leaderElector:        leaderElector,
-		secretValidator:      pullSecretValidator,
-		versionsHandler:      versionsHandler,
-		osImages:             osImages,
-		crdUtils:             crdUtils,
-		IgnitionBuilder:      IgnitionBuilder,
-		hwValidator:          hwValidator,
-		installConfigBuilder: installConfigBuilder,
-		staticNetworkConfig:  staticNetworkConfig,
-		gcConfig:             gcConfig,
-		providerRegistry:     providerRegistry,
-		insecureIPXEURLs:     insecureIPXEURLs,
-		installerInvoker:     installerInvoker,
+		db:                            db,
+		stream:                        stream,
+		log:                           log,
+		Config:                        cfg,
+		hostApi:                       hostApi,
+		clusterApi:                    clusterApi,
+		infraEnvApi:                   infraEnvApi,
+		dnsApi:                        dnsApi,
+		generator:                     generator,
+		eventsHandler:                 eventsHandler,
+		objectHandler:                 objectHandler,
+		metricApi:                     metricApi,
+		usageApi:                      usageApi,
+		operatorManagerApi:            operatorManagerApi,
+		authHandler:                   authHandler,
+		authzHandler:                  authzHandler,
+		k8sClient:                     k8sClient,
+		ocmClient:                     ocmClient,
+		leaderElector:                 leaderElector,
+		secretValidator:               pullSecretValidator,
+		versionsHandler:               versionsHandler,
+		osImages:                      osImages,
+		crdUtils:                      crdUtils,
+		IgnitionBuilder:               IgnitionBuilder,
+		hwValidator:                   hwValidator,
+		installConfigBuilder:          installConfigBuilder,
+		staticNetworkConfig:           staticNetworkConfig,
+		gcConfig:                      gcConfig,
+		providerRegistry:              providerRegistry,
+		insecureIPXEURLs:              insecureIPXEURLs,
+		installerInvoker:              installerInvoker,
+		disconnectedIgnitionGenerator: oveIgnitionGenerator,
 	}
 }
 
@@ -1015,7 +1018,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
-	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster)
+	err = b.clusterApi.RegisterCluster(ctx, &newCluster)
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", clusterName)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -5575,6 +5578,10 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			return err
 		}
 
+		if common.ImageTypeValue(infraEnv.Type) == models.ImageTypeDisconnectedIso {
+			return common.NewApiError(400, errors.Errorf("Cannot register a host to an InfraEnv with disconnected-iso type"))
+		}
+
 		// The query for cluster must appear before the host query to avoid potential deadlock
 		cluster, err = b.getBoundClusterForUpdate(tx, infraEnv, params.InfraEnvID, *params.NewHostParams.HostID)
 		if err != nil {
@@ -6180,11 +6187,24 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	var content, filename string
 	switch params.FileName {
 	case "discovery.ign":
-		discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
-		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
-		if err != nil {
-			b.log.WithError(err).Error("Failed to format ignition config")
-			return common.GenerateErrorResponder(err)
+		if common.ImageTypeValue(infraEnv.Type) == models.ImageTypeDisconnectedIso {
+			cluster, clusterErr := common.GetClusterFromDB(b.db, infraEnv.ClusterID, common.SkipEagerLoading)
+			if clusterErr != nil {
+				b.log.WithError(clusterErr).Errorf("Failed to get cluster for disconnected ignition generation, infraEnv %s", infraEnv.ID)
+				return common.GenerateErrorResponder(clusterErr)
+			}
+			content, err = b.disconnectedIgnitionGenerator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to generate disconnected ignition")
+				return common.GenerateErrorResponder(err)
+			}
+		} else {
+			discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
+			content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
+			if err != nil {
+				b.log.WithError(err).Error("Failed to format ignition config")
+				return common.GenerateErrorResponder(err)
+			}
 		}
 		filename = params.FileName
 	case "ipxe-script":

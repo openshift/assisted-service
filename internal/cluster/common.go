@@ -37,6 +37,7 @@ const (
 	statusInfoTimeout                         = "cluster installation timed out while pending user action (a manual booting from installation disk)"
 	statusInfoInstallationTimeout             = "cluster installation timeout (%d minutes) has expired"
 	statusInfoAddingHosts                     = "cluster is adding hosts to existing OCP cluster"
+	statusInfoDisconnected                    = "Cluster created for offline installation"
 	statusInfoInstallingPendingUserAction     = "Cluster has hosts pending user action"
 	statusInfoUnpreparingHostExists           = "At least one host has stopped preparing for installation"
 	statusInfoClusterFailedToPrepare          = "Cluster failed to prepare for installation"

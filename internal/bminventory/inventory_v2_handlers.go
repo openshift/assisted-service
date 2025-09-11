@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	ctxparams "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -51,6 +52,45 @@ func (b *bareMetalInventory) V2RegisterCluster(ctx context.Context, params insta
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2RegisterClusterCreated().WithPayload(&c.Cluster)
+}
+
+func (b *bareMetalInventory) V2RegisterDisconnectedCluster(ctx context.Context, params installer.V2RegisterDisconnectedClusterParams) middleware.Responder {
+	id := strfmt.UUID(uuid.New().String())
+	url := installer.V2GetClusterURL{ClusterID: id}
+	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
+
+	log.Infof("Register disconnected cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
+
+	if swag.StringValue(params.NewClusterParams.Name) == "" {
+		err := errors.New("cluster name is required")
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
+	}
+
+	if swag.StringValue(params.NewClusterParams.OpenshiftVersion) == "" {
+		err := errors.New("OpenShift version is required")
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
+	}
+
+	cluster := &common.Cluster{
+		Cluster: models.Cluster{
+			ID:               &id,
+			Href:             swag.String(url.String()),
+			Kind:             swag.String(models.ClusterKindDisconnectedCluster),
+			Status:           swag.String(models.ClusterStatusUnmonitored),
+			Name:             swag.StringValue(params.NewClusterParams.Name),
+			OpenshiftVersion: swag.StringValue(params.NewClusterParams.OpenshiftVersion),
+			UserName:         ocm.UserNameFromContext(ctx),
+			OrgID:            ocm.OrgIDFromContext(ctx),
+			EmailDomain:      ocm.EmailDomainFromContext(ctx),
+		},
+	}
+
+	err := b.clusterApi.RegisterCluster(ctx, cluster)
+	if err != nil {
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, err))
+	}
+
+	return installer.NewV2RegisterDisconnectedClusterCreated().WithPayload(&cluster.Cluster)
 }
 
 func (b *bareMetalInventory) GetSupportedFeatures(ctx context.Context, params installer.GetSupportedFeaturesParams) middleware.Responder {

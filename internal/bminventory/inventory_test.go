@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
@@ -56,6 +57,7 @@ import (
 	"github.com/openshift/assisted-service/internal/infraenv"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	installcfg_builder "github.com/openshift/assisted-service/internal/installcfg/builder"
+	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -67,6 +69,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -172,6 +175,8 @@ var (
 	mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 	mockProviderRegistry              *registry.MockProviderRegistry
 	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
+	mockInstallerCache                *installercache.MockInstallerCache
+	mockExecuter                      *executer.MockExecuter
 	secondDayWorkerIgnition           = []byte(`{
 		"ignition": {
 		  "version": "3.1.0",
@@ -362,6 +367,57 @@ func TestValidator(t *testing.T) {
 	defer common.TerminateDBTest()
 	RunSpecs(t, "inventory_test")
 }
+
+var _ = Describe("RegisterDisconnectedCluster", func() {
+	var (
+		ctx    = context.Background()
+		cfg    Config
+		bm     *bareMetalInventory
+		db     *gorm.DB
+		dbName string
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+		// Avoid AMS subscription side effects during registration in this test
+		//bm.ocmClient = nil
+		// Use real cluster manager so RegisterCluster persists to DB
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
+		mockUsageReports()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("creates a disconnected cluster with Status=Unmonitored and Kind=DisconnectedCluster", func() {
+		disconnectedParams := &models.DisconnectedClusterCreateParams{
+			Name:             swag.String("test-cluster"),
+			OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+		}
+
+		reply := bm.V2RegisterDisconnectedCluster(ctx, installer.V2RegisterDisconnectedClusterParams{
+			NewClusterParams: disconnectedParams,
+		})
+
+		// Response payload
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterDisconnectedClusterCreated()))
+		created := reply.(*installer.V2RegisterDisconnectedClusterCreated).Payload
+		Expect(swag.StringValue(created.Status)).To(Equal(models.ClusterStatusUnmonitored))
+		Expect(swag.StringValue(created.Kind)).To(Equal(models.ClusterKindDisconnectedCluster))
+		Expect(swag.StringValue(created.StatusInfo)).To(Equal("Cluster created for offline installation"))
+
+		// DB state
+		c, err := bm.getCluster(ctx, created.ID.String())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(swag.StringValue(c.Status)).To(Equal(models.ClusterStatusUnmonitored))
+		Expect(swag.StringValue(c.Kind)).To(Equal(models.ClusterKindDisconnectedCluster))
+		Expect(swag.StringValue(c.StatusInfo)).To(Equal("Cluster created for offline installation"))
+	})
+})
 
 func getTestAuthHandler() auth.Authenticator {
 	return auth.NewNoneAuthenticator(common.GetTestLog().WithField("pkg", "auth"))
@@ -603,6 +659,25 @@ var _ = Describe("RegisterHost", func() {
 		Expect(ok).Should(BeTrue())
 		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusConflict)))
 		Expect(apiErr.Error()).Should(Equal(err.Error()))
+	})
+
+	It("rejects host registration for disconnected-iso infraenv type", func() {
+		cluster := createCluster(db, models.ClusterStatusUnmonitored)
+		infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
+		// Mark infraEnv as disconnected-iso
+		Expect(db.Model(&common.InfraEnv{}).Where("id = ?", *infraEnv.ID).Update("type", models.ImageTypeDisconnectedIso).Error).To(Succeed())
+
+		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
+			InfraEnvID: *infraEnv.ID,
+			NewHostParams: &models.HostCreateParams{
+				DiscoveryAgentVersion: "v1",
+				HostID:                &hostID,
+			},
+		})
+		errResp, ok := reply.(*common.ApiErrorResponse)
+		Expect(ok).To(BeTrue())
+		Expect(errResp.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+		Expect(errResp.Error()).To(ContainSubstring("Cannot register a host to an InfraEnv with disconnected-iso type"))
 	})
 
 	Context("Register success", func() {
@@ -9250,6 +9325,51 @@ var _ = Describe("infraEnvs", func() {
 			})
 
 		})
+
+		Context("RegisterInfraEnv with a disconnected-iso type", func() {
+			var (
+				clusterID strfmt.UUID
+				cluster   *common.Cluster
+			)
+
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				cluster = &common.Cluster{
+					Cluster: models.Cluster{
+						ID:               &clusterID,
+						Status:           swag.String(models.ClusterStatusInsufficient),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						CPUArchitecture:  common.DefaultCPUArchitecture,
+					},
+				}
+				Expect(db.Create(cluster).Error).To(Succeed())
+			})
+
+			It("registering a non-disconnected-iso infraenv does not change cluster status", func() {
+				mockInfraEnvRegisterSuccess()
+				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+				mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).AnyTimes()
+				mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+				reply, err := bm.RegisterInfraEnvInternal(ctx, nil, nil, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("regular-infra-env"),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						PullSecret:       swag.String(fakePullSecret),
+						ImageType:        models.ImageTypeFullIso,
+						ClusterID:        &clusterID,
+					},
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(reply).ShouldNot(BeNil())
+
+				// Verify cluster status remains Insufficient
+				var updated common.Cluster
+				Expect(db.First(&updated, "id = ?", clusterID.String()).Error).To(Succeed())
+				Expect(swag.StringValue(updated.Status)).To(Equal(models.ClusterStatusInsufficient))
+			})
+		})
 	})
 
 	Context("Create InfraEnv - with rhsso auth", func() {
@@ -12578,12 +12698,16 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		infraEnvID = strfmt.UUID(uuid.New().String())
+		infraEnvName := "test-infra-env"
 		infraEnv := common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:               &infraEnvID,
+				Name:             &infraEnvName,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				CPUArchitecture:  common.DefaultCPUArchitecture,
 				PullSecretSet:    true,
 				Type:             common.ImageTypePtr(models.ImageTypeFullIso),
+				SSHAuthorizedKey: "ssh-rsa sshkey",
 			},
 			ImageTokenKey: testTokenKey,
 			PullSecret:    fakePullSecret,
@@ -12665,6 +12789,63 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(report.IsFatal()).To(BeFalse())
 		Expect(config.Ignition.Version).To(Equal("3.1.0"))
+	})
+
+	It("returns OVE ignition for discovery.ign when InfraEnv has disconnected-iso type", func() {
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterID,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				CPUArchitecture:  common.DefaultCPUArchitecture,
+			},
+		}
+		Expect(db.Create(&cluster).Error).To(Succeed())
+
+		var infraEnv common.InfraEnv
+		Expect(db.First(&infraEnv, "id = ?", infraEnvID).Error).To(Succeed())
+		infraEnv.Type = common.ImageTypePtr(models.ImageTypeDisconnectedIso)
+		infraEnv.ClusterID = clusterID
+		Expect(db.Save(&infraEnv).Error).To(Succeed())
+
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				URL:              swag.String("test-url"),
+				Version:          swag.String("4.16.0"),
+			}, nil)
+		mockInstallerCache.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(installercache.NewMockRelease("/tmp/test", mockEvents), nil)
+		mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockExecuter.EXPECT().Execute(gomock.Any(), "agent", "create", "unconfigured-ignition", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(command string, args ...string) (string, string, int) {
+				tempDir := args[len(args)-1]
+				err := os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"),
+					[]byte(`{"ignition": {"version": "3.2.0"}}`), 0600)
+				Expect(err).NotTo(HaveOccurred())
+				return "", "", 0
+			})
+
+		body := getResponseData("discovery.ign", false, nil, "", infraEnvID)
+
+		var ignitionConfig map[string]interface{}
+		err := json.Unmarshal(body, &ignitionConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		ignition, ok := ignitionConfig["ignition"].(map[string]interface{})
+		Expect(ok).To(BeTrue())
+		Expect(ignition["version"]).To(Equal("3.2.0"))
+	})
+
+	It("returns error when infraEnv has disconnected-iso type but is not bound to a cluster", func() {
+		imageType := models.ImageTypeDisconnectedIso
+		err := db.Model(&common.InfraEnv{}).Where("id = ?", infraEnvID).Update("type", imageType).Error
+		Expect(err).NotTo(HaveOccurred())
+
+		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "discovery.ign"}
+		response := bm.V2DownloadInfraEnvFiles(ctx, params)
+		verifyApiError(response, http.StatusNotFound)
 	})
 
 	It("returns not found with a non-existant InfraEnv", func() {
@@ -13498,7 +13679,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		}
-		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered().Times(1)
 		res := bm.V2ImportCluster(ctx, params)
 		actual := res.(*installer.V2ImportClusterCreated)
@@ -13525,7 +13706,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		}
-		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered().Times(1)
 		res := bm.V2ImportCluster(ctx, params)
 		actual := res.(*installer.V2ImportClusterCreated)
@@ -18802,14 +18983,26 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockInstallConfigBuilder = installcfg_builder.NewMockInstallConfigBuilder(ctrl)
 	mockHwValidator = hardware.NewMockValidator(ctrl)
 	mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
+	mockExecuter = executer.NewMockExecuter(ctrl)
+	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+	mockInstallerCache = installercache.NewMockInstallerCache(ctrl)
 	dnsApi := dns.NewDNSHandler(cfg.BaseDNSDomains, common.GetTestLog())
 	gcConfig := garbagecollector.Config{DeregisterInactiveAfter: 20 * 24 * time.Hour}
+
+	disconnectedIgnitionGenerator := ignition.NewDisconnectedIgnitionGenerator(
+		mockExecuter,
+		mockMirrorRegistriesConfigBuilder,
+		mockInstallerCache,
+		mockVersions,
+		common.GetTestLog().WithField("pkg", "OVEIgnition"),
+		"/tmp",
+	)
 
 	bm := NewBareMetalInventory(db, mockStream, common.GetTestLog(), mockHostApi, mockClusterApi, mockInfraEnvApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockOSImages, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder,
-		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, "")
+		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, "", disconnectedIgnitionGenerator)
 
 	bm.ImageServiceBaseURL = imageServiceBaseURL
 	bm.ServiceBaseURL = serviceBaseURL
