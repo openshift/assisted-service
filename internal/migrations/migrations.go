@@ -27,7 +27,6 @@ func MigratePost(db *gorm.DB) error {
 
 func post() []*gormigrate.Migration {
 	postMigrations := []*gormigrate.Migration{
-		addPerformanceIndexes(),
 		changeOverridesToText(),
 		changeImageSSHKeyToText(),
 		changeClusterSshKeyToText(),
@@ -48,6 +47,7 @@ func post() []*gormigrate.Migration {
 		dropClusterPlatformIsExternal(),
 		updateNewColumnControlPlaneCountValueForExistingClusterRecords(),
 		addHostsByClusterIdIndex(),
+		addHostsByInfraEnvIdIndex(),
 	}
 
 	sort.SliceStable(postMigrations, func(i, j int) bool { return postMigrations[i].ID < postMigrations[j].ID })
