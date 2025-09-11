@@ -852,7 +852,7 @@ func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *
 			Flags:          inventory.CPU.Flags,
 			Count:          int(inventory.CPU.Count),
 		},
-		Hostname: host.RequestedHostname,
+		Hostname: hostutil.GetHostnameForMsg(host),
 		NIC:      make([]bmh_v1alpha1.NIC, len(inventory.Interfaces)),
 		Storage:  make([]bmh_v1alpha1.Storage, len(inventory.Disks)),
 	}
