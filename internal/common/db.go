@@ -411,7 +411,7 @@ func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDelete
 	return db
 }
 
-func prepareClusterDBWithJoins(db *gorm.DB, includeDeleted DeleteRecordsState) *gorm.DB {
+func prepareClusterDBWithJoins(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState) *gorm.DB {
 	if includeDeleted {
 		db = db.Unscoped()
 	}
@@ -422,6 +422,12 @@ func prepareClusterDBWithJoins(db *gorm.DB, includeDeleted DeleteRecordsState) *
 		}
 		return db
 	}}
+
+	if eagerLoading {
+		for _, tableName := range ClusterSubTables {
+			db = LoadTableFromDB(db, tableName, conditions...)
+		}
+	}
 
 	networkTables := map[string]bool{
 		ClusterNetworksTable: true,
@@ -438,36 +444,24 @@ func prepareClusterDBWithJoins(db *gorm.DB, includeDeleted DeleteRecordsState) *
 
 	db = db.Preload(ClusterNetworksTable, func(db *gorm.DB) *gorm.DB {
 		baseDB := db
-		if includeDeleted {
-			baseDB = db.Unscoped()
-		}
 		return baseDB.Joins("INNER JOIN clusters ON cluster_networks.cluster_id = clusters.id").
 			Where("clusters.deleted_at IS NULL")
 	})
 
 	db = db.Preload(ServiceNetworksTable, func(db *gorm.DB) *gorm.DB {
 		baseDB := db
-		if includeDeleted {
-			baseDB = db.Unscoped()
-		}
 		return baseDB.Joins("INNER JOIN clusters ON service_networks.cluster_id = clusters.id").
 			Where("clusters.deleted_at IS NULL")
 	})
 
 	db = db.Preload(MachineNetworksTable, func(db *gorm.DB) *gorm.DB {
 		baseDB := db
-		if includeDeleted {
-			baseDB = db.Unscoped()
-		}
 		return baseDB.Joins("INNER JOIN clusters ON machine_networks.cluster_id = clusters.id").
 			Where("clusters.deleted_at IS NULL")
 	})
 
 	db = db.Preload(HostsTable, func(db *gorm.DB) *gorm.DB {
 		baseDB := db
-		if includeDeleted {
-			baseDB = db.Unscoped()
-		}
 		return baseDB.Joins("INNER JOIN clusters ON hosts.cluster_id = clusters.id").
 			Where("clusters.deleted_at IS NULL AND hosts.deleted_at IS NULL")
 	})
@@ -504,12 +498,9 @@ func GetClusterFromDBWhereForUpdate(db *gorm.DB, eagerLoading EagerLoadingState,
 func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) ([]*Cluster, error) {
 	var clusters []*Cluster
 
-	if eagerLoading {
-		// Use optimized loading with direct JOIN queries for network tables
-		db = prepareClusterDBWithJoins(db, includeDeleted)
-	} else {
-		db = prepareClusterDB(db, eagerLoading, includeDeleted)
-	}
+	// Use optimized loading with direct JOIN queries for network tables
+	db = prepareClusterDBWithJoins(db, eagerLoading, includeDeleted)
+
 	err := db.Find(&clusters, where...).Error
 	if err != nil {
 		return nil, err
