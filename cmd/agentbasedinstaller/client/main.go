@@ -32,6 +32,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/cmd/agentbasedinstaller"
+	"github.com/openshift/assisted-service/models"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/client"
@@ -160,11 +161,15 @@ func registerInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 		log.Fatal("Failed to get pull secret: ", err.Error())
 	}
 
-	modelsCluster, err := agentbasedinstaller.GetCluster(ctx, log, bmInventory)
-	if err != nil {
-		log.Fatal("Failed to find cluster when registering infraenv: ", err)
-	} else {
-		log.Infof("Reference to cluster id: %s", modelsCluster.ID.String())
+	var modelsCluster *models.Cluster
+	for modelsCluster == nil {
+		modelsCluster, err = agentbasedinstaller.GetCluster(ctx, log, bmInventory)
+		if err != nil {
+			log.Info("Failed to find cluster when registering infraenv: ", err)
+			time.Sleep(1 * time.Second)
+		} else {
+			log.Infof("Reference to cluster id: %s", modelsCluster.ID.String())
+		}
 	}
 
 	modelsInfraEnv, err := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
