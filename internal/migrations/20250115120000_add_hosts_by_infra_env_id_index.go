@@ -5,9 +5,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func addPerformanceIndexes() *gormigrate.Migration {
+func addHostsByInfraEnvIdIndex() *gormigrate.Migration {
 	migrate := func(db *gorm.DB) error {
-		db.Exec(`create index concurrently if not exists idx_hosts_infra_env_id on hosts (infra_env_id)`)
+		db.Exec(`create index concurrently if not exists hosts_by_infra_env_id on hosts (infra_env_id)`)
 		if db.Error != nil {
 			return db.Error
 		}
@@ -16,7 +16,7 @@ func addPerformanceIndexes() *gormigrate.Migration {
 	}
 
 	rollback := func(db *gorm.DB) error {
-		db.Exec(`drop index concurrently if exists idx_hosts_infra_env_id`)
+		db.Exec(`drop index concurrently if exists hosts_by_infra_env_id`)
 		return nil
 	}
 
