@@ -620,7 +620,7 @@ func formatUnitRoundedUp(value float64, unit string) string {
 	}
 	// Format with 3 decimals then trim trailing zeros and optional dot
 	str := fmt.Sprintf("%.3f", rounded)
-  str = strings.TrimRight(str, "0")
+	str = strings.TrimRight(str, "0")
 	str = strings.TrimSuffix(str, ".")
 	return fmt.Sprintf("%s %s", str, unit)
 }
