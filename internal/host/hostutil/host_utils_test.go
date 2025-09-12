@@ -200,6 +200,215 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 			Expect(cert).Should(BeNil())
 			Expect(err).ShouldNot(HaveOccurred())
 		})
+
+		Context("HTTPS scenarios for Day 2 workers", func() {
+			testCert := "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCnRlc3QgY2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+
+			It("should use api-int for day2/imported cluster with api.cluster.domain format", func() {
+				// Simulate day2 imported cluster: has Name but no BaseDNSDomain
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":                             "imported-cluster",
+					"base_dns_domain":                  "", // Empty for imported clusters
+					"api_vip_dns_name":                 "api.imported-cluster.example.com",
+					"ignition_endpoint_ca_certificate": testCert,
+				}).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cert).ShouldNot(BeNil())
+				// Should convert api. to api-int. even without BaseDNSDomain
+				Expect(url).Should(Equal("https://api-int.imported-cluster.example.com:22623/config/worker"))
+			})
+
+			It("should use api-int endpoint for HTTPS when cluster has ignition certificate", func() {
+				// Setup cluster with DNS configuration and ignition certificate
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":             "test-cluster",
+					"base_dns_domain":  "example.com",
+					"api_vip_dns_name": "api.test-cluster.example.com",
+				}).Error).ShouldNot(HaveOccurred())
+
+				Expect(db.Model(&cluster).Update("ignition_endpoint_ca_certificate", testCert).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cert).ShouldNot(BeNil())
+				Expect(*cert).Should(Equal(testCert))
+				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
+			})
+
+			It("should use api-int endpoint for HTTPS when host has ignition certificate", func() {
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":             "test-cluster",
+					"base_dns_domain":  "example.com",
+					"api_vip_dns_name": "api.test-cluster.example.com",
+				}).Error).ShouldNot(HaveOccurred())
+
+				hostIgnitionOverride := `{
+					"ignition": {
+						"version": "3.2.0",
+						"security": {
+							"tls": {
+								"certificateAuthorities": [{
+									"source": "data:text/plain;charset=utf-8;base64,` + testCert + `"
+								}]
+							}
+						}
+					}
+				}`
+				Expect(db.Model(&host).Update("ignition_config_overrides", hostIgnitionOverride).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cert).ShouldNot(BeNil())
+				Expect(*cert).Should(Equal(testCert))
+				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
+			})
+
+			It("should still use configured hostname for HTTP when no certificate", func() {
+				// Setup cluster with DNS configuration but no certificate
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":             "test-cluster",
+					"base_dns_domain":  "example.com",
+					"api_vip_dns_name": "api.test-cluster.example.com",
+				}).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cert).Should(BeNil())
+				Expect(url).Should(Equal("http://api.test-cluster.example.com:22624/config/worker"))
+			})
+
+			It("should use IP address as-is for HTTPS when APIVipDNSName is an IP", func() {
+				// Day2 clusters often use IP addresses instead of DNS
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":                             "imported-cluster",
+					"base_dns_domain":                  "", // Empty for imported clusters
+					"api_vip_dns_name":                 "192.168.1.100",
+					"ignition_endpoint_ca_certificate": testCert,
+				}).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cert).ShouldNot(BeNil())
+				// IP addresses should not be converted
+				Expect(url).Should(Equal("https://192.168.1.100:22623/config/worker"))
+			})
+
+			It("should use custom DNS as-is for HTTPS when it doesn't start with 'api.'", func() {
+				// Some clusters use custom DNS names
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":                             "custom-cluster",
+					"base_dns_domain":                  "",
+					"api_vip_dns_name":                 "custom-api.mycompany.com",
+					"ignition_endpoint_ca_certificate": testCert,
+				}).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cert).ShouldNot(BeNil())
+				// Custom DNS should not be converted
+				Expect(url).Should(Equal("https://custom-api.mycompany.com:22623/config/worker"))
+			})
+
+			It("should not double-convert when APIVipDNSName already has api-int", func() {
+				// Edge case: what if someone already has api-int in the name?
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":                             "test-cluster",
+					"base_dns_domain":                  "example.com",
+					"api_vip_dns_name":                 "api-int.test-cluster.example.com",
+					"ignition_endpoint_ca_certificate": testCert,
+				}).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cert).ShouldNot(BeNil())
+				// Should not double-convert
+				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
+			})
+
+			It("should prefer cluster certificate over host certificate when both exist", func() {
+				clusterCert := "Y2x1c3RlciBjZXJ0aWZpY2F0ZQo="
+				hostCert := "aG9zdCBjZXJ0aWZpY2F0ZQo="
+
+				// Setup cluster with certificate
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":                             "test-cluster",
+					"base_dns_domain":                  "example.com",
+					"api_vip_dns_name":                 "api.test-cluster.example.com",
+					"ignition_endpoint_ca_certificate": clusterCert,
+				}).Error).ShouldNot(HaveOccurred())
+
+				// Also add host certificate
+				hostIgnitionOverride := `{
+					"ignition": {
+						"version": "3.2.0",
+						"security": {
+							"tls": {
+								"certificateAuthorities": [{
+									"source": "data:text/plain;charset=utf-8;base64,` + hostCert + `"
+								}]
+							}
+						}
+					}
+				}`
+				Expect(db.Model(&host).Update("ignition_config_overrides", hostIgnitionOverride).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cert).ShouldNot(BeNil())
+				// Should use cluster certificate, not host certificate
+				Expect(*cert).Should(Equal(clusterCert))
+				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
+			})
+
+			It("should use custom endpoint with cluster certificate", func() {
+				testCert := "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCnRlc3QgY2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+				customEndpoint := "https://custom.endpoint.com/ignition"
+
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"ignition_endpoint_url":            customEndpoint,
+					"ignition_endpoint_ca_certificate": testCert,
+				}).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(url).Should(Equal(customEndpoint + "/worker"))
+				Expect(cert).ShouldNot(BeNil())
+				Expect(*cert).Should(Equal(testCert))
+			})
+
+			It("should use custom endpoint with host certificate when no cluster certificate", func() {
+				hostCert := "aG9zdCBjZXJ0aWZpY2F0ZSBmb3IgY3VzdG9tIGVuZHBvaW50Cg=="
+				customEndpoint := "https://private.ignition.server:8443/configs"
+
+				// Setup custom endpoint without cluster certificate
+				Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
+
+				// Add host certificate in ignition config
+				hostIgnitionOverride := `{
+					"ignition": {
+						"version": "3.2.0",
+						"security": {
+							"tls": {
+								"certificateAuthorities": [{
+									"source": "data:text/plain;charset=utf-8;base64,` + hostCert + `"
+								}]
+							}
+						}
+					}
+				}`
+				Expect(db.Model(&host).Update("ignition_config_overrides", hostIgnitionOverride).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(url).Should(Equal(customEndpoint + "/worker"))
+				Expect(cert).ShouldNot(BeNil())
+				Expect(*cert).Should(Equal(hostCert))
+			})
+
+		})
 	})
 })
 
