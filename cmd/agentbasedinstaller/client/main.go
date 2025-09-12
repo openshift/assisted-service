@@ -32,6 +32,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/cmd/agentbasedinstaller"
+	"github.com/openshift/assisted-service/models"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/client"
@@ -92,20 +93,10 @@ func main() {
 	ctx := context.Background()
 	log.Info("SERVICE_BASE_URL: " + Options.ServiceBaseUrl)
 
-	// TODO: This is for backward compatibility and should be removed once the
-	// ephemeral ISO services are using the subcommands.
-	if path.Base(os.Args[0]) == "agent-based-installer-register-cluster-and-infraenv" {
-		register(ctx, log, bmInventory)
-		return
-	}
 	if len(os.Args) < 2 {
 		log.Fatal("No subcommand specified")
 	}
 	switch os.Args[1] {
-	case "register":
-		// registers both cluster and infraenv
-		infraEnvID := register(ctx, log, bmInventory)
-		os.WriteFile("/etc/assisted/client_config", []byte("INFRA_ENV_ID="+infraEnvID), 0644)
 	case "registerCluster":
 		clusterID := registerCluster(ctx, log, bmInventory)
 		os.WriteFile("/etc/assisted/client_config", []byte("CLUSTER_ID="+clusterID), 0644)
@@ -119,37 +110,6 @@ func main() {
 	default:
 		log.Fatalf("Unknown subcommand %s", os.Args[1])
 	}
-}
-
-func register(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) string {
-	err := envconfig.Process("", &RegisterOptions)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	pullSecret, err := agentbasedinstaller.GetPullSecret(RegisterOptions.PullSecretFile)
-	if err != nil {
-		log.Fatal("Failed to get pull secret: ", err.Error())
-	}
-
-	modelsCluster, err := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
-		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile,
-		RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile, false)
-	if err != nil {
-		log.Fatal("Failed to register cluster with assisted-service: ", err)
-	}
-
-	modelsInfraEnv, err := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
-		modelsCluster, RegisterOptions.InfraEnvFile, RegisterOptions.NMStateConfigFile, RegisterOptions.ImageTypeISO, "")
-	if err != nil {
-		log.Fatal("Failed to register infraenv with assisted-service: ", err)
-	}
-	err = agentbasedinstaller.RegisterExtraManifests(os.DirFS(RegisterOptions.ExtraManifests), ctx, log, bmInventory.Manifests, modelsCluster)
-	if err != nil {
-		log.Fatal("Failed to register extra manifests with assisted-service: ", err)
-	}
-
-	return modelsInfraEnv.ID.String()
 }
 
 func registerCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) string {
@@ -201,11 +161,15 @@ func registerInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 		log.Fatal("Failed to get pull secret: ", err.Error())
 	}
 
-	modelsCluster, err := agentbasedinstaller.GetCluster(ctx, log, bmInventory)
-	if err != nil {
-		log.Fatal("Failed to find cluster when registering infraenv: ", err)
-	} else {
-		log.Infof("Reference to cluster id: %s", modelsCluster.ID.String())
+	var modelsCluster *models.Cluster
+	for modelsCluster == nil {
+		modelsCluster, err = agentbasedinstaller.GetCluster(ctx, log, bmInventory)
+		if err != nil {
+			log.Info("Failed to find cluster when registering infraenv: ", err)
+			time.Sleep(1 * time.Second)
+		} else {
+			log.Infof("Reference to cluster id: %s", modelsCluster.ID.String())
+		}
 	}
 
 	modelsInfraEnv, err := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
