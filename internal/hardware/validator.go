@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/feature"
@@ -147,11 +146,17 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 
 	minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
 	if disk.SizeBytes < minSizeBytes {
+		hasStr := preciseHumanizeBytes(disk.SizeBytes)
+		reqStr := preciseHumanizeBytes(minSizeBytes)
+		if hasStr == reqStr {
+			delta := minSizeBytes - disk.SizeBytes
+			deltaStr := preciseHumanizeBytes(delta)
+			hasStr = fmt.Sprintf("%s (short by %s)", hasStr, deltaStr)
+		}
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
 				tooSmallDiskTemplate,
-				// nolint: gosec
-				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
+				hasStr, reqStr))
 	}
 
 	hostArchitecture := inventory.CPU.Architecture
@@ -575,4 +580,47 @@ func compileDiskReasonTemplate(template string, wildcards ...interface{}) *regex
 		panic(err)
 	}
 	return tmp
+}
+
+// preciseHumanizeBytes formats a byte size using SI units (KB, MB, GB, TB).
+// It displays one decimal place for non-integer values and rounds up to avoid
+// under-reporting the capacity in user-facing messages.
+func preciseHumanizeBytes(bytes int64) string {
+	const (
+		KB = 1000
+		MB = 1000 * KB
+		GB = 1000 * MB
+		TB = 1000 * GB
+	)
+
+	switch {
+	case bytes >= TB:
+		tb := float64(bytes) / float64(TB)
+		return formatUnitRoundedUp(tb, "TB")
+	case bytes >= GB:
+		gb := float64(bytes) / float64(GB)
+		return formatUnitRoundedUp(gb, "GB")
+	case bytes >= MB:
+		mb := float64(bytes) / float64(MB)
+		return formatUnitRoundedUp(mb, "MB")
+	case bytes >= KB:
+		kb := float64(bytes) / float64(KB)
+		return formatUnitRoundedUp(kb, "KB")
+	default:
+		return fmt.Sprintf("%d B", bytes)
+	}
+}
+
+// formatUnitRoundedUp returns either an integer or up to three-decimal string
+// for the given value and unit label, rounding up to the nearest thousandth.
+func formatUnitRoundedUp(value float64, unit string) string {
+	rounded := math.Ceil(value*1000) / 1000
+	if rounded == float64(int64(rounded)) {
+		return fmt.Sprintf("%d %s", int64(rounded), unit)
+	}
+	// Format with 3 decimals then trim trailing zeros and optional dot
+	str := fmt.Sprintf("%.3f", rounded)
+	str = strings.TrimRight(str, "0")
+	str = strings.TrimSuffix(str, ".")
+	return fmt.Sprintf("%s %s", str, unit)
 }

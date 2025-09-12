@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/alecthomas/units"
-	"github.com/dustin/go-humanize"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -650,14 +649,16 @@ var _ = Describe("Disk eligibility", func() {
 		testDisk.SizeBytes = tooSmallSize
 		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
 
-		requirements, err := hwvalidator.GetClusterHostRequirements(ctx, &cluster, &host)
-		Expect(err).ToNot(HaveOccurred())
-		minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
+		// The validator now uses preciseHumanizeBytes, so we need to match that format
+		// For 99999999999 bytes (100GB-1), preciseHumanizeBytes shows "100 GB"
+		// For 100000000000 bytes (100GB), preciseHumanizeBytes shows "100 GB"
+		diskSizeStr := "100 GB (short by 1 B)"
+		reqSizeStr := "100 GB" // 100000000000 bytes shows as 100 GB with precise function
 
 		expectedMsg := fmt.Sprintf(
 			tooSmallDiskTemplate,
-			humanize.Bytes(uint64(testDisk.SizeBytes)),
-			humanize.Bytes(uint64(minSizeBytes)),
+			diskSizeStr,
+			reqSizeStr,
 		)
 
 		// First call to generate the error
@@ -856,6 +857,22 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(secondCallReasons).To(HaveLen(1))
 		Expect(secondCallReasons[0]).To(Equal(expectedMsg))
+	})
+
+	It("shows precise size in too small error message (99.9 GB vs 100 GB)", func() {
+		cluster.OpenshiftVersion = "4.14"
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return([]*models.OperatorHostRequirements{}, nil).AnyTimes()
+
+		testDisk.SizeBytes = int64(99900000000)
+		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
+
+		reasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(reasons).To(HaveLen(1))
+		expected := fmt.Sprintf(tooSmallDiskTemplate, "99.9 GB", "100 GB")
+		Expect(reasons[0]).To(Equal(expected))
 	})
 })
 
