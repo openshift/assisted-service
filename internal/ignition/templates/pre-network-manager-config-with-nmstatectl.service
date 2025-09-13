@@ -1,7 +1,7 @@
 [Unit]
 Description=Prepare network manager config content
+After=NetworkManager-wait-online.service
 Before=nmstate.service
-Requires=nmstate.service
 DefaultDependencies=no
 
 [Service]
