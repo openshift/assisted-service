@@ -390,23 +390,141 @@ func areListsEquivalent(len1, len2 int, areItemsEquivalent func(int, int) bool) 
 	return true
 }
 
+// Helper function to check dual-stack for CIDR-based items
+func isDualStackCIDRItems(getCIDR func(int) string, length int) bool {
+	hasIPv4 := false
+	hasIPv6 := false
+
+	for i := 0; i < length; i++ {
+		cidr := getCIDR(i)
+		if IsIPV4CIDR(cidr) {
+			hasIPv4 = true
+		} else if IsIPv6CIDR(cidr) {
+			hasIPv6 = true
+		}
+		if hasIPv4 && hasIPv6 {
+			return true
+		}
+	}
+	return false
+}
+
+// Helper function to check dual-stack for IP-based items
+func isDualStackIPItems(getIP func(int) string, length int) bool {
+	hasIPv4 := false
+	hasIPv6 := false
+
+	for i := 0; i < length; i++ {
+		ip := getIP(i)
+		if IsIPv4Addr(ip) {
+			hasIPv4 = true
+		} else if IsIPv6Addr(ip) {
+			hasIPv6 = true
+		}
+		if hasIPv4 && hasIPv6 {
+			return true
+		}
+	}
+	return false
+}
+
+// Generic function to check if a list of networks/VIPs is dual-stack
+func isDualStackItems(items interface{}) bool {
+	switch v := items.(type) {
+	case []*models.MachineNetwork:
+		return isDualStackCIDRItems(func(i int) string { return string(v[i].Cidr) }, len(v))
+	case []*models.ServiceNetwork:
+		return isDualStackCIDRItems(func(i int) string { return string(v[i].Cidr) }, len(v))
+	case []*models.ClusterNetwork:
+		return isDualStackCIDRItems(func(i int) string { return string(v[i].Cidr) }, len(v))
+	case []*models.APIVip:
+		return isDualStackIPItems(func(i int) string { return string(v[i].IP) }, len(v))
+	case []*models.IngressVip:
+		return isDualStackIPItems(func(i int) string { return string(v[i].IP) }, len(v))
+	default:
+		return false
+	}
+}
+
+// Now all the comparison functions use the same pattern
 func AreMachineNetworksIdentical(n1, n2 []*models.MachineNetwork) bool {
+	if isDualStackItems(n1) && isDualStackItems(n2) {
+		// For dual-stack, order matters - use exact order comparison
+		if len(n1) != len(n2) {
+			return false
+		}
+		for i := 0; i < len(n1); i++ {
+			if n1[i].Cidr != n2[i].Cidr {
+				return false
+			}
+		}
+		return true
+	}
+	// For non-dual-stack, use original order-agnostic comparison
 	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr })
 }
 
 func AreServiceNetworksIdentical(n1, n2 []*models.ServiceNetwork) bool {
+	if isDualStackItems(n1) && isDualStackItems(n2) {
+		// For dual-stack, order matters
+		if len(n1) != len(n2) {
+			return false
+		}
+		for i := 0; i < len(n1); i++ {
+			if n1[i].Cidr != n2[i].Cidr {
+				return false
+			}
+		}
+		return true
+	}
 	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr })
 }
 
 func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
+	if isDualStackItems(n1) && isDualStackItems(n2) {
+		// For dual-stack, order matters
+		if len(n1) != len(n2) {
+			return false
+		}
+		for i := 0; i < len(n1); i++ {
+			if n1[i].Cidr != n2[i].Cidr || n1[i].HostPrefix != n2[i].HostPrefix {
+				return false
+			}
+		}
+		return true
+	}
 	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr && n1[i].HostPrefix == n2[j].HostPrefix })
 }
 
 func AreApiVipsIdentical(n1, n2 []*models.APIVip) bool {
+	if isDualStackItems(n1) && isDualStackItems(n2) {
+		// For dual-stack, order matters
+		if len(n1) != len(n2) {
+			return false
+		}
+		for i := 0; i < len(n1); i++ {
+			if n1[i].IP != n2[i].IP {
+				return false
+			}
+		}
+		return true
+	}
 	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].IP == n2[j].IP })
 }
 
 func AreIngressVipsIdentical(n1, n2 []*models.IngressVip) bool {
+	if isDualStackItems(n1) && isDualStackItems(n2) {
+		// For dual-stack, order matters
+		if len(n1) != len(n2) {
+			return false
+		}
+		for i := 0; i < len(n1); i++ {
+			if n1[i].IP != n2[i].IP {
+				return false
+			}
+		}
+		return true
+	}
 	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].IP == n2[j].IP })
 }
 
