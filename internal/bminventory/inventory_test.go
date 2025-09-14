@@ -2378,7 +2378,7 @@ var _ = Describe("cluster", func() {
 						ingressVip := "8.8.8.1"
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.8")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.2")}}
-						err := "the second element of apiVIPs must be an IPv6 address. got: 8.8.8.8"
+						err := "Second apiVIPs has to be IPv6 address, got 8.8.8.8"
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -2414,16 +2414,16 @@ var _ = Describe("cluster", func() {
 						Expect(cluster.IngressVips).To(Equal(ingressVips))
 					})
 
-					It("Two APIVips and Two IngressVips - IPv6 first and IPv4 second - negative", func() {
+					It("Two APIVips and Two IngressVips - IPv6 first and IPv4 second - negative (OCP < 4.13)", func() {
 						apiVip := "2001:db8::1"
 						ingressVip := "2001:db8::2"
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.7")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
-						err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
+						err := "IPv6-primary dual-stack requires OpenShift 4.13+"
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(openshiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion), // 4.12.0
 								PullSecret:       swag.String(fakePullSecret),
 								APIVips:          apiVips,
 								IngressVips:      ingressVips,
@@ -2432,12 +2432,39 @@ var _ = Describe("cluster", func() {
 						verifyApiErrorString(reply, http.StatusBadRequest, err)
 					})
 
-					It("Two APIVips and Two IngressVips - IPv6 - negative", func() {
+					It("Two APIVips and Two IngressVips - IPv6 first and IPv4 second - positive (OCP 4.13+)", func() {
+						mockClusterRegisterSuccessWithVersion("x86_64", "4.13.0")
+						mockUsageReports()
+
+						apiVip := "2001:db8::1"
+						ingressVip := "2001:db8::2"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.7")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String("4.13.0"), // Use 4.13+ for IPv6-primary support
+								PullSecret:       swag.String(fakePullSecret),
+								APIVips:          apiVips,
+								IngressVips:      ingressVips,
+							},
+						})
+						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+						actualReply := reply.(*installer.V2RegisterClusterCreated)
+						Expect(actualReply.Payload.APIVips).To(HaveLen(2))
+						Expect(actualReply.Payload.IngressVips).To(HaveLen(2))
+						Expect(string(actualReply.Payload.APIVips[0].IP)).To(Equal(apiVip))
+						Expect(string(actualReply.Payload.APIVips[1].IP)).To(Equal("8.8.8.7"))
+						Expect(string(actualReply.Payload.IngressVips[0].IP)).To(Equal(ingressVip))
+						Expect(string(actualReply.Payload.IngressVips[1].IP)).To(Equal("8.8.8.1"))
+					})
+
+					It("Two APIVips and Two IngressVips - IPv6 - negative on cluster creation", func() {
 						apiVip := "2001:db8::1"
 						ingressVip := "2001:db8::2"
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
-						err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
+						err := "IPv6-primary dual-stack requires OpenShift 4.13+"
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -3145,7 +3172,7 @@ var _ = Describe("cluster", func() {
 					ingressVip := "1.2.3.101"
 					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.8")}}
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.2")}}
-					err := "the second element of apiVIPs must be an IPv6 address. got: 8.8.8.8"
+					err := "Second apiVIPs has to be IPv6 address, got 8.8.8.8"
 
 					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
@@ -3191,33 +3218,12 @@ var _ = Describe("cluster", func() {
 					Expect(cluster.IngressVips).To(Equal(ingressVips))
 				})
 
-				It("Two APIVips and Two ingressVips - IPv6 first and IPv4 second - negative", func() {
+				It("Two APIVips and Two ingressVips - IPv6 first and IPv4 second - negative on cluster update (OCP < 4.13)", func() {
 					apiVip := "2001:db8::1"
 					ingressVip := "2001:db8::2"
 					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.7")}}
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
-					err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
-
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Name:        swag.String("some-cluster-name"),
-							PullSecret:  swag.String(fakePullSecret),
-							APIVips:     apiVips,
-							IngressVips: ingressVips,
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, err)
-				})
-
-				It("Two APIVips and Two ingressVips - IPv6 - negative", func() {
-					apiVip := "2001:db8::1"
-					ingressVip := "2001:db8::2"
-					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
-					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
-					err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
+					err := "First apiVIPs has to be IPv4 address (IPv6-primary dual-stack requires OpenShift 4.13+), got 2001:db8::1"
 
 					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
@@ -4445,7 +4451,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
+					verifyApiErrorString(reply, http.StatusBadRequest, "IPv6-primary dual-stack requires OpenShift 4.13+")
 				})
 				It("API VIP in wrong subnet for dual-stack", func() {
 					apiVip := "10.11.12.15"
@@ -19002,24 +19008,56 @@ var _ = Describe("Dual-stack cluster", func() {
 			}
 		})
 
-		Context("Cluster with wrong network order", func() {
-			It("v6-first in cluster networks rejected", func() {
-				errStr := "First cluster network has to be IPv4 subnet"
+		Context("Cluster with IPv6-primary dual-stack networks (version-aware)", func() {
+			BeforeEach(func() {
+				Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+				db, dbName = common.PrepareTestDB()
+				cfg.DiskEncryptionSupport = false
+				bm = createInventory(db, cfg)
+				bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+					db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
+				mockUsageReports()
+			})
+			AfterEach(func() {
+				ctrl.Finish()
+				common.DeleteTestDB(db, dbName)
+			})
+			It("v6-first in cluster networks rejected (OCP < 4.13)", func() {
 				params.NewClusterParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
+				params.NewClusterParams.OpenshiftVersion = swag.String("4.12.0")
 				reply := bm.V2RegisterCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First cluster networks has to be IPv4 subnet (IPv6-primary dual-stack requires OpenShift 4.13+), got 1003:db8::/53")
 			})
-			It("v6-first in service networks rejected", func() {
-				errStr := "First service network has to be IPv4 subnet"
+			It("v6-first in service networks rejected (OCP < 4.13)", func() {
 				params.NewClusterParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
+				params.NewClusterParams.OpenshiftVersion = swag.String("4.12.0")
 				reply := bm.V2RegisterCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First service networks has to be IPv4 subnet (IPv6-primary dual-stack requires OpenShift 4.13+), got 1002:db8::/119")
 			})
-			It("v6-first in machine networks rejected", func() {
-				errStr := "First machine network has to be IPv4 subnet"
+			It("v6-first in machine networks rejected (OCP < 4.13)", func() {
+				params.NewClusterParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
+				params.NewClusterParams.OpenshiftVersion = swag.String("4.12.0")
+				reply := bm.V2RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First machine networks has to be IPv4 subnet (IPv6-primary dual-stack requires OpenShift 4.13+), got 1001:db8::/120")
+			})
+			It("v6-first in machine/service/cluster networks accepted (OCP 4.13+)", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+
+				params.NewClusterParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
+				params.NewClusterParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
 				params.NewClusterParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
 				reply := bm.V2RegisterCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				cluster := reply.(*installer.V2RegisterClusterCreated).Payload
+				Expect(cluster.ClusterNetworks).To(HaveLen(2))
+				Expect(cluster.ServiceNetworks).To(HaveLen(2))
+				Expect(cluster.MachineNetworks).To(HaveLen(2))
+
+				// Verify that IPv6 networks come first (IPv6-primary)
+				Expect(string(cluster.ClusterNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
+				Expect(string(cluster.ServiceNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
+				Expect(string(cluster.MachineNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
 			})
 		})
 
@@ -19070,21 +19108,46 @@ var _ = Describe("Dual-stack cluster", func() {
 			}
 		})
 
-		Context("Cluster with wrong network order", func() {
-			It("v6-first in cluster networks rejected", func() {
+		Context("Cluster with IPv6-primary dual-stack networks (version-aware)", func() {
+			// Create a cluster with OCP 4.13+ for IPv6-primary tests
+			var cluster413ID strfmt.UUID
+			BeforeEach(func() {
+				mockUsageReports()
+				cluster413ID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:               &cluster413ID,
+					OpenshiftVersion: common.MinimalVersionForIPV6PrimaryWithDualStack,
+					Status:           swag.String(models.ClusterStatusReady),
+					CPUArchitecture:  models.ClusterCPUArchitectureX8664,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				params = installer.V2UpdateClusterParams{ClusterID: cluster413ID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{},
+				}
+			})
+
+			It("v6-first in machine/service/cluster networks accepted (OCP 4.13+)", func() {
+				By("setup IPv6-primary dual stack networking")
+				cluster413 := &common.Cluster{Cluster: models.Cluster{
+					ID: &cluster413ID,
+				}}
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster413)).Return(nil).Times(1)
+
 				params.ClusterUpdateParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First cluster network has to be IPv4 subnet")
-			})
-			It("v6-first in service networks rejected", func() {
 				params.ClusterUpdateParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First service network has to be IPv4 subnet")
-			})
-			It("v6-first in machine networks rejected", func() {
 				params.ClusterUpdateParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
+
+				cluster, err := bm.UpdateClusterNonInteractive(ctx, params, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cluster.ClusterNetworks).To(HaveLen(2))
+				Expect(cluster.ServiceNetworks).To(HaveLen(2))
+				Expect(cluster.MachineNetworks).To(HaveLen(2))
+
+				// Verify that IPv6 networks come first (IPv6-primary)
+				Expect(string(cluster.ClusterNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
+				Expect(string(cluster.ServiceNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
+				Expect(string(cluster.MachineNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
 			})
 		})
 
@@ -20623,60 +20686,6 @@ var _ = Describe("UpdateIgnitionEndpointIfHasMCSCert", func() {
 		Expect(ignitionEndpointUrl).To(Equal("https://custom-ignition.example.com/worker"))
 	})
 
-})
-
-var _ = Describe("V2UpdateHostIgnition unbound blabla", func() {
-	var (
-		bm     *bareMetalInventory
-		cfg    Config
-		db     *gorm.DB
-		dbName string
-	)
-
-	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
-
-	It("unbound host ignition update", func() {
-		infraEnvID := strfmt.UUID(uuid.New().String())
-		infraEnv := &common.InfraEnv{
-			InfraEnv: models.InfraEnv{
-				ID: &infraEnvID,
-			},
-		}
-		Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
-
-		hostID := strfmt.UUID(uuid.New().String())
-		host := models.Host{
-			ID:         &hostID,
-			InfraEnvID: infraEnvID,
-			Kind:       swag.String(models.HostKindHost),
-			Status:     swag.String(models.HostStatusKnownUnbound),
-			Role:       models.HostRoleAutoAssign,
-		}
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-
-		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		params := installer.V2UpdateHostIgnitionParams{
-			InfraEnvID:         infraEnvID,
-			HostID:             hostID,
-			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
-		}
-
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostDiscoveryIgnitionConfigAppliedEventName),
-			eventstest.WithHostIdMatcher(params.HostID.String()),
-			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String())))
-
-		response := bm.V2UpdateHostIgnition(context.TODO(), params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostIgnitionCreated{}))
-	})
 })
 
 func getDummyCluster() common.Cluster {
